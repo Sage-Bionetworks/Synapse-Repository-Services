@@ -22,12 +22,12 @@ public class GroupByClause extends SQLElement {
 	@Override
 	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if (columnConvertor != null) {
-			columnConvertor.setCurrentClause(SQLClause.GROUP_BY);
+			columnConvertor.pushCurrentClause(SQLClause.GROUP_BY);
 		}
 		builder.append("GROUP BY ");
 		groupingColumnReferenceList.toSQL(builder, columnConvertor);
 		if (columnConvertor != null) {
-			columnConvertor.setCurrentClause(null);
+			columnConvertor.popCurrentClause(SQLClause.GROUP_BY);
 		}
 	}
 }

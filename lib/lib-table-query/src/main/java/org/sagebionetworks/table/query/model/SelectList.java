@@ -46,7 +46,7 @@ public class SelectList extends SQLElement {
 	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		// select is either star or a list of derived columns
 		if (columnConvertor != null) {
-			columnConvertor.setCurrentClause(SQLClause.SELECT);
+			columnConvertor.pushCurrentClause(SQLClause.SELECT);
 		}
 		if(asterisk != null){
 			builder.append("*");
@@ -61,7 +61,7 @@ public class SelectList extends SQLElement {
 			}
 		}
 		if (columnConvertor != null) {
-			columnConvertor.setCurrentClause(null);
+			columnConvertor.popCurrentClause(SQLClause.SELECT);
 		}
 	}
 	

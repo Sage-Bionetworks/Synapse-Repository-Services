@@ -12,7 +12,7 @@ public abstract class SQLElement {
 	public interface ColumnConvertor {
 
 		enum SQLClause {
-			SELECT, ORDER_BY, GROUP_BY
+			SELECT, ORDER_BY, GROUP_BY, FUNCTION_PARAMETER
 		};
 
 		/**
@@ -80,12 +80,20 @@ public abstract class SQLElement {
 		void convertParam(String signedNumericLiteral, StringBuilder builder);
 
 		/**
-		 * Indicates that columns are now interpreted as part of specific clause/ Always set back to null when clause
-		 * goes out of scope
+		 * Indicates that columns are now interpreted as part of specific clause/ Always pop when clause goes out of
+		 * scope
 		 * 
 		 * @param currentClause
 		 */
-		void setCurrentClause(SQLClause clause);
+		void pushCurrentClause(SQLClause clause);
+
+		/**
+		 * Indicates that columns are no longer interpreted as part of specific clause. Always match push goes out of
+		 * scope
+		 * 
+		 * @param currentClause
+		 */
+		void popCurrentClause(SQLClause clause);
 	}
 
 	/**

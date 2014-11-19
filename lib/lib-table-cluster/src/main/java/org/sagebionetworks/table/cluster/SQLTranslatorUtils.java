@@ -4,10 +4,13 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -71,7 +74,7 @@ public class SQLTranslatorUtils {
 			private ColumnModel columnModelLHS = null;
 			private Set<String> asColumns = Sets.newHashSet();
 			private String currentTableName = null;
-			private SQLClause currentClause = null;
+			private LinkedList<SQLClause> currentClauses = Lists.newLinkedList();
 
 			@Override
 			public void convertTableName(String tableName, StringBuilder builder) {
@@ -107,11 +110,11 @@ public class SQLTranslatorUtils {
 						}
 						switch ( column.getColumnType()){
 						case DOUBLE:
-							SQLUtils.appendDoubleCase(column, subName, currentTableName, currentClause == SQLClause.SELECT, builder);
+							SQLUtils.appendDoubleCase(column, subName, currentTableName, currentClauses.contains(SQLClause.SELECT),
+									!currentClauses.contains(SQLClause.FUNCTION_PARAMETER), builder);
 							break;
 						default:
-							builder.append(subName);
-							SQLUtils.appendColumnName(column, builder);
+							SQLUtils.appendColumnName(subName, column, builder);
 							break;
 						}
 					}
@@ -211,11 +214,17 @@ public class SQLTranslatorUtils {
 			}
 
 			@Override
-			public void setCurrentClause(SQLClause clause) {
-				if (clause != null && currentClause != null) {
-					throw new IllegalStateException("Clauses cannot be nested");
+			public void pushCurrentClause(SQLClause clause) {
+				currentClauses.push(clause);
+			}
+
+			@Override
+			public void popCurrentClause(SQLClause clause) {
+				SQLClause lastPushedClause = currentClauses.pop();
+				if (lastPushedClause != clause) {
+					throw new IllegalStateException("Last pushed clause " + lastPushedClause + " is not the same as the one that was popped "
+							+ clause);
 				}
-				currentClause = clause;
 			}
 		};
 		return columnConvertor;
