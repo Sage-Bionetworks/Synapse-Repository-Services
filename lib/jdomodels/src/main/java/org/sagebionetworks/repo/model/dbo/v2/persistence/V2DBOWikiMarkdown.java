@@ -38,16 +38,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 @Table(name = V2_TABLE_WIKI_MARKDOWN, constraints = {"UNIQUE KEY `V2_WIKI_UNIQUE_MARKDOWN_VERSION` (`" + V2_COL_WIKI_MARKDOWN_ID + "`,`" + V2_COL_WIKI_MARKDOWN_VERSION_NUM + "`)"})
 public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMarkdown, V2DBOWikiMarkdown> {
 	
-//	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-//		new FieldColumn("wikiId", V2_COL_WIKI_MARKDOWN_ID, true).withIsBackupId(true),
-//		new FieldColumn("fileHandleId", V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID),
-//		new FieldColumn("markdownVersion", V2_COL_WIKI_MARKDOWN_VERSION_NUM, true),
-//		new FieldColumn("modifiedOn", V2_COL_WIKI_MARKDOWN_MODIFIED_ON),
-//		new FieldColumn("modifiedBy", V2_COL_WIKI_MARKDOWN_MODIFIED_BY),
-//		new FieldColumn("title", V2_COL_WIKI_MARKDOWN_TITLE),
-//		new FieldColumn("attachmentIdList", V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST),
-//	};
-	
 	@Field(name = V2_COL_WIKI_MARKDOWN_ID, backupId = true, primary = true, nullable = false)
 	@ForeignKey(name = "V2_WIKI_MARKDOWN_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long wikiId;
@@ -68,7 +58,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, varchar = 256)
 	private String title;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, type = "mediumblob", defaultNull = true)	// TODO: default null
+	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, type = "mediumblob", defaultNull = true)
 	private byte[] attachmentIdList;
 
 	private static TableMapping<V2DBOWikiMarkdown> tableMapping = AutoTableMapping.create(V2DBOWikiMarkdown.class);

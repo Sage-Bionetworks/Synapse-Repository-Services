@@ -2,9 +2,11 @@ package org.sagebionetworks.repo.model.dbo.v2.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_ROOT_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_OWNERS_ORDER_HINT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_DDL_FILE_WIKI_ONWERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_OWNERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
@@ -39,10 +41,17 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	@ForeignKey(name = "V2_WIKI_OWNER_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long rootWikiId;
 	
-	@Field(name = "ORDER_HINT",varchar = 256, defaultNull = true)
-	private String orderHint;
-	public void setOrderHint(String orderHint)	{	this.orderHint = orderHint;	}
-	public String getOrderHint()				{	return orderHint;			}
+	// TODO: Constants for column names.
+	@Field(name = V2_COL_WIKI_OWNERS_ORDER_HINT, type = "mediumblob", defaultNull = true)
+	private byte[] orderHint;
+	public void setOrderHint(byte[] orderHint)	{	this.orderHint = orderHint;	}
+	public byte[] getOrderHint()					{	return orderHint;			}
+	
+	@Field(name = "ETAG", nullable = false, etag = true)
+	private String etag;
+	public void setEtag(String etag)		{	this.etag = etag;	}
+	public String getEtag()					{	return etag;			}
+	
 	
 	private static TableMapping<V2DBOWikiOwner> tableMapping = AutoTableMapping.create(V2DBOWikiOwner.class);
 	
