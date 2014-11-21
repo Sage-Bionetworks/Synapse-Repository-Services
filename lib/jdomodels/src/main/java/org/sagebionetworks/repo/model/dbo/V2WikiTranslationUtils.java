@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -11,8 +12,10 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
+import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 /**
  * Utility for translating to/from V2 DTO/DBO
@@ -90,6 +93,38 @@ public class V2WikiTranslationUtils {
 		
 		return page;
 	}
+	
+	/**
+	 * Create a wiki owner DTO from the DBOs;
+	 * @param page
+	 * @param attachments
+	 * @return
+	 */
+	public static V2WikiOrderHint createWikiOrderHintDTOfromDBO(V2DBOWikiOwner dbo){
+		if(dbo == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
+		
+		V2WikiOrderHint dto = new V2WikiOrderHint();
+		dto.setOwnerId(dbo.getOwnerId().toString());
+		dto.setOwnerObjectType(dbo.getOwnerTypeEnum());
+		
+		// Set order hint
+		byte[] orderHintBytes = dbo.getOrderHint();
+		if (orderHintBytes != null) {
+			String[] orderHint = null;
+			try {
+				String orderHintString = new String(orderHintBytes, "UTF-8");
+				orderHint = orderHintString.split(",");
+				dto.setOrderHint(Arrays.asList(orderHint));
+			} catch (UnsupportedEncodingException e) {
+				// TODO SOMETHING HERE??
+				e.printStackTrace();
+			}
+		}
+		
+		return dto;
+	}
+	
+	
 	
 	/**
 	 * Create a list of DBOWikiAttachmentReservation for all attachments of a DTO.
