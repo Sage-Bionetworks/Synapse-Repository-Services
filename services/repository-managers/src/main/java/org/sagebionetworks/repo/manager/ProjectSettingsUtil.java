@@ -49,11 +49,11 @@ public class ProjectSettingsUtil {
 				throw new IllegalArgumentException("UploadType.S3 invalid for ExternalUploadDestinationSetting.");
 			}
 			if ((setting.getUploadType() == UploadType.HTTPS) && 
-					(!((ExternalUploadDestinationSetting) setting).getUrl().startsWith("https:"))) {
+					(!((ExternalUploadDestinationSetting) setting).getUrl().toLowerCase().startsWith("https:"))) {
 				throw new IllegalArgumentException("setting.getUrl() must start with 'http' if setting.getUploadType() is UploadType.HTTP.");
 			}
 			if ((setting.getUploadType() == UploadType.SFTP) && 
-					(!((ExternalUploadDestinationSetting) setting).getUrl().startsWith("sftp"))) {
+					(!((ExternalUploadDestinationSetting) setting).getUrl().toLowerCase().startsWith("sftp"))) {
 				throw new IllegalArgumentException("setting.getUrl() must start with 'sftp' if setting.getUploadType() is UploadType.SFTP.");
 			}
 		}

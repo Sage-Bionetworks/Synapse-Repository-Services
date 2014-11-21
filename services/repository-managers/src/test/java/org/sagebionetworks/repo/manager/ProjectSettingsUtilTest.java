@@ -11,81 +11,67 @@ import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 public class ProjectSettingsUtilTest {
 
 	@Test
-	public void testValidateUploadDestinationSetting() {
+	public void testValidateUploadDestinationSettingValid() {
 		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
-		// Null uploadType
-		Exception ex = null;
 		setting.setUploadType(UploadType.HTTPS);
 		setting.setUrl("https://someurl");
 		// Should not raise exception
 		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
+		
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingsNullUrl() {
+		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
+		setting.setUploadType(UploadType.HTTPS);
 		setting.setUrl(null);
-		try {
-			ProjectSettingsUtil.validateUploadDestinationSetting(setting);
-		} catch (IllegalArgumentException e) {
-			assertNotNull(e);
-			ex = e;
-		}
-		assertNotNull(ex);
-		// Null url
-		ex = null;
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
+		
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingNullUploadType() {
+		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
 		setting.setUrl("http://someurl");
 		setting.setUploadType(null);
-		try {
 			ProjectSettingsUtil.validateUploadDestinationSetting(setting);		
-		} catch (IllegalArgumentException e) {
-			assertNotNull(e);
-			ex = e;
-		}
-		assertNotNull(ex);
-		// Mismatched protocols
-		ex = null;
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingMismatchedProtocols1() {
+		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
+		setting.setUrl("http://someurl");
 		setting.setUploadType(UploadType.S3);
-		try {
-			ProjectSettingsUtil.validateUploadDestinationSetting(setting);		
-		} catch (IllegalArgumentException e) {
-			assertNotNull(e);
-			ex = e;
-		}
-		assertNotNull(ex);
-		ex = null;
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingMismatchedProtocols2() {
+		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
 		setting.setUploadType(UploadType.HTTPS);
 		setting.setUrl("sftp://someurl");
-		try {
-			ProjectSettingsUtil.validateUploadDestinationSetting(setting);		
-		} catch (IllegalArgumentException e) {
-			assertNotNull(e);
-			ex = e;
-		}
-		assertNotNull(ex);
-		ex = null;
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingMismatchedProtocols3() {
+		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
 		setting.setUploadType(UploadType.SFTP);
 		setting.setUrl("s3://someurl");
-		try {
-			ProjectSettingsUtil.validateUploadDestinationSetting(setting);		
-		} catch (IllegalArgumentException e) {
-			assertNotNull(e);
-			ex = e;
-		}
-		assertNotNull(ex);
-		setting.setUrl("sftp://someurl");
-		// Should not raise exception
 		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
-		
-		// S3UploadDestinationSetting
-		ex = null;
-		S3UploadDestinationSetting setting2 = new S3UploadDestinationSetting();
-		setting2.setUploadType(UploadType.SFTP);
-		try {
-			ProjectSettingsUtil.validateUploadDestinationSetting(setting2);
-		} catch (IllegalArgumentException e) {
-			assertNotNull(e);
-			ex = e;
-		}
-		assertNotNull(ex);
-		setting2.setUploadType(UploadType.S3);
-		// Should not raise exception
-		ProjectSettingsUtil.validateUploadDestinationSetting(setting2);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingMismatchedProtocolS3UploadInvalid() {
+		S3UploadDestinationSetting setting = new S3UploadDestinationSetting();
+		setting.setUploadType(UploadType.SFTP);
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
+	
+	@Test
+	public void testValidateUploadDestinationSettingMismatchedProtocolS3UploadValid() {
+		S3UploadDestinationSetting setting = new S3UploadDestinationSetting();
+		setting.setUploadType(UploadType.S3);
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
 	}
 	
 }
