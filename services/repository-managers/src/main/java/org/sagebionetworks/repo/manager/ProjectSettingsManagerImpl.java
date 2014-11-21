@@ -71,6 +71,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, String type, Class<T> expectedType)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
+			throw new UnauthorizedException("Cannot read information for this parent entity");
+		}
 		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
@@ -86,9 +89,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 		if (projectId == null) {
 			throw new IllegalArgumentException("This parentId is not contained in a project");
-		}
-		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
-			throw new UnauthorizedException("Cannot read information from this project");
 		}
 		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
 		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
