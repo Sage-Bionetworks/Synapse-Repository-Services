@@ -41,8 +41,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-// not yet public
-//@ControllerInfo(displayName = "Project Settings Services", path = "repo/v1")
+@ControllerInfo(displayName = "Project Settings Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class ProjectSettingsController extends BaseController {
