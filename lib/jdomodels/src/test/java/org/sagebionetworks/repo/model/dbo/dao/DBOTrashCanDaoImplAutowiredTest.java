@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -206,6 +207,30 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertFalse(exists);
 		trash = trashCanDao.getTrashedEntity(userId, nodeId2);
 		assertNull(trash);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateItemLongNameTooLong() {
+		char[] chars = new char[260];
+		Arrays.fill(chars,  'x');
+		final String nodeName = new String(chars);
+		final String nodeId = KeyFactory.keyToString(999L);
+		final String parentId = KeyFactory.keyToString(9L);
+		trashCanDao.create(userId, nodeId, nodeName, parentId);
+	}
+
+	@Test 
+	public void testCreateItemLongName() {
+		char[] chars = new char[255];
+		Arrays.fill(chars,  'x');
+		final String nodeName = new String(chars);
+		final String nodeId = KeyFactory.keyToString(999L);
+		final String parentId = KeyFactory.keyToString(9L);
+		trashCanDao.create(userId, nodeId, nodeName, parentId);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(false, 0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(1, trashList.size());
+
 	}
 
 	private void clear() throws Exception {

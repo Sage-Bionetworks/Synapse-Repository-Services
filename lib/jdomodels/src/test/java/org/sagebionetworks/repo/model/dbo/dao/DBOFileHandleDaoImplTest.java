@@ -248,13 +248,7 @@ public class DBOFileHandleDaoImplTest {
 		meta.setFileName(new String(chars));
 		// Create
 		meta = fileHandleDao.createFile(meta);
-		assertNotNull(meta);
-		String id = meta.getId();
-		toDelete.add(id);
-		FileHandle clone = fileHandleDao.get(id);
-		assertNotNull(clone);
-		// Does the clone match the expected.
-		assertEquals(meta, clone);
+		assertNull(meta);
 	}
 	
 
