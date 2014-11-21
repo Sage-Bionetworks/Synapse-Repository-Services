@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -142,4 +143,11 @@ public interface V2WikiManager {
 	 */
 	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
+	
+	V2WikiOrderHint getOrderHint(UserInfo user, WikiPageKey key) throws NotFoundException;
+	
+	// TODO: Return type?? Also, orderHint should be IdList?
+	void updateOrderHint(UserInfo user, WikiPageKey key, String[] orderHint) throws NotFoundException;
+	
+	
 }

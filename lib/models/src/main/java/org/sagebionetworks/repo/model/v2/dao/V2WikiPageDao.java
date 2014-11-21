@@ -146,7 +146,7 @@ public interface V2WikiPageDao {
 	 * @param wikiId
 	 * @return
 	 */
-	String lockWikiOwnersForUpdate(String wikiId);
+	String lockWikiOwnersForUpdate(String ownerId, ObjectType ownerObjectType);
 	
 	/**
 	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.

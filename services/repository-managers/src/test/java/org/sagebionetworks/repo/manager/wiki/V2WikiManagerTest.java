@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -242,7 +243,7 @@ public class V2WikiManagerTest {
 	    newIds.add(one.getId());
 		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(page);
 	    verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);   
-	}	
+	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
@@ -877,6 +878,59 @@ public class V2WikiManagerTest {
 		verify(mockWikiDao, times(1)).getMarkdownFileHandleIdsForWiki(key);
 		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(ArrayList.class));
 		
+	}
+	
+	@Test 
+	public void testUpdateOrderHintAuthorized() throws DatastoreException, NotFoundException {
+		String ownerId = "556";
+		ObjectType ownerType = ObjectType.EVALUATION;
+		String wikiId = "0";
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
+		
+		// Return OrderHint DTO 
+		V2WikiOrderHint orderHintDTO = new V2WikiOrderHint();
+		orderHintDTO.setEtag("etag");
+		orderHintDTO.setOwnerId("123");
+		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
+		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
+		
+		// Return etag when locking Wiki Owner database.
+		when(mockWikiDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType())).thenReturn("etag");
+		
+		// Allow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		String[] orderHint = {"A", "B", "C"};
+		
+		wikiManager.updateOrderHint(user, key, orderHint);
+		
+		// Verify that the order hint was updated.
+		verify(mockWikiDao, times(1)).updateOrderHint(eq(key), eq(orderHint));
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testUpdateOrderHintUnauthorized() throws DatastoreException, NotFoundException {
+		String ownerId = "556";
+		ObjectType ownerType = ObjectType.EVALUATION;
+		String wikiId = "0";
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
+		
+		// Return OrderHint DTO 
+		V2WikiOrderHint orderHintDTO = new V2WikiOrderHint();
+		orderHintDTO.setEtag("etag");
+		orderHintDTO.setOwnerId("123");
+		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
+		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
+		
+		// Return etag when locking Wiki Owner database.
+		when(mockWikiDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType())).thenReturn("etag");
+		
+		// Allow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		String[] orderHint = {"A", "B", "C"};
+		
+		wikiManager.updateOrderHint(user, key, orderHint);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

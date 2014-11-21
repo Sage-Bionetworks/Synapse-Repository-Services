@@ -299,6 +299,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return new PaginatedResults<V2WikiHeader>(list, list.size());
 	}
 	
+	@Override
 	public V2WikiOrderHint getOrderHint(UserInfo user, WikiPageKey key) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
@@ -310,17 +311,19 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	}
 	
 	// TODO: Return result of updateOrderHint (determine what that return will be).
+	@Override
 	public void updateOrderHint(UserInfo user, WikiPageKey key, String[] orderHint) throws NotFoundException {
 		
 		// Check that user has update access.
 		validateUpdateAccess(user, key);
 		
-		V2WikiOrderHint orderHintDTO = wikiPageDao.getOrderHint(key);
+		V2WikiOrderHint orderHintDTO = wikiPageDao.getWikiOrderHint(key);
 		
 		// Before we can update the Wiki we need to lock.
-		String currentEtag = wikiPageDao.lockForUpdate(wikiPage.getId());
-		if(!currentEtag.equals(wikiPage.getEtag())){
-			throw new ConflictingUpdateException("ObjectId: "+objectId+" was updated since you last fetched it, retrieve it again and reapply the update");
+		System.out.println(orderHintDTO.getOwnerId());	// TODO: Is this a long? idk...
+		String currentEtag = wikiPageDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType());
+		if(!currentEtag.equals(orderHintDTO.getEtag())){
+			throw new ConflictingUpdateException("ObjectId: "+orderHintDTO.getOwnerId()+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		
 		wikiPageDao.updateOrderHint(key, orderHint);
