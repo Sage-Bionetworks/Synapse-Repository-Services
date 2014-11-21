@@ -41,19 +41,21 @@ public class TableCacheInvalidationMigrationListener implements MigrationTypeLis
 			return;
 		}
 
-		try {
-			// the idsToDelete is a list of table ids for this type
-			for (Long tableId : idsToDelete) {
-				log.info("Deleting table " + tableId + " from index due to migration");
-				String tableIdString = KeyFactory.keyToString(tableId);
-				TableIndexDAO indexDAO = tableConnectionFactory.getConnection(tableIdString);
-				tableRowTruthDAO.removeCaches(tableId);
-				indexDAO.deleteTable(tableIdString);
-				indexDAO.deleteStatusTable(tableIdString);
-			}
-		} catch (IOException e) {
-			// we want the migration to fail if any of the caches cannot be cleared
-			throw new RuntimeException(e.getMessage(), e);
-		}
+		// waiting for a migration fix. When an entry is deleted, we don't delete the associated MessageSent entry and
+		// an update message is never sent (PLFM-3077)
+		// try {
+		// // the idsToDelete is a list of table ids for this type
+		// for (Long tableId : idsToDelete) {
+		// log.info("Deleting table " + tableId + " from index due to migration");
+		// String tableIdString = KeyFactory.keyToString(tableId);
+		// TableIndexDAO indexDAO = tableConnectionFactory.getConnection(tableIdString);
+		// tableRowTruthDAO.removeCaches(tableId);
+		// indexDAO.deleteTable(tableIdString);
+		// indexDAO.deleteStatusTable(tableIdString);
+		// }
+		// } catch (IOException e) {
+		// // we want the migration to fail if any of the caches cannot be cleared
+		// throw new RuntimeException(e.getMessage(), e);
+		// }
 	}
 }
