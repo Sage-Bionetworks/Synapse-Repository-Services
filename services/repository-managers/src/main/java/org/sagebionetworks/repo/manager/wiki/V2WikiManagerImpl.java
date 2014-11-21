@@ -313,6 +313,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	// TODO: Return result of updateOrderHint (determine what that return will be).
 	@Override
 	public void updateOrderHint(UserInfo user, WikiPageKey key, String[] orderHint) throws NotFoundException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
+		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
 		
 		// Check that user has update access.
 		validateUpdateAccess(user, key);

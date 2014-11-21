@@ -993,6 +993,31 @@ public class V2WikiManagerTest {
 		wikiManager.deleteWiki(new UserInfo(true), null);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetOrderHintNullKey() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(new UserInfo(true), null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(null, new WikiPageKey());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateOrderHintNullKey() throws UnauthorizedException, NotFoundException {
+		wikiManager.updateOrderHint(new UserInfo(true), null, new String[] {});
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
+		wikiManager.updateOrderHint(null, new WikiPageKey(), new String[] {});
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateOrderHintNullUserOrderHint() throws UnauthorizedException, NotFoundException {
+		wikiManager.updateOrderHint(new UserInfo(true), new WikiPageKey(), null);
+	}
+	
 	@Test
 	public void testDeleteOwnerNotFound() throws UnauthorizedException, NotFoundException{
 		// If the owner does not exist then then we can delete it.
