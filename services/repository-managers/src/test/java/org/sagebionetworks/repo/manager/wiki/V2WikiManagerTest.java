@@ -933,6 +933,23 @@ public class V2WikiManagerTest {
 		wikiManager.updateOrderHint(user, key, orderHint);
 	}
 	
+	@Test
+	public void testGetOrderHintAuthorized() throws DatastoreException, NotFoundException {
+		// Allow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		wikiManager.getOrderHint(user, key);
+		
+		verify(mockWikiDao).getWikiOrderHint(key);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOrderHintUnauthorized() throws DatastoreException, NotFoundException {
+		// Disallow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		wikiManager.getOrderHint(user, key);
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWikiPageNullUser() throws UnauthorizedException, NotFoundException{
 		wikiManager.createWikiPage(null, "123", ObjectType.ENTITY, new V2WikiPage());

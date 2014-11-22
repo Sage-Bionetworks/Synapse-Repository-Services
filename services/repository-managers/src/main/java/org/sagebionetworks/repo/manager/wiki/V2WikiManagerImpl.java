@@ -312,7 +312,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	
 	// TODO: Return result of updateOrderHint (determine what that return will be).
 	@Override
-	public void updateOrderHint(UserInfo user, WikiPageKey key, String[] orderHint) throws NotFoundException {
+	public V2WikiOrderHint updateOrderHint(UserInfo user, WikiPageKey key, V2WikiOrderHint orderHint) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
@@ -329,7 +329,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new ConflictingUpdateException("ObjectId: "+orderHintDTO.getOwnerId()+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		
-		wikiPageDao.updateOrderHint(key, orderHint);
+		return wikiPageDao.updateOrderHint(orderHint, key);
 	}
 
 

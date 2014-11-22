@@ -146,8 +146,7 @@ public interface V2WikiManager {
 	
 	V2WikiOrderHint getOrderHint(UserInfo user, WikiPageKey key) throws NotFoundException;
 	
-	// TODO: Return type?? Also, orderHint should be IdList?
-	void updateOrderHint(UserInfo user, WikiPageKey key, String[] orderHint) throws NotFoundException;
+	V2WikiOrderHint updateOrderHint(UserInfo user, WikiPageKey key, V2WikiOrderHint orderHint) throws NotFoundException;
 	
 	
 }

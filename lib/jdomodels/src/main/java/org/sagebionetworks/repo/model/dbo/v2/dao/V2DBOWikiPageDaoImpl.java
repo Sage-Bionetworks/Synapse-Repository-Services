@@ -331,29 +331,33 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	// TODO: return V2WikiOrderHint DTO?
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateOrderHint(WikiPageKey key, String[] orderHint) {
+	public V2WikiOrderHint updateOrderHint(V2WikiOrderHint orderHint, WikiPageKey key) throws NotFoundException {
 		if (key == null) throw new IllegalArgumentException("Key cannot be null");
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
 		
 		// TODO Verify only one result with given owner and objectId.
-		//V2DBOWikiOwner oldDBO = getWikiOwnerDBO(key.getOwnerObjectId(), key.getOwnerObjectType());
+		//V2DBOWikiOwner oldDBO = getWikiOwnerDBO(key.getWikiPageId());
+		
+		//V2DBOWikiOwner newDBO = V2WikiTranslationUtils.createDBOFromDTO(orderHint);
 		
 		StringBuffer orderHintCSV = new StringBuffer();
-		for (int i = 0; i < orderHint.length; i++) {
-			orderHintCSV.append(orderHint[i]);
+		for (int i = 0; i < orderHint.getOrderHint().size(); i++) {
+			orderHintCSV.append(orderHint.getOrderHint().get(i));
 			orderHintCSV.append(',');
 		}
 		// TODO: Validate that there is only one matching DBO?
 		
 		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" = ?";
+		
 		// String class's split method will remove trailing empty strings for the fencepost ','
 		String listString = orderHintCSV.toString();
 		try {
 			simpleJdbcTemplate.update(updateSql, listString.getBytes("UTF-8"), key.getWikiPageId());
-			//dbo.setAttachmentIdList(listString.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+		
+		return getWikiOrderHint(key);
 	}
 	
 //	@Override
@@ -650,16 +654,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		Long root = getRootWiki(ownerId, ownerType);
 		// Now use the root to the the full tree
 		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
-	}
-	
-	public List<String> getSubWikiOrderHint(String ownerId, ObjectType ownerType)
-			throws DatastoreException, NotFoundException {
-		// First look up the root for this owner
-		//Long root = getRootWiki(ownerId, ownerType);
-		//java.sql.Blob blob
-		
-		
-		return null;
 	}
 	
 //	/**

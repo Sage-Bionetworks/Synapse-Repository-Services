@@ -124,8 +124,6 @@ public class V2WikiTranslationUtils {
 		return dto;
 	}
 	
-	
-	
 	/**
 	 * Create a list of DBOWikiAttachmentReservation for all attachments of a DTO.
 	 * @param fileNameToFileHandleMap

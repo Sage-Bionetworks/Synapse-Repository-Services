@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -308,6 +309,24 @@ public class V2WikiController extends BaseController {
 		return serviceProvider.getV2WikiService().updateWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toUpdate);
 	}
+	
+	// TODO: WRITE COMMENTS YOU LOSER
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	V2WikiOrderHint updateEntityWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody V2WikiOrderHint toUpdate) throws DatastoreException,
+			NotFoundException {
+		if (wikiId == null) throw new IllegalArgumentException("Wiki ID cannot be null.");
+		if (toUpdate == null) throw new IllegalArgumentException("OrderHint cannot be null.");
+		return serviceProvider.getV2WikiService().updateWikiOrderHint(userId,
+					WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+					(String[]) toUpdate.getOrderHint().toArray());
+	}
+	
+	
 
 	/**
 	 * Update a specific WikiPage of an Evaluation. This adds a new entry 
@@ -549,6 +568,39 @@ public class V2WikiController extends BaseController {
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiHeaderTree(userId,
 				ownerId, ObjectType.ENTITY, limit, offset);
+	}
+	
+	/**
+	 * 
+	 * TODO: write your own comment you LOSER
+	 * Get a paginated list of all <a
+	 * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader}">V2WikiHeaders</a>
+	 * that belong to the given owner Entity. The resulting list can be used to
+	 * build a tree of the WikiPages for this owner. The first WikiHeader will
+	 * be for the root WikiPage (parentWikiId = null).
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Entity.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_TREE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	V2WikiOrderHint getEntityWikiOrderHint(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String wikiId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getV2WikiService().getWikiOrderHint(userId,
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 
 	/**

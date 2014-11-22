@@ -65,7 +65,7 @@ public interface V2WikiPageDao {
 	 */
 	V2WikiOrderHint getWikiOrderHint(WikiPageKey rootKey) throws NotFoundException;
 	
-	void updateOrderHint(WikiPageKey key, String[] orderHint) throws NotFoundException;
+	V2WikiOrderHint updateOrderHint(V2WikiOrderHint orderHint, WikiPageKey key) throws NotFoundException;
 	
 	/**
 	 * Get the markdown of a wiki page as a string.

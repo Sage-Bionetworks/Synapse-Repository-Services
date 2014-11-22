@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -162,4 +163,7 @@ public interface V2WikiService {
 	 */
 	V2WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
 
+	// TODO: Comment
+	V2WikiOrderHint getWikiOrderHint(Long userId, WikiPageKey wikiPageKey) throws NotFoundException;
+	V2WikiOrderHint updateWikiOrderHint(Long userId, WikiPageKey wikiPageKey, V2WikiOrderHint orderHint) throws NotFoundException;
 }
