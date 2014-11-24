@@ -5,9 +5,9 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.S3PropertyFileLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -21,6 +21,9 @@ public class TableCacheInvalidationMigrationListener implements MigrationTypeLis
 
 	@Autowired
 	TableRowTruthDAO tableRowTruthDAO;
+
+	@Autowired
+	TableStatusDAO tableStatusDAO;
 
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
@@ -50,6 +53,10 @@ public class TableCacheInvalidationMigrationListener implements MigrationTypeLis
 				tableRowTruthDAO.removeCaches(tableId);
 				indexDAO.deleteTable(tableIdString);
 				indexDAO.deleteStatusTable(tableIdString);
+				// we must also delete the table status here. If we don't, a stale reset token in the status table entry
+				// could prevent the table from being rebuilt
+				// see PLFM-3077
+				tableStatusDAO.deleteTableStatus(tableIdString);
 			}
 		} catch (IOException e) {
 			// we want the migration to fail if any of the caches cannot be cleared
