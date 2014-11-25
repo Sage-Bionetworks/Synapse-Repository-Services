@@ -11,6 +11,9 @@
 			"type": "string",
 			"description": "Information on how to contact the ACT Team for access approval (external to Synapse)",
 			"title": "ACT Contact Information"
+		},
+		"openJiraIssue": {
+			"type":"boolean"
 		}
 	}
 }
