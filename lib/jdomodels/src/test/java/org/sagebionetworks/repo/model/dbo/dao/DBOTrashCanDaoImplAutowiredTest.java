@@ -230,6 +230,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		List<TrashedEntity> trashList = trashCanDao.getInRange(false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
+		assertEquals(nodeName, trashList.get(0).getEntityName());
 
 	}
 
