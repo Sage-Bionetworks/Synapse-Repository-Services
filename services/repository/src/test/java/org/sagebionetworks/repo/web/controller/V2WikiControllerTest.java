@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -354,6 +355,33 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals(childRestored.getAttachmentFileHandleIds().size(), 1);
 		assertEquals(childRestored.getAttachmentFileHandleIds().get(0), fileOneHandle.getId());
 		assertEquals(child.getTitle(), childRestored.getTitle());	
+	}
+	
+	@Test
+	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
+		// create an entity		TODO: Perhaps check for evaluation as well.
+		entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		
+		String ownerId = entity.getId();
+		ObjectType ownerType = ObjectType.ENTITY;
+		
+		// Make wiki page
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setTitle("testCreateEntityWikiRoundTrip-"+ownerId+"-"+ownerType);
+		wiki.setMarkdownFileHandleId(markdownOneHandle.getId());
+		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
+		wiki = entityServletHelper.createV2WikiPage(adminUserId, ownerId, ownerType, wiki);
+		assertNotNull(wiki);
+		
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
+		
+		// Get OrderHint for the created project (should have empty order hint).
+		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
+		
+		
+		
 	}
 
 }

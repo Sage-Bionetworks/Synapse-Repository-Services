@@ -106,6 +106,7 @@ public class V2WikiTranslationUtils {
 		V2WikiOrderHint dto = new V2WikiOrderHint();
 		dto.setOwnerId(dbo.getOwnerId().toString());
 		dto.setOwnerObjectType(dbo.getOwnerTypeEnum());
+		dto.setEtag(dbo.getEtag());
 		
 		// Set order hint
 		byte[] orderHintBytes = dbo.getOrderHint();

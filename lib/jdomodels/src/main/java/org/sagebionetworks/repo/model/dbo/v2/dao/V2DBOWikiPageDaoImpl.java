@@ -335,6 +335,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if (key == null) throw new IllegalArgumentException("Key cannot be null");
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
 		
+		// TODO: Check if key.getOwnerObjectId.equals(orderHint.getOwnerObjectId)??
+		
 		// TODO Verify only one result with given owner and objectId.
 		//V2DBOWikiOwner oldDBO = getWikiOwnerDBO(key.getWikiPageId());
 		
@@ -347,7 +349,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		}
 		// TODO: Validate that there is only one matching DBO?
 		
-		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" = ?";
+		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + " = ?";
 		
 		// String class's split method will remove trailing empty strings for the fencepost ','
 		String listString = orderHintCSV.toString();

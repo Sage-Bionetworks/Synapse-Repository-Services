@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -892,7 +893,9 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
+		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
 		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
+		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.
 		when(mockWikiDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType())).thenReturn("etag");
@@ -900,12 +903,10 @@ public class V2WikiManagerTest {
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
-		String[] orderHint = {"A", "B", "C"};
-		
-		wikiManager.updateOrderHint(user, key, orderHint);
+		wikiManager.updateOrderHint(user, key, orderHintDTO);
 		
 		// Verify that the order hint was updated.
-		verify(mockWikiDao, times(1)).updateOrderHint(eq(key), eq(orderHint));
+		verify(mockWikiDao, times(1)).updateOrderHint(eq(orderHintDTO), eq(key));
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -920,7 +921,8 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
+		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
+		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.
 		when(mockWikiDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType())).thenReturn("etag");
@@ -928,9 +930,7 @@ public class V2WikiManagerTest {
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
-		String[] orderHint = {"A", "B", "C"};
-		
-		wikiManager.updateOrderHint(user, key, orderHint);
+		wikiManager.updateOrderHint(user, key, orderHintDTO);
 	}
 	
 	@Test
@@ -1022,12 +1022,12 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateOrderHintNullKey() throws UnauthorizedException, NotFoundException {
-		wikiManager.updateOrderHint(new UserInfo(true), null, new String[] {});
+		wikiManager.updateOrderHint(new UserInfo(true), null, new V2WikiOrderHint());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
-		wikiManager.updateOrderHint(null, new WikiPageKey(), new String[] {});
+		wikiManager.updateOrderHint(null, new WikiPageKey(), new V2WikiOrderHint());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

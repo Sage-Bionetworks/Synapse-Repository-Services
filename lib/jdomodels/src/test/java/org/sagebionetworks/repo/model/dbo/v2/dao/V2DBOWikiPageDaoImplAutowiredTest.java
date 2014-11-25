@@ -763,31 +763,32 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.setModifiedBy(creatorUserGroupId);
 		page.setMarkdownFileHandleId(markdownOne.getId());
 		
-		// Add an attachment
+		// Un-null added attachments.
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
-		fileNameMap.put(attachOne.getFileName(), attachOne);
 		List<String> newIds = new ArrayList<String>();
-		newIds.add(attachOne.getId());
 		
-		// Create it
+		// Create wiki page key
 		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
 		// Make order hint.
-		String[] orderHint = {"A", "B", "C", "D"};
+		V2WikiOrderHint orderHint = new V2WikiOrderHint();
+		orderHint.setEtag("etag");
+		orderHint.setOrderHint(Arrays.asList(new String[] {"A", "B", "C", "D"}));
+		orderHint.setOwnerId("123");
+		orderHint.setOwnerObjectType(ObjectType.EVALUATION);
 		
 		// Update order hint.
-		wikiPageDao.updateOrderHint(key, orderHint);
+		V2WikiOrderHint recordedOrderHint = wikiPageDao.updateOrderHint(orderHint, key);
 		
 		// Check if update happened.
-		V2WikiOrderHint recordedOrderHint = wikiPageDao.getWikiOrderHint(key);
-		
-		assertTrue(Arrays.equals(orderHint, recordedOrderHint.getOrderHint().toArray()));
-		
+		assertTrue(Arrays.equals(orderHint.getOrderHint().toArray(), recordedOrderHint.getOrderHint().toArray()));
+		assertTrue(recordedOrderHint.getEtag().equals("etag"));
+		assertTrue(recordedOrderHint.getOwnerId().equals("123"));
+		assertTrue(recordedOrderHint.getOwnerObjectType().equals(ObjectType.EVALUATION));
 	}
 	
 }
