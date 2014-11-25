@@ -107,6 +107,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		accessRequirement.setOpenJiraIssue(true);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirement;
 	}
