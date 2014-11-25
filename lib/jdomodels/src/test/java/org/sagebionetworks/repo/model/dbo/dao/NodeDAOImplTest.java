@@ -2183,6 +2183,27 @@ public class NodeDAOImplTest {
 		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateNodeLongNameTooLong() throws DatastoreException, InvalidModelException, NotFoundException {
+		char[] chars = new char[260];
+		Arrays.fill(chars, 'x');
+		String name = new String(chars);
+		Node n = NodeTestUtils.createNew(name, creatorUserGroupId);
+		String id = nodeDao.createNew(n);
+		assertNull(id);
+	}
+	
+	@Test
+	public void testCreateNodeLongName() throws DatastoreException, InvalidModelException, NotFoundException {
+		char[] chars = new char[255];
+		Arrays.fill(chars, 'x');
+		String name = new String(chars);
+		Node n = NodeTestUtils.createNew(name, creatorUserGroupId);
+		String id = nodeDao.createNew(n);
+		assertNotNull(id);
+		toDelete.add(id);
+	}
+	
 	private UserInfo createUserInfo(String user) throws NotFoundException {
 		UserInfo userInfo = new UserInfo(false, Long.parseLong(user));
 		Set<Long> groups = new HashSet<Long>();
