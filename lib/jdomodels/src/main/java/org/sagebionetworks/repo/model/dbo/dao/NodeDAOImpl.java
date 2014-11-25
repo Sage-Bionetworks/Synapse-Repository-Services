@@ -752,6 +752,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private DBONodeType getNodeType(EntityType type) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", type.getId());
+		params.addValue("name", type.name());
 		return dboBasicDao.getObjectByPrimaryKey(DBONodeType.class, params);
 	}
 
