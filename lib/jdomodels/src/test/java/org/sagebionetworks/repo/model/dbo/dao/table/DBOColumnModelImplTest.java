@@ -75,7 +75,7 @@ public class DBOColumnModelImplTest {
 		model.setName("column model dao test");
 		model.setColumnType(ColumnType.STRING);
 		model.setMaximumSize(16L);
-		model.setDefaultValue("someDefaultValue");
+		model.setDefaultValue("abc");
 		model.setEnumValues(new LinkedList<String>());
 		model.getEnumValues().add("xyz");
 		model.getEnumValues().add("abc");

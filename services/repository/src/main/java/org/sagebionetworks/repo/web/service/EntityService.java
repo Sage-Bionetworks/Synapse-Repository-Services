@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
-import org.sagebionetworks.repo.web.controller.metadata.EventType;
+import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**

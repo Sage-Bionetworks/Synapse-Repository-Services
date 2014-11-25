@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -71,6 +72,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, String type, Class<T> expectedType)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
+			throw new UnauthorizedException("Cannot read information for this parent entity");
+		}
 		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
@@ -86,9 +90,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 		if (projectId == null) {
 			throw new IllegalArgumentException("This parentId is not contained in a project");
-		}
-		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
-			throw new UnauthorizedException("Cannot read information from this project");
 		}
 		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
 		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
@@ -108,6 +109,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
+		ProjectSettingsUtil.validateProjectSetting(projectSetting);
 		String id = projectSettingsDao.create(projectSetting);
 		return projectSettingsDao.get(id);
 	}
@@ -118,6 +120,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
+		ProjectSettingsUtil.validateProjectSetting(projectSetting);
 		projectSettingsDao.update(projectSetting);
 	}
 

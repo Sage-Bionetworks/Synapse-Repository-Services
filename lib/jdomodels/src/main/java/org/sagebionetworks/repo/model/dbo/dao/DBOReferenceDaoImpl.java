@@ -143,7 +143,8 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		}
 
 		baseParameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authorizationInClause = QueryUtils.buildAuthorizationFilter(userInfo, baseParameters, SqlConstants.TABLE_NODE);
+		String authorizationInClause = QueryUtils.buildAuthorizationFilter(userInfo.isAdmin(), userInfo.getGroups(), baseParameters,
+				SqlConstants.TABLE_NODE, 0);
 		if (!StringUtils.isBlank(authorizationInClause)) {
 			whereClause.append(" AND ");
 			whereClause.append(authorizationInClause);

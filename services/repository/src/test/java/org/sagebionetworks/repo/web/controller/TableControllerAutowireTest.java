@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
@@ -90,9 +89,10 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@After
 	public void after(){
 		if (config.getTableEnabled()) {
-			for (String entity : entitiesToDelete) {
+			for (String entity : Lists.reverse(entitiesToDelete)) {
 				try {
-					servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId);
+					servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId,
+							Collections.singletonMap("skipTrashCan", "false"));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -190,9 +190,11 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Test
 	public void testDeleteAllColumns() throws Exception {
 		// Create a table with two ColumnModels
-		ColumnModel one = servletTestHelper.createColumnModel(dispatchServlet, TableModelTestUtils.createColumn(0, "one", ColumnType.STRING),
+		ColumnModel one = servletTestHelper.createColumnModel(dispatchServlet,
+				TableModelTestUtils.createColumn(0L, "one", ColumnType.STRING),
 				adminUserId);
-		ColumnModel two = servletTestHelper.createColumnModel(dispatchServlet, TableModelTestUtils.createColumn(0, "two", ColumnType.STRING),
+		ColumnModel two = servletTestHelper.createColumnModel(dispatchServlet,
+				TableModelTestUtils.createColumn(0L, "two", ColumnType.STRING),
 				adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();
@@ -658,6 +660,78 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 
 		servletTestHelper.deleteEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId,
 				Collections.singletonMap("skipTrashCan", "true"));
+
+		checkCount(0L, "select count(*) from " + TABLE_ROW_CHANGE + " where " + COL_TABLE_ROW_TABLE_ID + " = ?", tableId);
+		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN + " where " + COL_BOUND_CM_OBJECT_ID + " = ?", tableId);
+		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN_ORDINAL + " where " + COL_BOUND_CM_ORD_OBJECT_ID + " = ?", tableId);
+		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN_OWNER + " where " + COL_BOUND_OWNER_OBJECT_ID + " = ?", tableId);
+		for (String s3Key : s3Keys) {
+			try {
+				s3Client.getObjectMetadata(s3Bucket, s3Key);
+				fail("s3 object " + s3Key + " should no longer exist");
+			} catch (AmazonClientException e) {
+			}
+		}
+	}
+
+	@Test
+	public void testTrashPurgeTableEntity() throws Exception {
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
+		ColumnModel two = new ColumnModel();
+		two.setName("two");
+		two.setColumnType(ColumnType.STRING);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId()));
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(), adminUserId);
+		// Add some rows to the table.
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(cols, 3);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
+		set = new RowSet();
+		rows = TableModelTestUtils.createRows(cols, 3);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
+
+		Long tableId = KeyFactory.stringToKey(table.getId());
+		// find the s3 bucket and keys
+		String s3Bucket = jdbcTemplate.queryForObject("select distinct " + COL_TABLE_ROW_BUCKET + " from " + TABLE_ROW_CHANGE + " where "
+				+ COL_TABLE_ROW_TABLE_ID + " = ?", String.class, tableId);
+		List<String> s3Keys = jdbcTemplate.queryForList("select " + COL_TABLE_ROW_KEY + " from " + TABLE_ROW_CHANGE + " where "
+				+ COL_TABLE_ROW_TABLE_ID + " = ?", String.class, tableId);
+		for (String s3Key : s3Keys) {
+			s3Client.getObjectMetadata(s3Bucket, s3Key);
+		}
+
+		checkCount(2L, "select count(*) from " + TABLE_ROW_CHANGE + " where " + COL_TABLE_ROW_TABLE_ID + " = ?", tableId);
+		checkCount(2L, "select count(*) from " + TABLE_BOUND_COLUMN + " where " + COL_BOUND_CM_OBJECT_ID + " = ?", tableId);
+		checkCount(2L, "select count(*) from " + TABLE_BOUND_COLUMN_ORDINAL + " where " + COL_BOUND_CM_ORD_OBJECT_ID + " = ?", tableId);
+		checkCount(1L, "select count(*) from " + TABLE_BOUND_COLUMN_OWNER + " where " + COL_BOUND_OWNER_OBJECT_ID + " = ?", tableId);
+
+		servletTestHelper.deleteEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId,
+				Collections.singletonMap("skipTrashCan", "false"));
+
+		checkCount(2L, "select count(*) from " + TABLE_ROW_CHANGE + " where " + COL_TABLE_ROW_TABLE_ID + " = ?", tableId);
+		checkCount(2L, "select count(*) from " + TABLE_BOUND_COLUMN + " where " + COL_BOUND_CM_OBJECT_ID + " = ?", tableId);
+		checkCount(2L, "select count(*) from " + TABLE_BOUND_COLUMN_ORDINAL + " where " + COL_BOUND_CM_ORD_OBJECT_ID + " = ?", tableId);
+		checkCount(1L, "select count(*) from " + TABLE_BOUND_COLUMN_OWNER + " where " + COL_BOUND_OWNER_OBJECT_ID + " = ?", tableId);
+		for (String s3Key : s3Keys) {
+			assertNotNull(s3Client.getObjectMetadata(s3Bucket, s3Key));
+		}
+
+		servletTestHelper.purgeEntityInTrash(adminUserId, table.getId());
 
 		checkCount(0L, "select count(*) from " + TABLE_ROW_CHANGE + " where " + COL_TABLE_ROW_TABLE_ID + " = ?", tableId);
 		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN + " where " + COL_BOUND_CM_OBJECT_ID + " = ?", tableId);

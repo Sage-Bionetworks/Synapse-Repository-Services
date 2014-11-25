@@ -289,7 +289,9 @@ public class IT049FileHandleTest {
 			fail("Should not have succeeded, you cannot change the settings type");
 		} catch (SynapseBadRequestException e) {
 		}
-		((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) clone).getDestinations().get(0)).setUrl("sftp://not-valid");
+		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) clone).getDestinations().get(0));
+		s.setUrl("sftp://not-valid");
+		s.setUploadType(UploadType.SFTP);
 		synapse.updateProjectSetting(clone);
 
 		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), "upload");

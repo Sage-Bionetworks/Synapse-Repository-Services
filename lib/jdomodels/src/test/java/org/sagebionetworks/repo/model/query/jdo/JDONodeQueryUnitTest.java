@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.query.FieldType;
 
+import com.google.common.collect.Sets;
+
 /**
  * 
  * @author jmhill
@@ -38,7 +40,8 @@ public class JDONodeQueryUnitTest {
 		when(adminUserInfo.isAdmin()).thenReturn(true);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// This should produce an empty string for an admin user.
-		String sql = QueryUtils.buildAuthorizationFilter(adminUserInfo, params, SqlConstants.NODE_ALIAS);
+		String sql = QueryUtils.buildAuthorizationFilter(adminUserInfo.isAdmin(), adminUserInfo.getGroups(), params, SqlConstants.NODE_ALIAS,
+				0);
 		assertEquals("The authorization filter for an admin users should be an empty string","", sql);
 		assertEquals(0, params.size());
 	}
@@ -51,7 +54,8 @@ public class JDONodeQueryUnitTest {
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// should throw an exception
 		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params, SqlConstants.NODE_ALIAS);
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo.isAdmin(), nonAdminUserInfo.getGroups(), params,
+				SqlConstants.NODE_ALIAS, 0);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -62,9 +66,10 @@ public class JDONodeQueryUnitTest {
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// Should throw an exception.
 		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params, SqlConstants.NODE_ALIAS);
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo.isAdmin(), nonAdminUserInfo.getGroups(), params,
+				SqlConstants.NODE_ALIAS, 0);
 	}
-	
+
 	@Test
 	public void testAuthorizationSqlNonAdminWithGroups() throws Exception {
 		HashMap<String, Object> params = new HashMap<String, Object>();
@@ -80,7 +85,8 @@ public class JDONodeQueryUnitTest {
 		when(nonAdminUserInfo.getGroups()).thenReturn(groups);
 		// This should build a query with two groups
 		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params, SqlConstants.NODE_ALIAS);
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo.isAdmin(), nonAdminUserInfo.getGroups(), params,
+				SqlConstants.NODE_ALIAS, 0);
 		assertNotNull(sql);
 		// It should not be an empty string.
 		assertFalse("".equals(sql.trim()));
@@ -88,13 +94,40 @@ public class JDONodeQueryUnitTest {
 		log.info(params);
 		// Check the bind variables.
 		assertEquals(ACCESS_TYPE.READ.name(), params.get(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR));
-		Long groupBindValue0 = (Long) params.get(AuthorizationSqlUtil.BIND_VAR_PREFIX+"0");
+		Long groupBindValue0 = (Long) params.get(AuthorizationSqlUtil.BIND_VAR_PREFIX + "0");
 		assertNotNull(groupBindValue0);
-		Long groupBindValue1 = (Long) params.get(AuthorizationSqlUtil.BIND_VAR_PREFIX+"1");
+		Long groupBindValue1 = (Long) params.get(AuthorizationSqlUtil.BIND_VAR_PREFIX + "1");
 		assertNotNull(groupBindValue1);
 		assertTrue(123L == groupBindValue0.longValue() || 123L == groupBindValue1.longValue());
 		assertTrue(124L == groupBindValue0.longValue() || 124L == groupBindValue1.longValue());
 		System.out.print(sql);
+	}
+	
+	@Test
+	public void testAuthorizationSqlNonAdminWithGroupsAndOffset() throws Exception {
+		HashMap<String, Object> params = new HashMap<String, Object>();
+		UserInfo nonAdminUserInfo = Mockito.mock(UserInfo.class);
+		when(nonAdminUserInfo.isAdmin()).thenReturn(false);
+		HashSet<Long> groups = new HashSet<Long>();
+		UserGroup group = Mockito.mock(UserGroup.class);
+		when(group.getId()).thenReturn("123");
+		groups.add(Long.parseLong(group.getId()));
+		group = Mockito.mock(UserGroup.class);
+		when(group.getId()).thenReturn("124");
+		groups.add(Long.parseLong(group.getId()));
+		when(nonAdminUserInfo.getGroups()).thenReturn(groups);
+		// This should build a query with two groups
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo.isAdmin(), nonAdminUserInfo.getGroups(), params,
+				SqlConstants.NODE_ALIAS, 5);
+		assertNotNull(sql);
+		// It should not be an empty string.
+		assertFalse("".equals(sql.trim()));
+		// Check the bind variables.
+		assertEquals(ACCESS_TYPE.READ.name(), params.get(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR));
+		Long groupBindValue5 = (Long) params.get(AuthorizationSqlUtil.BIND_VAR_PREFIX + "5");
+		Long groupBindValue6 = (Long) params.get(AuthorizationSqlUtil.BIND_VAR_PREFIX + "6");
+		assertEquals(Sets.newHashSet(123L, 124L), Sets.newHashSet(groupBindValue5, groupBindValue6));
 	}
 	
 	@Test

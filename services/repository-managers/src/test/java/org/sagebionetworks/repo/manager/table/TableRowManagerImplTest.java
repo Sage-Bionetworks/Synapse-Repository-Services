@@ -609,7 +609,7 @@ public class TableRowManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryUnauthroized() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.query(user, "select * from " + tableId, null, null, true, false, true);
+		manager.query(user, "select * from " + tableId, null, null, null, true, false, true);
 	}
 	
 	@Test 
@@ -618,7 +618,7 @@ public class TableRowManagerImplTest {
 		RowSet expected = new RowSet();
 		expected.setTableId(tableId);
 		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(expected);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, false);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, false);
 		// The etag should be null for this case
 		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null,
 				results.getFirst().getQueryResults().getEtag());
@@ -635,7 +635,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -651,7 +651,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, true, true);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, true, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -668,7 +668,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
@@ -686,7 +686,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 		assertNotNull(results);
 		assertEquals(tableId, results.getFirst().getQueryResults().getTableId());
 		assertNull(results.getFirst().getQueryResults().getEtag());
@@ -706,7 +706,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		try{
-			manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -730,7 +730,7 @@ public class TableRowManagerImplTest {
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
 		when(mockNodeDAO.doesNodeExist(123L)).thenReturn(true);
 		try{
-			manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -761,7 +761,7 @@ public class TableRowManagerImplTest {
 		// Throw a lock LockUnavilableException
 		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
 		try{
-			manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+			manager.query(user, "select * from " + tableId + " limit 1", null, null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -780,7 +780,7 @@ public class TableRowManagerImplTest {
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, models.toString(), 36630L);
+		runQueryBundleTest("select * from " + tableId, selectStar, 10L, models.toString(), 24154L);
 	}
 
 	@Test
@@ -795,7 +795,7 @@ public class TableRowManagerImplTest {
 		selectStarResult.setQueryResults(selectStar);
 
 		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, models.toString(), 36630L);
+				+ tableId, selectStar, 10L, models.toString(), 24154L);
 	}
 
 	@Test

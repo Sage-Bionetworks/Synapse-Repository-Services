@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -217,7 +219,7 @@ public class TableModelUtils {
 					"ColumnModel.columnType cannot be null");
 		
 		// Only strings can have a value that is an empty string. See PLFM-2657
-		if("".equals(value)  &&  !ColumnType.STRING.equals(cm.getColumnType())){
+		if ("".equals(value) && !(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.LINK)) {
 			value = null;
 		}
 		
@@ -273,7 +275,22 @@ public class TableModelUtils {
 			}
 			return Long.toString(time);
 		case DOUBLE:
-			double dv = Double.parseDouble(value);
+			double dv;
+			try {
+				dv = Double.parseDouble(value);
+			} catch (NumberFormatException e) {
+				value = value.toLowerCase();
+				if (value.equals("nan")) {
+					dv = Double.NaN;
+				} else if (value.equals("-inf") || value.equals("-infinity") || value.equals("-\u221E")) {
+					dv = Double.NEGATIVE_INFINITY;
+				} else if (value.equals("+inf") || value.equals("+infinity") || value.equals("+\u221E") || value.equals("inf")
+						|| value.equals("infinity") || value.equals("\u221E")) {
+					dv = Double.POSITIVE_INFINITY;
+				} else {
+					throw e;
+				}
+			}
 			return Double.toString(dv);
 		case STRING:
 			if (cm.getMaximumSize() == null)
@@ -282,9 +299,36 @@ public class TableModelUtils {
 				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
 						+ " characters. Consider using a FileHandle to store large strings.");
 			}
+			checkStringEnum(value, cm);
+			return value;
+		case LINK:
+			if (cm.getMaximumSize() == null)
+				throw new IllegalArgumentException("Link columns must have a maximum size");
+			if (value.length() > cm.getMaximumSize()) {
+				throw new IllegalArgumentException("Link '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
+						+ " characters.");
+			}
+			checkStringEnum(value, cm);
 			return value;
 		}
 		throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
+	}
+
+
+	private static void checkStringEnum(String value, ColumnModel cm) {
+		if (cm.getEnumValues() != null) {
+			// doing a contains directly on the list. With 100 values or less, making this a set is not making much
+			// of a difference and isn't east to do. When/if we allow many more values, we might have to revisit
+			if (!cm.getEnumValues().contains(value)) {
+				if (cm.getEnumValues().size() > 10) {
+					throw new IllegalArgumentException("'" + value
+							+ "' is not a valid value for this column. See column definition for valid values.");
+				} else {
+					throw new IllegalArgumentException("'" + value + "' is not a valid value for this column. Valid values are: "
+							+ StringUtils.join(cm.getEnumValues(), ", ") + ".");
+				}
+			}
+		}
 	}
 
 	/**
@@ -660,6 +704,7 @@ public class TableModelUtils {
 		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
 		switch (type) {
 		case STRING:
+		case LINK:
 			if (maxSize == null)
 				throw new IllegalArgumentException("maxSize cannot be null for String types");
 			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);

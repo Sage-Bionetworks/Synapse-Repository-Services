@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -17,7 +19,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,11 +34,6 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
-
-import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -369,6 +365,30 @@ public class TableModelUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.DOUBLE);
 		assertEquals("123.1", TableModelUtils.validateRowValue("123.1", cm, 0, 0));
+		assertEquals("NaN", Double.toString(Double.NaN));
+		assertEquals("-Infinity", Double.toString(Double.NEGATIVE_INFINITY));
+		assertEquals("Infinity", Double.toString(Double.POSITIVE_INFINITY));
+		assertEquals("NaN", TableModelUtils.validateRowValue("NaN", cm, 0, 0));
+		assertEquals("NaN", TableModelUtils.validateRowValue("nan", cm, 0, 0));
+		assertEquals("NaN", TableModelUtils.validateRowValue("NAN", cm, 0, 0));
+		assertEquals("-Infinity", TableModelUtils.validateRowValue("-Infinity", cm, 0, 0));
+		assertEquals("-Infinity", TableModelUtils.validateRowValue("-infinity", cm, 0, 0));
+		assertEquals("-Infinity", TableModelUtils.validateRowValue("-INFINITY", cm, 0, 0));
+		assertEquals("-Infinity", TableModelUtils.validateRowValue("-inf", cm, 0, 0));
+		assertEquals("-Infinity", TableModelUtils.validateRowValue("-INF", cm, 0, 0));
+		assertEquals("-Infinity", TableModelUtils.validateRowValue("-\u221E", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("+Infinity", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("+infinity", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("+INFINITY", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("+inf", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("+INF", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("+\u221E", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("Infinity", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("infinity", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("INFINITY", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("inf", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("INF", cm, 0, 0));
+		assertEquals("Infinity", TableModelUtils.validateRowValue("\u221E", cm, 0, 0));
 		try {
 			TableModelUtils.validateRowValue("true", cm, 1, 3);
 			fail("should have failed");
@@ -403,9 +423,59 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateLink() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LINK);
+		cm.setMaximumSize(555L);
+		assertEquals("some link", TableModelUtils.validateRowValue("some link", cm, 0, 0));
+		char[] tooLarge = new char[(int) (cm.getMaximumSize() + 1)];
+		Arrays.fill(tooLarge, 'b');
+		try {
+			TableModelUtils.validateRowValue(new String(tooLarge), cm, 1, 4);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,4] was not a valid LINK. Link '" + new String(tooLarge)
+					+ "' exceeds the maximum length of 555 characters.", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("-89.3e12");
+		assertEquals("-89.3e12", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+
+	@Test
+	public void testValidateEnum() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(555L);
+		cm.setEnumValues(Lists.newArrayList("aa", "bb", "cc"));
+		assertEquals("aa", TableModelUtils.validateRowValue("aa", cm, 0, 0));
+		assertEquals("bb", TableModelUtils.validateRowValue("bb", cm, 0, 0));
+		assertEquals("cc", TableModelUtils.validateRowValue("cc", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("dd", cm, 1, 4);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,4] was not a valid STRING. 'dd' is not a valid value for this column. Valid values are: aa, bb, cc.",
+					e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		cm.setDefaultValue("aa");
+		assertEquals("aa", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+
+	@Test
 	public void testValidateStringColumnEmptyString() {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(555L);
+		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
+	}
+
+	@Test
+	public void testValidateStringColumnEmptyLink() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LINK);
 		cm.setMaximumSize(555L);
 		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
 	}
@@ -416,6 +486,8 @@ public class TableModelUtilsTest {
 			ColumnModel cm = new ColumnModel();
 			// String are allowed to be empty
 			if (ColumnType.STRING.equals(type))
+				continue;
+			if (ColumnType.LINK.equals(type))
 				continue;
 			cm.setColumnType(type);
 			cm.setMaximumSize(555L);
@@ -785,6 +857,15 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCalculateMaxSizeForTypeLink() throws UnsupportedEncodingException {
+		long maxSize = 444;
+		char[] array = new char[(int) maxSize];
+		Arrays.fill(array, Character.MAX_VALUE);
+		int expected = new String(array).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LINK, maxSize));
+	}
+	
+	@Test
 	public void testCalculateMaxSizeForTypeBoolean() throws UnsupportedEncodingException {
 		int expected = new String("false").getBytes("UTF-8").length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN, null));
@@ -830,6 +911,9 @@ public class TableModelUtilsTest {
 			if (ColumnType.STRING == ct) {
 				maxSize = 14L;
 			}
+			if (ColumnType.LINK == ct) {
+				maxSize = 32L;
+			}
 			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
 		}
 	}
@@ -838,7 +922,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(273, allBytes);
+		assertEquals(414, allBytes);
 	}
 
 	@Test
@@ -893,9 +977,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCreateColumnNameHeaderWithoutRowId() {
 		List<ColumnModel> schema = new ArrayList<ColumnModel>();
-		schema.add(TableModelTestUtils.createColumn(123, "one", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(345, "two", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(567, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(123L, "one", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(567L, "three", ColumnType.STRING));
 		List<String> idList = Arrays.asList("567", "345");
 		boolean includeRowIdAndVersion = false;
 		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
@@ -906,9 +990,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCreateColumnNameHeaderWithRowId() {
 		List<ColumnModel> schema = new ArrayList<ColumnModel>();
-		schema.add(TableModelTestUtils.createColumn(123, "one", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(345, "two", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(567, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(123L, "one", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(567L, "three", ColumnType.STRING));
 		List<String> idList = Arrays.asList("567", "123");
 		boolean includeRowIdAndVersion = true;
 		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
@@ -942,18 +1026,18 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testTranslateFromQuery() {
-		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
-		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
+		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
 		assertEquals("something else",
-				TableModelUtils.translateRowValueFromQuery("something else", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
-		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", null)));
+				TableModelUtils.translateRowValueFromQuery("something else", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0L, "", null)));
 
 		// for all other types
 		for (ColumnType type : ColumnType.values()) {
 			if (type == ColumnType.BOOLEAN) {
 				continue;
 			}
-			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0, "", type)));
+			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0L, "", type)));
 		}
 	}
 

@@ -42,15 +42,15 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.QueryUtils;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
-import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
-import org.sagebionetworks.repo.web.controller.metadata.EntityProvider;
-import org.sagebionetworks.repo.web.controller.metadata.EntityValidator;
-import org.sagebionetworks.repo.web.controller.metadata.EventType;
-import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificDeleteProvider;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificVersionDeleteProvider;
+import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
+import org.sagebionetworks.repo.web.service.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
+import org.sagebionetworks.repo.web.service.metadata.EntityValidator;
+import org.sagebionetworks.repo.web.service.metadata.EventType;
+import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -335,13 +335,12 @@ public class EntityServiceImpl implements EntityService {
 		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
 		if(providers != null) {
 			for(EntityProvider<Entity> provider : providers) {
 				if (provider instanceof TypeSpecificDeleteProvider) {
-					((TypeSpecificDeleteProvider) provider).entityDeleted(entity);
+					((TypeSpecificDeleteProvider) provider).entityDeleted(entityId);
 				}
 			}
 		}
@@ -369,13 +368,12 @@ public class EntityServiceImpl implements EntityService {
 		EntityType type = EntityType.getNodeTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
 		if(providers != null) {
 			for (EntityProvider<Entity> provider : providers) {
 				if (provider instanceof TypeSpecificVersionDeleteProvider) {
-					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(entity, versionNumber);
+					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(id, versionNumber);
 				}
 			}
 		}

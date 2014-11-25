@@ -418,12 +418,6 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCES = "/resources";
 	
-	/*
-	 * Project URLs
-	 */
-	public static final String MY_PROJECTS = PrefixConst.PROJECT;
-	public static final String PROJECTS_FOR_USER = PrefixConst.PROJECT + USER + "/{principalId}";
-
 	/**
 	 * URL prefix for User mirroring service
 	 * 
@@ -739,7 +733,14 @@ public class UrlHelpers {
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-	
+
+	/*
+	 * Project URLs
+	 */
+	public static final String MY_PROJECTS = PrefixConst.PROJECT;
+	public static final String PROJECTS_FOR_USER = PrefixConst.PROJECT + USER + "/{principalId}";
+	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
+
 	// certified user services
 	public static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	public static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";

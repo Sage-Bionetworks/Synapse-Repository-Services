@@ -1,12 +1,19 @@
 package org.sagebionetworks.table.query.util;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import org.sagebionetworks.repo.model.table.SortDirection;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.*;
 import org.sagebionetworks.util.ValidateArgument;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Utilities for creating SQL elements
@@ -416,7 +423,8 @@ public class SqlElementUntils {
 	 * @return
 	 */
 	public static String getTableId(QuerySpecification querySpecification){
-		if(querySpecification == null) throw new IllegalArgumentException("QuerySpecification cannot be null");
+		if (querySpecification == null)
+			throw new IllegalArgumentException("QuerySpecification cannot be null");
 		return getTableId(querySpecification.getTableExpression());
 	}
 	
@@ -427,7 +435,8 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static String getTableId(String sql) throws ParseException {
-		if(sql == null) throw new IllegalArgumentException("SQL cannot be null");
+		if (sql == null)
+			throw new IllegalArgumentException("SQL cannot be null");
 		return getTableId(new TableQueryParser(sql).querySpecification());
 	}
 
@@ -437,7 +446,8 @@ public class SqlElementUntils {
 	 * @return
 	 */
 	public static String getTableId(TableExpression tableExpression) {
-		if(tableExpression == null) throw new IllegalArgumentException("TableExpression cannot be null");
+		if (tableExpression == null)
+			throw new IllegalArgumentException("TableExpression cannot be null");
 		return getTableId(tableExpression.getFromClause());
 	}
 
@@ -447,7 +457,8 @@ public class SqlElementUntils {
 	 * @return
 	 */
 	public static String getTableId(FromClause fromClause) {
-		if(fromClause == null) throw new IllegalArgumentException("FromClause cannot be null");
+		if (fromClause == null)
+			throw new IllegalArgumentException("FromClause cannot be null");
 		return getTableId(fromClause.getTableReference());
 	}
 
@@ -457,7 +468,8 @@ public class SqlElementUntils {
 	 * @return
 	 */
 	public static String getTableId(TableReference tableReference) {
-		if(tableReference == null) throw new IllegalArgumentException("TableReference cannot be null");
+		if (tableReference == null)
+			throw new IllegalArgumentException("TableReference cannot be null");
 		return tableReference.getTableName();
 	}
 	
@@ -507,5 +519,45 @@ public class SqlElementUntils {
 	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
 		return new TableExpression(tableExpression.getFromClause(), tableExpression.getWhereClause(), tableExpression.getGroupByClause(),
 				null, tableExpression.getPagination());
+	}
+
+	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) {
+		ValidateArgument.required(model, "QuerySpecification");
+		ValidateArgument.required(sortList, "sortList");
+		TableExpression currentTableExpression = model.getTableExpression();
+		ValidateArgument.required(currentTableExpression, "TableExpression");
+
+		Map<String, SortSpecification> originalSortSpecifications;
+		OrderByClause orderByClause = currentTableExpression.getOrderByClause();
+		if (orderByClause == null) {
+			originalSortSpecifications = Collections.emptyMap();
+		} else {
+			// need to preserve order, so use linked hash map
+			originalSortSpecifications = Maps.newLinkedHashMap();
+			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
+				StringBuilder columnName = new StringBuilder();
+				spec.getSortKey().getColumnReference().toSQL(columnName, null);
+				originalSortSpecifications.put(columnName.toString(), spec);
+			}
+		}
+
+		List<SortSpecification> sortSpecifications = Lists.newArrayListWithCapacity(originalSortSpecifications.size() + sortList.size());
+
+		for (SortItem sortItem : sortList) {
+			// no sortItem.getDirection() will become order ASC
+			OrderingSpecification direction = sortItem.getDirection() == SortDirection.DESC ? OrderingSpecification.DESC
+					: OrderingSpecification.ASC;
+			originalSortSpecifications.remove(sortItem.getColumn());
+			sortSpecifications.add(new SortSpecification(new SortKey(new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(
+					sortItem.getColumn(), null))), null)), direction));
+		}
+		sortSpecifications.addAll(originalSortSpecifications.values());
+		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
+
+		// add pagination
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
+				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), orderByClause,
+				currentTableExpression.getPagination());
+		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
 	}
 }

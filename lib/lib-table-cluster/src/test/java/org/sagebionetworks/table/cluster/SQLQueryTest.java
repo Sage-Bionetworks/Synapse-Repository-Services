@@ -36,6 +36,9 @@ public class SQLQueryTest {
 	Map<String, ColumnModel> columnNameToModelMap;
 	List<ColumnModel> tableSchema;
 	
+	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS _C777_";
+	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN;
+
 	@Before
 	public void before(){
 		columnNameToModelMap = Maps.newLinkedHashMap(); // retains order of values
@@ -45,6 +48,7 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("foobar", TableModelTestUtils.createColumn(444L, "foobar", ColumnType.STRING));
 		columnNameToModelMap.put("Foo", TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING));
 		columnNameToModelMap.put("datetype", TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE));
+		columnNameToModelMap.put("doubletype", TableModelTestUtils.createColumn(777L, "doubletype", ColumnType.DOUBLE));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
 	}
 	
@@ -119,10 +123,10 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectStar() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
-		assertEquals("SELECT * FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		assertNotNull(translator.getSelectColumnModels());
-		assertEquals(translator.getSelectColumnModels().size(), 6);
+		assertEquals(translator.getSelectColumnModels().size(), 7);
 		assertTrue(translator.getSelectColumnModels().containsAll(this.tableSchema));
 	}
 	@Test
@@ -393,16 +397,29 @@ public class SQLQueryTest {
 	public void testWhereSimple() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0",
+				translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1", translator.getParameters().get("b0"));
 	}
 	
 	@Test
+	public void testWhereDouble() throws ParseException {
+		SqlQuery translator = new SqlQuery("select * from syn123 where isNaN(doubletype) or isInfinity(DOUBLETYPE)", tableSchema);
+		// The value should be bound in the SQL
+		assertEquals(
+				"SELECT "
+						+ STAR_COLUMNS
+						+ ", ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN') OR (_DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ('-Infinity', 'Infinity'))",
+				translator.getOutputSQL());
+	}
+
+	@Test
 	public void testWhereOr() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 or bar = 2", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0 OR _C333_ = :b1", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0 OR _C333_ = :b1",
+				translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1", translator.getParameters().get("b0"));
 		assertEquals("2", translator.getParameters().get("b1"));
@@ -413,7 +430,8 @@ public class SQLQueryTest {
 	public void testWhereAnd() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 and bar = 2", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0 AND _C333_ = :b1", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0 AND _C333_ = :b1",
+				translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1", translator.getParameters().get("b0"));
 		assertEquals("2", translator.getParameters().get("b1"));
@@ -423,7 +441,8 @@ public class SQLQueryTest {
 	public void testWhereNested() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foobar = 3", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE ( _C111_ = :b0 AND _C333_ = :b1 ) OR _C444_ = :b2", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ = :b0 AND _C333_ = :b1 ) OR _C444_ = :b2",
+				translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1", translator.getParameters().get("b0"));
 		assertEquals("2", translator.getParameters().get("b1"));
@@ -434,50 +453,63 @@ public class SQLQueryTest {
 	public void testGroupByOne() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 group by foo", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 GROUP BY _C111_", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + " FROM T123 GROUP BY _C111_",
+				translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testGroupByMultiple() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 group by foo, bar", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 GROUP BY _C111_, _C333_", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + " FROM T123 GROUP BY _C111_, _C333_",
+				translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByOneNoSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY _C111_", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_",
+				translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByOneWithSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo desc", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY _C111_ DESC", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_ DESC",
+				translator.getOutputSQL());
 	}
 	
+	@Test
+	public void testOrderByDouble() throws ParseException {
+		SqlQuery translator = new SqlQuery("select * from syn123 order by doubletype desc", tableSchema);
+		// The value should be bound in the SQL
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY T123._C777_ DESC", translator.getOutputSQL());
+	}
 	
 	@Test
 	public void testOrderByMultipleNoSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo, bar", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY _C111_, _C333_", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_, _C333_",
+				translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByMultipeWithSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo asc, bar desc", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY _C111_ ASC, _C333_ DESC", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_ ASC, _C333_ DESC",
+				translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testLimit() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 limit 100", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 LIMIT :b0", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 LIMIT :b0",
+				translator.getOutputSQL());
 		assertEquals(100L,translator.getParameters().get("b0"));
 	}
 	
@@ -485,7 +517,8 @@ public class SQLQueryTest {
 	public void testLimitAndOffset() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 limit 100 offset 2", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 LIMIT :b0 OFFSET :b1", translator.getOutputSQL());
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1",
+				translator.getOutputSQL());
 		assertEquals(100L,translator.getParameters().get("b0"));
 		assertEquals(2L, translator.getParameters().get("b1"));
 	}

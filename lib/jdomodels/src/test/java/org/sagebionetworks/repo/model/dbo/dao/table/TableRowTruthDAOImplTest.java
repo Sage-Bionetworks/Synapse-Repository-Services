@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -176,7 +177,7 @@ public class TableRowTruthDAOImplTest {
 		RowSet results =  tableRowTruthDao.getRowSet(refSet, models);
 		assertEquals(5, results.getRows().size());
 		// The first value should be an empty string, the rest of the columns should be null
-		assertEquals(Arrays.asList("", null, null, null, null, null, null), results.getRows().get(0).getValues());
+		assertEquals(Arrays.asList("", null, null, null, null, null, null, ""), results.getRows().get(0).getValues());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -195,6 +196,37 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
 		refSet.getRows().get(0).setVersionNumber(null);
 		tableRowTruthDao.getRowSet(refSet, models);
+	}
+
+	@Test
+	public void testDoubles() throws IOException, NotFoundException {
+		List<ColumnModel> models = Lists.newArrayList(TableModelTestUtils.createColumn(0L, "col1", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(1L, "col2", ColumnType.STRING));
+		// create some test rows.
+		String tableId = "syn123";
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(TableModelUtils.getHeaders(models));
+		List<Row> rows = Lists.newArrayList();
+		rowSet.setRows(rows);
+		Object[][] testValues = { { 1.0, "1.0" }, { Double.NaN, "NaN" }, { Double.NaN, "nan" }, { Double.NaN, "NAN" },
+				{ Double.NEGATIVE_INFINITY, "-infinity" }, { Double.NEGATIVE_INFINITY, "-inf" }, { Double.NEGATIVE_INFINITY, "-INF" },
+				{ Double.NEGATIVE_INFINITY, "-\u221E" }, { Double.POSITIVE_INFINITY, "+infinity" }, { Double.POSITIVE_INFINITY, "+inf" },
+				{ Double.POSITIVE_INFINITY, "+INF" }, { Double.POSITIVE_INFINITY, "+\u221E" }, { Double.POSITIVE_INFINITY, "infinity" },
+				{ Double.POSITIVE_INFINITY, "inf" }, { Double.POSITIVE_INFINITY, "INF" }, { Double.POSITIVE_INFINITY, "\u221E" } };
+		for (int i = 0; i < testValues.length; i++) {
+			Double value = (Double) testValues[i][0];
+			String string = (String) testValues[i][1];
+			rows.add(TableModelTestUtils.createRow(null, null, string, value.toString()));
+		}
+		rowSet.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, rowSet);
+		assertNotNull(refSet);
+		// Get the rows back
+		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
+		for (Row row : fetched.getRows()) {
+			assertEquals(row.getValues().get(0), row.getValues().get(1));
+		}
 	}
 
 	@Test

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -370,8 +371,9 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 * @throws TableFailedException
 	 */
-	public Pair<QueryResult, Long> query(UserInfo user, String query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
+	public Pair<QueryResult, Long> query(UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
+			TableFailedException;
 
 	/**
 	 * Execute a table query.
@@ -424,14 +426,15 @@ public interface TableRowManager {
 	 * @param user
 	 * 
 	 * @param sql
+	 * @param list
 	 * @param writer
 	 * @return
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
-			throws TableUnavilableException, NotFoundException, TableFailedException;
+	DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
+			boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**
 	 * Update the current version cache if enabled

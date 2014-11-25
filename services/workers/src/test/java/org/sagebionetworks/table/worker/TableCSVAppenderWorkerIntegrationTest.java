@@ -74,7 +74,6 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	AmazonS3Client s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
-	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
@@ -179,7 +178,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		body.setUploadFileHandleId(fileHandle.getId());
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
 		// Wait for the job to complete.
-		status = waitForStatus(status);
+		status = waitForStatus(adminUserInfo, status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
 		assertTrue(status.getResponseBody() instanceof UploadToTableResult);
@@ -195,8 +194,9 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// the etag of the change should match what the job returned.
 		assertEquals(change.getEtag(), response.getEtag());
 	}
-	
-	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
+
+	private AsynchronousJobStatus waitForStatus(UserInfo user, AsynchronousJobStatus status) throws InterruptedException, DatastoreException,
+			NotFoundException {
 		long start = System.currentTimeMillis();
 		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
 			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
@@ -204,7 +204,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 			assertTrue("Timed out waiting for table status",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			Thread.sleep(1000);
 			// Get the status again 
-			status = this.asynchJobStatusManager.getJobStatus(adminUserInfo, status.getJobId());
+			status = this.asynchJobStatusManager.getJobStatus(user, status.getJobId());
 		}
 		return status;
 	}

@@ -427,6 +427,11 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
+	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException {
+		return nodeManager.getNodeTypeForDeletion(entityId);
+	}
+
+	@Override
 	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeHeader(userInfo, entityId, versionNumber);

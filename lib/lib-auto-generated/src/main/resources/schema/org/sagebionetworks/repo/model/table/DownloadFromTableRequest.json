@@ -10,6 +10,12 @@
 			"type": "string",
 			"description": "The SQL to be used to build the resulting CSV."
 		},
+		"sort":{
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SortItem"
+			}
+		},
 		"writeHeader": {
 			"type": "boolean",
 			"description": "Should the first line contain the columns names as a header in the resulting file?  Set to 'true' to include the headers else, 'false'.  The default value is 'true'."

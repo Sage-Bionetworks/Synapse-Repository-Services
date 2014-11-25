@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
+import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
@@ -52,6 +53,25 @@ public class PredicateTest {
 		assertEquals("bar LIKE '%suffix'", builder.toString());
 	}
 	
+	@Test
+	public void testPredicateToSQLisInfinityBooleanFunction() throws ParseException {
+		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isInfinity(col5)").predicate()
+				.getBooleanFunctionPredicate();
+		Predicate element = new Predicate(booleanFunctionPredicate);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder, null);
+		assertEquals("ISINFINITY(col5)", builder.toString());
+	}
+
+	@Test
+	public void testPredicateToSQLIsNanBooleanFunction() throws ParseException {
+		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isNaN(col5)").predicate().getBooleanFunctionPredicate();
+		Predicate element = new Predicate(booleanFunctionPredicate);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder, null);
+		assertEquals("ISNAN(col5)", builder.toString());
+	}
+
 	@Test
 	public void testPredicateToSQLNullPredicate() throws ParseException{
 		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is null");

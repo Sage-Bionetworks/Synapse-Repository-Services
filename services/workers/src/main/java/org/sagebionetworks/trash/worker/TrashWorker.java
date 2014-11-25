@@ -34,6 +34,6 @@ public class TrashWorker {
 		List<TrashedEntity> trashList = trashManager.getTrashBefore(timestamp);
 		logger.info("Purging " + trashList.size() + " entities, before " +
 					timestamp + ", from the trash can.");
-		trashManager.purgeTrash(trashList);
+		trashManager.purgeTrash(trashList, null);
 	}
 }

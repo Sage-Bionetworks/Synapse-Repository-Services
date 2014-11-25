@@ -10,6 +10,11 @@ package org.sagebionetworks.table.query.model;
 public abstract class SQLElement {
 
 	public interface ColumnConvertor {
+
+		enum SQLClause {
+			SELECT, ORDER_BY, GROUP_BY, FUNCTION_PARAMETER
+		};
+
 		/**
 		 * Convert table name from sql to actual table name in index
 		 * 
@@ -25,6 +30,15 @@ public abstract class SQLElement {
 		 * @param builder
 		 */
 		void convertColumn(ColumnReference columnReference, StringBuilder builder);
+
+		/**
+		 * Handle a boolean function on the current column
+		 * 
+		 * @param booleanFunction
+		 * @param columnReference
+		 * @param builder
+		 */
+		void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference, StringBuilder builder);
 
 		/**
 		 * Set the lhs column if valid, so the rhs can know that type to convert to. Always set back to null when lhs
@@ -64,6 +78,22 @@ public abstract class SQLElement {
 		 * @param builder
 		 */
 		void convertParam(String signedNumericLiteral, StringBuilder builder);
+
+		/**
+		 * Indicates that columns are now interpreted as part of specific clause/ Always pop when clause goes out of
+		 * scope
+		 * 
+		 * @param currentClause
+		 */
+		void pushCurrentClause(SQLClause clause);
+
+		/**
+		 * Indicates that columns are no longer interpreted as part of specific clause. Always match push goes out of
+		 * scope
+		 * 
+		 * @param currentClause
+		 */
+		void popCurrentClause(SQLClause clause);
 	}
 
 	/**

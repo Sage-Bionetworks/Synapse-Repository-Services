@@ -280,7 +280,7 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, null, limit, offset);
+		return serviceProvider.getUserProfileService().getMyProjects(userId, limit, offset);
 	}
 
 	/**
@@ -300,6 +300,26 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, principalId, limit, offset);
+		return serviceProvider.getUserProfileService().getProjectsForUser(userId, principalId, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.Project}">projects</a> from a
+	 * user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_FOR_TEAM }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsForTeam(
+			@PathVariable Long teamId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjectsForTeam(userId, teamId, limit, offset);
 	}
 }

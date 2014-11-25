@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -80,8 +81,20 @@ public interface UserProfileManager {
 			InvalidModelException, NotFoundException;
 
 	/**
+	 * Retrieve my list of projects, paginated
+	 */
+	public PaginatedResults<ProjectHeader> getMyProjects(UserInfo userInfo, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+
+	/**
 	 * Retrieve users list of projects, paginated
 	 */
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
+	public PaginatedResults<ProjectHeader> getProjectsForUser(UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve teams list of projects, paginated
+	 */
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(UserInfo userInfo, Team teamToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException;
 }

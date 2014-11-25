@@ -42,6 +42,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	private static final String SQL_SELECT_STATUS_FOR_UPDATE = "SELECT * FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_ALL_STATE = "DELETE FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" > -1";
 	private static final String SQL_RESET_TO_PENDING = "INSERT INTO "+TABLE_STATUS+" ("+COL_TABLE_STATUS_ID+", "+COL_TABLE_STATUS_STATE+", "+COL_TABLE_STATUS_RESET_TOKEN+", "+COL_TABLE_STATUS_STARTED_ON+", "+COL_TABLE_STATUS_CHANGE_ON+") VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_RESET_TOKEN+" = ?, "+COL_TABLE_STATUS_STARTED_ON+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?";
+	private static final String SQL_DELETE_TABLE_STATUS = "DELETE FROM " + TABLE_STATUS + " WHERE " + COL_TABLE_STATUS_ID + " = ?";
 
 	TableMapping<DBOTableStatus> tableMapping = new DBOTableStatus().getTableMapping();
 	
@@ -169,4 +170,8 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		jdbcTemplate.update(SQL_UPDATE_TABLE_PROGRESS, now, progressMessage, currentProgress, totalProgress, runtimeMS, tableId);
 	}
 
+	@Override
+	public void deleteTableStatus(String tableId) {
+		jdbcTemplate.update(SQL_DELETE_TABLE_STATUS, KeyFactory.stringToKey(tableId));
+	}
 }

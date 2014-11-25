@@ -4,29 +4,24 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.*;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.FatalBeanException;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -78,11 +73,14 @@ public class SQLTranslatorUtils {
 		SQLElement.ColumnConvertor columnConvertor = new SQLElement.ColumnConvertor() {
 			private ColumnModel columnModelLHS = null;
 			private Set<String> asColumns = Sets.newHashSet();
+			private String currentTableName = null;
+			private LinkedList<SQLClause> currentClauses = Lists.newLinkedList();
 
 			@Override
 			public void convertTableName(String tableName, StringBuilder builder) {
 				Long tableId = KeyFactory.stringToKey(tableName);
-				builder.append(SQLUtils.TABLE_PREFIX).append(tableId);
+				currentTableName = SQLUtils.TABLE_PREFIX + tableId;
+				builder.append(currentTableName);
 			}
 			
 			@Override
@@ -104,14 +102,62 @@ public class SQLTranslatorUtils {
 							throw new IllegalArgumentException("Unknown column name: " + columnName);
 						}
 					} else {
+						String subName = "";
 						if (columnReference.getNameLHS() != null) {
-							String subName = getStringValueOf(columnReference.getNameLHS());
+							subName = getStringValueOf(columnReference.getNameLHS());
 							// Remove double quotes if they are included.
-							subName = subName.replaceAll("\"", "");
-							builder.append(subName).append("_");
+							subName = subName.replaceAll("\"", "") + "_";
 						}
-						SQLUtils.appendColumnName(column, builder);
+						switch ( column.getColumnType()){
+						case DOUBLE:
+							SQLUtils.appendDoubleCase(column, subName, currentTableName, currentClauses.contains(SQLClause.SELECT),
+									!currentClauses.contains(SQLClause.FUNCTION_PARAMETER), builder);
+							break;
+						default:
+							SQLUtils.appendColumnName(subName, column, builder);
+							break;
+						}
 					}
+				}
+			}
+			
+			@Override
+			public void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference, StringBuilder builder) {
+				String columnName = getStringValueOf(columnReference.getNameRHS());
+				// Is this a reserved column name like ROW_ID or ROW_VERSION?
+				if (TableConstants.isReservedColumnName(columnName)) {
+					throw new IllegalArgumentException("Cannot apply "+booleanFunction+ " on reserved column "+columnName);
+				}
+
+				// Not a reserved column name.
+				// Lookup the ID for this column
+				columnName = columnName.trim().toLowerCase();
+				ColumnModel column = columnNameToModelMap.get(columnName);
+				if (column == null) {
+					throw new IllegalArgumentException("You can only apply "+booleanFunction+" on a column directly. "+columnName +" is not a column");
+				}
+
+				String subName = "";
+				if (columnReference.getNameLHS() != null) {
+					subName = getStringValueOf(columnReference.getNameLHS());
+					// Remove double quotes if they are included.
+					subName = subName.replaceAll("\"", "") + "_";
+				}
+				switch (column.getColumnType()) {
+				case DOUBLE:
+					switch (booleanFunction) {
+					case ISNAN:
+						SQLUtils.appendIsNan(column, subName, builder);
+						break;
+					case ISINFINITY:
+						SQLUtils.appendIsInfinity(column, subName, builder);
+						break;
+					default:
+						throw new IllegalArgumentException("function " + booleanFunction + " not yet supported");
+					}
+					break;
+				default:
+					throw new IllegalArgumentException("Cannot apply " + booleanFunction + " on a column of type " + column.getColumnType());
 				}
 			}
 
@@ -165,6 +211,20 @@ public class SQLTranslatorUtils {
 				String bindKey = "b" + parameters.size();
 				builder.append(":").append(bindKey);
 				parameters.put(bindKey, value);
+			}
+
+			@Override
+			public void pushCurrentClause(SQLClause clause) {
+				currentClauses.push(clause);
+			}
+
+			@Override
+			public void popCurrentClause(SQLClause clause) {
+				SQLClause lastPushedClause = currentClauses.pop();
+				if (lastPushedClause != clause) {
+					throw new IllegalStateException("Last pushed clause " + lastPushedClause + " is not the same as the one that was popped "
+							+ clause);
+				}
 			}
 		};
 		return columnConvertor;

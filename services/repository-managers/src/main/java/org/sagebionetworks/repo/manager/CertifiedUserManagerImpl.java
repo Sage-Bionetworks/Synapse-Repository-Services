@@ -52,9 +52,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
-	private static final long QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS = 60*1000L; // one minute
-	private volatile Long quizGeneratorCacheLastUpdated = 0L;
-	private volatile QuizGenerator quizGeneratorCache;
 	
 	@Autowired
 	private AmazonS3Utility s3Utility;	
@@ -82,13 +79,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		this.s3Utility=s3Utility;
 		this.groupMembersDao=groupMembersDao;
 		this.quizResponseDao=quizResponseDao;
-	}
-	
-	/**
-	 * for testing only
-	 */
-	public void expireQuizGeneratorCache() {
-		quizGeneratorCache = null;
 	}
 	
 	/**
@@ -182,10 +172,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	 * @return
 	 */
 	public QuizGenerator retrieveCertificationQuizGenerator() {
-		if ((System.currentTimeMillis() - quizGeneratorCacheLastUpdated < QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS) 
-				&& quizGeneratorCache!=null) {
-			return quizGeneratorCache;
-		}
 		// pull this from an S-3 File (if it's there) otherwise read from the default file on the classpath
 		String quizGeneratorAsString;
 		if (s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
@@ -204,8 +190,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		List<String> errorMessages = validateQuizGenerator(quizGenerator);
 		if (!errorMessages.isEmpty()) throw new RuntimeException(errorMessages.toString());
 		
-		quizGeneratorCacheLastUpdated = System.currentTimeMillis();
-		quizGeneratorCache = quizGenerator;
 		return quizGenerator;
 	}
 	
@@ -219,7 +203,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		for (QuestionVariety v : quizGenerator.getQuestions()) {
 			List<Question> questionOptions = v.getQuestionOptions();
 			// pick a random question from the variety of questions in the QuizGenerator
-			questions.add(questionOptions.get(random.nextInt(questionOptions.size())));
+			questions.add(cloneAndScrubPrivateFields(
+					questionOptions.get(
+							random.nextInt(questionOptions.size()))));
 		}
 		quiz.setQuestions(questions);
 		PrivateFieldUtils.clearPrivateFields(quiz);

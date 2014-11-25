@@ -1112,6 +1112,8 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException;
 
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, Integer limit, Integer offset) throws SynapseException;
+
 	public void createEntityDoi(String entityId) throws SynapseException;
 
 	public void createEntityDoi(String entityId, Long entityVersion)

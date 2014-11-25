@@ -4,12 +4,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * Represents a SQL query for a table.
@@ -103,6 +110,17 @@ public class SqlQuery {
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
+		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
+			SelectList expandedSelectList = new SelectList(Lists.newArrayList(Iterables.transform(tableSchema,
+					new Function<ColumnModel, DerivedColumn>() {
+						@Override
+						public DerivedColumn apply(ColumnModel cm) {
+							return SQLTranslatorUtils.createDerivedColumn(cm.getName());
+						}
+					})));
+			this.model = new QuerySpecification(this.model.getSqlDirective(), this.model.getSetQuantifier(), expandedSelectList,
+					this.model.getTableExpression());
+		}
 		isAggregatedResult = SQLTranslatorUtils.translate(this.model, outputBuilder, this.parameters, this.columnNameToModelMap);
 		this.outputSQL = outputBuilder.toString();
 		this.selectColumnModels = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap);

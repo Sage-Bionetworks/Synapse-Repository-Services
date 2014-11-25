@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.manager.trash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -579,7 +581,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testUserInfo, nodeIdA2);
 
 		// Purge B2 (a child)
-		trashManager.purgeTrashForUser(testUserInfo, nodeIdB2);
+		trashManager.purgeTrashForUser(testUserInfo, nodeIdB2, null);
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(4L, results.getTotalNumberOfResults());
 		assertEquals(4, results.getResults().size());
@@ -592,7 +594,8 @@ public class TrashManagerImplAutowiredTest {
 		assertFalse(trashCanDao.exists(testUserId, nodeIdB2));
 
 		// Purge A1 (a root with 2 descendants)
-		trashManager.purgeTrashForUser(testUserInfo, nodeIdA1);
+		trashManager.purgeTrashForUser(testUserInfo, nodeIdA1, null);
+
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(1, results.getResults().size());
@@ -602,7 +605,7 @@ public class TrashManagerImplAutowiredTest {
 		assertFalse(trashCanDao.exists(testUserId, nodeIdC1));
 
 		// Purge A2 (a root with no children)
-		trashManager.purgeTrashForUser(testUserInfo, nodeIdA2);
+		trashManager.purgeTrashForUser(testUserInfo, nodeIdA2, null);
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
@@ -673,7 +676,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.moveToTrash(testUserInfo, nodeIdA2);
 
 		// Purge the trash can
-		trashManager.purgeTrashForUser(testUserInfo);
+		trashManager.purgeTrashForUser(testUserInfo, null);
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
@@ -766,7 +769,30 @@ public class TrashManagerImplAutowiredTest {
 			}
 		}
 		assertEquals(4, purgeList.size());
-		trashManager.purgeTrash(purgeList);
+		final AtomicInteger count = new AtomicInteger(0);
+		// Purge A1 (a root with 2 descendants)
+		trashManager.purgeTrash(purgeList, new TrashManager.PurgeCallback() {
+			String id = null;
+
+			@Override
+			public void startPurge(String id) {
+				assertNull(this.id);
+				this.id = id;
+				count.incrementAndGet();
+			}
+
+			@Override
+			public void endPurge() {
+				assertNotNull(this.id);
+				this.id = null;
+				count.incrementAndGet();
+			}
+		});
+		assertEquals(2 * 4, count.get());
+
+		// should be able to purge already purged entities
+		trashManager.purgeTrash(purgeList, null);
+
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(1, results.getResults().size());
@@ -893,12 +919,12 @@ public class TrashManagerImplAutowiredTest {
 		}
 
 		try {
-			trashManager.purgeTrash(testUserInfo);
+			trashManager.purgeTrash(testUserInfo, null);
 			fail();
 		} catch (UnauthorizedException e) {
 			assertTrue(true);
 		}
-		trashManager.purgeTrash(testAdminUserInfo);
+		trashManager.purgeTrash(testAdminUserInfo, null);
 		results = trashManager.viewTrash(testAdminUserInfo, 0L, 1000L);
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
@@ -961,7 +987,7 @@ public class TrashManagerImplAutowiredTest {
 				nodeManager.delete(testAdminUserInfo, nodeId);
 			} catch (NotFoundException e) {}
 		}
-		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(true, 0L, Long.MAX_VALUE);
 		for (TrashedEntity trash : trashList) {
 			trashCanDao.delete(trash.getDeletedByPrincipalId(), trash.getEntityId());
 		}
