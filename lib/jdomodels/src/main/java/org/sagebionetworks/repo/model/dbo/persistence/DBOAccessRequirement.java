@@ -300,6 +300,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		newDto.setModifiedOn(origDto.getModifiedOn());
 		newDto.setSubjectIds(origDto.getSubjectIds());
 		newDto.setActContactInfo(origDto.getActContactInfo());
+		newDto.setOpenJiraIssue(true);
 		return newDto;
 	}
 
@@ -331,6 +332,9 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 					} else if (origDto instanceof ACTAccessRequirementLegacy) {
 						ACTAccessRequirement newDto = translateDto((ACTAccessRequirementLegacy)origDto);
 						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
+					} else if (origDto instanceof ACTAccessRequirement) {
+						((ACTAccessRequirement)origDto).setOpenJiraIssue(true);
+						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(origDto));
 					} else {
 						// nothing to translate
 						dbo.setSerializedEntity(serialized);

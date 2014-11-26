@@ -207,6 +207,65 @@ public class DBOAccessRequirementTest {
 		dbobackup.setId(987L);
 		dbobackup.setModifiedBy(202L);
 		dbobackup.setModifiedOn(now+10);
+		ACTAccessRequirement act = new ACTAccessRequirement();
+		act.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		act.setConcreteType(ACTAccessRequirement.class.getName());
+		act.setCreatedBy("101");
+		act.setCreatedOn(new Date(now));
+		act.setEtag("abcd");
+		act.setId(987L);
+		act.setActContactInfo("foo");
+		act.setModifiedBy("202");
+		act.setModifiedOn(new Date(now+10L));
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("111");
+		rod.setType(RestrictableObjectType.ENTITY);
+		List<RestrictableObjectDescriptor> rods = Collections.singletonList(rod);
+		act.setSubjectIds(rods);
+		byte[] ser = JDOSecondaryPropertyUtils.compressObject(act, ACTAccessRequirement.class.getName());
+		dbobackup.setSerializedEntity(ser);
+		
+		DBOAccessRequirement dbo = translator.createDatabaseObjectFromBackup(dbobackup);
+		DBOAccessRequirementBackup backup2 = translator.createBackupFromDatabaseObject(dbo);
+		
+		assertEquals("DOWNLOAD", backup2.getAccessType());
+		assertEquals(new Long(101L), backup2.getCreatedBy());
+		assertEquals(now, backup2.getCreatedOn());
+		assertEquals(null, backup2.getEntityType());
+		assertEquals("abcd", backup2.geteTag());
+		assertEquals(new Long(987L), backup2.getId());
+		assertEquals(new Long(202L), backup2.getModifiedBy());
+		assertEquals(now+10, backup2.getModifiedOn());
+		byte[] ser2 = backup2.getSerializedEntity();
+		ACTAccessRequirement actAr = (ACTAccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(ser2);
+		assertEquals(ACCESS_TYPE.DOWNLOAD, actAr.getAccessType());
+		assertEquals(ACTAccessRequirement.class.getName(), actAr.getConcreteType());
+		assertEquals("101", actAr.getCreatedBy());
+		assertEquals(new Date(now), actAr.getCreatedOn());
+		assertEquals("abcd", actAr.getEtag());
+		assertEquals(new Long(987L), actAr.getId());
+		assertEquals("202", actAr.getModifiedBy());
+		assertEquals(new Date(now+10), actAr.getModifiedOn());
+		assertEquals(rods, actAr.getSubjectIds());
+		assertEquals("foo", actAr.getActContactInfo());
+		assertTrue(actAr.getOpenJiraIssue());
+	}
+	
+	
+	@Test
+	public void testMigratableTableTranslationACTLegacy() throws Exception {
+		DBOAccessRequirement ar = new DBOAccessRequirement();
+		MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup> translator = ar.getTranslator();
+		DBOAccessRequirementBackup dbobackup = new DBOAccessRequirementBackup();
+		dbobackup.setAccessType("DOWNLOAD");
+		dbobackup.setCreatedBy(101L);
+		long now = (new Date()).getTime();
+		dbobackup.setCreatedOn(now);
+		dbobackup.setEntityType("ar");
+		dbobackup.seteTag("abcd");
+		dbobackup.setId(987L);
+		dbobackup.setModifiedBy(202L);
+		dbobackup.setModifiedOn(now+10);
 		ACTAccessRequirementLegacy actLegacy = new ACTAccessRequirementLegacy();
 		actLegacy.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		actLegacy.setConcreteType(ACTAccessRequirement.class.getName());
@@ -250,6 +309,7 @@ public class DBOAccessRequirementTest {
 		assertEquals(new Date(now+10), actAr.getModifiedOn());
 		assertEquals(rods, actAr.getSubjectIds());
 		assertEquals("foo", actAr.getActContactInfo());
+		assertTrue(actAr.getOpenJiraIssue());
 	}
 	
 	

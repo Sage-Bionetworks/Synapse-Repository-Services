@@ -35,7 +35,7 @@
 		},
 		"canDownload": {
 			"type": "boolean",
-			"description": "Can the user download this entity?"
+			"description": "Are there any access requirements precluding the user from downloading this entity?"
 		},
 		"canUpload": {
 			"type": "boolean",
