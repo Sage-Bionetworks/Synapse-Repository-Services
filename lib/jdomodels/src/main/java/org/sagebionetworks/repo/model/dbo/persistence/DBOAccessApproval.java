@@ -280,34 +280,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		return MigrationType.ACCESS_APPROVAL;
 	}
 
-	public static TermsOfUseAccessApproval translateDto(TermsOfUseAccessApprovalLegacy origDto) {
-		TermsOfUseAccessApproval newDto = new TermsOfUseAccessApproval();
-		newDto.setAccessorId(origDto.getAccessorId());
-		newDto.setConcreteType(TermsOfUseAccessApproval.class.getName());
-		newDto.setCreatedBy(origDto.getCreatedBy());
-		newDto.setCreatedOn(origDto.getCreatedOn());
-		newDto.setEtag(origDto.getEtag());
-		newDto.setId(origDto.getId());
-		newDto.setModifiedBy(origDto.getModifiedBy());
-		newDto.setModifiedOn(origDto.getModifiedOn());
-		newDto.setRequirementId(origDto.getRequirementId());
-		return newDto;
-	}
-
-	public static ACTAccessApproval translateDto(ACTAccessApprovalLegacy origDto) {
-		ACTAccessApproval newDto = new ACTAccessApproval();
-		newDto.setAccessorId(origDto.getAccessorId());
-		newDto.setConcreteType(ACTAccessApproval.class.getName());
-		newDto.setCreatedBy(origDto.getCreatedBy());
-		newDto.setCreatedOn(origDto.getCreatedOn());
-		newDto.setEtag(origDto.getEtag());
-		newDto.setId(origDto.getId());
-		newDto.setModifiedBy(origDto.getModifiedBy());
-		newDto.setModifiedOn(origDto.getModifiedOn());
-		newDto.setRequirementId(origDto.getRequirementId());
-		newDto.setApprovalStatus(origDto.getApprovalStatus());
-		return newDto;
-	}
 
 	@Override
 	public MigratableTableTranslation<DBOAccessApproval, DBOAccessApprovalBackup> getTranslator() {
