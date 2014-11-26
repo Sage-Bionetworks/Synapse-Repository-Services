@@ -1710,13 +1710,6 @@ public class TableWorkerIntegrationTest {
 		accessApprovalManager.createAccessApproval(notOwner, aa);
 
 		waitForConsistentQuery(notOwner, sql, null, 8L);
-		try {
-			tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
-			fail();
-		} catch (UnauthorizedException e) {
-		}
-
-		waitForConsistentQuery(notOwner, sql, null, 8L);
 		tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
 	}
 
