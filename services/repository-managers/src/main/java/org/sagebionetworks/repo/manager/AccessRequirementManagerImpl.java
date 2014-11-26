@@ -94,6 +94,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canCreateAccessRequirement(userInfo, accessRequirement));
 		populateCreationFields(userInfo, accessRequirement);
+		if (accessRequirement.getAccessType()==ACCESS_TYPE.UPLOAD) {
+			throw new IllegalArgumentException("Creating UPLOAD Access Requirement is not allowed.");
+		}
 		return accessRequirementDAO.create(accessRequirement);
 	}
 	
