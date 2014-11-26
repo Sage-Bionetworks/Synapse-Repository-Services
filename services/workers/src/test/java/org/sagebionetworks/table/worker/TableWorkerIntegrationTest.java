@@ -1697,16 +1697,9 @@ public class TableWorkerIntegrationTest {
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
 		TermsOfUseAccessRequirement downloadAR = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		ar.setAccessType(ACCESS_TYPE.UPLOAD);
-		TermsOfUseAccessRequirement uploadAR = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 
 		try {
 			waitForConsistentQuery(notOwner, sql, null, 8L);
-			fail();
-		} catch (UnauthorizedException e) {
-		}
-		try {
-			tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
 			fail();
 		} catch (UnauthorizedException e) {
 		}
@@ -1722,11 +1715,6 @@ public class TableWorkerIntegrationTest {
 			fail();
 		} catch (UnauthorizedException e) {
 		}
-
-		aa = new TermsOfUseAccessApproval();
-		aa.setAccessorId(notOwner.getId().toString());
-		aa.setRequirementId(uploadAR.getId());
-		accessApprovalManager.createAccessApproval(notOwner, aa);
 
 		waitForConsistentQuery(notOwner, sql, null, 8L);
 		tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
