@@ -9,6 +9,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DMLUtils;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -22,12 +24,14 @@ public class DBONodeTypeTest {
 	DBOBasicDao dboBasicDao;
 	
 	private short id = 1000;
+	private String name = "FakeType";
 	
 	@After
 	public void after() throws DatastoreException{
 		if(dboBasicDao != null){
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", id);
+			params.addValue("name", name);
 			dboBasicDao.deleteObjectByPrimaryKey(DBONodeType.class, params);
 		}
 	}
@@ -36,7 +40,7 @@ public class DBONodeTypeTest {
 		// Create a new type
 		DBONodeType nodeType = new DBONodeType();
 		nodeType.setId(id);
-		nodeType.setName("FakeType");
+		nodeType.setName(name);
 		
 		// Create it
 		DBONodeType clone = dboBasicDao.createNew(nodeType);
@@ -45,6 +49,7 @@ public class DBONodeTypeTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", id);
+		params.addValue("name", name);
 		clone = dboBasicDao.getObjectByPrimaryKey(DBONodeType.class, params);
 		assertNotNull(clone);
 		assertEquals(nodeType.getId(), clone.getId());
@@ -60,7 +65,7 @@ public class DBONodeTypeTest {
 		// Create a new type
 		DBONodeType nodeType = new DBONodeType();
 		nodeType.setId(id);
-		nodeType.setName("FakeType");
+		nodeType.setName(name);
 		// Create it
 		DBONodeType clone = dboBasicDao.createNew(nodeType);
 		assertNotNull(clone);
@@ -81,5 +86,12 @@ public class DBONodeTypeTest {
 		}
 		
 	}
-
+	
+	@Test
+	public void testGetInsertSQL() {
+		DBONodeType nodeType = new DBONodeType();
+		TableMapping<DBONodeType> tblMapping = nodeType.getTableMapping();
+		String insertSQL = DMLUtils.createInsertStatement(tblMapping);
+		assertEquals("INSERT IGNORE INTO NODE_TYPE(`ID`, `NAME`) VALUES (:id, :name)", insertSQL);
+	}
 }
