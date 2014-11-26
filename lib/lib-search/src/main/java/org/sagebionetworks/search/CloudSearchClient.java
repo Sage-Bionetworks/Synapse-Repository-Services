@@ -31,6 +31,7 @@ public class CloudSearchClient {
 
 	@Autowired
 	CloudSearchHttpClientProvider httpClientProvider;
+	private final long MAX_BACKOFF_MS = 6400L;
 	
 	private HttpClient httpClient;
 	private String searchServiceEndpoint;
@@ -62,7 +63,32 @@ public class CloudSearchClient {
 
 	public String performSearch(String searchQuery) throws ClientProtocolException, IOException, HttpClientHelperException {
 		String url = searchServiceEndpoint + "?" + searchQuery;
-		return HttpClientHelper.getContent(httpClient, url);
+		String s = null;
+		long backoffMs = 100L;
+		HttpClientHelperException e = null;
+		do {
+			try {
+				s = HttpClientHelper.getContent(httpClient, url);
+			} catch (HttpClientHelperException e1) {
+				e = e1;
+				if (e1.getHttpStatus() == 507) {
+					try {
+						Thread.sleep(backoffMs);
+					} catch (InterruptedException e2) {
+						// Continue
+					}
+				} else {
+					// rethrow
+					throw(e1);
+				}
+			}
+			backoffMs *= 2;
+		} while ((s == null) && (backoffMs < MAX_BACKOFF_MS));
+		// If we're past the max backoff, throw the last 507 we got
+		if (backoffMs >= MAX_BACKOFF_MS) {
+			throw(e);
+		}
+		return s;
 	}
 	
 }
