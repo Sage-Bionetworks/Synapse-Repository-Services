@@ -14,11 +14,6 @@ public class LockReleaseFailedException extends RuntimeException {
 		super();
 	}
 
-	public LockReleaseFailedException(String message, Throwable cause,
-			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
-	}
-
 	public LockReleaseFailedException(String message, Throwable cause) {
 		super(message, cause);
 	}
