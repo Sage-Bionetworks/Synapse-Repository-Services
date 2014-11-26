@@ -10,6 +10,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * CloudSearch does not yet provide a Java SDK. This is the bare minimum needed
@@ -28,13 +29,22 @@ public class CloudSearchClient {
 		SEND_DOCUMENTS_REQUEST_HEADERS = Collections.unmodifiableMap(requestHeaders);
 	}
 
+	@Autowired
+	CloudSearchHttpClientProvider httpClientProvider;
+	
 	private HttpClient httpClient;
 	private String searchServiceEndpoint;
 	private String documentServiceEndpoint;
 
-	public CloudSearchClient(HttpClient httpClient,
-			String searchServiceEndpoint, String documentServiceEndpoint) {
-		this.httpClient = httpClient;
+	public CloudSearchClient(String searchServiceEndpoint, String documentServiceEndpoint) {
+		this.httpClient = httpClientProvider.getHttpClient();
+		this.searchServiceEndpoint = searchServiceEndpoint;
+		this.documentServiceEndpoint = documentServiceEndpoint;
+	}
+
+	// For unit test
+	public CloudSearchClient(CloudSearchHttpClientProvider httpClientProvider, String searchServiceEndpoint, String documentServiceEndpoint) {
+		this.httpClient = httpClientProvider.getHttpClient();
 		this.searchServiceEndpoint = searchServiceEndpoint;
 		this.documentServiceEndpoint = documentServiceEndpoint;
 	}

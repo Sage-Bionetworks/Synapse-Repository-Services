@@ -11,6 +11,11 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<!-- Create the CloudSearchHttpClientProvider -->
+	<bean id="cloudSearchHttpClientProvider" class="org.sagebionetworks.search.CloudSearchHttpClientProvider" scope="singleton">
+		
+	</bean>
+
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="awsSearchClient" class="com.amazonaws.services.cloudsearch.AmazonCloudSearchClient" scope="singleton">
 		<constructor-arg ref="awsCredentials" />
