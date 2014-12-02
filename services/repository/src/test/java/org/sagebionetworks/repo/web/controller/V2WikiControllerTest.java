@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -377,10 +379,25 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
 		
-		// Get OrderHint for the created project (should have empty order hint).
+		// Get OrderHint for the created project (should have a null order hint).
 		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
 		
+		// Order hint has not been set yet.
+		assertNull(orderHint.getOrderHint());
 		
+		List<String> orderHintList = Arrays.asList(new String[] {"A", "B", "C", "D"});
+		
+		orderHint.setOrderHint(orderHintList);
+		
+		V2WikiOrderHint updatedOrderHint = entityServletHelper.updateWikiOrderHint(adminUserId, key, orderHint);
+		
+		assertNotNull(updatedOrderHint.getOrderHint());
+		assertTrue(orderHintList.equals(updatedOrderHint.getOrderHint()));
+		
+		// Get the updated order hint (make sure it was recorded).
+		V2WikiOrderHint postUpdateGetOrderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
+		
+		assertTrue(orderHintList.equals(postUpdateGetOrderHint.getOrderHint()));
 		
 	}
 

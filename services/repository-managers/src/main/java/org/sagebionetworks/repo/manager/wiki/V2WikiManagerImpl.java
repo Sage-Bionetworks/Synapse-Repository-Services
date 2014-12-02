@@ -325,7 +325,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		V2WikiOrderHint orderHintDTO = wikiPageDao.getWikiOrderHint(key);
 		
 		// Before we can update the Wiki we need to lock.
-		String currentEtag = wikiPageDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType());
+		String currentEtag = wikiPageDao.lockWikiOwnersForUpdate(key.getWikiPageId());
 		if(!currentEtag.equals(orderHintDTO.getEtag())){
 			throw new ConflictingUpdateException("ObjectId: "+orderHintDTO.getOwnerId()+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}

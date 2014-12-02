@@ -339,7 +339,7 @@ public class V2WikiController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiOrderHint updateEntityWikiOrderHint(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -617,7 +617,7 @@ public class V2WikiController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiOrderHint getEntityWikiOrderHint(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
