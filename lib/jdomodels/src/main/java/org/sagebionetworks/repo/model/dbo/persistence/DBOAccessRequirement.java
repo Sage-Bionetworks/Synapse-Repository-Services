@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -21,13 +22,16 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -274,7 +278,28 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
-				return backup;
+				DBOAccessRequirement dbo = new DBOAccessRequirement();
+				dbo.setId(backup.getId());
+				dbo.seteTag(backup.geteTag());
+				dbo.setCreatedBy(backup.getCreatedBy());
+				dbo.setCreatedOn(backup.getCreatedOn());
+				dbo.setModifiedBy(backup.getModifiedBy());
+				dbo.setModifiedOn(backup.getModifiedOn());
+				dbo.setAccessType(backup.getAccessType());
+				try {
+					Object origDto = JDOSecondaryPropertyUtils.
+							decompressedObject(backup.getSerializedEntity());
+					// convert old dto to new dto
+					if (origDto instanceof ACTAccessRequirement) {
+						((ACTAccessRequirement)origDto).setOpenJiraIssue(true);
+						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(origDto));
+					} else {
+						dbo.setSerializedEntity(backup.getSerializedEntity());
+					}
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
+				return dbo;
 			}
 			
 			@Override
