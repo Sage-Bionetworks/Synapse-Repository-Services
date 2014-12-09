@@ -146,7 +146,14 @@ public class AccessRequirementManagerImplUnitTest {
 		when(accessRequirementDAO.getForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
-		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateUploadAccessRequirement() throws Exception {
+		AccessRequirement ar = createExpectedAR();
+		ar.setAccessType(ACCESS_TYPE.UPLOAD);
+		when(authorizationManager.canCreateAccessRequirement(userInfo, ar)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		arm.createAccessRequirement(userInfo, ar);
 	}
 	
 	@Test

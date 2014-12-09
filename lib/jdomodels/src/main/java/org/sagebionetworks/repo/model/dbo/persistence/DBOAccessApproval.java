@@ -15,29 +15,22 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ACTAccessApproval;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.Pair;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessApproval, DBOAccessApprovalBackup> {
+public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessApproval, DBOAccessApproval> {
 	private Long id;
 	private String eTag;
 	private Long createdBy;
@@ -280,95 +273,28 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		return MigrationType.ACCESS_APPROVAL;
 	}
 
-	public static TermsOfUseAccessApproval translateDto(TermsOfUseAccessApprovalLegacy origDto) {
-		TermsOfUseAccessApproval newDto = new TermsOfUseAccessApproval();
-		newDto.setAccessorId(origDto.getAccessorId());
-		newDto.setConcreteType(TermsOfUseAccessApproval.class.getName());
-		newDto.setCreatedBy(origDto.getCreatedBy());
-		newDto.setCreatedOn(origDto.getCreatedOn());
-		newDto.setEtag(origDto.getEtag());
-		newDto.setId(origDto.getId());
-		newDto.setModifiedBy(origDto.getModifiedBy());
-		newDto.setModifiedOn(origDto.getModifiedOn());
-		newDto.setRequirementId(origDto.getRequirementId());
-		return newDto;
-	}
-
-	public static ACTAccessApproval translateDto(ACTAccessApprovalLegacy origDto) {
-		ACTAccessApproval newDto = new ACTAccessApproval();
-		newDto.setAccessorId(origDto.getAccessorId());
-		newDto.setConcreteType(ACTAccessApproval.class.getName());
-		newDto.setCreatedBy(origDto.getCreatedBy());
-		newDto.setCreatedOn(origDto.getCreatedOn());
-		newDto.setEtag(origDto.getEtag());
-		newDto.setId(origDto.getId());
-		newDto.setModifiedBy(origDto.getModifiedBy());
-		newDto.setModifiedOn(origDto.getModifiedOn());
-		newDto.setRequirementId(origDto.getRequirementId());
-		newDto.setApprovalStatus(origDto.getApprovalStatus());
-		return newDto;
-	}
 
 	@Override
-	public MigratableTableTranslation<DBOAccessApproval, DBOAccessApprovalBackup> getTranslator() {
-		return new MigratableTableTranslation<DBOAccessApproval, DBOAccessApprovalBackup>(){
+	public MigratableTableTranslation<DBOAccessApproval, DBOAccessApproval> getTranslator() {
+		return new MigratableTableTranslation<DBOAccessApproval, DBOAccessApproval>(){
 
 			@Override
 			public DBOAccessApproval createDatabaseObjectFromBackup(
-					DBOAccessApprovalBackup backup) {
-				DBOAccessApproval dbo = new DBOAccessApproval();
-				dbo.setId(backup.getId());
-				dbo.seteTag(backup.geteTag());
-				dbo.setCreatedBy(backup.getCreatedBy());
-				dbo.setCreatedOn(backup.getCreatedOn());
-				dbo.setModifiedBy(backup.getModifiedBy());
-				dbo.setModifiedOn(backup.getModifiedOn());
-				dbo.setAccessorId(backup.getAccessorId());
-				dbo.setRequirementId(backup.getRequirementId());
-				try {
-					byte[] serialized = backup.getSerializedEntity();
-					List<Pair<String,Class>> aliases = new ArrayList<Pair<String,Class>>();
-					aliases.add(Pair.create("org.sagebionetworks.repo.model.TermsOfUseAccessApproval", (Class)TermsOfUseAccessApprovalLegacy.class));
-					aliases.add(Pair.create("org.sagebionetworks.repo.model.ACTAccessApproval", (Class)ACTAccessApprovalLegacy.class));
-					Object origDto = JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
-					// convert old dto to new dto
-					if (origDto instanceof TermsOfUseAccessApprovalLegacy) {
-						TermsOfUseAccessApproval newDto = translateDto((TermsOfUseAccessApprovalLegacy)origDto);
-						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
-					} else if (origDto instanceof ACTAccessApprovalLegacy) {
-						ACTAccessApproval newDto = translateDto((ACTAccessApprovalLegacy)origDto);
-						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
-					} else {
-						// nothing to translate
-						dbo.setSerializedEntity(serialized);
-					}
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
-				return dbo;
+					DBOAccessApproval backup) {
+				return backup;
 			}
 
 			@Override
-			public DBOAccessApprovalBackup createBackupFromDatabaseObject(
+			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
-				DBOAccessApprovalBackup backup = new DBOAccessApprovalBackup();
-				backup.setAccessorId(dbo.getAccessorId());
-				backup.setRequirementId(dbo.getRequirementId());
-				backup.setCreatedBy(dbo.getCreatedBy());
-				backup.setCreatedOn(dbo.getCreatedOn());
-				backup.seteTag(dbo.geteTag());
-				backup.setId(dbo.getId());
-				backup.setModifiedBy(dbo.getModifiedBy());
-				backup.setModifiedOn(dbo.getModifiedOn());
-				backup.setSerializedEntity(dbo.getSerializedEntity());
-				return backup;
+				return dbo;
 			}};
 	}
 
 
 	@Override
-	public Class<? extends DBOAccessApprovalBackup> getBackupClass() {
-		return DBOAccessApprovalBackup.class;
+	public Class<? extends DBOAccessApproval> getBackupClass() {
+		return DBOAccessApproval.class;
 	}
 
 

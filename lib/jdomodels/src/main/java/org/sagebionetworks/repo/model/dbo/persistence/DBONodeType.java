@@ -22,7 +22,7 @@ public class DBONodeType implements DatabaseObject<DBONodeType> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
 			new FieldColumn("id", COL_NODE_TYPE_ID, true),
-			new FieldColumn("name", COL_NODE_TYPE_NAME),
+			new FieldColumn("name", COL_NODE_TYPE_NAME, true),
 	};
 	
 	@Override

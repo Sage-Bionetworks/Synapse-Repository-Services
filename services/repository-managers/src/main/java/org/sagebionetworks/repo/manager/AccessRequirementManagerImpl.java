@@ -94,6 +94,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canCreateAccessRequirement(userInfo, accessRequirement));
 		populateCreationFields(userInfo, accessRequirement);
+		if (accessRequirement.getAccessType()==ACCESS_TYPE.UPLOAD) {
+			throw new IllegalArgumentException("Creating UPLOAD Access Requirement is not allowed.");
+		}
 		return accessRequirementDAO.create(accessRequirement);
 	}
 	
@@ -107,6 +110,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		accessRequirement.setOpenJiraIssue(true);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirement;
 	}

@@ -14,7 +14,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -22,25 +21,20 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.Pair;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessRequirement, DBOAccessRequirementBackup> {
+public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessRequirement, DBOAccessRequirement> {
 	private Long id;
 	private String eTag;
 	private Long createdBy;
@@ -273,93 +267,26 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		}	
 	}
 
-	public static TermsOfUseAccessRequirement translateDto(TermsOfUseAccessRequirementLegacy origDto) {
-		TermsOfUseAccessRequirement newDto = new TermsOfUseAccessRequirement();
-		newDto.setAccessType(origDto.getAccessType());
-		newDto.setConcreteType(TermsOfUseAccessRequirement.class.getName());
-		newDto.setCreatedBy(origDto.getCreatedBy());
-		newDto.setCreatedOn(origDto.getCreatedOn());
-		newDto.setEtag(origDto.getEtag());
-		newDto.setId(origDto.getId());
-		newDto.setModifiedBy(origDto.getModifiedBy());
-		newDto.setModifiedOn(origDto.getModifiedOn());
-		newDto.setSubjectIds(origDto.getSubjectIds());
-		newDto.setTermsOfUse(origDto.getTermsOfUse());
-		return newDto;
-	}
-
-	public static ACTAccessRequirement translateDto(ACTAccessRequirementLegacy origDto) {
-		ACTAccessRequirement newDto = new ACTAccessRequirement();
-		newDto.setAccessType(origDto.getAccessType());
-		newDto.setConcreteType(ACTAccessRequirement.class.getName());
-		newDto.setCreatedBy(origDto.getCreatedBy());
-		newDto.setCreatedOn(origDto.getCreatedOn());
-		newDto.setEtag(origDto.getEtag());
-		newDto.setId(origDto.getId());
-		newDto.setModifiedBy(origDto.getModifiedBy());
-		newDto.setModifiedOn(origDto.getModifiedOn());
-		newDto.setSubjectIds(origDto.getSubjectIds());
-		newDto.setActContactInfo(origDto.getActContactInfo());
-		return newDto;
-	}
-
 	@Override
-	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup> getTranslator() {
-		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup>(){
+	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
+		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
 
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
-					DBOAccessRequirementBackup backup) {
-				DBOAccessRequirement dbo = new DBOAccessRequirement();
-				dbo.setId(backup.getId());
-				dbo.seteTag(backup.geteTag());
-				dbo.setCreatedBy(backup.getCreatedBy());
-				dbo.setCreatedOn(backup.getCreatedOn());
-				dbo.setModifiedBy(backup.getModifiedBy());
-				dbo.setModifiedOn(backup.getModifiedOn());
-				dbo.setAccessType(backup.getAccessType());
-				try {
-					byte[] serialized = backup.getSerializedEntity();
-					List<Pair<String,Class>> aliases = new ArrayList<Pair<String,Class>>();
-					aliases.add(Pair.create("org.sagebionetworks.repo.model.TermsOfUseAccessRequirement", (Class)TermsOfUseAccessRequirementLegacy.class));
-					aliases.add(Pair.create("org.sagebionetworks.repo.model.ACTAccessRequirement", (Class)ACTAccessRequirementLegacy.class));
-					Object origDto = JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
-					// convert old dto to new dto
-					if (origDto instanceof TermsOfUseAccessRequirementLegacy) {
-						TermsOfUseAccessRequirement newDto = translateDto((TermsOfUseAccessRequirementLegacy)origDto);
-						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
-					} else if (origDto instanceof ACTAccessRequirementLegacy) {
-						ACTAccessRequirement newDto = translateDto((ACTAccessRequirementLegacy)origDto);
-						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
-					} else {
-						// nothing to translate
-						dbo.setSerializedEntity(serialized);
-					}
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
-				return dbo;
+					DBOAccessRequirement backup) {
+				return backup;
 			}
 			
 			@Override
-			public DBOAccessRequirementBackup createBackupFromDatabaseObject(
+			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
-				DBOAccessRequirementBackup backup = new DBOAccessRequirementBackup();
-				backup.setAccessType(dbo.getAccessType());
-				backup.setCreatedBy(dbo.getCreatedBy());
-				backup.setCreatedOn(dbo.getCreatedOn());
-				backup.seteTag(dbo.geteTag());
-				backup.setId(dbo.getId());
-				backup.setModifiedBy(dbo.getModifiedBy());
-				backup.setModifiedOn(dbo.getModifiedOn());
-				backup.setSerializedEntity(dbo.getSerializedEntity());
-				return backup;
+				return dbo;
 			}};
 	}
 
 	@Override
-	public Class<? extends DBOAccessRequirementBackup> getBackupClass() {
-		return DBOAccessRequirementBackup.class;
+	public Class<? extends DBOAccessRequirement> getBackupClass() {
+		return DBOAccessRequirement.class;
 	}
 
 
