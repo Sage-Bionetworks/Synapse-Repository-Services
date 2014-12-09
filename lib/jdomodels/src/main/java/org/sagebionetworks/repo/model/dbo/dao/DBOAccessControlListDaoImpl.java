@@ -172,6 +172,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, dbo.getId());
 		// Now recreate it from the passed data.
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
+
+		String objectId = acl.getId().startsWith("syn") ? acl.getId().substring(3) : acl.getId();
+		transactionalMessenger.sendMessageAfterCommit(objectId, ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(), ChangeType.UPDATE);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -182,6 +185,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		params.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, ownerKey);
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
+		
+		String objectId = ownerId.startsWith("syn") ? ownerId.substring(3) : ownerId;
+		transactionalMessenger.sendMessageAfterCommit(objectId, ObjectType.ACCESS_CONTROL_LIST, ChangeType.DELETE);
 	}
 
 	@Override

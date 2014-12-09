@@ -76,7 +76,7 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
 		modifiedById = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-
+		
 		// create a resource on which to apply permissions
 		node = new Node();
 		node.setName("foo");
@@ -103,9 +103,7 @@ public class DBOAccessControlListDAOImplTest {
 		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
-		
-		long startNumber = changeDAO.getCurrentChangeNumber();
-		
+
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
 		acl.setId(nodeId);
@@ -115,7 +113,7 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(nodeId, aclId);
 		
 		// Did a message get sent?
-		List<ChangeMessage> changes = changeDAO.listChanges(startNumber+1, ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
 		assertNotNull(changes);
 		ChangeMessage message = changes.get(0);
 		assertNotNull(message);
@@ -151,6 +149,15 @@ public class DBOAccessControlListDAOImplTest {
 		// TODO assertEquals(ra.getDisplayName(), raClone.getDisplayName());
 		assertEquals(ra.getAccessType(), raClone.getAccessType());
 		aclList.add(acl);
+		
+		changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+		assertNotNull(changes);
+		message = changes.get(0);
+		assertNotNull(message);
+		assertEquals(nodeId, "syn" + message.getObjectId());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
+		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
+		assertEquals(acl.getEtag(), message.getObjectEtag());
 	}
 
 
@@ -159,6 +166,14 @@ public class DBOAccessControlListDAOImplTest {
 		for (Node n : nodeList) {
 			nodeDAO.delete(n.getId());
 			aclDAO.delete(n.getId(), ObjectType.ENTITY);
+			
+			List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+			assertNotNull(changes);
+			ChangeMessage message = changes.get(0);
+			assertNotNull(message);
+			assertEquals(n.getId(), "syn" + message.getObjectId());
+			assertEquals(ChangeType.DELETE, message.getChangeType());
+			assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 		}
 		nodeList.clear();
 		aclList.clear();
