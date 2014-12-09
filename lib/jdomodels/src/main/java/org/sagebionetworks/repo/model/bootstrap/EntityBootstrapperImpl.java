@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,63 +86,8 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 				// Sleep
 				TimeUnit.SECONDS.sleep(SLEEP_TIME_S);
 			}
-			// Make sure users have been bootstrapped
-			userGroupDAO.bootstrapUsers();
-			userProfileDAO.bootstrapProfiles();
-			groupMembersDAO.bootstrapGroups();
-			authDAO.bootstrapCredentials();
 			
-			// First make sure the nodeDao has been bootstrapped
-			nodeDao.boostrapAllNodeTypes();
-			pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
-			// Map the default users to their ids
-			// Now create a node for each type in the list
-			for(EntityBootstrapData entityBoot: bootstrapEntities){
-				// Only add this node if it does not already exists
-				if(entityBoot.getEntityPath() == null) throw new IllegalArgumentException("Bootstrap 'enityPath' cannot be null");
-				if(entityBoot.getDefaultChildAclScheme() == null) throw new IllegalArgumentException("Boostrap 'defaultChildAclScheme' cannot be null");
-				// Add this to the map
-				pathMap.put(entityBoot.getEntityPath(), entityBoot);
-				// The very first time we try to run a query it might 
-				String id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());
-				// Does this already exist?
-				if(id != null) continue;
-				// Create the entity
-				Node toCreate = new Node();
-				// Get the name and parent from the path
-				String[] parentAndName = splitParentPathAndName(entityBoot.getEntityPath());
-				// Look up the parent if it exists
-				String parentPath = parentAndName[0];
-				String parentId = null;
-				if(parentPath != null){
-					parentId = nodeDao.getNodeIdForPath(parentPath);
-					if(parentId == null) throw new IllegalArgumentException("Cannot find a parent with a path: "+parentPath);
-				}
-				toCreate.setName(parentAndName[1]);
-				toCreate.setParentId(parentId);
-				toCreate.setDescription(entityBoot.getEntityDescription());
-				if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
-				toCreate.setNodeType(entityBoot.getEntityType().name());
-				toCreate.setCreatedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-				toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
-				toCreate.setModifiedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-				toCreate.setModifiedOn(toCreate.getCreatedOn());
-				toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
-				toCreate.setId(""+entityBoot.getEntityId());
-				String nodeId = nodeDao.createNew(toCreate);
-
-				// Now create the ACL on the node
-				AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
-				// Now set the ACL for this node.
-				aclDAO.create(acl, ObjectType.ENTITY);
-				nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
-
-				// Verify the bootstrap entity has indeed been created
-				id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());
-				if (id == null) {
-					throw new DatastoreException("Bootstrapping failed for entity path " + entityBoot.getEntityPath() );
-				}
-			}
+			doBootstrap();
 
 		} catch (InterruptedException e) {
 			// Should not happen
@@ -151,6 +97,66 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			semaphoreDao.releaseLock(ENTITY_BOOTSTRAPPER_LOCK, token);
 		}
 		
+	}
+
+	private void doBootstrap() throws Exception, NotFoundException {
+		// Make sure users have been bootstrapped
+		userGroupDAO.bootstrapUsers();
+		userProfileDAO.bootstrapProfiles();
+		groupMembersDAO.bootstrapGroups();
+		authDAO.bootstrapCredentials();
+		
+		// First make sure the nodeDao has been bootstrapped
+		nodeDao.boostrapAllNodeTypes();
+		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
+		// Map the default users to their ids
+		// Now create a node for each type in the list
+		for(EntityBootstrapData entityBoot: bootstrapEntities){
+			// Only add this node if it does not already exists
+			if(entityBoot.getEntityPath() == null) throw new IllegalArgumentException("Bootstrap 'enityPath' cannot be null");
+			if(entityBoot.getDefaultChildAclScheme() == null) throw new IllegalArgumentException("Boostrap 'defaultChildAclScheme' cannot be null");
+			// Add this to the map
+			pathMap.put(entityBoot.getEntityPath(), entityBoot);
+			// The very first time we try to run a query it might 
+			String id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());
+			// Does this already exist?
+			if(id != null) continue;
+			// Create the entity
+			Node toCreate = new Node();
+			// Get the name and parent from the path
+			String[] parentAndName = splitParentPathAndName(entityBoot.getEntityPath());
+			// Look up the parent if it exists
+			String parentPath = parentAndName[0];
+			String parentId = null;
+			if(parentPath != null){
+				parentId = nodeDao.getNodeIdForPath(parentPath);
+				if(parentId == null) throw new IllegalArgumentException("Cannot find a parent with a path: "+parentPath);
+			}
+			toCreate.setName(parentAndName[1]);
+			toCreate.setParentId(parentId);
+			toCreate.setDescription(entityBoot.getEntityDescription());
+			if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
+			toCreate.setNodeType(entityBoot.getEntityType().name());
+			toCreate.setCreatedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+			toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
+			toCreate.setModifiedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+			toCreate.setModifiedOn(toCreate.getCreatedOn());
+			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
+			toCreate.setId(""+entityBoot.getEntityId());
+			String nodeId = nodeDao.createNew(toCreate);
+
+			// Now create the ACL on the node
+			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
+			// Now set the ACL for this node.
+			aclDAO.create(acl, ObjectType.ENTITY);
+			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
+
+			// Verify the bootstrap entity has indeed been created
+			id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());
+			if (id == null) {
+				throw new DatastoreException("Bootstrapping failed for entity path " + entityBoot.getEntityPath() );
+			}
+		}
 	}
 
 	@Override

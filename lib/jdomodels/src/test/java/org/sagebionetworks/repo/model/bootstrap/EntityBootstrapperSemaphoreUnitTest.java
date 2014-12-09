@@ -1,54 +1,32 @@
 package org.sagebionetworks.repo.model.bootstrap;
 
-import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
-
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.util.ReflectionUtils;
 
-//@RunWith(SpringJUnit4ClassRunner.class)
-//@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class EntityBootstrapperSemaphoreUnitTest {
 	
 	private NodeDAO mockNodeDao;
@@ -94,14 +72,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 		List<AccessBootstrapData> accessList = new ArrayList<AccessBootstrapData>();
 		ebd.setAccessList(accessList);
 		bootstrapData.add(ebd);
-//		ebd = new EntityBootstrapData();
-//		ebd.setEntityId(1002L);
-//		ebd.setEntityType(EntityType.folder);
-//		ebd.setEntityPath("/root/trash");
-//		ebd.setDefaultChildAclScheme(ACL_SCHEME.INHERIT_FROM_PARENT);
-//		accessList = new ArrayList<AccessBootstrapData>();
-//		ebd.setAccessList(accessList);
-//		bootstrapData.add(ebd);
 		ReflectionTestUtils.setField(bootstrapper, "bootstrapEntities", bootstrapData);
 	}
 
@@ -113,15 +83,7 @@ public class EntityBootstrapperSemaphoreUnitTest {
 	public void testBootsrapSemaphore() throws Exception {
 		when(mockSemaphoreDao.attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30000L)).thenReturn(null, null, null, "token");
 		when(mockNodeDao.getNodeIdForPath(bootstrapData.get(0).getEntityPath())).thenReturn(null, bootstrapData.get(0).getEntityId().toString()); // Should force node creation
-//		Node n = new Node();
 		when(mockNodeDao.createNew(any(Node.class))).thenReturn(bootstrapData.get(0).getEntityId().toString());
-		// START: Might not be necessary
-//		AccessControlList acl = new AccessControlList();
-//		acl.setId(bootstrapData.get(0).getEntityId().toString());
-//		Set<ResourceAccess> ra = new HashSet<ResourceAccess>(); 
-//		acl.setResourceAccess(ra);
-//		when(mockAclDao.create(acl, ObjectType.ENTITY)).thenReturn("aclId");
-		// END: Might not be necessary
 		bootstrapper.bootstrapAll();
 		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30000L);
 		verify(mockUserGroupDao).bootstrapUsers();
