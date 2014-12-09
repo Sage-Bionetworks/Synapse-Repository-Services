@@ -10,6 +10,8 @@
 
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
+	
+	<bean class="org.springframework.context.annotation.CommonAnnotationBeanPostProcessor" />
 
 	<!-- Create the CloudSearchHttpClientProvider -->
 	<bean id="cloudSearchHttpClientProvider" class="org.sagebionetworks.search.CloudSearchHttpClientProvider" scope="singleton">

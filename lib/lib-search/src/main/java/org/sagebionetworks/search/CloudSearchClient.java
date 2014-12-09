@@ -11,6 +11,7 @@ import org.apache.http.client.HttpClient;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 
 /**
  * CloudSearch does not yet provide a Java SDK. This is the bare minimum needed
@@ -38,9 +39,13 @@ public class CloudSearchClient {
 	private String documentServiceEndpoint;
 
 	public CloudSearchClient(String searchServiceEndpoint, String documentServiceEndpoint) {
-		this.httpClient = httpClientProvider.getHttpClient();
 		this.searchServiceEndpoint = searchServiceEndpoint;
 		this.documentServiceEndpoint = documentServiceEndpoint;
+	}
+	
+	@PostConstruct
+	private void init() {
+		this.httpClient = httpClientProvider.getHttpClient();
 	}
 
 	// For unit test

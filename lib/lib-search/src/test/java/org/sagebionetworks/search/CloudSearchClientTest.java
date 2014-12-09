@@ -52,7 +52,7 @@ public class CloudSearchClientTest {
 		HttpResponse resp = new BasicHttpResponse(status);
 		when(mockHttpClient.execute(any(HttpRequestBase.class))).thenReturn(resp);
 		cloudSearchClient.performSearch("aQuery");
-		verify(mockHttpClient, times(1)).execute(any(HttpRequestBase.class));
+		verify(mockHttpClient).execute(any(HttpRequestBase.class));
 	}
 	
 	@Test
