@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -66,6 +68,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private DBOBasicDao dboBasicDao;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	TransactionalMessenger transactionalMessenger;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -83,6 +87,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
+		String objectId = acl.getId().startsWith("syn") ? acl.getId().substring(3) : acl.getId();
+		transactionalMessenger.sendMessageAfterCommit(objectId, ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(), ChangeType.CREATE);
 		return acl.getId(); // This preserves the "syn" prefix
 	}
 

@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
@@ -22,6 +23,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -52,6 +55,9 @@ public class DBOAccessControlListDAOImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	DBOChangeDAO changeDAO;
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
@@ -65,6 +71,7 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
+		changeDAO.deleteAllChanges();
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
@@ -97,6 +104,8 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(group2.getId());
 		groupList.add(group2);
 		
+		long startNumber = changeDAO.getCurrentChangeNumber();
+		
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
 		acl.setId(nodeId);
@@ -104,6 +113,16 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
+		
+		// Did a message get sent?
+		List<ChangeMessage> changes = changeDAO.listChanges(startNumber+1, ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+		assertNotNull(changes);
+		ChangeMessage message = changes.get(0);
+		assertNotNull(message);
+		assertEquals(nodeId, "syn" + message.getObjectId());
+		assertEquals(ChangeType.CREATE, message.getChangeType());
+		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
+		assertEquals(acl.getEtag(), message.getObjectEtag());
 
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
