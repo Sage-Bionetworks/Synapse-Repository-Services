@@ -521,7 +521,7 @@ public class SQLUtilsTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
 		assertNotNull(results);

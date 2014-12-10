@@ -126,7 +126,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Create the table
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now fill the table with data
@@ -189,7 +189,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Check again
@@ -235,7 +235,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// This is our query
@@ -286,7 +286,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, doubleColumn);
 		// This is our query
@@ -325,7 +325,7 @@ public class TableIndexDAOImplTest {
 		range.setMaximumId(200L);
 		range.setMaximumUpdateId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 
@@ -335,7 +335,7 @@ public class TableIndexDAOImplTest {
 		set.getRows().get(0).getValues().clear();
 		set.getRows().get(1).getValues().clear();
 		range.setVersionNumber(4L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
@@ -364,7 +364,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Now query for the results
@@ -412,7 +412,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Now a count query
@@ -462,7 +462,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(4L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query
@@ -512,7 +512,7 @@ public class TableIndexDAOImplTest {
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(4L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query

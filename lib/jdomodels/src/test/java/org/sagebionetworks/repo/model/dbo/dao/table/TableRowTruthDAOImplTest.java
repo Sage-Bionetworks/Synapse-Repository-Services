@@ -758,7 +758,7 @@ public class TableRowTruthDAOImplTest {
 		Row toAdd = TableModelTestUtils.createRows(mapper.getColumnModels(), 1).get(0);
 		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);
 		toUpdateOne.getRows().add(toAdd);
-		RawRowSet toUpdateOneRaw = new RawRowSet(TableModelUtils.getHeadersFromSelectColumns(toUpdateOne.getHeaders()),
+		RawRowSet toUpdateOneRaw = new RawRowSet(TableModelTestUtils.getHeadersFromSelectColumns(toUpdateOne.getHeaders()),
 				toUpdateOne.getEtag(), toUpdateOne.getTableId(), toUpdateOne.getRows());
 		try{
 			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateOneRaw);

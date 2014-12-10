@@ -234,21 +234,6 @@ public class TableModelUtils {
 	}
 
 	/**
-	 * @param set
-	 */
-	public static void validateRowSet(RowSet set) {
-		if (set == null)
-			throw new IllegalArgumentException("RowSet cannot be null");
-		;
-		if (set.getHeaders() == null)
-			throw new IllegalArgumentException("RowSet.headers cannot be null");
-		if (set.getRows() == null)
-			throw new IllegalArgumentException("RowSet.rows cannot be null");
-		if (set.getRows().size() < 1)
-			throw new IllegalArgumentException("RowSet.rows must contain at least one row.");
-	}
-
-	/**
 	 * Validate a value
 	 * 
 	 * @param value
@@ -464,38 +449,6 @@ public class TableModelUtils {
 	}
 
 	/**
-	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
-	 * 
-	 * @param set
-	 * @param range
-	 */
-	public static void assignRowIdsAndVersionNumbers(RowSet set, IdRange range){
-		validateRowSet(set);
-		Long id = range.getMinimumId();
-		for (Row row : set.getRows()) {
-			// Set the version number for each row
-			row.setVersionNumber(range.getVersionNumber());
-			if(isNullOrInvalid(row.getRowId())){
-				if(range.getMinimumId() == null){
-					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
-				}
-				// This row needs an id.
-				row.setRowId(id);
-				id++;
-				// Validate we have not exceeded the rows
-				if(row.getRowId() > range.getMaximumId()){
-					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
-				}
-			}else{
-				// Validate the rowId is within range
-				if(row.getRowId() > range.getMaximumUpdateId()){
-					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
-				}
-			}
-		}
-	}
-
-	/**
 	 * Read the passed CSV into a RowSet.
 	 * 
 	 * @param reader
@@ -607,22 +560,6 @@ public class TableModelUtils {
 		for(ColumnModel model: models){
 			if(model.getId() == null) throw new IllegalArgumentException("ColumnModel ID cannot be null");
 			headers.add(model.getId());
-		}
-		return headers;
-	}
-	
-	/**
-	 * Extract the headers from a list of select columns
-	 * 
-	 * @param models
-	 * @return
-	 */
-	public static List<String> getHeadersFromSelectColumns(List<SelectColumn> columns) {
-		if (columns == null)
-			throw new IllegalArgumentException("ColumnModels cannot be null");
-		List<String> headers = new LinkedList<String>();
-		for (SelectColumn column : columns) {
-			headers.add(column.getId());
 		}
 		return headers;
 	}
@@ -1273,11 +1210,16 @@ public class TableModelUtils {
 					return false;
 				if (getClass() != obj.getClass())
 					return false;
-				AbstractColumnMapper other = (AbstractColumnMapper) obj;
-				if (columnModel == null) {
-					if (other.getColumnModels() != null)
+				SelectColumnAndModel other = (SelectColumnAndModel) obj;
+				if (getSelectColumn() == null) {
+					if (other.getSelectColumn() != null)
 						return false;
-				} else if (!columnModel.equals(other.getColumnModels()))
+				} else if (!getSelectColumn().equals(other.getSelectColumn()))
+					return false;
+				if (columnModel == null) {
+					if (other.getColumnModel() != null)
+						return false;
+				} else if (!columnModel.equals(other.getColumnModel()))
 					return false;
 				return true;
 			}
