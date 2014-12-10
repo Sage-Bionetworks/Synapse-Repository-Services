@@ -1,8 +1,6 @@
 package org.sagebionetworks.util;
 
-import static org.junit.Assert.*;
-
-import java.lang.reflect.InvocationTargetException;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -71,6 +69,9 @@ public class IntrospectionUtilsTest {
 		Arg arg4 = new Arg4();
 		Arg arg5 = new Arg5();
 
+		// not cached
+		assertEquals("Call1-1", IntrospectionUtils.findNearestMethod(call1, "call", arg1).invoke(call1, arg1));
+		// cached
 		assertEquals("Call1-1", IntrospectionUtils.findNearestMethod(call1, "call", arg1).invoke(call1, arg1));
 		assertEquals("Call1-1", IntrospectionUtils.findNearestMethod(call1, "call", arg2).invoke(call1, arg2));
 		assertEquals("Call1-1", IntrospectionUtils.findNearestMethod(call1, "call", arg3).invoke(call1, arg3));
@@ -82,5 +83,4 @@ public class IntrospectionUtilsTest {
 		assertEquals("Call2", IntrospectionUtils.findNearestMethod(call2, "call", arg4).invoke(call2, arg4));
 		assertEquals("Call2", IntrospectionUtils.findNearestMethod(call2, "call", arg5).invoke(call2, arg5));
 	}
-
 }
