@@ -1213,16 +1213,16 @@ public class TableModelUtils {
 					return false;
 				if (getClass() != obj.getClass())
 					return false;
-				AbstractColumnMapper other = (AbstractColumnMapper) obj;
+				SelectColumnAndModel other = (SelectColumnAndModel) obj;
 				if (selectColumn == null) {
-					if (other.getSelectColumns() != null)
+					if (other.getSelectColumn() != null)
 						return false;
-				} else if (!selectColumn.equals(other.getSelectColumns()))
+				} else if (!selectColumn.equals(other.getSelectColumn()))
 					return false;
 				if (columnModel == null) {
-					if (other.getColumnModels() != null)
+					if (other.getColumnModel() != null)
 						return false;
-				} else if (!columnModel.equals(other.getColumnModels()))
+				} else if (!columnModel.equals(other.getColumnModel()))
 					return false;
 				return true;
 			}
