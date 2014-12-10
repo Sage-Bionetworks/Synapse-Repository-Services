@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -164,7 +165,6 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setCreatedOn(new Date());
 		accessApproval.setModifiedBy(principal.getId());
 		accessApproval.setModifiedOn(new Date());
-		accessApproval.setEtag("10");
 		accessApproval.setAccessorId(principal.getId());
 		accessApproval.setRequirementId(ar.getId());
 		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
@@ -246,6 +246,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval = accessApprovalDAO.create(accessApproval);
 		String id = accessApproval.getId().toString();
 		assertNotNull(id);
+		assertNotNull(accessApproval.getEtag());
 		
 		// no unmet requirement anymore ...
 		assertTrue(
@@ -282,7 +283,7 @@ public class DBOAccessApprovalDAOImplTest {
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
 		assertEquals(((TermsOfUseAccessApproval)clone).getConcreteType(), ((TermsOfUseAccessApproval)updatedAA).getConcreteType());
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAA.getEtag()));
-
+		
 		try {
 			accessApprovalDAO.update(clone);
 			fail("conflicting update exception not thrown");
@@ -290,6 +291,16 @@ public class DBOAccessApprovalDAOImplTest {
 		catch(ConflictingUpdateException e){
 			// We expected this exception
 		}
+		
+		// creating an approval is idempotent:
+		// make a second one...
+		accessApproval2 = accessApprovalDAO.create(newAccessApproval(individualGroup, accessRequirement));
+		assertEquals(updatedAA, accessApproval2);
+		// .. there is still only one:
+		ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
+				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
+				Arrays.asList(new String[]{individualGroup.getId().toString()}));
+		assertEquals(1, ars.size());
 
 		// Delete it
 		accessApprovalDAO.delete(id);
