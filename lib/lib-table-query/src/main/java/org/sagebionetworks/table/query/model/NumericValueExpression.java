@@ -9,10 +9,6 @@ public class NumericValueExpression extends SQLElement {
 		this.term = term;
 	}
 
-	public boolean isAggregate() {
-		return term.isAggregate();
-	}
-
 	public Term getTerm() {
 		return term;
 	}

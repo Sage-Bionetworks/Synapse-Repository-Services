@@ -21,19 +21,6 @@ public class SelectList extends SQLElement {
 		this.asterisk = asterisk;
 	}
 
-	public boolean isAggregate() {
-		if (asterisk != null) {
-			return false;
-		} else {
-			for (DerivedColumn dc : columns) {
-				if (dc.isAggregate()) {
-					return true;
-				}
-			}
-			return false;
-		}
-	}
-
 	public Boolean getAsterisk() {
 		return asterisk;
 	}

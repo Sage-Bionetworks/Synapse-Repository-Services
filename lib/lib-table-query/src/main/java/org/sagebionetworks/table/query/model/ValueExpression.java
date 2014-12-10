@@ -17,14 +17,6 @@ public class ValueExpression extends SQLElement {
 		this.numericValueExpression = numericValueExpression;
 	}
 
-	public boolean isAggregate() {
-		if (stringValueExpression != null) {
-			return stringValueExpression.isAggregate();
-		} else {
-			return numericValueExpression.isAggregate();
-		}
-	}
-
 	public StringValueExpression getStringValueExpression() {
 		return stringValueExpression;
 	}

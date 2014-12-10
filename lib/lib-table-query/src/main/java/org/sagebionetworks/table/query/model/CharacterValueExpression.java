@@ -13,10 +13,6 @@ public class CharacterValueExpression extends SQLElement {
 		this.characterFactor = characterFactor;
 	}
 
-	public boolean isAggregate() {
-		return characterFactor.isAggregate();
-	}
-
 	public CharacterFactor getCharacterFactor() {
 		return characterFactor;
 	}

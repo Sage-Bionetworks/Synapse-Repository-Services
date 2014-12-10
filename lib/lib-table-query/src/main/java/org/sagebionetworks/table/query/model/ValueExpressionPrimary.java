@@ -22,14 +22,6 @@ public class ValueExpressionPrimary extends SQLElement {
 		this.setFunctionSpecification = setFunctionSpecification;
 	}
 
-	public boolean isAggregate() {
-		if (setFunctionSpecification != null) {
-			return setFunctionSpecification.isAggregate();
-		} else {
-			return false;
-		}
-	}
-
 	public SignedValueSpecification getSignedValueSpecification() {
 		return signedValueSpecification;
 	}

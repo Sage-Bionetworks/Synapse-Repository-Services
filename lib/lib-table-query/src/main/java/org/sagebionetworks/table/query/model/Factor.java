@@ -9,10 +9,6 @@ public class Factor extends SQLElement {
 		this.numericPrimary = numericPrimary;
 	}
 
-	public boolean isAggregate() {
-		return numericPrimary.isAggregate();
-	}
-
 	public NumericPrimary getNumericPrimary() {
 		return numericPrimary;
 	}

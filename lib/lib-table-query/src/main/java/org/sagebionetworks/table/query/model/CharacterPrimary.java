@@ -13,10 +13,6 @@ public class CharacterPrimary extends SQLElement {
 		this.valueExpressionPrimary = valueExpressionPrimary;
 	}
 
-	public boolean isAggregate() {
-		return valueExpressionPrimary.isAggregate();
-	}
-
 	public ValueExpressionPrimary getValueExpressionPrimary() {
 		return valueExpressionPrimary;
 	}
