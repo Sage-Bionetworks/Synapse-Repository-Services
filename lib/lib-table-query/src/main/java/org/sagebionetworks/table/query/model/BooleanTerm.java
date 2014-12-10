@@ -26,15 +26,20 @@ public class BooleanTerm extends SQLElement {
 		return andBooleanFactors;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		boolean isFrist = true;
+	public void visit(Visitor visitor) {
+		for (BooleanFactor booleanFactor : andBooleanFactors) {
+			visit(booleanFactor, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		boolean isFirst = true;
 		for(BooleanFactor booleanFactor: andBooleanFactors){
-			if(!isFrist){
-				builder.append(" AND ");
+			if (!isFirst) {
+				visitor.append(" AND ");
 			}
-			booleanFactor.toSQL(builder, columnConvertor);
-			isFrist = false;
+			visit(booleanFactor, visitor);
+			isFirst = false;
 		}
 	}
 }

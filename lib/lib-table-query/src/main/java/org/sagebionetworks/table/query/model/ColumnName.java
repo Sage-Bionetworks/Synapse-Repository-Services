@@ -17,9 +17,8 @@ public class ColumnName extends SQLElement {
 		return identifier;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		identifier.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(identifier, visitor);
 	}
 	
 }

@@ -26,16 +26,20 @@ public class RowValueConstructorList extends SQLElement {
 		return rowValueConstructorElements;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
+		for (RowValueConstructorElement element : rowValueConstructorElements) {
+			visit(element, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		boolean isFrist = true;
 		for(RowValueConstructorElement element: rowValueConstructorElements){
 			if(!isFrist){
-				builder.append(", ");
+				visitor.append(", ");
 			}
-			element.toSQL(builder, columnConvertor);
+			visit(element, visitor);
 			isFrist = false;
 		}
 	}
-	
 }

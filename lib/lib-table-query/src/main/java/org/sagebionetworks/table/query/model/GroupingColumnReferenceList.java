@@ -27,16 +27,20 @@ public class GroupingColumnReferenceList extends SQLElement {
 		return groupingColumnReferences;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
+		for (GroupingColumnReference groupingColumnReference : groupingColumnReferences) {
+			visit(groupingColumnReference, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		boolean first = true;
 		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
 			if(!first){
-				builder.append(", ");
+				visitor.append(", ");
 			}
-			groupingColumnReference.toSQL(builder, columnConvertor);
+			visit(groupingColumnReference, visitor);
 			first = false;
 		}
 	}
-	
 }

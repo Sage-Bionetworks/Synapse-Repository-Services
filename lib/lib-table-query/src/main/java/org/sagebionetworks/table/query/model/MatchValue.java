@@ -10,7 +10,6 @@ public class MatchValue extends SQLElement {
 
 	
 	public MatchValue(CharacterValueExpression characterValueExpression) {
-		super();
 		this.characterValueExpression = characterValueExpression;
 	}
 
@@ -18,9 +17,7 @@ public class MatchValue extends SQLElement {
 		return characterValueExpression;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		characterValueExpression.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(characterValueExpression, visitor);
 	}
-
 }

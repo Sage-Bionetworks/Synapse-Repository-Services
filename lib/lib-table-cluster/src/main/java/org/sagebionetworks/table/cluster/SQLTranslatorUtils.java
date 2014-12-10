@@ -3,24 +3,25 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.*;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -32,202 +33,18 @@ import com.google.common.collect.Sets;
  */
 public class SQLTranslatorUtils {
 
-	private static final Function<ColumnModel, Long> MODEL_TO_ID = new Function<ColumnModel, Long>() {
-		@Override
-		public Long apply(ColumnModel input) {
-			return Long.parseLong(input.getId());
-		}
-	};
-	
 	/**
 	 * Translate the passed query model into output SQL.
+	 * 
 	 * @param model The model representing a query.
 	 * @param outputBuilder
 	 * @param parameters
 	 */
-	public static boolean translate(QuerySpecification model, StringBuilder builder, final Map<String, Object> parameters,
+	public static String translate(QuerySpecification model, final Map<String, Object> parameters,
 			final Map<String, ColumnModel> columnNameToModelMap) {
-		boolean hasGrouping = hasGrouping(model.getTableExpression());
-		boolean isAggregated = model.getSelectList().isAggregate();
-		
-		if (!hasGrouping && !isAggregated) {
-			// we need to add the row count and row version colums
-			SelectList selectList = model.getSelectList();
-			if (!BooleanUtils.isTrue(selectList.getAsterisk())) {
-				List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size());
-				selectColumns.addAll(selectList.getColumns());
-				selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_ID));
-				selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_VERSION));
-				selectList = new SelectList(selectColumns);
-			}
-			model = new QuerySpecification(model.getSetQuantifier(), selectList, model.getTableExpression());
-		}
-
-		SQLElement.ColumnConvertor columnConvertor = createColumnConvertor(parameters, columnNameToModelMap);
-		model.toSQL(builder, columnConvertor);
-		return isAggregated || hasGrouping;
-	}
-
-	public static SQLElement.ColumnConvertor createColumnConvertor(final Map<String, Object> parameters,
-			final Map<String, ColumnModel> columnNameToModelMap) {
-		SQLElement.ColumnConvertor columnConvertor = new SQLElement.ColumnConvertor() {
-			private ColumnModel columnModelLHS = null;
-			private Set<String> asColumns = Sets.newHashSet();
-			private String currentTableName = null;
-			private LinkedList<SQLClause> currentClauses = Lists.newLinkedList();
-
-			@Override
-			public void convertTableName(String tableName, StringBuilder builder) {
-				Long tableId = KeyFactory.stringToKey(tableName);
-				currentTableName = SQLUtils.TABLE_PREFIX + tableId;
-				builder.append(currentTableName);
-			}
-			
-			@Override
-			public void convertColumn(ColumnReference columnReference, StringBuilder builder) {
-				String columnName = getStringValueOf(columnReference.getNameRHS());
-				// Is this a reserved column name like ROW_ID or ROW_VERSION?
-				if (TableConstants.isReservedColumnName(columnName)) {
-					// use the returned reserve name in destination SQL.
-					builder.append(columnName.toUpperCase());
-				} else {
-					// Not a reserved column name.
-					// Lookup the ID for this column
-					columnName = columnName.trim();
-					ColumnModel column = columnNameToModelMap.get(columnName);
-					if (column == null) {
-						if (asColumns.contains(columnName)) {
-							builder.append(columnName);
-						} else {
-							throw new IllegalArgumentException("Unknown column name: " + columnName);
-						}
-					} else {
-						String subName = "";
-						if (columnReference.getNameLHS() != null) {
-							subName = getStringValueOf(columnReference.getNameLHS());
-							// Remove double quotes if they are included.
-							subName = subName.replaceAll("\"", "") + "_";
-						}
-						switch ( column.getColumnType()){
-						case DOUBLE:
-							SQLUtils.appendDoubleCase(column, subName, currentTableName, currentClauses.contains(SQLClause.SELECT),
-									!currentClauses.contains(SQLClause.FUNCTION_PARAMETER), builder);
-							break;
-						default:
-							SQLUtils.appendColumnName(subName, column, builder);
-							break;
-						}
-					}
-				}
-			}
-			
-			@Override
-			public void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference, StringBuilder builder) {
-				String columnName = getStringValueOf(columnReference.getNameRHS());
-				// Is this a reserved column name like ROW_ID or ROW_VERSION?
-				if (TableConstants.isReservedColumnName(columnName)) {
-					throw new IllegalArgumentException("Cannot apply "+booleanFunction+ " on reserved column "+columnName);
-				}
-
-				// Not a reserved column name.
-				// Lookup the ID for this column
-				columnName = columnName.trim().toLowerCase();
-				ColumnModel column = columnNameToModelMap.get(columnName);
-				if (column == null) {
-					throw new IllegalArgumentException("You can only apply "+booleanFunction+" on a column directly. "+columnName +" is not a column");
-				}
-
-				String subName = "";
-				if (columnReference.getNameLHS() != null) {
-					subName = getStringValueOf(columnReference.getNameLHS());
-					// Remove double quotes if they are included.
-					subName = subName.replaceAll("\"", "") + "_";
-				}
-				switch (column.getColumnType()) {
-				case DOUBLE:
-					switch (booleanFunction) {
-					case ISNAN:
-						SQLUtils.appendIsNan(column, subName, builder);
-						break;
-					case ISINFINITY:
-						SQLUtils.appendIsInfinity(column, subName, builder);
-						break;
-					default:
-						throw new IllegalArgumentException("function " + booleanFunction + " not yet supported");
-					}
-					break;
-				default:
-					throw new IllegalArgumentException("Cannot apply " + booleanFunction + " on a column of type " + column.getColumnType());
-				}
-			}
-
-			@Override
-			public void addAsColumn(ColumnName columnName) {
-				asColumns.add(getStringValueOf(columnName));
-			}
-
-			@Override
-			public void setLHSColumn(ColumnReference columnReferenceLHS) {
-				if (columnReferenceLHS == null) {
-					this.columnModelLHS = null;
-				} else {
-					String columnName = getStringValueOf(columnReferenceLHS.getNameRHS());
-					// Is this a reserved column name like ROW_ID or ROW_VERSION?
-					if (TableConstants.isReservedColumnName(columnName)) {
-						this.columnModelLHS = null;
-					} else {
-						// Not a reserved column name.
-						// Lookup the ID for this column
-						this.columnModelLHS = columnNameToModelMap.get(columnName.trim());
-					}
-				}
-			}
-
-			@Override
-			public void convertParam(Number param, StringBuilder builder) {
-				String bindKey = "b" + parameters.size();
-				builder.append(":").append(bindKey);
-				parameters.put(bindKey, param);
-			}
-
-			@Override
-			public void convertNumberParam(String param, StringBuilder builder) {
-				String bindKey = "b" + parameters.size();
-				builder.append(":").append(bindKey);
-				parameters.put(bindKey, param);
-			}
-
-			@Override
-			public void convertParam(String value, StringBuilder builder) {
-				if (columnModelLHS != null) {
-					switch (columnModelLHS.getColumnType()) {
-					case DATE:
-						value = Long.toString(TimeUtils.parseSqlDate(value));
-						break;
-					default:
-						break;
-					}
-				}
-				String bindKey = "b" + parameters.size();
-				builder.append(":").append(bindKey);
-				parameters.put(bindKey, value);
-			}
-
-			@Override
-			public void pushCurrentClause(SQLClause clause) {
-				currentClauses.push(clause);
-			}
-
-			@Override
-			public void popCurrentClause(SQLClause clause) {
-				SQLClause lastPushedClause = currentClauses.pop();
-				if (lastPushedClause != clause) {
-					throw new IllegalStateException("Last pushed clause " + lastPushedClause + " is not the same as the one that was popped "
-							+ clause);
-				}
-			}
-		};
-		return columnConvertor;
+		ToTranslatedSqlVisitor visitor = new ToTranslatedSqlVisitorImpl(parameters, columnNameToModelMap);
+		model.doVisit(visitor);
+		return visitor.getSql();
 	}
 
 	/**
@@ -406,28 +223,43 @@ public class SQLTranslatorUtils {
 	 * 
 	 * @param allColumns
 	 * @param selectList
+	 * @param isAggregatedResult
 	 * @return
 	 */
-	public static List<ColumnModel> getSelectColumns(SelectList selectList, Map<String, ColumnModel> columnNameToModelMap) {
-		if (columnNameToModelMap == null)
-			throw new IllegalArgumentException("All columns cannot be null");
-		if(selectList == null) throw new IllegalArgumentException();
-		if(selectList.getAsterisk() != null){
+	public static ColumnMapper getSelectColumns(SelectList selectList, LinkedHashMap<String, ColumnModel> columnNameToModelMap,
+			boolean isAggregatedResult) {
+		ValidateArgument.required(columnNameToModelMap, "all columns");
+		ValidateArgument.required(selectList, "selectList");
+		if (selectList.getAsterisk() != null) {
 			// All of the columns will be returned.
-			return new ArrayList<ColumnModel>(columnNameToModelMap.values());
-		}else{
-			List<ColumnModel> selectColumnModels = new LinkedList<ColumnModel>();
-			for(DerivedColumn dc: selectList.getColumns()){
+			return TableModelUtils.createColumnMapperFromColumnModels(columnNameToModelMap, isAggregatedResult);
+		} else {
+			List<SelectColumnAndModel> selectColumnModels = Lists.newArrayListWithCapacity(selectList.getColumns().size());
+			for (DerivedColumn dc : selectList.getColumns()) {
+				SelectColumn selectColumn = new SelectColumn();
+				if (dc.getAsClause() != null) {
+					selectColumn.setName(dc.getAsClause().toString());
+				} else {
+					ToUnquotedStringVisitor visitor = new ToUnquotedStringVisitor();
+					dc.getValueExpression().doVisit(visitor);
+					selectColumn.setName(visitor.getSql());
+				}
+				ColumnModel columnModel = null;
 				ValueExpressionPrimary primary = getValueExpressionPrimary(dc.getValueExpression());
 				if (primary != null && primary.getColumnReference() != null) {
 					String key = getStringValueOf(primary.getColumnReference().getNameRHS());
-					ColumnModel column = columnNameToModelMap.get(key);
-					if (column != null) {
-						selectColumnModels.add(column);
+					columnModel = columnNameToModelMap.get(key);
+					if (columnModel != null) {
+						selectColumn.setColumnType(columnModel.getColumnType());
+						if (!isAggregatedResult) {
+							// we only want to refer to the column model for non-aggregated results
+							selectColumn.setId(columnModel.getId());
+						}
 					}
 				}
+				selectColumnModels.add(TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel));
 			}
-			return selectColumnModels;
+			return TableModelUtils.createColumnMapper(selectColumnModels);
 		}
 	}
 

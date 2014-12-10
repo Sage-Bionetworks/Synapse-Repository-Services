@@ -22,9 +22,7 @@ public class StringValueExpression extends SQLElement {
 		return characterValueExpression;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.characterValueExpression.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.characterValueExpression, visitor);
 	}
-	
 }

@@ -26,16 +26,22 @@ public class ColumnReference extends SQLElement {
 		return nameRHS;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if (columnConvertor != null) {
-			columnConvertor.convertColumn(this, builder);
-		} else {
-			if (nameLHS != null) {
-				this.nameLHS.toSQL(builder, columnConvertor);
-				builder.append(".");
-			}
-			this.nameRHS.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		if (nameLHS != null) {
+			visit(this.nameLHS, visitor);
 		}
+		visit(this.nameRHS, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		if (nameLHS != null) {
+			visit(this.nameLHS, visitor);
+			visitor.append(".");
+		}
+		visit(this.nameRHS, visitor);
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		visitor.convertColumn(this);
 	}
 }

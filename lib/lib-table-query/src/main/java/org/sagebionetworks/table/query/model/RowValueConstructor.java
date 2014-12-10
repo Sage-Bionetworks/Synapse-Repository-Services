@@ -23,15 +23,22 @@ public class RowValueConstructor extends SQLElement {
 	public RowValueConstructorList getRowValueConstructorList() {
 		return rowValueConstructorList;
 	}
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if(rowValueConstructorElement != null){
-			rowValueConstructorElement.toSQL(builder, columnConvertor);
-		}else{
-			builder.append("( ");
-			rowValueConstructorList.toSQL(builder, columnConvertor);
-			builder.append(" )");
+
+	public void visit(Visitor visitor) {
+		if (rowValueConstructorElement != null) {
+			visit(rowValueConstructorElement, visitor);
+		} else {
+			visit(rowValueConstructorList, visitor);
 		}
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		if(rowValueConstructorElement != null){
+			visit(rowValueConstructorElement, visitor);
+		}else{
+			visitor.append("( ");
+			visit(rowValueConstructorList, visitor);
+			visitor.append(" )");
+		}
+	}
 }

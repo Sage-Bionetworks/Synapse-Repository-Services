@@ -1,8 +1,5 @@
 package org.sagebionetworks.table.worker;
 
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -22,14 +19,13 @@ import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -53,8 +49,6 @@ import com.google.common.collect.SetMultimap;
  * 
  */
 public class TableWorker implements Worker {
-
-	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
@@ -270,6 +264,7 @@ public class TableWorker implements Worker {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(currentSchema, false);
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
 		if(currentSchema.isEmpty()){
@@ -306,7 +301,7 @@ public class TableWorker implements Worker {
 				workerProgress.progressMadeForMessage(message);
 
 				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet);
+				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet, mapper);
 
 				tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows " + rowSet.getRows().size()
 						+ " to version: " + version, currentProgress, currentProgress);

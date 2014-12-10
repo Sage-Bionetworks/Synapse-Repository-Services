@@ -2,6 +2,7 @@ package org.sagebionetworks.collections;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +44,24 @@ public class Transform {
 		return result;
 	}
 
+	public static <K, V> Map<K, V> toIdMap(Iterable<V> iterable, Function<V, K> transformer) {
+		Map<K, V> result = Maps.newHashMap();
+		for (V value : iterable) {
+			K key = transformer.apply(value);
+			result.put(key, value);
+		}
+		return result;
+	}
+
+	public static <K, V> LinkedHashMap<K, V> toOrderedIdMap(Iterable<V> iterable, Function<V, K> transformer) {
+		LinkedHashMap<K, V> result = Maps.newLinkedHashMap();
+		for (V value : iterable) {
+			K key = transformer.apply(value);
+			result.put(key, value);
+		}
+		return result;
+	}
+
 	public static <T, F> Iterable<T> castElements(final Iterable<?> iterable) {
 		return new Iterable<T>() {
 			@Override
@@ -69,5 +88,18 @@ public class Transform {
 				};
 			}
 		};
+	}
+
+	public static <K, T> List<T> transformKeysToObjects(Collection<K> keys, Map<K, T> transformMap, boolean failOnNotInMap) {
+		List<T> result = Lists.newArrayListWithCapacity(keys.size());
+		for (K key : keys) {
+			T obj = transformMap.get(key);
+			if (obj != null) {
+				result.add(obj);
+			} else if (failOnNotInMap) {
+				throw new IllegalArgumentException("No entry found for " + key);
+			}
+		}
+		return result;
 	}
 }

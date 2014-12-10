@@ -27,16 +27,20 @@ public class SortSpecificationList extends SQLElement {
 		return sortSpecifications;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		boolean first = true;
-		for(SortSpecification sortSpecification: sortSpecifications){
-			if(!first){
-				builder.append(", ");
-			}
-			sortSpecification.toSQL(builder, columnConvertor);
-			first = false;
+	public void visit(Visitor visitor) {
+		for (SortSpecification sortSpecification : sortSpecifications) {
+			visit(sortSpecification, visitor);
 		}
 	}
 
+	public void visit(ToSimpleSqlVisitor visitor) {
+		boolean first = true;
+		for(SortSpecification sortSpecification: sortSpecifications){
+			if(!first){
+				visitor.append(", ");
+			}
+			visit(sortSpecification, visitor);
+			first = false;
+		}
+	}
 }

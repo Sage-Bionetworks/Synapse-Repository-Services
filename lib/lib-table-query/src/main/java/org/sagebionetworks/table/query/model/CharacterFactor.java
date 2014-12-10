@@ -21,9 +21,8 @@ public class CharacterFactor extends SQLElement {
 		return characterPrimary;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.characterPrimary.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.characterPrimary, visitor);
 	}
 	
 }

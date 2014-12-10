@@ -17,8 +17,7 @@ public class EscapeCharacter extends SQLElement {
 		return characterValueExpression;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		characterValueExpression.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(characterValueExpression, visitor);
 	}
 }

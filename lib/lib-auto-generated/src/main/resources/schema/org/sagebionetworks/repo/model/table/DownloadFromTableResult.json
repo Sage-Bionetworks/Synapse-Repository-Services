@@ -19,10 +19,10 @@
 			"type": "string"
 		},
 		"headers": {
-		    "description":"The list of ColumnModel IDs that describes the rows of this set.",
+		    "description":"The list of SelectColumns that describes the rows of this set.",
 			"type": "array",
 			"items": {
-				"type": "string"
+				"$ref": "org.sagebionetworks.repo.model.table.SelectColumn"
 			}
 		}
 	}

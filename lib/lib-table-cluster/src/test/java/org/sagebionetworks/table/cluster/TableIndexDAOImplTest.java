@@ -22,11 +22,13 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -118,7 +120,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 5);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(allTypes));
+		set.setHeaders(TableModelUtils.getSelectColumns(allTypes, false));
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -181,7 +183,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(allTypes));
+		set.setHeaders(TableModelUtils.getSelectColumns(allTypes, false));
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
@@ -226,7 +228,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -277,7 +279,7 @@ public class TableIndexDAOImplTest {
 		rows.get(4).getValues().set(0, "-Infinity");
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(doubleColumn);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -315,7 +317,7 @@ public class TableIndexDAOImplTest {
 		rows.add(deletion);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -355,7 +357,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createNullRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -394,12 +396,16 @@ public class TableIndexDAOImplTest {
 	public void testQueryAggregate() throws ParseException{
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setColumnType(null);
+		selectColumn.setId(null);
+		selectColumn.setName("count(*)");
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -414,7 +420,7 @@ public class TableIndexDAOImplTest {
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
-		List<String> expectedHeaders = Arrays.asList("COUNT(*)");
+		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", null, null));
 		assertEquals(expectedHeaders, results.getHeaders());
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
@@ -449,7 +455,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(schema);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();
@@ -464,7 +470,7 @@ public class TableIndexDAOImplTest {
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
-		assertEquals(headers, results.getHeaders());
+		assertEquals(TableModelUtils.getSelectColumns(schema, true), results.getHeaders());
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
 		assertEquals(1, results.getRows().size());
@@ -499,7 +505,7 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
-		List<String> headers = TableModelUtils.getHeaders(schema);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema, false);
 		set.setHeaders(headers);
 		set.setTableId(tableId);
 		IdRange range = new IdRange();

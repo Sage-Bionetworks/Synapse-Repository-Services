@@ -17,9 +17,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1 offset 2");
 		QuerySpecification converted = SqlElementUntils.convertToCountQuery(model);
 		assertNotNull(converted);
-		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder, null);
-		assertEquals("SELECT COUNT(*) FROM syn123 WHERE foo = 1", builder.toString());
+		assertEquals("SELECT COUNT(*) FROM syn123 WHERE foo = 1", converted.toString());
 	}
 
 	@Test
@@ -27,9 +25,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar");
 		QuerySpecification converted = SqlElementUntils.convertToPaginatedQuery(model, 234L, 567L);
 		assertNotNull(converted);
-		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder, null);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", builder.toString());
+		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", converted.toString());
 	}
 
 	@Test
@@ -37,9 +33,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1 offset 2");
 		QuerySpecification converted = SqlElementUntils.convertToPaginatedQuery(model, 234L, 567L);
 		assertNotNull(converted);
-		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder, null);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", builder.toString());
+		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", converted.toString());
 	}
 
 	@Test
@@ -55,10 +49,7 @@ public class SqlElementUntilsTest {
 		sort3.setDirection(SortDirection.DESC);
 		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
-		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder, null);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY foo ASC, zoo ASC, zaa DESC, bar LIMIT 1",
-				builder.toString());
+		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY foo ASC, zoo ASC, zaa DESC, bar LIMIT 1", converted.toString());
 	}
 
 	@Test
@@ -71,8 +62,6 @@ public class SqlElementUntilsTest {
 		sort2.setColumn("foo");
 		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
 		assertNotNull(converted);
-		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder, null);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar DESC, foo ASC LIMIT 1", builder.toString());
+		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar DESC, foo ASC LIMIT 1", converted.toString());
 	}
 }

@@ -29,22 +29,21 @@ public class InPredicate extends SQLElement {
 		return columnReferenceLHS;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		columnReferenceLHS.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.setLHSColumn(columnReferenceLHS);
-		}
-		builder.append(" ");
-		if(this.not != null){
-			builder.append("NOT ");
-		}
-		builder.append("IN ( ");
-		inPredicateValue.toSQL(builder, columnConvertor);
-		builder.append(" )");
-		if (columnConvertor != null) {
-			columnConvertor.setLHSColumn(null);
-		}
+	public void visit(Visitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visit(inPredicateValue, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visitor.setLHSColumn(columnReferenceLHS);
+		visitor.append(" ");
+		if (this.not != null) {
+			visitor.append("NOT ");
+		}
+		visitor.append("IN ( ");
+		visit(inPredicateValue, visitor);
+		visitor.append(" )");
+		visitor.setLHSColumn(null);
+	}
 }

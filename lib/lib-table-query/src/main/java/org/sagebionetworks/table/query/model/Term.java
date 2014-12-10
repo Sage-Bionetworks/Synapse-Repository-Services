@@ -17,8 +17,7 @@ public class Term extends SQLElement {
 		return factor;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.factor.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.factor, visitor);
 	}
 }

@@ -7,16 +7,23 @@ import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -42,6 +49,56 @@ public class TableModelTestUtils {
 	 */
 	public static List<ColumnModel> createOneOfEachType() {
 		return createOneOfEachType(false);
+	}
+
+	public static ColumnMapper createMapperForOneOfEachType() {
+		return new AbstractColumnMapper() {
+			@Override
+			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
+				List<SelectColumnAndModel> selectColumnAndModels = createSelectColumnAndModelList();
+				return Transform.toOrderedIdMap(selectColumnAndModels, new Function<SelectColumnAndModel, String>() {
+					@Override
+					public String apply(SelectColumnAndModel input) {
+						return input.getColumnModel().getId();
+					}
+				});
+			}
+
+			@Override
+			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
+				List<ColumnModel> oneOfEachType = createOneOfEachType(false);
+				return Transform.toList(oneOfEachType, new Function<ColumnModel, SelectColumnAndModel>() {
+					@Override
+					public SelectColumnAndModel apply(final ColumnModel input) {
+						return new SelectColumnAndModel() {
+							@Override
+							public String getName() {
+								return input.getName();
+							}
+
+							@Override
+							public ColumnType getColumnType() {
+								return input.getColumnType();
+							}
+
+							@Override
+							public SelectColumn getSelectColumn() {
+								SelectColumn selectColumn = new SelectColumn();
+								selectColumn.setName(input.getName());
+								selectColumn.setColumnType(input.getColumnType());
+								selectColumn.setId(input.getId());
+								return selectColumn;
+							}
+
+							@Override
+							public ColumnModel getColumnModel() {
+								return input;
+							}
+						};
+					}
+				});
+			}
+		};
 	}
 
 	public static final Function<ColumnModel, String> convertToNameFunction = new Function<ColumnModel, String>() {
@@ -357,6 +414,16 @@ public class TableModelTestUtils {
 			cm.setMaximumSize(50L);
 		}
 		return cm;
+	}
+
+	public static SelectColumn createSelectColumn(Long id, String name, ColumnType type) {
+		SelectColumn scm = new SelectColumn();
+		if (id != null) {
+			scm.setId(id.toString());
+		}
+		scm.setName(name);
+		scm.setColumnType(type);
+		return scm;
 	}
 
 	/**

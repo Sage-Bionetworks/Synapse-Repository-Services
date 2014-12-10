@@ -17,9 +17,7 @@ public class Identifier extends SQLElement {
 		return actualIdentifier;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		actualIdentifier.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(actualIdentifier, visitor);
 	}
-	
 }

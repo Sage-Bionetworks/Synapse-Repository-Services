@@ -28,12 +28,15 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -48,8 +51,8 @@ import com.google.common.collect.Lists;
 public class TableModelUtilsTest {
 	
 	List<ColumnModel> validModel;
-	RowSet validRowSet;
-	RowSet validRowSet2;
+	RawRowSet validRowSet;
+	RawRowSet validRowSet2;
 	StringWriter outWritter;
 	CSVWriter out;
 	
@@ -67,11 +70,9 @@ public class TableModelUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		validModel.add(cm);
 
-		validRowSet = new RowSet();
 		List<String> headers = new LinkedList<String>();
 		headers.add("2");
 		headers.add("1");
-		validRowSet.setHeaders(headers);
 		List<Row> rows = new LinkedList<Row>();
 		// row one
 		Row row = new Row();
@@ -91,7 +92,7 @@ public class TableModelUtilsTest {
 		values.add("false");
 		row.setValues(values);
 		rows.add(row);
-		validRowSet.setRows(rows);
+		validRowSet = new RawRowSet(headers, null, null, rows);
 
 		outWritter = new StringWriter();
 		out = new CSVWriter(outWritter);
@@ -122,10 +123,7 @@ public class TableModelUtilsTest {
 		row.setValues(values);
 		rows.add(row);
 		// Create the set
-		validRowSet2 = new RowSet();
-		validRowSet2.setHeaders(headers);
-		validRowSet2.setRows(rows);
-		validRowSet2.setTableId(tableId);
+		validRowSet2 = new RawRowSet(headers, null, tableId, rows);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -145,20 +143,21 @@ public class TableModelUtilsTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullHeaders() {
-		validRowSet.setHeaders(null);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		RawRowSet invalidRowSet = new RawRowSet(null, validRowSet.getEtag(), validRowSet.getTableId(), validRowSet.getRows());
+		TableModelUtils.validateAndWriteToCSV(validModel, invalidRowSet, out);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullRows() {
-		validRowSet.setRows(null);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		RawRowSet invalidRowSet = new RawRowSet(validRowSet.getHeaders(), validRowSet.getEtag(), validRowSet.getTableId(), null);
+		TableModelUtils.validateAndWriteToCSV(validModel, invalidRowSet, out);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVRowsEmpty() {
-		validRowSet.setRows(new LinkedList<Row>());
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		RawRowSet invalidRowSet = new RawRowSet(validRowSet.getHeaders(), validRowSet.getEtag(), validRowSet.getTableId(),
+				new LinkedList<Row>());
+		TableModelUtils.validateAndWriteToCSV(validModel, invalidRowSet, out);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -768,9 +767,7 @@ public class TableModelUtilsTest {
 
 		// Create some data for this model
 		List<Row> v1Rows = TableModelTestUtils.createRows(models, 2);
-		RowSet v1Set = new RowSet();
-		v1Set.setHeaders(TableModelUtils.getHeaders(models));
-		v1Set.setRows(v1Rows);
+		RawRowSet v1Set = new RawRowSet(TableModelUtils.getHeaders(models), null, null, v1Rows);
 		IdRange range = new IdRange();
 		range.setVersionNumber(0l);
 		range.setMinimumId(0l);
@@ -794,9 +791,7 @@ public class TableModelUtilsTest {
 
 		// Create some more data with the new schema
 		List<Row> v2Rows = TableModelTestUtils.createRows(models, 2);
-		RowSet v2Set = new RowSet();
-		v2Set.setHeaders(TableModelUtils.getHeaders(models));
-		v2Set.setRows(v2Rows);
+		RawRowSet v2Set = new RawRowSet(TableModelUtils.getHeaders(models), null, null, v2Rows);
 		range = new IdRange();
 		range.setVersionNumber(1l);
 		range.setMinimumId(2l);
@@ -808,18 +803,13 @@ public class TableModelUtilsTest {
 		newOrder.add(models.get(2));
 		newOrder.add(models.get(0));
 		newOrder.add(models.get(1));
-		List<RowSet> all = new LinkedList<RowSet>();
-		all.add(v1Set);
-		all.add(v2Set);
+		List<RawRowSet> all = Lists.newArrayList(v1Set, v2Set);
 		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder, "syn123", null);
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, TableModelUtils.createColumnModelColumnMapper(newOrder, false),
+				"syn123", null);
 		// System.out.println(converted.toString());
 		// This is what we expect to come back
-		RowSet expected = new RowSet();
-		expected.setHeaders(TableModelUtils.getHeaders(newOrder));
-		expected.setTableId("syn123");
 		List<Row> expectedRows = new LinkedList<Row>();
-		expected.setRows(expectedRows);
 		// one
 		Row row = new Row();
 		row.setRowId(0l);
@@ -844,7 +834,18 @@ public class TableModelUtilsTest {
 		row.setVersionNumber(1l);
 		row.setValues(Arrays.asList(new String[] { "string200001", "string1", "true" }));
 		expectedRows.add(row);
-		assertEquals(expected.toString(), converted.toString());
+
+		RawRowSet expected = new RawRowSet(TableModelUtils.getHeaders(newOrder), null, "syn123", expectedRows);
+		assertEquals(expected.getHeaders().size(), converted.getHeaders().size());
+		for (int i = 0; i < expected.getHeaders().size(); i++) {
+			assertEquals(expected.getHeaders().get(i), converted.getHeaders().get(i).getId());
+		}
+		assertEquals(expected.getTableId(), converted.getTableId());
+		assertEquals(expected.getEtag(), converted.getEtag());
+		assertEquals(expected.getRows().size(), converted.getRows().size());
+		for (int i = 0; i < expected.getRows().size(); i++) {
+			assertEquals(expected.getRows().get(i), converted.getRows().get(i));
+		}
 	}
 	
 	@Test
@@ -920,15 +921,15 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testCalculateMaxRowSize() {
-		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSize(all);
+		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
 		assertEquals(414, allBytes);
 	}
 
 	@Test
 	public void testIsRequestWithinMaxBytePerRequest() {
-		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
-		int allBytes = TableModelUtils.calculateMaxRowSize(all);
+		ColumnMapper all = TableModelTestUtils.createMapperForOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSizeForColumnModels(all);
 		// Set the max to be 100 rows
 		int maxBytes = allBytes * 100;
 		// So 100 rows should be within limit but not 101;
@@ -976,27 +977,25 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCreateColumnNameHeaderWithoutRowId() {
-		List<ColumnModel> schema = new ArrayList<ColumnModel>();
-		schema.add(TableModelTestUtils.createColumn(123L, "one", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(345L, "two", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(567L, "three", ColumnType.STRING));
-		List<String> idList = Arrays.asList("567", "345");
+		List<SelectColumn> schema = Lists.newArrayList();
+		schema.add(TableModelTestUtils.createSelectColumn(123L, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(567L, "count(*)", ColumnType.STRING));
 		boolean includeRowIdAndVersion = false;
-		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
-		String[] expected = new String[] { "three", "two" };
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion);
+		String[] expected = new String[] { "three", "two", "count(*)" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
 	
 	@Test
 	public void testCreateColumnNameHeaderWithRowId() {
-		List<ColumnModel> schema = new ArrayList<ColumnModel>();
-		schema.add(TableModelTestUtils.createColumn(123L, "one", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(345L, "two", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(567L, "three", ColumnType.STRING));
-		List<String> idList = Arrays.asList("567", "123");
+		List<SelectColumn> schema = Lists.newArrayList();
+		schema.add(TableModelTestUtils.createSelectColumn(123L, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(567L, "COUNT(*)", ColumnType.STRING));
 		boolean includeRowIdAndVersion = true;
-		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
-		String[] expected = new String[] { ROW_ID, ROW_VERSION, "three", "one" };
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion);
+		String[] expected = new String[] { ROW_ID, ROW_VERSION, "three", "two", "COUNT(*)" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
 
@@ -1026,18 +1025,23 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testTranslateFromQuery() {
-		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
-		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
-		assertEquals("something else",
-				TableModelUtils.translateRowValueFromQuery("something else", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
-		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0L, "", null)));
+		assertEquals("false",
+				TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createSelectColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals("true",
+				TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createSelectColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals(
+				"something else",
+				TableModelUtils.translateRowValueFromQuery("something else",
+						TableModelTestUtils.createSelectColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createSelectColumn(0L, "", null)));
 
 		// for all other types
 		for (ColumnType type : ColumnType.values()) {
 			if (type == ColumnType.BOOLEAN) {
 				continue;
 			}
-			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0L, "", type)));
+			assertEquals("anything",
+					TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createSelectColumn(0L, "", type)));
 		}
 	}
 

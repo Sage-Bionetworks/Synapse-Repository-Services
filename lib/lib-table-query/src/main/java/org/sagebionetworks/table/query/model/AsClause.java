@@ -17,13 +17,18 @@ public class AsClause extends SQLElement {
 		return columnName;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append("AS ");
-		this.columnName.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.addAsColumn(columnName);
-		}
+	public void visit(Visitor visitor) {
+		visit(this.columnName, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("AS ");
+		visit(this.columnName, visitor);
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		visitor.append("AS ");
+		visit(this.columnName, visitor);
+		visitor.addAsColumn(columnName);
+	}
 }

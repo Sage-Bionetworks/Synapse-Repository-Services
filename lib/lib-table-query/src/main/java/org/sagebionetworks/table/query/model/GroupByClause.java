@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+import org.sagebionetworks.table.query.model.ToSimpleSqlVisitor.SQLClause;
 
 
 /**
@@ -19,15 +19,14 @@ public class GroupByClause extends SQLElement {
 		return groupingColumnReferenceList;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if (columnConvertor != null) {
-			columnConvertor.pushCurrentClause(SQLClause.GROUP_BY);
-		}
-		builder.append("GROUP BY ");
-		groupingColumnReferenceList.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.popCurrentClause(SQLClause.GROUP_BY);
-		}
+	public void visit(Visitor visitor) {
+		visit(groupingColumnReferenceList, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.pushCurrentClause(SQLClause.GROUP_BY);
+		visitor.append("GROUP BY ");
+		visit(groupingColumnReferenceList, visitor);
+		visitor.popCurrentClause(SQLClause.GROUP_BY);
 	}
 }

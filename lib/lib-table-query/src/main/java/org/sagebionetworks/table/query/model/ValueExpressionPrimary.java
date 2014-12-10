@@ -40,15 +40,14 @@ public class ValueExpressionPrimary extends SQLElement {
 		return setFunctionSpecification;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
 		// only one element at a time will be no null
 		if (signedValueSpecification != null) {
-			signedValueSpecification.toSQL(builder, columnConvertor);
-		}else if(columnReference != null){
-			columnReference.toSQL(builder, columnConvertor);
-		}else{
-			setFunctionSpecification.toSQL(builder, columnConvertor);
+			visit(signedValueSpecification, visitor);
+		} else if (columnReference != null) {
+			visit(columnReference, visitor);
+		} else {
+			visit(setFunctionSpecification, visitor);
 		}
 	}
 }

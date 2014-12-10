@@ -35,19 +35,24 @@ public class QuerySpecification extends SQLElement {
 		return tableExpression;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append("SELECT");
+	public void visit(Visitor visitor) {
+		visit(selectList, visitor);
+		visit(tableExpression, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("SELECT");
 		if (sqlDirective != null) {
-			builder.append(" ").append(sqlDirective.name());
+			visitor.append(" ");
+			visitor.append(sqlDirective.name());
 		}
 		if(setQuantifier != null){
-			builder.append(" ").append(setQuantifier.name());
+			visitor.append(" ");
+			visitor.append(setQuantifier.name());
 		}
-		builder.append(" ");
-		selectList.toSQL(builder, columnConvertor);
-		builder.append(" ");
-		tableExpression.toSQL(builder, columnConvertor);
+		visitor.append(" ");
+		visit(selectList, visitor);
+		visitor.append(" ");
+		visit(tableExpression, visitor);
 	}
-	
 }

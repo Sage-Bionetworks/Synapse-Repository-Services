@@ -23,24 +23,33 @@ public class SignedLiteral extends SQLElement {
 		return generalLiteral;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		if (signedNumericLiteral != null) {
-			if (columnConvertor != null) {
-				columnConvertor.convertNumberParam(signedNumericLiteral, builder);
-			} else {
-				builder.append(signedNumericLiteral);
-			}
+			visitor.append(signedNumericLiteral);
 		} else {
-			if (columnConvertor != null) {
-				columnConvertor.convertParam(generalLiteral, builder);
-			} else {
-				// General literals have single quotes
-				builder.append("'");
-				builder.append(this.generalLiteral.replaceAll("'", "''"));
-				builder.append("'");
-			}
+			// General literals have single quotes
+			visitor.append("'");
+			visitor.append(this.generalLiteral.replaceAll("'", "''"));
+			visitor.append("'");
 		}
 	}
 
+	public void visit(ToUnquotedStringVisitor visitor) {
+		if (signedNumericLiteral != null) {
+			visitor.append(signedNumericLiteral);
+		} else {
+			visitor.append(this.generalLiteral);
+		}
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		if (signedNumericLiteral != null) {
+			visitor.convertNumberParam(signedNumericLiteral);
+		} else {
+			visitor.convertParam(generalLiteral);
+		}
+	}
 }

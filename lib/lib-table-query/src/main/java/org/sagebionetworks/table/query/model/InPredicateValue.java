@@ -17,10 +17,7 @@ public class InPredicateValue extends SQLElement {
 		return inValueList;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		inValueList.toSQL(builder, columnConvertor);
-		
+	public void visit(Visitor visitor) {
+		visit(inValueList, visitor);
 	}
-	
 }
