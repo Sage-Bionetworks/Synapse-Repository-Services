@@ -25,10 +25,6 @@ public class SetFunctionSpecification extends SQLElement {
 		this.valueExpression = valueExpression;
 	}
 
-	public boolean isAggregate() {
-		return true;
-	}
-
 	public Boolean getCountAsterisk() {
 		return countAsterisk;
 	}
@@ -66,5 +62,9 @@ public class SetFunctionSpecification extends SQLElement {
 			visitor.popCurrentClause(SQLClause.FUNCTION_PARAMETER);
 			visitor.append(")");
 		}
+	}
+
+	public void visit(IsAggregateVisitor visitor) {
+		visitor.setIsAggregate();
 	}
 }

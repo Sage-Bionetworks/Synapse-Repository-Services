@@ -13,10 +13,6 @@ public class CharacterFactor extends SQLElement {
 		this.characterPrimary = characterPrimary;
 	}
 
-	public boolean isAggregate() {
-		return characterPrimary.isAggregate();
-	}
-
 	public CharacterPrimary getCharacterPrimary() {
 		return characterPrimary;
 	}

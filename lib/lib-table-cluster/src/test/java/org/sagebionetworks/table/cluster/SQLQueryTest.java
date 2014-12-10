@@ -186,6 +186,15 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testSelectAggregateMoreColumns() throws ParseException {
+		SqlQuery translator = new SqlQuery("select avg(foo), bar from syn123", tableSchema);
+		assertEquals("SELECT AVG(_C111_), _C333_ FROM T123", translator.getOutputSQL());
+		assertTrue(translator.isAggregatedResult());
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(foo)", null, null),
+				TableModelUtils.createSelectColumn("bar", ColumnType.STRING, null)), translator.getSelectColumnModels().getSelectColumns());
+	}
+
+	@Test
 	public void testSelectGroupByAggregate() throws ParseException {
 		SqlQuery translator = new SqlQuery("select foo from syn123 group by foo", tableSchema);
 		assertEquals("SELECT _C111_ FROM T123 GROUP BY _C111_", translator.getOutputSQL());

@@ -9,10 +9,6 @@ public class Term extends SQLElement {
 		this.factor = factor;
 	}
 
-	public boolean isAggregate() {
-		return factor.isAggregate();
-	}
-
 	public Factor getFactor() {
 		return factor;
 	}

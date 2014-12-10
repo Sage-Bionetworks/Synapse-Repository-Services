@@ -14,14 +14,6 @@ public class NumericPrimary extends SQLElement {
 		this.numericValueFunction = numericValueFunction;
 	}
 
-	public boolean isAggregate() {
-		if (valueExpressionPrimary != null) {
-			return valueExpressionPrimary.isAggregate();
-		} else {
-			return false;
-		}
-	}
-
 	public NumericValueFunction getNumericValueFunction() {
 		return numericValueFunction;
 	}
@@ -36,6 +28,12 @@ public class NumericPrimary extends SQLElement {
 			visit(valueExpressionPrimary, visitor);
 		} else {
 			visit(numericValueFunction, visitor);
+		}
+	}
+
+	public void visit(IsAggregateVisitor visitor) {
+		if (valueExpressionPrimary != null) {
+			visit(valueExpressionPrimary, visitor);
 		}
 	}
 }

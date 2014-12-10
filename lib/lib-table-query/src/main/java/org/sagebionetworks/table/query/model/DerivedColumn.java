@@ -14,10 +14,6 @@ public class DerivedColumn extends SQLElement {
 		this.asClause = asClause;
 	}
 
-	public boolean isAggregate() {
-		return valueExpression.isAggregate();
-	}
-
 	public ValueExpression getValueExpression() {
 		return valueExpression;
 	}

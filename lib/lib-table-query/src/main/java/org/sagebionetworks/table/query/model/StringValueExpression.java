@@ -14,10 +14,6 @@ public class StringValueExpression extends SQLElement {
 		this.characterValueExpression = characterValueExpression;
 	}
 
-	public boolean isAggregate() {
-		return characterValueExpression.isAggregate();
-	}
-
 	public CharacterValueExpression getCharacterValueExpression() {
 		return characterValueExpression;
 	}
