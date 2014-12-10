@@ -337,7 +337,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		try {
 			PassingRecord passingRecord = quizResponseDao.getPassingRecord(quizGenerator.getId(), userInfo.getId());
 			if(passingRecord.getPassed()) {
-				throw new UnauthorizedException("You have already pass the Certification test.");
+				throw new UnauthorizedException("You have already passed the certification test.");
 			}
 		} catch (NotFoundException e) {
 			// OK
