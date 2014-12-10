@@ -21,9 +21,8 @@ public class CharacterValueExpression extends SQLElement {
 		return characterFactor;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.characterFactor.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.characterFactor, visitor);
 	}
 	
 }

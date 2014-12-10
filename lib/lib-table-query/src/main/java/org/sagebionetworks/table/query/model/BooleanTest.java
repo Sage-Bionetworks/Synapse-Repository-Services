@@ -36,16 +36,18 @@ public class BooleanTest extends SQLElement {
 		return truthValue;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.booleanPrimary.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.booleanPrimary, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(this.booleanPrimary, visitor);
 		if(is != null){
-			builder.append(" IS ");
+			visitor.append(" IS ");
 			if(not != null){
-				builder.append("NOT ");
+				visitor.append("NOT ");
 			}
-			builder.append(this.truthValue.name());
+			visitor.append(this.truthValue.name());
 		}
 	}
-	
 }

@@ -13,8 +13,11 @@ public class NumericValueFunction extends SQLElement {
 		return mysqlFunction;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append(mysqlFunction.name()).append("()");
+	public void visit(Visitor visitor) {
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append(mysqlFunction.name());
+		visitor.append("()");
 	}
 }

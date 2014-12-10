@@ -20,12 +20,15 @@ public class BooleanFactor extends SQLElement {
 	public BooleanTest getBooleanTest() {
 		return booleanTest;
 	}
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if(not != null){
-			builder.append("NOT ");
-		}
-		booleanTest.toSQL(builder, columnConvertor);
+
+	public void visit(Visitor visitor) {
+		visit(booleanTest, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		if(not != null){
+			visitor.append("NOT ");
+		}
+		visit(booleanTest, visitor);
+	}
 }

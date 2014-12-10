@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+import org.sagebionetworks.table.query.model.ToSimpleSqlVisitor.SQLClause;
 
 public class OrderByClause extends SQLElement {
 	
@@ -15,17 +15,14 @@ public class OrderByClause extends SQLElement {
 		return sortSpecificationList;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append("ORDER BY ");
-		if (columnConvertor != null) {
-			columnConvertor.pushCurrentClause(SQLClause.ORDER_BY);
-		}
-		sortSpecificationList.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.popCurrentClause(SQLClause.ORDER_BY);
-		}
+	public void visit(Visitor visitor) {
+		visit(sortSpecificationList, visitor);
 	}
-	
 
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("ORDER BY ");
+		visitor.pushCurrentClause(SQLClause.ORDER_BY);
+		visit(sortSpecificationList, visitor);
+		visitor.popCurrentClause(SQLClause.ORDER_BY);
+	}
 }

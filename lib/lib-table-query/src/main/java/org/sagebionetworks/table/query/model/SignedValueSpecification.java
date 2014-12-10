@@ -17,9 +17,7 @@ public class SignedValueSpecification extends SQLElement {
 		return signedLiteral;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.signedLiteral.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.signedLiteral, visitor);
 	}
-	
 }

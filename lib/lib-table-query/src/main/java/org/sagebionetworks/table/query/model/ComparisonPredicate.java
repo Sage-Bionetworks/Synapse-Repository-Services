@@ -28,17 +28,18 @@ public class ComparisonPredicate extends SQLElement {
 		return columnReferenceLHS;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		columnReferenceLHS.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.setLHSColumn(columnReferenceLHS);
-		}
-		builder.append(" ").append(compOp.toSQL()).append(" ");
-		rowValueConstructorRHS.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.setLHSColumn(null);
-		}
+	public void visit(Visitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visit(rowValueConstructorRHS, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visitor.setLHSColumn(columnReferenceLHS);
+		visitor.append(" ");
+		visitor.append(compOp.toSQL());
+		visitor.append(" ");
+		visit(rowValueConstructorRHS, visitor);
+		visitor.setLHSColumn(null);
+	}
 }

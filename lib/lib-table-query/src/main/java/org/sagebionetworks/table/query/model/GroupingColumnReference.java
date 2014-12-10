@@ -9,7 +9,6 @@ public class GroupingColumnReference extends SQLElement {
 	ColumnReference columnReference;
 
 	public GroupingColumnReference(ColumnReference columnReference) {
-		super();
 		this.columnReference = columnReference;
 	}
 
@@ -17,9 +16,7 @@ public class GroupingColumnReference extends SQLElement {
 		return columnReference;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		columnReference.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(columnReference, visitor);
 	}
-	
 }

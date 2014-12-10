@@ -16,4 +16,8 @@ public class NullPredicate extends IsPredicate {
 	public String getCompareValue() {
 		return "NULL";
 	}
+
+	@Override
+	public void visit(Visitor visitor) {
+	}
 }

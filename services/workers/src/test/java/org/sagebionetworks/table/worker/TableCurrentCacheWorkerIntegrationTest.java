@@ -132,12 +132,13 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 2));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(headers);
+		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
 
 		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 1000L).size());
 
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				rowSet);
 
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override
@@ -182,9 +183,10 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(headers);
+		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				rowSet);
 
 		rowSet.setEtag(referenceSet.getEtag());
 		for (int i = 0; i < 4; i++) {
@@ -199,14 +201,15 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		TableModelTestUtils.updateRow(schema, updateRows.get(1), 444);
 		TableModelTestUtils.updateRow(schema, updateRows.get(2), 555);
 		rowSet.setRows(updateRows);
-		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId,
+				TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet);
 		assertEquals(3, referenceSet2.getRows().size());
 
 		RowSelection rowsToDelete = new RowSelection();
 		rowsToDelete.setEtag(referenceSet2.getEtag());
 		rowsToDelete.setRowIds(Lists.newArrayList(referenceSet2.getRows().get(1).getRowId(), referenceSet.getRows().get(3).getRowId()));
 
-		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, schema, rowsToDelete);
+		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, rowsToDelete);
 
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override

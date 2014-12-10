@@ -17,8 +17,7 @@ public class Factor extends SQLElement {
 		return numericPrimary;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.numericPrimary.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.numericPrimary, visitor);
 	}
 }

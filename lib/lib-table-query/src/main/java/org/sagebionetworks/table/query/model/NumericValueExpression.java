@@ -17,8 +17,7 @@ public class NumericValueExpression extends SQLElement {
 		return term;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.term.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.term, visitor);
 	}
 }

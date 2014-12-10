@@ -10,7 +10,6 @@ public class DerivedColumn extends SQLElement {
 	AsClause asClause;
 	
 	public DerivedColumn(ValueExpression valueExpression, AsClause asClause) {
-		super();
 		this.valueExpression = valueExpression;
 		this.asClause = asClause;
 	}
@@ -27,13 +26,18 @@ public class DerivedColumn extends SQLElement {
 		return asClause;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		valueExpression.toSQL(builder, columnConvertor);
-		if(asClause!= null){
-			builder.append(" ");
-			asClause.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(valueExpression, visitor);
+		if (asClause != null) {
+			visit(asClause, visitor);
 		}
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(valueExpression, visitor);
+		if(asClause!= null){
+			visitor.append(" ");
+			visit(asClause, visitor);
+		}
+	}
 }

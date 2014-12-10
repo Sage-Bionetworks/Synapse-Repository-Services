@@ -10,7 +10,6 @@ public class SortSpecification extends SQLElement {
     OrderingSpecification orderingSpecification;
 	public SortSpecification(SortKey sortKey,
 			OrderingSpecification orderingSpecification) {
-		super();
 		this.sortKey = sortKey;
 		this.orderingSpecification = orderingSpecification;
 	}
@@ -20,12 +19,16 @@ public class SortSpecification extends SQLElement {
 	public OrderingSpecification getOrderingSpecification() {
 		return orderingSpecification;
 	}
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		sortKey.toSQL(builder, columnConvertor);
+
+	public void visit(Visitor visitor) {
+		visit(sortKey, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(sortKey, visitor);
 		if(orderingSpecification != null){
-			builder.append(" ").append(orderingSpecification.name());
+			visitor.append(" ");
+			visitor.append(orderingSpecification.name());
 		}
 	}
-    
 }

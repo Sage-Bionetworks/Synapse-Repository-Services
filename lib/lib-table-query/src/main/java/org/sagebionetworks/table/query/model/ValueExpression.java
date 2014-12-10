@@ -33,12 +33,11 @@ public class ValueExpression extends SQLElement {
 		return numericValueExpression;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
 		if (this.stringValueExpression != null) {
-			this.stringValueExpression.toSQL(builder, columnConvertor);
+			visit(this.stringValueExpression, visitor);
 		} else {
-			this.numericValueExpression.toSQL(builder, columnConvertor);
+			visit(this.numericValueExpression, visitor);
 		}
 	}
 }

@@ -27,16 +27,20 @@ public class SearchCondition extends SQLElement {
 		return orBooleanTerms;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		boolean isFrist = true;
-		for(BooleanTerm booleanTerm: orBooleanTerms){
-			if(!isFrist){
-				builder.append(" OR ");
-			}
-			booleanTerm.toSQL(builder, columnConvertor);
-			isFrist = false;
+	public void visit(Visitor visitor) {
+		for (BooleanTerm booleanTerm : orBooleanTerms) {
+			visit(booleanTerm, visitor);
 		}
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		boolean isFirst = true;
+		for (BooleanTerm booleanTerm : orBooleanTerms) {
+			if (!isFirst) {
+				visitor.append(" OR ");
+			}
+			visit(booleanTerm, visitor);
+			isFirst = false;
+		}
+	}
 }

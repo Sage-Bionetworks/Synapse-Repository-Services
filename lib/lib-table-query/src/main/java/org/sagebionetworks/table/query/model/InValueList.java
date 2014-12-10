@@ -12,7 +12,6 @@ public class InValueList extends SQLElement {
 
 	
 	public InValueList() {
-		super();
 		this.valueExpressions = new LinkedList<ValueExpression>();
 	}
 
@@ -28,16 +27,20 @@ public class InValueList extends SQLElement {
 		return valueExpressions;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
+		for (ValueExpression valueExpression : valueExpressions) {
+			visit(valueExpression, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		boolean first = true;
 		for(ValueExpression valueExpression: valueExpressions){
 			if(!first){
-				builder.append(", ");
+				visitor.append(", ");
 			}
-			valueExpression.toSQL(builder, columnConvertor);
+			visit(valueExpression, visitor);
 			first = false;
 		}
 	}
-	
 }

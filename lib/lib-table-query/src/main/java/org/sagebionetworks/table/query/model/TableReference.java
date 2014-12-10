@@ -15,13 +15,14 @@ public class TableReference extends SQLElement {
 		return tableName;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if (columnConvertor != null) {
-			columnConvertor.convertTableName(tableName, builder);
-		} else {
-			builder.append(tableName);
-		}
+	public void visit(Visitor visitor) {
 	}
 
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append(tableName);
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		visitor.convertTableName(tableName);
+	}
 }

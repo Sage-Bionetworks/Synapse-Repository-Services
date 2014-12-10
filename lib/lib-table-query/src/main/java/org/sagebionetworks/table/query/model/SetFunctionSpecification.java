@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+import org.sagebionetworks.table.query.model.ToSimpleSqlVisitor.SQLClause;
 
 /**
  * This matches &ltset function specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -45,26 +45,26 @@ public class SetFunctionSpecification extends SQLElement {
 		return valueExpression;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if(countAsterisk != null){
-			builder.append("COUNT(*)");
-		}else{
-			builder.append(setFunctionType.name());
-			builder.append("(");
-			if(setQuantifier != null){
-				builder.append(setQuantifier.name());
-				builder.append(" ");
-			}
-			if (columnConvertor != null) {
-				columnConvertor.pushCurrentClause(SQLClause.FUNCTION_PARAMETER);
-			}
-			this.valueExpression.toSQL(builder, columnConvertor);
-			if (columnConvertor != null) {
-				columnConvertor.popCurrentClause(SQLClause.FUNCTION_PARAMETER);
-			}
-			builder.append(")");
+	public void visit(Visitor visitor) {
+		if (countAsterisk == null) {
+			visit(this.valueExpression, visitor);
 		}
 	}
 
+	public void visit(ToSimpleSqlVisitor visitor) {
+		if (countAsterisk != null) {
+			visitor.append("COUNT(*)");
+		} else {
+			visitor.append(setFunctionType.name());
+			visitor.append("(");
+			if (setQuantifier != null) {
+				visitor.append(setQuantifier.name());
+				visitor.append(" ");
+			}
+			visitor.pushCurrentClause(SQLClause.FUNCTION_PARAMETER);
+			visit(this.valueExpression, visitor);
+			visitor.popCurrentClause(SQLClause.FUNCTION_PARAMETER);
+			visitor.append(")");
+		}
+	}
 }

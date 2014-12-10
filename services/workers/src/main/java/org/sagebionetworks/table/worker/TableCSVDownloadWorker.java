@@ -6,6 +6,7 @@ import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
@@ -109,15 +110,13 @@ public class TableCSVDownloadWorker implements Worker {
 			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId());
-			boolean includeRowIdAndVersion = true;
-			if(request.getIncludeRowIdAndRowVersion() != null){
-				includeRowIdAndVersion = request.getIncludeRowIdAndRowVersion();
-			}
+			boolean includeRowIdAndVersion = BooleanUtils.isNotFalse(request.getIncludeRowIdAndRowVersion());
+			boolean writeHeaders = BooleanUtils.isNotFalse(request.getWriteHeader());
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableRowManager
-						.runConsistentQueryAsStream(user, request.getSql(), request.getSort(), stream, includeRowIdAndVersion);
+				result = tableRowManager.runConsistentQueryAsStream(user, request.getSql(), request.getSort(), stream,
+						includeRowIdAndVersion, writeHeaders);
 			}finally{
 				writer.close();
 			}

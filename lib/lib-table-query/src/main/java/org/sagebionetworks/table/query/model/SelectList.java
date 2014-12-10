@@ -2,7 +2,7 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+import org.sagebionetworks.table.query.model.ToSimpleSqlVisitor.SQLClause;
 /**
  * This matches &ltselect list&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
@@ -42,27 +42,29 @@ public class SelectList extends SQLElement {
 		return columns;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		// select is either star or a list of derived columns
-		if (columnConvertor != null) {
-			columnConvertor.pushCurrentClause(SQLClause.SELECT);
+	public void visit(Visitor visitor) {
+		if (asterisk == null) {
+			for (DerivedColumn dc : columns) {
+				visit(dc, visitor);
+			}
 		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		// select is either star or a list of derived columns
+		visitor.pushCurrentClause(SQLClause.SELECT);
 		if(asterisk != null){
-			builder.append("*");
+			visitor.append("*");
 		}else{
 			boolean first = true;
 			for(DerivedColumn dc: columns){
 				if(!first){
-					builder.append(", ");
+					visitor.append(", ");
 				}
-				dc.toSQL(builder, columnConvertor);
+				visit(dc, visitor);
 				first = false;
 			}
 		}
-		if (columnConvertor != null) {
-			columnConvertor.popCurrentClause(SQLClause.SELECT);
-		}
+		visitor.popCurrentClause(SQLClause.SELECT);
 	}
-	
 }
