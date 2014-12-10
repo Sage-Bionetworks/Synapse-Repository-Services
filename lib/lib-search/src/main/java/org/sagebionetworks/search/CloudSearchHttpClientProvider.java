@@ -11,37 +11,37 @@ import org.sagebionetworks.utils.HttpClientHelper;
 
 public class CloudSearchHttpClientProvider {
 	
-	private Long connectionTimeout;
-	private Long socketTimeout;
+	private Integer connectionTimeout;
+	private Integer socketTimeout;
 	private HttpClient httpClient;
 	
 	public CloudSearchHttpClientProvider() {
-		init();
 	}
 	
-	public void setConnectionTimeout(Long n) {
+	public void setConnectionTimeout(Integer n) {
 		connectionTimeout =  n;
 	}
 	
-	public void setSocketTimeout(Long n) {
+	public void setSocketTimeout(Integer n) {
 		socketTimeout = n;
 	}
 	
 	public HttpClient getHttpClient() {
 		if (httpClient == null) {
-			init();
+			_init();
 		}
 		return httpClient;
 	}
 	
-	private void init() {
+	// Called by Spring
+	public void _init() {
 		ThreadSafeClientConnManager connectionManager;
 		try {
 			if (connectionTimeout == null) {
-				connectionTimeout = 20*1000L;
+				connectionTimeout = 20*1000;
 			}
 			if (socketTimeout == null) {
-				socketTimeout = 20*1000L;
+				socketTimeout = 20*1000;
 			}
 			
 			connectionManager = HttpClientHelper.createClientConnectionManager(true);

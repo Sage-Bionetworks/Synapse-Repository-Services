@@ -59,8 +59,8 @@ public class SearchDaoImpl implements SearchDao {
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
-	
-	private CloudSearchClient cloudHttpClient = null;
+	@Autowired
+	CloudSearchClient cloudHttpClient = null;
 	
 	@Override
 	public boolean postInitialize() throws Exception {
@@ -75,9 +75,12 @@ public class SearchDaoImpl implements SearchDao {
 
 		String searchEndPoint = searchDomainSetup.getSearchEndpoint();
 		log.info("Search endpoint: " + searchEndPoint);
+		cloudHttpClient.setSearchServiceEndpoint(searchEndPoint);
 		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
 		log.info("Document endpoint: " + documentEndPoint);
-		cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
+		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
+		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
+		//cloudHttpClient._init();
 		return true;
 	}
 

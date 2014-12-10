@@ -31,21 +31,27 @@ public class CloudSearchClient {
 	}
 
 	@Autowired
-	CloudSearchHttpClientProvider httpClientProvider;
+	CloudSearchHttpClientProvider cloudSearchHttpClientProvider;
 	private final long MAX_BACKOFF_MS = 6400L;
 	
 	private HttpClient httpClient;
 	private String searchServiceEndpoint;
 	private String documentServiceEndpoint;
 
+	public CloudSearchClient() {
+	}
+	
 	public CloudSearchClient(String searchServiceEndpoint, String documentServiceEndpoint) {
 		this.searchServiceEndpoint = searchServiceEndpoint;
 		this.documentServiceEndpoint = documentServiceEndpoint;
 	}
 	
-	@PostConstruct
-	private void init() {
-		this.httpClient = httpClientProvider.getHttpClient();
+	public void _init() {
+		if (cloudSearchHttpClientProvider == null) {
+			throw new RuntimeException("ClouSearchHttpClientProvider is null in CloudSearchClient._init()");
+		}
+	
+		this.httpClient = cloudSearchHttpClientProvider.getHttpClient();
 	}
 
 	// For unit test
@@ -53,6 +59,14 @@ public class CloudSearchClient {
 		this.httpClient = httpClientProvider.getHttpClient();
 		this.searchServiceEndpoint = searchServiceEndpoint;
 		this.documentServiceEndpoint = documentServiceEndpoint;
+	}
+	
+	public void setSearchServiceEndpoint(String endpoint) {
+		this.searchServiceEndpoint = endpoint;
+	}
+
+	public void setDocumentServiceEndpoint(String endpoint) {
+		this.documentServiceEndpoint = endpoint;
 	}
 
 	public void sendDocuments(String documents) throws ClientProtocolException,
