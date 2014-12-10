@@ -55,9 +55,9 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		COL_ACCESS_APPROVAL_REQUIREMENT_ID+"=:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 
 	private static final String SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL = 
-			"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
-			COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
-			") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
+		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
+		") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select "+
 	COL_ACCESS_APPROVAL_CREATED_BY+", "+
@@ -76,7 +76,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		param.addValue(COL_ACCESS_APPROVAL_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, param);
 	}
-	
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessApproval> T create(T dto) throws DatastoreException,

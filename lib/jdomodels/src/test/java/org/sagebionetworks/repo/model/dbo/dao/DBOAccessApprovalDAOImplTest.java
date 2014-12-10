@@ -283,7 +283,7 @@ public class DBOAccessApprovalDAOImplTest {
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
 		assertEquals(((TermsOfUseAccessApproval)clone).getConcreteType(), ((TermsOfUseAccessApproval)updatedAA).getConcreteType());
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAA.getEtag()));
-		
+
 		try {
 			accessApprovalDAO.update(clone);
 			fail("conflicting update exception not thrown");
