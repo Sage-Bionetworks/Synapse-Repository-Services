@@ -800,7 +800,6 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static int calculateMaxRowSizeForColumnModels(ColumnMapper columnMapper) {
-		ValidateArgument.required(columnMapper.getSelectColumnAndModels(), "models");
 		int size = 0;
 		for (SelectColumnAndModel scm : columnMapper.getSelectColumnAndModels()) {
 			if (scm.getColumnType() == null) {
