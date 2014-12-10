@@ -63,13 +63,16 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 
 	@Override
 	public List<SelectColumnAndModel> getSelectColumnAndModels() {
-		return Lists.newArrayList(getSelectColumnAndModelList());
+		if (selectAndColumnModels == null) {
+			selectAndColumnModels = createSelectColumnAndModelList();
+		}
+		return selectAndColumnModels;
 	}
 
 	@Override
 	public List<SelectColumn> getSelectColumns() {
 		if (selectColumns == null) {
-			selectColumns = Transform.toList(getSelectColumnAndModelList(), new Function<SelectColumnAndModel, SelectColumn>() {
+			selectColumns = Transform.toList(getSelectColumnAndModels(), new Function<SelectColumnAndModel, SelectColumn>() {
 				@Override
 				public SelectColumn apply(SelectColumnAndModel input) {
 					return input.getSelectColumn();
@@ -82,7 +85,7 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 	@Override
 	public SelectColumn getSelectColumnByName(String name) {
 		if (nameToModelMap == null) {
-			nameToModelMap = Transform.toIdMap(getSelectColumnAndModelList(), new Function<SelectColumnAndModel, String>() {
+			nameToModelMap = Transform.toIdMap(getSelectColumnAndModels(), new Function<SelectColumnAndModel, String>() {
 				@Override
 				public String apply(SelectColumnAndModel input) {
 					return input.getName();
@@ -95,7 +98,7 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 
 	@Override
 	public int selectColumnCount(){
-		return getSelectColumnAndModelList().size();
+		return getSelectColumnAndModels().size();
 	}
 
 	private Map<String, SelectColumnAndModel> getIdToModelMap() {
@@ -105,15 +108,8 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 		return idToModelMap;
 	}
 
-	private List<SelectColumnAndModel> getSelectColumnAndModelList() {
-		if (selectAndColumnModels == null) {
-			selectAndColumnModels = createSelectColumnAndModelList();
-		}
-		return selectAndColumnModels;
-	}
-
 	@Override
 	public String toString() {
-		return "AbstractColumnMapper [idToModelMap=" + idToModelMap + ", selectModels=" + selectAndColumnModels + "]";
+		return "AbstractColumnMapper [idToModelMap=" + idToModelMap + ", selectAndColumnModels=" + selectAndColumnModels + "]";
 	}
 }
