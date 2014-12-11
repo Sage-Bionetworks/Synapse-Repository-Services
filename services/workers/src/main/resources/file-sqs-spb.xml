@@ -11,27 +11,18 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:managers-spb.xml" />
-
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<!-- AmazonSNSClient -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
 	<!-- Setups the search message queue. -->
 	<bean id="fileMessageQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.fileUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
-		<constructor-arg index="2" value="true" />
+		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
+		<constructor-arg index="2">
+			<list>
+				<value>FILE</value>
+			</list>
+		</constructor-arg>
+		<constructor-arg index="3" value="true" />
 	</bean>
 
 	<!-- provides search message queue workers -->

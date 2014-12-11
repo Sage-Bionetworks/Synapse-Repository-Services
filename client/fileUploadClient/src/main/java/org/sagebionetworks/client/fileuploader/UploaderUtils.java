@@ -8,7 +8,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 
 public class UploaderUtils {
 
@@ -18,7 +18,7 @@ public class UploaderUtils {
 
 		// create filehandle via multipart upload (blocking)
 		statusCallback.setStatus(UploadStatus.UPLOADING);
-		S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
+		FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType, targetEntityId);
 
 		// upload child under target entity (parent)
 		final FileEntity newEntity = new FileEntity();
@@ -34,8 +34,8 @@ public class UploaderUtils {
 
 		// create filehandle via multipart upload (blocking)
 		statusCallback.setStatus(UploadStatus.UPLOADING);
-		S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
-		
+		FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType, targetEntity.getParentId());
+
 		// update entity and create new version
 		targetEntity.setDataFileHandleId(fileHandle.getId());
 		targetEntity.setName(file.getName());

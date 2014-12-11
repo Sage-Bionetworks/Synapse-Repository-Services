@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -28,13 +29,16 @@ public class SearchQueueWorkerFactory implements MessageWorkerFactory {
 	@Autowired
 	private V2WikiPageDao wikPageDao;
 	
+	@Autowired
+	private WorkerLogger workerLogger;
+	
 	public void initialize(){
 	}
 
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		// Create a new worker
-		return new SearchQueueWorker(searchDao, searchDocumentDriver, messages, wikPageDao);
+		return new SearchQueueWorker(searchDao, searchDocumentDriver, messages, wikPageDao, workerLogger);
 	}
 
 }

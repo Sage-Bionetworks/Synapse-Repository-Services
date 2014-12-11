@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -20,9 +22,13 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -41,11 +47,14 @@ public class DBOColumnModelImplTest {
 		one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
+		one.setMaximumSize(10L);
 		one = columnModelDao.createColumnModel(one);
 		// two
 		two = new ColumnModel();
 		two.setName("two");
 		two.setColumnType(ColumnType.STRING);
+		// Get the default
+		two.setMaximumSize(null);
 		two = columnModelDao.createColumnModel(two);
 		// three
 		three = new ColumnModel();
@@ -65,7 +74,8 @@ public class DBOColumnModelImplTest {
 		ColumnModel model = new ColumnModel();
 		model.setName("column model dao test");
 		model.setColumnType(ColumnType.STRING);
-		model.setDefaultValue("someDefaultValue");
+		model.setMaximumSize(16L);
+		model.setDefaultValue("abc");
 		model.setEnumValues(new LinkedList<String>());
 		model.getEnumValues().add("xyz");
 		model.getEnumValues().add("abc");
@@ -75,7 +85,8 @@ public class DBOColumnModelImplTest {
 		assertNotNull(result.getId());
 		assertEquals("column model dao test", result.getName());
 		assertEquals(ColumnType.STRING, result.getColumnType());
-		assertEquals("somedefaultvalue", result.getDefaultValue());
+		assertEquals(ColumnType.STRING, result.getColumnType());
+		assertEquals(new Long(16), result.getMaximumSize());
 		assertNotNull(result.getEnumValues());
 		assertEquals(2, result.getEnumValues().size());
 		assertEquals("abc", result.getEnumValues().get(0));
@@ -88,7 +99,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel two = columnModelDao.getColumnModel(originalId);
 		assertEquals(result, two);
 		// Now delete the model
-		columnModelDao.delete(originalId);
+		columnModelDao.deleteColumModel(originalId);
 		// Now it should be not found
 		try {
 			columnModelDao.getColumnModel(originalId);
@@ -105,7 +116,7 @@ public class DBOColumnModelImplTest {
 		// ask for the rows out of order.
 		ids.add(three.getId());
 		ids.add(one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids);
+		List<ColumnModel> list = columnModelDao.getColumnModel(ids, false);
 		assertNotNull(list);
 		assertEquals(2, list.size());
 		// The rows should be alphabetical order by name.
@@ -114,12 +125,27 @@ public class DBOColumnModelImplTest {
 	}
 	
 	@Test
+	public void testGetListInOrder() throws DatastoreException, NotFoundException {
+		// Get the list
+		List<String> ids = Lists.newArrayList(two.getId(), three.getId(), one.getId());
+		List<ColumnModel> list = columnModelDao.getColumnModel(ids, true);
+		assertNotNull(list);
+		assertEquals(3, list.size());
+		// The rows should be alphabetical order by name.
+		assertEquals(two, list.get(0));
+		assertEquals(three, list.get(1));
+		assertEquals(one, list.get(2));
+	}
+
+	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{
 		// Now bind one column
 		List<String> toBind = new LinkedList<String>();
 		toBind.add(two.getId());
 		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
+		String ownerEtag = columnModelDao.lockOnOwner("syn123");
+		assertNotNull(ownerEtag);
 		// Now bind the next two
 		toBind.clear();
 		toBind.add(one.getId());
@@ -136,7 +162,7 @@ public class DBOColumnModelImplTest {
 		String fakeId = "999999999999";
 		toBind.add(fakeId);
 		try{
-			int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+			columnModelDao.bindColumnToObject(toBind, "syn123");
 			fail("Should have thrown an exception");
 		}catch(NotFoundException e){
 			System.out.println(e.getMessage());
@@ -144,6 +170,26 @@ public class DBOColumnModelImplTest {
 		}
 	}
 	
+	@Test
+	public void testUnbindColumnsAndDeleteOwner() throws DatastoreException, NotFoundException {
+		// Now bind one column
+		List<String> toBind = new LinkedList<String>();
+		toBind.add(one.getId());
+		toBind.add(two.getId());
+		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+		assertTrue(count > 0);
+		columnModelDao.lockOnOwner("syn123");
+		columnModelDao.unbindAllColumnsFromObject("syn123");
+		columnModelDao.deleteOwner("syn123");
+		try {
+			columnModelDao.lockOnOwner("syn123");
+			fail("owner should no longer exist");
+		} catch (EmptyResultDataAccessException e) {
+		}
+		List<ColumnModel> columnModelsForObject = columnModelDao.getColumnModelsForObject("syn123");
+		assertEquals(0, columnModelsForObject.size());
+	}
+
 	@Test
 	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
 		// bind two columns to two objects
@@ -271,7 +317,7 @@ public class DBOColumnModelImplTest {
 	@Test
 	public void testGetColumnModelsForObject() throws NotFoundException{
 		// Start with all types
-		List<ColumnModel> raw = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
 		// Create each one
 		List<ColumnModel> models = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: raw){
@@ -299,6 +345,131 @@ public class DBOColumnModelImplTest {
 		assertEquals(models, fetched);
 	}
 	
+	@Test
+	public void testBindNull() throws NotFoundException{
+		String tableId = "syn123";
+		int count = columnModelDao.bindColumnToObject(null, tableId);
+		assertEquals(0, count);
+		// Now bind some columns
+		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
+		// Create each one
+		List<ColumnModel> models = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: raw){
+			models.add(columnModelDao.createColumnModel(cm));
+		}
+		List<String> headers = TableModelUtils.getHeaders(models);
+		count = columnModelDao.bindColumnToObject(headers, tableId);
+		assertEquals(headers.size(), count);
+		// Now if we set it back to empty the update should include 5 rows
+		List<String> empty = new LinkedList<String>();
+		count = columnModelDao.bindColumnToObject(empty, tableId);
+		assertEquals(headers.size(), count);
+		
+		// The bound list should not be null
+		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);
+		assertNotNull(results);
+		assertEquals(0,  results.size());
+	}
+	
+	@Test
+	public void testCaseSenstive() throws DatastoreException, NotFoundException{
+		ColumnModel first = new ColumnModel();
+		first.setName("AbbB");
+		first.setColumnType(ColumnType.STRING);
+		first.setMaximumSize(10L);
+		String firstId = columnModelDao.createColumnModel(first).getId();
+		// Create a second column that is the same.
+		ColumnModel second = new ColumnModel();
+		second.setName(first.getName());
+		second.setColumnType(first.getColumnType());
+		second.setMaximumSize(first.getMaximumSize());
+		String secondId = columnModelDao.createColumnModel(second).getId();
+		assertTrue("Two columns that are identical should have the same ID",firstId.equals(secondId));
+		// Now change the case and try again
+		second.setName(first.getName().toLowerCase());
+		secondId = columnModelDao.createColumnModel(second).getId();
+		assertFalse("Two columns that differ only by case should not get the same",firstId.equals(secondId));
+	}
+	
+	/**
+	 *  Should not be able to bind two columns with the same name to the same object
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	@Test
+	public void testBindWithNameConflict() throws DatastoreException, NotFoundException{
+		// Should not be able to bind two columns with the same name to the same object
+		ColumnModel first = new ColumnModel();
+		first.setName("AbbB");
+		first.setColumnType(ColumnType.STRING);
+		first.setMaximumSize(10L);
+		first = columnModelDao.createColumnModel(first);
+		// The second has the same name but different type.
+		ColumnModel second = new ColumnModel();
+		second.setName(first.getName());
+		second.setColumnType(ColumnType.INTEGER);
+		second = columnModelDao.createColumnModel(second);
+		// They should not have the same id
+		assertFalse("Two columns with the same name but different type should not have the same ID",first.getId().equals(second.getId()));
+		// now try to bind both columns to an object
+		try{
+			columnModelDao.bindColumnToObject(Arrays.asList(first.getId(), second.getId()), "syn123");
+			fail("Should not be able to bind two columns with the same name to the same object");
+		}catch(IllegalArgumentException e){
+			// expected
+			assertTrue("The error should contain the duplicate name",e.getMessage().contains(first.getName()));
+		}
+	}
+	
+	@Test
+	public void testDeleteColumnModel() throws DatastoreException, NotFoundException {
+		// Create new column model
+		ColumnModel m = new ColumnModel();
+		m.setName("col1");
+		m.setColumnType(ColumnType.STRING);
+		m.setMaximumSize(10L);
+		m = columnModelDao.createColumnModel(m);
+		// Verify that not bound
+		Set<String> boundColModelIds = new HashSet<String>();
+		boundColModelIds.add(m.getId());
+		List<String> colBindings = columnModelDao.listObjectsBoundToColumn(boundColModelIds, true, 10L, 0);
+		assertEquals(0, colBindings.size());
+		// Delete the column model should succeed
+		columnModelDao.deleteColumModel(m.getId());
+		// Check that not found
+		try {
+			columnModelDao.getColumnModel(m.getId());
+			fail("This model should have been deleted");
+		} catch (NotFoundException e) {
+			// expected
+		}
+		// Create another column model
+		m = new ColumnModel();
+		m.setName("col2");
+		m.setColumnType(ColumnType.STRING);
+		m.setMaximumSize(20L);
+		m = columnModelDao.createColumnModel(m);
+		// Bind it to a table
+		List<String> colIds = new LinkedList<String>();
+		colIds.add(m.getId());
+		int count = columnModelDao.bindColumnToObject(colIds, "syn123");
+		assertEquals(1, count);
+		// Verify binding
+		boundColModelIds = new HashSet<String>();
+		boundColModelIds.add(m.getId());
+		colBindings = columnModelDao.listObjectsBoundToColumn(boundColModelIds, true, 10L, 0);
+		assertEquals(1, colBindings.size());
+		assertEquals("syn123", colBindings.get(0));
+		// Delete the column model should succeed
+		columnModelDao.deleteColumModel(m.getId());
+		// Check that not found
+		try {
+			columnModelDao.getColumnModel(m.getId());
+			fail("This model should have been deleted");
+		} catch (NotFoundException e) {
+			// expected
+		}
+	}
 	
 	/**
 	 * Helper to create columns by name

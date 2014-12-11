@@ -12,9 +12,7 @@
 	<name>Platform Tools</name>
 
     <modules>
-      <module>bccSetup</module>
       <module>tool-migration-utility</module>
-      <module>usageMetrics</module>
   </modules>
 
 </project>

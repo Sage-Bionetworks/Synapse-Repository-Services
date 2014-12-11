@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName = "Message Services", path = "repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class MessageController extends BaseController {
 
 	@Autowired
@@ -75,8 +76,15 @@ public class MessageController extends BaseController {
 	 * i.e. It may take several seconds for a message to appear in a user's inbox.
 	 * </p>
 	 * <p>
-	 * Note: Unauthorized delivery, such as messaging a team you are not affiliated with, 
+	 * Notes: 
+	 * <br/>
+	 * Unauthorized delivery, such as messaging a team you are not affiliated with, 
 	 * will result in a bounce message being sent to your email.
+	 * <br/>
+	 * There are limits on the number of message recipients you can specify (50) and
+	 * the rate at which you can send messages (10 per minute).  Neither these restrictions,
+	 * nor the restriction that you can't message a Team with which you are unaffiliated,
+	 * apply if you are a member of the Trusted Message Senders Team.
 	 * </p>
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -238,7 +246,7 @@ public class MessageController extends BaseController {
 			@PathVariable("messageId") String messageId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws NotFoundException, IOException {
-		URL redirectUrl = serviceProvider.getMessageService()
+		String redirectUrl = serviceProvider.getMessageService()
 				.getMessageFileRedirectURL(userId, messageId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}

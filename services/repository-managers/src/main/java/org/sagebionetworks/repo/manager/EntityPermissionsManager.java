@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -94,7 +95,7 @@ public interface EntityPermissionsManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
+	public AuthorizationStatus hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the user permission for an entity.
@@ -114,4 +115,24 @@ public interface EntityPermissionsManager {
 	 * @return
 	 */
 	public boolean hasLocalACL(String resourceId);
+
+	/**
+	 * 
+	 * @param entityId
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException;
 }

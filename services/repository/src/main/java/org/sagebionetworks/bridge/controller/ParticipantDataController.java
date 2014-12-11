@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 // @ControllerInfo(displayName = "Participant data", path = BridgeUrlHelpers.BASE_V1)
 @Controller
+@RequestMapping(BridgeUrlHelpers.BRIDGE_PATH)
 public class ParticipantDataController {
 
 	private static final Logger logger = LogManager.getLogger(ParticipantDataController.class.getName());
@@ -125,8 +126,9 @@ public class ParticipantDataController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestParam(value = ServiceConstants.NORMALIZE_DATA, defaultValue = "false") boolean normalizeData,
 			@PathVariable String participantDataDescriptorId) throws Exception {
-		return serviceProvider.getParticipantDataService().get(userId, participantDataDescriptorId, limit, offset);
+		return serviceProvider.getParticipantDataService().get(userId, participantDataDescriptorId, limit, offset, normalizeData);
 	}
 
 	/**
@@ -142,8 +144,10 @@ public class ParticipantDataController {
 	public @ResponseBody
 	ListWrapper<ParticipantDataRow> getParticipantDataCurrentRows(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestParam(value = ServiceConstants.NORMALIZE_DATA, defaultValue = "false") boolean normalizeData,
 			@PathVariable String participantDataDescriptorId) throws Exception {
-		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().getCurrentRows(userId, participantDataDescriptorId);
+		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().getCurrentRows(userId,
+				participantDataDescriptorId, normalizeData);
 		return ListWrapper.wrap(rows, ParticipantDataRow.class);
 	}
 
@@ -163,11 +167,12 @@ public class ParticipantDataController {
 	ListWrapper<ParticipantDataRow> getParticipantDataHistoryRows(@RequestParam(value = "after", required = false) Long after,
 			@RequestParam(value = "before", required = false) Long before,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestParam(value = ServiceConstants.NORMALIZE_DATA, defaultValue = "false") boolean normalizeData,
 			@PathVariable String participantDataDescriptorId) throws Exception {
 		Date afterDate = after == null ? null : new Date(after);
 		Date beforeDate = before == null ? null : new Date(before);
-		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().getHistoryRows(userId, participantDataDescriptorId,
-				afterDate, beforeDate);
+		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().getHistoryRows(userId,
+				participantDataDescriptorId, afterDate, beforeDate, normalizeData);
 		return ListWrapper.wrap(rows, ParticipantDataRow.class);
 	}
 
@@ -184,8 +189,9 @@ public class ParticipantDataController {
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ROW_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	ParticipantDataRow getParticipantDataRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestParam(value = ServiceConstants.NORMALIZE_DATA, defaultValue = "false") boolean normalizeData,
 			@PathVariable String participantDataDescriptorId, @PathVariable Long rowId) throws Exception {
-		return serviceProvider.getParticipantDataService().getRow(userId, participantDataDescriptorId, rowId);
+		return serviceProvider.getParticipantDataService().getRow(userId, participantDataDescriptorId, rowId, normalizeData);
 	}
 
 	/**
@@ -201,8 +207,9 @@ public class ParticipantDataController {
 	public @ResponseBody
 	ParticipantDataCurrentRow getCurrentParticipantData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestParam(value = ServiceConstants.NORMALIZE_DATA, defaultValue = "false") boolean normalizeData,
 			@PathVariable String participantDataDescriptorId) throws Exception {
-		return serviceProvider.getParticipantDataService().getCurrent(userId, participantDataDescriptorId);
+		return serviceProvider.getParticipantDataService().getCurrent(userId, participantDataDescriptorId, normalizeData);
 	}
 
 	/**

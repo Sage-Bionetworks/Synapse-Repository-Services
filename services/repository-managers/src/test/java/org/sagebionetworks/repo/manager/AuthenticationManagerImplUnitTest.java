@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
@@ -19,7 +17,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -113,7 +111,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
-		} catch (UnauthorizedException e) {
+		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("invalid"));
 		}
 		
@@ -122,7 +120,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
-		} catch (UnauthorizedException e) {
+		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("expired"));
 		}
 	}

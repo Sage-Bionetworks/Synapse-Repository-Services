@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -25,6 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -43,13 +49,12 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DomainType;
@@ -63,6 +68,7 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -88,14 +94,24 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.entity.query.Condition;
+import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
+import org.sagebionetworks.repo.model.entity.query.EntityQuery;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
+import org.sagebionetworks.repo.model.entity.query.EntityType;
+import org.sagebionetworks.repo.model.entity.query.Operator;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuestionResponse;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -109,6 +125,7 @@ public class IT500SynapseJavaClient {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
+	private static SynapseAdminClient synapseAnonymous;
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
 	
@@ -124,9 +141,11 @@ public class IT500SynapseJavaClient {
 	
 	private static Set<String> bootstrappedTeams = Sets.newHashSet();
 	static {
-		for (int i=0; i < BOOTSTRAP_TEAM.values().length; i++) {
-			bootstrappedTeams.add(BOOTSTRAP_TEAM.values()[i].getId());
-		}
+		// note, this must match the bootstrapped teams defined in managers-spb.xml
+		bootstrappedTeams.add("2"); // Administrators
+		bootstrappedTeams.add("464532"); // Access and Compliance Team
+		bootstrappedTeams.add("3320020"); // Bridge Administrators
+		bootstrappedTeams.add("4"); // Trusted message senders
 	}
 	
 	private long getBootstrapCountPlus(long number) {
@@ -149,13 +168,18 @@ public class IT500SynapseJavaClient {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
 		synapseTwo = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseTwo);
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 		
+		synapseAnonymous = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(synapseAnonymous);
+
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapseTwo.getMyProfile();
 		synapseTwo.updateMyProfile(profile);
@@ -208,7 +232,7 @@ public class IT500SynapseJavaClient {
 			try {
 				adminSynapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
-			} catch (SynapseServiceException e) { }
+			} catch (SynapseException e) { }
 		}
 		
 		for (String id : teamsToDelete) {
@@ -222,24 +246,13 @@ public class IT500SynapseJavaClient {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 	}
 	
-	@Test
-	public void testCheckAliasAvailable() throws SynapseException{
-		AliasCheckRequest request = new AliasCheckRequest();
-		// This is valid but already in use
-		request.setAlias("public");
-		request.setType(AliasType.TEAM_NAME);
-		AliasCheckResponse response = synapseOne.checkAliasAvailable(request);
-		assertNotNull(response);
-		assertTrue(response.getValid());
-		assertFalse("The 'public' group name should already have this alias so it cannot be available!",response.getAvailable());
-	}
-	
+
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
 		JSONObject results = synapseOne.query("select * from dataset limit 10");
@@ -373,7 +386,6 @@ public class IT500SynapseJavaClient {
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
-		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
 		ar = adminSynapse.createAccessRequirement(ar);
@@ -394,7 +406,6 @@ public class IT500SynapseJavaClient {
 		// now add the ToU approval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setAccessorId(otherProfile.getOwnerId());
-		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(ar.getId());
 		
 		synapseTwo.createAccessApproval(aa);
@@ -515,6 +526,19 @@ public class IT500SynapseJavaClient {
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
+	}
+	
+	@Test
+	public void testSpecialCharacters() throws SynapseException {
+		UserProfile myProfile = synapseOne.getMyProfile();
+		String location = "Zürich"; // this string is encoded differently in UTF-8 than ISO-8859-1
+		String firstName = "Sławomir"; // this string can't be encoded in ISO-8859-1
+		myProfile.setLocation(location);
+		myProfile.setFirstName(firstName);
+		synapseOne.updateMyProfile(myProfile);
+		myProfile = synapseOne.getMyProfile();
+		assertEquals(location, myProfile.getLocation());
+		assertEquals(firstName, myProfile.getFirstName());
 	}
 
 	@Test
@@ -723,6 +747,19 @@ public class IT500SynapseJavaClient {
 			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
 		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);
+		
+	}
+	
+	@Test
+	public void testGetUserGroupHeaders() throws Exception {
+		UserProfile adminProfile = adminSynapse.getMyProfile();
+		assertNotNull(adminProfile);
+		// here we are just trying to check that the URI and request parameters are 'wired up' right
+		UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName());
+		assertTrue(page.getTotalNumberOfResults()>0);
+		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), 5, 0);
+		assertTrue(page.getTotalNumberOfResults()>0);
+		
 	}
 
 	@Test
@@ -781,8 +818,8 @@ public class IT500SynapseJavaClient {
 		r = adminSynapse.createAccessRequirement(r);
 		accessRequirementsToDelete.add(r.getId());
 		
-		// check that owner can download
-		assertTrue(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that owner can't download (since it's not a FileEntity)
+		assertFalse(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
@@ -798,7 +835,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
-		assertEquals(r.getEntityType(), clone.getEntityType());
+		assertEquals(r.getConcreteType(), clone.getConcreteType());
 		assertTrue(clone instanceof TermsOfUseAccessRequirement);
 		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
 		
@@ -1204,7 +1241,7 @@ public class IT500SynapseJavaClient {
 		// upload an icon and get the file handle
 		// before setting the icon
 		try {
-			synapseOne.getTeamIcon(createdTeam.getId(), false);
+			synapseOne.getTeamIcon(createdTeam.getId());
 			fail("Expected: Not Found");
 		} catch (SynapseException e) {
 			// expected
@@ -1221,15 +1258,19 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		S3FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
+		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
 		handlesToDelete.add(fileHandle.getId());
 		
 		// update the Team with the icon
 		createdTeam.setIcon(fileHandle.getId());
 		Team updatedTeam = synapseOne.updateTeam(createdTeam);
 		// get the icon url
-		URL url = synapseOne.getTeamIcon(updatedTeam.getId(), false);
+		URL url = synapseOne.getTeamIcon(updatedTeam.getId());
 		assertNotNull(url);
+		// check that we can download the Team icon to a file
+		File target = File.createTempFile("temp", null);
+		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
+		assertTrue(target.length()>0);
 		// query for all teams
 		PaginatedResults<Team> teams = synapseOne.getTeams(null, getBootstrapCountPlus(1L), 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
@@ -1591,5 +1632,132 @@ public class IT500SynapseJavaClient {
 			ContentType.create("text/plain", Charset.forName("UTF-8")));
 		assertNotNull(fileHandleId);
 		handlesToDelete.add(fileHandleId);
+	}
+	
+	@Test
+	public void testCertifiedUserQuiz() throws Exception {
+		// before taking the test there's no passing record
+		String myId = synapseOne.getMyProfile().getOwnerId();
+		try {
+			synapseOne.getCertifiedUserPassingRecord(myId);
+			fail("Expected SynapseNotFoundException");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
+		Quiz quiz = synapseOne.getCertifiedUserTest();
+		assertNotNull(quiz);
+		assertNotNull(quiz.getId());
+		QuizResponse response = new QuizResponse();
+		response.setQuizId(quiz.getId());
+		response.setQuestionResponses(new ArrayList<QuestionResponse>());
+		// this quiz will fail
+		PassingRecord pr = synapseOne.submitCertifiedUserTestResponse(response);
+		assertEquals(new Long(0L), pr.getScore());
+		assertFalse(pr.getPassed());
+		assertEquals(quiz.getId(), pr.getQuizId());
+		assertNotNull(pr.getResponseId());
+		PassingRecord pr2 = synapseOne.getCertifiedUserPassingRecord(myId);
+		assertEquals(pr, pr2);
+		
+		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
+		assertEquals(1, qrs.getResults().size());
+		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
+		qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, null);
+		assertEquals(1, qrs.getResults().size());
+		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
+
+		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
+		assertEquals(1, prs.getResults().size());
+		assertEquals(pr, prs.getResults().iterator().next());
+
+		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
+	}
+
+	@Test
+	public void testThrottlingNoRetry() throws Exception {
+		final SynapseAdminClientImpl nonWaitingAdminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(nonWaitingAdminSynapse);
+		nonWaitingAdminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		nonWaitingAdminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		nonWaitingAdminSynapse.clearAllLocks();
+		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
+		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().get();
+		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
+		List<Future<Void>> results = Lists.newArrayList();
+		for (int i = 0; i < max; i++) {
+			results.add(executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					adminSynapse.waitForTesting(false);
+					return null;
+				}
+			}));
+		}
+		// give it some time to send all requests and have the requests waiting
+		Thread.sleep(5000);
+		// non waiting one should fail with 503
+		try {
+			nonWaitingAdminSynapse.waitForTesting(false);
+			fail("Should have been throttled");
+		} catch (SynapseServerException e) {
+			assertEquals(503, e.getStatusCode());
+		}
+		// waiting one should fail with retry exception
+		try {
+			adminSynapse.waitForTesting(false);
+			fail("Should have been throttled");
+		} catch (SynapseServerException e) {
+			assertTrue(e.getMessage().indexOf("Too many concurrent requests") >= 0);
+		}
+
+		// other users should not be throttled
+		UserProfile myProfile = synapseOne.getMyProfile();
+		assertNotNull(myProfile);
+		myProfile = synapseTwo.getMyProfile();
+		assertNotNull(myProfile);
+
+		synapseAnonymous.waitForTesting(true);
+		for (Future<Void> result : results) {
+			result.get();
+		}
+		executor.shutdown();
+		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
+	}
+
+	@Test
+	public void testLogService() throws Exception {
+		String label1 = UUID.randomUUID().toString();
+		String label2 = UUID.randomUUID().toString();
+		LogEntry logEntry = new LogEntry();
+		logEntry.setLabel(label1);
+		logEntry.setMessage("message 1");
+		synapseOne.logError(logEntry);
+		logEntry.setMessage("message 2");
+		synapseOne.logError(logEntry);
+		logEntry.setLabel(label2);
+		logEntry.setMessage("message 2");
+
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		new Exception().printStackTrace(pw );
+		pw.flush();
+		logEntry.setStacktrace(sw.toString());
+		synapseOne.logError(logEntry);
+	}
+	
+	@Test
+	public void testStructuredQuery() throws SynapseException{
+		// setup a query to find the project by ID.
+		EntityQuery query = new EntityQuery();
+		query.setFilterByType(EntityType.project);
+		query.setConditions(new ArrayList<Condition>(1));
+		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
+		// Run the query
+		EntityQueryResults results = synapseOne.entityQuery(query);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(1, results.getEntities().size());
+		EntityQueryResult projectResult = results.getEntities().get(0);
+		assertEquals(project.getId(), projectResult.getId());
 	}
 }

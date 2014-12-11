@@ -10,9 +10,8 @@ public class AuthorizationSqlUtil {
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
 
-	private static final String AUTHORIZATION_SQL_SELECT = 
-			"select distinct acl."+SqlConstants.COL_ACL_OWNER_ID+" "+SqlConstants.COL_ACL_ID;
-	
+	private static final String AUTHORIZATION_SQL_SELECT = "select acl." + SqlConstants.COL_ACL_OWNER_ID + " " + SqlConstants.COL_ACL_ID;
+
 	public static final String AUTHORIZATION_SQL_FROM = " from "+
 			SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
 			SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
@@ -64,10 +63,10 @@ public class AuthorizationSqlUtil {
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
 	 * using a specified access type
 	 */
-	public static String authorizationSQL(int n) {
+	public static String authorizationSQL(int n, int offset) {
 		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_SELECT);
 		sb.append(AUTHORIZATION_SQL_FROM);
-		sb.append(authorizationSQLWhere(n));
+		sb.append(authorizationSQLWhere(n, offset));
 		return sb.toString();
 	}
 	
@@ -79,18 +78,18 @@ public class AuthorizationSqlUtil {
 	 * Can't bind a collection to a variable in the string, so we have to create n bind variables 
 	 * for a collection of length n.  :^(
 	 */
-	public static String authorizationSQLWhere(int n) {
+	public static String authorizationSQLWhere(int n, int offset) {
 		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_WHERE_1);
 		for (int i=0; i<n; i++) {
 			if (i>0) sb.append(",");
 			sb.append(":");
 			sb.append(BIND_VAR_PREFIX);
-			sb.append(i);
+			sb.append(i + offset);
 		}
 		sb.append(AUTHORIZATION_SQL_WHERE_2);
 		return sb.toString();
 	}
-	
+
 	/**
 	 * Create the canAccess Sql
 	 * @param numberUserGroups

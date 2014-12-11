@@ -16,15 +16,14 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
+import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class MetadataProviderFactoryTest {
+public class MetadataProviderFactoryTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
@@ -39,7 +38,7 @@ public class MetadataProviderFactoryTest {
 	
 	@Test
 	public void testGetProjectMetadataProvider() {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Project.class));
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Project.class));
 		assertNotNull(providers);
 		assertEquals(1, providers.size());
 	}
@@ -47,21 +46,21 @@ public class MetadataProviderFactoryTest {
 
 	@Test
 	public void testGetDatasetMetadataProvider() {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Study.class));
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Study.class));
 		assertNotNull(providers);
 		assertEquals(2, providers.size());
 	}
 
 	@Test
 	public void testGetLayerMetadataProvider() {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Data.class));
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Data.class));
 		assertNotNull(providers);
 		assertEquals(2, providers.size());
 	}
 
 	@Test
 	public void testGetCodeMetadataProvider() {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Code.class));
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Code.class));
 		assertNotNull(providers);
 		assertEquals(2, providers.size());
 	}

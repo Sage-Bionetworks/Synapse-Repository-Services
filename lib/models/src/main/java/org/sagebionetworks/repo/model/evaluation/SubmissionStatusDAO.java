@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.evaluation;
 
+import java.util.List;
+
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -30,17 +32,26 @@ public interface SubmissionStatusDAO {
 			NotFoundException;
 
 	/**
-	 * Update a SubmissionStatus object. An eTag update will be triggered.
 	 * 
-	 * @param dto
+	 * @param batch
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public void update(SubmissionStatus dto) throws DatastoreException,
-			InvalidModelException, NotFoundException,
-			ConflictingUpdateException;
+	public Long getEvaluationIdForBatch(List<SubmissionStatus> batch) throws DatastoreException,
+				InvalidModelException, NotFoundException, ConflictingUpdateException;
+
+	/**
+	 * 
+	 * @param batch
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 */
+	public void update(List<SubmissionStatus> batch) throws DatastoreException,
+			InvalidModelException, NotFoundException, ConflictingUpdateException;
 
 	/**
 	 * Delete a SubmissionStatus object.

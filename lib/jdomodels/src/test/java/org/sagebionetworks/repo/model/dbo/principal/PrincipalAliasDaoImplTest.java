@@ -79,7 +79,6 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		
 		// Before we start the alias should be available
@@ -105,7 +104,6 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("Fake principals Id");
 		alias.setType(AliasType.TEAM_NAME);
-		alias.setIsValidated(true);
 		// No principal should exist with this ID.
 		alias.setPrincipalId(-1L);
 		principalAliasDao.bindAliasToPrincipal(alias);
@@ -118,7 +116,6 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias("james.bond@Spy.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		
 		// Before we start the alias should be available
@@ -138,7 +135,6 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias("Best team Ever");
 		alias.setType(AliasType.TEAM_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		
 		// Before we start the alias should be available
@@ -158,7 +154,6 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias("james.bond@Spy.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias result = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(result);
@@ -167,19 +162,17 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias("james.bond@Spy.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId2);
 		principalAliasDao.bindAliasToPrincipal(alias);
 	}
     
 	@Test
 	public void testList() throws NotFoundException{
-		int stratingCount = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL).size();
+		int startingCount = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL).size();
 		PrincipalAlias alias = new PrincipalAlias();
 		// Use to upper as the alias
 		alias.setAlias("james.bond@Spy.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		
 		// Save the alias and fetch is back.
@@ -189,7 +182,6 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias("james.bond@gmail.com");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias emailTwo = principalAliasDao.bindAliasToPrincipal(alias);
 		// Add a username
@@ -197,7 +189,6 @@ public class PrincipalAliasDaoImplTest {
 		// Use to upper as the alias
 		alias.setAlias("007");
 		alias.setType(AliasType.USER_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias userName = principalAliasDao.bindAliasToPrincipal(alias);
 		// Now list all of them
@@ -213,6 +204,7 @@ public class PrincipalAliasDaoImplTest {
 		assertEquals(2, list.size());
 		assertEquals(emailOne, list.get(0));
 		assertEquals(emailTwo, list.get(1));
+		
 		// username only
 		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_NAME);
 		assertNotNull(list);
@@ -221,7 +213,15 @@ public class PrincipalAliasDaoImplTest {
 		
 		// Test listing all by type
 		list = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL);
-		assertTrue(stratingCount < list.size());
+		assertTrue(startingCount < list.size());
+		
+		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "james.bond@Spy.org");
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals(emailOne, list.get(0));
+		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "foo");
+		assertNotNull(list);
+		assertTrue(list.isEmpty());
 	}
 	
 	@Test
@@ -230,14 +230,12 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias emailOne = principalAliasDao.bindAliasToPrincipal(alias);
 		// Now do a second binding for another user
 		alias = new PrincipalAlias();
 		alias.setAlias("bar@bar.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId2);
 		PrincipalAlias emailTwo = principalAliasDao.bindAliasToPrincipal(alias);
 		
@@ -258,14 +256,12 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias emailOne = principalAliasDao.bindAliasToPrincipal(alias);
 		
 		alias = new PrincipalAlias();
 		alias.setAlias("userName");
 		alias.setType(AliasType.USER_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
 		// There should currently be 2
@@ -285,14 +281,12 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.org");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias emailOne = principalAliasDao.bindAliasToPrincipal(alias);
 		
 		alias = new PrincipalAlias();
 		alias.setAlias("userName");
 		alias.setType(AliasType.USER_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
 		// There should currently be 2
@@ -320,7 +314,6 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("userName");
 		alias.setType(AliasType.USER_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(one);
@@ -328,7 +321,6 @@ public class PrincipalAliasDaoImplTest {
 		alias = new PrincipalAlias();
 		alias.setAlias("newUserName");
 		alias.setType(AliasType.USER_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(two);
@@ -348,7 +340,6 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("team name one");
 		alias.setType(AliasType.TEAM_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(one);
@@ -356,7 +347,6 @@ public class PrincipalAliasDaoImplTest {
 		alias = new PrincipalAlias();
 		alias.setAlias("team name two");
 		alias.setType(AliasType.TEAM_NAME);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(two);

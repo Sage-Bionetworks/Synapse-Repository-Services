@@ -16,6 +16,7 @@ public class ExpectedStackBeansTest {
 	
 	String[] expectedBeanNames = new String[]{
 			"stackConfiguration",
+			"stackConfiguration.stackAndStackInstancePrefix",
 			// Id generator Properties
 			"stackConfiguration.idGeneratorDatabaseDriver",
 			"stackConfiguration.idGeneratorDatabaseConnectionUrl",
@@ -40,7 +41,10 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.tableMaxBytesPerRequest",
 			"stackConfiguration.tableEnabled",
 			"stackConfiguration.tableUpdateQueueName",
+			"stackConfiguration.tableCurrentCacheUpdateQueueName",
+			"stackConfiguration.tableReadTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersTableCluster",
+			"stackConfiguration.tableMaxBytesPerChangeSet",
 			
 			// Semaphore gated runner configuration.
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",

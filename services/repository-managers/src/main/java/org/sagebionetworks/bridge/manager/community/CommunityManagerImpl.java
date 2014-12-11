@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -311,7 +311,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	 */
 	@Override
 	public Community get(UserInfo userInfo, String communityId) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
 			throw new UnauthorizedException("Cannot read Community.");
 		}
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
@@ -328,7 +328,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Community update(UserInfo userInfo, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
 			NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, community.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
+		if (!authorizationManager.canAccess(userInfo, community.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot update Community.");
 		}
 		validateForUpdate(community);
@@ -347,7 +347,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot delete Community.");
 		}
 
@@ -359,7 +359,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	public PaginatedResults<UserGroupHeader> getMembers(UserInfo userInfo, String communityId, Integer limit, Integer offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot access Community members data.");
 		}
 
@@ -383,7 +383,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void join(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.PARTICIPATE)) {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.PARTICIPATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot join Community.");
 		}
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
@@ -432,7 +432,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		}
 
 		if (!userInfo.isAdmin()
-				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot add admin member");
 		}
 		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
@@ -456,7 +456,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		// user can always remove themselves, regardless of access (will be a no-op if the did not have membership
 		// update access, since they would not be admins)
 		if (!userInfo.isAdmin() && !userInfo.getId().equals(memberInfo.getId())
-				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot remove admin member");
 		}
 		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);

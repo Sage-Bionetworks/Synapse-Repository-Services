@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -28,7 +30,7 @@ public class AccessRequirementUtilTest {
 	AccessRequirementDAO mockAccessRequirementDAO;
 	private static final String NODE_ID = "9876";
 	Node testEntityNode;
-	List<Long> unmetARsDownload, unmetARsParticipate, unmetARsDownloadAndParticipate;
+	List<Long> unmetARsDownload, unmetARsParticipate, unmetARsDownloadAndParticipate, unmetARsUpload;
 	
 	@Before
 	public void before() throws Exception{
@@ -41,6 +43,7 @@ public class AccessRequirementUtilTest {
 		
 		testEntityNode = new Node();
 		testEntityNode.setId(NODE_ID);
+		testEntityNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
 		//by default, set node created by to current user
 		testEntityNode.setCreatedByPrincipalId(Long.parseLong(currentUserPrincipalId));
 		when(mockNodeDAO.getNode(anyString())).thenReturn(testEntityNode);
@@ -53,23 +56,32 @@ public class AccessRequirementUtilTest {
 		unmetARsDownloadAndParticipate.addAll(unmetARsDownload);
 		unmetARsDownloadAndParticipate.addAll(unmetARsParticipate);
 		
+		unmetARsUpload = new ArrayList<Long>();
+		unmetARsUpload.add(3l);
+		
 		List<ACCESS_TYPE> downloadOnly = new ArrayList<ACCESS_TYPE>();
 		downloadOnly.add(ACCESS_TYPE.DOWNLOAD);
 		List<ACCESS_TYPE> participateOnly = new ArrayList<ACCESS_TYPE>();
 		participateOnly.add(ACCESS_TYPE.PARTICIPATE);
-		List<ACCESS_TYPE> downloadAndParticipate = new ArrayList<ACCESS_TYPE>();
-		downloadAndParticipate.addAll(downloadOnly);
-		downloadAndParticipate.addAll(participateOnly);
+		List<ACCESS_TYPE> downloadParticipateAndSubmit = new ArrayList<ACCESS_TYPE>();
+		downloadParticipateAndSubmit.addAll(downloadOnly);
+		downloadParticipateAndSubmit.addAll(participateOnly);
+		downloadParticipateAndSubmit.add(ACCESS_TYPE.SUBMIT);
+		
+		List<ACCESS_TYPE> uploadOnly = new ArrayList<ACCESS_TYPE>();
+		uploadOnly.add(ACCESS_TYPE.UPLOAD);
+
 		
 		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(downloadOnly))).thenReturn(unmetARsDownload);
 		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(participateOnly))).thenReturn(unmetARsParticipate);
-		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(downloadAndParticipate))).thenReturn(unmetARsDownloadAndParticipate);
+		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(downloadParticipateAndSubmit))).thenReturn(unmetARsDownloadAndParticipate);
+		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(uploadOnly))).thenReturn(unmetARsUpload);
 	}
 	
 	@Test
 	public void testOwnerEntityRequest() throws Exception {
 		//current user requesting is the owner of the entity
-		List<Long> unmetARs = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
+		List<Long> unmetARs = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
 		assertTrue(unmetARs.size() == 0);
 	}
 	
@@ -77,8 +89,14 @@ public class AccessRequirementUtilTest {
 	public void testEntityRequest() throws Exception {
 		//current user did not create the target node, should return unmet download ARs 
 		testEntityNode.setCreatedByPrincipalId(42l);
-		List<Long> unmetARs = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
+		List<Long> unmetARs = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
 		assertEquals(unmetARsDownload, unmetARs);
+	}
+	
+	@Test
+	public void testUploadAccess() throws Exception {
+		List<Long> unmetARs = AccessRequirementUtil.unmetUploadAccessRequirementIdsForEntity(userInfo, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
+		assertEquals(unmetARsUpload, unmetARs);
 	}
 	
 	@Test

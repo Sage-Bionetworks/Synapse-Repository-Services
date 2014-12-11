@@ -1,10 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.OrderingSpecification;
+
 /**
  * This matches &ltsort specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SortSpecification implements SQLElement {
+public class SortSpecification extends SQLElement {
 	
     SortKey sortKey;
     OrderingSpecification orderingSpecification;
@@ -21,8 +21,8 @@ public class SortSpecification implements SQLElement {
 		return orderingSpecification;
 	}
 	@Override
-	public void toSQL(StringBuilder builder) {
-		sortKey.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		sortKey.toSQL(builder, columnConvertor);
 		if(orderingSpecification != null){
 			builder.append(" ").append(orderingSpecification.name());
 		}

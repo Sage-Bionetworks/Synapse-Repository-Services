@@ -5,11 +5,19 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_ANNO_OWNER
 import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_EXPRESSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_SORT;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_DOUBLE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_LONG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_OWNER;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_STRING;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_ATTRIBUTE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_IS_PRIVATE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_VALUE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_EVALID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.PREFIX_SUBSTATUS;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +40,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 public class QueryDAOImpl implements QueryDAO {
@@ -44,6 +54,20 @@ public class QueryDAOImpl implements QueryDAO {
 	private static final long MAX_BYTES_PER_QUERY = 
 			StackConfiguration.getMaximumBytesPerQueryResult();
 	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
+	
+	private static final String ATTRIBUTE_PARAM = "ATTRIBUTE";
+	private static final String SCOPE_PARAM = "SCOPE_ID";
+	private static final String LONG_ATTR_NAME = "LONG_ATTR";
+	private static final String DBBL_ATTR_NAME = "DBBL_ATTR";
+	private static final String STRG_ATTR_NAME = "STRG_ATTR";
+	
+	private static final String FIND_ATTRIBUTE_SQL = 
+			"select distinct s."+COL_ANNO_ATTRIBUTE+" '"+STRG_ATTR_NAME+"', l."+COL_ANNO_ATTRIBUTE+" '"+LONG_ATTR_NAME+"', d."+COL_ANNO_ATTRIBUTE+" '"+DBBL_ATTR_NAME+"' from "+
+			PREFIX_SUBSTATUS+ANNO_OWNER+" o "+
+			"left outer join "+PREFIX_SUBSTATUS+ANNO_STRING+" s on (s."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and s."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
+			"left outer join "+PREFIX_SUBSTATUS+ANNO_LONG+" l on (l."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and l."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
+			"left outer join "+PREFIX_SUBSTATUS+ANNO_DOUBLE+" d on (d."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and d."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
+			"where o."+COL_SUBSTATUS_ANNO_EVALID+"=:"+SCOPE_PARAM+"";
 	
 	private static ObjectType getObjectTypeFromQueryObjectType(QueryObjectType qot) {
 		if (qot==QueryObjectType.EVALUATION) {
@@ -69,15 +93,25 @@ public class QueryDAOImpl implements QueryDAO {
 		}
 		boolean includePrivate = canAccessPrivate(userInfo, objId, objType);
 		
+		FieldType sortFieldType = null;
+		if (userQuery.getSort()!=null) {
+			sortFieldType = findFieldTypeForAttribute(Long.parseLong(objId), userQuery.getSort());
+			// if the sort-by attribute doesn't occur, then we simply don't sort
+			if (sortFieldType==null) userQuery.setSort(null);
+		}
+		
 		// Build the SQL queries
 		Map<String, Object> queryParams = new HashMap<String, Object>();
 		StringBuilder countQuery = new StringBuilder();
 		StringBuilder fullQuery = new StringBuilder();
 		buildQueryStrings(userQuery, objType, objId, userInfo, includePrivate, 
-				countQuery, fullQuery, queryParams);
+				countQuery, fullQuery, queryParams, sortFieldType);
+		
+		String countQueryString = countQuery.toString();
+		String fullQueryString = fullQuery.toString();
 		
 		// Execute the count query
-		long count = simpleJdbcTemplate.queryForLong(countQuery.toString(), queryParams);
+		long count = simpleJdbcTemplate.queryForLong(countQueryString, queryParams);
 		if (count == 0) {
 			// no results
 			QueryTableResults results = new QueryTableResults();
@@ -90,12 +124,12 @@ public class QueryDAOImpl implements QueryDAO {
 		// Execute the full query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
 		List<Map<String, Object>> results = simpleJdbcTemplate.query(
-				fullQuery.toString(), sizeLimitMapper, queryParams);
+				fullQueryString, sizeLimitMapper, queryParams);
 		Long userId = userInfo.getId();
 		
 		// Log query stats
 		if (log.isDebugEnabled()) {
-			log.debug("user: " + userId + " query: " + fullQuery.toString());
+			log.debug("user: " + userId + " query: " + fullQueryString);
 			log.debug("user: " + userId + " parameters: " + queryParams);
 		}
 		if (log.isInfoEnabled()) {
@@ -105,13 +139,40 @@ public class QueryDAOImpl implements QueryDAO {
 		// Create the results
 		return QueryTools.translateResults(results, count, userQuery.getSelect(), includePrivate);
 	}
+	
+	/**
+	 * When we sort by a given attribute we need to determine what type its values are
+	 * @param scopeId the scope of the attribute (e.g. the Evaluation)
+	 * @param attribute
+	 * @return the FieldType of the attributes or null if the attribute doesn't appear in the given scope
+	 */
+	public FieldType findFieldTypeForAttribute(Long scopeId, String attribute) {
+		MapSqlParameterSource args = new MapSqlParameterSource();
+		args.addValue(ATTRIBUTE_PARAM, attribute);
+		args.addValue(SCOPE_PARAM, scopeId);
+		final Map<String,Boolean> map = new HashMap<String,Boolean>();
+		simpleJdbcTemplate.query(FIND_ATTRIBUTE_SQL, new RowMapper<Object>(){
+			@Override
+			public Object mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				if (rs.getString(LONG_ATTR_NAME)!=null) map.put(LONG_ATTR_NAME, true);
+				if (rs.getString(DBBL_ATTR_NAME)!=null) map.put(DBBL_ATTR_NAME, true);
+				if (rs.getString(STRG_ATTR_NAME)!=null) map.put(STRG_ATTR_NAME, true);
+				return null;
+			}}, args);
+		if (map.get(LONG_ATTR_NAME)!=null) return FieldType.LONG_ATTRIBUTE;
+		if (map.get(DBBL_ATTR_NAME)!=null) return FieldType.DOUBLE_ATTRIBUTE;
+		if (map.get(STRG_ATTR_NAME)!=null) return FieldType.STRING_ATTRIBUTE;
+		return null;
+	}
+
 
 	/**
 	 * Build the two query strings and prepare the query parameters.
 	 */
 	public static void buildQueryStrings(BasicQuery userQuery, QueryObjectType objType, String objId,
 			UserInfo userInfo, boolean includePrivate, StringBuilder countQuery, 
-			StringBuilder fullQuery, Map<String, Object> queryParams) throws DatastoreException {		
+			StringBuilder fullQuery, Map<String, Object> queryParams, FieldType sortFieldType) throws DatastoreException {		
 		List<String> aliases = new ArrayList<String>();
 
 		// <select>
@@ -119,7 +180,7 @@ public class QueryDAOImpl implements QueryDAO {
 		String selectId = buildSelect(false);
 		
 		// <from>
-		StringBuilder from = buildFrom(objType, objId, aliases, userQuery);
+		StringBuilder from = buildFrom(objType, objId, aliases, userQuery, sortFieldType);
 
 		// <where>
 		StringBuilder where = buildWhere(objType, aliases, userQuery, queryParams, includePrivate);
@@ -171,7 +232,7 @@ public class QueryDAOImpl implements QueryDAO {
 	 * Build the FROM clause
 	 */
 	private static StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
-			List<String> aliases, BasicQuery query) {
+			List<String> aliases, BasicQuery query, FieldType sortFieldType) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("FROM");
 		String tablePrefix = queryObjType.tablePrefix();
@@ -203,9 +264,7 @@ public class QueryDAOImpl implements QueryDAO {
 		
 		// Add the typed table for the sort
 		if (query.getSort() != null) {
-			// TODO: read type "hint" from query to sort as Double or Long
-			FieldType type = FieldType.STRING_ATTRIBUTE;
-			String tableName = QueryTools.getTableNameForFieldType(type);
+			String tableName = QueryTools.getTableNameForFieldType(sortFieldType);
 			appendTable(builder, aliases, tablePrefix, tableName, ALIAS_SORT, false);
 		}
 		return builder;

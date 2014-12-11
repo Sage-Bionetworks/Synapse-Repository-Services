@@ -32,6 +32,11 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_SUB_INSTRUCT_MSG	= "SUBMISSION_INSTRUCTIONS_MESSAGE";
 	public static final String COL_EVALUATION_SUB_RECEIPT_MSG	= "SUBMISSION_RECEIPT_MESSAGE";
 	
+	public static final String TABLE_EVALUATION_SUBMISSIONS = "EVALUATION_SUBMISSIONS";
+	public static final String COL_EVALUATION_SUBMISSIONS_ID = "ID";
+	public static final String COL_EVALUATION_SUBMISSIONS_ETAG  = "ETAG";
+	public static final String COL_EVALUATION_SUBMISSIONS_EVAL_ID = "EVAL_ID";
+	
 	// Participant table constants
 	public static final String DDL_FILE_PARTICIPANT				= "schema/evaluation/Participant-ddl.sql";
 	public static final String TABLE_PARTICIPANT				= "JDOPARTICIPANT";
@@ -49,7 +54,7 @@ public class SQLConstants {
 	public static final String COL_SUBMISSION_SUBMITTER_ALIAS 	= "SUBMITTER_ALIAS";
 	public static final String COL_SUBMISSION_ENTITY_ID 		= "ENTITY_ID";
 	public static final String COL_SUBMISSION_ENTITY_BUNDLE 	= "ENTITY_BUNDLE";
-	public static final String COL_SUBMISSION_ENTITY_VERSION	= "VERSION";
+	public static final String COL_SUBMISSION_ENTITY_VERSION	= "ENTITY_VERSION";
 	public static final String COL_SUBMISSION_NAME				= "NAME";
 	public static final String COL_SUBMISSION_CREATED_ON 		= "CREATED_ON";
 	
@@ -58,6 +63,7 @@ public class SQLConstants {
 	public static final String TABLE_SUBSTATUS					= "JDOSUBMISSION_STATUS";
 	public static final String COL_SUBSTATUS_SUBMISSION_ID 		= "ID";
 	public static final String COL_SUBSTATUS_ETAG				= "ETAG";
+	public static final String COL_SUBSTATUS_VERSION			= "SUBSTATUS_VERSION";
 	public static final String COL_SUBSTATUS_MODIFIED_ON 		= "MODIFIED_ON";
 	public static final String COL_SUBSTATUS_SCORE		 		= "SCORE";
 	public static final String COL_SUBSTATUS_STATUS 			= "STATUS";
@@ -87,6 +93,7 @@ public class SQLConstants {
 	public static final String COL_SUBSTATUS_ANNO_VALUE			= COL_ANNO_VALUE;
 	public static final String COL_SUBSTATUS_ANNO_IS_PRIVATE	= COL_ANNO_IS_PRIVATE;
 	public static final String COL_SUBSTATUS_ANNO_BLOB			= ANNO_BLOB;
+	public static final String COL_SUBSTATUS_ANNO_VERSION		= "VERSION";
 	
 	// Aliases for use with Annotations tables
 	public static final String ALIAS_ANNO_OWNER					= "annoOwner";

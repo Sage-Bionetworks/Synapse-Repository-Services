@@ -13,7 +13,7 @@ import org.apache.commons.logging.Log;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 
 public class DeadlockWatcherTest {
 	
@@ -37,15 +37,16 @@ public class DeadlockWatcherTest {
 		Log mockLog = Mockito.mock(Log.class);
 		watcher.setLog(mockLog);
 		ProceedingJoinPoint mockPoint = Mockito.mock(ProceedingJoinPoint.class);
-		String expected = "Okay";
 		// This time simulate deadlock
-		DeadlockLoserDataAccessException exception =new DeadlockLoserDataAccessException("Some kind of deadlock", new BatchUpdateException());
+		TransientDataAccessException exception = new TransientDataAccessException("Some kind of deadlock", new BatchUpdateException()) {
+			private static final long serialVersionUID = 1L;
+		};
 		when(mockPoint.proceed()).thenThrow(exception);
 		// Make the call
 		try{
-			Object result = watcher.detectDeadlock(mockPoint);
+			watcher.detectDeadlock(mockPoint);
 			fail("This should have thrown an exception");
-		}catch(DeadlockLoserDataAccessException e){
+		} catch (TransientDataAccessException e) {
 			// this is expected
 		}
 		// The following should get logged
@@ -54,7 +55,7 @@ public class DeadlockWatcherTest {
 			String.format(DeadlockWatcher.FAILED_ATTEMPT, 2, 10),
 			String.format(DeadlockWatcher.FAILED_ATTEMPT, 3, 10*10),
 			String.format(DeadlockWatcher.FAILED_ATTEMPT, 4, 100*100),
-			String.format(DeadlockWatcher.EXASTED_ALL_ATTEMPTS, 4),
+			String.format(DeadlockWatcher.EXAUSTED_ALL_ATTEMPTS, 4),
 		};
 		// Verify we get each entry in the log
 

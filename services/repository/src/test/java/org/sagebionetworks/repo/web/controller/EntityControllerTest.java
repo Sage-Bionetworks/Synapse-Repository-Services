@@ -17,7 +17,6 @@ import javax.servlet.ServletException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
@@ -43,17 +42,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" }, loader =MockWebApplicationContextLoader.class)
-@MockWebApplication
-public class EntityControllerTest {
+public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
-	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
@@ -74,7 +65,6 @@ public class EntityControllerTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		assertNotNull(entityServletHelper);
 		assertNotNull(fileMetadataDao);
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
@@ -487,5 +477,11 @@ public class EntityControllerTest {
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
 		assertEquals(file.getId(), results.getResults().get(0).getId());
+
+		// Move to trash can and we should get back empty results
+		entityServletHelper.deleteEntity(file.getId(), adminUserId);
+		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults());
 	}
 }

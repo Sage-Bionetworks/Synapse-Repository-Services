@@ -102,12 +102,13 @@ public class ControllerProfiler {
 		ProfileData nextPD = new ProfileData();
 		nextPD.setNamespace(namespace);
 		nextPD.setName(name);
-		nextPD.setLatency(latency);
+		if (latency<0L) throw new IllegalArgumentException("latency cannot be negative");
+		nextPD.setValue(new Double(latency));
 		nextPD.setUnit("Milliseconds");
 		nextPD.setTimestamp(new Date());
 		
 		return nextPD;
-		}
+	}
 	
 	/**
 	 * Setter for consumer.  

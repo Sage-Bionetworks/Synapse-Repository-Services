@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.LinkedList;
 
@@ -23,24 +24,22 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.base.Predicate;
 
 /**
  * Test for the search controller
  * @author John
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class SearchControllerTest {
+public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private static long MAX_WAIT = 1000*15;
-	
-	@Autowired
-	private ServletTestHelper servletTestHelper;
 	
 	private Long adminUserId;
 	
@@ -57,14 +56,25 @@ public class SearchControllerTest {
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
 		
-		servletTestHelper.setUp();
-		
-		provider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(ServiceProvider.class);
+		provider = dispatchServlet.getWebApplicationContext().getBean(ServiceProvider.class);
 		assertNotNull(provider);
-		searchDao =  DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDao.class);
+		searchDao = dispatchServlet.getWebApplicationContext().getBean(SearchDao.class);
 		assertNotNull(searchDao);
-		documentProvider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDocumentDriver.class);
+		documentProvider = dispatchServlet.getWebApplicationContext().getBean(SearchDocumentDriver.class);
 		assertNotNull(documentProvider);
+
+		// wait for search initialization
+		assertTrue(TimeUtils.waitFor(10000, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					return searchDao.postInitialize();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
+
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest");
@@ -100,7 +110,7 @@ public class SearchControllerTest {
 		kv.setValue(project.getId());
 		query.getBooleanQuery().add(kv);
 		
-		SearchResults results = ServletTestHelper.getSearchResults(adminUserId, query);
+		SearchResults results = servletTestHelper.getSearchResults(adminUserId, query);
 		assertNotNull(results);
 		assertNotNull(results.getHits());
 		assertEquals(1l, results.getHits().size());

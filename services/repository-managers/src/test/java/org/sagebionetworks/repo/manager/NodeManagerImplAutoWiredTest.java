@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -111,6 +113,7 @@ public class NodeManagerImplAutoWiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
 	@After
@@ -172,7 +175,7 @@ public class NodeManagerImplAutoWiredTest {
 				// Make sure the user can do everything
 				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
 				for(ACCESS_TYPE accessType : acessTypes){
-					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType));
+					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).getAuthorized());
 				}
 			}else{
 				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);

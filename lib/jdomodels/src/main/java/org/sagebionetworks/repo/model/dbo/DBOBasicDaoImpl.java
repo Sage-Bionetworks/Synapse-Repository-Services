@@ -108,7 +108,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		String insertOrUpdateSQl = getInsertOnDuplicateUpdateSQL(toCreate.getClass());
 		return insert(toCreate, insertOrUpdateSQl);
 	}
-
+	
 	private <T> T insert(T toCreate, String insertSQl) {
 		@SuppressWarnings("unchecked")
 		TableMapping<T> mapping = classToMapping.get(toCreate.getClass());
@@ -342,4 +342,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(sql == null) throw new IllegalArgumentException("Cannot find the update SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
 		return sql;
 	}
+
+
 }

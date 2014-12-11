@@ -2,6 +2,7 @@ package org.sagebionetworks.file.controller;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -13,6 +14,9 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -24,9 +28,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
+import org.sagebionetworks.repo.web.controller.RedirectUtils;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -151,6 +158,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName = "File Services", path = "file/v1")
 @Controller
+@RequestMapping(UrlHelpers.FILE_PATH)
 public class UploadController extends BaseController {
 
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
@@ -463,5 +471,56 @@ public class UploadController extends BaseController {
 			@PathVariable String daemonId) throws DatastoreException,
 			NotFoundException {
 		return fileService.getUploadDaemonStatus(userId, daemonId);
+	}
+	
+	/**
+	 * Get the upload destinations for a file with this parent entity. This will return a list of at least one
+	 * destination. The first destination in the list is always the default destination
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestinations", method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<UploadDestination> getUploadDestinations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String parentId) throws DatastoreException, NotFoundException {
+		List<UploadDestination> uploadDestinations = fileService.getUploadDestinations(userId, parentId);
+		return ListWrapper.wrap(uploadDestinations, UploadDestination.class);
+	}
+
+	/**
+	 * Get a URL that can be used to download a file of a FileHandle.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
+	 * the download requirements.
+	 * </p>
+	 * <p>
+	 * Note: Only the user that created the FileHandle can use this method for download.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param fileHandleId The ID of the FileHandle to download.
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @param wikiVersion
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/fileHandle/{handleId}/url", method = RequestMethod.GET)
+	public @ResponseBody
+	void getFileHandleURL(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String handleId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = fileService.getPresignedUrlForFileHandle(userId, handleId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }

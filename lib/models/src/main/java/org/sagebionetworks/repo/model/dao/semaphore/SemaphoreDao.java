@@ -31,4 +31,17 @@ public interface SemaphoreDao {
 	 */
 	public boolean releaseLock(String key, String token);
 
+	/**
+	 * Force the release of all locks.
+	 */
+	public void forceReleaseAllLocks();
+
+	/**
+	 * Refresh the timeout of a lock.
+	 * @param key
+	 * @param token
+	 * @param timeoutMS
+	 */
+	public void refreshLockTimeout(String key, String token, long timeoutMS);
+
 }

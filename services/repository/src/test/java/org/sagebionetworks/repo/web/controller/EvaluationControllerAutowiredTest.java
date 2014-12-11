@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -16,7 +17,6 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -46,15 +47,8 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EvaluationControllerAutowiredTest {
-	
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
+public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private UserManager userManager;
@@ -76,6 +70,9 @@ public class EvaluationControllerAutowiredTest {
 	
 	@Autowired
 	private SubmissionStatusDAO submissionStatusDAO;
+	
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
 	
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -113,6 +110,9 @@ public class EvaluationControllerAutowiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
+		 groupMembersDAO.addMembers(
+		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+		 Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
 		// initialize Evaluations
@@ -368,6 +368,7 @@ public class EvaluationControllerAutowiredTest {
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
+		status.setStatusVersion(statusClone.getStatusVersion());
 		assertEquals(status, statusClone);
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		

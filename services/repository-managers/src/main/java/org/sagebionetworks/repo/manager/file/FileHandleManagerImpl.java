@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -15,13 +19,18 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.util.Streams;
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -33,16 +42,25 @@ import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +70,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.model.ProgressListener;
+import com.google.common.collect.Lists;
 
 /**
  * Basic implementation of the file upload manager.
@@ -89,7 +109,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	MultipartManager multipartManager;
-	
+
+	@Autowired
+	ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	NodeManager nodeManager;
+
 	/**
 	 * This is the first strategy we try to use.
 	 */
@@ -265,9 +291,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Only the user that created this handle is authorized to get it.
-		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handle.getCreatedBy())){
-			throw new UnauthorizedException("Only the creator of a FileHandle can access the raw FileHandle");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy()));
 		return handle;
 	}
 	
@@ -280,9 +305,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
-			if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handle.getCreatedBy())){
-				throw new UnauthorizedException("Only the creator of a FileHandle can delete the raw FileHandle");
-			}
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy()));
 			// If this file has a preview then we want to delete the preview as well.
 			if(handle instanceof HasPreviewId){
 				HasPreviewId hasPreview = (HasPreviewId) handle;
@@ -307,20 +331,25 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException {
+	public String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
+		return getURLForFileHandle(handle);
+	}
+
+	/**
+	 * @param handle
+	 * @return
+	 */
+	public String getURLForFileHandle(FileHandle handle) {
 		if(handle instanceof ExternalFileHandle){
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
-			try {
-				return new URL(efh.getExternalURL());
-			} catch (MalformedURLException e) {
-				throw new DatastoreException(e);
-			}
+			return efh.getExternalURL();
 		}else if(handle instanceof S3FileHandleInterface){
 			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
 			// Create a pre-signed url
-			return s3Client.generatePresignedUrl(s3File.getBucketName(), s3File.getKey(), new Date(System.currentTimeMillis()+PRESIGNED_URL_EXPIRE_TIME_MS), HttpMethod.GET);
+			return s3Client.generatePresignedUrl(s3File.getBucketName(), s3File.getKey(),
+					new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS), HttpMethod.GET).toExternalForm();
 		}else{
 			throw new IllegalArgumentException("Unknown FileHandle class: "+handle.getClass().getName());
 		}
@@ -339,7 +368,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Is the user authorized?
-		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handle.getCreatedBy())){
+		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy()).getAuthorized()){
 			throw new UnauthorizedException("Only the creator of a FileHandle can clear the preview");
 		}
 		
@@ -350,6 +379,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public FileHandleResults getAllFileHandles(List<String> idList, boolean includePreviews) throws DatastoreException, NotFoundException {
 		return fileHandleDao.getAllFileHandles(idList, includePreviews);
+	}
+
+	@Override
+	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList) throws DatastoreException, NotFoundException {
+		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -365,11 +399,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			fileHandle.setContentType(NOT_SET);
 		}
 		// The URL must be a URL
-		try{
-			URL url = new URL(fileHandle.getExternalURL());
-		}catch(MalformedURLException e){
-			throw new IllegalArgumentException("The ExternalURL is malformed: "+e.getMessage());
-		}
+		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		// Save the file metadata to the DB.
@@ -519,6 +549,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Return the status to the caller.
 		return status;
 	}
+	
+	@Override
+	public S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload, String contentType, ProgressListener listener){
+		String bucket = StackConfiguration.getS3Bucket();
+		String userId =  getUserId(userInfo);
+		return multipartManager.multipartUploadLocalFile(bucket, userId, fileToUpload, contentType, listener);
+	}
 
 	@Override
 	public UploadDaemonStatus getUploadDaemonStatus(UserInfo userInfo, String daemonId) throws DatastoreException, NotFoundException {
@@ -532,4 +569,100 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return status;
 	}
 
+	@Override
+	public String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException {
+		if(userInfo == null){
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		if(fileHandleId == null){
+			throw new IllegalArgumentException("FileHandleId cannot be null");
+		}
+		FileHandle handle = fileHandleDao.get(fileHandleId);
+		// Only the user that created the FileHandle can get the URL directly.
+		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, handle.getCreatedBy())){
+			throw new UnauthorizedException("Only the user that created the FileHandle can get the URL of the file.");
+		}
+		return getURLForFileHandle(handle);
+	}
+
+	@Override
+	public List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+				"upload", UploadDestinationListSetting.class);
+
+		// make sure there is always one entry
+		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getDestinations() == null
+				|| uploadDestinationsSettings.getDestinations().isEmpty()) {
+			uploadDestinationsSettings = new UploadDestinationListSetting();
+			S3UploadDestinationSetting s3UploadDestinationSetting = new S3UploadDestinationSetting();
+			s3UploadDestinationSetting.setUploadType(UploadType.S3);
+			uploadDestinationsSettings.setDestinations(Collections.<UploadDestinationSetting> singletonList(s3UploadDestinationSetting));
+		}
+
+		List<UploadDestination> destinations = Lists.newArrayListWithExpectedSize(4);
+
+		// generate random file name
+		String filename = UUID.randomUUID().toString();
+		for (UploadDestinationSetting uploadDestinationSetting : uploadDestinationsSettings.getDestinations()) {
+			UploadDestination uploadDestination;
+
+			switch (uploadDestinationSetting.getUploadType()) {
+			case HTTPS:
+			case SFTP:
+				List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
+				uploadDestination = createExternalUploadDestination(uploadDestinationSetting, nodePath, filename);
+				break;
+			default:
+			case S3:
+				uploadDestination = createS3UploadDestination(uploadDestinationSetting);
+				break;
+			}
+
+			uploadDestination.setUploadType(uploadDestinationSetting.getUploadType());
+			uploadDestination.setBanner(uploadDestinationSetting.getBanner());
+			destinations.add(uploadDestination);
+		}
+
+		return destinations;
+	}
+
+	private UploadDestination createS3UploadDestination(UploadDestinationSetting uploadDestinationSetting) {
+		S3UploadDestinationSetting s3UploadDestinationSetting = (S3UploadDestinationSetting) uploadDestinationSetting;
+		S3UploadDestination s3UploadDestination = new S3UploadDestination();
+		return s3UploadDestination;
+	}
+
+	private UploadDestination createExternalUploadDestination(UploadDestinationSetting uploadDestinationSetting, List<EntityHeader> nodePath,
+			String filename) {
+		ExternalUploadDestinationSetting externalUploadDestinationSetting = (ExternalUploadDestinationSetting) uploadDestinationSetting;
+		StringBuilder url = new StringBuilder(externalUploadDestinationSetting.getUrl());
+		if (url.length() == 0) {
+			throw new IllegalArgumentException("The url for the external upload destination setting is empty");
+		}
+		if (url.charAt(url.length() - 1) != '/') {
+			url.append('/');
+		}
+		// need to add subfolders here if supported
+		if (BooleanUtils.isTrue(externalUploadDestinationSetting.getSupportsSubfolders())) {
+			if (nodePath.size() > 0) {
+				// the first path in the node path is always "root". We don't want that to show up in the file path
+				nodePath = nodePath.subList(1, nodePath.size());
+			}
+			for (EntityHeader node : nodePath) {
+				try {
+					// we need to url encode, but r client does not like '+' for space. So encode with java encoder and
+					// then replace '+' with %20
+					url.append(URLEncoder.encode(node.getName(), "UTF-8").replace("+", "%20")).append('/');
+				} catch (UnsupportedEncodingException e) {
+					// shouldn't happen
+					throw new IllegalArgumentException(e.getMessage(), e);
+				}
+			}
+		}
+		url.append(filename);
+		ExternalUploadDestination externalUploadDestination = new ExternalUploadDestination();
+		externalUploadDestination.setUrl(url.toString());
+		return externalUploadDestination;
+	}
 }

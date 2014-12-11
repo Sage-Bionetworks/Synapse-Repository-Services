@@ -52,12 +52,8 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		// Load the required properties
 		loadPropertiesFromClasspath(templatePropertiesFilename,
 				requiredProperties);
-		// If the system properties does not have the property file url,
-		// then we need to try and load the maven settings file.
-		if (System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL) == null) {
-			// Try loading the settings file
-			addSettingsPropertiesToSystem(stackPropertyOverrides);
-		}
+		// Try loading the settings file
+		addSettingsPropertiesToSystem(stackPropertyOverrides);
 		// These three properties are required. If they are null, an exception
 		// will be thrown
 		getEncryptionKey();
@@ -95,16 +91,26 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 
 	@Override
 	public String getProperty(String propertyName) {
+		return getProperty(propertyName, true);
+	}
+
+	@Override
+	public String getPropertyRepeatedly(String propertyName) {
+		return getProperty(propertyName, false);
+	}
+
+	private String getProperty(String propertyName, boolean logit) {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.debug(propertyName + "=" + propertyValue
-					+ " from stack property overrides " + propertyFileUrl);
+			if (logit) {
+				log.debug(propertyName + "=" + propertyValue + " from stack property overrides " + propertyFileUrl);
+			}
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			log.debug(propertyName + "=" + propertyValue
-					+ " from default stack properties "
-					+ defaultPropertiesFilename);
+			if (logit) {
+				log.debug(propertyName + "=" + propertyValue + " from default stack properties " + defaultPropertiesFilename);
+			}
 		}
 		// NullPointerExceptions further downstream are not very helpful, throw
 		// here

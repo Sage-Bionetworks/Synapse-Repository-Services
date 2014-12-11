@@ -3,8 +3,11 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +23,71 @@ import org.apache.logging.log4j.Logger;
  */
 public class StackConfiguration {
 
+	private class StackConfigurationStringPropertyAccessor implements PropertyAccessor<String> {
+		private final String name;
+
+		private StackConfigurationStringPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String get() {
+			return dynamicConfiguration.getPropertyRepeatedly(this.name);
+		}
+	}
+
+	private class StackConfigurationLongPropertyAccessor implements PropertyAccessor<Long> {
+		private final String name;
+
+		private StackConfigurationLongPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public Long get() {
+			return Long.parseLong(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationIntegerPropertyAccessor implements PropertyAccessor<Integer> {
+		private final String name;
+
+		private StackConfigurationIntegerPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public Integer get() {
+			return Integer.parseInt(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationDoublePropertyAccessor implements PropertyAccessor<Double> {
+		private final String name;
+
+		private StackConfigurationDoublePropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public Double get() {
+			return Double.parseDouble(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationBooleanPropertyAccessor implements PropertyAccessor<Boolean> {
+		private final String name;
+
+		private StackConfigurationBooleanPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public Boolean get() {
+			return Boolean.parseBoolean(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
 	private static final String PROD = "prod";
 	private static final String DEV = "dev";
 	private static final String HUDSON = "hud";
@@ -32,6 +100,8 @@ public class StackConfiguration {
 
 	private static TemplatedConfiguration configuration = null;
 	private static InetAddress address = null;
+
+	private static volatile TemplatedConfiguration dynamicConfiguration = null;
 
 	static {
 		init();
@@ -47,6 +117,13 @@ public class StackConfiguration {
 			log.error(t.getMessage(), t);
 			throw new RuntimeException(t);
 		}
+		dynamicConfiguration = configuration;
+	}
+
+	public static void reloadDynamicStackConfiguration() {
+		TemplatedConfiguration newConfiguration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
+		newConfiguration.reloadConfiguration();
+		dynamicConfiguration = newConfiguration;
 	}
 
 	public static void reloadStackConfiguration() {
@@ -466,6 +543,10 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.notification.email.address");
 	}
+	
+	public static String getSynapseOpsEmailAddress() {
+		return configuration.getProperty("org.sagebionetworks.synapseops.email.address");
+	}
 
 	/**
 	 * @return the name of the S3 Bucket where logs are stored each stack (dev,
@@ -602,8 +683,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public boolean getTableEnabled(){
-		return Boolean.parseBoolean(configuration
-				.getProperty("org.sagebionetworks.table.enabled"));
+		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
 	}
 
 	/**
@@ -727,17 +807,84 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.repo.manager.trash.max.trashable"));
 	}
-
+	
 	/**
-	 * The name of the AWS topic where repository changes messages are
-	 * published.
+	 * Stack and instance: <stack>-<stack_instance>
+	 * @return
+	 */
+	public String getStackAndStackInstancePrefix(){
+		return String.format(StackConstants.STACK_AND_INSTANCE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+	
+	/**
+	 * The name of the async queue
 	 * 
 	 * @return
 	 */
-	public String getRepositoryChangeTopicName() {
-		return String.format(StackConstants.TOPIC_NAME_TEMPLATE,
+	public String getAsyncQueueName(String baseName) {
+		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance(),
+				baseName);
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String,String> getAsyncQueueName() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getAsyncQueueName(key.toString());
+			}
+		};
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public String getWorkerQueueName(String baseName) {
+		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance(),
+				baseName);
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String, String> getWorkerQueueName() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getWorkerQueueName(key.toString());
+			}
+		};
+	}
+
+	/**
+	 * The name of the AWS topic where repository changes messages are published.
+	 * 
+	 * @return
+	 */
+	public String getRepositoryChangeTopicPrefix() {
+		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX,
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
+	}
+
+	/**
+	 * The name of the AWS topic where repository changes messages are published.
+	 * 
+	 * @return
+	 */
+	public String getRepositoryModificationTopicName() {
+		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, StackConfiguration.getStack(), StackConfiguration.getStackInstance())
+				+ "modifications";
 	}
 
 	/**
@@ -828,6 +975,10 @@ public class StackConfiguration {
 				StackConfiguration.getStackInstance());
 	}
 
+	public String getTableCurrentCacheUpdateQueueName() {
+		return String.format(StackConstants.TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 	
 	
 	/**
@@ -1270,7 +1421,7 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * Get the name of the audit record bucket.
+	 * Get the max bytes per HTTP request for a table.
 	 * 
 	 * @return
 	 */
@@ -1279,15 +1430,63 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
 	}
 	/**
-	 * The maximum amount of time in MS that the table worker can hold the semaphore
-	 * lock on the table.
+	 * The maximum number of rows in a single table change set file.
+	 * 
+	 * @return
+	 */
+	public int getTableMaxBytesPerChangeSet() {
+		return Integer.parseInt(configuration
+				.getProperty("org.sagebionetworks.table.max.bytes.per.change.set"));
+	}
+	
+	/**
+	 * Get the max bytes per HTTP request for a table.
+	 * 
+	 * @return
+	 */
+	public int getTableMaxEnumValues() {
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.table.max.enum.values"));
+	}
+
+	/**
+	 * The maximum amount of time in MS that the table worker can hold the semaphore lock on the table.
+	 * 
 	 * @return
 	 */
 	public long getTableWorkerTimeoutMS() {
 		return Long.parseLong(configuration
 				.getProperty("org.sagebionetworks.table.worker.timeout.ms"));
 	}
+	
+	/**
+	 * The maxiumn amount of time in MS that a table reader can hold a read lock on a table.
+	 * @return
+	 */
+	public long getTableReadTimeoutMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
+	}
 
+	public PropertyAccessor<Integer> getMaxConcurrentRepoConnections() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
+	}
+
+	/**
+	 * The amount of time (MS) the ChangeSentMessageSynchWorker sleeps between pages.
+	 * @return
+	 */
+	public PropertyAccessor<Long> getChangeSynchWorkerSleepTimeMS() {
+		return new StackConfigurationLongPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
+	}
+	
+	/**
+	 * The minium page size used by ChangeSentMessageSynchWorker.
+	 * @return
+	 */
+	public PropertyAccessor<Integer> getChangeSynchWorkerMinPageSize() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
+	}
+	
 	/**
 	 * Get the name of the audit record bucket.
 	 * 
@@ -1305,5 +1504,39 @@ public class StackConfiguration {
 	public String getLogBucketName() {
 		return String.format(StackConstants.STACK_LOG_BUCKET, StackConfiguration.getStack());
 	}
+	
+	/**
+	 * @return for dev stacks, this controls whether emails are delivered or sent to a file (the default)
+	 */
+	public static boolean getDeliverEmail() {
+		String emailDeliveredString = null;
+		try {
+			emailDeliveredString = configuration.getProperty("org.sagebionetworks.email.delivered");
+		} catch (NullPointerException e) {
+			emailDeliveredString = null;
+		}
+		if (emailDeliveredString==null || emailDeliveredString.length()==0) return false;
+		return Boolean.parseBoolean(emailDeliveredString);
+	}
+	
+	/**
+	 * 
+	 * @return if missing or false then certified user restrictions are in effect.  Setting to true disables.
+	 */
+	public PropertyAccessor<Boolean> getDisableCertifiedUser() {
+		return new StackConfigurationBooleanPropertyAccessor("org.sagebionetworks.disable.certified.user");
+	}
 
+
+
+
+	private static StackConfiguration singleton = new StackConfiguration();
+	/**
+	 * Singleton instance of the stack configuration object.
+	 * This can be used for static access to non-static methods.
+	 * @return
+	 */
+	public static StackConfiguration singleton(){
+		return singleton;
+	}
 }

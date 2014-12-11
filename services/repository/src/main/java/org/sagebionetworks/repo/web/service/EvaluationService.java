@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -69,12 +72,13 @@ public interface EvaluationService {
 	 * @param userId the userId (email address) of the user making the request
 	 * @param limit
 	 * @param offset
+	 * @param evaluationIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, long limit, long offset, HttpServletRequest request) throws DatastoreException, NotFoundException;
+			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system
@@ -242,6 +246,16 @@ public interface EvaluationService {
 			SubmissionStatus submissionStatus) throws NotFoundException;
 
 	/**
+	 * 
+	 * @param userId
+	 * @param batch
+	 * @return
+	 * @throws NotFoundException
+	 */
+	BatchUploadResponse updateSubmissionStatusBatch(Long userId, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException;
+	
+	/**
 	 * Delete a Submission. Note that the requesting user must be an admin
 	 * of the Evaluation for which this Submission was created.
 	 * 
@@ -307,7 +321,6 @@ public interface EvaluationService {
 	 * Get bundled Submissions and SubmissionStatuses by Evaluation and user.
 	 * 
 	 * @param evalId
-	 * @param userName
 	 * @param limit
 	 * @param offset
 	 * @param request
@@ -373,7 +386,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public URL getRedirectURLForFileHandle(Long userId, String submissionId,
+	public String getRedirectURLForFileHandle(Long userId, String submissionId,
 			String fileHandleId) throws DatastoreException, NotFoundException;
 
 	////// Methods for managing ACLs //////
@@ -440,4 +453,5 @@ public interface EvaluationService {
 	 */
 	public QueryTableResults query(String userQuery, Long userId)
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, ParseException;
+
 }

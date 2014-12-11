@@ -4,19 +4,24 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -28,7 +33,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
-import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -89,6 +93,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Evaluation Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class EvaluationController extends BaseController {
 
 	@Autowired
@@ -243,6 +248,7 @@ public class EvaluationController extends BaseController {
 	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param request
+	 * @param evaluationIds an optional, comma-delimited list of evaluation IDs to which the response is limited
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -251,13 +257,27 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, request);
+		List<Long> evalIds = new ArrayList<Long>();
+		if (evaluationIds!=null) {
+			String[] evalIdStrings = evaluationIds.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
+			for (String s : evalIdStrings) {
+				Long l;
+				try {
+					l = Long.parseLong(s);
+				} catch (NumberFormatException e) {
+					throw new InvalidModelException("Expected an evaluation ID but found "+s);
+				}
+				evalIds.add(l);
+			}
+		}
+		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, evalIds, request);
 	}	
 	
 	/**
@@ -717,6 +737,52 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().updateSubmissionStatus(userId, status);
 	}
 	
+	/**
+	 * Update multiple SubmissionStatuses. The maximum batch size is 500.  To allow upload
+	 * of more than this maximum, the system supports uploading of a <i>series</i> of batches.
+	 * Synapse employs optimistic concurrency on the series in the form of a batch token.   
+	 * Each request (except the first) must include the 'batch token' returned in the 
+	 * response to the previous batch. If another client begins batch upload simultaneously, 
+	 * a PRECONDITION_FAILED (412) response will be generated and upload must restart from the
+	 * first batch.  After the final batch is uploaded, the data for the Evaluation queue will
+	 * be mirrored to the tables which support querying.  Therefore uploaded data will not appear
+	 * in Evaluation queries until after the final batch is successfully uploaded.  It is the
+	 * client's responsibility to note in each batch request (1) whether it is the first batch
+	 * in the series and (2) whether it is the last batch.  (For a single batch both are set to 'true'.)
+	 * Failure to use the flags correctly risks corrupted data (due to simultaneous, conflicting
+	 * uploads by multiple clients) or data not appearing in query results.
+	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId the ID of the Evaluation to which the SubmissionSatus objects belong.
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_STATUS_BATCH, method = RequestMethod.PUT)
+	public @ResponseBody
+	BatchUploadResponse updateSubmissionStatusBatch(
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody SubmissionStatusBatch batch) 
+			throws DatastoreException, UnauthorizedException, InvalidModelException, 
+			ConflictingUpdateException, NotFoundException
+	{
+		return serviceProvider.getEvaluationService().updateSubmissionStatusBatch(userId, evalId, batch);
+	}
+	
 	/**	
 	 * Deletes a Submission and its accompanying SubmissionStatus.
 	 * Use of this service is discouraged, since Submissions should be immutable.
@@ -967,7 +1033,6 @@ public class EvaluationController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 */
-	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void redirectURLForFileHandle(
@@ -977,7 +1042,7 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException {
-		URL url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
+		String url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
 		RedirectUtils.handleRedirect(redirect, url, response);
 	}
 	
@@ -1147,15 +1212,15 @@ public class EvaluationController extends BaseController {
 	 * &lt;fields&gt; is either "*" or a comma delimited list of names
 	 * <br/>
 	 * <ul>
-	 * <li>"name" is the name either of a system-defined field in a Submission or of a user defined annotation.  The system-defined field names are:
+	 * <li>&lt;name&gt; is the name either of a system-defined field in a Submission or of a user-defined annotation.  The system-defined field names are:
 	 * objectId, scopeId, userId, submitterAlias, entityId, versionNumber, name, createdOn, modifiedOn, and status.
-	 * Note:  If a user defined annotation name and type of value matches/collides with those of a system-defined field, 
+	 * Note:  If a user-defined annotation name and type of value matches/collides with those of a system-defined field, 
 	 * the query will be against the field name, not the user defined annotation.</li>
 	 * <li>&lt;id&gt; is the Evaluation's ID</li>
 	 * <li>&lt;filter&gt; = &lt;name&gt; &lt;comparator&gt; &lt;value&gt;</li>
-	 * <li>"comparator" is one of ==, !=, >, <, >=, or <=</li>
-	 * <li>"value" is an annotation value, of type string, integer, or decimal</li>
-	 * <li>"L" and "O" are optional limit and offset pagination parameters, limit>=1 and offset>=0.
+	 * <li>&lt;comparator&gt; is one of ==, !=, >, <, >=, or <=</li>
+	 * <li>&lt;value&gt; is an annotation value, of type string, integer, or decimal</li>
+	 * <li>&lt;L&gt; and &lt;O&gt; are optional limit and offset pagination parameters, limit>=1 and offset>=0.
 	 * Note:  If pagination is used, LIMIT must precede OFFSET and the pair of parameters must follow ORDER BY (if used).</li>
 	 * </ul>
 	 * <br/>
@@ -1165,11 +1230,30 @@ public class EvaluationController extends BaseController {
 	 * SELECT entityId, status, myAnnotation FROM evaluation_123 WHERE myAnnotation == "foo" AND status="RECEIVED"<br/>
 	 * SELECT * FROM evaluation_123  limit 20 offset 10 order by status asc<br/>
 	 * <p/>
+	 * Note:  The query is a <i>parameter</i> of the http request whose key is 'query' and the query parameter is URL encoded, so the URI is of the form:
+	 * <br/>/evaluation/submission/query?query=select+*+from+evalution_123+WHERE+...<br/>
 	 * <p/>
-	 * Note:  IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
+	 * <p/>
+	 * Notes:  
+	 * <p/>
+	 * User must be granted READ access to the Evaluation in order to issue any query.  READ_PRIVATE access provides access to those 
+	 * annotations having their "isPrivate" flag set to true.
+	 * <p/>
+	 * IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
 	 * be omitted from the resulting column headers.  However, if the selected annotations are specified explicitly then private
 	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.  
 	 * Further, if the private annotation is included in a filter then no results are returned.
+	 * <p/>
+	 * Filtering on 'myAnnotaton==null' is allowed, but will only return entries having 'myAnnotation' explicitly set to null,
+	 * and not entries which simply have no annotation called 'myAnnotation'.
+	 * <p/>
+	 * While privacy levels for user defined annotations are set by the user, for system-defined fields the privacy level is fixed as follows:  
+	 * <br/>
+	 * The fields userId, name, createdOn, and submitterAlias are private.
+	 * <br/>
+	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, and status are public.
+	 * <p/>
+	 * The query is to be URL encoded in the submitted request.
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 

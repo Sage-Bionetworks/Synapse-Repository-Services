@@ -3,14 +3,18 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,20 +25,20 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
@@ -42,6 +46,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -57,6 +62,7 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
@@ -64,6 +70,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * Exercise the Evaluation Services methods in the Synapse Java Client
@@ -89,6 +96,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static Evaluation eval2;
 	private static Submission sub1;
 	private static Submission sub2;
+	private File dataSourceFile;
+	private static FileEntity fileEntity;
 	
 	private static List<String> evaluationsToDelete;
 	private static List<String> submissionsToDelete;
@@ -105,7 +114,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 
@@ -114,7 +123,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException, SynapseException {
+	public void before() throws DatastoreException, NotFoundException, SynapseException, IOException {
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
 		entitiesToDelete = new ArrayList<String>();
@@ -126,6 +135,19 @@ public class IT520SynapseJavaClientEvaluationTest {
 		dataset.setParentId(project.getId());
 		dataset = synapseOne.createEntity(dataset);
 		projectTwo = synapseTwo.createEntity(new Project());
+		
+		{
+			dataSourceFile = File.createTempFile("integrationTest", ".txt");
+			dataSourceFile.deleteOnExit();
+			FileWriter writer = new FileWriter(dataSourceFile);
+			writer.write("Hello world!");
+			writer.close();
+			FileHandle fileHandle = synapseOne.createFileHandle(dataSourceFile, "text/plain", project.getId());
+			fileEntity = new FileEntity();
+			fileEntity.setParentId(project.getId());
+			fileEntity.setDataFileHandleId(fileHandle.getId());
+			fileEntity = synapseOne.createEntity(fileEntity);
+		}
 		
 		entitiesToDelete.add(project.getId());
 		entitiesToDelete.add(dataset.getId());
@@ -192,19 +214,20 @@ public class IT520SynapseJavaClientEvaluationTest {
 		if(fileHandle != null){
 			try {
 				adminSynapse.deleteFileHandle(fileHandle.getId());
-			} catch (SynapseNotFoundException e) {
-			} catch (SynapseServiceException e) { }
+			} catch (SynapseException e) { }
 		}
+		
+		dataSourceFile=null;
 	}
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 	}
 	
 	@Test
@@ -309,17 +332,24 @@ public class IT520SynapseJavaClientEvaluationTest {
 				assertEquals(1, evals.getResults().size());
 		eval1=synapseOne.getEvaluation(eval1.getId());
 		assertEquals(eval1, evals.getResults().iterator().next());
+		
+		// check that filtering parameter works
+		evals = synapseOne.getAvailableEvaluationsPaginated(0, 100, Arrays.asList(new String[]{eval1.getId()}));
+		assertEquals(1, evals.getTotalNumberOfResults());
+				assertEquals(1, evals.getResults().size());
+		eval1=synapseOne.getEvaluation(eval1.getId());
+		assertEquals(eval1, evals.getResults().iterator().next());
 	}
 	
 	@Test
-	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException {
+	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
-		String entityId = project.getId();
-		String entityEtag = project.getEtag();
+		String entityId = fileEntity.getId();
+		String entityEtag = fileEntity.getEtag();
+		String entityFileHandleId = fileEntity.getDataFileHandleId();
 		assertNotNull(entityId);
-		entitiesToDelete.add(entityId);
 		
 		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
 		
@@ -344,6 +374,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(sub1.getVersionNumber(), status.getVersionNumber());
 		assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
 		
+		File target = File.createTempFile("test", null);
+		target.deleteOnExit();
+		adminSynapse.downloadFromSubmission(sub1.getId(), entityFileHandleId, target);
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(this.dataSourceFile);
+		String actualMD5 = MD5ChecksumHelper.getMD5Checksum(target);
+		assertEquals(expectedMD5, actualMD5);
+
 		// update
 		Thread.sleep(1L);
 		
@@ -366,10 +403,22 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
+		status.setStatusVersion(statusClone.getStatusVersion());
 		status.getAnnotations().setObjectId(sub1.getId());
 		status.getAnnotations().setScopeId(sub1.getEvaluationId());
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		
+		status = statusClone; // 'status' is, once again, the current version
+		SubmissionStatusBatch batch = new SubmissionStatusBatch();
+		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>();
+		statuses.add(status);
+		batch.setStatuses(statuses);
+		batch.setIsFirstBatch(true);
+		batch.setIsLastBatch(true);
+		BatchUploadResponse batchUpdateResponse = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
+		// after last batch there's no 'next batch' token
+		assertNull(batchUpdateResponse.getNextUploadToken());
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());
@@ -631,7 +680,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		
-		FileEntity file = createTestFileEntity();		
+		FileEntity file = createTestFileEntity(project);
 		
 		// create Submission
 		String entityId = file.getId();
@@ -653,7 +702,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals("invalid URL returned", expected, actual);
 	}
 
-	private FileEntity createTestFileEntity() throws SynapseException {
+	private FileEntity createTestFileEntity(Entity parent) throws SynapseException {
 		// create a FileHandle
 		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		File imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -661,7 +710,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(imageFile.exists());
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapseOne.createFileHandles(list);
+		FileHandleResults results = synapseOne.createFileHandles(list, parent.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
@@ -798,24 +847,59 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId);
 		sub1 = synapseOne.createSubmission(sub1, entityEtag);
 		submissionsToDelete.add(sub1.getId());
+		sub2.setEvaluationId(eval1.getId());
+		sub2.setEntityId(entityId);
+		sub2 = synapseOne.createSubmission(sub2, entityEtag);
+		submissionsToDelete.add(sub2.getId());
 		
 		// add annotations
-		SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
-		Thread.sleep(1L);		
-		StringAnnotation sa = new StringAnnotation();
-		sa.setIsPrivate(true);
-		sa.setKey("foo");
-		sa.setValue("bar");
-		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
-		stringAnnos.add(sa);
-		Annotations annos = new Annotations();
-		annos.setStringAnnos(stringAnnos);		
-		status.setScore(0.5);
-		status.setStatus(SubmissionStatusEnum.SCORED);
-		status.setReport("Lorem ipsum");
-		status.setAnnotations(annos);
-		synapseOne.updateSubmissionStatus(status);
-		
+		BatchUploadResponse response = null;
+		{
+			SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
+			Thread.sleep(1L);		
+			StringAnnotation sa = new StringAnnotation();
+			sa.setIsPrivate(true);
+			sa.setKey("foo");
+			sa.setValue("bar");
+			List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+			stringAnnos.add(sa);
+			Annotations annos = new Annotations();
+			annos.setStringAnnos(stringAnnos);		
+			status.setScore(0.5);
+			status.setStatus(SubmissionStatusEnum.SCORED);
+			status.setReport("Lorem ipsum");
+			status.setAnnotations(annos);
+			SubmissionStatusBatch batch = new SubmissionStatusBatch();
+			batch.setStatuses(Collections.singletonList(status));
+			batch.setIsFirstBatch(true);
+			batch.setIsLastBatch(false);
+			response = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
+		}
+		{
+			SubmissionStatus status = synapseOne.getSubmissionStatus(sub2.getId());
+			Thread.sleep(1L);		
+			StringAnnotation sa = new StringAnnotation();
+			sa.setIsPrivate(true);
+			sa.setKey("foo");
+			sa.setValue("bar");
+			List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+			stringAnnos.add(sa);
+			Annotations annos = new Annotations();
+			annos.setStringAnnos(stringAnnos);		
+			status.setScore(0.5);
+			status.setStatus(SubmissionStatusEnum.SCORED);
+			status.setReport("Lorem ipsum");
+			status.setAnnotations(annos);
+			SubmissionStatusBatch batch = new SubmissionStatusBatch();
+			batch.setStatuses(Collections.singletonList(status));
+			batch.setIsFirstBatch(false);
+			batch.setIsLastBatch(true);
+			batch.setBatchToken(response.getNextUploadToken());
+			response = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
+			assertNull(response.getNextUploadToken());
+		}
+
+	
 		// query for the object
 		// we must wait for the annotations to be populated by a worker
 		String queryString = "SELECT * FROM evaluation_" + eval1.getId() + " WHERE foo == \"bar\"";
@@ -834,21 +918,22 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// verify the results
 		List<String> headers = results.getHeaders();
 		List<org.sagebionetworks.repo.model.query.Row> rows = results.getRows();
-		assertEquals(1, rows.size());
+		assertEquals(2, rows.size());
 		assertTrue(headers.contains("foo"));
 		int index = headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
-		assertEquals(sub1.getId(), rows.get(0).getValues().get(index));
+		assertTrue(rows.get(0).getValues().get(index).contains(sub1.getId()));
+		assertTrue(rows.get(1).getValues().get(index).contains(sub2.getId()));
 		
 		
 		// now check that if you delete the submission it stops appearing in the query
 		adminSynapse.deleteSubmission(sub1.getId());
 		submissionsToDelete.remove(sub1.getId());
-		// rerun the query.  We should get no results
+		// rerun the query.  We should get just one result (for sub2)
 		// we must wait for the annotations to be populated by a worker
 		results = synapseOne.queryEvaluation(queryString);
 		assertNotNull(results);
 		start = System.currentTimeMillis();
-		while (results.getTotalNumberOfResults() > 0) {
+		while (results.getTotalNumberOfResults() > 1) {
 			long elapsed = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for annotations to be deleted for query: " + queryString,
 					elapsed < RDS_WORKER_TIMEOUT);
@@ -856,7 +941,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
 		}
-		assertEquals(0, results.getRows().size());
+		assertEquals(1, results.getRows().size());
 		
 	}
 }

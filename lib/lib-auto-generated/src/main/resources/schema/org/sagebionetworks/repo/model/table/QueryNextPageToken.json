@@ -1,0 +1,14 @@
+{
+    "title":"QueryNextPageToken",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+    "properties":{
+        "token":{
+            "type":"string",
+            "description":"The token for the next page."
+		}
+    }
+}

@@ -12,7 +12,9 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavaDocTestUtil;
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
+import org.sagebionetworks.repo.model.Entity;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
@@ -24,7 +26,7 @@ public class ControllerUtilsTest {
 	private static ClassDoc controllerClassDoc;
 	private static Map<String, MethodDoc> methodMap;
 	@BeforeClass
-	public static void beforeClass(){
+	public static void beforeClass() throws Exception {
 		// Lookup the test files.
 		rootDoc = JavaDocTestUtil.buildRootDoc("ExampleController.java");
 		assertNotNull(rootDoc);
@@ -156,6 +158,33 @@ public class ControllerUtilsTest {
 		Link responseLink = model.getResponseBody();
 		assertNotNull(responseLink);
 	}
+
+	@Test
+	public void testGenericReturn() {
+		MethodDoc method = methodMap.get("someGenericReturn");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		Link responseLink = model.getResponseBody();
+		assertEquals(new Link("${org.sagebionetworks.javadoc.testclasses.GenericList}", "GenericList"), responseLink);
+		Link[] responseGenParamLinks = model.getResponseBodyGenericParams();
+		assertEquals(new Link("${org.sagebionetworks.repo.model.Entity}", "Entity"), responseGenParamLinks[0]);
+	}
+
+	@Test
+	public void testGenericParam() {
+		MethodDoc method = methodMap.get("someGenericParam");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		Link requestLink = model.getRequestBody();
+		assertEquals(new Link("${org.sagebionetworks.javadoc.testclasses.GenericList}", "GenericList"), requestLink);
+		Link[] requestGenParamLinks = model.getRequestBodyGenericParams();
+		assertEquals(new Link("${org.sagebionetworks.repo.model.Annotations}", "Annotations"), requestGenParamLinks[0]);
+	}
+
 	@Test
 	public void testCreateTruncatedTextNull(){
 		String result = ControllerUtils.createTruncatedText(100, null);

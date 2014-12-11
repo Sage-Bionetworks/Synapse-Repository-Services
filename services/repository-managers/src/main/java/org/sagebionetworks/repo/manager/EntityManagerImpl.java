@@ -427,6 +427,11 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
+	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException {
+		return nodeManager.getNodeTypeForDeletion(entityId);
+	}
+
+	@Override
 	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeHeader(userInfo, entityId, versionNumber);
@@ -544,7 +549,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo)) {
+				ACCESS_TYPE.READ, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -555,7 +560,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo)) {
+				ACCESS_TYPE.UPDATE, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);

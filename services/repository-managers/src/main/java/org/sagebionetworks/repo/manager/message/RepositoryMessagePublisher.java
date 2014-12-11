@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
@@ -18,14 +20,14 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * 
 	 * @return
 	 */
-	public String getTopicName();
+	public String getTopicName(ObjectType type);
 	
 	/**
 	 * The ARN for the topic where messages are published.
 	 * 
 	 * @return
 	 */
-	public String getTopicArn();
+	public String getTopicArn(ObjectType type);
 	
 	/**
 	 * Used by tests to inject a mock client.
@@ -38,4 +40,20 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
 	 */
 	public void timerFired();
+	
+	/**
+	 * Publish a message to its topic and register the message as sent.
+	 * 
+	 * @param message
+	 * @return 
+	 */
+	public void publishToTopic(ChangeMessage message);
+
+	/**
+	 * Publish a message to the modification topic.
+	 * 
+	 * @param message
+	 * @return
+	 */
+	public void publishToModificationTopic(ChangeMessage message);
 }

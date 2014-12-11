@@ -13,6 +13,15 @@
 	<!-- This the StackConfiguration singleton -->
 	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfiguration"/>
 	
+	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE_PREVIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[QUERY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
+	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -45,7 +54,8 @@
 	<bean id="stackConfiguration.AWSDomainName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.workflowExecutionRetentionPeriodInDays" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
-	<bean id="stackConfiguration.repositoryChangeTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.repositoryChangeTopicPrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.repositoryModificationTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.searchUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.dynamoUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.rdsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -54,6 +64,9 @@
 	<bean id="stackConfiguration.annotationsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.unsentMessagesQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
     <bean id="stackConfiguration.principalHeaderQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<!-- user connection throttling -->
+	<bean id="stackConfiguration.maxConcurrentRepoConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.maxFileTransferMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.maxFilePreviewMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -69,8 +82,10 @@
 	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
-
-	
+	<bean id="stackConfiguration.tableCurrentCacheUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
+	<bean id="stackConfiguration.tableReadTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
+		
 	<!-- Bridge participant data -->
 	<bean id="stackConfiguration.participantDataBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	

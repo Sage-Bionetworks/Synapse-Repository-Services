@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
@@ -12,11 +15,15 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.Closer;
 
+import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -26,25 +33,35 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class ColumnModelUtlis {
+	
+	/**
+	 * The default maximum number of characters for a string.
+	 */
+	public static Long DEFAULT_MAX_STRING_SIZE = 50L;
+	/**
+	 * The maximum allowed value for the number characters for a string.
+	 */
+	public static Long MAX_ALLOWED_STRING_SIZE = 1000L;
+
+	public static final Charset UTF8 = Charset.forName("UTF-8");
 
 	/**
 	 * Translate from a DTO to DBO.
 	 * @param dto
 	 * @return
 	 */
-	public static DBOColumnModel createDBOFromDTO(ColumnModel dto){
+	public static DBOColumnModel createDBOFromDTO(ColumnModel dto, int maxEnumValues) {
 		try {
 			// First normalize the DTO
-			ColumnModel normal = createNormalizedClone(dto);
+			ColumnModel normal = createNormalizedClone(dto, maxEnumValues);
 			String hash = calculateHash(normal);
 			// Create the bytes
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			GZIPOutputStream zip;
-			zip = new GZIPOutputStream(out);
+			ByteArrayOutputStream out = new ByteArrayOutputStream(200);
+			GZIPOutputStream zip = new GZIPOutputStream(out);
+			Writer zipWriter = new OutputStreamWriter(zip, UTF8);
 			XStream xstream = createXStream();
-			xstream.toXML(normal, zip);
-			zip.flush();
-			zip.close();
+			xstream.toXML(normal, zipWriter);
+			Closer.closeQuietly(zipWriter, zip, out);
 			DBOColumnModel dbo = new DBOColumnModel();
 			dbo.setBytes(out.toByteArray());
 			dbo.setName(normal.getName());
@@ -99,13 +116,12 @@ public class ColumnModelUtlis {
 	 * @param dbo
 	 * @return
 	 */
-	public static String calculateHash(ColumnModel model){
-		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
+	static String calculateHash(ColumnModel normalizedModel) {
+		if (normalizedModel == null)
+			throw new IllegalArgumentException("ColumnModel cannot be null");
 		try {
-			// First normalize the model
-			ColumnModel normal = createNormalizedClone(model);
 			// To JSON
-			byte[] jsonBytes = EntityFactory.createJSONStringForEntity(normal).getBytes("UTF-8");
+			byte[] jsonBytes = EntityFactory.createJSONStringForEntity(normalizedModel).getBytes("UTF-8");
 			return calculateSha256(jsonBytes);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -136,7 +152,7 @@ public class ColumnModelUtlis {
 	 * @return
 	 * @throws JSONObjectAdapterException
 	 */
-	public static ColumnModel createNormalizedClone(ColumnModel toClone) {
+	public static ColumnModel createNormalizedClone(ColumnModel toClone, int maxEnumValues) {
 		if(toClone == null) throw new IllegalArgumentException("ColumnModel cannot be null");
 		if(toClone.getName() == null) throw new IllegalArgumentException("ColumnModel.name cannot be null");
 		if(toClone.getColumnType() == null) throw new IllegalArgumentException("ColumnModel.columnType cannot be null");
@@ -144,22 +160,80 @@ public class ColumnModelUtlis {
 			// Create a clone from the JSON
 			String json = EntityFactory.createJSONStringForEntity(toClone);
 			ColumnModel clone = EntityFactory.createEntityFromJSONString(json, ColumnModel.class);
+			String defaultValue = clone.getDefaultValue();
+			if (defaultValue != null) {
+				defaultValue = defaultValue.trim();
+			}
+			switch (clone.getColumnType()) {
+			case STRING:
+			case LINK:
+				if(clone.getMaximumSize() == null){
+					// Use the default value
+					clone.setMaximumSize(DEFAULT_MAX_STRING_SIZE);
+				}else if(clone.getMaximumSize() > MAX_ALLOWED_STRING_SIZE){
+					// The max is beyond the allowed size
+					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+MAX_ALLOWED_STRING_SIZE);
+				} else if (clone.getMaximumSize() < 1) {
+					// The max is beyond the allowed size
+					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING must be greater than 0");
+				}
+				break;
+			case ENTITYID:
+			case FILEHANDLEID:
+				if (StringUtils.isEmpty(defaultValue)) {
+					defaultValue = null;
+				}
+				if (defaultValue != null) {
+					throw new IllegalArgumentException("Columns of type ENTITYID and FILEHANDLEID cannot have default values: "
+							+ defaultValue);
+				}
+				break;
+			default:
+				if (StringUtils.isEmpty(defaultValue)) {
+					defaultValue = null;
+				}
+				break;
+			}
 			// The ID is not part of the normalized form.
 			clone.setId(null);
 			// to lower on the name
-			clone.setName(clone.getName().toLowerCase());
-			// Default to lower.
-			if(clone.getDefaultValue() != null){
-				clone.setDefaultValue(clone.getDefaultValue().toLowerCase());
-			}
+			clone.setName(clone.getName().trim());
+
+			// normalize enum values
 			if(clone.getEnumValues() != null){
-				List<String> newList = new LinkedList<String>();
-				for(String enumValue: clone.getEnumValues()){
-					newList.add(enumValue.toLowerCase());
+				if (clone.getEnumValues().size() > maxEnumValues) {
+					throw new IllegalArgumentException("Maximum allowed enum values is " + maxEnumValues + ". This enum has "
+							+ clone.getEnumValues().size() + " values");
 				}
-				Collections.sort(newList);
-				clone.setEnumValues(newList);
+				List<String> oldList = clone.getEnumValues();
+				// set enums temporary to null, so we can check the individual enum values themselves
+				clone.setEnumValues(null);
+				List<String> newList = Lists.newArrayListWithCapacity(oldList.size());
+				for (String enumValue : oldList) {
+					enumValue = enumValue.trim();
+					if (enumValue.isEmpty()) {
+						if (clone.getColumnType() == ColumnType.STRING) {
+							newList.add(enumValue);
+						}
+					} else {
+						enumValue = TableModelUtils.validateValue(enumValue, clone);
+						newList.add(enumValue);
+					}
+				}
+				if (!newList.isEmpty()) {
+					Collections.sort(newList);
+					clone.setEnumValues(newList);
+				}
 			}
+
+			// Default to lower.
+			if (defaultValue != null) {
+				// normalize the default value
+				clone.setDefaultValue(TableModelUtils.validateValue(defaultValue, clone));
+			} else {
+				clone.setDefaultValue(null);
+			}
+
 			return clone;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);

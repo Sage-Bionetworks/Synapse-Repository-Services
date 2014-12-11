@@ -22,7 +22,7 @@
         	"type": "array",
         	"description": "The list of columns in the series",
 	       	"items":{
-        		"type":"string"
+        		"$ref": "org.sagebionetworks.bridge.model.timeseries.TimeSeriesColumn"
         	}
         },
         "rows":{

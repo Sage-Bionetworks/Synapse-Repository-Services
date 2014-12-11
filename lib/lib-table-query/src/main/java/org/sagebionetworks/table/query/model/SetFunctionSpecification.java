@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+
 /**
  * This matches &ltset function specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SetFunctionSpecification implements SQLElement {
+public class SetFunctionSpecification extends SQLElement {
 	
 	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
@@ -23,6 +25,10 @@ public class SetFunctionSpecification implements SQLElement {
 		this.valueExpression = valueExpression;
 	}
 
+	public boolean isAggregate() {
+		return true;
+	}
+
 	public Boolean getCountAsterisk() {
 		return countAsterisk;
 	}
@@ -40,7 +46,7 @@ public class SetFunctionSpecification implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if(countAsterisk != null){
 			builder.append("COUNT(*)");
 		}else{
@@ -50,7 +56,13 @@ public class SetFunctionSpecification implements SQLElement {
 				builder.append(setQuantifier.name());
 				builder.append(" ");
 			}
-			this.valueExpression.toSQL(builder);
+			if (columnConvertor != null) {
+				columnConvertor.pushCurrentClause(SQLClause.FUNCTION_PARAMETER);
+			}
+			this.valueExpression.toSQL(builder, columnConvertor);
+			if (columnConvertor != null) {
+				columnConvertor.popCurrentClause(SQLClause.FUNCTION_PARAMETER);
+			}
 			builder.append(")");
 		}
 	}

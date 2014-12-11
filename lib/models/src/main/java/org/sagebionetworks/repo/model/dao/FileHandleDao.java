@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.model.dao;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import com.google.common.collect.Multimap;
 
 /**
  * Abstraction for creating/updating/reading/deleting CRUD metadata about files. 
@@ -58,6 +61,16 @@ public interface FileHandleDao {
 	public FileHandleResults getAllFileHandles(List<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Map all of the file handles for a given list of IDs in batch calls
+	 * 
+	 * @param ids - The list of FileHandle ids to fetch.
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList);
+
+	/**
 	 * Delete the file metadata.
 	 * @param id
 	 */
@@ -77,6 +90,15 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 */
 	public String getHandleCreator(String fileHandleId) throws NotFoundException;
+
+	/**
+	 * Lookup the creators of a FileHandles.
+	 * 
+	 * @param fileHandleIds
+	 * @return the list of creators in the same order as the file handles
+	 * @throws NotFoundException
+	 */
+	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException;
 
 	/**
 	 * Get the preview associated with a given file handle.

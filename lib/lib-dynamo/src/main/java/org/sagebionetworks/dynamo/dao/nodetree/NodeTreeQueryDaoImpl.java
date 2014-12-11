@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
+
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
@@ -18,31 +20,15 @@ import com.amazonaws.services.dynamodb.model.QueryResult;
 /**
  * Implementation based on ancestor-descendant and descendant-ancestor pointers.
  */
-public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
+public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQueryDao {
 
-	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper readMapper;
 
-	private boolean isDynamoEnabled;
-
-	@Override
-	public boolean isDynamoEnabled() {
-		return isDynamoEnabled;
-	}
- 
-	public void setDynamoEnabled(boolean isDynamoEnabled) {
-		this.isDynamoEnabled = isDynamoEnabled;
-	}
-	
 	public NodeTreeQueryDaoImpl(AmazonDynamoDB dynamoClient) {
+		super(dynamoClient);
 
-		if (dynamoClient == null) {
-			throw new IllegalArgumentException("DynamoDB client cannot be null.");
-		}
-
-		this.dynamoClient = dynamoClient;
 		DynamoDBMapperConfig mapperConfig = NodeLineageMapperConfig.getMapperConfig();
-		this.readMapper = new DynamoDBMapper(this.dynamoClient, mapperConfig);
+		this.readMapper = new DynamoDBMapper(dynamoClient, mapperConfig);
 	}
 
 	@Override
@@ -182,7 +168,7 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 			queryRequest.setExclusiveStartKey(lastKeyEvaluated);
 		}
 
-		QueryResult result = dynamoClient.query(queryRequest);
+		QueryResult result = getDynamoClient().query(queryRequest);
 
 		List<Map<String, AttributeValue>> itemList = result.getItems();
 		List<NodeLineage> descList = new ArrayList<NodeLineage>(itemList.size());
@@ -224,12 +210,5 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 		AttributeValue rangeKeyValue = new AttributeValue().withS(rangeKey);
 		Key lastKeyEvaluated = new Key().withHashKeyElement(hashKeyValue).withRangeKeyElement(rangeKeyValue);
 		return lastKeyEvaluated;
-	}
-	
-	/**
-	 * @throws UnsupportedOperationException when Dynamo is disabled
-	 */
-	public void validateDynamoEnabled(){
-		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
 	}
 }

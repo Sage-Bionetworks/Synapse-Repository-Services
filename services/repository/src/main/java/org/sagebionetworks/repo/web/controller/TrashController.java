@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Recycle Bin Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class TrashController extends BaseController {
 
 	@Autowired
@@ -55,7 +56,8 @@ public class TrashController extends BaseController {
 	 * Moves an entity and its descendants out of the trash can back to its original parent. An exception
 	 * is thrown if the original parent does not exist any more.  In that case, please use
 	 * <a href="${PUT.trashcan.restore.id.parentId}">PUT /trashcan/restored/{id}/{parentId}</a> to
-	 * restore to a new parent.
+	 * restore to a new parent.  In such a case you must be a member of the Synapse Access and
+	 * Compliance Team.
 	 *
 	 * @param id The ID of the entity being restored out of the trash can.
 	 */
@@ -71,6 +73,12 @@ public class TrashController extends BaseController {
 
 	/**
 	 * Moves an entity and its descendants out of the trash can to a new parent.
+	 * NOTE:  This operation cannot be completed if the original parent has been
+	 * deleted (unless the caller is a member of the Synapse Access and Compliance Team).
+	 * The service will return a NotFoundException.  This is because of the potential 
+	 * security hole arising from allowing access requirements
+	 * on folders:  If an entity is in a restricted folder and then deleted, it cannot
+	 * be restored unless the new parent has the same restriction level as the original one.
 	 *
 	 * @param id        The ID of the entity being restored out of the trash can.
 	 * @param parentId  The ID of the new parent entity.
@@ -132,7 +140,7 @@ public class TrashController extends BaseController {
 		this.serviceProvider.getTrashService().purgeTrashForUser(userId);
 	}
 
-	// For administrators //
+	// For administrators
 
 	/**
 	 * For administrators to view the entire trash can.

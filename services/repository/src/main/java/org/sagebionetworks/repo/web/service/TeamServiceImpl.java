@@ -266,7 +266,7 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#getIconURL(java.lang.String)
 	 */
 	@Override
-	public URL getIconURL(String teamId) throws DatastoreException,
+	public String getIconURL(String teamId) throws DatastoreException,
 			NotFoundException {
 		return teamManager.getIconURL(teamId);
 	}

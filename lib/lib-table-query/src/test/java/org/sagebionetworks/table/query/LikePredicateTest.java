@@ -20,7 +20,7 @@ public class LikePredicateTest {
 		EscapeCharacter escapeCharacter = null;
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo LIKE '%middle%'", builder.toString());
 	}
 	
@@ -32,7 +32,7 @@ public class LikePredicateTest {
 		EscapeCharacter escapeCharacter = null;
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo NOT LIKE '%middle%'", builder.toString());
 	}
 	
@@ -44,7 +44,7 @@ public class LikePredicateTest {
 		EscapeCharacter escapeCharacter = SqlElementUntils.createEscapeCharacter("'$$'");
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo NOT LIKE '%middle%' ESCAPE '$$'", builder.toString());
 	}
 }

@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltcomparison predicate&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ComparisonPredicate implements SQLElement {
+public class ComparisonPredicate extends SQLElement {
 
 	ColumnReference columnReferenceLHS;
 	CompOp compOp;
@@ -28,10 +29,16 @@ public class ComparisonPredicate implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		columnReferenceLHS.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		columnReferenceLHS.toSQL(builder, columnConvertor);
+		if (columnConvertor != null) {
+			columnConvertor.setLHSColumn(columnReferenceLHS);
+		}
 		builder.append(" ").append(compOp.toSQL()).append(" ");
-		rowValueConstructorRHS.toSQL(builder);
+		rowValueConstructorRHS.toSQL(builder, columnConvertor);
+		if (columnConvertor != null) {
+			columnConvertor.setLHSColumn(null);
+		}
 	}
 	
 }

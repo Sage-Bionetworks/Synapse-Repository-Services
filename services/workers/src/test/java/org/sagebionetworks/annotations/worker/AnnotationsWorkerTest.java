@@ -1,20 +1,26 @@
 package org.sagebionetworks.annotations.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
-import org.sagebionetworks.annotations.worker.AnnotationsWorker;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -25,10 +31,12 @@ import com.amazonaws.services.sqs.model.Message;
 public class AnnotationsWorkerTest {
 	
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
+	WorkerLogger mockWorkerLogger;
 	
 	@Before
 	public void before(){
 		mockDAO = Mockito.mock(SubmissionStatusAnnotationsAsyncManager.class);
+		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
 	}
 	
 	/**
@@ -44,50 +52,50 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultList = worker.call();
 		assertNotNull(resultList);
 		// Non-Submission messages should be returned so they can be removed from the queue.
 		assertEquals("Non-Submission messages must be returned so they can be removed from the queue!",list, resultList);
 		// the DAO should not be called
-		verify(mockDAO, never()).updateSubmissionStatus(any(String.class));
-		verify(mockDAO, never()).deleteSubmission(any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
 	}
 	
 	@Test
 	public void testUpdateSubmissionStatus() throws Exception{
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
-		verify(mockDAO).updateSubmissionStatus(message.getObjectId());
-		verify(mockDAO, never()).deleteSubmission(any(String.class));
+		verify(mockDAO).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 	}
 	
 	@Test
 	public void testDeleteSubmission() throws Exception{
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.DELETE);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
-		verify(mockDAO, never()).updateSubmissionStatus(message.getObjectId());
-		verify(mockDAO).deleteSubmission(any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
+		verify(mockDAO).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
 	}
 	
 	
@@ -101,7 +109,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		// This will succeed
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
@@ -109,15 +117,15 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// This will fail
 		message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
 		message.setObjectId(failId);
 		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		list.add(awsMessage);
 		// Simulate a not found
-		doThrow(new NotFoundException()).when(mockDAO).updateSubmissionStatus(eq(failId));
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
 	}
@@ -132,7 +140,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		// This will succeed
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
@@ -140,15 +148,15 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// This will fail
 		message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
 		message.setObjectId(failId);
 		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		list.add(awsMessage);
 		// Simulate a runtime exception
-		doThrow(new RuntimeException()).when(mockDAO).updateSubmissionStatus(eq(failId));
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
 	}

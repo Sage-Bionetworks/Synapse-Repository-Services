@@ -12,7 +12,6 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -25,8 +24,6 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
@@ -41,12 +38,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
  * 
  * @author deflaux
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class LocationableControllerTest {
+public class LocationableControllerTest extends AbstractAutowiredControllerTestBase {
 
-	@Autowired
-	private ServletTestHelper helper;
 	private Project project;
 
 	/**
@@ -54,11 +47,10 @@ public class LocationableControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		helper.setUp();
-		helper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		servletTestHelper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		project = new Project();
-		project = helper.createEntity(project, null);
+		project = servletTestHelper.createEntity(project, null);
 
 	}
 
@@ -67,7 +59,7 @@ public class LocationableControllerTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		helper.tearDown();
+		servletTestHelper.tearDown();
 	}
 
 	/**
@@ -78,7 +70,7 @@ public class LocationableControllerTest {
 
 		Study dataset = new Study();
 		dataset.setParentId(project.getId());
-		dataset = helper.createEntity(dataset, null);
+		dataset = servletTestHelper.createEntity(dataset, null);
 
 		// construct a fake prefix, S3Token creation would have added this
 		// prefix to the path, see the integration tests for the real deal
@@ -102,13 +94,13 @@ public class LocationableControllerTest {
 		 */
 		dataset.setMd5("33183779e53ce0cfc35f59cc2a762cbd");
 		dataset.setLocations(locations);
-		dataset = helper.updateEntity(dataset, null);
+		dataset = servletTestHelper.updateEntity(dataset, null);
 		assertS3UrlsArePresigned(dataset, externalLocation, 2);
 
 		/*
 		 * Get the dataset, and check locations
 		 */
-		dataset = helper.getEntity(dataset, null);
+		dataset = servletTestHelper.getEntity(dataset, null);
 		assertS3UrlsArePresigned(dataset, externalLocation, 2);
 
 		/*
@@ -118,7 +110,7 @@ public class LocationableControllerTest {
 		Map<String, String> extraParams = new HashMap<String, String>();
 		extraParams
 				.put(ServiceConstants.METHOD_PARAM, RequestMethod.GET.name());
-		dataset = helper.getEntity(dataset, extraParams);
+		dataset = servletTestHelper.getEntity(dataset, extraParams);
 		assertS3UrlsArePresigned(dataset, externalLocation, 2);
 
 		/*
@@ -127,7 +119,7 @@ public class LocationableControllerTest {
 		 */
 		extraParams.put(ServiceConstants.METHOD_PARAM, RequestMethod.HEAD
 				.name());
-		dataset = helper.getEntity(dataset, extraParams);
+		dataset = servletTestHelper.getEntity(dataset, extraParams);
 		assertS3UrlsArePresigned(dataset, externalLocation, 2);
 
 		/*
@@ -136,7 +128,7 @@ public class LocationableControllerTest {
 		 */
 		dataset.setMd5("fff83779e53ce0cfc35f59cc2a762fff");
 		Study datasetV1 = dataset;
-		dataset = helper.updateEntity(dataset, null);
+		dataset = servletTestHelper.updateEntity(dataset, null);
 		assertS3UrlsArePresigned(dataset, externalLocation, 2);
 		assertTrue(!datasetV1.getVersionNumber().equals(dataset.getVersionNumber()));
 		assertTrue(!datasetV1.getVersionLabel().equals(dataset.getVersionLabel()));
@@ -144,7 +136,7 @@ public class LocationableControllerTest {
 		// Delete a location
 		locations = dataset.getLocations();
 		locations.remove(0);
-		dataset = helper.updateEntity(dataset, null);
+		dataset = servletTestHelper.updateEntity(dataset, null);
 		assertS3UrlsArePresigned(dataset, externalLocation, 1);
 	}
 
@@ -157,7 +149,7 @@ public class LocationableControllerTest {
 
 		ExpressionData expressionData = new ExpressionData();
 		expressionData.setParentId(project.getId());
-		expressionData = helper.createEntity(expressionData, null);
+		expressionData = servletTestHelper.createEntity(expressionData, null);
 
 		// construct a fake prefix, S3Token creation would have added this
 		// prefix to the path, see the integration tests for the real deal
@@ -181,13 +173,13 @@ public class LocationableControllerTest {
 		 */
 		expressionData.setMd5("33183779e53ce0cfc35f59cc2a762cbd");
 		expressionData.setLocations(locations);
-		expressionData = helper.updateEntity(expressionData, null);
+		expressionData = servletTestHelper.updateEntity(expressionData, null);
 		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
 
 		/*
 		 * Get the expressionData, and check locations
 		 */
-		expressionData = helper.getEntity(expressionData, null);
+		expressionData = servletTestHelper.getEntity(expressionData, null);
 		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
 
 		/*
@@ -197,7 +189,7 @@ public class LocationableControllerTest {
 		Map<String, String> extraParams = new HashMap<String, String>();
 		extraParams
 				.put(ServiceConstants.METHOD_PARAM, RequestMethod.GET.name());
-		expressionData = helper.getEntity(expressionData, extraParams);
+		expressionData = servletTestHelper.getEntity(expressionData, extraParams);
 		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
 
 		/*
@@ -206,7 +198,7 @@ public class LocationableControllerTest {
 		 */
 		extraParams.put(ServiceConstants.METHOD_PARAM, RequestMethod.HEAD
 				.name());
-		expressionData = helper.getEntity(expressionData, extraParams);
+		expressionData = servletTestHelper.getEntity(expressionData, extraParams);
 		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
 
 		/*
@@ -215,7 +207,7 @@ public class LocationableControllerTest {
 		 */
 		expressionData.setMd5("fff83779e53ce0cfc35f59cc2a762fff");
 		ExpressionData expressionDataV1 = expressionData;
-		expressionData = helper.updateEntity(expressionData, null);
+		expressionData = servletTestHelper.updateEntity(expressionData, null);
 		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
 		assertTrue(!expressionDataV1.getVersionNumber().equals(expressionData.getVersionNumber()));
 		assertTrue(!expressionDataV1.getVersionLabel().equals(expressionData.getVersionLabel()));
@@ -223,7 +215,7 @@ public class LocationableControllerTest {
 		// Delete a location
 		locations = expressionData.getLocations();
 		locations.remove(0);
-		expressionData = helper.updateEntity(expressionData, null);
+		expressionData = servletTestHelper.updateEntity(expressionData, null);
 		assertS3UrlsArePresigned(expressionData, externalLocation, 1);
 	}
 	
@@ -261,7 +253,7 @@ public class LocationableControllerTest {
 	public void testS3LocationWithNoEntityIdPrefix() throws Exception {
 		Study dataset = new Study();
 		dataset.setParentId(project.getId());
-		dataset = helper.createEntity(dataset, null);
+		dataset = servletTestHelper.createEntity(dataset, null);
 
 		LocationData s3Location = new LocationData();
 		s3Location.setType(LocationTypeNames.awss3);
@@ -274,7 +266,7 @@ public class LocationableControllerTest {
 		dataset.setMd5("33183779e53ce0cfc35f59cc2a762cbd");
 		dataset.setLocations(locations);
 		try {
-			dataset = helper.updateEntity(dataset, null);
+			dataset = servletTestHelper.updateEntity(dataset, null);
 			fail("expected exception not thrown");
 		} catch (IllegalArgumentException ex) {
 			assertTrue(ex

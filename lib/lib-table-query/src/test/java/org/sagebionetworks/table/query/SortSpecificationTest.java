@@ -3,6 +3,7 @@ package org.sagebionetworks.table.query;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
+import org.sagebionetworks.table.query.model.OrderingSpecification;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -15,7 +16,7 @@ public class SortSpecificationTest {
 		OrderingSpecification orderingSpecification = null;
 		SortSpecification element= new SortSpecification(sortKey, orderingSpecification);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo.bar", builder.toString());
 	}
 	
@@ -25,7 +26,7 @@ public class SortSpecificationTest {
 		OrderingSpecification orderingSpecification = OrderingSpecification.ASC;
 		SortSpecification element= new SortSpecification(sortKey, orderingSpecification);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo ASC", builder.toString());
 	}
 	
@@ -35,7 +36,7 @@ public class SortSpecificationTest {
 		OrderingSpecification orderingSpecification = OrderingSpecification.DESC;;
 		SortSpecification element= new SortSpecification(sortKey, orderingSpecification);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo DESC", builder.toString());
 	}
 

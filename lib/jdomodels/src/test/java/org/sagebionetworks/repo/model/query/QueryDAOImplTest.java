@@ -23,8 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
-import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -37,8 +35,7 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,9 +53,7 @@ public class QueryDAOImplTest {
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
 	@Autowired
-	private SubmissionDAO submissionDAO;
-	@Autowired
-	private SubmissionStatusDAO submissionStatusDAO;	
+	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
 	SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	
@@ -68,29 +63,37 @@ public class QueryDAOImplTest {
     private AccessControlListDAO mockAclDAO;
     private UserInfo mockUserInfo;
     private Map<String, Object> annoMap;
+    
 	
 	@Before
 	public void setUp() throws DatastoreException, JSONObjectAdapterException, NotFoundException {
-		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(
-				submissionDAO, submissionStatusDAO, annotationsDAO);
+		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(annotationsDAO, evaluationSubmissionsDAO);
 		// create Annotations
 		Annotations annos;
 		submissionIds = new HashSet<String>();
 		annoMap = new HashMap<String, Object>();
 		
+		List<Annotations> eval1List = new ArrayList<Annotations>();
+		List<Annotations> eval2List = new ArrayList<Annotations>();
 		for (int i = 0; i < NUM_SUBMISSIONS; i++) {
 	    	annos = TestUtils.createDummyAnnotations(i);
+	    	annos.getLongAnnos().add(createScopeAnno(Long.parseLong(EVAL_ID1)));
 	    	annos.setScopeId(EVAL_ID1);
+	    	annos.setVersion(0L);
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
-	    	persistAnnos(annos);
+	    	eval1List.add(annos);
 	    	
 	    	annos = TestUtils.createDummyAnnotations(i + NUM_SUBMISSIONS);
+	    	annos.getLongAnnos().add(createScopeAnno(Long.parseLong(EVAL_ID2)));
 	    	annos.setScopeId(EVAL_ID2);
+	    	annos.setVersion(0L);
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
-	    	persistAnnos(annos);
+	    	eval2List.add(annos);
 		}
+    	annotationsDAO.replaceAnnotations(eval1List);
+    	annotationsDAO.replaceAnnotations(eval2List);
 		
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
@@ -102,23 +105,18 @@ public class QueryDAOImplTest {
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	
-	private void persistAnnos(Annotations annos) throws DatastoreException, JSONObjectAdapterException {
-		Submission sub = new Submission();
-		sub.setId(annos.getObjectId());
-		sub.setEvaluationId(annos.getScopeId());
-		
-		SubmissionStatus status = new SubmissionStatus();
-		status.setId(annos.getObjectId());
-		status.setAnnotations(annos);
-
-    	ssAnnoAsyncManager.replaceAnnotations(sub, status);
+	private static LongAnnotation createScopeAnno(long scopeId) {
+    	LongAnnotation scopeAnno = new LongAnnotation();
+    	scopeAnno.setIsPrivate(false);
+    	scopeAnno.setKey("scopeId");
+    	scopeAnno.setValue(scopeId);
+		return scopeAnno;
 	}
-
+	
 	@After
 	public void tearDown() {
-		for (String subId : submissionIds) {
-			ssAnnoAsyncManager.deleteSubmission(subId);
-		}
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID2));
 	}
 
 	@Test
@@ -291,6 +289,50 @@ public class QueryDAOImplTest {
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults().longValue());
 		assertEquals(1, results.getRows().size());
+	}
+	
+	// ordering by a private annotation (when we lack private read access) doesn't affect the results
+	@Test
+	public void testQueryNoPrivateRead_OrderByPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_2 where long_anno=300
+		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		List<Expression> filters = new ArrayList<Expression>();
+		query.setFilters(filters);		
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		
+		// perform the query
+		QueryTableResults noPrivateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(noPrivateAccessResults);
+		assertEquals(30, noPrivateAccessResults.getTotalNumberOfResults().longValue());
+		assertEquals(30, noPrivateAccessResults.getRows().size());
+		int noPrivateObjectIdIndex = findString("objectId", noPrivateAccessResults.getHeaders());
+		assertFalse(noPrivateObjectIdIndex==-1);
+		
+		// if we have private read access we CAN see the results
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		QueryTableResults privateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(privateAccessResults);
+		assertEquals(30, privateAccessResults.getTotalNumberOfResults().longValue());
+		assertEquals(30, privateAccessResults.getRows().size());
+		int privateObjectIdIndex = findString("objectId", privateAccessResults.getHeaders());
+		assertFalse(privateObjectIdIndex==-1);
+		
+		// show that the ordering doesn't change!
+		for (int i=0; i<30; i++) {
+			Row privateRow = privateAccessResults.getRows().get(i);
+			Row noPrivateRow = noPrivateAccessResults.getRows().get(i);
+			assertEquals(noPrivateRow.getValues().get(noPrivateObjectIdIndex), privateRow.getValues().get(privateObjectIdIndex));
+		}
+	}
+	
+	private static int findString(String s, List<String> list) {
+		for (int i=0; i<list.size(); i++) if (s.equals(list.get(i))) return i;
+		return -1;
 	}
 	
 	@Test
@@ -590,8 +632,8 @@ public class QueryDAOImplTest {
 		
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
-		assertEquals(15, results.getTotalNumberOfResults().longValue());
-		assertEquals(15, results.getRows().size());
+		assertEquals(8, results.getTotalNumberOfResults().longValue());
+		assertEquals(8, results.getRows().size());
 		
 		// examine the results
 		List<Row> rows = results.getRows();
@@ -778,6 +820,122 @@ public class QueryDAOImplTest {
 			}
 			previous = current;
 		}
+	}
+	
+	@Test
+	public void testQuerySortLongAscending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "long_anno" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		int index = results.getHeaders().indexOf(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		Long previous = null;
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			System.out.println(row);
+			List<String> values = row.getValues();
+			// validate ordering
+			Long current = Long.parseLong(values.get(index));
+			if (previous != null) {
+				assertTrue(""+current+" should be bigger than "+previous+" but it's not.", current.compareTo(previous) >= 0);
+			}
+			previous = current;
+		}
+	}
+	
+	@Test
+	public void testSortOnColumnHavingNulls() throws Exception {
+		// SELECT "string anno_null" FROM evaluation_1 ORDER BY "string anno_null" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PUBLIC_STRING_ANNOTATION_WITH_NULLS_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// In PLFM-2778 this generates an exception 
+		queryDAO.executeQuery(query, mockUserInfo);
+	}
+	
+	@Test
+	public void testQuerySortLongAscendingBadSortBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "gobbledygook" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort("gobbledygook");
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// perform the query, sort is ignored
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS, results.getRows().size());
+	}
+	
+	@Test
+	public void testQueryNoAnnotations() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// for this test remove all the annotations
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
+		// perform the query, should work, with no results
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
+	}
+	
+	@Test
+	public void testQueryNoAnnotationsOrderBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "long_anno" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// for this test remove all the annotations
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
+		// perform the query, should work, with no results
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
 	}
 	
 	// Flatten an Annotations object to a map. The key is given by [Object ID] + [attribute name],

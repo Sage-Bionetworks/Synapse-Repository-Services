@@ -11,9 +11,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
-
-import javax.servlet.ServletException;
 
 import org.json.JSONException;
 import org.junit.AfterClass;
@@ -28,9 +25,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -72,7 +67,7 @@ public class IT510SynapseJavaClientSearchTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		
@@ -502,7 +497,7 @@ public class IT510SynapseJavaClientSearchTest {
 	}
 	
 	@Test
-	public void testBadSearch() throws ServletException, IOException, JSONException, JSONObjectAdapterException, InterruptedException {
+	public void testBadSearch() throws IOException, JSONException, JSONObjectAdapterException, InterruptedException {
 		// First run query
 		SearchQuery query = new SearchQuery();
 		query.setBooleanQuery(new LinkedList<KeyValue>());
@@ -516,8 +511,8 @@ public class IT510SynapseJavaClientSearchTest {
 			fail("This was a bad query");
 		}catch (SynapseException e) {
 			// did we get the expected message.
-			assertTrue(e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") > 0);
-			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") > 0);
+			assertTrue(e.getMessage(), e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") >= 0);
+			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") >= 0);
 		}
 	}
 }

@@ -60,4 +60,12 @@ public interface ServiceProvider {
 	
 	public PrincipalService getPrincipalService();
 	
+	public CertifiedUserService getCertifiedUserService();
+	
+	public AsynchronousJobServices getAsynchronousJobServices();
+
+	public LogService getLogService();
+
+	public ProjectSettingsService getProjectSettingsService();
+	
 }

@@ -4,8 +4,10 @@ import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -20,12 +22,11 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -53,7 +54,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static String oneId;
 	private static String twoId;
 
-	private static S3FileHandle oneToRuleThemAll;
+	private static FileHandle oneToRuleThemAll;
 	
 	private String fileHandleIdWithExtendedChars;
 
@@ -61,7 +62,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private MessageToUser twoToOne;
 	
 	private List<String> cleanup;
-	private Project project;
+	private static Project project;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -70,7 +71,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
@@ -94,7 +95,9 @@ public class IT501SynapseJavaClientMessagingTest {
 				pw.close();
 			}
 		}
-		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false);
+		project = synapseOne.createEntity(new Project());
+
+		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false, project.getId());
 	}
 	
 	@SuppressWarnings("serial")
@@ -137,14 +140,7 @@ public class IT501SynapseJavaClientMessagingTest {
 				adminSynapse.deleteFileHandle(fileHandleIdWithExtendedChars);
 			}
 			fileHandleIdWithExtendedChars = null;
-		} catch (SynapseNotFoundException e) {
-		} catch (SynapseServiceException e) { }
-		
-		if (project != null) {
-			try {
-				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (SynapseNotFoundException e) { }
-		}
+		} catch (SynapseException e) { }
 	}
 	
 	@AfterClass
@@ -152,15 +148,17 @@ public class IT501SynapseJavaClientMessagingTest {
 		// Delete the file handle
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (SynapseNotFoundException e) {
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 		
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
+		try {
+			adminSynapse.deleteAndPurgeEntityById(project.getId());
+		} catch (SynapseException e) { }
 	}
 
 	@SuppressWarnings("serial")
@@ -244,8 +242,8 @@ public class IT501SynapseJavaClientMessagingTest {
 			try {
 				oneToTwo = synapseOne.sendMessage(oneToTwo);
 				cleanup.add(oneToTwo.getId());
-			} catch (SynapseUserException e) {
-				if (e.getMessage().contains("429")) {
+			} catch (SynapseServerException e) {
+				if (e.getStatusCode()==429) {
 					gotNerfed = true;
 					break;
 				}
@@ -260,10 +258,35 @@ public class IT501SynapseJavaClientMessagingTest {
 	}
 	
 	@Test
+	public void testDownloadMessageToFile() throws Exception {
+		File temp = File.createTempFile("test", null);
+		temp.deleteOnExit();
+		synapseTwo.downloadMessageToFile(oneToTwo.getId(), temp);
+		// now compare the downloaded file to the message body
+		FileInputStream f = new FileInputStream( temp );
+		int b;
+		byte[] bytes = new byte[(int)temp.length()];
+		int i = 0;
+		try {
+			while ( (b=f.read()) != -1 ) bytes[i++]=(byte)b;
+		} finally {
+			f.close();
+		}
+		assertEquals(new String(bytes, "utf-8"), MESSAGE_BODY);
+	}
+	
+	@Test
 	public void testDownloadMessage() throws Exception {
 		String message = synapseTwo.downloadMessage(oneToTwo.getId());
 		
 		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+	}
+	
+	@Test
+	public void testGetMessageTemporaryUrl() throws Exception {
+		String url = synapseTwo.getMessageTemporaryUrl(oneToTwo.getId());
+		// just test that it's a valid URL (will throw exception if not)
+		new URL(url);
 	}
 	
 	@Test
@@ -283,8 +306,6 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 	@Test
 	public void testSendMessageToEntityOwner() throws Exception {
-		project = synapseOne.createEntity(new Project());
-		
 		// Send a message from two to one in a different way
 		twoToOne.setRecipients(null);
 		MessageToUser message = synapseTwo.sendMessage(twoToOne, project.getId());

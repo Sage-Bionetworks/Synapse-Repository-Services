@@ -1,15 +1,18 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
@@ -22,10 +25,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import com.amazonaws.services.s3.model.ProgressListener;
 
 /**
  * Manages uploading files.
@@ -110,7 +115,7 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 * @throws MalformedURLException 
 	 */
-	URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
+	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all file handles on the list.
@@ -123,7 +128,18 @@ public interface FileHandleManager {
 	FileHandleResults getAllFileHandles(List<String> idsList, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get all file handles on the list in batches. A null id will return a null file handle
+	 * 
+	 * @param idsList
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Create an external file handle.
+	 * 
 	 * @param userInfo
 	 * @param fileHandle
 	 * @return
@@ -190,5 +206,39 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 */
 	public UploadDaemonStatus getUploadDaemonStatus(UserInfo userInfo, String daemonId) throws DatastoreException, NotFoundException;
-	
+
+	/**
+	 * Multi-part upload a local file to S3.  This is used by workers.
+	 * 
+	 * @param userInfo
+	 * @param fileToUpload
+	 * @param contentType
+	 * @param listener
+	 * @return
+	 */
+	S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload,	String contentType, ProgressListener listener);
+
+	/**
+	 * Only the creator of a FileHandle can call this method.
+	 * 
+	 * @param userInfo
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the list of upload destinations for this parent
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException, UnauthorizedException,
+			NotFoundException;
 }

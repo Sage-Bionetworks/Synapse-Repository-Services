@@ -13,14 +13,22 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NotReadyException;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -28,7 +36,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.TypeMismatchException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -98,6 +106,36 @@ public abstract class BaseController {
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseController.class);
 	
+	/**
+	 * When a TableUnavilableException occurs we need to communicate the table status to the caller with a 202 ACCEPTED,
+	 * indicating we accepted they call but the resource is not ready yet.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(TableUnavilableException.class)
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public @ResponseBody
+	TableStatus handleTableUnavilableException(TableUnavilableException ex, 
+			HttpServletRequest request) {
+		return ex.getStatus();
+	}
+	
+	/**
+	 * When a NotReadyException occurs we need to communicate the async status to the caller with a 202 ACCEPTED,
+	 * indicating we accepted they call but the resource is not ready yet.
+	 * 
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(NotReadyException.class)
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public @ResponseBody
+	AsynchronousJobStatus handleResultNotReadyException(NotReadyException ex, HttpServletRequest request) {
+		return ex.getStatus();
+	}
+
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
@@ -193,6 +231,19 @@ public abstract class BaseController {
 	}
 	
 	/**
+	 * This is thrown when there are problems authenticating the user.
+	 * The user is usually advised to correct their credentials and try again.  
+	 */
+	@ExceptionHandler(UnauthenticatedException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody
+	ErrorResponse handleUnauthenticatedException(UnauthenticatedException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+	
+	/**
 	 * This exception is thrown when an entity with a given name already exists.
 	 * @param ex
 	 * @param request
@@ -202,6 +253,20 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
 	ErrorResponse handleNameConflictException(NameConflictException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+
+	/**
+	 * This exception is thrown when an async job fails.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(AsynchJobFailedException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleAsynchJobFailedException(AsynchJobFailedException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -566,10 +631,10 @@ public abstract class BaseController {
 	 * @param request
 	 * @return
 	 */
-	@ExceptionHandler(DeadlockLoserDataAccessException.class)
+	@ExceptionHandler(TransientDataAccessException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
+	ErrorResponse handleDeadlockExceptions(TransientDataAccessException ex,
 			HttpServletRequest request) {
 		log.error("Handling " + request.toString(), ex);
 		ErrorResponse er = new ErrorResponse();
@@ -629,6 +694,7 @@ public abstract class BaseController {
 		return baos.toString();
 	}
 	
+	// TODO:  The status code in 'ex' should dictate the response status, it should not be assumed to be BAD_REQUEST
 	@ExceptionHandler(HttpClientHelperException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
@@ -660,6 +726,24 @@ public abstract class BaseController {
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
+	
+	/**
+	 * When an entity's parent is in the trash can.
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(ParentInTrashCanException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleParentInTrashCanException(ParentInTrashCanException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, true);
+	}
 
 	/**
 	 * When the number of requests made to a particular service exceeds a threshold rate
@@ -674,4 +758,19 @@ public abstract class BaseController {
 		response.setStatus(429);
 		return handleException(ex, request, false);
 	}
+	
+	
+	/**
+	 * This is thrown when the user has not accepted the terms of use
+	 */
+	@ExceptionHandler(TermsOfUseException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleTermsOfUseException(TermsOfUseException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+
+
 }

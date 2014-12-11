@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager.trash;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -12,6 +10,7 @@ import java.util.Set;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -78,9 +77,8 @@ public class TrashManagerImpl implements TrashManager {
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
 		String userName = currentUser.getId().toString();
-		if (!authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
-			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 
 		// Whether it is too big for the trash can
 		if (stackConfig.getDynamoEnabled()) {
@@ -123,6 +121,7 @@ public class TrashManagerImpl implements TrashManager {
 			String etag = nodeDao.peekCurrentEtag(descendantId);
 			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.DELETE);
 		}
+		transactionalMessenger.sendModificationMessageAfterCommit( nodeId,ObjectType.ENTITY);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -136,7 +135,7 @@ public class TrashManagerImpl implements TrashManager {
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
-
+		
 		// Make sure the node is in the trash can
 		final TrashedEntity trash = trashCanDao.getTrashedEntity(nodeId);
 		if (trash == null) {
@@ -156,15 +155,21 @@ public class TrashManagerImpl implements TrashManager {
 		if (newParentId == null) {
 			newParentId = trash.getOriginalParentId();
 		}
+		
+		// Make sure new parent is not in trash can.
+		if (trashCanDao.getTrashedEntity(newParentId) != null) {
+			throw new ParentInTrashCanException("The new parent " + newParentId + " is in the trash can and cannot be restored to.");
+		}
 
 		// Authorize on the new parent
 		String userName = currentUser.getId().toString();
-		if (!authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
-			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		Node node = nodeDao.getNode(nodeId);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canUserMoveRestrictedEntity(currentUser, trash.getOriginalParentId(), newParentId));
 
 		// Now restore
-		Node node = nodeDao.getNode(nodeId);
 		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
 		nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
@@ -184,6 +189,7 @@ public class TrashManagerImpl implements TrashManager {
 			String etag = nodeDao.peekCurrentEtag(descendantId);
 			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.CREATE);
 		}
+		transactionalMessenger.sendModificationMessageAfterCommit(nodeId,ObjectType.ENTITY);
 	}
 
 	@Override
@@ -214,7 +220,7 @@ public class TrashManagerImpl implements TrashManager {
 			}
 		}
 
-		List<TrashedEntity> list = trashCanDao.getInRangeForUser(userId, offset, limit);
+		List<TrashedEntity> list = trashCanDao.getInRangeForUser(userId, false, offset, limit);
 		int count = trashCanDao.getCount(userId);
 		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
 		return results;
@@ -242,7 +248,7 @@ public class TrashManagerImpl implements TrashManager {
 					+ " does not have the permission.");
 		}
 
-		List<TrashedEntity> list = trashCanDao.getInRange(offset, limit);
+		List<TrashedEntity> list = trashCanDao.getInRange(false, offset, limit);
 		int count = trashCanDao.getCount();
 		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
 		return results;
@@ -250,8 +256,8 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeTrashForUser(UserInfo currentUser, String nodeId)
-			throws DatastoreException, NotFoundException {
+	public void purgeTrashForUser(UserInfo currentUser, String nodeId, PurgeCallback purgeCallback) throws DatastoreException,
+			NotFoundException {
 
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null.");
@@ -268,20 +274,31 @@ public class TrashManagerImpl implements TrashManager {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
 		}
 
+		if (purgeCallback != null) {
+			purgeCallback.startPurge(nodeId);
+		}
 		Collection<String> descendants = new ArrayList<String>();
 		getDescendants(nodeId, descendants);
 		nodeDao.delete(nodeId);
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 		trashCanDao.delete(userGroupId, nodeId);
+		if (purgeCallback != null) {
+			purgeCallback.endPurge();
+		}
 		for (String desc : descendants) {
+			if (purgeCallback != null) {
+				purgeCallback.startPurge(nodeId);
+			}
 			trashCanDao.delete(userGroupId, desc);
+			if (purgeCallback != null) {
+				purgeCallback.endPurge();
+			}
 		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeTrashForUser(UserInfo currentUser)
-			throws DatastoreException, NotFoundException {
+	public void purgeTrashForUser(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException {
 
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null.");
@@ -293,14 +310,14 @@ public class TrashManagerImpl implements TrashManager {
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
 		// a set of the trashed items to help find the roots.
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0, Long.MAX_VALUE);
-		purgeTrash(trashList);
+		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, true, 0, Long.MAX_VALUE);
+		purgeTrash(trashList, purgeCallback);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeTrash(UserInfo currentUser)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
+	public void purgeTrash(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException,
+			UnauthorizedException {
 
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null");
@@ -313,26 +330,17 @@ public class TrashManagerImpl implements TrashManager {
 					+ " does not have the permission.");
 		}
 
-		List<TrashedEntity> trashList = trashCanDao.getInRange(0, Long.MAX_VALUE);
-		purgeTrash(trashList);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(true, 0, Long.MAX_VALUE);
+		purgeTrash(trashList, purgeCallback);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeTrash(List<TrashedEntity> trashList)
-			throws DatastoreException, NotFoundException {
+	public void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException {
 		
 		if (trashList == null) {
 			throw new IllegalArgumentException("Trash list cannot be null.");
 		}
-
-		// Sort by ID to avoid potential deadlocks
-		Collections.sort(trashList, new Comparator<TrashedEntity>() {
-			@Override
-			public int compare(TrashedEntity entity1, TrashedEntity entity2) {
-				return entity1.getEntityId().compareTo(entity2.getEntityId());
-			}
-		});
 
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
@@ -345,11 +353,17 @@ public class TrashManagerImpl implements TrashManager {
 		// Purge now
 		for (TrashedEntity trash : trashList) {
 			String nodeId = trash.getEntityId();
+			if (purgeCallback != null) {
+				purgeCallback.startPurge(nodeId);
+			}
 			if (!trashIdSet.contains(trash.getOriginalParentId())) {
 				nodeDao.delete(nodeId);
 				aclDAO.delete(nodeId, ObjectType.ENTITY);
 			}
 			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
+			if (purgeCallback != null) {
+				purgeCallback.endPurge();
+			}
 		}
 	}
 

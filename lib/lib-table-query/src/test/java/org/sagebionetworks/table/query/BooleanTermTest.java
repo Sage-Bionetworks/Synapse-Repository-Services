@@ -16,16 +16,34 @@ public class BooleanTermTest {
 		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=1");
 		BooleanTerm element = new BooleanTerm(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo = 1", builder.toString());
 	}
 	
+	@Test
+	public void testBooleanTermNegativeToSQLSingle() throws ParseException {
+		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=-1");
+		BooleanTerm element = new BooleanTerm(list);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder, null);
+		assertEquals("foo = -1", builder.toString());
+	}
+
+	@Test
+	public void testBooleanTermNegativeDoubleToSQLSingle() throws ParseException {
+		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo>-.1");
+		BooleanTerm element = new BooleanTerm(list);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder, null);
+		assertEquals("foo > -.1", builder.toString());
+	}
+
 	@Test
 	public void testBooleanTermToSQLMultiple() throws ParseException{
 		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=1", "bar=2");
 		BooleanTerm element = new BooleanTerm(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo = 1 AND bar = 2", builder.toString());
 	}
 }

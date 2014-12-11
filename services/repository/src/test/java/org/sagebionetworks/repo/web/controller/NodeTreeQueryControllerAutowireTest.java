@@ -32,9 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class NodeTreeQueryControllerAutowireTest {
+
+public class NodeTreeQueryControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private EntityService entityService;
@@ -51,9 +50,6 @@ public class NodeTreeQueryControllerAutowireTest {
 	@Autowired
 	private UserManager userManager;
 	
-	@Autowired
-	private ServletTestHelper servletTestHelper;
-
 	private Long adminUserId;
 	private Entity parent;
 	private Entity child;
@@ -67,8 +63,6 @@ public class NodeTreeQueryControllerAutowireTest {
 		// These tests are not run if dynamo is disabled.
 		Assume.assumeTrue(config.getDynamoEnabled());
 		
-		servletTestHelper.setUp();
-		
 		Assert.assertNotNull(this.entityService);
 		Assert.assertNotNull(this.nodeTreeQueryDao);
 		Assert.assertNotNull(this.nodeTreeUpdateDao);
@@ -76,14 +70,13 @@ public class NodeTreeQueryControllerAutowireTest {
 		// Create the entities in RDS
 		parent = new Project();
 		parent.setName("NodeLineageQueryControllerAutowireTest.parent");
-		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
-		parent = ServletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
 		Assert.assertNotNull(parent);
 		child = new Study();
 		child.setName("NodeLineageQueryControllerAutowireTest.child");
 		child.setParentId(parent.getId());
 		child.setEntityType(Study.class.getName());
-		child = ServletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+		child = servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());
 		rootToChild = this.entityService.getEntityPath(adminUserId, child.getId());
@@ -127,7 +120,7 @@ public class NodeTreeQueryControllerAutowireTest {
 	@Test
 	public void test() throws Exception {
 		// Get ancestors
-		EntityIdList idList = ServletTestHelper.getAncestors(adminUserId, child.getId());
+		EntityIdList idList = servletTestHelper.getAncestors(adminUserId, child.getId());
 		
 		Iterator<EntityId> idIterator = idList.getIdList().iterator();
 		EntityId id = idIterator.next();
@@ -138,11 +131,11 @@ public class NodeTreeQueryControllerAutowireTest {
 		Assert.assertFalse(idIterator.hasNext());
 
 		// Get parents
-		id = ServletTestHelper.getParent(adminUserId, child.getId());
+		id = servletTestHelper.getParent(adminUserId, child.getId());
 		Assert.assertEquals(parent.getId(), id.getId());
 
 		// Get descendants
-		idList = ServletTestHelper.getDescendants(adminUserId, root);
+		idList = servletTestHelper.getDescendants(adminUserId, root);
 
 		idIterator = idList.getIdList().iterator();
 		id = idIterator.next();
@@ -152,7 +145,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		Assert.assertFalse(idIterator.hasNext());
 
 		// Get descendants with generation
-		idList = ServletTestHelper.getDescendantsWithGeneration(adminUserId, root, 2);
+		idList = servletTestHelper.getDescendantsWithGeneration(adminUserId, root, 2);
 		
 		idIterator = idList.getIdList().iterator();
 		id = idIterator.next();
@@ -160,7 +153,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		Assert.assertFalse(idIterator.hasNext());
 
 		// Get children
-		idList = ServletTestHelper.getChildren(adminUserId, root);
+		idList = servletTestHelper.getChildren(adminUserId, root);
 		idIterator = idList.getIdList().iterator();
 		id = idIterator.next();
 		Assert.assertEquals(parent.getId(), id.getId());

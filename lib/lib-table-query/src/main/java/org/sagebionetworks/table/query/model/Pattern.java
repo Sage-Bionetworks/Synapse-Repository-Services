@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltpattern&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class Pattern implements SQLElement {
+public class Pattern extends SQLElement {
 	
 	CharacterValueExpression characterValueExpression;
 
@@ -17,7 +18,7 @@ public class Pattern implements SQLElement {
 	}
 	
 	@Override
-	public void toSQL(StringBuilder builder) {
-		characterValueExpression.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		characterValueExpression.toSQL(builder, columnConvertor);
 	}
 }

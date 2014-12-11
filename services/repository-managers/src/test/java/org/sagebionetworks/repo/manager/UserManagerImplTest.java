@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +16,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -29,6 +33,9 @@ public class UserManagerImplTest {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -77,6 +84,19 @@ public class UserManagerImplTest {
 		// Check that the UserInfo is populated
 		UserInfo ui = userManager.getUserInfo(principalId);
 		assertNotNull(ui.getId().toString());
+		
+		// check aliases
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId);
+		assertEquals(2, aliases.size());
+		for (PrincipalAlias alias : aliases) {
+			if (alias.getType().equals(AliasType.USER_NAME)) {
+				assertEquals(user.getUserName(), alias.getAlias());
+			} else if (alias.getType().equals(AliasType.USER_EMAIL)) {
+				assertEquals(user.getEmail(), alias.getAlias());
+			} else {
+				fail("Unexpected alias type "+alias.getType());
+			}
+		}
 		
 		// Should include Public and authenticated users' group.
 		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));

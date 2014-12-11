@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -31,7 +32,9 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -45,6 +48,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Propagation;
@@ -62,6 +66,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	private UserManager userManager;
 	
+	@Autowired
+	private TeamManager teamManager;
+
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
@@ -108,7 +115,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
+		QueryResults<UserProfile> results = userProfileManager.getInRange(userInfo, offset, endExcl);
 		List<UserProfile> profileResults = results.getResults();
 		for (UserProfile profile : profileResults) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
@@ -279,7 +286,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
+		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()) 
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version
@@ -300,6 +307,29 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return userProfileManager.getFavorites(userInfo, limit, offset);
 	}
 	
+	@Override
+	public PaginatedResults<ProjectHeader> getMyProjects(Long userId, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getMyProjects(userInfo, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsForUser(Long userId, Long userIdToFetch, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userToFetch = userManager.getUserInfo(userIdToFetch);
+		return userProfileManager.getProjectsForUser(userInfo, userToFetch, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long userId, Long teamIdToFetch, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		ValidateArgument.required(teamIdToFetch, "teamId");
+		Team teamToFetch = teamManager.get(teamIdToFetch.toString());
+		return userProfileManager.getProjectsForTeam(userInfo, teamToFetch, limit, offset);
+	}
 	
 	/*
 	 * Private Methods

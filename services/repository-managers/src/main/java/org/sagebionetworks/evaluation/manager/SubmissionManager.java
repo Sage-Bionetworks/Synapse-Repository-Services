@@ -2,15 +2,19 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.net.URL;
 
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -63,7 +67,10 @@ public interface SubmissionManager {
 	 * @throws NotFoundException
 	 */
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo,
-			SubmissionStatus submissionStatus) throws NotFoundException;
+			SubmissionStatus submissionStatus) throws NotFoundException, ConflictingUpdateException;
+	
+	public BatchUploadResponse updateSubmissionStatusBatch(UserInfo userInfo, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException, ConflictingUpdateException;
 
 	/**
 	 * Delete a Submission. Note that the requesting user must be an admin
@@ -182,7 +189,7 @@ public interface SubmissionManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getRedirectURLForFileHandle(UserInfo userInfo,
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
 			String submissionId, String filehandleId)
 			throws DatastoreException, NotFoundException;
 

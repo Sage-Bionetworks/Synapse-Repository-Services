@@ -9,7 +9,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_N
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEPIT_MSG;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_DESCRIPTION;
@@ -55,8 +55,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
 			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
 			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
-			new FieldColumn(PARAM_EVALUATION_SUB_RECEPIT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG)
-			};
+			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG)
+	};
 
 	public TableMapping<EvaluationDBO> getTableMapping() {
 		return new TableMapping<EvaluationDBO>() {
@@ -189,6 +189,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public void setSubmissionReceiptMessage(byte[] submissionReceiptMessage) {
 		this.submissionReceiptMessage = submissionReceiptMessage;
 	}
+		
 	@Override
 	public String getIdString() {
 		return id.toString();

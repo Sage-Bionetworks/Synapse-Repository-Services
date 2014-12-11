@@ -18,11 +18,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-jdomodels</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-concepts</artifactId>
+			<artifactId>lib-table-query</artifactId>
 		</dependency>
 
 		<dependency>
@@ -30,16 +26,43 @@
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-test</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.spring-library</artifactId>
-			<type>libd</type>
+			<artifactId>spring-test</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>spring-test</artifactId>
+			<artifactId>spring-aspects</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jdbc</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-dbcp</artifactId>
+			<version>${org.apache.commons.commons-dbcp.version}</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- MySQL dependencies -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>${mysql.mysql-connector-java.version}</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<!-- Logging -->
@@ -71,5 +94,5 @@
 			<scope>compile</scope>
 		</dependency>
 
-	</dependencies>
+  	</dependencies>
 </project>

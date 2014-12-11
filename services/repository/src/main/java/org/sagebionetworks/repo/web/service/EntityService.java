@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
-import org.sagebionetworks.repo.web.controller.metadata.EventType;
+import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
@@ -578,15 +578,6 @@ public interface EntityService {
 			String entityId) throws NotFoundException, DatastoreException;
 
 	/**
-	 * Used to test deadlock.
-	 * 
-	 * @param param
-	 * @return
-	 */
-	public String throwDeadlockException(
-			DeadlockLoserDataAccessException toThrow);
-
-	/**
 	 * Create a S3 token for an entity attachment.
 	 * 
 	 * @param userId
@@ -701,7 +692,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFileRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
+	public String getFileRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file preview redirect URL for the current version of the entity.
@@ -711,7 +702,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
+	public String getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
 
 
 	/**
@@ -723,7 +714,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
+	public String getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file preview redirect URL for a given version number.
@@ -734,7 +725,8 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFilePreviewRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
+	public String getFilePreviewRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException,
+			NotFoundException;
 
 	/**
 	 * Get the entity file handles for the current version of an entity.

@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.io.File;
 import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.io.FileUtils;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
@@ -14,6 +17,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.AmazonClientException;
@@ -28,6 +32,11 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.ProgressListener;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.util.BinaryUtils;
 
 /**
@@ -44,6 +53,8 @@ public class MultipartManagerImpl implements MultipartManager {
 	AmazonS3Client s3Client;
 	@Autowired
 	FileHandleDao fileHandleDao;
+	@Autowired
+	TransferManager transferManager;
 
 	@Override
 	public ChunkResult copyPart(ChunkedFileToken token, int partNumber,	String bucket) {
@@ -188,6 +199,45 @@ public class MultipartManagerImpl implements MultipartManager {
 			s3Client.deleteObject(bucket, partKey);
 		}
 		return result;
+	}
+
+	@Override
+	public S3FileHandle multipartUploadLocalFile(String bucket, String userId, File fileToUpload, String contentType, ProgressListener listener) {
+		try {
+			// We let amazon's TransferManager do most of the heavy lifting
+			String key = createNewKey(userId, fileToUpload.getName());
+			String md5 = MD5ChecksumHelper.getMD5Checksum(fileToUpload);
+			// Start the fileHandle
+			// We can now create a FileHandle for this upload
+			S3FileHandle handle = new S3FileHandle();
+			handle.setBucketName(bucket);
+			handle.setKey(key);
+			handle.setContentMd5(md5);
+			handle.setContentType(contentType);
+			handle.setCreatedBy(userId);
+			handle.setCreatedOn(new Date(System.currentTimeMillis()));
+			handle.setEtag(UUID.randomUUID().toString());
+			handle.setFileName(fileToUpload.getName());
+			
+			PutObjectRequest por = new PutObjectRequest(bucket, key, fileToUpload);
+			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
+			por.setMetadata(meta);
+			Upload upload = transferManager.upload(por);
+			// Make sure the caller can watch the progress.
+			upload.addProgressListener(listener);
+			// This will throw an exception if the upload fails for any reason.
+			UploadResult results = upload.waitForUploadResult();
+			// get the metadata for this file.
+			meta = this.s3Client.getObjectMetadata(results.getBucketName(), results.getKey());
+			handle.setContentSize(meta.getContentLength());
+
+			// Save the file handle
+			handle = fileHandleDao.createFile(handle);
+			// done
+			return handle;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} 
 	}
 
 }

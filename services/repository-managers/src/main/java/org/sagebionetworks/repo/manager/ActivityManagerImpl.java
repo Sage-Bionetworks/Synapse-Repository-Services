@@ -112,9 +112,8 @@ public class ActivityManagerImpl implements ActivityManager {
 	public Activity getActivity(UserInfo userInfo, String activityId) 
 		throws DatastoreException, NotFoundException, UnauthorizedException {		
 		Activity act = activityDAO.get(activityId);
-		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getId().toString() +" lacks access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccessActivity(userInfo, activityId));
 		return act;
 	}
 
@@ -131,9 +130,8 @@ public class ActivityManagerImpl implements ActivityManager {
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 
 		Activity act = activityDAO.get(activityId);
-		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getId().toString() +" lacks access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccessActivity(userInfo, activityId));
 		return activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 	}
 

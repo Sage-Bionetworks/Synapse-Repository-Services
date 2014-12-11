@@ -20,8 +20,8 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT054FileEntityTest {
 
@@ -51,13 +52,16 @@ public class IT054FileEntityTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
 	public void before() throws SynapseException {
+		// Create a project, this will own the file entity
+		project = new Project();
+		project = synapse.createEntity(project);
 		// Get the image file from the classpath.
 		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -66,14 +70,11 @@ public class IT054FileEntityTest {
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
-		// Create a project, this will own the file entity
-		project = new Project();
-		project = synapse.createEntity(project);
 	}
 
 	@After
@@ -97,7 +98,7 @@ public class IT054FileEntityTest {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseException e) { }
 	}
 	
 	@Test
@@ -126,25 +127,39 @@ public class IT054FileEntityTest {
 		assertEquals(2, fhr.getList().size());
 		assertEquals(fileHandle.getId(), fhr.getList().get(0).getId());
 		assertEquals(previewFileHandle.getId(), fhr.getList().get(1).getId());
+
 		// Make sure we can get the URLs for this file
 		String expectedKey = URLEncoder.encode(fileHandle.getKey(), "UTF-8"); 
 		URL tempUrl = synapse.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedKey) > 0);
+		// now check that the redirect-based download works correctly
+		File tempfile = File.createTempFile("test", null);
+		tempfile.deleteOnExit();
+		synapse.downloadFromFileEntityCurrentVersion(file.getId(), tempfile);
+		assertEquals(fileHandle.getContentMd5(),  MD5ChecksumHelper.getMD5Checksum(tempfile));
+
 		// Get the url using the version number
 		tempUrl = synapse.getFileEntityTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedKey) > 0);
+		synapse.downloadFromFileEntityForVersion(file.getId(), file.getVersionNumber(), tempfile);
+		assertEquals(fileHandle.getContentMd5(),  MD5ChecksumHelper.getMD5Checksum(tempfile));
+
 		// Now get the preview URLs
 		String expectedPreviewKey = URLEncoder.encode(previewFileHandle.getKey(), "UTF-8"); 
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
+		synapse.downloadFromFileEntityPreviewCurrentVersion(file.getId(), tempfile);
+		assertTrue(tempfile.length()>0);
+
 		// Get the preview using the version number
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
-		System.out.println(tempUrl);
+		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
+		assertTrue(tempfile.length()>0);
 	}
 
 	@Test

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -164,7 +165,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
 		
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		assertNotNull("createdOn date should have been filled in by the DB", clone.getCreatedOn());
 		assertNotNull("modifiedOn date should have been filled in by the DB", clone.getModifiedOn());
@@ -217,7 +218,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
         V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
         assertNotNull(clone);
 
-        WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
+        WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
         toDelete.add(key);
         String startEtag = clone.getEtag();
         Long startModifiedOn = clone.getModifiedOn().getTime();
@@ -280,7 +281,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		grandparent.setMarkdownFileHandleId(markdownOne.getId());
 		grandparent.setAttachmentFileHandleIds(new LinkedList<String>());
 		grandparent = wikiPageDao.create(grandparent, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, grandparent.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, grandparent.getId());
 		toDelete.add(key);
 		
 		V2WikiPage parent = new V2WikiPage();
@@ -291,7 +292,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		parent.setMarkdownFileHandleId(markdownOne.getId());
 		parent.setAttachmentFileHandleIds(new LinkedList<String>());
 		parent = wikiPageDao.create(parent, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
-		WikiPageKey key2 = new WikiPageKey(ownerId, ownerType, parent.getId());
+		WikiPageKey key2 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, parent.getId());
 		toDelete.add(key2);
 		
 		V2WikiPage child = new V2WikiPage();
@@ -302,7 +303,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		child.setMarkdownFileHandleId(markdownOne.getId());
 		child.setAttachmentFileHandleIds(new LinkedList<String>());
 		child = wikiPageDao.create(child, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
-		WikiPageKey key3 = new WikiPageKey(ownerId, ownerType, child.getId());
+		WikiPageKey key3 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(key3);
 		
 		grandparent.setParentWikiId(child.getId());
@@ -357,7 +358,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Sleep to ensure the next date is higher.
 		Thread.sleep(1000);
 		 
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
 		// Try to get current wiki's markdown file handle id.
@@ -482,7 +483,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
 		
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 
 		// Get wiki with key
@@ -515,7 +516,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		String rootId = root.getId();
 		assertNotNull(rootId);
 		
-		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, rootId);
+		WikiPageKey rootKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, rootId);
 		toDelete.add(rootKey);
 		
 		// In setRoot, passed through first branch because root == parent
@@ -563,7 +564,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		wikiPageDao.delete(rootKey);
 		for(V2WikiPage childWiki: children){
 			try{
-				wikiPageDao.get(new WikiPageKey(ownerId, ownerType, childWiki.getId()), null);
+				wikiPageDao.get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, childWiki.getId()), null);
 				fail("This child should have been deleted when the parent was deleted.");
 			}catch(NotFoundException e){
 				// expected
@@ -593,7 +594,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Create it
 		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
 		List<V2WikiHistorySnapshot> historyBeforeUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
@@ -653,7 +654,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Create it
 		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(root);
-		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
+		WikiPageKey rootKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, root.getId());
 		toDelete.add(rootKey);
 		
 		// Test the parent for the FileHandleIds
@@ -680,7 +681,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		// Create it
 		child = wikiPageDao.create(child, childFileNameMap, ownerId, ownerType, childNewIds);
-		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
+		WikiPageKey childKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, child.getId());
 		
 		// Test the child for the FileHandleId
 		List<String> childHandleList = wikiPageDao.getWikiFileHandleIds(childKey, null);
@@ -713,7 +714,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		newIds.add(attachTwo.getId());
 		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(root);
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, root.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, root.getId());
 		toDelete.add(key);
 		
 		// Now lookup each file using its name.

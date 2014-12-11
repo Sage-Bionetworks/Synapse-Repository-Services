@@ -184,4 +184,29 @@ public interface SynapseAdminClient extends SynapseClient {
 	public PublishResults publishChangeMessages(String queueName,
 			Long startChangeNumber, ObjectType type, Long limit)
 			throws SynapseException, JSONObjectAdapterException;
+
+	/**
+	 * Force a rebuild of a table's caches and indices
+	 * 
+	 * @param tableId
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException, JSONObjectAdapterException;
+
+	/**
+	 * Clear all semaphore locks.
+	 * 
+	 * @throws SynapseException
+	 */
+	void clearAllLocks() throws SynapseException;
+
+	/**
+	 * Don't return unless someone makes this call with release set to true. Only used for testing to emulate long
+	 * running calls
+	 * 
+	 * @param release
+	 * @throws SynapseException
+	 */
+	public void waitForTesting(boolean release) throws SynapseException;
 }

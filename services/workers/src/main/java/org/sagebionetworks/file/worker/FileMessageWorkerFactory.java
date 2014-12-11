@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -20,10 +22,13 @@ public class FileMessageWorkerFactory implements MessageWorkerFactory {
 	@Autowired
 	PreviewManager previewManager;
 	
+	@Autowired
+	WorkerLogger workerLogger;
+
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		// Create a new worker.
-		return new PreviewWorker(previewManager, messages);
+		return new PreviewWorker(previewManager, messages, workerLogger);
 	}
 
 }

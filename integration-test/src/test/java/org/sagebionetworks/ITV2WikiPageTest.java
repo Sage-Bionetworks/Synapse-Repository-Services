@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -22,11 +23,11 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -43,7 +44,7 @@ public class ITV2WikiPageTest {
 	private static String FILE_NAME = "LittleImage.png";
 	private static String FILE_NAME2 = "profile_pic.png";
 	private static String MARKDOWN_NAME = "previewtest.txt.gz";
-	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
+	public static final long MAX_WAIT_MS = 1000*20; // 20 sec
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -55,6 +56,7 @@ public class ITV2WikiPageTest {
 	private S3FileHandle fileHandleTwo;
 	private S3FileHandle markdownHandle;
 	private File imageFile;
+	private String imageFileMD5;
 	private File imageFileTwo;
 	private File markdownFile;
 	private Project project;
@@ -66,13 +68,13 @@ public class ITV2WikiPageTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
-	public void before() throws SynapseException {
+	public void before() throws SynapseException, IOException {
 		toDelete = new ArrayList<WikiPageKey>();
 		fileHandlesToDelete = new ArrayList<String>();
 		// Get image and markdown files from the classpath.
@@ -80,6 +82,7 @@ public class ITV2WikiPageTest {
 		URL url2 = ITV2WikiPageTest.class.getClassLoader().getResource("images/" + FILE_NAME2);
 		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+MARKDOWN_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
+		imageFileMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 		imageFileTwo = new File(url2.getFile().replaceAll("%20", " "));
 		markdownFile = new File(markdownUrl.getFile().replaceAll("%20", " "));
 		
@@ -90,21 +93,22 @@ public class ITV2WikiPageTest {
 		assertNotNull(markdownFile);
 		assertTrue(markdownFile.exists());
 		
+		// Create a project, this will own the wiki page.
+		project = new Project();
+		project = synapse.createEntity(project);
+
 		// Create the file handles
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(3, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		fileHandleTwo = (S3FileHandle) results.getList().get(1);
 		markdownHandle = (S3FileHandle) results.getList().get(2);
-		// Create a project, this will own the wiki page.
-		project = new Project();
-		project = synapse.createEntity(project);
 	}
 	
 	@After
@@ -153,7 +157,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		Date firstModifiedOn = wiki.getModifiedOn();
 		
@@ -241,7 +245,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		// Store file handle before updating to delete later
 		V2WikiPage wikiV2Clone = synapse.getV2WikiPage(key);
@@ -286,7 +290,7 @@ public class ITV2WikiPageTest {
 		// Create it
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		
 		// Since we expect the preview file handle to be returned we need to wait for it.
@@ -307,6 +311,28 @@ public class ITV2WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
+		
+		URL url = synapse.getV2WikiAttachmentTemporaryUrl(key, handle.getFileName());
+		assertNotNull(url);
+		File target = File.createTempFile("test", null);
+		target.deleteOnExit();
+		synapse.downloadV2WikiAttachment(key, handle.getFileName(), target);
+		assertEquals(imageFileMD5, MD5ChecksumHelper.getMD5Checksum(target));
+		
+		url = synapse.getVersionOfV2WikiAttachmentTemporaryUrl(key, handle.getFileName(), 0L);
+		assertNotNull(url);
+		synapse.downloadVersionOfV2WikiAttachment(key, handle.getFileName(), 0L, target);
+		assertEquals(imageFileMD5, MD5ChecksumHelper.getMD5Checksum(target));
+		
+		url = synapse.getV2WikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
+		assertNotNull(url);
+		synapse.downloadV2WikiAttachmentPreview(key, handle.getFileName(), target);
+		assertTrue(target.length()>0);
+		
+		url = synapse.getVersionOfV2WikiAttachmentPreviewTemporaryUrl(key, handle.getFileName(), 0L);
+		assertNotNull(url);
+		synapse.downloadVersionOfV2WikiAttachmentPreview(key, handle.getFileName(), 0L, target);
+		assertTrue(target.length()>0);
 		
 		// Update wiki with another file handle
 		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());

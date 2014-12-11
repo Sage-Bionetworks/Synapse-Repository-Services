@@ -1,9 +1,20 @@
 package org.sagebionetworks.evaluation.dao;
 
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 
-import java.io.IOException;
-import java.util.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -13,15 +24,14 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,27 +45,28 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
-	
-	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_SUBSTATUS_ETAG + " FROM " +
-			SQLConstants.TABLE_SUBSTATUS +" WHERE ID = ?";
 
-	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
+	private static final String SQL_ETAG_FOR_UPDATE_BATCH = "SELECT " + 
+			COL_SUBSTATUS_SUBMISSION_ID + " , "+ COL_SUBSTATUS_ETAG +", "+
+			COL_SUBSTATUS_VERSION + " FROM " +
+			SQLConstants.TABLE_SUBSTATUS +" WHERE "+
+			COL_SUBSTATUS_SUBMISSION_ID+" IN (:"+COL_SUBSTATUS_SUBMISSION_ID+")" + " FOR UPDATE";
 
-	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
-	
+	// SELECT s.EVALUATION_ID FROM JDOSUBMISSION s WHERE s.ID IN (:ID)
+	private static final String SELECT_EVALUATION_FOR_IDS = 
+			"SELECT DISTINCT s."+COL_SUBMISSION_EVAL_ID+" FROM "+TABLE_SUBMISSION+
+			" s WHERE s."+COL_SUBMISSION_ID+" IN (:"+COL_SUBMISSION_ID+")";
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(SubmissionStatus dto) throws DatastoreException {
 		// Convert to DBO
-		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
+		dto.setStatusVersion(DBOConstants.SUBSTATUS_INITIAL_VERSION_NUMBER);
+		SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
 		
-		// Generate a new eTag and CREATE message
+		// Generate a new eTag
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		// Ensure DBO has required information
 		verifySubmissionStatusDBO(dbo);
@@ -74,33 +85,46 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);		
-		return convertDboToDto(dbo);
+		return SubmissionUtils.convertDboToDto(dbo);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void update(SubmissionStatus dto) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
-		dbo.setModifiedOn(System.currentTimeMillis());
-		verifySubmissionStatusDBO(dbo);
+	public void update(List<SubmissionStatus> batch)
+			throws DatastoreException, InvalidModelException,
+			NotFoundException, ConflictingUpdateException {
+		Map<String,String> idToEtagMap = new HashMap<String,String>();
+		List<SubmissionStatusDBO> dbos = new ArrayList<SubmissionStatusDBO>();
+		for (SubmissionStatus dto : batch) {
+			SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
+			dbo.setModifiedOn(System.currentTimeMillis());
+			verifySubmissionStatusDBO(dbo);
+			dbos.add(dbo);
+			if (null!=idToEtagMap.put(dbo.getId().toString(), dbo.geteTag())) {
+				throw new InvalidModelException(""+dbo.getId()+" occurs more than once in the SubmissonStatus batch.");
+			}
+		}
 
-		// update eTag and send message of update
-		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
-		dbo.seteTag(newEtag);
+		// update eTag and increment the version
+		Map<Long, Long> versionMap = lockForUpdateAndGetVersion(idToEtagMap);
+		for (SubmissionStatusDBO dbo : dbos) {
+			Long currentVersion = versionMap.get(dbo.getId());
+			dbo.seteTag(UUID.randomUUID().toString());
+			dbo.setVersion(currentVersion+1);
+			// we also need to update the serialized field
+			SubmissionStatus dto = SubmissionUtils.convertDboToDto(dbo);
+			SubmissionUtils.copyToSerializedField(dto, dbo);
+		}
 		
-		basicDao.update(dbo);
+		basicDao.createOrUpdateBatch(dbos);
 	}
-
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
-		
-		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.SUBMISSION, ChangeType.DELETE);
 	}
 
 	/**
@@ -110,108 +134,64 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 */
 	private void verifySubmissionStatusDBO(SubmissionStatusDBO dbo) {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.getEtag(), "eTag");
+		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
 		EvaluationUtils.ensureNotNull(dbo.getModifiedOn(), "Modified date");
 		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "Submission status");
+		EvaluationUtils.ensureNotNull(dbo.getVersion(), "Status version");
 	}
 	
-	private String lockAndGenerateEtag(String id, String eTag, ChangeType changeType)
+	// returns a map whose key is submission Id and whose value is new Etag and new version
+	private Map<Long,Long> lockForUpdateAndGetVersion(Map<String,String> idToEtagMap)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
-		String currentTag = lockForUpdate(id);
-		// Check the eTags
-		if(!currentTag.equals(eTag)){
-			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
-		}
-		// Get a new e-tag
-		SubmissionStatusDBO dbo = getDBO(id);
-		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
-		return dbo.getEtag();
-	}
-	
-	private SubmissionStatusDBO getDBO(String id) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(id, "Submission id");
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
-		try {
-			SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);
-			return dbo;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(SUBMISSION_NOT_FOUND + id);
+		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idToEtagMap.keySet());
+		List<IdETagVersion> current = simpleJdbcTemplate.query(SQL_ETAG_FOR_UPDATE_BATCH, new RowMapper<IdETagVersion>() {
+			@Override
+			public IdETagVersion mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return new IdETagVersion(
+						rs.getLong(COL_SUBSTATUS_SUBMISSION_ID), 
+						rs.getString(COL_SUBSTATUS_ETAG), 
+						rs.getLong(COL_SUBSTATUS_VERSION));
+			}
+		}, param);
+		// Check the eTags
+		Map<Long,Long> result = new HashMap<Long,Long>();
+		for (IdETagVersion ev : current) {
+			String id = ev.getId().toString();
+			String etagFromClient = idToEtagMap.get(id);
+			String currentEtag = ev.getEtag();
+			if(!currentEtag.equals(etagFromClient)) {
+				throw new ConflictingUpdateException("Submission Status: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
+			}
+			result.put(ev.getId(), ev.getVersion());
 		}
+		
+		return result;
 	}
 	
-	private String lockForUpdate(String id) {
-		// Create a Select for update query
-		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
-	}
-
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(SubmissionStatusDBO.class);
 	}
-
-	/**
-	 * Convert a SubmissionStatusDBO database object to a Participant data transfer object
-	 * 
-	 * @param dto
-	 * @param dbo
-	 */
-	protected static SubmissionStatusDBO convertDtoToDbo(SubmissionStatus dto) {
-		SubmissionStatusDBO dbo = new SubmissionStatusDBO();
-		try {
-			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
-		}
-		dbo.seteTag(dto.getEtag());
-		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
-		dbo.setScore(dto.getScore());
-		dbo.setStatusEnum(dto.getStatus());
-		copyToSerializedField(dto, dbo);
-		
-		return dbo;
-	}
-
-	/**
-	 * Convert a SubmissionStatus data transfer object to a SubmissionDBO database object
-	 * 
-	 * @param dbo
-	 * @param dto
-	 * @throws DatastoreException
-	 */
-	protected static SubmissionStatus convertDboToDto(SubmissionStatusDBO dbo) throws DatastoreException {		
-		// serialized entity is regarded as the "true" representation of the object
-		SubmissionStatus dto = copyFromSerializedField(dbo);
-		
-		// use non-serialized eTag and modified date as the "true" values
-		dto.setEtag(dbo.getEtag());
-		dto.setModifiedOn(dbo.getModifiedOn() == null ? null : new Date(dbo.getModifiedOn()));
-		
-		// populate from secondary columns if necessary (to support legacy non-serialized objects)
-		if (dto.getId() == null) 
-			dto.setId(dbo.getId().toString());			
-		if (dto.getScore() == null)
-			dto.setScore(dbo.getScore());
-		if (dto.getStatus() == null)
-			dto.setStatus(dbo.getStatusEnum());
-		
-		return dto;
-	}	
 	
-	protected static void copyToSerializedField(SubmissionStatus dto, SubmissionStatusDBO dbo) throws DatastoreException {
-		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
+	@Override
+	public Long getEvaluationIdForBatch(List<SubmissionStatus> batch)
+			throws DatastoreException, InvalidModelException,
+			NotFoundException, ConflictingUpdateException {
+		Set<String> ids = new HashSet<String>();
+		for (SubmissionStatus s : batch) {
+			if (s.getId()!=null) ids.add(s.getId());
 		}
-	}
-	
-	protected static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
+		if (ids.isEmpty()) throw new IllegalArgumentException("SubmissionStatus batch has no Submission Ids.");
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_ID, ids);
 		try {
-			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
+			return simpleJdbcTemplate.queryForLong(SELECT_EVALUATION_FOR_IDS, param);
+		} catch (EmptyResultDataAccessException erda) {
+			throw new IllegalArgumentException("Submissions are not found in the system.", erda);
+		} catch (IncorrectResultSizeDataAccessException irsdae) {
+			throw new IllegalArgumentException("Submission batch must be for a single Evaluation queue.", irsdae);
+			
 		}
 	}
 }

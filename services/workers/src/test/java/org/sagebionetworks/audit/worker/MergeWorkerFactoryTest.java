@@ -9,11 +9,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,14 +35,21 @@ public class MergeWorkerFactoryTest {
 
 	@Autowired
 	private AccessRecordDAO accessRecordDAO;
+	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
+	@Before
+	public void before(){
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+	}
 
 	@After
 	public void after(){
 		// Delete all data created by this test.
 		accessRecordDAO.deleteAllStackInstanceBatches();
 	}
-	
-	@Ignore
+	@Ignore // This test is still not working
 	@Test
 	public void testIntegration() throws IOException, InterruptedException{
 		// Start this test with no data in the bucket

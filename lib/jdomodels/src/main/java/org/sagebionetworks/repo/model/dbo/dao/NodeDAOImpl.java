@@ -1,41 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REFS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,45 +17,44 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeParentRelation;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -92,6 +63,10 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
+
+	private static final String USER_ID_PARAM_NAME = "user_id_param";
+	private static final String IDS_PARAM_NAME = "ids_param";
+	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -109,6 +84,29 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
+	// selecting and counting the projects a user owns
+
+	private static final String COUNT_PROJECTS_SQL1 = 
+		"select count(*) from (" + 
+			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
+	private static final String SELECT_PROJECTS_SQL1 =
+		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE + " from (" +
+			" select distinct n." + COL_NODE_PROJECT_ID +
+			" from ( ";
+	private static final String SELECT_PROJECTS_SQL2 =
+			" ) acls" +
+			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
+			" where n." + COL_NODE_PROJECT_ID + " is not null" +
+		" ) pids" +
+		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID;
+	private static final String SELECT_PROJECTS_SQL_JOIN_STATS =
+		" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
+
+	private static final String SELECT_PROJECTS_ORDER =
+		" order by coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ") DESC ";
+
+	private static final String SELECT_TEAMS_ORDER = 
+			" order by n." + COL_NODE_NAME + " ASC ";
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -144,9 +142,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 
-	// This is better suited for simple JDBC query.
+	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME
+			+ " WHERE " + COL_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
+
+	// This is better suited for JDBC query.
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -156,6 +160,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Autowired
 	private DBOBasicDao dboBasicDao;
+
+	private EntityType PROJECT_ENTITY_TYPE;
 
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
@@ -171,6 +177,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
+
+	@PostConstruct
+	private void getProjectEntityType() {
+		PROJECT_ENTITY_TYPE = EntityType.getNodeTypeForClass(Project.class);
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -202,10 +213,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
+		DBONode parent = null;
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
 			// Get the parent
-			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
+			parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
 			node.setParentId(parent.getId());
 			// By default a node should inherit from the same 
 			// benefactor as its parent
@@ -213,15 +225,24 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		if(node.getBenefactorId() == null){
 			// For nodes that have no parent, they are
-			// their own benefactor. We have to wait until
-			// after the makePersistent() call to set a node to point 
-			// to itself.
+			// their own benefactor.
 			node.setBenefactorId(node.getId());
+		}
+		if (node.getProjectId() == null) {
+			// we need to find the project id for this node if possible
+			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
+				// we are our own project
+				node.setProjectId(node.getId());
+			} else if (parent != null) {
+				// just copy from parent if we have the parent anyway
+				node.setProjectId(parent.getProjectId());
+			}
 		}
 
 		// Start it with a new e-tag
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
+		transactionalMessenger.sendModificationMessageAfterCommit(KeyFactory.keyToString(node.getId()), ObjectType.ENTITY);
 
 		// Now create the revision
 		rev.setOwner(node.getId());
@@ -300,7 +321,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public boolean delete(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
-		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
+		Long longId = KeyFactory.stringToKey(id);
+		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
@@ -378,7 +400,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			return simpleJdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = N."+COL_CURRENT_REV,	new AnnotationRowMapper(), KeyFactory.stringToKey(id));
+			return jdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = N." + COL_CURRENT_REV, new AnnotationRowMapper(),
+					KeyFactory.stringToKey(id));
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
@@ -391,7 +414,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			NamedAnnotations namedAnnos = simpleJdbcTemplate.queryForObject(
+			NamedAnnotations namedAnnos = jdbcTemplate.queryForObject(
 					SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",
 					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
 			// Remove the eTags (See PLFM-1420)
@@ -448,7 +471,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			return simpleJdbcTemplate.queryForObject(SELECT_REVISIONS_ONLY, new RowMapper<Map<String, Set<Reference>>>() {
+			return jdbcTemplate.queryForObject(SELECT_REVISIONS_ONLY, new RowMapper<Map<String, Set<Reference>>>() {
 				@Override
 				public Map<String, Set<Reference>> mapRow(ResultSet rs, int rowNum)	throws SQLException {
 					Blob blob = rs.getBlob(COL_REVISION_REFS_BLOB);
@@ -494,7 +517,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
 		try{
-			return simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
+			return jdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
 		}catch(EmptyResultDataAccessException e){
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
@@ -545,9 +568,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode node = getNodeById(longId);
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, changeType);
+		transactionalMessenger.sendModificationMessageAfterCommit(KeyFactory.keyToString(node.getId()), ObjectType.ENTITY);
 		currentTag = node.getEtag();
 		// Update the e-tag
-		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
+		int updated = jdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
 		
 		// Return the new tag
@@ -556,7 +580,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public String lockNode(final Long longId) {
-		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
+		String currentTag = jdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
 		return currentTag;
 	}
 
@@ -609,7 +633,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException {
 		List<Long> list = new ArrayList<Long>();
-		List<Map<String, Object>> restuls = simpleJdbcTemplate.queryForList(SQL_GET_ALL_VERSION_NUMBERS, KeyFactory.stringToKey(id));
+		List<Map<String, Object>> restuls = jdbcTemplate.queryForList(SQL_GET_ALL_VERSION_NUMBERS, KeyFactory.stringToKey(id));
 		for(Map<String, Object> row: restuls){
 			Long revId = (Long) row.get(COL_REVISION_NUMBER);
 			list.add(revId);
@@ -620,7 +644,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public long getVersionCount(String entityId) throws NotFoundException,
 			DatastoreException {
-		return simpleJdbcTemplate.queryForLong(SQL_COUNT_REVISONS, KeyFactory.stringToKey(entityId));
+		return jdbcTemplate.queryForObject(SQL_COUNT_REVISONS, Long.class, KeyFactory.stringToKey(entityId));
 	}
 
 	@Override
@@ -634,7 +658,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		QueryResults<VersionInfo> queryResults = new QueryResults<VersionInfo>();
 
 		queryResults.setTotalNumberOfResults(getVersionCount(entityId));
-		queryResults.setResults(simpleJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, new RowMapper<VersionInfo>() {
+		queryResults.setResults(namedParameterJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, params, new RowMapper<VersionInfo>() {
 
 			@Override
 			public VersionInfo mapRow(ResultSet rs, int rowNum)
@@ -651,7 +675,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				return info;
 			}
 
-		}, params));
+		}));
 
 		return queryResults;
 	}
@@ -664,8 +688,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
-		List<NodeParentRelation> results = this.simpleJdbcTemplate.query(
-				SQL_SELECT_NODE_PARENT_PAGINATED,
+		List<NodeParentRelation> results = this.namedParameterJdbcTemplate.query(SQL_SELECT_NODE_PARENT_PAGINATED, params,
 				new RowMapper<NodeParentRelation>() {
 
 					@Override
@@ -681,7 +704,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						return p;
 					}
 
-				}, params);
+				});
 
 		QueryResults<NodeParentRelation> queryResults = new QueryResults<NodeParentRelation>();
 		queryResults.setTotalNumberOfResults(this.getCount());
@@ -732,6 +755,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private DBONodeType getNodeType(EntityType type) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", type.getId());
+		params.addValue("name", type.name());
 		return dboBasicDao.getObjectByPrimaryKey(DBONodeType.class, params);
 	}
 
@@ -740,7 +764,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(BIND_ID_KEY, nodeId);
 		try{
-			long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_NODE_ID, parameters);
+			long count = namedParameterJdbcTemplate.queryForObject(SQL_COUNT_NODE_ID, parameters, Long.class);
 			return count > 0;
 		}catch(Exception e){
 			// Can occur when the schema does not exist.
@@ -750,13 +774,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Override
 	public long getCount() {
-		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL);
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL, Long.class);
 	}
 	
 	@Override
 	public boolean doesNodeRevisionExist(String nodeId, Long revNumber) {
 		try{
-			long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_REVISON_ID, KeyFactory.stringToKey(nodeId), revNumber);
+			long count = jdbcTemplate.queryForObject(SQL_COUNT_REVISON_ID, Long.class, KeyFactory.stringToKey(nodeId), revNumber);
 			return count > 0;
 		}catch(Exception e){
 			// Can occur when the schema does not exist.
@@ -789,7 +813,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
-		List<Map<String, Object>> rowList = simpleJdbcTemplate.queryForList(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap);
+		List<Map<String, Object>> rowList = namedParameterJdbcTemplate.queryForList(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap);
 
 		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
 			throw new DatastoreException("MD5 " + md5 + " maps to more than "
@@ -815,7 +839,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		Long id = KeyFactory.stringToKey(nodeId);
 		try{
-			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_VERSION_LABEL, id, versionNumber);
+			Map<String, Object> row = jdbcTemplate.queryForMap(SQL_SELECT_VERSION_LABEL, id, versionNumber);
 			return (String) row.get(COL_REVISION_LABEL);
 		}catch(EmptyResultDataAccessException e){
 			// Occurs if there are no results
@@ -848,7 +872,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private ParentTypeName getParentTypeName(Long nodeId) throws NotFoundException{
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		try{
-			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_PARENT_TYPE_NAME, nodeId);
+			Map<String, Object> row = jdbcTemplate.queryForMap(SQL_SELECT_PARENT_TYPE_NAME, nodeId);
 			ParentTypeName results = new ParentTypeName();
 			results.setId((Long) row.get(COL_NODE_ID));
 			results.setName((String) row.get(COL_NODE_NAME));
@@ -873,7 +897,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		Map<String, Object> row = null;
 		try {
-			row = simpleJdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
+			row = jdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Entity "+nodeId+" is not found.", e);
 		}
@@ -958,28 +982,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return results;
 	}
 	
-	/**
-	 * A recursive method to build up the full path of of an entity.
-	 * The first EntityHeader will be the Root Node, and the last EntityHeader will be the requested Node.
-	 * @param results
-	 * @param nodeId
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	private void appendPath(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
-		// First Build the entity header for this node
-		ParentTypeName ptn = getParentTypeName(nodeId);
-		EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
-		// Add at the front
-		results.add(0, header);
-		if(ptn.getParentId() != null){
-			// Recurse
-			appendPath(results, ptn.getParentId());
-		}
-	}
-	
 	public static final int BATCH_PATH_DEPTH = 5;
-	
+
 	/**
 	 * A recursive method to build up the full path of of an entity, recursing in batch rather than one 
 	 * node at a time.
@@ -1012,7 +1016,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Since this query is used to boostrap the system we want to return null if the
 		// the schema has not been created yet.
 		try{
-			List<Map<String, Object>> list = simpleJdbcTemplate.queryForList(sql, params);
+			List<Map<String, Object>> list = namedParameterJdbcTemplate.queryForList(sql, params);
 			if(list == null || list.size() < 1) return null;
 			if(list.size() > 1) throw new IllegalStateException("Found more than one node with a path: "+path);
 			Map<String, Object> row = list.get(0);
@@ -1103,7 +1107,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException {
 		List<String> list = new ArrayList<String>();
-		List<Map<String, Object>> restuls = simpleJdbcTemplate.queryForList(SQL_GET_ALL_CHILDREN_IDS, KeyFactory.stringToKey(id));
+		List<Map<String, Object>> restuls = jdbcTemplate.queryForList(SQL_GET_ALL_CHILDREN_IDS, KeyFactory.stringToKey(id));
 		for(Map<String, Object> row: restuls){
 			Long childId = (Long) row.get(COL_NODE_ID);
 			list.add(KeyFactory.keyToString(childId));
@@ -1136,15 +1140,41 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode newParentNode = getNodeById(KeyFactory.stringToKey(newParentId));
 		//make the update 
 		node.setParentId(newParentNode.getId());
+		// also update the project, since that might have changed too
+		if (!ObjectUtils.equals(node.getProjectId(), newParentNode.getProjectId())) {
+			node.setProjectId(newParentNode.getProjectId());
+			// this means we need to update all the children also
+			updateProjectForAllChildren(node, newParentNode.getProjectId());
+		}
 		dboBasicDao.update(node);
 		return true;
 	}
 	
+	private int updateProjectForAllChildren(DBONode node, Long projectId) {
+		List<Long> allChildren = Lists.newLinkedList();
+		getChildrenIdsRecursive(node.getId(), allChildren);
+		// batch the updates, so we don't overwhelm the in clause
+		int count = 0;
+		for (List<Long> batch : Lists.partition(allChildren, 500)) {
+			count += namedParameterJdbcTemplate.update(UPDATE_PROJECT_IDS,
+					new MapSqlParameterSource().addValue(IDS_PARAM_NAME, batch).addValue(PROJECT_ID_PARAM_NAME, projectId));
+		}
+		return count;
+	}
+
+	private void getChildrenIdsRecursive(Long id, List<Long> result) {
+		List<Long> children = jdbcTemplate.queryForList(SQL_GET_ALL_CHILDREN_IDS, Long.class, id);
+		result.addAll(children);
+		for (Long child : children) {
+			getChildrenIdsRecursive(child, result);
+		}
+	}
+		
 	@Override
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			return this.simpleJdbcTemplate.queryForLong(GET_CURRENT_REV_NUMBER_SQL, KeyFactory.stringToKey(nodeId));
+			return this.jdbcTemplate.queryForObject(GET_CURRENT_REV_NUMBER_SQL, Long.class, KeyFactory.stringToKey(nodeId));
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
@@ -1159,8 +1189,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			Long activityId = this.simpleJdbcTemplate.queryForLong(GET_REV_ACTIVITY_ID_SQL, KeyFactory.stringToKey(nodeId), revNumber);			
-			return activityId == 0 ? null : activityId.toString(); // queryForLong returns 0 instead of NULL
+			Long activityId = this.jdbcTemplate
+					.queryForObject(GET_REV_ACTIVITY_ID_SQL, Long.class, KeyFactory.stringToKey(nodeId), revNumber);
+			return activityId == null ? null : activityId.toString();
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}		
@@ -1170,7 +1201,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			return this.simpleJdbcTemplate.queryForLong(GET_NODE_CREATED_BY_SQL, KeyFactory.stringToKey(nodeId));
+			return this.jdbcTemplate.queryForObject(GET_NODE_CREATED_BY_SQL, Long.class, KeyFactory.stringToKey(nodeId));
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
@@ -1180,7 +1211,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<Short> getAllNodeTypesForAlias(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		// Run the query.
-		return this.simpleJdbcTemplate.query(SQL_SELECT_TYPE_FOR_ALIAS, new RowMapper<Short>() {
+		return this.jdbcTemplate.query(SQL_SELECT_TYPE_FOR_ALIAS, new RowMapper<Short>() {
 			@Override
 			public Short mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return  rs.getShort(COL_OWNER_TYPE);
@@ -1211,7 +1242,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public boolean doesNodeHaveChildren(String nodeId) {
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			this.jdbcTemplate.queryForObject(SQL_GET_FIRST_CHILD, Long.class, KeyFactory.stringToKey(nodeId));
 			// At least one node has this parent id.
 			return true;
 		}catch(EmptyResultDataAccessException e){
@@ -1238,9 +1269,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public String getFileHandleIdForVersion(String id, Long versionNumber) {
 		Long nodeId = KeyFactory.stringToKey(id);
 		try{
-			long handleId = simpleJdbcTemplate.queryForLong(SQL_SELECT_REV_FILE_HANDLE_ID, nodeId, versionNumber);
-			if(handleId > 0){
-				return ""+handleId;
+			Long handleId = jdbcTemplate.queryForObject(SQL_SELECT_REV_FILE_HANDLE_ID, Long.class, nodeId, versionNumber);
+			if (handleId != null) {
+				return handleId.toString();
 			}else{
 				return null;
 			}
@@ -1257,7 +1288,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue(NODE_IDS_LIST_PARAM_NAME, longIds);
-		List<Reference> refs = this.simpleJdbcTemplate.query(SQL_GET_CURRENT_VERSIONS, new RowMapper<Reference>() {
+		List<Reference> refs = this.namedParameterJdbcTemplate.query(SQL_GET_CURRENT_VERSIONS, parameters, new RowMapper<Reference>() {
 			@Override
 			public Reference mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
@@ -1267,8 +1298,113 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()) ref.setTargetVersionNumber(null);
 				return ref;
 			}		
-		}, parameters);
+		});
 		return refs;
 	}
 
+	private Collection<Long> getGroupsMinusPublic(Set<Long> usersGroups){
+		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, new Predicate<Long>() {
+			@Override
+			public boolean apply(Long input) {
+				return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue();
+			}
+		}));
+		return groups;
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset) {
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		// get one page of projects
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(USER_ID_PARAM_NAME, userInfo.getId().toString());
+
+		Map<String, Object> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userInfo.getGroups()), parameters, 0);
+
+		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
+
+		params.addValues(parameters);
+		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + SELECT_PROJECTS_SQL_JOIN_STATS
+				+ SELECT_PROJECTS_ORDER + " " + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2;
+		return getProjectHeaders(params, selectSql, countSql);
+	}
+			
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset) {
+		ValidateArgument.required(userToLookup, "userToLookupId");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		// get one page of projects
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(USER_ID_PARAM_NAME, userToLookup.getId().toString());
+
+		Map<String, Object> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userToLookup.getGroups()), parameters, 0);
+
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", userToLookup
+				.getGroups().size());
+
+		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
+
+		params.addValues(parameters);
+		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + SELECT_PROJECTS_SQL_JOIN_STATS
+				+ (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2));
+		return getProjectHeaders(params, selectSql, countSql);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(Team teamToLookup, UserInfo currentUser, int limit, int offset) {
+		ValidateArgument.required(teamToLookup, "teamToLookupId");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+
+		long teamId = Long.parseLong(teamToLookup.getId());
+
+		// get one page of projects
+		MapSqlParameterSource params = new MapSqlParameterSource();
+
+		Map<String, Object> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+		String authForLookup = QueryUtils.buildAuthorizationSelect(Sets.newHashSet(teamId), parameters, 0);
+
+		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", 1);
+
+		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
+
+		params.addValues(parameters);
+		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2))
+				+ SELECT_TEAMS_ORDER + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2));
+		return getProjectHeaders(params, selectSql, countSql);
+	}
+
+	private PaginatedResults<ProjectHeader> getProjectHeaders(MapSqlParameterSource params, String selectSql, String countSql) {
+		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSql, params,
+				new RowMapper<ProjectHeader>() {
+					@Override
+					public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
+						ProjectHeader header = new ProjectHeader();
+						header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+						header.setName(rs.getString(COL_NODE_NAME));
+						return header;
+					}
+				});
+
+		// return the page of objects, along with the total result count
+		PaginatedResults<ProjectHeader> queryResults = new PaginatedResults<ProjectHeader>();
+		queryResults.setResults(projectsHeaders);
+		long totalCount = 0;
+		try {
+			totalCount = namedParameterJdbcTemplate.queryForObject(countSql, params, Long.class);
+		} catch (EmptyResultDataAccessException e) {
+			// count = 0
+		}
+		queryResults.setTotalNumberOfResults(totalCount);
+		return queryResults;
+	}
 }

@@ -42,12 +42,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * 
  * @author deflaux
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class StepControllerTest {
-
-	@Autowired
-	private ServletTestHelper testHelper;
+public class StepControllerTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private UserManager userManager;
@@ -69,24 +64,23 @@ public class StepControllerTest {
 		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
-		testHelper.setUp();
-		testHelper.setTestUser(adminUserInfo.getId());
+		servletTestHelper.setTestUser(adminUserInfo.getId());
 		
 		project = new Project();
-		project = testHelper.createEntity(project, null);
+		project = servletTestHelper.createEntity(project, null);
 
 		dataset = new Study();
 		dataset.setParentId(project.getId());
-		dataset = testHelper.createEntity(dataset, null);
+		dataset = servletTestHelper.createEntity(dataset, null);
 
 		layer = new Data();
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.E);
-		layer = testHelper.createEntity(layer, null);
+		layer = servletTestHelper.createEntity(layer, null);
 		
 		code = new Code();
 		code.setParentId(project.getId());
-		code = testHelper.createEntity(code, null);
+		code = servletTestHelper.createEntity(code, null);
 	}
 
 	/**
@@ -94,7 +88,7 @@ public class StepControllerTest {
 	 */
 	@After
 	public void after() throws Exception {
-		testHelper.tearDown();
+		servletTestHelper.tearDown();
 		
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
@@ -148,7 +142,7 @@ public class StepControllerTest {
 
 		step.setEnvironmentDescriptors(descriptors);
 		
-		step = testHelper.createEntity(step, null);
+		step = servletTestHelper.createEntity(step, null);
 		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(4, step.getEnvironmentDescriptors().size());
@@ -162,33 +156,33 @@ public class StepControllerTest {
 	public void testProvenanceSideEffects() throws Exception {
 
 		Step step = new Step();
-		step = testHelper.createEntity(step, null);
+		step = servletTestHelper.createEntity(step, null);
 		
 		// Our extra parameter used to indicate the provenance record to update
 		Map<String, String> extraParams = new HashMap<String, String>();
 		extraParams.put(ServiceConstants.STEP_TO_UPDATE_PARAM, step.getId());
 
 		// Get a layer, side effect should add it to input references
-		testHelper.getEntity(layer, extraParams);
+		servletTestHelper.getEntity(layer, extraParams);
 
 		// Create a new layer, side effect should be to add it to output
 		// references
 		Data outputLayer = new Data();
 		outputLayer.setParentId(dataset.getId());
 		outputLayer.setType(LayerTypeNames.M);
-		outputLayer = testHelper.createEntity(outputLayer, extraParams);
+		outputLayer = servletTestHelper.createEntity(outputLayer, extraParams);
 		
 		
 		// Create a new code, side effect should be to reference it in the Step
 		Code code2 = new Code();
 		code2.setParentId(project.getId());
-		code2 = testHelper.createEntity(code2, extraParams);
+		code2 = servletTestHelper.createEntity(code2, extraParams);
 		assertEquals(project.getId(), code2.getParentId());
 
 		// TODO update a layer, version a layer, etc ...
 
 		// Make sure those layers are now referred to by our step
-		step = testHelper.getEntity(step, null);
+		step = servletTestHelper.getEntity(step, null);
 		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(outputLayer.getId(), step.getOutput().iterator().next().getTargetId());
@@ -201,35 +195,35 @@ public class StepControllerTest {
 		analysis.setParentId(project.getId());
 		analysis.setName("test analysis");
 		analysis.setDescription("test description");
-		analysis = testHelper.createEntity(analysis, extraParams);
+		analysis = servletTestHelper.createEntity(analysis, extraParams);
 		
 		// Make sure the step's parent is now the analysis
-		step = testHelper.getEntity(step, null);
+		step = servletTestHelper.getEntity(step, null);
 		assertEquals(analysis.getId(), step.getParentId());
 		
 		// Confirm that another user cannot read the analysis or the step
-		testHelper.setTestUser(testUserInfo.getId());
+		servletTestHelper.setTestUser(testUserInfo.getId());
 		try {
-			testHelper.getEntity(step, null);
+			servletTestHelper.getEntity(step, null);
 			fail("expected exception");
 		}
 		catch (UnauthorizedException e) {
-			Assert.assertTrue(e.getMessage().contains(" lacks read access to the requested object."));
+			Assert.assertTrue("actual message"+e.getMessage(), e.getMessage().contains("You do not have READ permission for the requested entity."));
 		}
 		
 		// Add a public read ACL to the project object
-		testHelper.setTestUser(adminUserInfo.getId());
-		AccessControlList projectAcl = testHelper.getEntityACL(project);
+		servletTestHelper.setTestUser(adminUserInfo.getId());
+		AccessControlList projectAcl = servletTestHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
 		ac.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);
-		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
+		projectAcl = servletTestHelper.updateEntityAcl(project, projectAcl);
 
 		// Ensure that another user can now read the step
-		testHelper.setTestUser(testUserInfo.getId());
-		step = testHelper.getEntity(step, null);
+		servletTestHelper.setTestUser(testUserInfo.getId());
+		step = servletTestHelper.getEntity(step, null);
 
 	}
 }

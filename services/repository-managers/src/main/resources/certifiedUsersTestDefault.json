@@ -1,0 +1,910 @@
+{
+  "id": 1,
+  "minimumScore": 10,
+  "questions": [
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 0,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Browse public project and file catalogues"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Create a project"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Download Files"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) Upload Files"
+            },
+            {
+              "answerIndex": 4,
+              "isCorrect": true,
+              "prompt": "e) All of the above"
+            }
+          ],
+          "prompt": "As a \"certified\" Synapse user, I can:",
+          "reference": {
+            "wikiPageId": "61140",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 1,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) Browse public project and file catalogues"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Create a project"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Download Files"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) Upload Files"
+            },
+            {
+              "answerIndex": 4,
+              "isCorrect": false,
+              "prompt": "e) All of the above"
+            }
+          ],
+          "prompt": "If I am not logged into Synapse (\"anonymous user\"), I can:",
+          "reference": {
+            "wikiPageId": "61140",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 2,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Browse public project and file catalogues"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Create a project"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Download Files but not upload files"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d) All of the above"
+            }
+          ],
+          "prompt": "As a \"registered\" Synapse user, I can:",
+          "reference": {
+            "wikiPageId": "61140",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 3,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) To respect institutional policies of the data contributor."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) To ensure that use of the data meets all applicable human subjects research regulations."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Because of the sensitive nature of the data, its use must be monitored."
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d) All of the above"
+            }
+          ],
+          "prompt": "Why do some Controlled datasets require IRB review as a condition for use  (choose all that are true)?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 4,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) When required by informed consent, legal contract or other privacy requirements"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) When the content is already publicly available elsewhere"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) When the content is from a \"vulnerable\" population"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) When the content could potentially harm individuals or groups if misused"
+            }
+          ],
+          "prompt": "When is it NOT necessary to add 'Conditions for Use' to my content?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 5,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Nothing, this isn’t my concern."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b)  Click the 'Report Issue' Flag next to the file name to alert the Synapse Access and Compliance Team."
+            }
+          ],
+          "prompt": "A data file containing sensitive human health information is available on Synapse without data use conditions.  You believe this is an error. What should you do (choose one)?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 6,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "If I create a new project the content is shared with the public by default.",
+          "reference": {
+            "wikiPageId": "63529",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 7,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) do the same things as the Sharing settings."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) control who can view Synapse content."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c) enforce use restrictions of content in a file or folder."
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) share Synapse content in a limited fashion with a group of my close collaborators."
+            }
+          ],
+          "prompt": "'Conditions for Use' are used to:",
+          "reference": {
+            "wikiPageId": "63529",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 8,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) private content"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) public content"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c)  all content"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) all new user content"
+            }
+          ],
+          "prompt": "The Synapse Access and Compliance Team performs quarterly audits to ensure that _____ is shared on Synape with the appropriate 'Conditions for Use'.",
+          "reference": {
+            "wikiPageId": "63529",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 9,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) do the same things as 'Conditions for Use."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) enforce data use restrictions that are associated with the content of a file or folder."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) post information on another site"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d) control who can view Synapse Content"
+            }
+          ],
+          "prompt": "Sharing settings are used to:",
+          "reference": {
+            "wikiPageId": "63529",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 10,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) Sharing"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Conditions for Use"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Administrator"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) Governance"
+            }
+          ],
+          "prompt": "To share Synapse content in a limited fashion with a group of my close collaborators I use the ____ settings.",
+          "reference": {
+            "wikiPageId": "63529",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 11,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "The Synapse Access and Compliance Team monitors data I have placed in a private project.",
+          "reference": {
+            "wikiPageId": "63529",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 12,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) It's my boss, so it's okay to do this."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Ignore the request and hope he/she forgets."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c) Decline the request and remind my supervisor that using someone else’s credentials is against Synapse policy."
+            }
+          ],
+          "prompt": "Your supervisor is very busy and asks you to log onto Synapse using his/her credentials to retrieve Controlled Use data.  What should you do?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 13,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) It's my friend, so it's okay to do this."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Ignore the request and hope he/she forgets."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c) Decline the request and remind your friend that you are not permitted to redistribute Controlled Use data from Synapse."
+            }
+          ],
+          "prompt": "Your friend is very busy and asks you to give them a copy of Controlled Use data that you downloaded from Synapse.    What should you do?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 14,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) Data without use restrictions can be shared with other registered Synapse users."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Any data that I download from Synapse can be reposted in another database."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) I can freely share any data downloaded from Synapse with my collaborators."
+            }
+          ],
+          "prompt": "Which of the following statements is true?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 15,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) Anyone over 13 years old"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Only researchers in an accredited academic institution"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Only people working at not-for-profit research organizations"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) Anyone that does not work at a for profit organization"
+            }
+          ],
+          "prompt": "Who can register for a Synapse account?",
+          "reference": {
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 16,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Yes, absolutely. They can decide whether to ignore me."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) No, I should not use the data to re-identify participants in the first place."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Maybe.  It depends on the follow-up question I wish to ask."
+            }
+          ],
+          "prompt": "You are analyzing data and are able to deduce the identity of data participants.  You would like to ask follow-up questions.  Should you contact them?",
+          "reference": {
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 17,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Yes, absolutely. They can decide whether to ignore me."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) No, I should not use the data to re-identify participants in the first place."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) Maybe.  It depends on the follow-up question I wish to ask."
+            }
+          ],
+          "prompt": "You are analyzing data and are able to deduce the identity of data participants.  You would like to ask follow-up questions.  Should you contact them?",
+          "reference": {
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 18,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "All files placed in a ‘Controlled’ folder are subject to the specified use conditions of that folder but if I move a file out of that folder the conditions are lifted.",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 19,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "All files placed in a ‘Controlled’ folder are subject to the specified use conditions of that folder but if I move a file out of that folder the conditions are lifted.",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 20,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "All files placed in a ‘Controlled’ folder are subject to the specified use conditions of that folder but if I move a file out of that folder the conditions are lifted.",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 21,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "A file will carry the 'Conditions for Use' of the folder it resides in unless I have specified 'Conditions for Use' on the file itself.",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 22,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "A file will carry the 'Conditions for Use' of the folder it resides in unless I have specified 'Conditions for Use' on the file itself.",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 23,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a) True"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) False"
+            }
+          ],
+          "prompt": "A file will carry the 'Conditions for Use' of the folder it resides in unless I have specified 'Conditions for Use' on the file itself.",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 24,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Ask questions in the Synapse support forum: http://support.sagebase.org/sagebase"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Send an email to synapseInfo@sagebase.org"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c) a and b"
+            }
+          ],
+          "prompt": "If I have any questions about Synapse I can do the following: Choose one option",
+          "reference": {
+            "wikiPageId": "62866",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 25,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Ask questions in the Synapse support forum: http://support.sagebase.org/sagebase"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Send an email to synapseInfo@sagebase.org"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c) a and b"
+            }
+          ],
+          "prompt": "If I have any questions about Synapse I can do the following: Choose one option",
+          "reference": {
+            "wikiPageId": "62866",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 26,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) Ask questions in the Synapse support forum: http://support.sagebase.org/sagebase"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) Send an email to synapseInfo@sagebase.org"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c) a and b"
+            }
+          ],
+          "prompt": "If I have any questions about Synapse I can do the following: Choose one option",
+          "reference": {
+            "wikiPageId": "62866",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 27,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) I add 'Conditions for Use' through the Web interface"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) I load the content into an existing \"Controlled Access\" folder"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) I write the condition for use in the description wiki"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d) a and b"
+            }
+          ],
+          "prompt": "How do I add \"Condition for Use\" to my content?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 28,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) I cannot share content with everyone.  Synapse is a private platform."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b) I can upload the content into a \"Public\" folder or set the sharing conditions to 'Public'."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) I contact the Synapse Access and Compliance Team to make files 'Public'."
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d) Any content I place in Synapse is automatically shared with everyone."
+            }
+          ],
+          "prompt": "How can I share content with everyone?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        },
+        {
+          "questionIndex": 29,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a) I add 'Conditions for Use' through the Web interface"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b) I load the content into an existing \"Controlled Access\" folder"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c) I write the condition for use in the description wiki"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d) a and b"
+            }
+          ],
+          "prompt": "How do I add \"Condition for Use\" to my content?",
+          "reference": {
+            "wikiPageId": "63409",
+            "ownerObjectId": "syn2305384",
+            "ownerObjectType": "ENTITY"
+          }
+        }
+      ]
+    }
+  ]
+}

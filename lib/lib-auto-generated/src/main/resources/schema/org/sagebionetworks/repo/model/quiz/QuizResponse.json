@@ -1,0 +1,31 @@
+{
+	"type":"object",
+	"description":"The set of responses to a Quiz",
+	"properties":{
+		"id":{
+			"description":"The unique ID for this response",
+			"type":"integer"
+		},
+		"quizId":{
+			"description":"The ID of the Quiz to which this is a response",
+			"type":"integer"
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The unique identifier of the one creating the response"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"When this response was created"
+		},
+		"questionResponses":{
+			"description":"The list of responses to the questions in the Quiz",
+			"type": "array",
+			"items": {
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
+			}
+		}
+	}
+}

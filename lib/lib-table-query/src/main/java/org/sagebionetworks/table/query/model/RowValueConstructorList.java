@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * This matches &ltrow value constructor list&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class RowValueConstructorList implements SQLElement {
+public class RowValueConstructorList extends SQLElement {
 	
 	List<RowValueConstructorElement> rowValueConstructorElements;
 
@@ -27,13 +27,13 @@ public class RowValueConstructorList implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		boolean isFrist = true;
 		for(RowValueConstructorElement element: rowValueConstructorElements){
 			if(!isFrist){
 				builder.append(", ");
 			}
-			element.toSQL(builder);
+			element.toSQL(builder, columnConvertor);
 			isFrist = false;
 		}
 	}

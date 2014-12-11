@@ -18,6 +18,7 @@ import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -35,6 +36,7 @@ public class AccessInterceptorTest {
 	StubAccessRecorder stubRecorder;
 	AccessInterceptor interceptor;
 	Long userId;
+	TestClock testClock = new TestClock();
 
 	@Before
 	public void before() throws Exception {
@@ -46,6 +48,7 @@ public class AccessInterceptorTest {
 		stubRecorder = new StubAccessRecorder();
 		interceptor = new AccessInterceptor();
 		ReflectionTestUtils.setField(interceptor, "accessRecorder", stubRecorder);
+		ReflectionTestUtils.setField(interceptor, "clock", testClock);
 		// Setup the happy mock
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());
 		when(mockRequest.getRequestURI()).thenReturn("/entity/syn789");
@@ -56,18 +59,20 @@ public class AccessInterceptorTest {
 		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
 		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
 		when(mockRequest.getQueryString()).thenReturn("?param1=foo");
+		// setup response
+		when(mockResponse.getStatus()).thenReturn(200);
 	}
 	
 	
 	
 	@Test
 	public void testHappyCase() throws Exception{
-		long start = System.currentTimeMillis();
+		long start = testClock.currentTimeMillis();
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
 		interceptor.setReturnObjectId("returnId");
 		// Wait to add some elapse time
-		Thread.sleep(100);
+		testClock.sleep(234);
 		// finish the call
 		Exception exception = null;
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
@@ -77,7 +82,7 @@ public class AccessInterceptorTest {
 		AccessRecord result = stubRecorder.getSavedRecords().get(0);
 		assertNotNull(result);
 		assertTrue(result.getTimestamp() >= start);
-		assertTrue(result.getElapseMS() > 99);
+		assertEquals(234L, result.getElapseMS().longValue());
 		assertTrue(result.getSuccess());
 		assertNotNull(result.getSessionId());
 		assertEquals("/entity/syn789", result.getRequestURL());
@@ -98,11 +103,11 @@ public class AccessInterceptorTest {
 	
 	@Test
 	public void testHappyCaseWithException() throws Exception{
-		long start = System.currentTimeMillis();
+		long start = testClock.currentTimeMillis();
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
 		// Wait to add some elapse time
-		Thread.sleep(100);
+		testClock.sleep(234);
 		// finish the call
 		String error = "Something went horribly wrong!!!";
 		Exception exception = new IllegalArgumentException(error);
@@ -113,7 +118,51 @@ public class AccessInterceptorTest {
 		AccessRecord result = stubRecorder.getSavedRecords().get(0);
 		assertNotNull(result);
 		assertTrue(result.getTimestamp() >= start);
-		assertTrue(result.getElapseMS() > 99);
+		assertEquals(234L, result.getElapseMS().longValue());
 		assertFalse(result.getSuccess());
+	}
+	
+	@Test
+	public void testStatusCode200() throws Exception{
+		long start = testClock.currentTimeMillis();
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		// Wait to add some elapse time
+		testClock.sleep(234);
+		// return a 200
+		// setup response
+		when(mockResponse.getStatus()).thenReturn(200);
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
+		// Now get the results from the stub
+		assertNotNull(stubRecorder.getSavedRecords());
+		assertEquals(1, stubRecorder.getSavedRecords().size());
+		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		assertNotNull(result);
+		assertTrue(result.getTimestamp() >= start);
+		assertEquals(234L, result.getElapseMS().longValue());
+		assertTrue("200 is a success",result.getSuccess());
+		assertEquals(new Long(200), result.getResponseStatus());
+	}
+	
+	@Test
+	public void testStatusCode400() throws Exception{
+		long start = testClock.currentTimeMillis();
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		// Wait to add some elapse time
+		testClock.sleep(234);
+		// return a 200
+		// setup response
+		when(mockResponse.getStatus()).thenReturn(400);
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
+		// Now get the results from the stub
+		assertNotNull(stubRecorder.getSavedRecords());
+		assertEquals(1, stubRecorder.getSavedRecords().size());
+		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		assertNotNull(result);
+		assertTrue(result.getTimestamp() >= start);
+		assertEquals(234L, result.getElapseMS().longValue());
+		assertFalse("400 is not a success",result.getSuccess());
+		assertEquals(new Long(400), result.getResponseStatus());
 	}
 }

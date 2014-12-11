@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +32,7 @@ public class DBOBuilder<T> {
 	public interface ParamTypeMapper {
 		public Object convert(Object result);
 
-		public int getSqlType();
+		public Integer getSqlType();
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
@@ -120,6 +121,16 @@ public class DBOBuilder<T> {
 			} else {
 				return null;
 			}
+		}
+	}
+	
+	private static class TimestampRowMapper extends BaseRowMapper {
+		public TimestampRowMapper(Method fieldSetter, String columnName, boolean nullable) {
+			super(fieldSetter, columnName, nullable);
+		}
+
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			return  rs.getTimestamp(columnName);
 		}
 	}
 	
@@ -236,6 +247,10 @@ public class DBOBuilder<T> {
 					return new DateRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
 				
+				if (fieldEntry.field.getType() == Timestamp.class) {
+					return new TimestampRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
+				}
+				
 				if (fieldEntry.field.getType() == Boolean.class) {
 					return new BooleanRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
@@ -260,7 +275,7 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.VARCHAR;
 					}
 				});
@@ -278,7 +293,7 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.BLOB;
 					}
 				});
@@ -292,8 +307,30 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.NUMERIC;
+					}
+				});
+			}
+
+			if (fieldEntry.annotation.truncatable() && fieldEntry.field.getType() == String.class) {
+				final int maxSize = (fieldEntry.annotation.varchar() > 0) ? fieldEntry.annotation.varchar() : ((fieldEntry.annotation
+						.fixedchar() > 0) ? fieldEntry.annotation.fixedchar() : Integer.MAX_VALUE);
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						if (result instanceof String) {
+							String stringResult = (String) result;
+							if (stringResult.length() > maxSize) {
+								result = stringResult.substring(0, maxSize);
+							}
+						}
+						return result;
+					}
+
+					@Override
+					public Integer getSqlType() {
+						return null;
 					}
 				});
 			}
@@ -331,7 +368,7 @@ public class DBOBuilder<T> {
 		}
 
 		StringBuilder sb = new StringBuilder(1000);
-		sb.append("CREATE TABLE " + escapeName(tableName) + " (\n\t");
+		sb.append("CREATE TABLE IF NOT EXISTS " + escapeName(tableName) + " (\n\t");
 		sb.append(StringUtils.join(lines, ",\n\t"));
 		sb.append("\n)\n");
 
@@ -359,7 +396,9 @@ public class DBOBuilder<T> {
 					type = "CHAR(" + fieldAnnotation.fixedchar() + ")";
 				} else if (fieldAnnotation.etag()) {
 					type = "CHAR(36)";
-				} else {
+				} else if (fieldAnnotation.blob() != null) {
+					type = fieldAnnotation.blob();
+				}  else {
 					throw new IllegalArgumentException("No type defined and String field does not have varchar or fixedchar set for "
 							+ fieldAnnotation.name() + " on " + owner.getName());
 				}
@@ -371,6 +410,8 @@ public class DBOBuilder<T> {
 				type = fieldAnnotation.serialized();
 			} else if (fieldClazz == Boolean.class) {
 				type = "bit(1)";
+			} else if (fieldClazz == Timestamp.class) {
+				type = "timestamp";
 			} else {
 				throw new IllegalArgumentException("No type defined and " + fieldAnnotation.name() + " on " + owner.getName()
 						+ " cannot be automatically translated");

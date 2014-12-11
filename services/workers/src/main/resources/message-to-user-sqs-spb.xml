@@ -11,27 +11,18 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:managers-spb.xml" />
-
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<!-- AmazonSNSClient -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
 	<!-- Setups the search message queue. -->
 	<bean id="messageToUserMessageQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.messageUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
-		<constructor-arg index="2" value="true" />
+		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
+		<constructor-arg index="2">
+			<list>
+				<value>MESSAGE</value>
+			</list>
+		</constructor-arg>
+		<constructor-arg index="3" value="true" />
 	</bean>
 
 	<!-- provides search message queue workers -->
@@ -48,7 +39,7 @@
 		<property name="workerFactory" ref="messageToUserQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="2" />
 		<property name="maxMessagePerWorker" value="5" />
-		<property name="visibilityTimeoutSec" value="600" />
+		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 	
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->

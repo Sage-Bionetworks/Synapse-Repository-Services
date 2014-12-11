@@ -5,6 +5,7 @@
 			"description": "The status of data curation process",
 			"type": "string",
 			"name": "CurationStatusNames",
+			"id": "org.sagebionetworks.repo.model.CurationStatusNames",
 			"enum": [
 				"loaded",
 				"processed",

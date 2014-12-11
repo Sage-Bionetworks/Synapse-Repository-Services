@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltboolean test&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class BooleanTest implements SQLElement {
+public class BooleanTest extends SQLElement {
 
 	BooleanPrimary booleanPrimary;
 	Boolean is;
@@ -36,8 +37,8 @@ public class BooleanTest implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		this.booleanPrimary.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		this.booleanPrimary.toSQL(builder, columnConvertor);
 		if(is != null){
 			builder.append(" IS ");
 			if(not != null){

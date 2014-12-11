@@ -1,38 +1,19 @@
 package org.sagebionetworks.table.query.util;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import org.sagebionetworks.repo.model.table.SortDirection;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.BetweenPredicate;
-import org.sagebionetworks.table.query.model.BooleanFactor;
-import org.sagebionetworks.table.query.model.BooleanPrimary;
-import org.sagebionetworks.table.query.model.BooleanTerm;
-import org.sagebionetworks.table.query.model.BooleanTest;
-import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.ComparisonPredicate;
-import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.EscapeCharacter;
-import org.sagebionetworks.table.query.model.GroupingColumnReference;
-import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
-import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.InPredicateValue;
-import org.sagebionetworks.table.query.model.LikePredicate;
-import org.sagebionetworks.table.query.model.MatchValue;
-import org.sagebionetworks.table.query.model.NullPredicate;
-import org.sagebionetworks.table.query.model.Pattern;
-import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.RowValueConstructor;
-import org.sagebionetworks.table.query.model.RowValueConstructorElement;
-import org.sagebionetworks.table.query.model.RowValueConstructorList;
-import org.sagebionetworks.table.query.model.SearchCondition;
-import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SortKey;
-import org.sagebionetworks.table.query.model.SortSpecification;
-import org.sagebionetworks.table.query.model.SortSpecificationList;
-import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.util.ValidateArgument;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Utilities for creating SQL elements
@@ -232,13 +213,25 @@ public class SqlElementUntils {
 	}
 
 	/**
+	 * Create boolean predicate from the input SQL.
+	 * 
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static BooleanPredicate createBooleanPredicate(String sql) throws ParseException {
+		return (BooleanPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
+	}
+
+	/**
 	 * Create null predicate from the input SQL.
+	 * 
 	 * @param sql
 	 * @return
 	 * @throws ParseException
 	 */
 	public static NullPredicate createNullPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getNullPredicate();
+		return (NullPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
 	}
 
 	/**
@@ -423,5 +416,148 @@ public class SqlElementUntils {
 	public static SortSpecificationList createSortSpecificationList(String sql) throws ParseException {
 		return new TableQueryParser(sql).sortSpecificationList();
 	}
+	
+	/**
+	 * Get the tableId from a QuerySpecification 
+	 * @param model
+	 * @return
+	 */
+	public static String getTableId(QuerySpecification querySpecification){
+		if (querySpecification == null)
+			throw new IllegalArgumentException("QuerySpecification cannot be null");
+		return getTableId(querySpecification.getTableExpression());
+	}
+	
+	/**
+	 * Get the tableId from the passed SQL string.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static String getTableId(String sql) throws ParseException {
+		if (sql == null)
+			throw new IllegalArgumentException("SQL cannot be null");
+		return getTableId(new TableQueryParser(sql).querySpecification());
+	}
 
+	/**
+	 * Get the tableId from a TableExpression
+	 * @param tableExpression
+	 * @return
+	 */
+	public static String getTableId(TableExpression tableExpression) {
+		if (tableExpression == null)
+			throw new IllegalArgumentException("TableExpression cannot be null");
+		return getTableId(tableExpression.getFromClause());
+	}
+
+	/**
+	 * Get the tableId from a FromClause
+	 * @param fromClause
+	 * @return
+	 */
+	public static String getTableId(FromClause fromClause) {
+		if (fromClause == null)
+			throw new IllegalArgumentException("FromClause cannot be null");
+		return getTableId(fromClause.getTableReference());
+	}
+
+	/**
+	  * Get the tableId from a TableReference
+	 * @param tableReference
+	 * @return
+	 */
+	public static String getTableId(TableReference tableReference) {
+		if (tableReference == null)
+			throw new IllegalArgumentException("TableReference cannot be null");
+		return tableReference.getTableName();
+	}
+	
+	/**
+	 * Convert the passed query into a count query.
+	 * @param model
+	 * @return
+	 * @throws ParseException 
+	 */
+	public static QuerySpecification convertToCountQuery(QuerySpecification model) {
+		ValidateArgument.required(model, "QuerySpecification");
+		TableExpression currentTableExpression = model.getTableExpression();
+		ValidateArgument.required(currentTableExpression, "TableExpression");
+
+		// Clear the select list
+		SelectList count;
+		try {
+			count = new SelectList(createDerivedColumns("count(*)"));
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
+				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), null, null);
+		return new QuerySpecification(null, null, count, tableExpression);
+	}
+	
+	/**
+	 * Convert the passed query into a count query.
+	 * 
+	 * @param model
+	 * @return
+	 * @throws ParseException
+	 */
+	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit) throws ParseException {
+		if (model == null)
+			throw new IllegalArgumentException("QuerySpecification cannot be null");
+		TableExpression currentTableExpression = model.getTableExpression();
+		if (currentTableExpression == null)
+			throw new IllegalArgumentException("TableExpression cannot be null");
+		// add pagination
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
+				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(),
+				currentTableExpression.getOrderByClause(), new Pagination(limit, offset));
+		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+	}
+
+	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
+		return new TableExpression(tableExpression.getFromClause(), tableExpression.getWhereClause(), tableExpression.getGroupByClause(),
+				null, tableExpression.getPagination());
+	}
+
+	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) {
+		ValidateArgument.required(model, "QuerySpecification");
+		ValidateArgument.required(sortList, "sortList");
+		TableExpression currentTableExpression = model.getTableExpression();
+		ValidateArgument.required(currentTableExpression, "TableExpression");
+
+		Map<String, SortSpecification> originalSortSpecifications;
+		OrderByClause orderByClause = currentTableExpression.getOrderByClause();
+		if (orderByClause == null) {
+			originalSortSpecifications = Collections.emptyMap();
+		} else {
+			// need to preserve order, so use linked hash map
+			originalSortSpecifications = Maps.newLinkedHashMap();
+			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
+				StringBuilder columnName = new StringBuilder();
+				spec.getSortKey().getColumnReference().toSQL(columnName, null);
+				originalSortSpecifications.put(columnName.toString(), spec);
+			}
+		}
+
+		List<SortSpecification> sortSpecifications = Lists.newArrayListWithCapacity(originalSortSpecifications.size() + sortList.size());
+
+		for (SortItem sortItem : sortList) {
+			// no sortItem.getDirection() will become order ASC
+			OrderingSpecification direction = sortItem.getDirection() == SortDirection.DESC ? OrderingSpecification.DESC
+					: OrderingSpecification.ASC;
+			originalSortSpecifications.remove(sortItem.getColumn());
+			sortSpecifications.add(new SortSpecification(new SortKey(new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(
+					sortItem.getColumn(), null))), null)), direction));
+		}
+		sortSpecifications.addAll(originalSortSpecifications.values());
+		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
+
+		// add pagination
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
+				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), orderByClause,
+				currentTableExpression.getPagination());
+		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+	}
 }

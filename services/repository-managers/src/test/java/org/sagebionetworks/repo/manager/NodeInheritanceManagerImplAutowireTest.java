@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -35,6 +38,9 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Autowired
 	private UserManager userManager;
 	
+	@Autowired
+	TrashManager trashManager;
+
 	private List<String> nodesToDelete;
 	private String rootId = null;
 	private String aId = null;
@@ -895,5 +901,51 @@ public class NodeInheritanceManagerImplAutowireTest {
 		benefactorId = nodeInheritanceDao.getBenefactor(folderFiveId);
 		assertEquals(newFolderId, benefactorId);
 		nodeToCheck = null;
+	}
+
+	@Test
+	public void testTrashedFolderIsIdentified() throws Exception {
+		Node nextNode = new Node();
+		String rootFolderId = null;
+		String folderTwoId = null;
+		String folderThreeId = null;
+
+		nextNode.setName("rootFolder");
+		nextNode.setNodeType(EntityType.folder.name());
+		rootFolderId = nodeManager.createNewNode(nextNode, adminUserInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(rootFolderId);
+		nodesToDelete.add(rootFolderId);
+
+		nextNode = new Node();
+		nextNode.setName("folderTwo");
+		nextNode.setNodeType(EntityType.folder.name());
+		nextNode.setParentId(rootFolderId);
+		folderTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderTwoId);
+		nodesToDelete.add(folderTwoId);
+
+		nextNode = new Node();
+		nextNode.setName("folderThree");
+		nextNode.setNodeType(EntityType.folder.name());
+		nextNode.setParentId(folderTwoId);
+		folderThreeId = nodeManager.createNewNode(nextNode, adminUserInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderThreeId);
+		nodesToDelete.add(folderThreeId);
+
+		assertFalse(nodeInheritanceManager.isNodeInTrash(rootFolderId));
+		assertFalse(nodeInheritanceManager.isNodeInTrash(folderTwoId));
+		assertFalse(nodeInheritanceManager.isNodeInTrash(folderThreeId));
+
+		trashManager.moveToTrash(adminUserInfo, rootFolderId);
+
+		assertTrue(nodeInheritanceManager.isNodeInTrash(rootFolderId));
+		assertTrue(nodeInheritanceManager.isNodeInTrash(folderTwoId));
+		assertTrue(nodeInheritanceManager.isNodeInTrash(folderThreeId));
+
+		trashManager.restoreFromTrash(adminUserInfo, rootFolderId, null);
+
+		assertFalse(nodeInheritanceManager.isNodeInTrash(rootFolderId));
+		assertFalse(nodeInheritanceManager.isNodeInTrash(folderTwoId));
+		assertFalse(nodeInheritanceManager.isNodeInTrash(folderThreeId));
 	}
 }

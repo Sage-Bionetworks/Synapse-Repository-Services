@@ -97,7 +97,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey,
+	public String getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey,
 			String fileName, Long version) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, version);
@@ -105,7 +105,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getAttachmentPreviewRedirectURL(Long userId,
+	public String getAttachmentPreviewRedirectURL(Long userId,
 			WikiPageKey wikiPageKey, String fileName, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -123,7 +123,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version)
+	public String getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		String id = wikiManager.getMarkdownFileHandleId(user, wikiPageKey, version);

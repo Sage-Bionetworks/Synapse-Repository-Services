@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -30,10 +31,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -43,9 +48,15 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
@@ -59,6 +70,7 @@ import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -67,6 +79,7 @@ public class FileHandleManagerImplAutowireTest {
 	public static final long MAX_UPLOAD_WORKER_TIME_MS = 20*1000;
 	
 	private List<S3FileHandle> toDelete;
+	private final List<String> entitiesToDelete = Lists.newArrayList();
 	
 	@Autowired
 	private FileHandleManager fileUploadManager;
@@ -79,6 +92,12 @@ public class FileHandleManagerImplAutowireTest {
 	
 	@Autowired
 	public UserManager userManager;
+
+	@Autowired
+	private EntityManager entityManager;
+
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
 	
 	private UserInfo userInfo;
 	
@@ -88,6 +107,11 @@ public class FileHandleManagerImplAutowireTest {
 	private List<S3FileHandle> expectedMetadata;
 	private String[] fileContents;
 	private List<FileItemStream> fileStreams;
+
+	private String projectId;
+	private String uploadFolder;
+
+	private String projectName;
 	
 	@Before
 	public void before() throws Exception{
@@ -95,7 +119,24 @@ public class FileHandleManagerImplAutowireTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		
+		Project project = new Project();
+		projectName = "project" + new Random().nextInt();
+		project.setName(projectName);
+		projectId = entityManager.createEntity(userInfo, project, null);
+		entitiesToDelete.add(projectId);
+		Folder child = new Folder();
+		child.setName("child");
+		child.setParentId(projectId);
+		String childId = entityManager.createEntity(userInfo, child, null);
+		entitiesToDelete.add(childId);
+		Folder child2 = new Folder();
+		child2.setName("child2  a_-nd.+more()");
+		child2.setParentId(childId);
+		uploadFolder = entityManager.createEntity(userInfo, child2, null);
+		entitiesToDelete.add(uploadFolder);
+
 		toDelete = new LinkedList<S3FileHandle>();
 		// Setup the mock file to upload.
 		int numberFiles = 2;
@@ -132,6 +173,9 @@ public class FileHandleManagerImplAutowireTest {
 				// We also need to delete the data from the database
 				fileHandleDao.delete(meta.getId());
 			}
+		}
+		for (String id : Lists.reverse(entitiesToDelete)) {
+			entityManager.deleteEntity(userInfo, id);
 		}
 		
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -174,12 +218,12 @@ public class FileHandleManagerImplAutowireTest {
 			S3FileHandle fromDB = (S3FileHandle) fileHandleDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
 			// Test the Pre-Signed URL
-			URL presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
+			String presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
 			assertNotNull(presigned);
-			String urlString = presigned.toString();
 			// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
 			// both file upload and download.
-			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
+			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",
+					presigned.startsWith("https://s3.amazonaws.com", 0));
 		}
 	}
 	
@@ -334,6 +378,32 @@ public class FileHandleManagerImplAutowireTest {
 		// Delete the file
 		s3Client.deleteObject(multiPartHandle.getBucketName(), multiPartHandle.getKey());
 		
+	}
+
+	@Test
+	public void testExternalUploadDestination() throws Exception {
+		final String URL = "sftp://www.sftpsite.com/base/basefolder";
+
+		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
+		uploadDestinationListSetting.setProjectId(projectId);
+		uploadDestinationListSetting.setSettingsType("upload");
+		ExternalUploadDestinationSetting uploadDestination = new ExternalUploadDestinationSetting();
+		uploadDestination.setBanner("upload here");
+		uploadDestination.setSupportsSubfolders(true);
+		uploadDestination.setUploadType(UploadType.SFTP);
+		uploadDestination.setUrl(URL);
+		uploadDestinationListSetting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(uploadDestination));
+
+		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
+
+		List<UploadDestination> uploadDestinations = fileUploadManager.getUploadDestinations(userInfo, uploadFolder);
+		assertEquals(1, uploadDestinations.size());
+		assertEquals(ExternalUploadDestination.class, uploadDestinations.get(0).getClass());
+		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestinations.get(0);
+		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
+		assertEquals("upload here", externalUploadDestination.getBanner());
+		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
+		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
 	}
 
 	/**

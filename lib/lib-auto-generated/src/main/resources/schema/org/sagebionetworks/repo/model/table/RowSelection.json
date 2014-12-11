@@ -1,0 +1,20 @@
+{
+    "description":"Represents a selection of rows of a TableEntity",
+    "properties":{
+		"tableId":{
+			"description":"The ID of the TableEntity than owns these rows (optional if supplied by the REST command)",
+			"type": "string"
+		},
+		"etag": {
+		    "description":"This should be set to the current etag or this selection (the etag returned by a query, or the current etag of the table).",
+			"type": "string"
+		},
+		"rowIds": {
+		    "description":"Each row id of this list refers to a single row of a TableEntity.",
+			"type": "array",
+			"items": {
+				"type": "integer"
+			}
+		}
+    }
+}

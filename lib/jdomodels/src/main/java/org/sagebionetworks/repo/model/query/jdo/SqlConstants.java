@@ -20,6 +20,7 @@ public class SqlConstants {
 	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
 	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
+	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOATIONS		= "ANNOTATIONS_ID_OID";
 	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
@@ -73,6 +74,21 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
 	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
 
+	// The Project Settings table
+	public static final String TABLE_PROJECT_SETTING			= "PROJECT_SETTING";
+	public static final String COL_PROJECT_SETTING_ID			= "ID";
+	public static final String COL_PROJECT_SETTING_PROJECT_ID	= "PROJECT_ID";
+	public static final String COL_PROJECT_SETTING_ETAG			= "ETAG";
+	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
+	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
+
+	// The Project Stats table
+	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
+	public static final String COL_PROJECT_STAT_ID				= "ID";
+	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
+	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
+	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
+
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";
 	public static final String COL_ACCESS_REQUIREMENT_ID			= "ID";
@@ -82,7 +98,6 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY	= "MODIFIED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON	= "MODIFIED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE	= "ACCESS_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_ENTITY_TYPE	= "ENTITY_TYPE";
 	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
@@ -113,7 +128,6 @@ public class SqlConstants {
 	public static final String COL_ACCESS_APPROVAL_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID		= "ACCESSOR_ID";
-	public static final String COL_ACCESS_APPROVAL_ENTITY_TYPE		= "ENTITY_TYPE";
 	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
 	
@@ -132,8 +146,9 @@ public class SqlConstants {
 	public static final String TABLE_SENT_MESSAGES					= "SENT_MESSAGES";
 	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
 	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
-	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
-
+	public static final String COL_SENT_MESSAGES_OBJECT_ID			= "OBJECT_ID";
+	public static final String COL_SENT_MESSAGES_OBJECT_TYPE		= "OBJECT_TYPE";
+	
  	// Processed messages
  	public static final String TABLE_PROCESSED_MESSAGES				= "PROCESSED_MESSAGES";
  	public static final String COL_PROCESSED_MESSAGES_CHANGE_NUM	= "CHANGE_NUM";
@@ -375,6 +390,11 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
+	
+	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
+	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
+	public static final String COL_BOUND_OWNER_ETAG			= "ETAG";
+	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
@@ -402,6 +422,25 @@ public class SqlConstants {
 	public static final String COL_TABLE_STATUS_ERROR_MESSAGE		= "ERROR_MESSAGE";
 	public static final String COL_TABLE_STATUS_ERROR_DETAILS		= "ERROR_DETAILS";
 	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
+	public static final String COL_TABLE_LAST_TABLE_CHANGE_ETAG		= "LAST_TABLE_CHANGE_ETAG";
+	
+	// Status table for Asynchronous jobs
+	public static final String ASYNCH_JOB_STATUS					= "ASYNCH_JOB_STATUS";
+	public static final String COL_ASYNCH_JOB_ID					= "JOB_ID";
+	public static final String COL_ASYNCH_JOB_ETAG					= "ETAG";
+	public static final String COL_ASYNCH_JOB_STATE					= "JOB_STATE";
+	public static final String COL_ASYNCH_JOB_TYPE					= "JOB_TYPE";
+	public static final String COL_ASYNCH_JOB_PROGRESS_CURRENT		= "PROGRESS_CURRENT";
+	public static final String COL_ASYNCH_JOB_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
+	public static final String COL_ASYNCH_JOB_PROGRESS_MESSAGE		= "PROGRESS_MESSAGE";
+	public static final String COL_ASYNCH_JOB_ERROR_MESSAGE			= "ERROR_MESSAGE";
+	public static final String COL_ASYNCH_JOB_ERROR_DETAILS			= "ERROR_DETAILS";
+	public static final String COL_ASYNCH_JOB_STARTED_ON			= "STARTED_ON";
+	public static final String COL_ASYNCH_JOB_STARTED_BY			= "STARTED_BY";
+	public static final String COL_ASYNCH_JOB_CHANGED_ON			= "CHANGED_ON";
+	public static final String COL_ASYNCH_JOB_REQUEST_BODY			= "COMPRESSED_REQUEST_BODY";
+	public static final String COL_ASYNCH_JOB_RESPONSE_BODY			= "COMPRESSED_RESPONSE_BODY";
+	public static final String COL_ASYNCH_JOB_RUNTIME_MS			= "RUNTIME_MS";
 	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
@@ -505,6 +544,16 @@ public class SqlConstants {
 	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
 	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
 
+	// Lock master
+	public static final String TABLE_LOCK_MASTER 					= "LOCK_MASTER";
+	public static final String COL_LOCK_MASTER_KEY 					= "SEMAPHORE_KEY";
+
+	// Counting Semaphore
+	public static final String TABLE_COUNTING_SEMAPHORE 			= "COUNTING_SEMAPHORE";
+	public static final String COL_COUNTING_SEMAPHORE_KEY			= "SEMAPHORE_KEY";
+	public static final String COL_COUNTING_SEMAPHORE_LOCK_TOKEN	= "LOCK_TOKEN";
+	public static final String COL_COUNTING_SEMAPHORE_EXPIRES		= "EXPIRATION";
+
 	// Upload status
 	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
 	public static final String COL_UPLOAD_STATUS_ID					= "ID";
@@ -562,6 +611,13 @@ public class SqlConstants {
 	public static final String COL_PRINCIPAL_ALIAS_TYPE				= "TYPE";
 	public static final String COL_PRINCIPAL_ALIAS_IS_VALIDATED		= "IS_VALIDATED";
 	public static final String CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE 	= "UNIQUE KEY `PRINCIPAL_ALIAS_UNIQUE` (`"+COL_PRINCIPAL_ALIAS_UNIQUE+"`)";
+
+	// this table tells which of a principal's aliases is their notification email
+	public static final String TABLE_NOTIFICATION_EMAIL				= "NOTIFICATION_EMAIL";
+	public static final String COL_NOTIFICATION_EMAIL_ID			= "ID";
+	public static final String COL_NOTIFICATION_EMAIL_ETAG			= "ETAG";
+	public static final String COL_NOTIFICATION_EMAIL_PRINCIPAL_ID	= "PRINCIPAL_ID";
+	public static final String COL_NOTIFICATION_EMAIL_ALIAS_ID		= "ALIAS_ID";
 	
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION_SUBMISSION	= "MEMBERSHIP_INVITATION_SUBMISSION";
@@ -627,7 +683,18 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
-
+	
+	// QuizResponse data set
+	public static final String TABLE_QUIZ_RESPONSE = "QUIZ_RESPONSE";
+	public static final String COL_QUIZ_RESPONSE_ID = "ID";
+	public static final String COL_QUIZ_RESPONSE_CREATED_BY = "CREATED_BY";
+	public static final String COL_QUIZ_RESPONSE_CREATED_ON = "CREATED_ON";
+	public static final String COL_QUIZ_RESPONSE_QUIZ_ID = "QUIZ_ID";
+	public static final String COL_QUIZ_RESPONSE_SCORE = "SCORE";
+	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";
+	public static final String COL_QUIZ_RESPONSE_SERIALIZED = "SERIALIZED";
+	public static final String COL_QUIZ_RESPONSE_PASSING_RECORD = "PASSING_RECORD";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

@@ -1,10 +1,15 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Iterator;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionCallback;
 
 /**
  * This is an abstraction for table index CRUD operations.
@@ -48,7 +53,23 @@ public interface TableIndexDAO {
 	 * @param rowset
 	 * @return
 	 */
-	int[] createOrUpdateRows(RowSet rowset, List<ColumnModel> currentSchema);
+	void createOrUpdateOrDeleteRows(RowSet rowset, List<ColumnModel> currentSchema);
+	
+	/**
+	 * Query a RowSet from the table.
+	 * @param query
+	 * @return
+	 */
+	public RowSet query(SqlQuery query);
+	
+	/**
+	 * Provides the means to stream over query results without keeping the row data in memory.
+	 * 
+	 * @param query
+	 * @param handler
+	 * @return
+	 */
+	public boolean queryAsStream(SqlQuery query, RowAndHeaderHandler handler);
 	
 	/**
 	 * Get the row count for this table.
@@ -59,16 +80,40 @@ public interface TableIndexDAO {
 	public Long getRowCountForTable(String tableId);
 	
 	/**
-	 * Get the max version we currently have for this table.
+	 * Get the max complete version we currently have for this table.
 	 * 
 	 * @param tableId
-	 * @return The max version of the table. If the table does not exist then null.
+	 * @param version the max complete version to remember
+	 * @return The max complete version of the table. If the table does not exist then -1L.
 	 */
-	public Long getMaxVersionForTable(String tableId);
+	public Long getMaxCurrentCompleteVersionForTable(String tableId);
+
+	/**
+	 * Set the max complete version for this table
+	 * 
+	 * @param tableId
+	 * @param highestVersion
+	 */
+	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
+
+	/**
+	 * Delete the status table for this table if it exists
+	 * 
+	 * @param tableId
+	 */
+	public void deleteStatusTable(String tableId);
 	
 	/**
 	 * Get the connection
 	 * @return
 	 */
-	public SimpleJdbcTemplate getConnection();
+	public JdbcTemplate getConnection();
+
+	/**
+	 * run calls within a read transaction
+	 * 
+	 * @param callable
+	 * @return
+	 */
+	public <T> T executeInReadTransaction(TransactionCallback<T> callable);
 }

@@ -20,10 +20,6 @@
 		"type": {
 			"$ref": "org.sagebionetworks.repo.model.principal.AliasType",
 			"description": "The type of alias being bound"
-		},
-		"isValidated": {
-			"type": "boolean",
-			"description": "Has this alias been validated?"
 		}
 	}
 }

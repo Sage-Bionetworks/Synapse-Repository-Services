@@ -27,6 +27,14 @@ public class ServiceConstants {
 	 * section on paging</a>
 	 */
 	public static final String PAGINATION_OFFSET_PARAM = "offset";
+	
+	/**
+	 * Should the participant data service return data normalized to a common unit of measure?
+	 * true if values should be normalized, false otherwise. Normalized units are declared
+	 * in the Units enumberation for each unit the user may select. 
+	 */
+	public static final String NORMALIZE_DATA = "normalizeData";
+	
 	/**
 	 * Default value for offset parameter used RequestParam annotations which
 	 * require a static string
@@ -239,6 +247,8 @@ public class ServiceConstants {
 	public static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
 	public static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 	
+	public static final String EVALUATION_IDS_PARAM = "evaluationIds";
+	
 	// default EntityBundle mask for serialization in Submission objects.
 	public static final int DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS + EntityBundle.FILE_HANDLES;
 
@@ -249,4 +259,6 @@ public class ServiceConstants {
 	 * A query string parameter indicating whether to skip the trash can when deleting entities.
 	 */
 	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
+	
+	public static final String PRINCIPAL_ID = "principalId";
 }

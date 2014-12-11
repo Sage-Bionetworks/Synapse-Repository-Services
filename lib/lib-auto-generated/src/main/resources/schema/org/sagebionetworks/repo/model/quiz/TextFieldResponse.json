@@ -1,0 +1,15 @@
+{
+	"type":"object",
+	"description":"The text response to a TextFieldQuestion",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
+        }
+    ],
+    "properties":{
+    	"response":{
+    		"description":"The response to the text-field question",
+    		"type":"string"
+    	}
+	}
+}

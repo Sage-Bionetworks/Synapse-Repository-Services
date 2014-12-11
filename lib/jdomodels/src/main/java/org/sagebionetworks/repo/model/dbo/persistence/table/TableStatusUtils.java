@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
@@ -36,11 +35,12 @@ public class TableStatusUtils {
 		if(dto.getState() != null){
 			dbo.setState(TableStateEnum.valueOf(dto.getState().name()));
 		}
-		dbo.setProgresssCurrent(dto.getProgresssCurrent());
-		dbo.setProgresssTotal(dto.getProgresssTotal());
-		dbo.setProgresssMessage(dto.getProgresssMessage());
+		dbo.setProgressCurrent(dto.getProgressCurrent());
+		dbo.setProgressTotal(dto.getProgressTotal());
+		dbo.setProgressMessage(dto.getProgressMessage());
 		dbo.setResetToken(dto.getResetToken());
 		dbo.setTotalRunTimeMS(dto.getTotalTimeMS());
+		dbo.setLastTableChangeEtag(dto.getLastTableChangeEtag());
 		return dbo;
 	}
 	
@@ -65,11 +65,12 @@ public class TableStatusUtils {
 		if(dbo.getState() != null){
 			dto.setState(TableState.valueOf(dbo.getState().name()));
 		}
-		dto.setProgresssCurrent(dbo.getProgresssCurrent());
-		dto.setProgresssMessage(dbo.getProgresssMessage());
+		dto.setProgressCurrent(dbo.getProgressCurrent());
+		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setResetToken(dbo.getResetToken());
-		dto.setProgresssTotal(dbo.getProgresssTotal());
+		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
+		dto.setLastTableChangeEtag(dbo.getLastTableChangeEtag());
 		return dto;
 	}
 	

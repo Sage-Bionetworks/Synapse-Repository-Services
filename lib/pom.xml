@@ -24,6 +24,7 @@
 		<module>models</module>
 		<module>jdomodels</module>
 		<module>logging</module>
+		<module>lib-utils</module>
 		<module>lib-search</module>
 		<module>lib-dynamo</module>
 		<module>lib-worker</module>
@@ -33,6 +34,7 @@
 		<module>lib-javaclient</module>
 		<module>lib-table-cluster</module>
 		<module>lib-table-query</module>
+		<module>lib-test</module>
 	</modules>
 
 </project>

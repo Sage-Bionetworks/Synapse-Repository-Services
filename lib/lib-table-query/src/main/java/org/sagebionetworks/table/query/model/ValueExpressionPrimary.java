@@ -1,33 +1,37 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltvalue expression primary&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ValueExpressionPrimary implements SQLElement {
+public class ValueExpressionPrimary extends SQLElement {
 
-	UnsignedValueSpecification unsignedValueSpecification;
+	SignedValueSpecification signedValueSpecification;
 	ColumnReference columnReference;
 	SetFunctionSpecification setFunctionSpecification;
 	
-	public ValueExpressionPrimary(
-			UnsignedValueSpecification unsignedValueSpecification) {
-		super();
-		this.unsignedValueSpecification = unsignedValueSpecification;
+	public ValueExpressionPrimary(SignedValueSpecification signedValueSpecification) {
+		this.signedValueSpecification = signedValueSpecification;
 	}
 	
 	public ValueExpressionPrimary(ColumnReference columnReference) {
-		super();
 		this.columnReference = columnReference;
 	}
 
-	public ValueExpressionPrimary(
-			SetFunctionSpecification setFunctionSpecification) {
-		super();
+	public ValueExpressionPrimary(SetFunctionSpecification setFunctionSpecification) {
 		this.setFunctionSpecification = setFunctionSpecification;
 	}
 
-	public UnsignedValueSpecification getUnsignedValueSpecification() {
-		return unsignedValueSpecification;
+	public boolean isAggregate() {
+		if (setFunctionSpecification != null) {
+			return setFunctionSpecification.isAggregate();
+		} else {
+			return false;
+		}
+	}
+
+	public SignedValueSpecification getSignedValueSpecification() {
+		return signedValueSpecification;
 	}
 	public ColumnReference getColumnReference() {
 		return columnReference;
@@ -37,16 +41,14 @@ public class ValueExpressionPrimary implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		// only one element at a time will be no null
-		if(unsignedValueSpecification != null){
-			unsignedValueSpecification.toSQL(builder);
+		if (signedValueSpecification != null) {
+			signedValueSpecification.toSQL(builder, columnConvertor);
 		}else if(columnReference != null){
-			columnReference.toSQL(builder);
+			columnReference.toSQL(builder, columnConvertor);
 		}else{
-			setFunctionSpecification.toSQL(builder);
+			setFunctionSpecification.toSQL(builder, columnConvertor);
 		}
 	}
-	
-	
 }

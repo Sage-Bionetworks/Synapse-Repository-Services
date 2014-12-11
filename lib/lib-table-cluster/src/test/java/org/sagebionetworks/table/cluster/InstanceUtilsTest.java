@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -18,6 +18,7 @@ public class InstanceUtilsTest {
 	
 	@Test
 	public void testCreateDatabaseConnectionURL(){
-		assertEquals("jdbc:mysql://endpoint/schema", InstanceUtils.createDatabaseConnectionURL("endpoint", "schema"));
+		assertEquals("jdbc:mysql://endpoint/schema?rewriteBatchedStatements=true",
+				InstanceUtils.createDatabaseConnectionURL("endpoint", "schema"));
 	}
 }

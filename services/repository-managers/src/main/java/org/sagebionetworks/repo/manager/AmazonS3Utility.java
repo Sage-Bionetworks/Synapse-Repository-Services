@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.File;
+import java.io.InputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 
@@ -38,5 +39,30 @@ public interface AmazonS3Utility {
 	 * @return
 	 */
 	public boolean deleteFromS3(String key);
+	
+	/**
+	 * 
+	 * @param key
+	 * @param content
+	 * @param charSet if null then 'utf-8' is used
+	 */
+	public void uploadStringToS3File(String key, String content, String charSet);
+
+	/**
+	 * 
+	 * @param key
+	 * @param content
+	 * @param charSet if null then 'utf-8' is used
+	 */
+	public void uploadInputStreamToS3File(String key, InputStream is, String charSet);
+
+	/**
+	 * Download an S3 file into a String, decoding using the charset in the content-type header.
+	 * Note:  It's the callers responsibility to ensure the content is small enough
+	 * to fit easily in the machine's memory.
+	 * @param key
+	 * @return
+	 */
+	String downloadFromS3ToString(String key);
 
 }

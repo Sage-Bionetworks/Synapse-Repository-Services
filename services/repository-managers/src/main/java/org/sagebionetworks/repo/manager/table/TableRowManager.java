@@ -1,19 +1,39 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 
 /**
  * Abstraction for Table Row management.
@@ -22,6 +42,24 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * 
  */
 public interface TableRowManager {
+
+	public static class QueryHandler {
+		private final SqlQuery query;
+		private final RowAndHeaderHandler handler;
+
+		public QueryHandler(SqlQuery query, RowAndHeaderHandler handler) {
+			this.query = query;
+			this.handler = handler;
+		}
+
+		public SqlQuery getQuery() {
+			return query;
+		}
+
+		public RowAndHeaderHandler getHandler() {
+			return handler;
+		}
+	}
 
 	/**
 	 * Append a set of rows to a table.
@@ -38,14 +76,75 @@ public interface TableRowManager {
 			NotFoundException, IOException;
 
 	/**
+	 * Append or update a set of partial rows to a table.
+	 * 
+	 * @param user
+	 * @param tableId
+	 * @param models
+	 * @param rowsToAppendOrUpdate
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models,
+			PartialRowSet rowsToAppendOrUpdateOrDelete) throws DatastoreException, NotFoundException, IOException;
+
+	/**
+	 * Delete a set of rows from a table.
+	 * 
+	 * @param models
+	 */
+	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowSelection rowsToDelete)
+			throws DatastoreException, NotFoundException, IOException;
+
+	/**
+	 * Delete all rows from a table.
+	 * 
+	 * @param models
+	 */
+	public void deleteAllRows(String id);
+
+	/**
+	 * Append all rows from the provided iterator into the a table. This method
+	 * will batch rows into optimum sized RowSets.
+	 * 
+	 * Note: This method will only keep one batch of rows in memory at a time so
+	 * it should be suitable for appending very large change sets to a table.
+	 * 
+	 * @param user The user appending the rows
+	 * @param tableId The ID of the table entity to append the rows too.
+	 * @param models The schema of the rows being appended.
+	 * @param rowStream The stream of rows to append to the table.
+	 * @param etag
+	 *            The last etag read before apply an update. An etag must be
+	 *            provide if any rows are being updated.
+	 * @param results
+	 *            This parameter is optional. When provide, it will be populated
+	 *            with a RowReference for each row appended to the table. This
+	 *            parameter should be null for large change sets to minimize
+	 *            memory usage.
+	 * @param The callback will be called for each batch of rows appended to the table.  Can be null.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	String appendRowsAsStream(UserInfo user, String tableId,
+			List<ColumnModel> models, Iterator<Row> rowStream, String etag,
+			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException,
+			NotFoundException, IOException;
+
+	/**
 	 * Get the current ColumnModel list for a table.
 	 * 
 	 * @param tableId
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModelsForTable(String tableId)
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * List the changes that have been applied to a table.
@@ -61,10 +160,70 @@ public interface TableRowManager {
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws IOException 
+	 * @throws NotFoundException
+	 * @throws IOException
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException;
+	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet)
+			throws IOException, NotFoundException;
+
+	/**
+	 * Get all the rows and their current versions
+	 * 
+	 * @param tableId
+	 * @param minVersion
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws TableUnavilableException
+	 */
+	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
+			NotFoundException, TableUnavilableException;
+
+	/**
+	 * Get the last table row change
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException;
+
+	/**
+	 * Get the highest possible row id in this table
+	 * 
+	 * @param tableId
+	 * @return the highest possible row id
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public long getMaxRowId(String tableId) throws IOException, NotFoundException;;
+
+	/**
+	 * Get the values for a specific row reference and column
+	 * 
+	 * @param userInfo
+	 * @param refSet
+	 * @param model
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel model) throws IOException,
+			NotFoundException;
+
+	/**
+	 * Get the values for a specific row reference set and columns
+	 * 
+	 * @param userInfo
+	 * @param refSet
+	 * @param model
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> models)
+			throws IOException, NotFoundException;
 
 	/**
 	 * <p>
@@ -95,11 +254,12 @@ public interface TableRowManager {
 	 *             Thrown when an exclusive lock cannot be acquired.
 	 * 
 	 * @return
-	 * @throws Exception 
-	 * @throws InterruptedException 
+	 * @throws Exception
+	 * @throws InterruptedException
 	 */
-	public <T> T tryRunWithTableExclusiveLock(String tableId, long timeoutMS, Callable<T> runner)
-			throws LockUnavilableException, InterruptedException, Exception;
+	public <T> T tryRunWithTableExclusiveLock(String tableId, long timeoutMS,
+			Callable<T> runner) throws LockUnavilableException,
+			InterruptedException, Exception;
 
 	/**
 	 * <p>
@@ -125,18 +285,22 @@ public interface TableRowManager {
 	 * @param runner
 	 * @return
 	 * @throws LockUnavilableException
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public <T> T tryRunWithTableNonexclusiveLock(String tableId, long timeoutMS, Callable<T> runner)
-			throws LockUnavilableException, Exception;
+	public <T> T tryRunWithTableNonexclusiveLock(String tableId,
+			long timeoutMS, Callable<T> runner) throws LockUnavilableException,
+			Exception;
 
 	/**
-	 * Get the table status
+	 * Get the table status. If the status does not exist (table never indexed after a migration), then a status is
+	 * created, a change message is generated and the new processing status is returned
+	 * 
 	 * @param tableId
-	 * @return
+	 * @return the status
+	 * @throws NotFoundException if the table does not exist
 	 */
-	public TableStatus getTableStatus(String tableId) throws NotFoundException;
-	
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException;
+
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
 	 * will be applied as long as the passed resetToken matches the current
@@ -153,8 +317,8 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken) throws ConflictingUpdateException,
-			NotFoundException;
+			String resetToken, String tableChangeEtag)
+			throws ConflictingUpdateException, NotFoundException;
 
 	/**
 	 * Attempt to set the table status to FAILED. The state will be changed will
@@ -176,9 +340,9 @@ public interface TableRowManager {
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**
-	 * Attempt to update the progress of a table.
-	 * Will fail if the passed rest-token does not match the current reset-token indicating
-	 * the table change while it was being processed.
+	 * Attempt to update the progress of a table. Will fail if the passed
+	 * rest-token does not match the current reset-token indicating the table
+	 * change while it was being processed.
 	 * 
 	 * @param tableId
 	 * @param resetToken
@@ -195,4 +359,105 @@ public interface TableRowManager {
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
+	/**
+	 * Execute a table query.
+	 * 
+	 * @param user
+	 * @param query
+	 * @param isConsistent
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws TableUnavilableException
+	 * @throws TableFailedException
+	 */
+	public Pair<QueryResult, Long> query(UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
+			TableFailedException;
+
+	/**
+	 * Execute a table query.
+	 * 
+	 * @param user
+	 * @param query
+	 * @param isConsistent
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws TableUnavilableException
+	 * @throws TableFailedException
+	 */
+	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
+			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
+
+	/**
+	 * get the next page of a query
+	 * 
+	 * @param user
+	 * @param queryPageToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws TableUnavilableException
+	 * @throws TableFailedException
+	 */
+	public QueryResult queryNextPage(UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+			TableUnavilableException, TableFailedException;
+
+	/**
+	 * Get a query bundle result
+	 * 
+	 * @param user
+	 * @param queryBundle
+	 * @return
+	 * @throws TableUnavilableException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws TableFailedException
+	 */
+	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
+			TableUnavilableException, TableFailedException;
+
+	/**
+	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over
+	 * the rows and will not keep the row data in memory. This method can be used to stream over results sets that are
+	 * larger than the available system memory, as long as the caller does not hold the resulting rows in memory.
+	 * 
+	 * @param user
+	 * 
+	 * @param sql
+	 * @param list
+	 * @param writer
+	 * @return
+	 * @throws TableUnavilableException
+	 * @throws NotFoundException
+	 * @throws TableFailedException
+	 */
+	DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
+			boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException, TableFailedException;
+
+	/**
+	 * Update the current version cache if enabled
+	 */
+	void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
+
+	void removeCaches(String tableId) throws IOException;
+
+	/**
+	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
+	 * @param models
+	 * @return
+	 */
+	public Long getMaxRowsPerPage(List<ColumnModel> models);
+
+	/**
+	 * Get the columns Models for a list of headers.  Only headers that are column models ID will have a column model in the result.
+	 * None column model id headers will be ignored.
+	 * 
+	 * @param headers
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException;
 }

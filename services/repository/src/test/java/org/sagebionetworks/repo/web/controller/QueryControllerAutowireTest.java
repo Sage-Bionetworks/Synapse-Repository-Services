@@ -33,9 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class QueryControllerAutowireTest {
+public class QueryControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private QueryController controller;
@@ -68,6 +66,7 @@ public class QueryControllerAutowireTest {
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
+		testUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
 	@After

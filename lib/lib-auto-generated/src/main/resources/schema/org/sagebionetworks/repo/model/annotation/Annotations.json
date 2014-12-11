@@ -10,6 +10,10 @@
 			"description": "The Synapse ID of the umbrella object above the object with which these Annotations are associated",
 			"type": "string"
 		},
+		"version" : {
+			"type" : "integer",
+			"description" : "The system controlled version of this collection of annotations"
+		},
 		"stringAnnos": {
 			"type": "array",
 			"description": "A list of StringAnnnotations",

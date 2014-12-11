@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltrow value constructor&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class RowValueConstructor implements SQLElement {
+public class RowValueConstructor extends SQLElement {
 
 	RowValueConstructorElement rowValueConstructorElement;
 	RowValueConstructorList rowValueConstructorList;
@@ -23,12 +24,12 @@ public class RowValueConstructor implements SQLElement {
 		return rowValueConstructorList;
 	}
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if(rowValueConstructorElement != null){
-			rowValueConstructorElement.toSQL(builder);
+			rowValueConstructorElement.toSQL(builder, columnConvertor);
 		}else{
 			builder.append("( ");
-			rowValueConstructorList.toSQL(builder);
+			rowValueConstructorList.toSQL(builder, columnConvertor);
 			builder.append(" )");
 		}
 	}

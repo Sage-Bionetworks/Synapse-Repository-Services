@@ -1,0 +1,10 @@
+{
+	"description": "The response for a batch SubmissionStatus upload.",
+	"name": "BatchUploadResponse",
+	"properties": {
+		"nextUploadToken": {
+			"type": "string",
+			"description": "The token required to be sent with the subsequent batch."
+		}
+	}
+}

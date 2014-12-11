@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.TempFileProvider;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -29,9 +30,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class WikiModelTranslationHelperTest {
+public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerTestBase {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	

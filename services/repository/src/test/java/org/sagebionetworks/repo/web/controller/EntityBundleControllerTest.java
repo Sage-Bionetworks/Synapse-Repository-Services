@@ -38,18 +38,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" }, loader =MockWebApplicationContextLoader.class)
-@MockWebApplication
-public class EntityBundleControllerTest {
+public class EntityBundleControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private static final String DUMMY_STUDY_2 = "Test Study 2";
 	private static final String DUMMY_STUDY_1 = "Test Study 1";
 	private static final String DUMMY_PROJECT = "Test Project";
 
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
-	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
@@ -68,7 +62,6 @@ public class EntityBundleControllerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		assertNotNull(entityServletHelper);
 		assertNotNull(fileMetadataDao);
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
@@ -78,6 +71,7 @@ public class EntityBundleControllerTest {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
+		adminUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
 	@After

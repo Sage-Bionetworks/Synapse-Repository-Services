@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -8,11 +9,13 @@ import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -113,16 +116,17 @@ public class EvaluationServiceImpl implements EvaluationService {
 	 * @param userId the userId (email address) of the user making the request
 	 * @param limit
 	 * @param offset
+	 * @param evaluationIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	@Override
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, long limit, long offset, HttpServletRequest request) 
+			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset);
+		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset, evaluationIds);
 		return new PaginatedResults<Evaluation>(
 				request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
 				res.getResults(),
@@ -247,6 +251,14 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public BatchUploadResponse updateSubmissionStatusBatch(Long userId, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return submissionManager.updateSubmissionStatusBatch(userInfo, evalId, batch);
+	}
+
+	@Override
 	@Deprecated
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteSubmission(Long userId, String submissionId)
@@ -341,7 +353,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public URL getRedirectURLForFileHandle(Long userId, 
+	public String getRedirectURLForFileHandle(Long userId,
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -361,7 +373,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.valueOf(accessType));
+		return evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.valueOf(accessType)).getAuthorized();
 	}
 
 	@Override

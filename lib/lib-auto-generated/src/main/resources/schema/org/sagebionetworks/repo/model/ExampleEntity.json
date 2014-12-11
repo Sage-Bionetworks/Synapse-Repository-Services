@@ -74,6 +74,7 @@
 		"someEnum": {
 			"type": "string",
 			"name": "pets",
+			"id": "org.sagebionetworks.repo.model.pets",
 			"enum": [
 				"CAT",
 				"DOG",

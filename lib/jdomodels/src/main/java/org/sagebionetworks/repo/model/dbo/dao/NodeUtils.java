@@ -120,9 +120,12 @@ class NodeUtils {
 	private static List<String> createColumnModelListFromBytes(byte[] columnModelIds) {
 		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
 		try {
-			String string = new String(columnModelIds, "UTF-8");
-			String[] split = string.split(COLUMN_ID_DELIMITER);
 			List<String> result = new LinkedList<String>();
+			String string = new String(columnModelIds, "UTF-8");
+			if (string.isEmpty()) {
+				return result;
+			}
+			String[] split = string.split(COLUMN_ID_DELIMITER);
 			for(String stringId: split){
 				// The value must be a long
 				long value = Long.parseLong(stringId);
@@ -192,6 +195,9 @@ class NodeUtils {
 		}
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
+		}
+		if (jdo.getProjectId() != null) {
+			dto.setProjectId(KeyFactory.keyToString(jdo.getProjectId()));
 		}
 		if(jdo.getEtag() != null){
 			dto.setETag(jdo.getEtag());

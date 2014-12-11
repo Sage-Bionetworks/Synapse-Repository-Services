@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,12 +14,20 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -38,9 +48,7 @@ public class DBOAccessRequirementTest {
 	
 	@Autowired
 	NodeDAO nodeDao;
-	
-	private static final String TEST_USER_NAME = "test-user@test.com";
-	
+		
 	private Node node = null;
 	private UserGroup individualGroup = null;
 	private DBOAccessRequirement ar = null;
@@ -90,7 +98,6 @@ public class DBOAccessRequirementTest {
 		accessRequirement.setModifiedOn(System.currentTimeMillis());
 		accessRequirement.seteTag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
-		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setSerializedEntity(serializedEntity);
 		accessRequirement.setId(id);
 		return accessRequirement;
@@ -123,6 +130,4 @@ public class DBOAccessRequirementTest {
 		assertTrue("Failed to delete the type created", result);
 		
 	}
-	
-
 }

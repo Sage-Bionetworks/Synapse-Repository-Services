@@ -25,7 +25,6 @@ public class AccessRequirementUtils {
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setAccessType(dto.getAccessType().name());
-		dbo.setEntityType(dto.getEntityType());
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -39,7 +38,6 @@ public class AccessRequirementUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setSubjectIds(subjectIds);
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
-		dto.setEntityType(dbo.getEntityType());
 		return dto;
 	}
 

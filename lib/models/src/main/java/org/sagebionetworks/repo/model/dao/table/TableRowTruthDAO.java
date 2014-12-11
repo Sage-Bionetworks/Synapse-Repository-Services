@@ -1,14 +1,21 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ProgressCallback;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -37,23 +44,41 @@ public interface TableRowTruthDAO {
 	public long getVersionForEtag(String tableIdString, String etag);
 	
 	/**
+	 * Get the highest row ID in this table
+	 * 
+	 * @return
+	 */
+	public long getMaxRowId(String tableId);
+
+	/**
+	 * Get the highest current version for this table
+	 * 
+	 * @return
+	 */
+	public TableRowChange getLastTableRowChange(String tableId);
+
+	/**
 	 * Append a RowSet to a table.
+	 * 
 	 * @param tableId
 	 * @param models
 	 * @param delta
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta) throws IOException;
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta)
+			throws IOException;
 		
 	/**
-	 * Fetch a change set for a given table and 
+	 * Fetch a change set for a given table and
+	 * 
+	 * @param rowsToGet
 	 * @param key
 	 * @return
-	 * @throws IOException 
-	 * @throws NotFoundException 
+	 * @throws IOException
+	 * @throws NotFoundException
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion) throws IOException, NotFoundException;
+	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet) throws IOException, NotFoundException;
 	
 	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
@@ -86,11 +111,61 @@ public interface TableRowTruthDAO {
 	 * @throws NotFoundException 
 	 */
 	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException, NotFoundException;
+
+	/**
+	 * Get a rows referenced in its unmodified form.
+	 * 
+	 * @param tableId
+	 * @param ref
+	 * @param columns
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public Row getRowOriginal(String tableId, RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException;
 	
+	/**
+	 * Get all the latest versions of the rows specified by the rowIds
+	 * 
+	 * @param tableId
+	 * @param rowIdsInOut the set of row ids to find
+	 * @param minVersion only check with versions equal or greater than the minVersion
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException,
+			NotFoundException;
+
+	/**
+	 * Get all the latest versions of the rows specified by the rowIds
+	 * 
+	 * @param tableId
+	 * @param rowIdsInOut the set of row ids to find
+	 * @param minVersion only check with versions equal or greater than the minVersion
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException, NotFoundException;
+
+	/**
+	 * Get all the latest versions for this table
+	 * 
+	 * @param tableId
+	 * @param minVersion only return rows that have a version equal or greater than this
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws TableUnavilableException
+	 */
+	public Map<Long, Long> getLatestVersions(String tableId, long minVersion, long rowIdOffset, long limit) throws IOException,
+			NotFoundException, TableUnavilableException;
+
 	/**
 	 * List the keys of all change sets applied to a table.
 	 * 
-	 * This can be used to synch the "truth" store with secondary stores.  This is the full history of the table.
+	 * This can be used to synch the "truth" store with secondary stores. This is the full history of the table.
 	 * 
 	 * @param tableId
 	 * @return
@@ -99,6 +174,7 @@ public interface TableRowTruthDAO {
 	
 	/**
 	 * List all changes for a table with a version number greater than the given value (exclusive).
+	 * 
 	 * @param tableId
 	 * @param version
 	 * @return
@@ -106,24 +182,48 @@ public interface TableRowTruthDAO {
 	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);
 	
 	/**
+	 * Count all changes for a table with a version number greater than the given value (exclusive).
+	 * 
+	 * @param tableId
+	 * @param version
+	 * @return
+	 */
+	public int countRowSetsForTableGreaterThanVersion(String tableId, long version);
+
+	/**
 	 * Get the TableRowChange for a given tableId and row version number.
+	 * 
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public TableRowChange getTableRowChange(String tableId, long rowVersion) throws NotFoundException;
+
+	/**
+	 * This should only be called after the table entity has been deleted
+	 * 
+	 * @param tableId
+	 */
+	public void deleteAllRowDataForTable(String tableId);
 	
 	/**
 	 * This should never be called in a production setting.
 	 * 
 	 */
 	public void truncateAllRowData();
-	
-	/**
-	 * The maximum number of bytes per request.
-	 * @return
-	 */
-	public int getMaxBytesPerRequest();
 
+	/**
+	 * Update the lastest version cache if supported
+	 * 
+	 * @throws IOException
+	 */
+	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
+
+	/**
+	 * Remove the latest version cache and row cache for the table
+	 * 
+	 * @param tableId
+	 */
+	public void removeCaches(Long tableId) throws IOException;
 }

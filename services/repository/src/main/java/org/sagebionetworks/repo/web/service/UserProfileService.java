@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -193,7 +194,51 @@ public interface UserProfileService {
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
 
+	/**
+	 * Retrieve sorted list of the users projects, paginated
+	 * 
+	 * @param userId
+	 * @param userIdToFetch
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<ProjectHeader> getMyProjects(Long userId, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve sorted list of another users projects, paginated
+	 * 
+	 * @param userId
+	 * @param userIdToFetch
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<ProjectHeader> getProjectsForUser(Long userId, Long userIdToFetch, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve sorted list of team projects, paginated
+	 * 
+	 * @param userId
+	 * @param userIdToFetch
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long userId, Long teamIdToFetch, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException;
+
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
-	
 }

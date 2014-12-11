@@ -164,6 +164,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class EntityController extends BaseController {
 
 	@Autowired
@@ -1471,7 +1472,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFileRedirectURLForCurrentVersion(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1506,7 +1507,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFileRedirectURLForVersion(userId, id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1539,7 +1540,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFilePreviewRedirectURLForCurrentVersion(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1574,7 +1575,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFilePreviewRedirectURLForVersion(userId, id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}

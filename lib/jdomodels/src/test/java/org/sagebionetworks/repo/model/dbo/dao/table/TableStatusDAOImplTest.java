@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -68,8 +66,8 @@ public class TableStatusDAOImplTest {
 		// The rest should be null
 		assertEquals(null, status.getErrorDetails());
 		assertEquals(null, status.getErrorMessage());
-		assertEquals(null, status.getProgresssCurrent());
-		assertEquals(null, status.getProgresssTotal());
+		assertEquals(null, status.getProgressCurrent());
+		assertEquals(null, status.getProgressTotal());
 		assertEquals(null, status.getTotalTimeMS());
 		// Now if we call it again we should get a new rest-token
 		String newResetToken = tableStatusDAO.resetTableStatusToProcessing("123");
@@ -99,21 +97,71 @@ public class TableStatusDAOImplTest {
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.PROCESSING, status.getState());
 		assertNotNull(status.getChangedOn());
+		String lastTableChangeEtag = UUID.randomUUID().toString();
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken);
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, lastTableChangeEtag);
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableId);
 		assertNotNull(status);
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.AVAILABLE, status.getState());
 		assertNotNull(status.getTotalTimeMS());
+		assertEquals(lastTableChangeEtag, status.getLastTableChangeEtag());
+	}
+	
+	@Test
+	public void testDeleteTableStatus() throws NotFoundException {
+		String tableId1 = "syn1";
+		String tableId2 = "syn2";
+		// This should insert a row for this table.
+		tableStatusDAO.resetTableStatusToProcessing(tableId1);
+		tableStatusDAO.resetTableStatusToProcessing(tableId2);
+		TableStatus status = tableStatusDAO.getTableStatus(tableId1);
+		assertNotNull(status);
+		status = tableStatusDAO.getTableStatus(tableId2);
+		assertNotNull(status);
+
+		tableStatusDAO.deleteTableStatus(tableId2);
+		status = tableStatusDAO.getTableStatus(tableId1);
+		assertNotNull(status);
+		try {
+			tableStatusDAO.getTableStatus(tableId2);
+			fail("Should have been deleted");
+		} catch (NotFoundException e) {
+		}
+	}
+
+	/**
+	 * This is a test for PLFM-2634 and PLFM-2636
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testAttemptToSetTableStatusToAvailableNullEtag() throws NotFoundException{
+		String tableId = "syn123";
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123");
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		// Not make available
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, null);
+		// the state should have changed
+		status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.AVAILABLE, status.getState());
+		assertNotNull(status.getTotalTimeMS());
+		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testAttemptToSetTableStatusNotFound() throws NotFoundException{
 		String tableId = "syn123";
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, "fake token");
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, "fake token", UUID.randomUUID().toString());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
@@ -125,7 +173,7 @@ public class TableStatusDAOImplTest {
 		TableStatus status = tableStatusDAO.getTableStatus(tableId);
 		assertNotNull(status);
 		// This should fail since the passed token does not match the current token
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken+"invalidated");
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken+"invalidated", UUID.randomUUID().toString());
 	}
 	
 	@Test
@@ -149,6 +197,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getTotalTimeMS());
 		assertEquals("error", status.getErrorMessage());
 		assertEquals("error details", status.getErrorDetails());
+		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -189,9 +238,9 @@ public class TableStatusDAOImplTest {
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.PROCESSING, status.getState());
 		assertNotNull(status.getTotalTimeMS());
-		assertEquals("message", status.getProgresssMessage());
-		assertEquals(new Long(0), status.getProgresssCurrent());
-		assertEquals(new Long(100), status.getProgresssTotal());
+		assertEquals("message", status.getProgressMessage());
+		assertEquals(new Long(0), status.getProgressCurrent());
+		assertEquals(new Long(100), status.getProgressTotal());
 	}
 	
 	@Test (expected=NotFoundException.class)

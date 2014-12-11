@@ -16,7 +16,7 @@ public class InValueListTest {
 		List<ValueExpression> list = SqlElementUntils.createValueExpressions("one");
 		InValueList element = new InValueList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("one", builder.toString());
 	}
 	
@@ -25,7 +25,7 @@ public class InValueListTest {
 		List<ValueExpression> list = SqlElementUntils.createValueExpressions("one", "three");
 		InValueList element = new InValueList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("one, three", builder.toString());
 	}
 }

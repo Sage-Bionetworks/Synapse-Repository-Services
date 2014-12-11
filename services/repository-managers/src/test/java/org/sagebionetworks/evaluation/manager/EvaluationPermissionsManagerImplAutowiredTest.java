@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,8 +30,10 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -78,6 +79,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	private List<String> evalsToDelete;
 	private List<String> nodesToDelete;
 	private List<String> accessRestrictionsToDelete;
+	private AccessRequirement accessRequirementToDelete;
 
 	@Before
 	public void before() throws Exception {
@@ -85,16 +87,21 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
 		evalsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
 		accessRestrictionsToDelete = new ArrayList<String>();
+		accessRequirementToDelete = null;
 	}
 
 	@After
 	public void after() throws Exception {
+		if (accessRequirementToDelete!=null) {
+			accessRequirementDAO.delete(accessRequirementToDelete.getId().toString());
+		}
 		for (String id : aclsToDelete) {
 			aclDAO.delete(id, ObjectType.EVALUATION);
 		}
@@ -127,12 +134,12 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(dateTime.after(acl.getCreationDate()) || dateTime.equals(acl.getCreationDate()));
 
 		// Has access
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
 
 		// Update ACL -- Now give 'user' CHANGE_PERMISSIONS, PARTICIPATE
 		ResourceAccess ra = new ResourceAccess();
@@ -160,12 +167,12 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertEquals(1, acl.getResourceAccess().size());
 
 		// Has access
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
 		
 		// now add unmet access requirements
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
@@ -179,14 +186,14 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		ar.setCreatedOn(new Date());
 		ar.setModifiedBy(userInfo.getId().toString());
 		ar.setModifiedOn(new Date());
-		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		ar = accessRequirementDAO.create(ar);
 		accessRestrictionsToDelete.add(ar.getId().toString());
 		
 		// now user will lack PARTICIPATE and SUBMIT access
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
 
 		// Make sure ACL is deleted when the evaluation is deleted
 		evaluationManager.deleteEvaluation(adminUserInfo, evalId);
@@ -211,21 +218,21 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		AccessControlList acl = evaluationPermissionsManager.getAcl(userInfo, evalId);
 		assertNotNull(acl);
 		assertEquals(evalId, acl.getId());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
 
 		// Update ACL
 		acl = evaluationPermissionsManager.updateAcl(userInfo, acl);
 		assertNotNull(acl);
 		assertEquals(evalId, acl.getId());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ));
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
 	}
 
 	@Test
@@ -436,6 +443,64 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
+	public void testCanSubmit() throws Exception {
+
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCanSubmit";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		assertNotNull(acl);
+
+		// Admin can SUBMIT but user cannot
+		assertTrue(evaluationPermissionsManager.hasAccess(adminUserInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+
+		// Update the ACL to add ('user', SUBMIT)
+		Long principalId = userInfo.getId();
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.SUBMIT);
+		ra.setAccessType(accessType);
+		raSet.add(ra);
+		acl.setResourceAccess(raSet);
+		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+		assertNotNull(acl);
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+
+		// Now if we have unmet requirements, adding just the ACL is not enough
+		accessRequirementToDelete = newSubmitAccessRequirement(userInfo.getId().toString(), evalId);
+		accessRequirementToDelete = accessRequirementDAO.create(accessRequirementToDelete);
+
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+	}
+	
+	public static TermsOfUseAccessRequirement newSubmitAccessRequirement(String creatorPrincipalId, String evaluationId) throws DatastoreException {
+		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
+		accessRequirement.setCreatedBy(creatorPrincipalId);
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(creatorPrincipalId);
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setAccessType(ACCESS_TYPE.SUBMIT);
+		RestrictableObjectDescriptor erod = createRestrictableObjectDescriptor(evaluationId, RestrictableObjectType.EVALUATION);
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod}));
+		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirement");
+		accessRequirement.setTermsOfUse("foo");
+		return accessRequirement;
+	}
+	
+	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id, RestrictableObjectType type) {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(id);
+		rod.setType(type);
+		return rod;
+	}
+
+
+
+	@Test
 	public void testCanParticipate() throws Exception {
 
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCanParticipate";
@@ -446,8 +511,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(acl);
 
 		// Admin can participate but user cannot
-		assertTrue(evaluationPermissionsManager.hasAccess(adminUserInfo, evalId, ACCESS_TYPE.PARTICIPATE));
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(adminUserInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
 
 		// Update the ACL to add ('user', PARTICIPATE)
 		Long principalId = userInfo.getId();
@@ -461,19 +526,16 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
 
 		// Now if we have unmet requirements, adding just the ACL is not enough
-		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
-		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
-		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
 		AccessRequirementDAO mockAccessRequirementDao = mock(AccessRequirementDAO.class);
 		when(mockAccessRequirementDao.unmetAccessRequirements(
-				any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(participateAndDownload))).
+				any(List.class), any(RestrictableObjectType.class), any(Collection.class), any(List.class))).
 				thenReturn(Arrays.asList(new Long[]{101L}));
 		AccessRequirementDAO original = (AccessRequirementDAO) ReflectionTestUtils.getField(evaluationPermissionsManager, "accessRequirementDAO");
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", mockAccessRequirementDao);
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", original);
 	}
 

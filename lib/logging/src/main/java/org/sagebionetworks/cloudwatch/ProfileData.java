@@ -1,23 +1,26 @@
 package org.sagebionetworks.cloudwatch;
 
 import java.util.Date;
+import java.util.Map;
 
 /**
- * Data transfer object for latency information.
+ * Data transfer object for metric information.
  * @author ntiedema
  */
 public class ProfileData {
 	String namespace;
 	String name;
-	long latency;	//time duration
+	Double value;
 	String unit;	
 	Date timestamp;
+	Map<String, String> dimension;
+	MetricStats metricStats;
 	
 	/**
 	 * Default ProfileData constructor.  Want class to be able to expand, so default
 	 * constructor will be only available constructor
 	 */
-	public ProfileData(){
+	public ProfileData() {
 	}
 	
 	/**
@@ -45,16 +48,9 @@ public class ProfileData {
 	}
 	
 	/**
-	 * Setter for latency.
-	 * @param latency
-	 * @throws IllegalArgumentException
 	 */
-	public void setLatency(long latency){
-		//a latency can't be smaller than 0
-		if (latency < 0){
-			throw (new IllegalArgumentException());
-		}
-		this.latency = latency;
+	public void setValue(Double value){
+		this.value = value;
 	}
 
 	/**
@@ -98,11 +94,11 @@ public class ProfileData {
 	}
 	
 	/**
-	 * Gettr for latency.
-	 * @return long
+	 * Gettr for value
+	 * @return Double
 	 */
-	public long getLatency(){
-		return latency;
+	public Double getValue(){
+		return value;
 	}
 	/**
 	 * Getter for unit.
@@ -119,14 +115,29 @@ public class ProfileData {
 	public Date getTimestamp(){
 		return timestamp;
 	}
-	
-	/**
-	 * toString method.
-	 * @return String
-	 */
-	public String toString(){
-		String toReturn = this.namespace + ":" + this.name + ":" + this.latency + 
-			":" + this.unit + ":" + this.timestamp.toString();
-		return toReturn;
+
+	public Map<String, String> getDimension() {
+		return dimension;
 	}
+
+	public void setDimension(Map<String, String> dimension) {
+		this.dimension = dimension;
+	}
+
+	public MetricStats getMetricStats() {
+		return metricStats;
+	}
+
+	public void setMetricStats(MetricStats metricStats) {
+		this.metricStats = metricStats;
+	}
+
+	@Override
+	public String toString() {
+		return "ProfileData [namespace=" + namespace + ", name=" + name
+				+ ", value=" + value + ", unit=" + unit + ", timestamp="
+				+ timestamp + ", dimension=" + dimension + ", metricStats="
+				+ metricStats + "]";
+	}
+
 }

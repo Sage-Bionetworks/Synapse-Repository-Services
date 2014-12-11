@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
@@ -21,6 +22,7 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -56,6 +58,8 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	private static final String TRASH_FOLDER_ID = StackConfiguration.getTrashFolderEntityIdStatic();
+
 	private static final String SELECT_GET_FAVORITES_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID +", "+ COL_FAVORITE_CREATED_ON
 															+ " FROM " + TABLE_FAVORITE 
 															+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
@@ -63,8 +67,10 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 															+ " LIMIT :" + LIMIT_PARAM_NAME 
 															+ " OFFSET :" + OFFSET_PARAM_NAME;
 	private static final String COUNT_FAVORITES_SQL = "SELECT COUNT(" + COL_FAVORITE_PRINCIPAL_ID +")"
-														+ " FROM " + TABLE_FAVORITE 
-														+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID;
+														+ "FROM "+ TABLE_FAVORITE +" f, "+ TABLE_NODE +" n "
+														+ " WHERE f." + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
+														+ " AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" "
+														+ "AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID;
 	private static final String SELECT_FAVORITE_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID +", "+ COL_FAVORITE_CREATED_ON
 														+ " FROM " + TABLE_FAVORITE 
 														+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
@@ -75,7 +81,8 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 																"WHERE f."+ COL_FAVORITE_PRINCIPAL_ID +" = :"+ COL_FAVORITE_PRINCIPAL_ID +" " +
 																"AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" " +
 																"AND n."+ COL_NODE_ID +" = r."+ COL_REVISION_OWNER_NODE +" " +
-																"AND n."+ COL_CURRENT_REV +" = r."+ COL_REVISION_NUMBER;
+																"AND n."+ COL_CURRENT_REV +" = r."+ COL_REVISION_NUMBER +" " +
+																"AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID;
 
 	
 	private static final RowMapper<Favorite> favoriteRowMapper = new RowMapper<Favorite>() {

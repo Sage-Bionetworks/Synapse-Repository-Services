@@ -3,15 +3,15 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -20,11 +20,12 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,6 +51,9 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
+	@Autowired
+	private NotificationEmailDAO notificationEmailDao;
+	
 	/**
 	 * Testing purposes only
 	 * Do NOT use in non-test code
@@ -60,13 +64,20 @@ public class UserManagerImpl implements UserManager {
 	
 	public UserManagerImpl() { }
 	
-	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileManager userProfileManger, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO, PrincipalAliasDAO principalAliasDAO) {
+	public UserManagerImpl(UserGroupDAO userGroupDAO, 
+			UserProfileManager userProfileManger, 
+			GroupMembersDAO groupMembersDAO, 
+			AuthenticationDAO authDAO, 
+			DBOBasicDao basicDAO, 
+			PrincipalAliasDAO principalAliasDAO,
+			NotificationEmailDAO notificationEmailDao) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileManger = userProfileManger;
 		this.groupMembersDAO = groupMembersDAO;
 		this.authDAO = authDAO;
 		this.basicDAO = basicDAO;
 		this.principalAliasDAO = principalAliasDAO;
+		this.notificationEmailDao = notificationEmailDao;
 	}
 	
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
@@ -109,11 +120,37 @@ public class UserManagerImpl implements UserManager {
 		userProfile.setFirstName(user.getFirstName());
 		userProfile.setLastName(user.getLastName());
 		userProfile.setUserName(user.getUserName());
-		userProfile.setEmails(new LinkedList<String>());
-		userProfile.getEmails().add(user.getEmail());
 		userProfileManger.createUserProfile(userProfile);
 		
+		bindAllAliases(user, principalId);
+		
 		return principalId;
+	}
+	
+	/**
+	 * This method is idempotent.
+	 * @param profile
+	 * @param principalId
+	 */
+	private void bindAllAliases(NewUser user, Long principalId) {
+		// Bind all aliases
+		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId);
+		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId);
+		notificationEmailDao.create(emailAlias);
+	}
+
+	private PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId) {
+		// bind the username to this user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(aliasName);
+		alias.setPrincipalId(principalId);
+		alias.setType(type);
+		try {
+			alias = principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
+		}
+		return alias;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -186,7 +223,7 @@ public class UserManagerImpl implements UserManager {
 		// Check to see if the user is an Admin
 		boolean isAdmin = false;
 		// If the user belongs to the admin group they are an admin
-		if(groups.contains(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId())){
+		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
 			isAdmin = true;
 		}
 		UserInfo ui = new UserInfo(isAdmin);

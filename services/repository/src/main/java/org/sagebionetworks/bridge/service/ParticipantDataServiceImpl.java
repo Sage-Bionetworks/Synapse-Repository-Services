@@ -33,40 +33,42 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	private ParticipantDataDescriptionManager participantDataDescriptionManager;
 
 	@Override
-	public PaginatedResults<ParticipantDataRow> get(Long userId, String participantDataDescriptorId, Integer limit, Integer offset)
-			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
+	public PaginatedResults<ParticipantDataRow> get(Long userId, String participantDataDescriptorId, Integer limit,
+			Integer offset, boolean normalizeData) throws DatastoreException, NotFoundException, IOException,
+			GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getData(userInfo, participantDataDescriptorId, limit, offset);
+		return participantDataManager.getData(userInfo, participantDataDescriptorId, limit, offset, normalizeData);
 	}
 
 	@Override
-	public List<ParticipantDataRow> getCurrentRows(Long userId, String participantDataDescriptorId) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException {
+	public List<ParticipantDataRow> getCurrentRows(Long userId, String participantDataDescriptorId,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.getHistoryData(userInfo, participantDataDescriptorId, true, null, null,
-				ParticipantDataManager.SortType.SORT_BY_DATE);
+				ParticipantDataManager.SortType.SORT_BY_DATE, normalizeData);
 	}
 
 	@Override
-	public List<ParticipantDataRow> getHistoryRows(Long userId, String participantDataDescriptorId, Date after, Date before)
-			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
+	public List<ParticipantDataRow> getHistoryRows(Long userId, String participantDataDescriptorId, Date after,
+			Date before, boolean normalizeData) throws DatastoreException, NotFoundException, IOException,
+			GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.getHistoryData(userInfo, participantDataDescriptorId, false, after, before,
-				ParticipantDataManager.SortType.SORT_BY_GROUP_AND_DATE);
+				ParticipantDataManager.SortType.SORT_BY_GROUP_AND_DATE, normalizeData);
 	}
 
 	@Override
-	public ParticipantDataRow getRow(Long userId, String participantDataDescriptorId, Long rowId) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException {
+	public ParticipantDataRow getRow(Long userId, String participantDataDescriptorId, Long rowId, boolean normalizeData)
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getDataRow(userInfo, participantDataDescriptorId, rowId);
+		return participantDataManager.getDataRow(userInfo, participantDataDescriptorId, rowId, normalizeData);
 	}
 
 	@Override
-	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataDescriptorId) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException {
+	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataDescriptorId, boolean normalizeData)
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getCurrentData(userInfo, participantDataDescriptorId);
+		return participantDataManager.getCurrentData(userInfo, participantDataDescriptorId, normalizeData);
 	}
 
 	@Override

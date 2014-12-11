@@ -1,0 +1,24 @@
+{
+	"type":"interface",
+	"description":"a single question in a Quiz",
+	"properties":{
+		"questionIndex":{
+			"description":"an index unique in the Quiz, used to refer to this question",
+			"type":"integer",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"prompt":{
+			"description":"the user-readable prompt for this question",
+			"type":"string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"reference":{
+			"description":"Information for background reading related to the question.",
+			"type":"object",
+			"$ref":"org.sagebionetworks.repo.model.dao.WikiPageKey"
+		},
+		"concreteType":{
+			"type": "string"
+		}
+	}
+}

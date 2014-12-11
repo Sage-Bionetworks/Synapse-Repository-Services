@@ -1,13 +1,15 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltrow value constructor element&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class RowValueConstructorElement implements SQLElement {
+public class RowValueConstructorElement extends SQLElement {
 	
-	ValueExpression valueExpression;
-	Boolean nullSpecification;
-	Boolean defaultSpecification;
+	ValueExpression valueExpression = null;
+	Boolean nullSpecification = null;
+	TruthValue truthSpecification = null;
+	Boolean defaultSpecification = null;
 	public RowValueConstructorElement(ValueExpression valueExpression) {
 		super();
 		this.valueExpression = valueExpression;
@@ -18,6 +20,10 @@ public class RowValueConstructorElement implements SQLElement {
 		this.nullSpecification = nullSpecification;
 		this.defaultSpecification = defaultSpecification;
 	}
+
+	public RowValueConstructorElement(TruthValue truthSpecification) {
+		this.truthSpecification = truthSpecification;
+	}
 	public ValueExpression getValueExpression() {
 		return valueExpression;
 	}
@@ -27,12 +33,18 @@ public class RowValueConstructorElement implements SQLElement {
 	public Boolean getDefaultSpecification() {
 		return defaultSpecification;
 	}
+
+	public TruthValue getTruthSpecification() {
+		return truthSpecification;
+	}
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if(valueExpression != null){
-			valueExpression.toSQL(builder);
+			valueExpression.toSQL(builder, columnConvertor);
 		}else if(nullSpecification != null){
 			builder.append("NULL");
+		} else if (truthSpecification != null) {
+			builder.append(truthSpecification.name());
 		}else{
 			builder.append("DEFAULT");
 		}

@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.controller.BaseController;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Authentication Services", path="auth/v1")
 @Controller
+@RequestMapping(UrlHelpers.AUTH_PATH)
 public class AuthenticationController extends BaseController {
 	
 	private static Log log = LogFactory.getLog(AuthenticationController.class);
@@ -90,7 +92,7 @@ public class AuthenticationController extends BaseController {
 	/**
 	 * Create a new user.  An email will be sent regarding how to set a password for the account.    
 	 * <br/>
-	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * The query parameter <code>domain</code> may be appended to this URI. If absent or 
 	 * set to "synapse", the service will send email specific to the Synapse application; if set 
 	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 * <br/>
@@ -98,6 +100,7 @@ public class AuthenticationController extends BaseController {
 	 * First, last, and full name are recommended but not required.
 	 * All other fields will be ignored.  
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
@@ -109,7 +112,7 @@ public class AuthenticationController extends BaseController {
 	/**
 	 * Sends an email for setting a user's password.
 	 * <br/>
-	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * The query parameter <code>domain</code> may be appended to this URI. If absent or 
 	 * set to "synapse", the service will send email specific to the Synapse application; if set 
 	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */

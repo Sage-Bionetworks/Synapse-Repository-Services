@@ -42,6 +42,22 @@
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
 
+	<!-- Python Client Filter -->
+	
+	<filter>
+		<filter-name>pythonClientFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.PythonClientFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>pythonClientFilter</filter-name>
+		<url-pattern>/auth/v1/*</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+	    <url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+	
+	<!-- END Python Client Filter -->	
+
 	<!-- Some browsers do not support PUT and DELETE methods, this filter will 
 		examine the form field parameter _method -->
 	<filter>
@@ -88,7 +104,6 @@
 		<url-pattern>/bridge/v1/*</url-pattern>
 	</filter-mapping>
 
-
 	<filter>
 		<filter-name>profileFilter</filter-name>
 		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
@@ -103,6 +118,23 @@
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
+	<filter>
+		<filter-name>userThrottleFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>userThrottleFilter</filter-name>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+		<url-pattern>/bridge/v1/*</url-pattern>
+	</filter-mapping>
+	
 	<filter>
 		<filter-name>jsonpCallbackFilter</filter-name>
 		<!-- This filter allows JSONP to be returned for methods that are already 
@@ -135,8 +167,10 @@
 		<url-pattern>/repo/v1/teamMembers/*</url-pattern>
 	</filter-mapping>
 
+	<!-- Rather than using multiple DispatcherServlet each with their own Spring context
+	 we are now using a singleton DispatcherServlet.  See: PLFM-2530  -->
 	<servlet>
-		<servlet-name>repository</servlet-name>
+		<servlet-name>singleton</servlet-name>
 		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
 		<!-- These two parameters are required to register an interceptor with 
 			the org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter. 
@@ -149,16 +183,9 @@
 	</servlet>
 
 	<servlet-mapping>
-		<servlet-name>repository</servlet-name>
-		<url-pattern>/repo/v1/*</url-pattern>
+		<servlet-name>singleton</servlet-name>
+		<url-pattern>/*</url-pattern>
 	</servlet-mapping>
-
-	<servlet>
-		<servlet-name>authentication</servlet-name>
-		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-		<load-on-startup>1</load-on-startup>
-	</servlet>
-
 
 	<servlet>
 		<servlet-name>tomcatDefaultServlet</servlet-name>
@@ -172,10 +199,6 @@
         <url-pattern>/auth/v1/bridgeTermsOfUse.html</url-pattern>
 	</servlet-mapping>
 
-	<servlet-mapping>
-		<servlet-name>authentication</servlet-name>
-		<url-pattern>/auth/v1/*</url-pattern>
-	</servlet-mapping>
 
 	<!-- This filter will look for the session token as a cookie, if it finds 
 		it, the token will be added to the header of the request -->
@@ -188,41 +211,5 @@
 		<filter-name>CORSFilter</filter-name>
 		<url-pattern>*</url-pattern>
 	</filter-mapping>
-
-	<servlet>
-		<servlet-name>file</servlet-name>
-		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-		<!-- These two parameters are required to register an interceptor with 
-			the org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter. 
-			Without them the handler simply will not be used. jmhill 12/10/11 -->
-		<init-param>
-			<param-name>detectAllHandlerMappings</param-name>
-			<param-value>true</param-value>
-		</init-param>
-		<load-on-startup>1</load-on-startup>
-	</servlet>
-
-	<servlet-mapping>
-		<servlet-name>file</servlet-name>
-		<url-pattern>/file/v1/*</url-pattern>
-	</servlet-mapping>
-
-	<servlet>
-		<servlet-name>bridge</servlet-name>
-		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-		<!-- These two parameters are required to register an interceptor with 
-			the org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter. 
-			Without them the handler simply will not be used. jmhill 12/10/11 -->
-		<init-param>
-			<param-name>detectAllHandlerMappings</param-name>
-			<param-value>true</param-value>
-		</init-param>
-		<load-on-startup>1</load-on-startup>
-	</servlet>
-
-	<servlet-mapping>
-		<servlet-name>bridge</servlet-name>
-		<url-pattern>/bridge/v1/*</url-pattern>
-	</servlet-mapping>
 
 </web-app>

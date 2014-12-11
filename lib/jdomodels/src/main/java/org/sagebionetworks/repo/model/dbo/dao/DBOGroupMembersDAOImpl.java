@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -169,11 +168,6 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void bootstrapGroups() throws Exception {
-		// Add the migration admin to the admin group
-		List<String> adminUserIdList = new ArrayList<String>();
-		adminUserIdList.add(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
-		
-		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
-		addMembers(adminGroupId, adminUserIdList);
+		// in the case that the groups are initialized as Teams this is done in TeamManagerImpl.bootstrapTeams()
 	}
 }

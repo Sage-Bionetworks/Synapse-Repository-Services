@@ -1,12 +1,14 @@
 {
     "description":"JSON enum for the types of objects in Synapse.",
     "type":"string",
+    "links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
     "enum":[
     	"ENTITY",
     	"PRINCIPAL",
     	"ACTIVITY",
     	"EVALUATION",
     	"SUBMISSION",
+    	"EVALUATION_SUBMISSIONS",
     	"FILE",
     	"MESSAGE", 
     	"WIKI",

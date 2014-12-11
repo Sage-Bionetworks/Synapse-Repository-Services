@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,11 +17,14 @@ import com.amazonaws.services.sqs.model.Message;
 public class AnnotationsWorkerFactory implements MessageWorkerFactory{
 	
 	@Autowired
-	SubmissionStatusAnnotationsAsyncManager ssAsyncMgr;
+	private SubmissionStatusAnnotationsAsyncManager ssAsyncMgr;
+	
+	@Autowired
+	private WorkerLogger workerLogger;
 
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new AnnotationsWorker(messages, ssAsyncMgr);
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
+		return new AnnotationsWorker(messages, ssAsyncMgr, workerLogger);
 	}
 	
 }

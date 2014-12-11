@@ -42,13 +42,16 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.QueryUtils;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
-import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
-import org.sagebionetworks.repo.web.controller.metadata.EventType;
-import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
+import org.sagebionetworks.repo.web.service.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
+import org.sagebionetworks.repo.web.service.metadata.EntityValidator;
+import org.sagebionetworks.repo.web.service.metadata.EventType;
+import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -180,14 +183,16 @@ public class EntityServiceImpl implements EntityService {
 	 */
 	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, HttpServletRequest request, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.addTypeSpecificMetadata(entity, request, info, eventType);
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof TypeSpecificMetadataProvider) {
+					((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, request, info, eventType);
+				}
 			}
 		}
 	}
@@ -271,11 +276,13 @@ public class EntityServiceImpl implements EntityService {
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		// Validate the entity
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.validateEntity(entity, event);
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof EntityValidator) {
+					((EntityValidator) provider).validateEntity(entity, event);
+				}
 			}
 		}
 	}
@@ -327,13 +334,14 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		T entity = entityManager.getEntity(userInfo, entityId, clazz);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.entityDeleted(entity);
+			for(EntityProvider<Entity> provider : providers) {
+				if (provider instanceof TypeSpecificDeleteProvider) {
+					((TypeSpecificDeleteProvider) provider).entityDeleted(entityId);
+				}
 			}
 		}
 		return;
@@ -359,17 +367,17 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityType.getNodeTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.entityDeleted(entity);
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof TypeSpecificVersionDeleteProvider) {
+					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(id, versionNumber);
+				}
 			}
 		}
 	}
-
 
 	private <T extends Entity> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
 		UrlHelpers.setAllUrlsForEntity(entity, request);
@@ -503,7 +511,7 @@ public class EntityServiceImpl implements EntityService {
 	public boolean hasAccess(String entityId, Long userId, HttpServletRequest request, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo);
+		return entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).getAuthorized();
 	}
 
 	@Override
@@ -547,11 +555,6 @@ public class EntityServiceImpl implements EntityService {
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 	
-	@Override
-	public String throwDeadlockException(DeadlockLoserDataAccessException toThrow) {
-		throw toThrow;
-	}
-
 	@Override
 	public S3AttachmentToken createS3AttachmentToken(Long userId, String entityId,
 			S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException {
@@ -654,7 +657,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public URL getFileRedirectURLForCurrentVersion(Long userId, String id) throws DatastoreException, NotFoundException {
+	public String getFileRedirectURLForCurrentVersion(Long userId, String id) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -665,7 +668,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public URL getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException {
+	public String getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -678,7 +681,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public URL getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
+	public String getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -690,7 +693,7 @@ public class EntityServiceImpl implements EntityService {
 
 
 	@Override
-	public URL getFilePreviewRedirectURLForVersion(Long userId, String id,
+	public String getFilePreviewRedirectURLForVersion(Long userId, String id,
 			Long versionNumber) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");

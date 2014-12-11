@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,6 +40,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class AdministrationController extends BaseController {
 	
 	@Autowired
@@ -266,5 +268,32 @@ public class AdministrationController extends BaseController {
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
+	}
+	
+	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REBUILD }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void rebuildTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
+		serviceProvider.getAdministrationService().rebuildTable(userId, tableId);
+	}
+	
+	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void clearLocks(
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
+	        		throws NotFoundException {
+		serviceProvider.getAdministrationService().clearAllLocks(userId);
+	}
+	
+
+
+	/**
+	 * Wait for a while or release all waiters
+	 */
+	@RequestMapping(value = { UrlHelpers.ADMIN_WAIT }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	public void waitForTesting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = false) Boolean release) throws Exception {
+		serviceProvider.getAdministrationService().waitForTesting(userId, BooleanUtils.isTrue(release));
 	}
 }

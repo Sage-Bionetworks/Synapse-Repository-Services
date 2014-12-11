@@ -55,6 +55,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Team Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class TeamController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -174,7 +175,7 @@ public class TeamController extends BaseController {
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
-		URL redirectUrl = serviceProvider.getTeamService().getIconURL(id);
+		String redirectUrl = serviceProvider.getTeamService().getIconURL(id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	

@@ -16,7 +16,7 @@ public class BooleanPrimaryTest {
 		Predicate predicate = SqlElementUntils.createPredicate("foo in(1,2)");
 		BooleanPrimary element = new BooleanPrimary(predicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo IN ( 1, 2 )", builder.toString());
 	}
 	
@@ -25,7 +25,7 @@ public class BooleanPrimaryTest {
 		SearchCondition searchCondition = SqlElementUntils.createSearchCondition("bar = 1");
 		BooleanPrimary element = new BooleanPrimary(searchCondition);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("( bar = 1 )", builder.toString());
 	}
 }

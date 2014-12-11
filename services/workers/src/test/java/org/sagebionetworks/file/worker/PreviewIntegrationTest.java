@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
@@ -63,12 +64,16 @@ public class PreviewIntegrationTest {
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
 	private UserInfo adminUserInfo;
 	private List<S3FileHandleInterface> toDelete;
 	private S3FileHandle imageFileHandle, csvFileHandle, tabFileHandle, txtFileHandle;
 	
 	@Before
 	public void before() throws Exception {
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Before we start, make sure the queue is empty
 		fileQueueMessageReveiver.emptyQueue();
 		// Create a file

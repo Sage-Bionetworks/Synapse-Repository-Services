@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -22,6 +23,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -39,9 +41,11 @@ import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DecompressingHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
@@ -83,8 +87,7 @@ public class HttpClientHelper {
 					DEFAULT_CONNECT_TIMEOUT_MSEC);
 			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 					DEFAULT_SOCKET_TIMEOUT_MSEC);
-
-			return new DefaultHttpClient(connectionManager, clientParams);
+			return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, clientParams));
 		} catch (KeyStoreException e) {
 			throw new RuntimeException(e);
 		} catch (KeyManagementException e) {
@@ -298,20 +301,29 @@ public class HttpClientHelper {
 	 * @return the response object
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException
 	 */
 	public static HttpResponse performRequest(HttpClient client,
 			String requestUrl, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException {
 
 		HttpEntity requestEntity = null;
 		if (null != requestContent) {
-			requestEntity = new StringEntity(requestContent);
+			requestEntity = new StringEntity(requestContent, getCharacterSetFromHeaders(requestHeaders));
 		}
 
 		return performEntityRequest(client, requestUrl, requestMethod,
 				requestEntity, requestHeaders);
+	}
+	
+	public static String getCharacterSetFromHeaders(Map<String, String> requestHeaders) {
+		if (requestHeaders==null) return null;
+		String contentTypeHeader = requestHeaders.get("Content-Type");
+		if (contentTypeHeader==null) return null;
+		ContentType contentType = ContentType.parse(contentTypeHeader);
+		Charset charset = contentType.getCharset();
+		if (charset==null) return null;
+		return charset.name();
 	}
 
 	/**
@@ -330,7 +342,7 @@ public class HttpClientHelper {
 	public static HttpResponse performEntityRequest(HttpClient client,
 			String requestUrl, String requestMethod, HttpEntity requestEntity,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException {
 
 		HttpRequestBase request = null;
 		if (requestMethod.equals("GET")) {
@@ -359,35 +371,14 @@ public class HttpClientHelper {
 
 		HttpResponse response = client.execute(request);
 
-		if (300 <= response.getStatusLine().getStatusCode()) {
-			StringBuilder verboseMessage = new StringBuilder(
-					"FAILURE: Got HTTP status "
-							+ response.getStatusLine().getStatusCode()
-							+ " for " + requestUrl);
-
-			// TODO this potentially prints out headers such as sessionToken to
-			// our logs, consider whether this is a good idea
-			if ((null != requestHeaders) && (0 < requestHeaders.size())) {
-				verboseMessage.append("\nHeaders: ");
-				for (Entry<String, String> entry : requestHeaders.entrySet()) {
-					verboseMessage.append("\n\t" + entry.getKey() + ": "
-							+ entry.getValue());
-				}
-			}
-			if (null != requestEntity) {
-				verboseMessage.append("\nRequest Content: " + requestEntity);
-			}
-			String responseBody = (null != response.getEntity()) ? EntityUtils
-					.toString(response.getEntity()) : null;
-			verboseMessage.append("\nResponse Content: " + responseBody);
-			throw new HttpClientHelperException(verboseMessage.toString(),
-					response);
-		}
 		return response;
 	}
 
 	/**
 	 * Get content as a string using the provided HttpClient.
+	 * 
+	 * Note: This is used only by the SearchController, which maps any
+	 * HttpClientHelperException into a 400 (Bad Request) status
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -404,6 +395,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -411,15 +403,27 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
 		return responseContent;
 	}
+	
+	private static void convertHttpStatusToException(HttpResponse response) throws HttpClientHelperException, IOException {
+		int statusCode = response.getStatusLine().getStatusCode();
+		if (statusCode>=200 && statusCode<300) return;
+		String statusMessage = response.getStatusLine().getReasonPhrase();
+		HttpEntity responseEntity = response.getEntity();
+		String responseBody = (null == responseEntity) ? "" : EntityUtils.toString(responseEntity);
+		throw new HttpClientHelperException(responseBody, statusCode, statusMessage);
+	}
 
 	/**
 	 * Get content as a file using the provided HttpClient
+	 * 
+	 * Note:  This is used only for an integration test on Locationable objects.
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -430,6 +434,7 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
+	@Deprecated
 	public static File getContent(final HttpClient client,
 			final String requestUrl, File file) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
@@ -440,6 +445,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(file);
@@ -451,6 +457,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as a string using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -470,6 +478,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "POST", requestContent, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -477,7 +486,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -486,6 +495,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as an InputStream using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -509,6 +520,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "POST", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -516,7 +528,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -548,6 +560,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "PUT", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -555,7 +568,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -573,14 +586,14 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	@Deprecated
 	public static void downloadFile(final HttpClient client,
-			final String requestUrl, final String filepath)
+			final String requestUrl, final String filepath, Map<String,String> headers)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, null);
+				requestUrl, "GET", null, headers);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(filepath);
@@ -625,10 +638,11 @@ public class HttpClientHelper {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();
 			HttpEntity responseEntity = response.getEntity();
+			String responseContent = EntityUtils.toString(responseEntity);
 			if (null != responseEntity) {
-				errorMessage += EntityUtils.toString(responseEntity);
+				errorMessage += responseContent;
 			}
-			throw new HttpClientHelperException(errorMessage, response);
+			throw new HttpClientHelperException(errorMessage, response.getStatusLine().getStatusCode(), responseContent);
 		}
 	}
 }

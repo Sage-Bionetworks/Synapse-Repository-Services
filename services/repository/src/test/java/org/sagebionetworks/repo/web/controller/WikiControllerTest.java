@@ -14,7 +14,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -26,6 +25,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -36,8 +36,6 @@ import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -46,12 +44,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
  * @author jmhill
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class WikiControllerTest {
-	
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
+public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private UserManager userManager;
@@ -82,7 +75,7 @@ public class WikiControllerTest {
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
-		
+
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
 		handleOne = new S3FileHandle();
@@ -167,7 +160,7 @@ public class WikiControllerTest {
 		wiki = entityServletHelper.createWikiPage(adminUserId, ownerId, ownerType, wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getId());
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
 		toDelete.add(key);
 		assertNotNull(wiki.getEtag());
 		assertNotNull(ownerId, wiki.getModifiedBy());
@@ -211,7 +204,7 @@ public class WikiControllerTest {
 		child = entityServletHelper.createWikiPage(adminUserId, ownerId, ownerType, child);
 		assertNotNull(child);
 		assertNotNull(child.getId());
-		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
+		WikiPageKey childKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(childKey);
 		assertEquals(2, v2WikiPageDao.getCount());
 		// List the hierarchy

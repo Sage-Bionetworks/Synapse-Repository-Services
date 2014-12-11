@@ -34,6 +34,17 @@ public interface ColumnModelManager {
 	 * @throws UnauthorizedException 
 	 */
 	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException;
+
+	/**
+	 * Create new immutable ColumnModel objects
+	 * 
+	 * @param user
+	 * @param columnModels
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public List<ColumnModel> createColumnModels(UserInfo user, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a list of column models for the given list of IDs
@@ -42,7 +53,7 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns models bound to a Table.
@@ -72,11 +83,18 @@ public interface ColumnModelManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
-	
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId, boolean isNew) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Remove all column bindings for an object
+	 * 
+	 * @param objectId
+	 */
+	public void unbindAllColumnsAndOwnerFromObject(String objectId);
+
+	/**
 	 * List all of the objects that are bound to the given column IDs.
+	 * 
 	 * @param user
 	 * @param columnIds
 	 * @param currentOnly
@@ -91,6 +109,5 @@ public interface ColumnModelManager {
 	 * @param user
 	 */
 	public boolean truncateAllColumnData(UserInfo user);
-
 }
 

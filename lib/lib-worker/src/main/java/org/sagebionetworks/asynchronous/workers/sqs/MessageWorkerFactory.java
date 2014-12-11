@@ -18,6 +18,6 @@ public interface MessageWorkerFactory {
 	 * @param message 
 	 * @return
 	 */
-	public Callable<List<Message>> createWorker(List<Message> messages);
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress);
 
 }

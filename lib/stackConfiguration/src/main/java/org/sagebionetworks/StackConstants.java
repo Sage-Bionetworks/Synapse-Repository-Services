@@ -31,10 +31,16 @@ public class StackConstants {
 	
 	static final String DATABASE_URL_PROPERTY = "connection.url";
 	
+	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
+		
+	public static final String ASYNC_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-async-queue";
+
+	public static final String WORKER_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-worker-queue";
+
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.
 	 */
-	public static final String TOPIC_NAME_TEMPLATE = "%1$s-%2$s-repo-changes";
+	public static final String TOPIC_NAME_TEMPLATE_PREFIX = "%1$s-%2$s-repo-";
 	
 	/**
 	 * Template used for the name of the AWS SQS where search updates are pushed.
@@ -82,6 +88,11 @@ public class StackConstants {
 	 */
 	public static final String TABLE_CLUSTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-cluster-queue";
 	
+	/**
+	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
+	 */
+	public static final String TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-current-cache-queue";
+
 	/**
 	 * The bucket containing all table row data.
 	 */

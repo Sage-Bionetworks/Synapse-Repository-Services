@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,6 +81,15 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Override
 	public <T extends AccessApproval> T create(T dto) throws DatastoreException,
 			InvalidModelException {
+		
+		// don't create if it already exists
+		List<AccessApproval> existingApprovals = getForAccessRequirementsAndPrincipals(
+				Collections.singletonList(dto.getRequirementId().toString()),
+				Collections.singletonList(dto.getAccessorId()));
+		if (!existingApprovals.isEmpty()) {
+			return (T)existingApprovals.get(0);
+		}
+		
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId() == null) {

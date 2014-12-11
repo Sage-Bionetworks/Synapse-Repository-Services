@@ -29,5 +29,19 @@ public class KeyValueSplitter {
 		return SEPARATOR_PATTERN.split(string);
 	}
 
+	public static String createKey(Object... parts) {
+		StringBuilder sb = new StringBuilder();
+		for (Object part : parts) {
+			if (part == null) {
+				throw new IllegalArgumentException("All parts of the key are required");
+			}
+			if (sb.length() > 0) {
+				sb.append(SEPARATOR);
+			}
+			sb.append(part.toString());
+		}
+		return sb.toString();
+	}
+
 	private static final String[] EMPTY_ARRAY = new String[]{};
 }

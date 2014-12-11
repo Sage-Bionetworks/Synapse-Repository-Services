@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 
 /**
  * Most of the tests in this suite only worked when using illegal principal IDs, so @Ignore were added when it was refactored.
@@ -170,7 +172,7 @@ public class UserProfileServiceTest {
 	@Test
 	public void testAddFavorite() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);		
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);		
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
@@ -185,7 +187,7 @@ public class UserProfileServiceTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);		
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);		
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());

@@ -12,11 +12,14 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.amazonaws.services.cloudwatch.model.StatisticSet;
 
 /**
- * Sends latency information to AmazonWebServices CloudWatch. It's the consumer
+ * Sends metric information to AmazonWebServices CloudWatch. It's the consumer
  * in the producer/consumer pattern and it handles the Watchers in the Observer
  * pattern. Watchers can monitor success or failure of "puts" to CloudWatch
  * 
@@ -119,6 +122,11 @@ public class Consumer {
 		}
 		return list;
 	}
+	
+	// for testing only
+	public void clearProfileData() {
+		this.listProfileData.clear();
+	}
 
 	/**
 	 * Returns a map of namespaces, with value being list of each MetricDatum
@@ -144,6 +152,22 @@ public class Consumer {
 		return toReturn;
 	}
 
+	// tried following this guide
+	// http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/Dimension.html#setName%28java.lang.String%29
+	// which says the string can be up to 255 char, but got this runtime exception
+	// 'The parameter MetricData.member.1.Dimensions.member.4.Value must be shorter than 250 characters.'
+	private static final int MAX_DIMENSION_STRING_LENGTH_PLUS_ONE = 250;
+	
+	// CloudWatch restricts strings used in Dimensions to be < 250 characters
+	// and throws an error if "contains non-ASCII characters" which seems to
+	// arise if you use \n or \t (even though they are, in fact, ascii char's!)
+	public static String scrubDimensionString(String s) {
+		s = s.replaceAll("\\s", " "); // replace all white space with a simple space
+		if (s.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
+			s = s.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);
+		return s;
+	}
+	
 	/**
 	 * Converts a ProfileData to a MetricDatum.
 	 * 
@@ -156,12 +180,32 @@ public class Consumer {
 		//and unit can't be smaller than zero as it represents latency
 		if (pd == null) throw new IllegalArgumentException("ProfileData cannot be null");
 		if(pd.getName() == null) throw new IllegalArgumentException("ProfileData.name cannot be null");
-		if(pd.getLatency() < 0) throw new IllegalArgumentException("ProfileData.latency cannot be negative");
 		MetricDatum toReturn = new MetricDatum();
 		toReturn.setMetricName(pd.getName());
-		toReturn.setValue((double) pd.getLatency());
-		toReturn.setUnit(pd.getUnit());
+		toReturn.setValue(pd.getValue());
+		toReturn.setUnit(StandardUnit.valueOf(pd.getUnit()));
 		toReturn.setTimestamp(pd.getTimestamp());
+		List<Dimension> dimensions = new ArrayList<Dimension>();
+		if (pd.getDimension()!=null) {
+			for (String key : pd.getDimension().keySet()) {
+				Dimension dimension = new Dimension();
+				String value = pd.getDimension().get(key);
+				key = scrubDimensionString(key);
+				value = scrubDimensionString(value);
+				dimension.setName(key);
+				dimension.setValue(value);
+				dimensions.add(dimension);
+			}
+			toReturn.setDimensions(dimensions);
+		}
+		if (pd.getMetricStats()!=null) {
+			StatisticSet statisticValues = new StatisticSet();
+			statisticValues.setMaximum(pd.getMetricStats().getMaximum());
+			statisticValues.setMinimum(pd.getMetricStats().getMinimum());
+			statisticValues.setSampleCount(pd.getMetricStats().getCount());
+			statisticValues.setSum(pd.getMetricStats().getSum());
+			toReturn.setStatisticValues(statisticValues);
+		}
 		return toReturn;
 	}
 

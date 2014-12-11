@@ -30,6 +30,7 @@ public interface TableStatusDAO {
 	 * 
 	 * @param tableId
 	 * @param resetToken
+	 * @param tableChangeEtag The etag of the last table change processed.
 	 * @return
 	 * @throws ConflictingUpdateException
 	 *             Thrown when the passed restToken does not match the current
@@ -39,7 +40,7 @@ public interface TableStatusDAO {
 	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken) throws ConflictingUpdateException,
+			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
 			NotFoundException;
 
 	/**
@@ -93,8 +94,14 @@ public interface TableStatusDAO {
 	public TableStatus getTableStatus(String tableId) throws NotFoundException;
 
 	/**
-	 * Remove all table state. This should not be called during normal
-	 * operations.
+	 * Delete the table status for this table. Called during migration if table was updated in staging and we don't want
+	 * stale status
+	 * 
+	 */
+	public void deleteTableStatus(String tableId);
+
+	/**
+	 * Remove all table state. This should not be called during normal operations.
 	 * 
 	 */
 	public void clearAllTableState();

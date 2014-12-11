@@ -1,0 +1,22 @@
+{
+	"description": "Reference to a WikiPage",
+	"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
+	"properties": {
+		"wikiPageId": {
+			"type": "string",
+			"description": "The ID of the wiki page.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"ownerObjectId": {
+			"type": "string",
+			"description": "The owner of this page.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"ownerObjectType": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType",
+			"description": "The owner of this page.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		}
+	}
+}

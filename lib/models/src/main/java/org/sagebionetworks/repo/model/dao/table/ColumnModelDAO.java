@@ -64,7 +64,7 @@ public interface ColumnModelDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns currently bound to an object in the order they were bound.
@@ -74,14 +74,22 @@ public interface ColumnModelDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException;
 	
 	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
 	 * 
 	 * @param id
+	 * @return 
 	 */
-	public void delete(String id);
+	public int deleteColumModel(String id);
+	
+	/**
+	 * Unbind all of the columns associated with an object.
+	 * @param objectId
+	 * @return
+	 */
+	public int unbindAllColumnsFromObject(String objectId);
 	
 	/**
 	 * Bind a list of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
@@ -113,10 +121,23 @@ public interface ColumnModelDAO {
 	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly);
 	
 	/**
+	 * Select for update on an owner object.
+	 * 
+	 * @param objectId
+	 * @return The current etag set to the owner.
+	 */
+	public String lockOnOwner(String objectId);
+	
+	/**
+	 * Delete the owner object.
+	 * 
+	 * @param objectId
+	 */
+	public void deleteOwner(String objectId);
+
+	/**
 	 * This should only be called by tests.
 	 * 
 	 */
 	public boolean truncateAllColumnData();
-		
-
 }

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author xschildw
  */
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class HealthCheckController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.OK)

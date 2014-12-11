@@ -28,17 +28,21 @@
 		},
 		"resetToken": {
 			"type": "string",
-			"description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE_FOR_QUERY by providing the current reset-token."
+			"description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE by providing the current reset-token."
 		},
-		"progresssMessage": {
+		"lastTableChangeEtag": {
+			"type": "string",
+			"description": "Whenever the status of a table is set to AVAILABLE, this will be set to the etag of the last table change applied to the index."
+		},
+		"progressMessage": {
 			"type": "string",
 			"description": "The current message of the progress tracker."
 		},
-		"progresssCurrent": {
+		"progressCurrent": {
 			"type": "integer",
 			"description": "The progress current value indicates how much progress has been made. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
 		},
-		"progresssTotal": {
+		"progressTotal": {
 			"type": "integer",
 			"description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
 		},

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import org.junit.After;
@@ -24,9 +25,11 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
+import org.sagebionetworks.bridge.model.data.units.Units;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataEventValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
@@ -119,6 +122,34 @@ public class IT610BridgeData {
 	}
 
 	@Test
+	public void saveDataAndRetrieveNormalized() throws Exception {
+		List<ParticipantDataRow> rows = Lists.newArrayList();
+		ParticipantDataRow row = new ParticipantDataRow();
+		row.setData(Maps.<String,ParticipantDataValue>newHashMap()); 
+		ParticipantDataLabValue lab = new ParticipantDataLabValue();
+		lab.setValue(1000d);
+		lab.setUnits(Units.MILLILITER.getLabels().get(0));
+		lab.setMinNormal(500d);
+		lab.setMaxNormal(1500d);
+		row.getData().put("lab", lab);
+		rows.add(row);
+		
+		ParticipantDataDescriptor descriptor = createDescriptor(false);
+		createColumnDescriptor(descriptor, "lab", ParticipantDataColumnType.LAB);
+		
+		List<ParticipantDataRow> saved = bridge.appendParticipantData(descriptor.getId(), rows);
+		Long rowId = saved.get(0).getRowId();
+		
+		// Milliliters should be converted to liters.
+		ParticipantDataRow convertedRow = bridge.getParticipantDataRow(descriptor.getId(), rowId, true); 
+		ParticipantDataLabValue savedLab = (ParticipantDataLabValue)convertedRow.getData().get("lab");
+		assertEquals(1d, savedLab.getValue(), 0.0);
+		assertEquals("L", savedLab.getUnits());
+		assertEquals(0.5d, savedLab.getMinNormal(), 0.0);
+		assertEquals(1.5d, savedLab.getMaxNormal(), 0.0);
+	}
+	
+	@Test
 	public void testGetVersion() throws Exception {
 		BridgeVersionInfo versionInfo = bridge.getBridgeVersionInfo();
 		assertFalse(versionInfo.getVersion().isEmpty());
@@ -145,8 +176,8 @@ public class IT610BridgeData {
 		List<ParticipantDataRow> data3 = createRows(headers, null, "5", "200");
 		data3 = bridgeTwo.appendParticipantData(participantDataDescriptor.getId(), data3);
 
-		PaginatedResults<ParticipantDataRow> one = bridge.getRawParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0);
-		PaginatedResults<ParticipantDataRow> two = bridgeTwo.getRawParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0);
+		PaginatedResults<ParticipantDataRow> one = bridge.getRawParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0, false);
+		PaginatedResults<ParticipantDataRow> two = bridgeTwo.getRawParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0, false);
 
 		assertEquals(3, one.getResults().size());
 		assertEquals(1, two.getResults().size());
@@ -167,15 +198,15 @@ public class IT610BridgeData {
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
 		PaginatedResults<ParticipantDataRow> result;
-		result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1, 0);
+		result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1, 0, false);
 		assertEquals(1, result.getResults().size());
 		assertEquals("5", ((ParticipantDataStringValue) result.getResults().get(0).getData().get("level")).getValue());
 
-		result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1, 1);
+		result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1, 1, false);
 		assertEquals(1, result.getResults().size());
 		assertEquals("6", ((ParticipantDataStringValue) result.getResults().get(0).getData().get("level")).getValue());
 
-		result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 10, 1);
+		result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 10, 1, false);
 		assertEquals(2, result.getResults().size());
 		assertEquals("6", ((ParticipantDataStringValue) result.getResults().get(0).getData().get("level")).getValue());
 		assertEquals("7", ((ParticipantDataStringValue) result.getResults().get(1).getData().get("level")).getValue());
@@ -196,7 +227,7 @@ public class IT610BridgeData {
 		List<ParticipantDataRow> dataToReplace = createRows(headers, data1.get(1).getRowId(), "8", "200");
 		dataToReplace = bridge.updateParticipantData(participantDataDescriptor.getId(), dataToReplace);
 
-		PaginatedResults<ParticipantDataRow> result = bridge.getRawParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0);
+		PaginatedResults<ParticipantDataRow> result = bridge.getRawParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0, false);
 
 		assertEquals(3, result.getResults().size());
 		assertEquals("5", ((ParticipantDataStringValue) result.getResults().get(0).getData().get("level")).getValue());
@@ -225,35 +256,35 @@ public class IT610BridgeData {
 		update.setLastEntryComplete(true);
 		bridge.sendParticipantDataDescriptorUpdates(statuses);
 
-		ParticipantDataCurrentRow currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
+		ParticipantDataCurrentRow currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId(), false);
 		assertTrue(currentRow.getCurrentData().getData().isEmpty());
 		assertEquals("7", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 
 		update.setLastEntryComplete(false);
 		bridge.sendParticipantDataDescriptorUpdates(statuses);
 
-		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
+		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId(), false);
 		assertEquals("6", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 		assertEquals("7", ((ParticipantDataStringValue) currentRow.getCurrentData().getData().get("level")).getValue());
 
 		List<ParticipantDataRow> dataToReplace = createRows(headers, data1.get(2).getRowId(), "8", "200");
 		dataToReplace = bridge.updateParticipantData(participantDataDescriptor.getId(), dataToReplace);
 
-		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
+		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId(), false);
 		assertEquals("6", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 		assertEquals("8", ((ParticipantDataStringValue) currentRow.getCurrentData().getData().get("level")).getValue());
 
 		List<ParticipantDataRow> data3 = createRows(headers, null, "9", "200");
 		data3 = bridge.appendParticipantData(participantDataDescriptor.getId(), data3);
 
-		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
+		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId(), false);
 		assertEquals("8", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 		assertEquals("9", ((ParticipantDataStringValue) currentRow.getCurrentData().getData().get("level")).getValue());
 
 		update.setLastEntryComplete(true);
 		bridge.sendParticipantDataDescriptorUpdates(statuses);
 
-		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
+		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId(), false);
 		assertTrue(currentRow.getCurrentData().getData().isEmpty());
 		assertEquals("9", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 	}
@@ -277,7 +308,7 @@ public class IT610BridgeData {
 		idList.setList(rowIds);
 		bridge.deleteParticipantDataRows(participantDataDescriptor.getId(), idList);
 
-		PaginatedResults<ParticipantDataRow> result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1000, 0);
+		PaginatedResults<ParticipantDataRow> result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1000, 0, false);
 		assertEquals(0, result.getResults().size());
 	}
 
@@ -295,7 +326,7 @@ public class IT610BridgeData {
 				3.0);
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
-		List<ParticipantDataRow> currentRows = bridge.getCurrentRows(participantDataDescriptor.getId());
+		List<ParticipantDataRow> currentRows = bridge.getCurrentRows(participantDataDescriptor.getId(), false);
 		assertEquals(2, currentRows.size());
 		assertEquals(20000L, getEvent(currentRows, 0, "event").getStart().longValue());
 		assertEquals(30000L, getEvent(currentRows, 1, "event").getStart().longValue());
@@ -315,23 +346,23 @@ public class IT610BridgeData {
 				ValueFactory.createEventValue(20000L, 30000L, "c", null), 3.0);
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
-		List<ParticipantDataRow> currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), null, null);
+		List<ParticipantDataRow> currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), null, null, false);
 		assertEquals(3,  currentRows.size());
 		assertEquals(20000L, getEvent(currentRows, 0, "event").getStart().longValue());
 		assertEquals(30000L, getEvent(currentRows, 1, "event").getStart().longValue());
 		assertEquals(40000L, getEvent(currentRows, 2, "event").getStart().longValue());
 
-		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), new Date(30000L), null);
+		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), new Date(30000L), null, false);
 		assertEquals(2, currentRows.size());
 		assertEquals(30000L, getEvent(currentRows, 0, "event").getStart().longValue());
 		assertEquals(40000L, getEvent(currentRows, 1, "event").getStart().longValue());
 
-		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), null, new Date(35000L));
+		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), null, new Date(35000L), false);
 		assertEquals(2, currentRows.size());
 		assertEquals(20000L, getEvent(currentRows, 0, "event").getStart().longValue());
 		assertEquals(30000L, getEvent(currentRows, 1, "event").getStart().longValue());
 
-		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), new Date(25000L), new Date(35000L));
+		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), new Date(25000L), new Date(35000L), false);
 		assertEquals(1, currentRows.size());
 		assertEquals(30000L, getEvent(currentRows, 0, "event").getStart().longValue());
 	}
@@ -360,7 +391,7 @@ public class IT610BridgeData {
 				new Date(30000), 7.7, 200L);
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
-		TimeSeriesTable timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null);
+		TimeSeriesTable timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null, false);
 		assertEquals(3, timeSeries.getColumns().size());
 		assertEquals(3, timeSeries.getRows().size());
 		assertEquals(0, timeSeries.getEvents().size());
@@ -381,7 +412,7 @@ public class IT610BridgeData {
 		assertEquals(200.0, Double.parseDouble(timeSeries.getRows().get(2).getValues().get(sizeIndex)), 0.0001);
 		assertNull(timeSeries.getRows().get(1).getValues().get(sizeIndex));
 
-		TimeSeriesTable level = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level"));
+		TimeSeriesTable level = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level"), false);
 		assertEquals(2, level.getColumns().size());
 		assertEquals(3, level.getRows().size());
 		assertEquals(2, level.getRows().get(0).getValues().size());
@@ -390,7 +421,7 @@ public class IT610BridgeData {
 		assertEquals(0, level.getDateIndex().intValue());
 		assertEquals(7.7, Double.parseDouble(level.getRows().get(2).getValues().get(1)), 0.0001);
 
-		TimeSeriesTable size = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("size"));
+		TimeSeriesTable size = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("size"), false);
 		assertEquals(2, size.getColumns().size());
 		assertEquals(3, size.getRows().size());
 		assertEquals(2, size.getRows().get(0).getValues().size());
@@ -399,7 +430,7 @@ public class IT610BridgeData {
 		assertEquals(0, size.getDateIndex().intValue());
 		assertEquals(200.0, Double.parseDouble(size.getRows().get(2).getValues().get(1)), 0.0001);
 
-		TimeSeriesTable namedColumns = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level", "size"));
+		TimeSeriesTable namedColumns = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level", "size"), false);
 		assertEquals(timeSeries, namedColumns);
 	}
 	
@@ -428,7 +459,7 @@ public class IT610BridgeData {
 				ValueFactory.createEventValue(60000L, 30000L, "d", null), 8.8, 300L);
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
-		TimeSeriesTable timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null);
+		TimeSeriesTable timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null, false);
 		assertEquals(3, timeSeries.getColumns().size());
 		assertEquals(0, timeSeries.getRows().size());
 		assertEquals(4, timeSeries.getEvents().size());

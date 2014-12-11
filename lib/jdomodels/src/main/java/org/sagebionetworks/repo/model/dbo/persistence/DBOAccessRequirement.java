@@ -6,7 +6,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ENTITY_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_BY;
@@ -43,7 +42,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	private Long modifiedBy;
 	private long modifiedOn;
 	private String accessType;
-	private String entityType;
 	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -54,7 +52,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_MODIFIED_ON),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
-		new FieldColumn("entityType", COL_ACCESS_REQUIREMENT_ENTITY_TYPE),
 		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY)
 		};
 
@@ -73,7 +70,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_BY));
 				ar.setModifiedOn(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_ON));
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
-				ar.setEntityType(rs.getString(COL_ACCESS_REQUIREMENT_ENTITY_TYPE));
 				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY);
 				if(blob != null){
 					ar.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
@@ -172,17 +168,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		this.modifiedOn = modifiedOn;
 	}
 
-
-	public String getEntityType() {
-		return entityType;
-	}
-
-
-	public void setEntityType(String entityType) {
-		this.entityType = entityType;
-	}
-
-
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
 	}
@@ -203,8 +188,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + (int) (createdOn ^ (createdOn >>> 32));
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result
-				+ ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -240,11 +223,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				return false;
 		} else if (!eTag.equals(other.eTag))
 			return false;
-		if (entityType == null) {
-			if (other.entityType != null)
-				return false;
-		} else if (!entityType.equals(other.entityType))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -268,8 +246,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return "DBOAccessRequirement [id=" + id + ", eTag=" + eTag
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				 + ", accessType=" + accessType
-				+ ", entityType=" + entityType + ", serializedEntity="
+				+ ", accessType=" + accessType + ", serializedEntity="
 				+ Arrays.toString(serializedEntity) + "]";
 	}
 
@@ -299,14 +276,13 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 					DBOAccessRequirement backup) {
 				return backup;
 			}
-
+			
 			@Override
 			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
 				return dbo;
 			}};
 	}
-
 
 	@Override
 	public Class<? extends DBOAccessRequirement> getBackupClass() {

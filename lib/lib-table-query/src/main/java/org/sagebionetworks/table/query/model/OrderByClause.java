@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
-public class OrderByClause implements SQLElement {
+import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+
+public class OrderByClause extends SQLElement {
 	
 	SortSpecificationList sortSpecificationList;
 
@@ -14,9 +16,15 @@ public class OrderByClause implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		builder.append("ORDER BY ");
-		sortSpecificationList.toSQL(builder);
+		if (columnConvertor != null) {
+			columnConvertor.pushCurrentClause(SQLClause.ORDER_BY);
+		}
+		sortSpecificationList.toSQL(builder, columnConvertor);
+		if (columnConvertor != null) {
+			columnConvertor.popCurrentClause(SQLClause.ORDER_BY);
+		}
 	}
 	
 

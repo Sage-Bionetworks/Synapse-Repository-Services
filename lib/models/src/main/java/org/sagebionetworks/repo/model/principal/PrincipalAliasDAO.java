@@ -60,6 +60,15 @@ public interface PrincipalAliasDAO {
 	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type);
 	
 	/**
+	 * Get all aliases for a principal, type and display value.
+	 * @param principalId
+	 * @param type
+	 * @param displayAlias
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type, String displayAlias);
+	
+	/**
 	 * List all aliases for a given type.
 	 * @param type
 	 * @return
@@ -71,20 +80,6 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public boolean isAliasAvailable(String alias);
-	/**
-	 * Set 
-	 * @param aliasId
-	 * @param valid
-	 * @return
-	 */
-	public boolean setAliasValid(Long aliasId, boolean valid);
-	
-	/**
-	 * Set the given alias as the default for its type.
-	 * @param aliasId
-	 * @return
-	 */
-	public boolean setAliasDefault(Long aliasId);
 	
 	/**
 	 * Remove an alias from a principal.
@@ -100,4 +95,12 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public boolean removeAllAliasFromPrincipal(Long principalId);
+	
+	/**
+	 * There must be exactly one user name
+	 * @param principalId
+	 * @return
+	 * @throw NotFoundException if no user name
+	 */
+	public String getUserName(Long principalId) throws NotFoundException;
 }

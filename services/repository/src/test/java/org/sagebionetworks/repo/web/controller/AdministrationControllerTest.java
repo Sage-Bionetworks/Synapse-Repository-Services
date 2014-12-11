@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -28,17 +29,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AdministrationControllerTest {
+public class AdministrationControllerTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	public UserManager userManager;
 	
 	@Autowired
 	public NodeManager nodeManager;
-	
-	private static HttpServlet dispatchServlet;
 	
 	@Autowired
 	private StackStatusDao stackStatusDao;
@@ -53,11 +50,6 @@ public class AdministrationControllerTest {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	}
 	
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-
 	@After
 	public void after() throws Exception {
 		// Always restore the status to read-write
@@ -94,7 +86,7 @@ public class AdministrationControllerTest {
 	@Test
 	public void testGetStackStatus() throws Exception {
 		// Make sure we can get the stack status
-		StackStatus status = ServletTestHelper.getStackStatus(dispatchServlet);
+		StackStatus status = servletTestHelper.getStackStatus(dispatchServlet);
 		assertNotNull(status);
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 	}
@@ -102,12 +94,12 @@ public class AdministrationControllerTest {
 	@Test
 	public void testUpdateStatus() throws Exception {
 		// Make sure we can get the stack status
-		StackStatus status = ServletTestHelper.getStackStatus(dispatchServlet);
+		StackStatus status = servletTestHelper.getStackStatus(dispatchServlet);
 		assertNotNull(status);
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 		// Make sure we can update the status
 		status.setPendingMaintenanceMessage("AdministrationControllerTest.testUpdateStatus");
-		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, status);
+		StackStatus back = servletTestHelper.updateStackStatus(dispatchServlet, adminUserId, status);
 		assertEquals(status, back);
 	}
 	
@@ -117,16 +109,31 @@ public class AdministrationControllerTest {
 		StackStatus setDown = new StackStatus();
 		setDown.setStatus(StatusEnum.DOWN);
 		setDown.setCurrentMessage("Synapse is going down for a test: AdministrationControllerTest.testGetStatusWhenDown");
-		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
+		StackStatus back = servletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
 		assertEquals(setDown, back);
 		// Make sure we can still get the status
-		StackStatus current = ServletTestHelper.getStackStatus(dispatchServlet);
+		StackStatus current = servletTestHelper.getStackStatus(dispatchServlet);
 		assertEquals(setDown, current);
 		
 		// Now make sure we can turn it back on when down.
 		setDown.setStatus(StatusEnum.READ_WRITE);
 		setDown.setCurrentMessage(null);
-		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
+		back = servletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
 		assertEquals(setDown, back);
 	}
+	
+	@Test
+	public void testClearLocks() throws Exception{
+		// Clear all locks
+		servletTestHelper.clearAllLocks(dispatchServlet, adminUserId);
+		
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testClearLocksUnauthorized() throws Exception{
+		// Clear all locks
+		servletTestHelper.clearAllLocks(dispatchServlet, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
+	}
 }
+

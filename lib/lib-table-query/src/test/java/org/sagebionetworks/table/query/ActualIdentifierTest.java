@@ -17,7 +17,7 @@ public class ActualIdentifierTest {
 	public void testRegularToSQL(){
 		StringBuilder builder = new StringBuilder();
 		ActualIdentifier ai = new ActualIdentifier("C123", null);
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("C123", builder.toString());
 	}
 	
@@ -25,7 +25,7 @@ public class ActualIdentifierTest {
 	public void testDelimitedToSQL(){
 		StringBuilder builder = new StringBuilder();
 		ActualIdentifier ai = new ActualIdentifier(null, "has\"quote");
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("\"has\"\"quote\"", builder.toString());
 	}
 

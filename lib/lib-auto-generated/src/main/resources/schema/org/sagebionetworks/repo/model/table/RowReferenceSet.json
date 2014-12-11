@@ -1,12 +1,12 @@
 {
-    "description":"Represents a set of RowReferences of a TablEntity",
+    "description":"Represents a set of RowReferences of a TableEntity",
     "properties":{
 		"tableId":{
 			"description":"The ID of the TableEntity than owns these rows",
 			"type": "string"
 		},
 		"etag": {
-		    "description":"When a RowReferencesRow is returned from a table update, this will be set to the current etag of the table.",
+		    "description":"When a RowReferenceSet is returned from a table update, this will be set to the current etag of the table.",
 			"type": "string"
 		},
 		"headers": {

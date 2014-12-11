@@ -17,7 +17,7 @@ public class RowValueConstructorListTest {
 		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one");
 		RowValueConstructorList element = new RowValueConstructorList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("one", builder.toString());
 	}
 	
@@ -26,7 +26,7 @@ public class RowValueConstructorListTest {
 		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one", "two");
 		RowValueConstructorList element = new RowValueConstructorList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("one, two", builder.toString());
 	}
 }

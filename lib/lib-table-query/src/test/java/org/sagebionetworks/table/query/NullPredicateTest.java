@@ -14,7 +14,7 @@ public class NullPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
 		NullPredicate element = new NullPredicate(columnReferenceLHS, null);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo IS NULL", builder.toString());
 	}
 	
@@ -23,7 +23,7 @@ public class NullPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
 		NullPredicate element = new NullPredicate(columnReferenceLHS, Boolean.TRUE);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo IS NOT NULL", builder.toString());
 	}
 }

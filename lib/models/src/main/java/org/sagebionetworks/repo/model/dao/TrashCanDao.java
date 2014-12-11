@@ -51,13 +51,13 @@ public interface TrashCanDao {
 	 * Gets the trash items deleted by the specified user. Results are paged as
 	 * specified by offset (inclusive; staring from 0) and limit (the max number of items retrieved).
 	 */
-	List<TrashedEntity> getInRangeForUser(String userGroupId, long offset, long limit) throws DatastoreException;
+	List<TrashedEntity> getInRangeForUser(String userGroupId, boolean sortById, long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Gets all the trash items. Results are paged as specified by offset (inclusive; staring from 0)
 	 * and limit (the max number of items retrieved).
 	 */
-	List<TrashedEntity> getInRange(long offset, long limit) throws DatastoreException;
+	List<TrashedEntity> getInRange(boolean sortById, long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Gets all the trash items that were deleted before the specified time stamp.

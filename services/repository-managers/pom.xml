@@ -22,7 +22,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-jdomodels</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-audit</artifactId>
@@ -50,6 +50,11 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-table-cluster</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
 
@@ -63,13 +68,27 @@
 			<artifactId>lib-logging</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-test</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.spring-library</artifactId>
-			<type>libd</type>
+			<artifactId>spring-context-support</artifactId>
+		</dependency>		
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
@@ -97,8 +116,8 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-			<groupId>opensymphony</groupId>
-			<artifactId>quartz-all</artifactId>
+		    <groupId>org.quartz-scheduler</groupId>
+			<artifactId>quartz</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>commons-collections</groupId>
@@ -107,7 +126,7 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-		<!-- We use this to images for previews.-->
+		<!-- We use this to images for previews. -->
 		<dependency>
 			<groupId>org.imgscalr</groupId>
 			<artifactId>imgscalr-lib</artifactId>
@@ -120,30 +139,37 @@
 			<version>0.6</version>
 		</dependency>
 
-		<!--  file upload -->
+		<!-- file upload -->
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpcore</artifactId>
 			<version>4.2.3</version>
 		</dependency>
-		
+
 		<dependency>
-    		<groupId>com.atlassian.jira</groupId>
-    		<artifactId>jira-rest-java-client-api</artifactId>
-    		<version>2.0.0-m19</version>
+			<groupId>com.atlassian.jira</groupId>
+			<artifactId>jira-rest-java-client-api</artifactId>
+			<version>2.0.0-m19</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.atlassian.jira</groupId>
+			<artifactId>jira-rest-java-client-core</artifactId>
+			<version>2.0.0-m19</version>
 		</dependency>
 		
+		<!-- JSON -->
 		<dependency>
-    		<groupId>com.atlassian.jira</groupId>
-    		<artifactId>jira-rest-java-client-core</artifactId>
-    		<version>2.0.0-m19</version>
- 		</dependency>
-	</dependencies>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>${org.json.version}</version>
+		</dependency>
+			</dependencies>
 
 	<build>
 		<resources>

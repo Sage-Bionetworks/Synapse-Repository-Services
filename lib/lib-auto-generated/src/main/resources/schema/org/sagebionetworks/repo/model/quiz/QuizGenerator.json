@@ -1,0 +1,30 @@
+{
+	"type":"object",
+	"description":"Schema for a quiz and, optionally, its answer key",
+	"properties":{
+		"id":{
+			"description":"the ID of this Quiz",
+			"type":"integer",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"header": {
+			"description":"Content preceding the series of questions",
+			"type": "string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+			
+		},
+		"minimumScore": {
+			"description":"Minimum number of questions to answer correctly to pass",
+			"type":"integer"
+		},
+		"questions": {
+			"description":"The questions in the Quiz",
+			"type": "array",
+			"items": {
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.quiz.QuestionVariety"
+			},
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		}
+	}
+}

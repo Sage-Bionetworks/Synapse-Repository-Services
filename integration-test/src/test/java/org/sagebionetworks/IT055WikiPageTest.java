@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -22,17 +23,19 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
 
@@ -46,6 +49,7 @@ public class IT055WikiPageTest {
 	private List<WikiPageKey> toDelete;
 	private List<String> handlesToDelete;
 	private File imageFile;
+	private String imageFileMD5;
 	private S3FileHandle fileHandle;
 	private Project project;
 	
@@ -56,34 +60,36 @@ public class IT055WikiPageTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
-	public void before() throws SynapseException {
+	public void before() throws SynapseException, IOException {
 		toDelete = new ArrayList<WikiPageKey>();
 		handlesToDelete = new ArrayList<String>();
 		
+		// Create a project, this will own the wiki page.
+		project = new Project();
+		project = synapse.createEntity(project);
+
 		// Get the image file from the classpath.
 		URL url = IT055WikiPageTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
+		imageFileMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		handlesToDelete.add(fileHandle.getId());
-		
-		// Create a project, this will own the wiki page.
-		project = new Project();
-		project = synapse.createEntity(project);
 	}
 
 	@After
@@ -92,7 +98,7 @@ public class IT055WikiPageTest {
 			try {
 				adminSynapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
-			} catch (SynapseServiceException e) { }
+			} catch (SynapseClientException e) { }
 		}
 		
 		adminSynapse.deleteEntity(project, true);
@@ -105,7 +111,7 @@ public class IT055WikiPageTest {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 	}
 	
 	@Test
@@ -116,7 +122,7 @@ public class IT055WikiPageTest {
 		// Create it
 		wiki = synapse.createWikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
 		
@@ -163,7 +169,7 @@ public class IT055WikiPageTest {
 		// Create it
 		wiki = synapse.createWikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
 		
@@ -185,7 +191,21 @@ public class IT055WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
-
+		
+		// also test the methods that get wiki attachments themselves	
+		URL url = synapse.getWikiAttachmentTemporaryUrl(key, handle.getFileName());
+		assertNotNull(url);
+		
+		File target = File.createTempFile("test", null);
+		target.deleteOnExit();
+		synapse.downloadWikiAttachment(key, handle.getFileName(), target);
+		assertEquals(imageFileMD5, MD5ChecksumHelper.getMD5Checksum(target));
+		
+		url = synapse.getWikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
+		assertNotNull(url);
+		
+		synapse.downloadWikiAttachmentPreview(key, handle.getFileName(), target);
+		assertTrue(target.length()>0);
 	}
 
 	/**

@@ -20,7 +20,7 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:dynamo-dao-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeLineageAutowireTest {
 
 	@Autowired

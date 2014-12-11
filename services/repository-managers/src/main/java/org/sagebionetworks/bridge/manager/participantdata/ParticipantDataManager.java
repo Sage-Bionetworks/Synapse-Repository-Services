@@ -33,18 +33,20 @@ public interface ParticipantDataManager {
 	void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException,
 			GeneralSecurityException;
 
-	PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset)
+	PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit,
+			Integer offset, boolean normalizeData) throws DatastoreException, NotFoundException, IOException,
+			GeneralSecurityException;
+
+	List<ParticipantDataRow> getHistoryData(UserInfo userInfo, String participantDataId, boolean filterOutNotEnded,
+			Date after, Date before, SortType sortType, boolean normalizeData) throws DatastoreException,
+			NotFoundException, IOException, GeneralSecurityException;
+
+	ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId, boolean normalizeData)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
-	List<ParticipantDataRow> getHistoryData(UserInfo userInfo, String participantDataId, boolean filterOutNotEnded, Date after, Date before,
-			SortType sortType) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
+	ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataId, Long rowId, boolean normalizeData)
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
-	ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId) throws DatastoreException, NotFoundException,
-			IOException, GeneralSecurityException;
-
-	ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataId, Long rowId) throws DatastoreException, NotFoundException,
-			IOException, GeneralSecurityException;
-
-	TimeSeriesTable getTimeSeries(UserInfo userInfo, String participantDataId, List<String> columnNames) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException;
+	TimeSeriesTable getTimeSeries(UserInfo userInfo, String participantDataId, List<String> columnNames,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 }

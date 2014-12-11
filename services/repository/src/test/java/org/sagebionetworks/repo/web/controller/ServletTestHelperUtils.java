@@ -48,6 +48,9 @@ public class ServletTestHelperUtils {
 		}
 
 	}
+	
+	private static final String REQUEST_ENCODING_CHARSET = "UTF-8";
+	private static final String RESPONSE_ENCODING_CHARSET = "UTF-8";
 
 	/**
 	 * Fills in a Mock HTTP request with the default headers (Accept and
@@ -60,23 +63,30 @@ public class ServletTestHelperUtils {
 	 * @param entity
 	 *            Optional, object to serialize into the body of the request
 	 */
-	public static MockHttpServletRequest initRequest(HTTPMODE mode,
+	public static MockHttpServletRequest initRequest(HTTPMODE mode, String path,
 			String requestURI, Long userId, JSONEntity entity)
 			throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod(mode.name());
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setRequestURI(requestURI);
+		request.addHeader("Accept", "application/json; charset="+RESPONSE_ENCODING_CHARSET);
+		request.addHeader("Accept-Encoding", RESPONSE_ENCODING_CHARSET);
+		request.addHeader("Content-Type", "application/json; charset="+REQUEST_ENCODING_CHARSET);
+		request.setRequestURI(path+requestURI);
 		if (userId != null) {
 			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
 		}
 		if (entity != null) {
 			String body = EntityFactory.createJSONStringForEntity(entity);
-			request.setContent(body.getBytes("UTF-8"));
+			request.setContent(body.getBytes(REQUEST_ENCODING_CHARSET));
 			log.debug("Request content: " + body);
 		}
 		return request;
+	}
+	
+	public static MockHttpServletRequest initRequest(HTTPMODE mode,
+			String requestURI, Long userId, JSONEntity entity)
+			throws Exception {
+		return initRequest(mode, "/repo/v1", requestURI, userId, entity);
 	}
 
 	/**
@@ -103,7 +113,7 @@ public class ServletTestHelperUtils {
 	/**
 	 * Convert the status code into an exception
 	 */
-	private static void handleException(int status, String message)
+	public static void handleException(int status, String message)
 			throws Exception {
 		log.debug("HTTP status: " + status + ", Message: " + message);
 		if (HttpStatus.NOT_FOUND.value() == status) {
@@ -125,7 +135,7 @@ public class ServletTestHelperUtils {
 			throw new IllegalArgumentException(message);
 		}
 		// Not sure what else it could be!
-		throw new RuntimeException(message);
+		throw new RuntimeException(status + ":" + message);
 	}
 
 	/**

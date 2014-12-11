@@ -12,7 +12,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -26,8 +27,7 @@ import java.util.Stack;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
@@ -45,7 +45,9 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.Closer;
 
+import com.google.common.io.Closeables;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -92,7 +94,7 @@ public class SynapseAdminClientMocker {
 					} else {
 						// Row should be deleted, should it raise an exception?
 						if (state.exceptionNodes.contains(row.getId())) {
-							throw new SynapseException("SynapseException on node " + row.getId());
+							throw new SynapseClientException("SynapseException on node " + row.getId());
 						}
 						count++;
 					}
@@ -374,14 +376,14 @@ public class SynapseAdminClientMocker {
 		// write to a file
 		File temp = File.createTempFile("tempBackupFile", ".tmp");
 		FileOutputStream out = null;
+		Writer zipWriter = null;
 		try {
 			out = new FileOutputStream(temp);
 			XStream xstream = new XStream();
-			xstream.toXML(backupList, out);
+			zipWriter = new OutputStreamWriter(out, "UTF-8");
+			xstream.toXML(backupList, zipWriter);
 		} finally {
-			if (out != null) {
-				out.close();
-			}
+			Closer.closeQuietly(zipWriter, out);
 		}
 		return temp;
 	}

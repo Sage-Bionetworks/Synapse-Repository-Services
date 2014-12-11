@@ -274,9 +274,9 @@ public class SubmissionDAOImplTest {
     	subDTO.setVersionNumber(1L);
     	subDTO.setEntityBundleJSON("foo");
     	    	
-    	SubmissionDAOImpl.copyDtoToDbo(subDTO, subDBO);
-    	SubmissionDAOImpl.copyDboToDto(subDBO, subDTOclone);
-    	SubmissionDAOImpl.copyDtoToDbo(subDTOclone, subDBOclone);
+    	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
+    	SubmissionUtils.copyDboToDto(subDBO, subDTOclone);
+    	SubmissionUtils.copyDtoToDbo(subDTOclone, subDBOclone);
     	
     	assertEquals(subDTO, subDTOclone);
     	assertEquals(subDBO, subDBOclone);
@@ -299,9 +299,9 @@ public class SubmissionDAOImplTest {
     	subDTO.setVersionNumber(1L);
     	// null EntityBundle
     	    	
-    	SubmissionDAOImpl.copyDtoToDbo(subDTO, subDBO);
-    	SubmissionDAOImpl.copyDboToDto(subDBO, subDTOclone);
-    	SubmissionDAOImpl.copyDtoToDbo(subDTOclone, subDBOclone);
+    	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
+    	SubmissionUtils.copyDboToDto(subDBO, subDTOclone);
+    	SubmissionUtils.copyDtoToDbo(subDTOclone, subDBOclone);
     	
     	assertEquals(subDTO, subDTOclone);
     	assertEquals(subDBO, subDBOclone);

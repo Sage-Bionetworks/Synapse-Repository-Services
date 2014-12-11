@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.query.jdo;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -14,7 +15,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -67,42 +67,47 @@ public class QueryUtils {
 
 	/**
 	 * Build up the authorization filter
+	 * 
 	 * @param userInfo
 	 * @param parameters a mutable parameter list
+	 * @param nodeAlias TODO
+	 * @param groupIndexToStartFrom
 	 * @return
-	 * @throws DatastoreException 
+	 * @throws DatastoreException
 	 */
-	public static String buildAuthorizationFilter(UserInfo userInfo, Map<String, Object> parameters) throws DatastoreException {
-		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(parameters == null) throw new IllegalArgumentException("Parameters cannot be null");
+	public static String buildAuthorizationFilter(boolean isAdmin, Set<Long> groups, Map<String, Object> parameters, String nodeAlias,
+			int groupIndexToStartFrom)
+			throws DatastoreException {
 		// First off, if the user is an administrator then there is no filter
-		if(userInfo.isAdmin()){
+		if (isAdmin) {
 			return "";
 		}
+		String sql = buildAuthorizationSelect(groups, parameters, groupIndexToStartFrom);
+		return nodeAlias + "." + SqlConstants.COL_NODE_BENEFACTOR_ID + " in (" + sql + ")";
+	}
+
+	public static String buildAuthorizationSelect(Collection<Long> groups, Map<String, Object> parameters, int groupIndexToStartFrom) {
+		if (parameters == null)
+			throw new IllegalArgumentException("Parameters cannot be null");
 		// For all other cases we build up a filter
-		Set<Long> groups = userInfo.getGroups();
-		if(groups == null) throw new IllegalArgumentException("User's groups cannot be null");
-		if(groups.size() < 1) throw new IllegalArgumentException("User must belong to at least one group");
-		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
+		if (groups == null)
+			throw new IllegalArgumentException("User's groups cannot be null");
+		if (groups.size() < 1)
+			throw new IllegalArgumentException("User must belong to at least one group");
+		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size(), groupIndexToStartFrom);
 		// Bind the variables
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
 		// Bind each group
 		Iterator<Long> it = groups.iterator();
-		int index = 0;
-		while(it.hasNext()){
+		int index = groupIndexToStartFrom;
+		while (it.hasNext()) {
 			Long ug = it.next();
-			if(ug == null) throw new IllegalArgumentException("UserGroup was null");
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, ug);
+			if (ug == null)
+				throw new IllegalArgumentException("UserGroup was null");
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX + index, ug);
 			index++;
 		}
-		StringBuilder builder = new StringBuilder();
-		builder.append("inner join (");
-		builder.append(sql);
-		builder.append(") ");
-		builder.append(SqlConstants.AUTH_FILTER_ALIAS);
-		buildJoinOn(builder, SqlConstants.NODE_ALIAS,
-				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.COL_ACL_ID);
-		return builder.toString();
+		return sql;
 	}
 
 	/**

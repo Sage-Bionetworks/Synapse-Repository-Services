@@ -60,7 +60,7 @@ public class EntityManagerImplUnitTest {
 		// return the mock user.
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(false);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 		
@@ -72,7 +72,7 @@ public class EntityManagerImplUnitTest {
 		// return the mock user.
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 	}
@@ -86,7 +86,7 @@ public class EntityManagerImplUnitTest {
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Simulate a 
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(false);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
 		// Make the actual call
 		PresignedUrl url = entityManager.getAttachmentUrl(userId, entityId, tokenId.toString());
@@ -107,7 +107,7 @@ public class EntityManagerImplUnitTest {
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);
 		Credentials mockCreds = Mockito.mock(Credentials.class);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(false);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mocKLocationHelper.createFederationTokenForS3(userId,HttpMethod.PUT,expectedPath)).thenReturn(mockCreds);
 		when(mocKLocationHelper.presignS3PUTUrl(mockCreds, expectedPath, almostMd5, "image/jpeg")).thenReturn(expectePreSigneUrl);
 		// Make the actual call

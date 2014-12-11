@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.collect.Lists;
 import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.AnnotationDesc.ElementValuePair;
 import com.sun.javadoc.ClassDoc;
@@ -127,9 +128,24 @@ public class ControllerUtils {
         					// Request body
         					String schema = SchemaUtils.getEffectiveSchema(param.type().qualifiedTypeName());
         					if(schema != null){
-            					Link link = new Link("${"+param.type().qualifiedTypeName()+"}", param.typeName());
-            					methodModel.setRequestBody(link);
-        					}
+								Type paramType = param.type();
+								if (paramType.asParameterizedType() != null) {
+									Link paramLink = new Link("${" + paramType.qualifiedTypeName() + "}", paramType.simpleTypeName());
+									methodModel.setRequestBody(paramLink);
+
+									List<Link> genericParameters = Lists.newArrayList();
+									for (Type type : paramType.asParameterizedType().typeArguments()) {
+										Link link = new Link();
+										link.setHref("${" + type.qualifiedTypeName() + "}");
+										link.setDisplay(type.simpleTypeName());
+										genericParameters.add(link);
+									}
+									methodModel.setRequestBodyGenericParams(genericParameters.toArray(new Link[] {}));
+								} else {
+									Link paramLink = new Link("${" + param.type().qualifiedTypeName() + "}", param.typeName());
+									methodModel.setRequestBody(paramLink);
+								}
+							}
         				}else if(PathVariable.class.getName().equals(qualifiedName)){
         					// Path parameter
         					ParameterModel paramModel = new ParameterModel();
@@ -176,24 +192,35 @@ public class ControllerUtils {
         		if(RequestMapping.class.getName().equals(qualifiedName)){
         			extractRequestMapping(methodModel, ad);
         		}else if(ResponseBody.class.getName().equals(qualifiedName)){
-        			Link link = extractResponseLink(methodDoc);
-        			methodModel.setResponseBody(link);
+					extractResponseLink(methodDoc, methodModel);
         		}
         	}
         }
 	}
 
-	private static Link extractResponseLink(MethodDoc methodDoc) {
+	private static void extractResponseLink(MethodDoc methodDoc, MethodModel methodModel) {
 		// this means there is a response body for this method.
 		Type returnType = methodDoc.returnType();
 		String schema = SchemaUtils.getEffectiveSchema(returnType.qualifiedTypeName());
-		if(schema == null) return null;
-		Link reponseLink = new Link();
-		StringBuilder builder = new StringBuilder();
-		builder.append("${").append(returnType.qualifiedTypeName()).append("}");
-		reponseLink.setHref(builder.toString());
-		reponseLink.setDisplay(returnType.simpleTypeName());
-		return reponseLink;
+		if (schema == null) {
+			return;
+		}
+
+		Link responseLink = new Link();
+		responseLink.setHref("${" + returnType.qualifiedTypeName() + "}");
+		responseLink.setDisplay(returnType.simpleTypeName());
+		methodModel.setResponseBody(responseLink);
+
+		if (returnType.asParameterizedType() != null) {
+			List<Link> genericParameters = Lists.newArrayList();
+			for (Type type : returnType.asParameterizedType().typeArguments()) {
+				Link link = new Link();
+				link.setHref("${" + type.qualifiedTypeName() + "}");
+				link.setDisplay(type.simpleTypeName());
+				genericParameters.add(link);
+			}
+			methodModel.setResponseBodyGenericParams(genericParameters.toArray(new Link[] {}));
+		}
 	}
 
 	/**

@@ -1,0 +1,10 @@
+{
+	"description": "Abstraction for a query condition values",
+	"type": "interface",
+	 "properties":{
+        "concreteType":{
+            "type":"string",
+            "description":"Indicates the concrete type of this value."
+        }
+    }
+}

@@ -17,9 +17,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ThreadTestUtils;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.UnexpectedRollbackException;
+
+import com.google.common.base.Predicate;
 
 /**
  * Test that we can acquire a lock on a node.
@@ -35,7 +40,7 @@ public class NodeLockTest {
 	/**
 	 * The max amount of time to give any thread in this test.
 	 */
-	private static long timeout = 2000;
+	private static long timeout = 10000;
 	
 	@Autowired
 	private JDONodeLockChecker nodeLockerA;
@@ -51,6 +56,7 @@ public class NodeLockTest {
 	
 	@Before
 	public void before() throws Exception{
+		ThreadTestUtils.doBefore();
 		assertNotNull(nodeLockerA);
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
@@ -79,6 +85,7 @@ public class NodeLockTest {
 				
 			}
 		}
+		ThreadTestUtils.doAfter();
 	}
 	
 	@Test
@@ -98,14 +105,14 @@ public class NodeLockTest {
 		});
 		// Start the thread
 		threadOne.start();
+	
 		// Now wait for the thread to acquire the lock
-		long start = System.currentTimeMillis();
-		while(!nodeLockerA.isLockAcquired()){
-			long current = System.currentTimeMillis();
-			if((current-start) > timeout) fail("Test timed out trying to aqcuire a lock!");
-			Thread.sleep(100);
-		}
-		assertTrue("Failed to acquire the lock on A",nodeLockerA.isLockAcquired());
+		assertTrue("Failed to acquire the lock on A", TimeUtils.waitFor(timeout, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				return nodeLockerA.isLockAcquired();
+			}
+		}));
 		
 		// Now have another thread try to acquire the same lock
 		Thread threadTwo = new Thread(new Runnable() {
@@ -113,42 +120,42 @@ public class NodeLockTest {
 			public void run() {
 				try {
 					nodeLockerB.aquireAndHoldLock(theNodeId, eTag);
-				} catch (InterruptedException e) {
-					fail(e.getMessage());
-				} catch (NotFoundException e) {
-					fail(e.getMessage());
-				} catch (ConflictingUpdateException e) {
-					fail(e.getMessage());
-				} catch (DatastoreException e) {
+				} catch (UnexpectedRollbackException e) {
+					// expected
+				} catch (Exception e) {
 					fail(e.getMessage());
 				}
 			}
 		});
 		// Start it up.
 		threadTwo.start();
+
 		// Make sure thread two cannot acquire the lock even after the timeout
-		start = System.currentTimeMillis();
-		while((System.currentTimeMillis()-start) < timeout){
-			assertTrue("The first thread should be holding the lock.", nodeLockerA.isLockAcquired());
-			assertFalse("The second thread should not have been able to acquire the lock while thread one was holding it.", nodeLockerB.isLockAcquired());
-			Thread.sleep(100);
-		}
+		TimeUtils.waitFor(timeout, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				assertTrue("The first thread should be holding the lock.", nodeLockerA.isLockAcquired());
+				assertFalse("The second thread should not have been able to acquire the lock while thread one was holding it.",
+						nodeLockerB.isLockAcquired());
+				return false;
+			}
+		});
 		// Now release lock A and make sure B can acquire it
 		nodeLockerA.releaseLock();
 		// Now make sure B can acquire it
-		start = System.currentTimeMillis();
-		// Wait for B to fail due to conflicting eTag
-		while(!nodeLockerB.failedDueToConflict()){
-			long current = System.currentTimeMillis();
-			if((current-start) > timeout) fail("Test timed out trying to aqcuire a lock!");
-			Thread.sleep(100);
-		}
-		assertTrue("B should have failed due to a conflicting eTag",nodeLockerB.failedDueToConflict());
+		assertTrue("B should have failed due to a conflicting eTag", TimeUtils.waitFor(timeout, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				return nodeLockerB.failedDueToConflict();
+			}
+		}));
 		
 		// Release both locks
 		nodeLockerA.releaseLock();
 		nodeLockerB.releaseLock();
 			
+		threadOne.join(10000);
+		threadTwo.join(10000);
 	}
 	
 

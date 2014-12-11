@@ -1,6 +1,7 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,10 +10,14 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -23,8 +28,56 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class MessageUtils {
 	
+	public static class MessageBundle {
+		private final Message message;
+		private final ChangeMessage changeMessage;
+
+		public MessageBundle(Message message, ChangeMessage changeMessage) {
+			this.message = message;
+			this.changeMessage = changeMessage;
+		}
+
+		public Message getMessage() {
+			return message;
+		}
+
+		public ChangeMessage getChangeMessage() {
+			return changeMessage;
+		}
+	}
+
 	public static int SQS_MAX_REQUEST_SIZE = 10;
-	
+
+	public static <T extends JSONEntity> T extractMessageBody(Message message, Class<T> clazz) {
+		ValidateArgument.required(message, "message");
+		try {
+			JSONObject object = new JSONObject(message.getBody());
+			JSONObjectAdapterImpl adapter;
+			if (object.has("objectId")) {
+				// This is a message pushed directly to a queue
+				adapter = new JSONObjectAdapterImpl(object);
+			}
+			if (object.has("TopicArn") && object.has("Message")) {
+				// This is a message that was pushed to a topic then forwarded to a queue.
+				JSONObject innerObject = new JSONObject(object.getString("Message"));
+				adapter = new JSONObjectAdapterImpl(innerObject);
+			} else {
+				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
+			}
+			T result = clazz.newInstance();
+			result.initializeFromJSONObject(adapter);
+			return result;
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		} catch (InstantiationException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Extract a ChangeMessage from an Amazon Message
 	 * @param message
@@ -53,6 +106,19 @@ public class MessageUtils {
 		}
 	}
 	
+	/**
+	 * Extract a ChangeMessage from an Amazon Message
+	 * 
+	 * @param message
+	 * @return
+	 */
+	public static MessageBundle extractMessageBundle(Message message) {
+		if (message == null)
+			throw new IllegalArgumentException("Message cannot be null");
+		ChangeMessage changeMessage = extractMessageBody(message);
+		return new MessageBundle(message, changeMessage);
+	}
+
 	/**
 	 * Extracts a UnsentMessageRange from an Amazon Message
 	 */
@@ -173,6 +239,29 @@ public class MessageUtils {
 							: (i + SQS_MAX_REQUEST_SIZE))));
 		}
 		return miniBatches;
+	}
+	
+	/**
+	 * Read a JSON entity from the message body
+	 * @param e
+	 * @param clazz
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 */
+	public static <T extends JSONEntity> T readMessageBody(Message e, Class<? extends T> clazz) throws JSONObjectAdapterException{
+		return EntityFactory.createEntityFromJSONString(e.getBody(), clazz);
+	}
+	
+	/**
+	 * Create a message with the passed JSONEntity as the body of the message.
+	 * @param body
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public static Message buildMessage(JSONEntity body) throws JSONObjectAdapterException{
+		Message message = new Message();
+		message.setBody(EntityFactory.createJSONStringForEntity(body));
+		return message;
 	}
 
 }

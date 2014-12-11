@@ -1,16 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -19,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -28,9 +30,11 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.mysql.jdbc.exceptions.MySQLTransactionRollbackException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -362,18 +366,96 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
 		assertEquals(batch, unSent);
 		// Now register one
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
-		// Need to be able to set the same message twice
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		assertTrue(changeDAO.registerMessageSent(batch.get(1)));
+		assertFalse("Registering the same change twice should not result in an update",changeDAO.registerMessageSent(batch.get(1)));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
 		assertEquals(batch.get(0).getChangeNumber(), unSent.get(0).getChangeNumber());
 		// Register the second
-		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(0));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
+	}
+	
+	@Test
+	public void testReplaceDeleteSent(){
+		List<ChangeMessage> batch = createList(1, ObjectType.ENTITY);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Send the batch
+		changeDAO.registerMessageSent(batch.get(0));
+		// Replace the batch again
+		batch  = changeDAO.replaceChange(batch);
+		// This will fail if we did not delete the sent message.
+		changeDAO.registerMessageSent(batch.get(0));
+	}
+	
+	@Test
+	public void testRegisterMessageSent(){
+		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
+		// Pass the batch.
+		change  = changeDAO.replaceChange(change);
+		// Send the batch
+		assertTrue(changeDAO.registerMessageSent(change));
+		// Calling it again should return false since it was already sent
+		assertFalse("The messages should already be marked as sent", changeDAO.registerMessageSent(change));
+		// Now if we replace the change we should be able to register it sent again
+		change  = changeDAO.replaceChange(change);
+		assertTrue(changeDAO.registerMessageSent(change));
+	}
+	
+	@Test
+	public void testRegisterMessageSentOldChange(){
+		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
+		// Pass the batch.
+		change  = changeDAO.replaceChange(change);
+		// use an older change number
+		change.setChangeNumber(change.getChangeNumber()-1);
+		// Send the batch
+		assertFalse("Since the passed change number doe snot match the current state of the change, the sent registration should not have happened.", changeDAO.registerMessageSent(change));
+	}
+	
+	
+	@Test
+	public void testGetMaxSentChangeNumber(){
+		assertEquals("When the sent messages is empty, the max sent change number should be -1",new Long(-1), changeDAO.getMaxSentChangeNumber(Long.MAX_VALUE));
+		List<ChangeMessage> batch = createList(3, ObjectType.ENTITY);
+		// Add all three to changes
+		batch  = changeDAO.replaceChange(batch);
+		// Only add the first and last to sent.
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(2));
+		Long firstChangeNumber = batch.get(0).getChangeNumber();
+		Long secondChangeNumber = batch.get(1).getChangeNumber();
+		Long thirdChangeNumber = batch.get(2).getChangeNumber();
+		assertEquals(firstChangeNumber, changeDAO.getMaxSentChangeNumber(firstChangeNumber));
+		assertEquals("Since the second change number was not sent, the max sent change number less than or equals to the second should be the first.",firstChangeNumber, changeDAO.getMaxSentChangeNumber(secondChangeNumber));
+		assertEquals(thirdChangeNumber, changeDAO.getMaxSentChangeNumber(thirdChangeNumber));
+		assertEquals(new Long(-1), changeDAO.getMaxSentChangeNumber(new Long(-1)));
+	}
+	
+	@Test
+	public void testUpdateSentMessageSameIdDifferentType(){
+		// Create a few messages.
+		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
+		ChangeMessage zero = batch.get(0);
+		zero.setObjectId("123");
+		zero.setObjectType(ObjectType.TABLE);
+		ChangeMessage one = batch.get(1);
+		one.setObjectId("123");
+		one.setObjectType(ObjectType.ENTITY);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Register as sent
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(1));
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// again
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(1));
 	}
 	
 	@Test
@@ -384,11 +466,11 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> notProcessed = processedMessageDAO.listNotProcessedMessages("Q", 3);
 		assertEquals(0, notProcessed.size());
 		// Register sent msgs
-		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(0));
 		Thread.sleep(500);
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		Thread.sleep(500);
-		changeDAO.registerMessageSent(batch.get(2).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(2));
 		Thread.sleep(500);
 		List<ChangeMessage> notSent = changeDAO.listUnsentMessages(3);
 		assertEquals(0, notSent.size());
@@ -423,7 +505,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		long max = changeDAO.getCurrentChangeNumber();
 		
 		// Get everything
-		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max); 
+		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max, new Timestamp(System.currentTimeMillis())); 
 		assertEquals(batch, unSent);
 		
 		// Shrink the range and check each iteration for correctness
@@ -435,9 +517,57 @@ public class DBOChangeDAOImplAutowiredTest {
 				ChangeMessage removed = batch.remove(batch.size() - 1);
 				max = removed.getChangeNumber() - 1;
 			}
-			unSent = changeDAO.listUnsentMessages(min, max); 
+			unSent = changeDAO.listUnsentMessages(min, max, new Timestamp(System.currentTimeMillis())); 
 			assertEquals(batch, unSent);
 		}
+	}
+	
+	/**
+	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast conccurent updates
+	 * @throws ExecutionException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testPLFM2756() throws InterruptedException, ExecutionException{
+		final List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);
+		final int timesToRun = 100;
+		Callable<Integer> callable = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				for(int i=0; i<timesToRun; i++){
+					try {
+						changeDAO.replaceChange(toSpam);
+					} catch (TransientDataAccessException e) {
+						// this type of exception is allowed.
+					}
+				}
+				return timesToRun;
+		}};
+		// Run multiple threads at the same time
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		// Submit twice
+		Future<Integer> one = pool.submit(callable);
+		// Submit again
+		Future<Integer> two = pool.submit(callable);
+		// There should be no errors
+		Integer oneResult = one.get();
+		assertEquals(new Integer(timesToRun), oneResult);
+		Integer twoResult = two.get();
+		assertEquals(new Integer(timesToRun), twoResult);
+	}
+	
+	@Test
+	public void testCheckUnsentMessageByCheckSumForRange(){
+		List<ChangeMessage> starting = createList(5, ObjectType.PRINCIPAL);
+		starting = changeDAO.replaceChange(starting);
+		assertFalse("The check-sums should not match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
+		// Send each
+		for(ChangeMessage toSend: starting){
+			assertFalse("The check-sums should not match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
+			changeDAO.registerMessageSent(toSend);
+		}
+		// The should match now that all are sent
+		assertTrue("Change and sent are in-synch so their check-sums should match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
 	}
 	
 	/**
@@ -448,38 +578,6 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> starting = createList(1, ObjectType.PRINCIPAL);
 		starting = changeDAO.replaceChange(starting);
 		return starting.get(0).getChangeNumber();
-	}
-
-	// TODO: PLFM-1631 for a load test framework outside this package
-	// TODO: PLFM-1659 the test is failing occasionally for deadlocks on the primary index
-	@Ignore
-	public void testForDeadlocks() throws Exception {
-		final int numOfTasks = 1000;
-		final int numOfThreads = 10;
-		// Create the list of tasks
-		List<ReplaceChange> taskList = new ArrayList<ReplaceChange>(numOfTasks);
-		for (int i = 0; i < 100; i++) {
-			ChangeMessage change = new ChangeMessage();
-			change.setObjectId("829165202913" + (i % 3)); // Simulate gap lock on the OBJECT_ID column
-			change.setObjectType(ObjectType.ENTITY);
-			change.setObjectEtag(Long.toString(System.currentTimeMillis()));
-			change.setChangeType(ChangeType.UPDATE);
-			change.setTimestamp(new Date());
-			taskList.add(new ReplaceChange(change));
-		}
-		// Send the list of changes to a pool of threads
-		ExecutorService exe = Executors.newFixedThreadPool(numOfThreads);
-		try {
-			List<Future<Boolean>> results = exe.invokeAll(taskList, 60, TimeUnit.SECONDS);
-			for (Future<Boolean> future : results) {
-				if (!future.get()) {
-					Assert.fail("Deadlock detected.");
-				}
-			}
-		} finally {
-			exe.shutdown();
-			exe.awaitTermination(60, TimeUnit.SECONDS);
-		}
 	}
 
 	/**
@@ -502,21 +600,5 @@ public class DBOChangeDAOImplAutowiredTest {
 			batch.add(change);
 		}
 		return batch;
-	}
-
-	private class ReplaceChange implements Callable<Boolean> {
-		private final ChangeMessage change;
-		private ReplaceChange(ChangeMessage change) {
-			this.change = change;
-		}
-		@Override
-		public Boolean call() throws Exception {
-			try {
-				changeDAO.replaceChange(change);
-				return Boolean.TRUE;
-			} catch (DeadlockLoserDataAccessException e) {
-				return Boolean.FALSE;
-			}
-		}
 	}
 }

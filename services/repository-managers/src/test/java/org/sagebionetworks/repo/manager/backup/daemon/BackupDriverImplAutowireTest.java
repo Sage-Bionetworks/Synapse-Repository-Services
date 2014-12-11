@@ -17,13 +17,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.Progress;
-import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -112,7 +113,7 @@ public class BackupDriverImplAutowireTest {
 		// Now create the wikipage
 		wiki = wikiPageDao.create(wiki, fileNameToFileHandleMap, ownerId, ownerType, newFileHandleIds);
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
-		wikiKey = new WikiPageKey(ownerId, ownerType, wiki.getId());
+		wikiKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
 	}
 	
 	@After

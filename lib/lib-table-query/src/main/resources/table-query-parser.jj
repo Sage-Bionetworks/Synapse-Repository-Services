@@ -150,13 +150,21 @@ TOKEN [IGNORE_CASE]: {
 | < order_by: "ORDER BY" >
 | < select: "SELECT" >
 | < sum: "SUM" >
-| < syn: "SYN" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
 | < _true: "TRUE">
 | < where: "WHERE">
 | < unknown: "UNKNOWN">
+| < found_rows: "FOUND_ROWS">
+| < is_nan: "ISNAN">
+| < is_infinity: "ISINFINITY">
 }
+
+TOKEN [IGNORE_CASE]: {
+  < entity_id: "SYN"(["0"-"9"])*>
+| < regular_identifier: ["a"-"z","A"-"Z"](["a"-"z","A"-"Z","0"-"9","_"])*>
+}
+
 /* Symbols and punctuation */
 TOKEN:{
   < asterisk: "*">
@@ -186,12 +194,7 @@ void regularIdentifier(StringBuilder builder):
 	Token token = null;
 }
 {
-	token = <letter> { builder.append(token.image); }
-	(
-		 token = <letter> { builder.append(token.image); }
-		 | token = <digit> { builder.append(token.image); }
-		 | token = <underscore> { builder.append(token.image); }
-	)* 
+	token = <regular_identifier> { builder.append(token.image); }
 }
 /** Literal Numbers, Strings, Dates and Times */
 
@@ -232,8 +235,9 @@ void period(StringBuilder builder):
 void exactNumericLiteral(StringBuilder builder):
 {}
 {
-	( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
-	| (  period(builder) unsignedInteger(builder) )
+	[ sign(builder) ]
+		( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
+		| ( period(builder) unsignedInteger(builder) )
 }
 void exponent(StringBuilder builder):
 {
@@ -245,8 +249,9 @@ void exponent(StringBuilder builder):
 void approximateNumericLiteral(StringBuilder builder):
 {}
 {
-	(  period(builder) exponent(builder) )
-	| ( unsignedInteger(builder) period(builder) exponent(builder) )
+  	[ sign(builder) ]
+		(  period(builder) exponent(builder) )
+		| ( unsignedInteger(builder) period(builder) exponent(builder) )
 }
 void unsignedNumericLiteral(StringBuilder builder):
 {}
@@ -287,27 +292,27 @@ void characterStringLiteral(StringBuilder builder):
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
-	UnsignedValueSpecification unsignedValueSpecification = null;
+	SignedValueSpecification signedValueSpecification = null;
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
-	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
+	| signedValueSpecification = signedValueSpecification() { return new ValueExpressionPrimary(signedValueSpecification); }
 }
-UnsignedValueSpecification unsignedValueSpecification():
+SignedValueSpecification signedValueSpecification():
 {
-	UnsignedLiteral unsignedLiteral;
+	SignedLiteral signedLiteral;
 }
 {
-	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+	signedLiteral = signedLiteral() { return new SignedValueSpecification(signedLiteral); }
 }
-UnsignedLiteral unsignedLiteral():
+SignedLiteral signedLiteral():
 { StringBuilder builder = new StringBuilder(); }
 {
-	unsignedNumericLiteral(builder) { return new UnsignedLiteral(builder.toString(), null); }
-	| generalLiteral(builder) { return new UnsignedLiteral(null, builder.toString()); }
+	signedNumericLiteral(builder) { return new SignedLiteral(builder.toString(), null); }
+	| generalLiteral(builder) { return new SignedLiteral(null, builder.toString()); }
 }
 Identifier identifier():
 {
@@ -339,12 +344,12 @@ void delimitedIentifier(StringBuilder builder):
 }
 ColumnReference columnReference():
 {
-	ColumnName nameLHS = null;
+	ColumnName nameLHSOrRHS = null;
 	ColumnName nameRHS = null;
 }
 {
-	nameLHS = columnName() [ <period> nameRHS = columnName() ]
-	{ return new ColumnReference(nameLHS, nameRHS); }
+	nameLHSOrRHS = columnName() [ <period> nameRHS = columnName() ]
+	{ return new ColumnReference(nameLHSOrRHS, nameRHS); }
 }
 QuerySpecification querySpecification():
 {
@@ -439,10 +444,10 @@ SetQuantifier setQuantifier():
 }
 String tableName():
 { 
-	StringBuilder builder = new StringBuilder();
+	Token token = null;
 }
 {	
-	[<syn>] unsignedInteger(builder) { return builder.toString(); }
+	token = <entity_id> { return token.image; }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
@@ -541,24 +546,25 @@ Predicate predicate():
 	BetweenPredicate betweenPredicate = null;
 	InPredicate inPredicate = null;
 	LikePredicate likePredicate = null;
-	NullPredicate nullPredicate = null;
+	IsPredicate isPredicate = null;
+	BooleanFunctionPredicate booleanFunctionPredicate = null;
 	Boolean notB = null;
 }
 {
-	leftHandSide = columnReference()
-	(
-		comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
-		| nullPredicate = nullPredicate(leftHandSide) { return new Predicate(nullPredicate); }
-		|(
-			[ <not> {notB = Boolean.TRUE; }]
-			(
-					betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
-				|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
-				|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
+	booleanFunctionPredicate = booleanFunctionPredicate() { return new Predicate(booleanFunctionPredicate); }
+	| ( leftHandSide = columnReference()
+		(
+			comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
+			| <is> isPredicate = isPredicate(leftHandSide) { return new Predicate(isPredicate);}			|(
+				[ <not> {notB = Boolean.TRUE; }]
+				(
+						betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
+					|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
+					|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
+				)
 			)
 		)
 	)
-
 }
 ComparisonPredicate comparisonPredicate(ColumnReference leftHandSide):
 {
@@ -591,9 +597,11 @@ RowValueConstructorList rowValueConstructorList():
 RowValueConstructorElement rowValueConstructorElement():
 {
 	ValueExpression valueExpression;
+	TruthValue truthValue;
 }
 {
 		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
+	| 	truthValue = truthValue() { return new RowValueConstructorElement(truthValue); }
 	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
 	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
 }
@@ -675,20 +683,80 @@ EscapeCharacter escapeCharacter():
 	characterValueExpression = characterValueExpression()
 	{return new EscapeCharacter(characterValueExpression);}
 }
-NullPredicate nullPredicate(ColumnReference leftHandSide):
+IsPredicate isPredicate(ColumnReference leftHandSide):
 {
 	Boolean notB = null;
+	TruthValue truthValue = null;
 }
 {
-	<is> [ <not> {notB=Boolean.TRUE;}] <null_specification>
-	{ return new NullPredicate(leftHandSide, notB); }
+	[ <not> {notB=Boolean.TRUE;}]
+	(	  	  truthValue = truthValue() { return new BooleanPredicate(leftHandSide, notB, truthValue); }	 	| <null_specification> { return new NullPredicate(leftHandSide, notB); }
+	)
+}
+BooleanFunctionPredicate booleanFunctionPredicate():
+{
+	BooleanFunction booleanFunction = null;
+	ColumnReference columnReference = null;
+}
+{
+	booleanFunction = booleanFunction() <left_paren> columnReference = columnReference() <right_paren>
+	{ return new BooleanFunctionPredicate(booleanFunction, columnReference); }
+}
+BooleanFunction booleanFunction():
+{}
+{
+	<is_nan> { return BooleanFunction.ISNAN; }
+	| <is_infinity> { return BooleanFunction.ISINFINITY; }
 }
 ValueExpression valueExpression():
 {
+  	NumericValueExpression numericValueExpression = null;
 	StringValueExpression stringValueExpression = null;
 }
 {
 	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
+	| numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
+}
+NumericValueExpression numericValueExpression():
+{
+	Term term = null;
+}
+{
+	term = term() { return new NumericValueExpression(term); }
+}
+Term term():
+{
+	Factor factor = null;
+}
+{
+	factor = factor() { return new Term(factor); }
+}
+Factor factor():
+{
+	NumericPrimary numericPrimary = null;
+}
+{
+	numericPrimary = numericPrimary() { return new Factor(numericPrimary); }
+}
+NumericPrimary numericPrimary():
+{
+	ValueExpressionPrimary valueExpressionPrimary = null;
+	NumericValueFunction numericValueFunction = null;
+}
+{
+	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }
+	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }}
+NumericValueFunction numericValueFunction():
+{
+	MysqlFunction mysqlFunction = null;
+}
+{
+	mysqlFunction = mysqlFunction() <left_paren> <right_paren> { return new NumericValueFunction(mysqlFunction); }
+}
+MysqlFunction mysqlFunction():
+{}
+{
+	<found_rows> { return MysqlFunction.FOUND_ROWS; }
 }
 StringValueExpression stringValueExpression():
 {

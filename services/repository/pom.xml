@@ -19,13 +19,17 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-table-query</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>repository-managers</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
@@ -42,35 +46,48 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-test</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
 		</dependency>
 
-		<!-- This was being pulled in as a child dependency of the springframework 
-			but the tomcat plugin needs this to be in scope "provided" -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
-			<artifactId>com.springsource.javax.servlet</artifactId>
+			<artifactId>javax.servlet-api</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.spring-library</artifactId>
-			<type>libd</type>
+			<artifactId>spring-web</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc-portlet</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context-support</artifactId>
+		</dependency>			
 		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>
 			<artifactId>rome</artifactId>
 			<version>0.5</version>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.web</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
@@ -99,8 +116,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>opensymphony</groupId>
-			<artifactId>quartz-all</artifactId>
+		    <groupId>org.quartz-scheduler</groupId>
+			<artifactId>quartz</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>commons-collections</groupId>
@@ -191,7 +208,7 @@
 				</executions>
 				<configuration>
 					<excludePackageNames>
-						org.sagebionetworks.repo.web.controller.metadata.*
+						org.sagebionetworks.repo.web.service.metadata.*
 						:org.sagebionetworks.repo.web.filter.*
 						:org.sagebionetworks.repo.web.service.*
 						:org.sagebionetworks.sweeper.log4j.*
@@ -208,11 +225,19 @@
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
 					<!-- This name is used to link to the authentication controller -->
 					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
+					<additionnalDependencies>
+						<additionnalDependency>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>lib-table-query</artifactId>
+							<version>${project.version}</version>
+						</additionnalDependency>
+					</additionnalDependencies>
 				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.2.1</version>
 				<executions>
 					<execution>
 						<phase>deploy</phase>

@@ -1,0 +1,9 @@
+{
+	"description": "Information needed to add a new email address to an existing account.",
+	"properties": {
+		"emailValidationToken": {
+			"type": "string",
+			"description": "The validation token sent via email"
+		}
+	}
+}

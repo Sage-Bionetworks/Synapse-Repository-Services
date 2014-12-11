@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * This matches &ltin value list&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class InValueList implements SQLElement{
+public class InValueList extends SQLElement {
 
 	List<ValueExpression> valueExpressions;
 
@@ -29,13 +29,13 @@ public class InValueList implements SQLElement{
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		boolean first = true;
 		for(ValueExpression valueExpression: valueExpressions){
 			if(!first){
 				builder.append(", ");
 			}
-			valueExpression.toSQL(builder);
+			valueExpression.toSQL(builder, columnConvertor);
 			first = false;
 		}
 	}

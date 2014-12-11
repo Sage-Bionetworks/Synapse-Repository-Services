@@ -1,0 +1,28 @@
+{
+	"description": "Resulting preview of a CSV upload to a Table.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"suggestedColumns": {
+		    "description":"The list of ColumnModels that are compatible with the CSV file.  This is more accurate for a full scan than a partial scan.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		},
+		"sampleRows": {
+		    "description":"A sampling of the first few rows from the CSV as they would be applied with the provided parameters.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.Row"
+			}
+		},
+		"rowsScanned":{
+			"description":"The total number of rows scanned to generate the preview.",
+			"type": "integer"
+		}
+	}
+}

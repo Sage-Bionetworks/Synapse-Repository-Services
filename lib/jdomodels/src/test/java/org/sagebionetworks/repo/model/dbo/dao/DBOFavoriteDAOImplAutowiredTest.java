@@ -194,11 +194,16 @@ public class DBOFavoriteDAOImplAutowiredTest {
 
 	@Test
 	public void testGetFavorites() throws Exception {
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId, creatorUserGroupId);
+		String parentId = nodeDao.createNew(parent);
+		nodesToDelete.add(parentId);
 		// make two nodes & two favorites  
 		Node node1 = NodeTestUtils.createNew("n1", creatorUserGroupId, creatorUserGroupId);
+		node1.setParentId(parentId);
 		String node1Id = nodeDao.createNew(node1);		
 		nodesToDelete.add(node1Id);
 		Node node2 = NodeTestUtils.createNew("n2", creatorUserGroupId, creatorUserGroupId);
+		node2.setParentId(parentId);
 		String node2Id = nodeDao.createNew(node2);
 		nodesToDelete.add(node2Id);		
 		Favorite fav1 = createFavorite(node1Id);
@@ -218,6 +223,11 @@ public class DBOFavoriteDAOImplAutowiredTest {
 
 	@Test
 	public void testGetFavoritesEntityHeader() throws Exception {
+		
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId, creatorUserGroupId);
+		String parentId = nodeDao.createNew(parent);
+		nodesToDelete.add(parentId);
+
 		// make two nodes & two favorites
 		String node1Type = EntityType.project.name();
 		String node2Type = EntityType.project.name();
@@ -231,6 +241,7 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		node1.setCreatedOn(new Date(System.currentTimeMillis()));
 		node1.setModifiedOn(node1.getCreatedOn());
 		node1.setNodeType(node1Type);
+		node1.setParentId(parentId);
 		String node1Id = nodeDao.createNew(node1);		
 		nodesToDelete.add(node1Id);
 
@@ -241,6 +252,7 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		node2.setCreatedOn(new Date(System.currentTimeMillis()));
 		node2.setModifiedOn(node2.getCreatedOn());
 		node2.setNodeType(node2Type);
+		node2.setParentId(parentId);
 		String node2Id = nodeDao.createNew(node2);		
 		nodesToDelete.add(node2Id);
 

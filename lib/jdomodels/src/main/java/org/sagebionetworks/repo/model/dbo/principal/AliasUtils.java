@@ -27,14 +27,12 @@ public class AliasUtils {
 		if(dto.getAlias() == null) throw new IllegalArgumentException("Alias cannot be null");
 		if(dto.getPrincipalId() == null) throw new IllegalArgumentException("Principal ID cannot be null");
 		if(dto.getType() == null) throw new IllegalArgumentException("AliasType cannot be null");
-		if(dto.getIsValidated() == null) throw new IllegalArgumentException("IsValidated cannot be null");
 		// convert the alias to a unique string
 		dbo.setAliasUnique(getUniqueAliasName(dto.getAlias()));
 		dbo.setAliasDisplay(dto.getAlias());
 		dbo.setAliasType(AliasEnum.valueOf(dto.getType().name()));
 		dbo.setEtag(dto.getEtag());
 		dbo.setId(dto.getAliasId());
-		dbo.setValidated(dto.getIsValidated());
 		dbo.setPrincipalId(dto.getPrincipalId());
 		return dbo;
 	}
@@ -64,7 +62,6 @@ public class AliasUtils {
 		dto.setAlias(dbo.getAliasDisplay());
 		dto.setAliasId(dbo.getId());
 		dto.setEtag(dbo.getEtag());
-		dto.setIsValidated(dbo.getValidated());
 		dto.setPrincipalId(dbo.getPrincipalId());
 		dto.setType(AliasType.valueOf(dbo.getAliasType().name()));
 		return dto;

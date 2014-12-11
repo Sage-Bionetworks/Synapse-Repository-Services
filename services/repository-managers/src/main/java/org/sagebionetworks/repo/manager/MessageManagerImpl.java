@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -17,12 +18,14 @@ import org.apache.commons.lang.WordUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -40,6 +43,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -48,16 +52,15 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.model.Body;
-import com.amazonaws.services.simpleemail.model.Content;
-import com.amazonaws.services.simpleemail.model.Destination;
-import com.amazonaws.services.simpleemail.model.Message;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendEmailResult;
 import com.google.common.collect.Lists;
@@ -71,12 +74,6 @@ public class MessageManagerImpl implements MessageManager {
 	 * The default character encoding for the file containing the body of the email message to be sent
 	 */
 	private static final Charset DEFAULT_MESSAGE_FILE_CHARSET = Charset.forName("UTF-8");	
-	
-	/**
-	 * The specified encoding for the generated email message sent to the end user
-	 */
-	private static final String EMAIL_CHARSET = "UTF-8";
-	
 	
 	/**
 	 * The maximum number of messages a user can create within a given interval
@@ -117,6 +114,12 @@ public class MessageManagerImpl implements MessageManager {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
+	private NotificationEmailDAO notificationEmailDao;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	
+	@Autowired
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
@@ -142,6 +145,8 @@ public class MessageManagerImpl implements MessageManager {
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
 			UserProfileDAO userProfileDAO,
+			NotificationEmailDAO notificationEmailDao,
+			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
@@ -152,6 +157,8 @@ public class MessageManagerImpl implements MessageManager {
 		this.groupMembersDAO = groupMembersDAO;
 		this.userManager = userManager;
 		this.userProfileDAO = userProfileDAO;
+		this.notificationEmailDao = notificationEmailDao;
+		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 		this.fileHandleManager = fileHandleManager;
@@ -197,7 +204,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
+	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
 		// If the user can get the message metadata (permission checking by the manager)
 		// then the user can download the file
 		MessageToUser dto = getMessage(userInfo, messageId);
@@ -211,8 +218,13 @@ public class MessageManagerImpl implements MessageManager {
 		dto.setCreatedBy(userInfo.getId().toString());
 		
 		if (!userInfo.isAdmin()) {
+			// Can't be anonymous
+			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+				throw new UnauthorizedException("Anonymous user may not send messages.");
+			}
+			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
 			// Throttle message creation
-			if (!messageDAO.canCreateMessage(userInfo.getId().toString(), 
+			if (!userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,
 						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
 				throw new TooManyRequestsException(
@@ -222,7 +234,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 			
 			// Limit the number of recipients
-			if (dto.getRecipients() != null && dto.getRecipients().size() > MAX_NUMBER_OF_RECIPIENTS) {
+			if (!userIsTrustedMessageSender && dto.getRecipients() != null && dto.getRecipients().size() > MAX_NUMBER_OF_RECIPIENTS) {
 				throw new IllegalArgumentException(
 						"May not message more than "
 								+ MAX_NUMBER_OF_RECIPIENTS
@@ -230,7 +242,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId())
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId()).getAuthorized()
 				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
 			throw new UnauthorizedException("Invalid file handle given");
 		}
@@ -413,8 +425,13 @@ public class MessageManagerImpl implements MessageManager {
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
-		UserProfile senderProfile = userProfileDAO.get(""+userInfo.getId());
-		String senderUserName = senderProfile.getUserName();
+		// in practice there is always a user name, but strictly speaking it is allowed to be missing
+		String senderUserName = null;
+		try {
+			senderUserName = principalAliasDAO.getUserName(userInfo.getId());
+		} catch (NotFoundException e) {
+			senderUserName = null;
+		}
 		
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
@@ -445,18 +462,16 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					if(profile.getEmails() != null){
-						String email = getEmailForUser(profile);
-						sendEmail(email, 
-								dto.getSubject(),
-								messageBody, 
-								isHtml,
-								senderUserName);
+					String email = getEmailForUser(Long.parseLong(user));
+					sendEmail(email, 
+							dto.getSubject(),
+							messageBody, 
+							isHtml,
+							senderUserName);
 						
-						// Should the message be marked as READ?
-						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
-							userMessageStatus = MessageStatusType.READ;
-						}
+					// Should the message be marked as READ?
+					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
+						userMessageStatus = MessageStatusType.READ;
 					}
 				}
 				
@@ -501,9 +516,11 @@ public class MessageManagerImpl implements MessageManager {
 				continue;
 			}
 			
+			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
 			// Check permissions to send to non-individuals
-			if (!ug.getIsIndividual()
-					&& !authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
+			if (!userIsTrustedMessageSender &&
+					!ug.getIsIndividual() &&
+					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized()) {
 				errors.add(userInfo.getId()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;
@@ -517,7 +534,7 @@ public class MessageManagerImpl implements MessageManager {
 				// Note: only admins can pass the authorization check to reach this
 				if (BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString().equals(principalId)) {
 					for (UserGroup member : userGroupDAO.getAllPrincipals()) {
-						if (member.getIsIndividual()) {
+						if (member.getIsIndividual() && !isNotEmailRecipient(member.getId())) {
 							recipients.add(member.getId());
 						}
 					}
@@ -533,6 +550,14 @@ public class MessageManagerImpl implements MessageManager {
 		return recipients;
 	}
 	
+	// this filters out bootstrapped principals, who are NOT email recipients
+	private static boolean isNotEmailRecipient(String principalId) {
+		for (BOOTSTRAP_PRINCIPAL pb : BOOTSTRAP_PRINCIPAL.values()) {
+			if (pb.getPrincipalId().toString().equals(principalId)) return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * Helper for {@link #processMessage(String, boolean, String)}
 	 * 
@@ -540,7 +565,12 @@ public class MessageManagerImpl implements MessageManager {
 	 * Note:  The file given by the fileHandleId must be stored with UTF-8 encoding
 	 */
 	private String downloadEmailContentToString(String fileHandleId, Charset charset) throws NotFoundException {
-		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		URL url;
+		try {
+			url = new URL(fileHandleManager.getRedirectURLForFileHandle(fileHandleId));
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
 		
 		// Read the file
 		try {
@@ -571,39 +601,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * @param sender The username of the sender (null tolerant)
 	 */
 	private SendEmailResult sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
-		// Construct whom the email is from 
-		String source = StackConfiguration.getNotificationEmailAddress();
-		if (sender != null) {
-			source = sender + " <" + source + ">";
-		}
-		
-		// Construct an object to contain the recipient address
-        Destination destination = new Destination().withToAddresses(recipientEmail);
-        
-        // Create the subject and body of the message
-        if (subject == null) {
-        	subject = "";
-        }
-        Content textSubject = new Content().withData(subject);
-        
-        // we specify the text encoding to use when sending the email
-        Content bodyContent = new Content().withData(body).withCharset(EMAIL_CHARSET);
-        Body messageBody = new Body();
-        if (isHtml) {
-        	messageBody.setHtml(bodyContent);
-        } else {
-        	messageBody.setText(bodyContent);
-        }
-        
-        // Create a message with the specified subject and body
-        Message message = new Message().withSubject(textSubject).withBody(messageBody);
-        
-        // Assemble the email
-		SendEmailRequest request = new SendEmailRequest()
-				.withSource(source)
-				.withDestination(destination)
-				.withMessage(message);
-        
+		SendEmailRequest request = EmailUtils.createEmailRequest(recipientEmail, subject, body, isHtml, sender);
         // Send the email
         return amazonSESClient.sendEmail(request);  
 	}
@@ -619,40 +617,23 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	
-	//////////////////////////////////////////
-	// Email template constants and methods //
-	//////////////////////////////////////////
-	
-	private static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#originclient#";
-	private static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
-	private static final String TEMPLATE_KEY_USERNAME = "#username#";
-	private static final String TEMPLATE_KEY_WEB_LINK = "#link#";
-	private static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
-	private static final String TEMPLATE_KEY_DETAILS = "#details#";
-
-	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordResetEmail(Long recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
+	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
 		UserInfo recipient = userManager.getUserInfo(recipientId);
-		String domain = WordUtils.capitalizeFully(originClient.name());
+		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Set " + domain + " Password";
-		String messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
-		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
+		String alias = principalAliasDAO.getUserName(recipientId);
+
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		//TODO use the Alias here
-		String alias = profile.getUserName();
-		if (alias == null) {
-			alias = "";
-		}
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
-		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String webLink;
-		switch (originClient) {
+		switch (domain) {
 		case BRIDGE:
 			webLink = "https://bridge.synapse.org/resetPassword.html?token=" + sessionToken;
 			break;
@@ -660,33 +641,29 @@ public class MessageManagerImpl implements MessageManager {
 			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 			break;
 		default:
-			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
+			throw new IllegalArgumentException("Unknown origin client type: " + domain);
 		}
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
-		String email = getEmailForUser(profile);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
+		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
+		String email = getEmailForUser(recipientId);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendWelcomeEmail(Long recipientId, DomainType originClient) throws NotFoundException {
+	public void sendWelcomeEmail(Long recipientId, DomainType domain) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(recipientId);
-		String domain = WordUtils.capitalizeFully(originClient.name());
+		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Welcome to " + domain + "!";
-		String messageBody = readMailTemplate("message/WelcomeTemplate.txt");
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
-		//TODO use the Alias here
-		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
-		String alias = profile.getUserName();
-		if (alias == null) {
-			alias = "";
-		}
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
+		String alias = principalAliasDAO.getUserName(recipientId);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
-		String email = getEmailForUser(profile);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
+		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
+		String email = getEmailForUser(recipientId);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
@@ -697,52 +674,22 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		UserInfo sender = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		String subject = "Message " + messageId + " Delivery Failure(s)";
-		String messageBody = readMailTemplate("message/DeliveryFailureTemplate.txt");
 		
-		//TODO use the Alias here
-		UserProfile profile = this.userProfileDAO.get(sender.getId().toString());
-		String alias = profile.getUserName();
-		if (alias == null) {
-			alias = "";
-		}
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
+		String alias = principalAliasDAO.getUserName(sender.getId());
+
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
-		String email = getEmailForUser(profile);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_ID, messageId);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
+		String email = getEmailForUser(sender.getId());
+		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	
-	private String getEmailForUser(UserProfile profile){
-		if(profile == null) throw new IllegalArgumentException("Profile cannot be null");
-		if(profile.getEmails() == null) throw new IllegalArgumentException("UserProfile.getEmails() was null");
-		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("UserProfile.getEmails() was empty");
-		return profile.getEmails().get(0);
+	private String getEmailForUser(Long principalId) throws NotFoundException {
+		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
 	}
-	/**
-	 * Helper for sending templated emails
-	 * 
-	 * Reads a resource into a string
-	 */
-	private String readMailTemplate(String filename) {
-		try {
-			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(filename);
-			BufferedReader br = new BufferedReader(new InputStreamReader(is));
-			StringBuilder sb = new StringBuilder();
-			try {
-				String s = br.readLine();
-				while (s != null) {
-					sb.append(s + "\r\n");
-					s = br.readLine();
-				}
-				return sb.toString();
-			} finally {
-				br.close();
-				is.close();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+
 }

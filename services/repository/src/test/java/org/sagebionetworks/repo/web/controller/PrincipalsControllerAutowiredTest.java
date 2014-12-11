@@ -17,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -36,9 +37,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill, adapted by bhoff
  * 
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class PrincipalsControllerAutowiredTest {
+public class PrincipalsControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	// Used for cleanup
 	@Autowired
@@ -47,8 +46,6 @@ public class PrincipalsControllerAutowiredTest {
 	@Autowired
 	public UserManager userManager;
 
-	private static HttpServlet dispatchServlet;
-	
 	private Long adminUserId;
 	private UserInfo testUser;
 
@@ -82,15 +79,9 @@ public class PrincipalsControllerAutowiredTest {
 		}
 	}
 
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-
-
 	@Test
 	public void testGetUsers() throws Exception {
-		PaginatedResults<UserProfile> userProfiles = ServletTestHelper.getUsers(dispatchServlet, adminUserId);
+		PaginatedResults<UserProfile> userProfiles = servletTestHelper.getUsers(dispatchServlet, adminUserId);
 		assertNotNull(userProfiles);
 		for (UserProfile userProfile : userProfiles.getResults()) {
 			System.out.println(userProfile);
@@ -100,7 +91,7 @@ public class PrincipalsControllerAutowiredTest {
 	@Test
 	public void testGetUsersAnonymouslyShouldFail() throws ServletException, IOException{
 		try {
-			ServletTestHelper.getUsers(dispatchServlet, null);
+			servletTestHelper.getUsers(dispatchServlet, null);
 			fail("Exception expected.");
 		} catch (Exception e) {
 			// as expected
@@ -110,7 +101,7 @@ public class PrincipalsControllerAutowiredTest {
 	
 	@Test
 	public void testGetGroups() throws Exception {
-		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, adminUserId);
+		PaginatedResults<UserGroup> ugs = servletTestHelper.getGroups(dispatchServlet, adminUserId);
 		assertNotNull(ugs);
 		boolean foundPublic = false;
 		boolean foundAdmin = false;
@@ -121,8 +112,7 @@ public class PrincipalsControllerAutowiredTest {
 				foundPublic = true;
 			}
 			if (ug.getId().equals(
-					BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId()
-							.toString())) {
+					TeamConstants.ADMINISTRATORS_TEAM_ID.toString())) {
 				foundAdmin = true;
 			}
 			assertTrue(ug.toString(), !ug.getIsIndividual());
@@ -134,7 +124,7 @@ public class PrincipalsControllerAutowiredTest {
 	@Test
 	public void testGetGroupsAnonymouslyShouldFail() throws ServletException, IOException{
 		try {
-			ServletTestHelper.getGroups(dispatchServlet, null);
+			servletTestHelper.getGroups(dispatchServlet, null);
 			fail("Exception expected.");
 		} catch (Exception e) {
 			// as expected

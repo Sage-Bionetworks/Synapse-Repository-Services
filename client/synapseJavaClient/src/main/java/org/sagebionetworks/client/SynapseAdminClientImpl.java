@@ -1,23 +1,25 @@
 package org.sagebionetworks.client;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -42,6 +44,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
+	private static final String ADMIN_WAIT = ADMIN + "/wait";
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
@@ -57,13 +60,14 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_MIGRATE_WIKIS_TO_V2 = ADMIN + "/migrateWiki";
 	
 	private static final String ADMIN_USER = ADMIN + "/user";
+	private static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
 	public SynapseAdminClientImpl() {
 		super();
 	}
 	
 	public SynapseAdminClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
-		super(clientProvider, dataUploader);
+		super(new SharedClientConnection(clientProvider), dataUploader);
 	}
 	
 	/**
@@ -97,7 +101,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			results.initializeFromJSONObject(adapter);
 			return results;
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -297,7 +301,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			uri += "&rangeKeyName=" + URLEncoder.encode(rangeKeyName, "UTF-8");
 			getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
 		} catch (UnsupportedEncodingException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -317,5 +321,26 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public void deleteUser(Long id) throws SynapseException, JSONObjectAdapterException {
 		String url = ADMIN_USER + "/" + id; 
 		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
+	}
+
+	@Override
+	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException, JSONObjectAdapterException {
+		String url = ADMIN + "/entity/" + tableId + "/table/rebuild";
+		getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), null);
+	}
+
+	@Override
+	public void clearAllLocks() throws SynapseException{
+		getSharedClientConnection().deleteUri(repoEndpoint, ADMIN_CLEAR_LOCKS, getUserAgent());
+	}
+
+	@Override
+	public void waitForTesting(boolean release) throws SynapseException {
+		try {
+			URIBuilder uri = new URIBuilder(ADMIN_WAIT).setParameter("release", Boolean.toString(release));
+			getSharedClientConnection().getJson(repoEndpoint, uri.build().toString(), getUserAgent());
+		} catch (URISyntaxException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 }

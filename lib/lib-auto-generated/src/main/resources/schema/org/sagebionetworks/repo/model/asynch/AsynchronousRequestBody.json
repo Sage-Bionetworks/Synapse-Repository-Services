@@ -1,0 +1,9 @@
+{
+	"description": "The body of an Asynchronous job request.",
+	"type": "interface",
+	"properties": {
+		"concreteType":{
+			"type": "string"
+		}
+	}
+}

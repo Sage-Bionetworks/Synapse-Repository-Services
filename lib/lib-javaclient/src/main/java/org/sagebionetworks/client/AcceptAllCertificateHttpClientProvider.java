@@ -52,27 +52,18 @@ public class AcceptAllCertificateHttpClientProvider implements HttpClientProvide
 	}
 
 	@Override
-	public void uploadFile(String requestUrl, String filepath,
-			String contentType, Map<String, String> requestHeaders)
-			throws ClientProtocolException, IOException,
-			HttpClientHelperException {
-		HttpClientHelper.uploadFile(getSingleton(), requestUrl, filepath, contentType, requestHeaders);
-	}
-
-	@Override
 	public HttpResponse performRequest(String requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders)
-			throws ClientProtocolException, IOException,
-			HttpClientHelperException {
+			throws ClientProtocolException, IOException {
 		return HttpClientHelper.performRequest(getSingleton(), requestUrl, requestMethod, requestContent, requestHeaders);
 	}
 
 
 	@Override
-	public void downloadFile(String requestUrl, String filepath)
+	public void downloadFile(String requestUrl, String filepath, Map<String, String> headers)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
-		HttpClientHelper.downloadFile(getSingleton(), requestUrl, filepath);
+		HttpClientHelper.downloadFile(getSingleton(), requestUrl, filepath, headers);
 	}
 
 

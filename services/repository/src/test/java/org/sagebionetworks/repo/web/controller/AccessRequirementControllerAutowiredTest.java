@@ -46,9 +46,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill, adapted by bhoff
  * 
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AccessRequirementControllerAutowiredTest {
+public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	// Used for cleanup
 	@Autowired
@@ -62,8 +60,6 @@ public class AccessRequirementControllerAutowiredTest {
 	static private Log log = LogFactory
 			.getLog(AccessRequirementControllerAutowiredTest.class);
 
-	private static HttpServlet dispatchServlet;
-	
 	private Long userId;
 	private UserInfo otherUserInfo;
 	private UserInfo testUser;
@@ -89,7 +85,7 @@ public class AccessRequirementControllerAutowiredTest {
 		UserInfo.validateUserInfo(testUser);
 		project = new Project();
 		project.setName("createAtLeastOneOfEachType");
-		project = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(project);
 		toDelete.add(project.getId());
 
@@ -98,7 +94,7 @@ public class AccessRequirementControllerAutowiredTest {
 		evaluation.setContentSource(project.getId());
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = (new EntityServletTestHelper()).createEvaluation(evaluation, userId);
+		evaluation = entityServletHelper.createEvaluation(evaluation, userId);
 	}
 
 	@After
@@ -117,7 +113,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		if (evaluation!=null) {
 			try {
-				(new EntityServletTestHelper()).deleteEvaluation(evaluation.getId(), userId);
+				entityServletHelper.deleteEvaluation(evaluation.getId(), userId);
 			} catch (Exception e) {}
 		}
 		
@@ -125,15 +121,9 @@ public class AccessRequirementControllerAutowiredTest {
 		userManager.deletePrincipal(adminUserInfo, otherUserInfo.getId());
 	}
 
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-
-
 	private static AccessRequirement newAccessRequirement(ACCESS_TYPE accessType) {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
-		dto.setEntityType(dto.getClass().getName());
+		dto.setConcreteType(dto.getClass().getName());
 		dto.setAccessType(accessType);
 		dto.setTermsOfUse("foo");
 		return dto;
@@ -150,41 +140,41 @@ public class AccessRequirementControllerAutowiredTest {
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
-		AccessRequirement clone = ServletTestHelper.createAccessRequirement(
+		AccessRequirement clone = servletTestHelper.createAccessRequirement(
 				 dispatchServlet, accessRequirement, userId, extraParams);
 		assertNotNull(clone);
 
 		// test getAccessRequirementsForEntity
-		PaginatedResults<AccessRequirement> results = ServletTestHelper.getEntityAccessRequirements(
+		PaginatedResults<AccessRequirement> results = servletTestHelper.getEntityAccessRequirements(
 				dispatchServlet, entityId, userId);	
 		List<AccessRequirement> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the entity, 
-		// when the user is the entity owner (should be none)
-		results = ServletTestHelper.getUnmetEntityAccessRequirements(
+		// when the user is the entity owner (should be one)
+		results = servletTestHelper.getUnmetEntityAccessRequirements(
 				dispatchServlet, entityId, userId);	
 		ars = results.getResults();
-		assertEquals(0, ars.size());
+		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the entity
-		results = ServletTestHelper.getUnmetEntityAccessRequirements(
+		results = servletTestHelper.getUnmetEntityAccessRequirements(
 				dispatchServlet, entityId, otherUserInfo.getId());	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		TermsOfUseAccessRequirement tou = (TermsOfUseAccessRequirement)clone;
 		tou.setTermsOfUse("bar");
-		AccessRequirement updated = ServletTestHelper.updateAccessRequirement(
+		AccessRequirement updated = servletTestHelper.updateAccessRequirement(
 				 dispatchServlet, tou, userId, extraParams);
 		tou.setEtag(updated.getEtag());
 		tou.setModifiedOn(updated.getModifiedOn());
 		assertEquals(tou, updated);
 		
 		// test deletion
-		ServletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);
+		servletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
-		results = ServletTestHelper.getEntityAccessRequirements(
+		results = servletTestHelper.getEntityAccessRequirements(
 				dispatchServlet, entityId, userId);	
 		ars = results.getResults();
 		assertEquals(0, ars.size());
@@ -200,41 +190,41 @@ public class AccessRequirementControllerAutowiredTest {
 		subjectId.setId(evaluation.getId());
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
-		AccessRequirement clone = ServletTestHelper.createAccessRequirement(
+		AccessRequirement clone = servletTestHelper.createAccessRequirement(
 				 dispatchServlet, accessRequirement, userId, extraParams);
 		assertNotNull(clone);
 
 		// test getAccessRequirementsForEvaluation
-		PaginatedResults<AccessRequirement> results = ServletTestHelper.getEvaluationAccessRequirements(
+		PaginatedResults<AccessRequirement> results = servletTestHelper.getEvaluationAccessRequirements(
 				dispatchServlet, evaluation.getId(), userId);	
 		List<AccessRequirement> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the evaluation, 
 		// when the user is the entity owner, should be the same as for others
-		results = ServletTestHelper.getUnmetEvaluationAccessRequirements(
+		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
 				dispatchServlet, evaluation.getId(), userId);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the evaluation
-		results = ServletTestHelper.getUnmetEvaluationAccessRequirements(
+		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
 				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()));	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		TermsOfUseAccessRequirement tou = (TermsOfUseAccessRequirement)clone;
 		tou.setTermsOfUse("bar");
-		AccessRequirement updated = ServletTestHelper.updateAccessRequirement(
+		AccessRequirement updated = servletTestHelper.updateAccessRequirement(
 				 dispatchServlet, tou, userId, extraParams);
 		tou.setEtag(updated.getEtag());
 		tou.setModifiedOn(updated.getModifiedOn());
 		assertEquals(tou, updated);
 		
 		// test deletion
-		ServletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);
+		servletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
-		results = ServletTestHelper.getEvaluationAccessRequirements(
+		results = servletTestHelper.getEvaluationAccessRequirements(
 				dispatchServlet, evaluation.getId(), userId);	
 		ars = results.getResults();
 		assertEquals(0, ars.size());

@@ -4,7 +4,7 @@ package org.sagebionetworks.table.query.model;
 /**
  * This matches &ltactual identifier&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ActualIdentifier implements SQLElement{
+public class ActualIdentifier extends SQLElement {
 	
 	String regularIdentifier;
 	String delimitedIdentifier;
@@ -20,7 +20,7 @@ public class ActualIdentifier implements SQLElement{
 		return delimitedIdentifier;
 	}
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		// We do not
 		if(regularIdentifier != null){
 			// Regular identifiers can be written without modification.

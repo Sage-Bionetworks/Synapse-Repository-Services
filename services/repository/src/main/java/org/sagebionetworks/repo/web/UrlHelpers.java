@@ -36,6 +36,9 @@ public class UrlHelpers {
 	private static final Logger log = Logger.getLogger(UrlHelpers.class.getName());
 	
 	public static final String ACCESS 				= "/access";
+	public static final String AUTH_PATH			= "/auth/v1";
+	public static final String FILE_PATH			= "/file/v1";
+	public static final String REPO_PATH			= "/repo/v1";
 	
 	/**
 	 * Used for batch requests
@@ -157,6 +160,12 @@ public class UrlHelpers {
 	
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
+	public static final String ACCOUNT = "/account";
+	public static final String EMAIL_VALIDATION = "/emailValidation";
+	public static final String ACCOUNT_EMAIL_VALIDATION = ACCOUNT+EMAIL_VALIDATION;
+	public static final String ACCOUNT_ID_EMAIL_VALIDATION = ACCOUNT+ID+EMAIL_VALIDATION;
+	public static final String EMAIL = "/email";
+	public static final String NOTIFICATION_EMAIL = "/notificationEmail";
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -197,7 +206,7 @@ public class UrlHelpers {
 	 * Favorite URLs
 	 */
 	public static final String FAVORITE_ID = FAVORITE+ID;
-	
+
 	/**
 	 * Used to get an entity attachment token
 	 */
@@ -211,8 +220,12 @@ public class UrlHelpers {
 	 * The url used to get a user profile attachment URL.
 	 */
 	public static final String USER_PROFILE_ATTACHMENT_URL = USER_PROFILE_ID+ATTACHMENT_URL;
-	
-	
+
+	// project settings
+	public static final String PROJECT_SETTINGS = "/projectSettings";
+	public static final String PROJECT_SETTINGS_BY_ID = "/projectSettings" + ID;
+	public static final String PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE = "/projectSettings/{projectId}/type/{type}";
+
 	/**
 	 * The base URL for Synapse objects's type (a.k.a. EntityHeader)
 	 */
@@ -370,6 +383,12 @@ public class UrlHelpers {
 	public static final String QUERY = "/query";
 
 	/**
+	 * URL path for log controller
+	 * 
+	 */
+	public static final String LOG = "/log";
+
+	/**
 	 * URL prefix for Users in the system
 	 * 
 	 */
@@ -399,7 +418,7 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCES = "/resources";
 	
-		/**
+	/**
 	 * URL prefix for User mirroring service
 	 * 
 	 */
@@ -563,6 +582,7 @@ public class UrlHelpers {
 	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
+	public static final String EVALUATION_STATUS_BATCH = EVALUATION_WITH_ID + "/statusBatch";
 	public static final String SUBMISSION_WITH_EVAL_ID = EVALUATION_WITH_ID + "/submission";
 	public static final String SUBMISSION_WITH_EVAL_ID_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE;
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN = SUBMISSION_WITH_EVAL_ID + ALL;
@@ -638,13 +658,45 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	
+	// Asynchronous jobs
+	public static final String ASYNC_START_REQUEST = "/async/start";
+	public static final String ASYNC_GET_REQUEST = "/async/get/{asyncToken}";
+	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
+	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB + "/{jobId}";
+
 	// Tables
 	public static final String COLUMN = "/column";
+	public static final String COLUMN_BATCH = COLUMN + "/batch";
+	public static final String ROW_ID = "/row/{rowId}";
+	public static final String ROW_VERSION = "/version/{versionNumber}";
 	public static final String TABLE = "/table";
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
 	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
-	
+	public static final String ENTITY_TABLE_PARTIAL = ENTITY_TABLE + "/partial";
+	public static final String ENTITY_TABLE_DELETE_ROWS = ENTITY_ID + TABLE + "/deleteRows";
+	public static final String ENTITY_TABLE_GET_ROWS = ENTITY_ID + TABLE + "/getRows";
+	public static final String ENTITY_TABLE_FILE_HANDLES = ENTITY_TABLE + FILE_HANDLE;
+	public static final String ENTITY_TABLE_FILE = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE;
+	public static final String ENTITY_TABLE_FILE_PREVIEW = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE_PREVIEW;
+	public static final String TABLE_QUERY = TABLE+"/query";
+	public static final String TABLE_QUERY_ASYNC_START = TABLE_QUERY + ASYNC_START_REQUEST;
+	public static final String TABLE_QUERY_ASYNC_GET = TABLE_QUERY + ASYNC_GET_REQUEST;
+	public static final String TABLE_QUERY_NEXT_PAGE = TABLE_QUERY + "/nextPage";
+	public static final String TABLE_QUERY_NEXT_PAGE_ASYNC_START = TABLE_QUERY_NEXT_PAGE + ASYNC_START_REQUEST;
+	public static final String TABLE_QUERY_NEXT_PAGE_ASYNC_GET = TABLE_QUERY_NEXT_PAGE + ASYNC_GET_REQUEST;
+	public static final String TABLE_DOWNLOAD_CSV = TABLE + "/download/csv";
+	public static final String TABLE_DOWNLOAD_CSV_ASYNC_START = TABLE_DOWNLOAD_CSV + ASYNC_START_REQUEST;
+	public static final String TABLE_DOWNLOAD_CSV_ASYNC_GET = TABLE_DOWNLOAD_CSV + ASYNC_GET_REQUEST;
+	public static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
+	public static final String TABLE_UPLOAD_CSV_ASYNC_START = TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
+	public static final String TABLE_UPLOAD_CSV_ASYNC_GET = TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
+	public static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE + "/upload/csv/preview";
+	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_START_REQUEST;
+	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_GET_REQUEST;
+
+	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
+
 	// Team
 	public static final String TEAM = "/team";
 	public static final String TEAM_ID = TEAM+ID;
@@ -681,7 +733,22 @@ public class UrlHelpers {
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-	
+
+	/*
+	 * Project URLs
+	 */
+	public static final String MY_PROJECTS = PrefixConst.PROJECT;
+	public static final String PROJECTS_FOR_USER = PrefixConst.PROJECT + USER + "/{principalId}";
+	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
+
+	// certified user services
+	public static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
+	public static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
+	public static final String CERTIFIED_USER_TEST_RESPONSE_WITH_ID = "/certifiedUserTestResponse"+ID;
+	public static final String CERTIFIED_USER_PASSING_RECORD_WITH_ID = USER+ID+"/certifiedUserPassingRecord";
+	public static final String CERTIFIED_USER_PASSING_RECORDS_WITH_ID = USER+ID+"/certifiedUserPassingRecords";
+	public static final String CERTIFIED_USER_STATUS = USER+ID+"/certificationStatus";
+
 	/**
 	 * APIs for DynamoDB related operations.
 	 */
@@ -712,7 +779,15 @@ public class UrlHelpers {
 	public static final String ADMIN_USER = ADMIN + AUTH_USER;
 	
 	public static final String ADMIN_USER_ID = ADMIN_USER + ID;
+	/**
+	 * Clear all locks.
+	 */
+	public static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
+	/**
+	 * API for testing throttling
+	 */
+	public static final String ADMIN_WAIT = ADMIN + "/wait";
 	
 	static {
 		@SuppressWarnings("rawtypes")
@@ -856,6 +931,7 @@ public class UrlHelpers {
 		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlPrefix);
+		builder.append(UrlHelpers.REPO_PATH);
 		builder.append(UrlHelpers.ENTITY);
 		builder.append("/");
 		builder.append(entityId);

@@ -278,14 +278,10 @@ public class DBOAnnotationsDaoImplTest {
 		Future<Boolean> furtureOne = pool.submit(workerOne);
 		Future<Boolean> furtureTwo = pool.submit(workerTwo);
 		// Wait for the threads to finish.
-		try{
-			assertTrue(furtureOne.get());
-			assertTrue(furtureTwo.get());
-		}catch(ExecutionException e){
-			System.out.println(e.getLocalizedMessage());
-			// Deadlock is an acceptable out for this test.
-			assertTrue("Deadlock is the only acceptable exception for this test.",e.getMessage().indexOf("Deadlock found when trying to get lock" )> -1);
-		}	
+
+		assertTrue(furtureOne.get());
+		assertTrue(furtureTwo.get());
+
 		// There should be no duplication.
 		Annotations clone = dboAnnotationsDao.getAnnotations(node.getId());
 		// There should be no duplication.
@@ -318,13 +314,25 @@ public class DBOAnnotationsDaoImplTest {
 		@Override
 		public Boolean call() throws Exception {
 			// Attempt to update the annotations 10 times
-			for(int i=0; i<count; i++){
-				// Replace the annotations
-				dboAnnotationsDao.replaceAnnotations(annos);
+			int count = 10;
+			int deadlockCount = 0;
+			while (count > 0) {
+				assertTrue("Too many deadlock exceptions", deadlockCount < 10);
+				try {
+					// Replace the annotations
+					dboAnnotationsDao.replaceAnnotations(annos);
+				} catch (Exception e) {
+					// Deadlock is the only acceptable exception here, just retry
+					if (e.getMessage().indexOf("Deadlock found when trying to get lock") > -1) {
+						deadlockCount++;
+						continue;
+					} else {
+						throw e;
+					}
+				}
+				count--;
 			}
 			return true;
 		}
-		
 	}
-	
 }

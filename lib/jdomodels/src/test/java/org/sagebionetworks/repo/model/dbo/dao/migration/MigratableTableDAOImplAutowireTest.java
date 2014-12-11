@@ -224,6 +224,7 @@ public class MigratableTableDAOImplAutowireTest {
 		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL_ALIAS);
+		expectedPrimaryTypes.add(MigrationType.NOTIFICATION_EMAIL);
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
@@ -232,9 +233,12 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
 		expectedPrimaryTypes.add(MigrationType.NODE);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION);
+		expectedPrimaryTypes.add(MigrationType.EVALUATION_SUBMISSIONS);
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
+		expectedPrimaryTypes.add(MigrationType.PROJECT_SETTINGS);
+		expectedPrimaryTypes.add(MigrationType.PROJECT_STATS);
 		expectedPrimaryTypes.add(MigrationType.TEAM);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
@@ -252,8 +256,10 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA);
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_STATUS);
 		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
+		expectedPrimaryTypes.add(MigrationType.BOUND_COLUMN_OWNER);
 		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
+		expectedPrimaryTypes.add(MigrationType.QUIZ_RESPONSE);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migratableTableDAO.getPrimaryMigrationTypes();

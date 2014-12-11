@@ -1,8 +1,12 @@
 package org.sagebionetworks.table.query.model;
+
+import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
+
+
 /**
  * This matches &ltgroup by clause&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class GroupByClause implements SQLElement {
+public class GroupByClause extends SQLElement {
 
 	GroupingColumnReferenceList groupingColumnReferenceList;
 
@@ -16,9 +20,14 @@ public class GroupByClause implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		if (columnConvertor != null) {
+			columnConvertor.pushCurrentClause(SQLClause.GROUP_BY);
+		}
 		builder.append("GROUP BY ");
-		groupingColumnReferenceList.toSQL(builder);
+		groupingColumnReferenceList.toSQL(builder, columnConvertor);
+		if (columnConvertor != null) {
+			columnConvertor.popCurrentClause(SQLClause.GROUP_BY);
+		}
 	}
-	
 }

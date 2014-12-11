@@ -24,6 +24,10 @@
         "lastEntryComplete": {
 			"type": "boolean",
 			"description": "Is the last entry for this tracker complete?"
+		},
+        "currentStep": {
+			"type": "string",
+			"description": "The current step a tracker is in"
 		}
     }
 }

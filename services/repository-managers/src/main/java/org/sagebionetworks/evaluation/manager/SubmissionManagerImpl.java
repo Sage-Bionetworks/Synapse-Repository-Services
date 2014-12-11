@@ -2,20 +2,25 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
+import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Node;
@@ -27,10 +32,13 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -50,7 +58,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
-	private EvaluationManager evaluationManager;
+	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 	@Autowired
 	private ParticipantManager participantManager;
 	@Autowired
@@ -61,6 +69,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
+	
+	private static final int MAX_BATCH_SIZE = 500;
+	
 
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -74,9 +85,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
 		Submission sub = submissionDAO.get(submissionId);
-		// only authorized users can view private Annotations
+		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ);
+		// only authorized users can view private Annotations 
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionToSubmissionStatus(sub, includePrivateAnnos);
 	}
 
@@ -93,7 +105,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setUserId(principalId);
 		
 		// validate permissions
-		evaluationPermissionsManager.validateHasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
@@ -128,6 +141,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		status.setId(submissionId);
 		status.setStatus(SubmissionStatusEnum.RECEIVED);
 		status.setModifiedOn(new Date());
+		
 		submissionStatusDAO.create(status);
 		
 		// save FileHandle IDs
@@ -135,10 +149,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			submissionFileHandleDAO.create(submissionId, handle.getId());
 		}
 		
+		// update the EvaluationSubmissions etag
+		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.CREATE);
+		
 		// return the Submission
 		return submissionDAO.get(submissionId);
 	}
-
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
@@ -146,14 +164,22 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		
 		// ensure Submission exists and validate access rights
-		SubmissionStatus old = getSubmissionStatus(userInfo, submissionStatus.getId());
 		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
 		
-		if (!old.getEtag().equals(submissionStatus.getEtag()))
-			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 
-					submissionStatus.getId() + " is out of date. Please fetch it again before updating.");
+		validateContent(submissionStatus, evalId);
 		
+		// update and return the new Submission
+		submissionStatusDAO.update(Collections.singletonList(submissionStatus));
+		
+		// update the EvaluationSubmissions etag
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
+		
+		return submissionStatusDAO.get(submissionStatus.getId());
+	}
+	
+	private static void validateContent(SubmissionStatus submissionStatus, String evalId) {
 		// validate score, if any
 		Double score = submissionStatus.getScore();
 		if (score != null) {
@@ -169,13 +195,59 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			AnnotationsUtils.populateMissingFields(annos);
 			annos.setObjectId(submissionStatus.getId());
 			annos.setScopeId(evalId);
-		}
-		
-		// update and return the new Submission
-		submissionStatusDAO.update(submissionStatus);
-		return submissionStatusDAO.get(submissionStatus.getId());
+		}	
 	}
 	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public BatchUploadResponse updateSubmissionStatusBatch(UserInfo userInfo, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException, ConflictingUpdateException {
+		
+		UserInfo.validateUserInfo(userInfo);
+		
+		// validate content of batch
+		EvaluationUtils.ensureNotNull(batch.getIsFirstBatch(), "isFirstBatch");
+		EvaluationUtils.ensureNotNull(batch.getIsLastBatch(), "isLastBatch");
+		EvaluationUtils.ensureNotNull(batch.getStatuses(), "statuses");
+		EvaluationUtils.ensureNotEmpty(batch.getStatuses(), "statuses");
+		if (batch.getStatuses().size()>MAX_BATCH_SIZE) 
+			throw new IllegalArgumentException("Batch size cannot exceed "+MAX_BATCH_SIZE);
+		for (SubmissionStatus submissionStatus : batch.getStatuses()) {
+			EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
+			validateContent(submissionStatus, evalId);
+		}
+		
+		String evalIdForBatch = submissionStatusDAO.getEvaluationIdForBatch(batch.getStatuses()).toString();
+		if (!evalIdForBatch.equals(evalId)) 
+			throw new IllegalArgumentException("Specified Evaluation ID does not match submissions in the batch.");
+		
+		// ensure Submission exists and validate access rights
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
+		
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.lockAndGetForEvaluation(evalIdLong);
+		// if not first batch, check batch etag
+		if (!batch.getIsFirstBatch()) {
+			String batchToken = batch.getBatchToken();
+			EvaluationUtils.ensureNotNull(batchToken, "batchToken");
+			if (!batchToken.equals(evalSubs.getEtag()))
+				throw new ConflictingUpdateException("Your batch token is out of date.  You must restart upload from first batch.");
+		}
+
+		// update the Submissions
+		submissionStatusDAO.update(batch.getStatuses());
+		
+		String newEvaluationSubmissionsEtag = 
+				evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, batch.getIsLastBatch(), ChangeType.UPDATE);
+		BatchUploadResponse response = new BatchUploadResponse();
+		if (batch.getIsLastBatch()) {
+			response.setNextUploadToken(null);
+		} else {
+			response.setNextUploadToken(newEvaluationSubmissionsEtag);
+		}
+		return response;
+	}
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -186,8 +258,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
-		// ... but that's not enough to generate a delete message, so we delete it ourselves:
-		submissionStatusDAO.delete(submissionId);
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
 		submissionDAO.delete(submissionId);
 	}
 
@@ -221,10 +293,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		UserInfo.validateUserInfo(userInfo);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		QueryResults<Submission> submissions = getAllSubmissions(userInfo, evalId, status, limit, offset);
+				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
+		QueryResults<Submission> submissions = 
+				getAllSubmissionsPrivate(evalId, status, limit, offset);
 		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
 	}
 	
@@ -253,7 +329,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		QueryResults<Submission> submissions = getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
-		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionsToSubmissionBundles(submissions, haveReadPrivateAccess);
 	}
 		
@@ -267,7 +343,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public URL getRedirectURLForFileHandle(UserInfo userInfo, 
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		Submission submission = getSubmission(userInfo, submissionId);
@@ -293,9 +369,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType)) {
-			throw new UnauthorizedException("You lack " + accessType + " rights for Evaluation " + evalId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType));
 	}
 
 	/**
@@ -368,37 +442,42 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @param annos
 	 * @return
 	 */
-	protected Annotations removePrivateAnnos(Annotations annos) {
+	protected static Annotations removePrivateAnnos(Annotations annos) {
 		EvaluationUtils.ensureNotNull(annos, "Annotations");
 
-		List<StringAnnotation> newStringAnnos = new ArrayList<StringAnnotation>();
 		List<StringAnnotation> oldStringAnnos = annos.getStringAnnos();
-		for (StringAnnotation sa : oldStringAnnos) {
-			if (!sa.getIsPrivate()) {
-				newStringAnnos.add(sa);
+		if (oldStringAnnos!=null) {
+			List<StringAnnotation> newStringAnnos = new ArrayList<StringAnnotation>();
+			for (StringAnnotation sa : oldStringAnnos) {
+				if (!sa.getIsPrivate()) {
+					newStringAnnos.add(sa);
+				}
 			}
+			annos.setStringAnnos(newStringAnnos);
 		}
-		annos.setStringAnnos(newStringAnnos);
 		
-		List<DoubleAnnotation> newDoubleAnnos = new ArrayList<DoubleAnnotation>();
 		List<DoubleAnnotation> oldDoubleAnnos = annos.getDoubleAnnos();
-		for (DoubleAnnotation da : oldDoubleAnnos) {
-			if (!da.getIsPrivate()) {
-				newDoubleAnnos.add(da);
+		if (oldDoubleAnnos!=null) {
+			List<DoubleAnnotation> newDoubleAnnos = new ArrayList<DoubleAnnotation>();
+			for (DoubleAnnotation da : oldDoubleAnnos) {
+				if (!da.getIsPrivate()) {
+					newDoubleAnnos.add(da);
+				}
 			}
+			annos.setDoubleAnnos(newDoubleAnnos);
 		}
-		annos.setDoubleAnnos(newDoubleAnnos);
 		
-		List<LongAnnotation> newLongAnnos = new ArrayList<LongAnnotation>();
 		List<LongAnnotation> longAnnos = annos.getLongAnnos();
-		for (LongAnnotation la : longAnnos) {
-			if (!la.getIsPrivate()) {
-				newLongAnnos.add(la);
+		if (longAnnos!=null) {
+			List<LongAnnotation> newLongAnnos = new ArrayList<LongAnnotation>();
+			for (LongAnnotation la : longAnnos) {
+				if (!la.getIsPrivate()) {
+					newLongAnnos.add(la);
+				}
 			}
+			annos.setLongAnnos(newLongAnnos);
 		}
-		annos.setLongAnnos(newLongAnnos);
 		
 		return annos;
 	}
-
 }

@@ -89,7 +89,7 @@ public class S3TokenManagerUnitTest {
 		// return the mock user.
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(false);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenThrow(new IllegalArgumentException("Update and not read should have been checked"));
 		manager.validateUpdateAccess(mockUser, entityId);
 		
@@ -101,7 +101,7 @@ public class S3TokenManagerUnitTest {
 		// return the mock user.
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenThrow(new IllegalArgumentException("Update and not read should have been checked"));
 		manager.validateUpdateAccess(mockUser, entityId);
 	}
@@ -120,7 +120,7 @@ public class S3TokenManagerUnitTest {
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);
 		Credentials mockCreds = Mockito.mock(Credentials.class);
 		when(mockUuserManager.getUserInfo(anyLong())).thenReturn(mockUser);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mocKLocationHelper.createFederationTokenForS3(userId,HttpMethod.PUT,expectedPath)).thenReturn(mockCreds);
 		when(mocKLocationHelper.presignS3PUTUrl(any(Credentials.class), any(String.class), any(String.class), any(String.class))).thenReturn(expectePreSigneUrl);
 		// Make the actual call
@@ -142,7 +142,7 @@ public class S3TokenManagerUnitTest {
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);
 		Credentials mockCreds = Mockito.mock(Credentials.class);
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mocKLocationHelper.createFederationTokenForS3(userId,HttpMethod.PUT,expectedPath)).thenReturn(mockCreds);
 		when(mocKLocationHelper.presignS3PUTUrl(mockCreds, expectedPath, almostMd5, "image/jpeg")).thenReturn(expectePreSigneUrl);
 		// Make the actual call
@@ -158,7 +158,7 @@ public class S3TokenManagerUnitTest {
 		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
 		when(mockS3Utilitiy.doesExist(any(String.class))).thenReturn(true);
 		// Make the actual call
@@ -176,7 +176,7 @@ public class S3TokenManagerUnitTest {
 		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
 		// This time test that the url does not exist
 		when(mockS3Utilitiy.doesExist(any(String.class))).thenReturn(false);

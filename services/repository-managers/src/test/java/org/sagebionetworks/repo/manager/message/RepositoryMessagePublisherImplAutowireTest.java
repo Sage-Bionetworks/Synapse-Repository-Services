@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -15,6 +13,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+
+import static org.mockito.Mockito.*;
+
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -28,6 +29,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.CreateTopicRequest;
+import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
 
 /**
@@ -36,8 +39,9 @@ import com.amazonaws.services.sns.model.PublishRequest;
  * @author John
  *
  */
+// Cannot use test-context.xml which disables messages
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context-schedulers.xml" })
 public class RepositoryMessagePublisherImplAutowireTest {
 	
 	@Autowired
@@ -58,6 +62,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		// We do not want to actually send messages as part of this test so we mock the client
 		mockSNSClient = Mockito.mock(AmazonSNSClient.class);
 		messagePublisher.setAwsSNSClient(mockSNSClient);
+		when(mockSNSClient.createTopic(any(CreateTopicRequest.class))).thenReturn(new CreateTopicResult().withTopicArn("topicArn"));
 	}
 	
 	@After
@@ -67,7 +72,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	
 	@Test
 	public void testGetArn(){
-		String arn = messagePublisher.getTopicArn();
+		String arn = messagePublisher.getTopicArn(ObjectType.ENTITY);
 		System.out.println("Arn: "+arn);
 		assertNotNull(arn);
 	}
@@ -86,7 +91,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			}
 		}
 		assertTrue("Failed to find the RepositoryMessagePublisher on the list of transactionalMessanger observers",found);
-		assertNotNull(messagePublisher.getTopicName());
+		assertNotNull(messagePublisher.getTopicName(ObjectType.ENTITY));
 	}
 	
 	@Test
@@ -108,7 +113,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		// Validate that our message was fired.
 		String json = EntityFactory.createJSONStringForEntity(message);
 		// The message should be published once and only once.
-		verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(), json));
+		verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), json));
 		// The message should be sent
 		unsent = changeDao.listUnsentMessages(Long.MAX_VALUE);
 		assertEquals(0, unsent.size());
@@ -142,8 +147,26 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		for(String messageBody: messageBodyList){
 			System.out.println("Checking for message body: "+messageBody);
 			// The message should be published once and only once.
-			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(), messageBody));
+			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), messageBody));
 		}
-
+	}
+	
+	
+	@Test
+	public void testDuplicateMessage(){
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectId("123");
+		message.setObjectEtag("ABCDEFG");
+		message.setChangeNumber(1l);
+		message.setTimestamp(new Date());
+		message = changeDao.replaceChange(message);
+		
+		messagePublisher.publishToTopic(message);
+		// Calling it again should not send out the message again.
+		messagePublisher.publishToTopic(message);
+		// Even though we attempted to send the same message twice it should only go out once.
+		verify(mockSNSClient, times(1)).publish(any(PublishRequest.class));
 	}
 }

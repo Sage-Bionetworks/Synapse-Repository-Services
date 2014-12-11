@@ -1,32 +1,48 @@
 package org.sagebionetworks.table.worker;
 
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.Worker;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
+import com.google.common.collect.SetMultimap;
 
 /**
  * This worker updates the index used to support the tables features. It will
@@ -36,48 +52,57 @@ import com.amazonaws.services.sqs.model.Message;
  * @author John
  * 
  */
-public class TableWorker implements Callable<List<Message>> {
+public class TableWorker implements Worker {
+
+	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
 
-	static private Logger log = LogManager.getLogger(TableWorker.class);
-	List<Message> messages;
-	ConnectionFactory tableConnectionFactory;
-	TableRowManager tableRowManager;
-	boolean featureEnabled;
-	long timeoutMS;
+	private static final long BATCH_SIZE = 16000;
 
-	/**
-	 * This worker has many dependencies.
-	 * 
-	 * @param messages
-	 * @param tableConnectionFactory
-	 * @param tableTruthDAO
-	 * @param columnModelDAO
-	 * @param tableIndexDAO
-	 * @param semaphoreDao
-	 * @param tableStatusDAO
-	 * @param configuration
-	 * @param timeoutMS
-	 */
-	public TableWorker(List<Message> messages,
-			ConnectionFactory tableConnectionFactory,
-			TableRowManager tableRowManager, StackConfiguration configuration) {
-		super();
-		this.messages = messages;
+	static private Logger log = LogManager.getLogger(TableWorker.class);
+
+	@Autowired
+	ConnectionFactory tableConnectionFactory;
+	@Autowired
+	TableRowManager tableRowManager;
+	@Autowired
+	StackConfiguration configuration;
+	@Autowired
+	NodeInheritanceManager nodeInheritanceManager;
+
+	List<Message> messages;
+	WorkerProgress workerProgress;
+
+	public TableWorker() {
+	}
+
+	// unit testing only
+	TableWorker(ConnectionFactory tableConnectionFactory, TableRowManager tableRowManager, StackConfiguration configuration,
+			NodeInheritanceManager nodeInheritanceManager) {
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.tableRowManager = tableRowManager;
-		this.featureEnabled = configuration.getTableEnabled();
-		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
+		this.configuration = configuration;
+		this.nodeInheritanceManager = nodeInheritanceManager;
+	}
+
+	@Override
+	public void setMessages(List<Message> messages) {
+		this.messages = messages;
+	}
+
+	@Override
+	public void setWorkerProgress(WorkerProgress workerProgress) {
+		this.workerProgress = workerProgress;
 	}
 
 	@Override
 	public List<Message> call() throws Exception {
 		List<Message> processedMessages = new LinkedList<Message>();
 		// If the feature is disabled then we simply swallow all messages
-		if (!featureEnabled) {
+		if (!configuration.getTableEnabled()) {
 			return messages;
 		}
 		// process each message
@@ -92,14 +117,26 @@ public class TableWorker implements Callable<List<Message>> {
 							.getConnection(change.getObjectId());
 					if (indexDao != null) {
 						indexDao.deleteTable(change.getObjectId());
+						indexDao.deleteStatusTable(change.getObjectId());
 					}
 					processedMessages.add(message);
 				} else {
 					// Create or update.
 					String tableId = change.getObjectId();
+					// make sure the table is not in the trash
+					try {
+						if (nodeInheritanceManager.isNodeInTrash(tableId)) {
+							processedMessages.add(message);
+							continue;
+						}
+					} catch (NotFoundException e) {
+						// if the table no longer exists, we want to stop trying
+						processedMessages.add(message);
+						continue;
+					}
 					// this method does the real work.
 					State state = createOrUpdateTable(tableId,
-							change.getObjectEtag());
+							change.getObjectEtag(), message);
 					if (!State.RECOVERABLE_FAILURE.equals(state)) {
 						// Only recoverable failures should remain in the queue.
 						// All other must be removed.
@@ -122,19 +159,27 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @return
 	 */
 	public State createOrUpdateTable(final String tableId,
-			final String tableResetToken) {
+			final String tableResetToken, final Message message) {
 		// Attempt to run with
 		try {
+			// If the passed token does not match the current token then this 
+			// is an old message that should be removed from the queue.
+			// See PLFM-2641.  We must check message before we acquire the lock.
+			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
+			// If the reset-tokens do not match this message should be ignored
+			if (!tableResetToken.equals(status.getResetToken())) {
+				// This is an old message so we ignore it
+				return State.SUCCESS;
+			}
+			log.info("Get creat index lock " + tableId);
 			// Run with the exclusive lock on the table if we can get it.
-			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
-					timeoutMS, new Callable<State>() {
-						@Override
-						public State call() throws Exception {
-							// This method does the real work.
-							return createOrUpdateWhileHoldingLock(tableId,
-									tableResetToken);
-						}
-					});
+			return tableRowManager.tryRunWithTableExclusiveLock(tableId, configuration.getTableWorkerTimeoutMS(), new Callable<State>() {
+				@Override
+				public State call() throws Exception {
+					// This method does the real work.
+					return createOrUpdateWhileHoldingLock(tableId, tableResetToken, message);
+				}
+			});
 		} catch (LockUnavilableException e) {
 			// We did not get the lock on this table.
 			// This is a recoverable failure as we can try again later.
@@ -168,18 +213,9 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws ConflictingUpdateException 
 	 */
 	private State createOrUpdateWhileHoldingLock(String tableId,
-			String tableResetToken) throws ConflictingUpdateException, NotFoundException {
-		// Get the rest-token before we start. We will need to this to update
-		// the progress
-		TableStatus status = null;
-		status = tableRowManager.getTableStatus(tableId);
-		// If the reset-tokens do not match this message should be ignored
-		if (!tableResetToken.equals(status.getResetToken())) {
-			// This is an old message so we ignore it
-			return State.SUCCESS;
-		}
-
+			String tableResetToken, Message message) throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
+		log.info("Create index " + tableId);
 		try {
 			// Save the status before we start
 			// Try to get a connection.
@@ -190,10 +226,17 @@ public class TableWorker implements Callable<List<Message>> {
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
-			synchIndexWithTable(indexDAO, tableId, tableResetToken);
+			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken, message);
 			// We are finished set the status
-			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken);
+			log.info("Create index " + tableId + " done");
+			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
+		} catch (TableUnavilableException e) {
+			// recoverable
+			tableRowManager.attemptToUpdateTableProgress(tableId, tableResetToken, e.getStatus().getProgressMessage(), e.getStatus()
+					.getProgressCurrent(), e.getStatus().getProgressTotal());
+			log.info("Create index " + tableId + " aborted, unavailable");
+			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			// Failed.
 			// Get the stack trace.
@@ -202,6 +245,7 @@ public class TableWorker implements Callable<List<Message>> {
 			// Attempt to set the status to failed.
 			tableRowManager.attemptToSetTableStatusToFailed(tableId, tableResetToken, e.getMessage(), writer.toString());
 			// This is not an error we can recover from.
+			log.info("Create index " + tableId + " aborted, unrecoverable");
 			return State.UNRECOVERABLE_FAILURE;
 		}
 	}
@@ -219,38 +263,64 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws TableUnavilableException
 	 */
-	void synchIndexWithTable(TableIndexDAO indexDao,
-			String tableId, String resetToken) throws DatastoreException, NotFoundException,
-			IOException {
-		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Starting ", 0L, 100L);
+	String synchIndexWithTable(TableIndexDAO indexDao, String tableId, String resetToken, Message message) throws DatastoreException,
+			NotFoundException, IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableRowManager
-				.getColumnModelsForTable(tableId);
+		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
-		indexDao.createOrUpdateTable(currentSchema, tableId);
+		if(currentSchema.isEmpty()){
+			// If there is no schema delete the table
+			indexDao.deleteTable(tableId);
+		}else{
+			// We have a schema so create or update the table
+			indexDao.createOrUpdateTable(currentSchema, tableId);
+		}
 		// Now determine which changes need to be applied to the table
-		Long maxVersion = indexDao.getMaxVersionForTable(tableId);
+		Long maxCurrentCompleteVersion = indexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		// List all of the changes
-		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Listing table changes ", 0L, 100L);
-		List<TableRowChange> changes = tableRowManager
-				.listRowSetsKeysForTable(tableId);
-		// Apply any change that has a version number greater than the max
-		// version already in the index
-		if (changes != null) {
-			for (TableRowChange change : changes) {
-				if (change.getRowVersion() > maxVersion) {
-					// This is a change that we must apply.
-					RowSet rowSet = tableRowManager.getRowSet(tableId,
-							change.getRowVersion());
-					
-					tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows "+rowSet.getRows().size()+" to version: "+change.getRowVersion(), 0L, 100L);
-					// apply the change to the table
-					indexDao.createOrUpdateRows(rowSet,	currentSchema);
-				}
+		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Getting current table row versions ", 0L, 100L);
+
+		TableRowChange lastTableRowChange = tableRowManager.getLastTableRowChange(tableId);
+		if (lastTableRowChange == null) {
+			// nothing to do, move along
+			return null;
+		}
+
+		long currentProgress = 0;
+		long maxRowId = tableRowManager.getMaxRowId(tableId);
+		for (long rowId = 0; rowId <= maxRowId; rowId += BATCH_SIZE) {
+			Map<Long, Long> currentRowVersions = tableRowManager.getCurrentRowVersions(tableId, maxCurrentCompleteVersion + 1, rowId,
+					BATCH_SIZE);
+
+			// gather rows by version
+			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
+			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap.asMap().entrySet()) {
+				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
+				Long version = versionWithRows.getKey();
+
+				// Keep this message invisible
+				workerProgress.progressMadeForMessage(message);
+
+				// This is a change that we must apply.
+				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet);
+
+				tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows " + rowSet.getRows().size()
+						+ " to version: " + version, currentProgress, currentProgress);
+				// apply the change to the table
+				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
+				currentProgress += rowsToGet.size();
 			}
 		}
+
+		// If we successfully updated the table and got here, then all we know is that we are at least at the version
+		// the table was at when we started. It is still possible that a newer version came in and the we applied
+		// partial updates from that version to the index. A subsequent update will make things consistent again.
+		indexDao.setMaxCurrentCompleteVersionForTable(tableId, lastTableRowChange.getRowVersion());
+
+		return lastTableRowChange.getEtag();
 	}
 }

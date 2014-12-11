@@ -10,12 +10,6 @@
 	<context:annotation-config />
 
 	<import resource="classpath:main-scheduler-spb.xml" />
-		
-	<!-- Each UnsentMessage worker test needs its own test helper -->
-	<bean id="unsentMessageQueuerTestHelper" 
-		class="org.sagebionetworks.message.workers.UnsentMessageQueuerTestHelper"
-		scope="prototype"
-		init-method="initialize" />
 
 	<bean id="dynamoQueueRemoverFactory"
 		class="org.sagebionetworks.dynamo.workers.sqs.DynamoQueueRemoverFactory"
@@ -45,22 +39,6 @@
 		<property name="startDelay" value="0" />
 		<property name="repeatInterval" value="200" />
 	</bean>
-	
-	<!-- Redefine the unsent message queuer trigger for shorter intervals during tests -->
-	<bean id="unsentMessageQueuerTrigger"
-			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
-			scope="singleton">
-		<property name="jobDetail">
-			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="unsentMessageQueuerSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<property name="startDelay" value="0" />
-		<!-- 10 seconds -->
-		<property name="repeatInterval" value="10000" />
-	</bean>
 
 	<bean id="auditMergeWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
@@ -77,7 +55,16 @@
 		<!-- This is a slow worker and does not need to be run more than once every 1 hour. -->
 		<property name="repeatInterval" value="3000" />
 	</bean>
-	
+
+	<!-- This is a shared  Scheduler-->
+	<bean id="repositoryManagerTestScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="messagePublisherTrigger" />
+			</list>
+		</property>
+	</bean>
+
 	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 

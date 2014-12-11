@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="User Profile Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class UserProfileController extends BaseController {
 
 	@Autowired
@@ -182,9 +184,9 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Get Users and Groups by name or email.
+	 * Get Users and Groups by name.
 	 * 
-	 * @param prefixFilter The name or email to search for.
+	 * @param prefixFilter The name to search for.
 	 * @param offset
 	 *         The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p> 
 	 * @param limit
@@ -261,4 +263,63 @@ public class UserProfileController extends BaseController {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
 	}
 
+	/**
+	 * Get a paginated result that contains the caller's <a
+	 * href="${org.sagebionetworks.repo.model.Project}">projects</a>. The list is ordered by most recent interacted with
+	 * project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MY_PROJECTS }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getMyProjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getMyProjects(userId, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.Project}">projects</a> from a
+	 * user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_FOR_USER }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsForUser(
+			@PathVariable Long principalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjectsForUser(userId, principalId, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.Project}">projects</a> from a
+	 * user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_FOR_TEAM }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsForTeam(
+			@PathVariable Long teamId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjectsForTeam(userId, teamId, limit, offset);
+	}
 }

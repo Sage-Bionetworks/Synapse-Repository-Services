@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,13 +102,13 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@SuppressWarnings("unchecked")
 	@Override
-	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, OutputStream out) {
+	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer writer) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Get the database object from the dao
 		MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
 		// Forward to the generic method
-		writeBackupBatch(mdo, type, rowIds, out);
+		writeBackupBatch(mdo, type, rowIds, writer);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -176,7 +177,8 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param rowIds
 	 * @param out
 	 */
-	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, List<Long> rowIds, OutputStream out){
+	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type,
+			List<Long> rowIds, Writer writer) {
 		// Get all of the data from the DAO batched.
 		List<D> databaseList = getBackupDataBatched(mdo.getDatabaseObjectClass(), rowIds);
 		// Translate to the backup objects
@@ -189,7 +191,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		// we use the table name as the Alias
 		String alias = mdo.getTableMapping().getTableName();
 		// Now write the backup to the stream
-		BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
+		BackupMarshalingUtils.writeBackupToWriter(backupList, alias, writer);
 	}
 
 	/**
