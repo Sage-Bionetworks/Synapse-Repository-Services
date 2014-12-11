@@ -5,7 +5,7 @@
 	"properties": {
 		"id": {
 			"type": "integer",
-			"description": "The unique immutable ID.",
+			"description": "The unique immutable ID.  Provided by the system, the user may not set this field.",
 			"transient": true
 		},
 		"etag": {
@@ -16,32 +16,32 @@
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this object was created.",
+			"description": "The date this object was created.  Provided by the system, the user may not set this field.",
 			"title": "Created On",
 			"transient": true
 		},
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this object was last modified.",
+			"description": "The date this object was last modified.  Provided by the system, the user may not set this field.",
 			"title": "Modified On",
 			"transient": true
 		},
 		"createdBy": {
 			"type": "string",
-			"description": "The user that created this object.",
+			"description": "The user that created this object.  Provided by the system, the user may not set this field.",
 			"title": "Created By",
 			"transient": true
 		},
 		"modifiedBy": {
 			"type": "string",
-			"description": "The user that last modified this object.",
+			"description": "The user that last modified this object.  Provided by the system, the user may not set this field.",
 			"title": "Modified By",
 			"transient": true
 		},
 		"subjectIds": {
 			"type": "array",
-			"description": "The IDs of the items controlled by this Access Requirement.",
+			"description": "The IDs of the items controlled by this Access Requirement.  Required when creating or updating.",
 			"transient": true,
 			"items": {
         		"type":"object",
@@ -50,13 +50,13 @@
 		},
 		"accessType": {
 			"type": "object",
-			"description": "The type of access granted when this access requirement is met.",
+			"description": "The type of access granted when this access requirement is met.  Required when creating or updating.",
 			"name": "AccessType",
 			"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
 		},
         "concreteType":{
             "type":"string",
-            "description":"Indicates which type of AccessRequirement this object represents."
+            "description":"Indicates which type of AccessRequirement this object represents.  Provided by the system, the user may not set this field."
         }
 	}
 }

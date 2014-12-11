@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.web.controller;
 import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -234,9 +232,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledTeamAccessRequirement(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@PathVariable String id) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
@@ -259,9 +255,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getTeamAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable String id,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
+				@PathVariable String id) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
