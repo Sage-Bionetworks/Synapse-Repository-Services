@@ -800,9 +800,13 @@ public class TableRowManagerImpl implements TableRowManager {
 			final List<Row> rows = new LinkedList<Row>();
 			results.setRows(rows);
 			results.setTableId(query.getTableId());
-			results.setHeaders(query.getSelectColumnModels().getSelectColumns());
 			// Stream the results but keep them in memory.
 			queryHandlers.add(new QueryHandler(query, new RowAndHeaderHandler() {
+
+				@Override
+				public void writeHeader() {
+					results.setHeaders(query.getSelectColumnModels().getSelectColumns());
+				}
 
 				@Override
 				public void nextRow(Row row) {
@@ -818,6 +822,11 @@ public class TableRowManagerImpl implements TableRowManager {
 
 		if (countQuery != null) {
 			queryHandlers.add(new QueryHandler(countQuery, new RowAndHeaderHandler() {
+
+				@Override
+				public void writeHeader() {
+					// no-op
+				}
 
 				@Override
 				public void nextRow(Row row) {
@@ -919,7 +928,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 */
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> sortList,
-			final CSVWriterStream writer, boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException,
+			final CSVWriterStream writer, boolean includeRowIdAndVersion, final boolean writeHeader) throws TableUnavilableException,
 			NotFoundException, TableFailedException {
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, sortList);
@@ -936,13 +945,16 @@ public class TableRowManagerImpl implements TableRowManager {
 		final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
 		repsonse.setTableId(query.getTableId());
 		repsonse.setHeaders(query.getSelectColumnModels().getSelectColumns());
-		if (writeHeader) {
-			String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumnModels().getSelectColumns(),
-					includeRowIdAndVersionFinal);
-			writer.writeNext(csvHeaders);
-		}
 
 		runConsistentQueryAsStream(Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
+			@Override
+			public void writeHeader() {
+				if (writeHeader) {
+					String[] csvHeaders = TableModelUtils.createColumnNameHeader(query.getSelectColumnModels().getSelectColumns(),
+							includeRowIdAndVersionFinal);
+					writer.writeNext(csvHeaders);
+				}
+			}
 
 			@Override
 			public void nextRow(Row row) {

@@ -1,4 +1,8 @@
-package org.sagebionetworks.table.query.model;
+package org.sagebionetworks.table.query.model.visitors;
+
+import org.sagebionetworks.table.query.model.BooleanFunction;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnReference;
 
 
 public abstract class ToTranslatedSqlVisitor extends ToSimpleSqlVisitor {

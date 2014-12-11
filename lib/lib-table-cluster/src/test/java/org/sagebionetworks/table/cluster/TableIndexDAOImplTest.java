@@ -420,7 +420,7 @@ public class TableIndexDAOImplTest {
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
-		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", null, null));
+		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
 		assertEquals(expectedHeaders, results.getHeaders());
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());

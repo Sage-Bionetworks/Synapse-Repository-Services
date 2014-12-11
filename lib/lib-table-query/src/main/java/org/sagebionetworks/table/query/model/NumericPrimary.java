@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 public class NumericPrimary extends SQLElement {
 

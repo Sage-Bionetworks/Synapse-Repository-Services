@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &lttable expression&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -74,6 +77,12 @@ public class TableExpression extends SQLElement {
 		if(pagination != null){
 			visitor.append(" ");
 			visit(pagination, visitor);
+		}
+	}
+
+	public void visit(IsAggregateVisitor visitor) {
+		if (groupByClause != null) {
+			visitor.setIsAggregate();
 		}
 	}
 }
