@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -41,7 +39,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@Override
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId, 
-			RestrictableObjectDescriptor subjectId, HttpServletRequest request) throws DatastoreException,
+			RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
@@ -49,7 +47,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessApproval>(
-				request.getServletPath()+UrlHelpers.ACCESS_APPROVAL, 
+				UrlHelpers.ACCESS_APPROVAL, 
 				results.getResults(),
 				(int)results.getTotalNumberOfResults(), 
 				1, 
