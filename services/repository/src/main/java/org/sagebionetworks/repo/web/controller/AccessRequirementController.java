@@ -54,7 +54,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Access Requirements are fulfilled on a per-user basis using the <a href="#org.sagebionetworks.repo.web.controller.AccessApprovalController">
  * Access Approval Services</a>.
  * </p>
-
  * 
  *
  */
