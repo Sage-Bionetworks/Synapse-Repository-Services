@@ -28,14 +28,36 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * These services manage the Access Requirements/Restrictions which may be placed on Entities or
- * Evaluation queues.  An Access Requirement specifies the type of access being restricted as well
+ * These services manage the Access Requirements/Restrictions (ARs) which may be placed on Entities,
+ * Evaluation queues, or Teams.  An Access Requirement specifies the type of access being restricted as well
  * as how the requirement is fulfilled. 
+ * <p>
+ * ARs complement Access Control Lists (ACLs) for managing access to Synapse objects.
+ * While ACLs are managed by entity owners, ARs are managed by the Synapse Access and Compliance Team (ACT), which is
+ * responsible for governance of sensitive data.  Before one may access data associated with an 
+ * AR, there must be a corresponding Access Approval.  For certain ARs --
+ * of the "self-sign" variety -- one may grant ones own approval by agreeing to associated
+ * 'terms of use.'  For other Access Requirements -- of the 'ACT' variety -- approval may be granted
+ * only by the ACT.
+ * </p>
+ * <p>
+ * As stated above, an AR specifies the type of access being controlled.  Generally
+ * entities are restricted with DOWNLOAD access.  A Synapse user may be able to see that a Synapse
+ * File exists, but be unable to download the content due to such an AR.  Teams are
+ * restricted using the PARTICIPATE access type:  Prior to joining a Team a user must fulfill any
+ * associated ARs controlling this type of access.
+ * </p>
+ * <p>
+ * Entity ARs are inherited from ancestors.  E.g. an AR applied to a Folder will control all Files in the Folder, 
+ * or within sub-folders of the Folder.  Access Requirements are cumulative:  A File will be controlled both
+ * by ARs applied to it directly and by ARs applied to any and all of its ancestors.
+ * </p>
+ * <p>
+ * Access Requirements are fulfilled on a per-user basis using the <a href="#org.sagebionetworks.repo.web.controller.AccessApprovalController">
+ * Access Approval Services</a>.
+ * </p>
+
  * 
- * More design information is available 
- * <a href=https://sagebionetworks.jira.com/wiki/display/PLFM/Data+Access+Control/>here.</a>
- * 
- * @author brucehoff
  *
  */
 @ControllerInfo(displayName="Access Requirement Services", path="repo/v1")
@@ -47,9 +69,10 @@ public class AccessRequirementController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Add an access requirement to an entity or Evaluation queue.  This is a tool for the Synapse Access and Compliance Team.
+	 * Add an Access Requirement to an Entity, Evaluation queue, or Team.  
+	 * This service may only be used by the Synapse Access and Compliance Team.
 	 * @param userId
-	 * @param accessRequirement
+	 * @param accessRequirement the Access Requirement to create
 	 * @return
 	 * @throws Exception
 	 */
@@ -62,6 +85,15 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}	
 
+	/**
+	 * Modify an existing Access Requirement.
+	 * This service may only be used by the Synapse Access and Compliance Team.
+	 * @param userId
+	 * @param requirementId the ID of the Access Requirement to be modified.
+	 * @param accessRequirement  The modified Access Requirement.
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -76,9 +108,9 @@ public class AccessRequirementController extends BaseController {
 
 	/**
 	 * Add a temporary access restriction that prevents access pending review by the Synapse Access and Compliance Team.  
-	 * This is a tool for the object's owner.
+	 * This service may be used only by an administrator of the specified entity.
 	 * @param userId
-	 * @param id
+	 * @param id the ID of the entity to which an Access Requirement will be applied
 	 * @return
 	 * @throws Exception
 	 */
@@ -94,9 +126,9 @@ public class AccessRequirementController extends BaseController {
 	
 
 	/**
-	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity.
+	 * Retrieve paginated list of unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
 	 * @param userId
-	 * @param entityId
+	 * @param entityId the id of the entity whose unmet Access Requirements are retrieved
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -118,9 +150,9 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	/**
-	 * Retrieve paginated list of ALL access requirements associated with an entity.
+	 * Retrieve paginated list of ALL Access Requirements associated with an entity.
 	 * @param userId
-	 * @param entityId
+	 * @param entityId the id of the entity whose Access Requirements are retrieved
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -141,9 +173,9 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 	/**
-	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for an evaluation queue.
+	 * Retrieve a paginated list of unfulfilled Access Requirements (of type DOWNLOAD or PARTICIPATE) for an Evaluation queue.
 	 * @param userId
-	 * @param evaluationId
+	 * @param evaluationId the id of the Evaluation whose unmet Access Requirements are retrieved
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -164,9 +196,9 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	/**
-	 * Retrieve paginated list of ALL access requirements associated with an evaluation queue.
+	 * Retrieve paginated list of ALL Access Requirements associated with an Evaluation queue.
 	 * @param userId
-	 * @param evaluationId
+	 * @param evaluationId the id of the Evaluation whose Access Requirements are retrieved
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -186,6 +218,16 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 
+	/**
+	 * Retrieve a paginated list of unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
+	 * @param userId
+	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -201,6 +243,16 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
 	}
 
+	/**
+	 * Retrieve paginated list of ALL Access Requirements associated with a Team.
+	 * @param userId
+	 * @param id the ID of the Team whose Access Requirements are retrieved.
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_TEAM_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -217,9 +269,10 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	/**
-	 * Delete an access requirement.
+	 * Delete an Access Requirement.
+	 * This service may only be used by the Synapse Access and Compliance Team.
 	 * @param userId
-	 * @param requirementId
+	 * @param requirementId the ID of the requirement to delete
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException

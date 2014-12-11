@@ -1,11 +1,11 @@
 {
 	"title": "Access Requirement",
 	"type": "interface",
-	"description": "Interface for JSON schema for AccessRequirement POJO",
+	"description": "Interface for JSON schema for AccessRequirement.  The Access Requirement mechanism is distinct from the access control list in that it is controlled not by the entity owner but by a separate authority:  Access Requirements are created and maintained by the Synapse Access and Compliance Team (ACT).  ACTAccessRequirements can only be approved by the ACT.  Self-sign Access Requirements can be approved by the user desiring access, but said user first has to meet 'terms of use' associated with the requirement.",
 	"properties": {
 		"id": {
 			"type": "integer",
-			"description": "The unique immutable ID",
+			"description": "The unique immutable ID.",
 			"transient": true
 		},
 		"etag": {
@@ -56,7 +56,7 @@
 		},
         "concreteType":{
             "type":"string",
-            "description":"Indicates which implementation of AccessRequirement this object represents."
+            "description":"Indicates which type of AccessRequirement this object represents."
         }
 	}
 }
