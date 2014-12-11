@@ -21,7 +21,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -38,8 +38,8 @@ public class SQLQueryTest {
 	Map<String, ColumnModel> columnNameToModelMap;
 	List<ColumnModel> tableSchema;
 	
-	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS _C777_";
-	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN;
+	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
+	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN + " AS _C777_, _C888_";
 
 	@Before
 	public void before(){
@@ -51,6 +51,7 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("Foo", TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING));
 		columnNameToModelMap.put("datetype", TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE));
 		columnNameToModelMap.put("doubletype", TableModelTestUtils.createColumn(777L, "doubletype", ColumnType.DOUBLE));
+		columnNameToModelMap.put("inttype", TableModelTestUtils.createColumn(888L, "inttype", ColumnType.INTEGER));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
 	}
 	
@@ -128,7 +129,7 @@ public class SQLQueryTest {
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		assertNotNull(translator.getSelectColumnModels());
-		assertEquals(translator.getSelectColumnModels().selectColumnCount(), 7);
+		assertEquals(translator.getSelectColumnModels().selectColumnCount(), 8);
 		assertEquals(this.tableSchema, translator.getSelectColumnModels().getColumnModels());
 	}
 	@Test
@@ -162,8 +163,8 @@ public class SQLQueryTest {
 	public void testSelectConstant() throws ParseException {
 		SqlQuery translator = new SqlQuery("select 'not a foo' from syn123", tableSchema);
 		assertEquals("SELECT 'not a foo', ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", null, null)), translator.getSelectColumnModels()
-				.getSelectColumns());
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", ColumnType.STRING, null)), translator
+				.getSelectColumnModels().getSelectColumns());
 		assertEquals("not a foo", translator.getSelectColumnModels().getSelectColumns().get(0).getName());
 	}
 
@@ -172,25 +173,25 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select count(*) from syn123", tableSchema);
 		assertEquals("SELECT COUNT(*) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", null, null)), translator
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null)), translator
 				.getSelectColumnModels().getSelectColumns());
 	}
 	
 	@Test
 	public void testSelectAggregate() throws ParseException{
-		SqlQuery translator = new SqlQuery("select avg(foo) from syn123", tableSchema);
-		assertEquals("SELECT AVG(_C111_) FROM T123", translator.getOutputSQL());
+		SqlQuery translator = new SqlQuery("select avg(inttype) from syn123", tableSchema);
+		assertEquals("SELECT AVG(_C888_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(foo)", null, null)), translator.getSelectColumnModels()
-				.getSelectColumns());
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.INTEGER, null)), translator
+				.getSelectColumnModels().getSelectColumns());
 	}
 	
 	@Test
 	public void testSelectAggregateMoreColumns() throws ParseException {
-		SqlQuery translator = new SqlQuery("select avg(foo), bar from syn123", tableSchema);
-		assertEquals("SELECT AVG(_C111_), _C333_ FROM T123", translator.getOutputSQL());
+		SqlQuery translator = new SqlQuery("select avg(inttype), bar from syn123", tableSchema);
+		assertEquals("SELECT AVG(_C888_), _C333_ FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(foo)", null, null),
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.INTEGER, null),
 				TableModelUtils.createSelectColumn("bar", ColumnType.STRING, null)), translator.getSelectColumnModels().getSelectColumns());
 	}
 
@@ -205,12 +206,12 @@ public class SQLQueryTest {
 
 	@Test
 	public void testSelectAggregateMultiple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select avg(foo), max(bar) from syn123", tableSchema);
-		assertEquals("SELECT AVG(_C111_), MAX(_C333_) FROM T123", translator.getOutputSQL());
+		SqlQuery translator = new SqlQuery("select min(foo), max(bar) from syn123", tableSchema);
+		assertEquals("SELECT MIN(_C111_), MAX(_C333_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(
-				Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(foo)", null, null),
-						TableModelUtils.createSelectColumn("MAX(bar)", null, null)), translator.getSelectColumnModels().getSelectColumns());
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("MIN(foo)", ColumnType.STRING, null),
+				TableModelUtils.createSelectColumn("MAX(bar)", ColumnType.STRING, null)), translator.getSelectColumnModels()
+				.getSelectColumns());
 	}
 	
 	@Test
@@ -218,7 +219,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select count(distinct foo) from syn123", tableSchema);
 		assertEquals("SELECT COUNT(DISTINCT _C111_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(DISTINCT foo)", null, null)), translator
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(DISTINCT foo)", ColumnType.INTEGER, null)), translator
 				.getSelectColumnModels().getSelectColumns());
 	}
 	
@@ -571,5 +572,61 @@ public class SQLQueryTest {
 		assertEquals("1.89e4",translator.getParameters().get("b0"));
 		assertEquals(10L,translator.getParameters().get("b1"));
 		assertEquals(0L,translator.getParameters().get("b2"));
+	}
+
+	@Test
+	public void testTypeSetFunctionStrings() throws Exception {
+		SqlQuery translator = new SqlQuery("select found_rows(), count(*), min(foo), max(foo), count(foo) from syn123", tableSchema);
+		assertEquals("SELECT FOUND_ROWS(), COUNT(*), MIN(_C111_), MAX(_C111_), COUNT(_C111_) FROM T123", translator.getOutputSQL());
+		assertEquals(TableModelUtils.createSelectColumn("FOUND_ROWS()", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(0));
+		assertEquals(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(1));
+		assertEquals(TableModelUtils.createSelectColumn("MIN(foo)", ColumnType.STRING, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(2));
+		assertEquals(TableModelUtils.createSelectColumn("MAX(foo)", ColumnType.STRING, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(3));
+		assertEquals(TableModelUtils.createSelectColumn("COUNT(foo)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(4));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testTypeSetFunctionCannotAvgString() throws Exception {
+		new SqlQuery("select avg(foo) from syn123", tableSchema);
+	}
+
+	@Test
+	public void testTypeSetFunctionIntegers() throws Exception {
+		SqlQuery translator = new SqlQuery("select min(inttype), max(inttype), sum(inttype), avg(inttype), count(inttype) from syn123",
+				tableSchema);
+		assertEquals("SELECT MIN(_C888_), MAX(_C888_), SUM(_C888_), AVG(_C888_), COUNT(_C888_) FROM T123", translator.getOutputSQL());
+		assertEquals(TableModelUtils.createSelectColumn("MIN(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(0));
+		assertEquals(TableModelUtils.createSelectColumn("MAX(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(1));
+		assertEquals(TableModelUtils.createSelectColumn("SUM(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(2));
+		assertEquals(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(3));
+		assertEquals(TableModelUtils.createSelectColumn("COUNT(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(4));
+	}
+
+	@Test
+	public void testTypeSetFunctionDoubles() throws Exception {
+		SqlQuery translator = new SqlQuery(
+				"select min(doubletype), max(doubletype), sum(doubletype), avg(doubletype), count(doubletype) from syn123", tableSchema);
+		assertEquals("SELECT MIN(" + DOUBLE_COLUMN + "), MAX(" + DOUBLE_COLUMN + "), SUM(" + DOUBLE_COLUMN + "), AVG(" + DOUBLE_COLUMN
+				+ "), COUNT(" + DOUBLE_COLUMN + ") FROM T123", translator.getOutputSQL());
+		assertEquals(TableModelUtils.createSelectColumn("MIN(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(0));
+		assertEquals(TableModelUtils.createSelectColumn("MAX(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(1));
+		assertEquals(TableModelUtils.createSelectColumn("SUM(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(2));
+		assertEquals(TableModelUtils.createSelectColumn("AVG(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(3));
+		assertEquals(TableModelUtils.createSelectColumn("COUNT(doubletype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+				.getSelectColumns().get(4));
 	}
 }

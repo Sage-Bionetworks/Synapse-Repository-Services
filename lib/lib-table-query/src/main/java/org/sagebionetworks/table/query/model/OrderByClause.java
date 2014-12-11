@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.ToSimpleSqlVisitor.SQLClause;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor.SQLClause;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 public class OrderByClause extends SQLElement {
 	

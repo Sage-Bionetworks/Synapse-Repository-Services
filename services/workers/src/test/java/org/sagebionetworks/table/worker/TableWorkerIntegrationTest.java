@@ -402,6 +402,42 @@ public class TableWorkerIntegrationTest {
 		compareValues(new String[] { "c", "b", "a" }, queryResult.getQueryResults());
 	}
 
+	@Test
+	public void testDoubleSetFunctions() throws Exception {
+		// Create one column of each type
+		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
+				TableModelTestUtils.createColumn(null, "number", ColumnType.DOUBLE)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.5"), TableModelTestUtils.createRow(null, null, "2.0"),
+				TableModelTestUtils.createRow(null, null, "2.0"), TableModelTestUtils.createRow(null, null, "4.5"),
+				TableModelTestUtils.createRow(null, null, "2.0")));
+		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				rowSet);
+
+		// Wait for the table to become available
+		String sql = "select avg(number) from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertEquals(ColumnType.DOUBLE, queryResult.getQueryResults().getHeaders().get(0).getColumnType());
+		compareValues(new String[] { "2.4" }, queryResult.getQueryResults());
+
+		sql = "select sum(number) as ss from " + tableId + " group by number order by ss asc";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertEquals(ColumnType.DOUBLE, queryResult.getQueryResults().getHeaders().get(0).getColumnType());
+		assertEquals("ss", queryResult.getQueryResults().getHeaders().get(0).getName());
+		compareValues(new String[] { "1.5", "4.5", "6" }, queryResult.getQueryResults());
+	}
+
 	@Test(expected = IllegalArgumentException.class)
 	public void testNullNextPageToken() throws Exception {
 		tableRowManager.queryNextPage(adminUserInfo, null);

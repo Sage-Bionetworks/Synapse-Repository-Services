@@ -1,7 +1,9 @@
-package org.sagebionetworks.table.query.model;
+package org.sagebionetworks.table.query.model.visitors;
+
+import org.sagebionetworks.table.query.model.ColumnReference;
 
 
-public class ToSimpleSqlVisitor implements SQLElement.Visitor {
+public class ToSimpleSqlVisitor implements Visitor {
 	public enum SQLClause {
 		SELECT, ORDER_BY, GROUP_BY, FUNCTION_PARAMETER
 	};

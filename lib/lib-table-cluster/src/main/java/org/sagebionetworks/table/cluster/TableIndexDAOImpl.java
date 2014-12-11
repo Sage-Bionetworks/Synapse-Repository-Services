@@ -226,6 +226,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// Stream over the results and save the results in a a list
 		queryAsStream(query, new RowAndHeaderHandler() {
 			@Override
+			public void writeHeader() {
+				// no-op
+			}
+
+			@Override
 			public void nextRow(Row row) {
 				rows.add(row);
 			}
@@ -244,6 +249,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(query, "Query");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		handler.writeHeader();
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {

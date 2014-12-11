@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltactual identifier&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -34,6 +38,14 @@ public class ActualIdentifier extends SQLElement {
 			visitor.append("\"");
 			visitor.append(delimitedIdentifier.replaceAll("\"", "\"\""));
 			visitor.append("\"");
+		}
+	}
+
+	public void visit(ToNameStringVisitor visitor) {
+		if (regularIdentifier != null) {
+			visitor.append(regularIdentifier);
+		} else {
+			visitor.append(delimitedIdentifier);
 		}
 	}
 }

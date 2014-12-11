@@ -16,9 +16,9 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.base.Function;
@@ -127,10 +127,9 @@ public class SqlQuery {
 					this.model.getTableExpression());
 		}
 
-		boolean hasGrouping = SQLTranslatorUtils.hasGrouping(model.getTableExpression());
 		IsAggregateVisitor visitor = new IsAggregateVisitor();
-		model.getSelectList().doVisit(visitor);
-		this.isAggregatedResult = visitor.isAggregate() || hasGrouping;
+		model.doVisit(visitor);
+		this.isAggregatedResult = visitor.isAggregate();
 
 		QuerySpecification expandedSelectList = this.model;
 		if (!this.isAggregatedResult) {

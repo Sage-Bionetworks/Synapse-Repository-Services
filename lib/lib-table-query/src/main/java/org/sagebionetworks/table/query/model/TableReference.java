@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &lttable reference&gt in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */

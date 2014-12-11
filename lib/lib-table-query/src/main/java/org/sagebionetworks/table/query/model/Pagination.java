@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**

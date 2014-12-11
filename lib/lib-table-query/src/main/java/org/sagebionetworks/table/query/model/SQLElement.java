@@ -3,6 +3,8 @@ package org.sagebionetworks.table.query.model;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 import org.sagebionetworks.util.IntrospectionUtils;
 
 /**
@@ -12,8 +14,6 @@ import org.sagebionetworks.util.IntrospectionUtils;
  *
  */
 public abstract class SQLElement {
-	public interface Visitor {
-	}
 
 	public abstract void visit(Visitor visitor);
 
@@ -37,8 +37,9 @@ public abstract class SQLElement {
 	 * 
 	 * @param visitor
 	 */
-	public void doVisit(Visitor visitor) {
+	public <V extends Visitor> V doVisit(V visitor) {
 		visit(this, visitor);
+		return visitor;
 	}
 
 	@Override

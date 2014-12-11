@@ -1,7 +1,7 @@
-package org.sagebionetworks.table.query.model;
+package org.sagebionetworks.table.query.model.visitors;
 
 
-public class IsAggregateVisitor implements SQLElement.Visitor {
+public class IsAggregateVisitor implements Visitor {
 	private boolean isAggregate = false;
 
 	public void setIsAggregate() {
