@@ -436,6 +436,12 @@ public class TableWorkerIntegrationTest {
 		assertEquals(ColumnType.DOUBLE, queryResult.getQueryResults().getHeaders().get(0).getColumnType());
 		assertEquals("ss", queryResult.getQueryResults().getHeaders().get(0).getName());
 		compareValues(new String[] { "1.5", "4.5", "6" }, queryResult.getQueryResults());
+
+		sql = "select sum(number) from " + tableId + " group by number order by sum(number) asc";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertEquals(ColumnType.DOUBLE, queryResult.getQueryResults().getHeaders().get(0).getColumnType());
+		assertEquals("SUM(number)", queryResult.getQueryResults().getHeaders().get(0).getName());
+		compareValues(new String[] { "1.5", "4.5", "6" }, queryResult.getQueryResults());
 	}
 
 	@Test(expected = IllegalArgumentException.class)

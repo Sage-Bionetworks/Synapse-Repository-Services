@@ -34,4 +34,11 @@ public class SortSpecificationTest {
 		assertEquals("foo DESC", element.toString());
 	}
 
+	@Test
+	public void testToSQLAggregate() throws ParseException {
+		SortKey sortKey = SqlElementUntils.createSortKey("avg(foo)");
+		OrderingSpecification orderingSpecification = OrderingSpecification.ASC;
+		SortSpecification element = new SortSpecification(sortKey, orderingSpecification);
+		assertEquals("AVG(foo) ASC", element.toString());
+	}
 }
