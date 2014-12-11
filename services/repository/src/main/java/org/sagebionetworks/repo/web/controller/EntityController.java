@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -126,6 +125,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * To determine what permissions a User has on an Entity, the <a
  * href="${GET.entity.id.permissions}" >GET /entity/{id}/permissions</a> method
  * should be used.
+ * </p>
+ * <p>
+ * In addition to authorization via ACLs, entities may be restricted via AccessRequirements (ARs).
+ * For more information, see <a href="#org.sagebionetworks.repo.web.controller.AccessRequirementController">
+ * Access Requirement Services</a> and <a href="#org.sagebionetworks.repo.web.controller.AccessApprovalController">
+ * Access Approval Services</a>
  * </p>
  * <h6>Versions</h6>
  * <p>
