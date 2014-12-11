@@ -39,5 +39,9 @@
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
 	</bean>
 
+	<bean id="aclRecordDAO" class="org.sagebionetworks.audit.dao.AclRecordDAOImpl"
+		scope="singleton">
+		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
+	</bean>
 
 </beans>
