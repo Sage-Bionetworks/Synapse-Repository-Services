@@ -87,6 +87,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
+				if (accessType==ACCESS_TYPE.READ) {
+					return AuthorizationManagerUtil.AUTHORIZED;					
+				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
 				return canAdminAccessRequirement(userInfo, accessRequirement);
 			case ACCESS_APPROVAL:
