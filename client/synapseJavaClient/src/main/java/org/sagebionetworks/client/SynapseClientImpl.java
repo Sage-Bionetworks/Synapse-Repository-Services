@@ -1417,6 +1417,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException {
+		String uri = ACCESS_REQUIREMENT+"/"+requirementId;
+		JSONObject jsonObj = getEntity(uri);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObj, AccessRequirement.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
 		String uri = null;
 		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
@@ -1468,6 +1479,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
 	}
 
+	@Override
+	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException {
+		String uri = ACCESS_APPROVAL+"/"+approvalId;
+		JSONObject jsonObj = getEntity(uri);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObj, AccessApproval.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 

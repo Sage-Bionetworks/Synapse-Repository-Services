@@ -818,6 +818,8 @@ public class IT500SynapseJavaClient {
 		r = adminSynapse.createAccessRequirement(r);
 		accessRequirementsToDelete.add(r.getId());
 		
+		assertEquals(r, adminSynapse.getAccessRequirement(r.getId()));
+		
 		// check that owner can't download (since it's not a FileEntity)
 		assertFalse(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
@@ -846,7 +848,10 @@ public class IT500SynapseJavaClient {
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		synapseTwo.createAccessApproval(approval);
+		TermsOfUseAccessApproval created = synapseTwo.createAccessApproval(approval);
+		
+		// make sure we can retrieve by ID
+		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
 		
 		// get unmet requirements -- should be empty
 		ars = synapseTwo.getUnmetAccessRequirements(subjectId);
