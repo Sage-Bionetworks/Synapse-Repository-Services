@@ -636,7 +636,7 @@ public interface SynapseClient extends BaseClient {
 	
 	V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException, JSONObjectAdapterException;
 	
-	V2WikiOrderHint updateV2WikiOrderHint(WikiPageKey key, V2WikiOrderHint toUpdate) throws JSONObjectAdapterException, SynapseException;
+	V2WikiOrderHint updateV2WikiOrderHint(V2WikiOrderHint toUpdate) throws JSONObjectAdapterException, SynapseException;
 	
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;

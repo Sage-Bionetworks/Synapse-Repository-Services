@@ -628,7 +628,7 @@ public class UrlHelpers {
 	// V2 Wiki URL
 	public static final String WIKI_V2 = "/wiki2";
 	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
-	public static final String WIKI_V2_ORDER_HINT = "/wiki2orderhint/{wikiId}";
+	public static final String WIKI_V2_ORDER_HINT = "/wiki2orderhint";
 	public static final String WIKI_HISTORY_V2 = "/wikihistory";
 	public static final String ATTACHMENT_V2 = "/attachment";
 	public static final String ATTACHMENT_PREVIEW_V2 = "/attachmentpreview";

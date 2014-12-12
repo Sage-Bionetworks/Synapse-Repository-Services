@@ -166,19 +166,19 @@ public interface V2WikiService {
 	/**
 	 * Get the order hint of the given wiki that corresponds to the given WikiPageKey.
 	 * @param userId
-	 * @param wikiPageKey
+	 * @param ownerId
+	 * @param type
 	 * @return
 	 * @throws NotFoundException
 	 */
-	V2WikiOrderHint getWikiOrderHint(Long userId, WikiPageKey wikiPageKey) throws NotFoundException;
+	V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type) throws NotFoundException;
 	
 	/**
 	 * Update the order hint of the wiki that corresponds to the given WikiPageKey.
 	 * @param userId
-	 * @param wikiPageKey
 	 * @param orderHint
 	 * @return
 	 * @throws NotFoundException
 	 */
-	V2WikiOrderHint updateWikiOrderHint(Long userId, WikiPageKey wikiPageKey, V2WikiOrderHint orderHint) throws NotFoundException;
+	V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws NotFoundException;
 }

@@ -300,9 +300,14 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	}
 	
 	@Override
-	public V2WikiOrderHint getOrderHint(UserInfo user, WikiPageKey key) throws NotFoundException {
+	public V2WikiOrderHint getOrderHint(UserInfo user, String objectId,	ObjectType objectType) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
+		if(objectId == null) throw new IllegalArgumentException("ObjectId cannot be null");
+		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		
+		// Look up the root wiki
+		Long rootWikiId = wikiPageDao.getRootWiki(objectId, objectType);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(objectId, objectType, rootWikiId.toString());
 		
 		// Check that user has read access.
 		validateReadAccess(user, key);
@@ -311,15 +316,16 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	}
 	
 	@Override
-	public V2WikiOrderHint updateOrderHint(UserInfo user, WikiPageKey key, V2WikiOrderHint orderHint) throws NotFoundException {
+	public V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
+		
+		// Look up the root wiki
+		Long rootWikiId = wikiPageDao.getRootWiki(orderHint.getOwnerId(), orderHint.getOwnerObjectType());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(orderHint.getOwnerId(), orderHint.getOwnerObjectType(), rootWikiId.toString());
 		
 		// Check that user has update access.
 		validateUpdateAccess(user, key);
-		
-		// TODO: Make sure orderHint ownerObjectId and Type are same as order hint's??
 		
 		V2WikiOrderHint orderHintDTO = wikiPageDao.getWikiOrderHint(key);
 		

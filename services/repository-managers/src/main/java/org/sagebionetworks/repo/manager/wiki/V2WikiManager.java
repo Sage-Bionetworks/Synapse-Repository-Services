@@ -144,9 +144,9 @@ public interface V2WikiManager {
 	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
 	
-	V2WikiOrderHint getOrderHint(UserInfo user, WikiPageKey key) throws NotFoundException;
+	V2WikiOrderHint getOrderHint(UserInfo user, String objectId, ObjectType objectType) throws NotFoundException;
 	
-	V2WikiOrderHint updateOrderHint(UserInfo user, WikiPageKey key, V2WikiOrderHint orderHint) throws NotFoundException;
+	V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException;
 	
 	
 }

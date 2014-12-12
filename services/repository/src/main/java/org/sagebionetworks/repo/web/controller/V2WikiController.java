@@ -343,14 +343,10 @@ public class V2WikiController extends BaseController {
 	public @ResponseBody
 	V2WikiOrderHint updateEntityWikiOrderHint(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestBody V2WikiOrderHint toUpdate) throws DatastoreException,
-			NotFoundException {
-		if (wikiId == null) throw new IllegalArgumentException("Wiki ID cannot be null.");
+			@PathVariable String ownerId, @RequestBody V2WikiOrderHint toUpdate)
+			throws DatastoreException, NotFoundException {
 		if (toUpdate == null) throw new IllegalArgumentException("OrderHint cannot be null.");
-		return serviceProvider.getV2WikiService().updateWikiOrderHint(userId,
-					WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
-					toUpdate);
+		return serviceProvider.getV2WikiService().updateWikiOrderHint(userId, toUpdate);
 	}
 	
 	
@@ -621,11 +617,9 @@ public class V2WikiController extends BaseController {
 	public @ResponseBody
 	V2WikiOrderHint getEntityWikiOrderHint(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String wikiId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
-		return serviceProvider.getV2WikiService().getWikiOrderHint(userId,
-				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+		return serviceProvider.getV2WikiService().getWikiOrderHint(userId, ownerId, ObjectType.ENTITY);
 	}
 
 	/**

@@ -81,18 +81,18 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 	
 	@Override
-	public V2WikiOrderHint getWikiOrderHint(Long userId, WikiPageKey wikiPageKey)
+	public V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type)
 			throws NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.getOrderHint(user, wikiPageKey);
+		return wikiManager.getOrderHint(user, ownerId, type);
 	}
 	
 	@Override
 	public V2WikiOrderHint updateWikiOrderHint(Long userId,
-			WikiPageKey wikiPageKey, V2WikiOrderHint orderHint)
+			V2WikiOrderHint orderHint)
 			throws NotFoundException{
 		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.updateOrderHint(user, wikiPageKey, orderHint);
+		return wikiManager.updateOrderHint(user, orderHint);
 	}
 
 	@Override

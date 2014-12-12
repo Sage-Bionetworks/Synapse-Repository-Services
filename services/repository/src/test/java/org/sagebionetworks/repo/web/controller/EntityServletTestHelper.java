@@ -852,11 +852,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get a wiki order hint.
 	 */
-	public V2WikiOrderHint getWikiOrderHint(WikiPageKey key, Long userId)
+	public V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/" + key.getOwnerObjectType().name().toLowerCase() + "/"
-						+ key.getOwnerObjectId() + "/wiki2orderhint/" + key.getWikiPageId(),
+				HTTPMODE.GET, "/" + type.name().toLowerCase() + "/"
+						+ ownerId + "/wiki2orderhint",
 				userId, null);
 		
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1147,10 +1147,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Update an order hint
 	 */
-	public V2WikiOrderHint updateWikiOrderHint(Long userId, WikiPageKey key, V2WikiOrderHint orderHint) throws Exception {	// TODO: Wiki page key? Only use it to grab owner ID and type, which is contained in orderHint.
+	public V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws Exception {	// TODO: Wiki page key? Only use it to grab owner ID and type, which is contained in orderHint.
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/" + key.getOwnerObjectType().name().toLowerCase() + "/"
-						+ key.getOwnerObjectId() + "/wiki2orderhint/" + key.getWikiPageId(), userId, orderHint);
+				HTTPMODE.PUT, "/" + orderHint.getOwnerObjectType().name().toLowerCase() + "/"
+						+ orderHint.getOwnerId() + "/wiki2orderhint", userId, orderHint);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);

@@ -207,7 +207,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String WIKI_ID_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s";
 	private static final String WIKI_ID_VERSION_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s/%4$s";
 	private static final String WIKI_TREE_URI_TEMPLATE_V2 = "/%1$s/%2$s/wikiheadertree2";
-	private static final String WIKI_ORDER_HINT_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2orderhint/%3$s";
+	private static final String WIKI_ORDER_HINT_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2orderhint";
 	private static final String WIKI_HISTORY_V2 = "/wikihistory";
 	private static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	private static final String ATTACHMENT_FILE = "/attachment";
@@ -2666,14 +2666,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public V2WikiOrderHint updateV2WikiOrderHint(WikiPageKey key, V2WikiOrderHint toUpdate) throws JSONObjectAdapterException, SynapseException {
-		if (key == null) throw new IllegalArgumentException("key cannot be null");
+	public V2WikiOrderHint updateV2WikiOrderHint(V2WikiOrderHint toUpdate) throws JSONObjectAdapterException, SynapseException {
 		if (toUpdate == null) throw new IllegalArgumentException("toUpdate cannot be null");
-		if (key.getOwnerObjectType() == null) throw new IllegalArgumentException("WikiPage.getOwnerObjectType() cannot be null");
-		if (key.getOwnerObjectId() == null) throw new IllegalArgumentException("WikiPage.getOwnerObjectType() cannot be null");
-		if (key.getWikiPageId() == null) throw new IllegalArgumentException("WikiPage.getOwnerObjectType() cannot be null");
+		if (toUpdate.getOwnerId() == null) throw new IllegalArgumentException("V2WikiOrderHint.getOwnerId() cannot be null");
+		if (toUpdate.getOwnerObjectType() == null) throw new IllegalArgumentException("V2WikiOrderHint.getOwnerObjectType() cannot be null");
 		
-		String uri = String.format(WIKI_ORDER_HINT_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), key.getOwnerObjectId(), key.getWikiPageId());
+		String uri = String.format(WIKI_ORDER_HINT_URI_TEMPLATE_V2, toUpdate.getOwnerObjectType().name().toLowerCase(), toUpdate.getOwnerId());
 		return updateJSONEntity(uri, toUpdate);
 	}
 
@@ -2905,7 +2903,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException, JSONObjectAdapterException {
 		if (key == null) throw new IllegalArgumentException("key cannot be null");
 		
-		String uri = String.format(WIKI_ORDER_HINT_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), key.getOwnerObjectId(), key.getWikiPageId());
+		String uri = String.format(WIKI_ORDER_HINT_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), key.getOwnerObjectId());
 		JSONObject object = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		V2WikiOrderHint orderHint = new V2WikiOrderHint();
 		orderHint.initializeFromJSONObject(new JSONObjectAdapterImpl(object));

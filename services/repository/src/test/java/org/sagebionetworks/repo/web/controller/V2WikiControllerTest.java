@@ -377,10 +377,8 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		wiki = entityServletHelper.createV2WikiPage(adminUserId, ownerId, ownerType, wiki);
 		assertNotNull(wiki);
 		
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
-		
 		// Get OrderHint for the created project (should have a null order hint).
-		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
+		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(adminUserId, ownerId, ownerType);
 		
 		// Order hint has not been set yet.
 		assertNull(orderHint.getIdList());
@@ -389,13 +387,13 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		orderHint.setIdList(orderHintList);
 		
-		V2WikiOrderHint updatedOrderHint = entityServletHelper.updateWikiOrderHint(adminUserId, key, orderHint);
+		V2WikiOrderHint updatedOrderHint = entityServletHelper.updateWikiOrderHint(adminUserId, orderHint);
 		
 		assertNotNull(updatedOrderHint.getIdList());
 		assertTrue(orderHintList.equals(updatedOrderHint.getIdList()));
 		
 		// Get the updated order hint (make sure it was recorded).
-		V2WikiOrderHint postUpdateGetOrderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
+		V2WikiOrderHint postUpdateGetOrderHint = entityServletHelper.getWikiOrderHint(adminUserId, ownerId, ownerType);
 		
 		assertTrue(orderHintList.equals(postUpdateGetOrderHint.getIdList()));
 		
