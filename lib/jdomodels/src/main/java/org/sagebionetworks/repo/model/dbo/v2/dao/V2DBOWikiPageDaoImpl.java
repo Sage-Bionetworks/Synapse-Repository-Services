@@ -333,7 +333,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if (key == null) throw new IllegalArgumentException("Key cannot be null");
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
 		
-		// TODO: Check if key.getOwnerObjectId.equals(orderHint.getOwnerObjectId)??
 		// Get the WikiOwner DBO
 		V2DBOWikiOwner dbo = getWikiOwnerDBO(key.getWikiPageId());
 		if (orderHint.getIdList() == null) {

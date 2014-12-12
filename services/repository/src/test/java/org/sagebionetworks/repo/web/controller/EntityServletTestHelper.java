@@ -848,7 +848,6 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), WikiPage.class);
 	}
 	
-	// TODO: don't need wiki page id??
 	/**
 	 * Get a wiki order hint.
 	 */
@@ -1147,7 +1146,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Update an order hint
 	 */
-	public V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws Exception {	// TODO: Wiki page key? Only use it to grab owner ID and type, which is contained in orderHint.
+	public V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + orderHint.getOwnerObjectType().name().toLowerCase() + "/"
 						+ orderHint.getOwnerId() + "/wiki2orderhint", userId, orderHint);
