@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
+import org.aspectj.weaver.internal.tools.PointcutExpressionImpl.Handler;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -171,9 +172,11 @@ public class TableRowManagerImplTest {
 					}
 				}
 				if (isCount) {
+					handler.writeHeader();
 					handler.nextRow(TableModelTestUtils.createRow(null, null, "10"));
 				} else {
 					// Pass all rows to the handler
+					handler.writeHeader();
 					for (Row row : set.getRows()) {
 						handler.nextRow(row);
 					}
@@ -802,7 +805,7 @@ public class TableRowManagerImplTest {
 	public void testQueryBundleWithAggregate() throws Exception {
 		RowSet totals = new RowSet();
 		totals.setEtag("etag");
-		totals.setHeaders(Lists.newArrayList(TableModelTestUtils.createSelectColumn(null, "COUNT(*)", null)));
+		totals.setHeaders(Lists.newArrayList(TableModelTestUtils.createSelectColumn(null, "COUNT(*)", ColumnType.INTEGER)));
 		totals.setTableId(tableId);
 		totals.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "10")));
 		QueryResult selectStarResult = new QueryResult();
@@ -811,7 +814,8 @@ public class TableRowManagerImplTest {
 
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("COUNT(*)");
-		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 156250L);
+		selectColumn.setColumnType(ColumnType.INTEGER);
+		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[" + selectColumn.toString() + "]", 500000L);
 	}
 
 	private void runQueryBundleTest(String sql, RowSet selectResult, Long countResult, String selectColumns, Long maxRowsPerPage)
