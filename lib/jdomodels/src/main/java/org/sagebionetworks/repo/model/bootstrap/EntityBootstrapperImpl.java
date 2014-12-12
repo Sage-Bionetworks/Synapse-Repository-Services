@@ -90,7 +90,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			doBootstrap();
 
 		} catch (InterruptedException e) {
-			// Should not happen
+			throw new RuntimeException(e);
 		}
 		finally {
 			// Release token
