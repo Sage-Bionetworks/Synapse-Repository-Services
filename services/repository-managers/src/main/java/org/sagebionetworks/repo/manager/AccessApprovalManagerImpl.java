@@ -77,6 +77,13 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
+	
+	@Override
+	public AccessApproval getAccessApproval(UserInfo userInfo, String approvalId) 
+			throws DatastoreException, NotFoundException {
+		return accessApprovalDAO.get(approvalId);
+	}
+
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override

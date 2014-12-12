@@ -111,4 +111,9 @@ public class AuthorizationConstants {
 	 */
 	public static final String IS_CERTIFIED = "isCertified";
 	
+	/**
+	 * A request parameter used in the AccessRequirementController to filter unmet access requirements on access type.
+	 */
+	public static final String ACCESS_TYPE_PARAM = "accessType";
+	
 }

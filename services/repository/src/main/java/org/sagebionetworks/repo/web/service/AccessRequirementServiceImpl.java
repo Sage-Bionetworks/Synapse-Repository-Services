@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -55,13 +56,13 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	
 	@Override
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId) 
+			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) 
 			throws DatastoreException, UnauthorizedException, 
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 	
 		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId);
+			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType);
 		
 		return new PaginatedResults<AccessRequirement>(
 				UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
@@ -72,6 +73,17 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 				"", 
 				false);
 	}
+	
+	@Override
+	public AccessRequirement getAccessRequirement(
+			Long userId, String requirementId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.getAccessRequirement(userInfo, requirementId);
+	}
+
+
 
 	@Override	
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
