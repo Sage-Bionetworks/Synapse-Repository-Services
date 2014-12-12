@@ -50,6 +50,9 @@ public class AclWorker implements Worker{
 	}
 
 	private Message process(Message message) throws Throwable {
+		// Keep this message invisible
+		workerProgress.progressMadeForMessage(message);
+		
 		AclRecord record = new AclRecord();
 		ChangeMessage change = MessageUtils.extractMessageBody(message);
 		if (change.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {

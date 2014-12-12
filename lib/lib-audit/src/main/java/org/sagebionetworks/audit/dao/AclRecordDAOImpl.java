@@ -27,6 +27,15 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	File currentFile = null;
 	int lineCount = 0;
 
+	/**
+	 * Injected via Spring
+	 * 
+	 * @param stackInstanceNumber
+	 */
+	public void setStackInstanceNumber(int stackInstanceNumber) {
+		this.stackInstanceNumber = stackInstanceNumber;
+	}
+	
 	@Override
 	public void write(AclRecord record) throws IOException {
 		if (currentFile == null ) {
@@ -64,7 +73,7 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	}
 
 	private void createNewFile() throws IOException {
-		currentFile = new File(getKey() + ".csv");
+		currentFile = new File("temp.csv");
 		if (!currentFile.exists()) {
 			currentFile.createNewFile();
 		}
@@ -77,4 +86,20 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 		return KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), false);
 	}
 
+	// for testing only
+	@Override
+	public int getLineCount() {
+		return lineCount;
+	}
+	
+	@Override
+	public File getCurrentFile() {
+		return currentFile;
+	}
+
+	@Override
+	public void cleanUp() {
+		lineCount = 0;
+		currentFile = null;
+	}
 }

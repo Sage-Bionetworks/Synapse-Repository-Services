@@ -1,5 +1,6 @@
 package org.sagebionetworks.audit.dao;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.sagebionetworks.repo.model.audit.AclRecord;
@@ -11,4 +12,10 @@ import org.sagebionetworks.repo.model.audit.AclRecord;
 public interface AclRecordDAO {
 
 	void write(AclRecord record) throws IOException;
+
+	int getLineCount();
+
+	File getCurrentFile();
+	
+	void cleanUp();
 }
