@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -67,38 +68,19 @@ public class AccessRequirementUtil {
 		
 		return accessRequirementDAO.unmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
-
-	public static List<Long> unmetAccessRequirementIdsForEvaluation(
-			UserInfo userInfo, 
-			String evaluationId,
-			AccessRequirementDAO accessRequirementDAO
-			) throws NotFoundException {
-		List<String> evaluationIds = Collections.singletonList(evaluationId);
-		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
-		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
-		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
-		accessTypes.add(ACCESS_TYPE.SUBMIT);
-		Set<Long> principalIds = new HashSet<Long>();
-		for (Long ug : userInfo.getGroups()) {
-			principalIds.add(ug);
-		}
-		return accessRequirementDAO.unmetAccessRequirements(evaluationIds, RestrictableObjectType.EVALUATION, principalIds, accessTypes);
-	}
 	
-	public static List<Long> unmetAccessRequirementIdsForTeam(
+	public static List<Long> unmetAccessRequirementIdsForNonEntity(
 			UserInfo userInfo, 
-			String teamId,
-			AccessRequirementDAO accessRequirementDAO
+			RestrictableObjectDescriptor rod,
+			AccessRequirementDAO accessRequirementDAO,
+			List<ACCESS_TYPE> accessTypes
 			) throws NotFoundException {
-		List<String> teamIds = Collections.singletonList(teamId);
-		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
-		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
-		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
 		Set<Long> principalIds = new HashSet<Long>();
 		for (Long ug : userInfo.getGroups()) {
 			principalIds.add(ug);
 		}	
-		return accessRequirementDAO.unmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes);
+		return accessRequirementDAO.unmetAccessRequirements(
+				Collections.singletonList(rod.getId()), rod.getType(), principalIds, accessTypes);
 	}
 	
 	public static List<String> getNodeAncestorIds(NodeDAO nodeDao, String nodeId, boolean includeNode) throws NotFoundException {
