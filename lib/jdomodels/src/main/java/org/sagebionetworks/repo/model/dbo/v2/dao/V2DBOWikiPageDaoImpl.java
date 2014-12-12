@@ -352,24 +352,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			}
 		}
 		
-		boolean ret = basicDao.update(dbo);
+		basicDao.update(dbo);
 		
 		return getWikiOrderHint(key);
-		
-		//V2DBOWikiOwner newDBO = V2WikiTranslationUtils.createDBOFromDTO(orderHint);
-		
-		
-		// TODO: Validate that there is only one matching DBO?
-		
-//		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + " = ?";
-//		
-//		// String class's split method will remove trailing empty strings for the fencepost ','
-//		
-//		try {
-//			simpleJdbcTemplate.update(updateSql, listString.getBytes("UTF-8"), key.getWikiPageId());
-//		} catch (UnsupportedEncodingException e) {
-//			throw new RuntimeException(e);
-//		}
 		
 	}
 

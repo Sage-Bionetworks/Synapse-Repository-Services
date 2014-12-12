@@ -101,7 +101,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 
 	@Override
 	public MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwner> getTranslator() {
-		// TODO: (This??) We do not currently have a backup for this object.
+		// We do not currently have a backup for this object.
 		return new MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwner>(){
 			
 			@Override
@@ -118,7 +118,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 
 	@Override
 	public Class<? extends V2DBOWikiOwner> getBackupClass() {
-		return V2DBOWikiOwner.class;	// TODO: Is there a backup class?
+		return V2DBOWikiOwner.class;
 	}
 
 	@Override
@@ -129,7 +129,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;	// TODO: This?
+		return null;
 	}
 
 	@Override

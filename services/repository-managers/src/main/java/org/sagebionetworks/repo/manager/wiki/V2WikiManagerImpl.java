@@ -310,7 +310,6 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.getWikiOrderHint(key);
 	}
 	
-	// TODO: Return result of updateOrderHint (determine what that return will be).
 	@Override
 	public V2WikiOrderHint updateOrderHint(UserInfo user, WikiPageKey key, V2WikiOrderHint orderHint) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");

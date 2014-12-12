@@ -163,7 +163,22 @@ public interface V2WikiService {
 	 */
 	V2WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
 
-	// TODO: Comment
+	/**
+	 * Get the order hint of the given wiki that corresponds to the given WikiPageKey.
+	 * @param userId
+	 * @param wikiPageKey
+	 * @return
+	 * @throws NotFoundException
+	 */
 	V2WikiOrderHint getWikiOrderHint(Long userId, WikiPageKey wikiPageKey) throws NotFoundException;
+	
+	/**
+	 * Update the order hint of the wiki that corresponds to the given WikiPageKey.
+	 * @param userId
+	 * @param wikiPageKey
+	 * @param orderHint
+	 * @return
+	 * @throws NotFoundException
+	 */
 	V2WikiOrderHint updateWikiOrderHint(Long userId, WikiPageKey wikiPageKey, V2WikiOrderHint orderHint) throws NotFoundException;
 }

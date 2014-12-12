@@ -361,7 +361,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Test
 	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
-		// create an entity		TODO: Perhaps check for evaluation as well.
+		// create an entity
 		entity = new Project();
 		entity.setEntityType(Project.class.getName());
 		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
