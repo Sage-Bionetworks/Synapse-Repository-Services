@@ -11,7 +11,7 @@
 			"description": "The owner of this page.",
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
-		"orderHint": {
+		"idList": {
 			"type": "array",
 			"description": "The list of sub wiki ids that in the order that they should be placed relative to their siblings.",
             "items":{

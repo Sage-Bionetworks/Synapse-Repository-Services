@@ -756,7 +756,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	public void testGetAndUpdateOrderHint() throws Exception {
 		// Create a new wiki page.
 		V2WikiPage page = new V2WikiPage();
-		String ownerId = "syn2082";
+		String ownerId = "syn2084";
 		ObjectType ownerType = ObjectType.EVALUATION;
 		page.setTitle("Title");
 		page.setCreatedBy(creatorUserGroupId);
@@ -777,17 +777,17 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Make order hint.
 		V2WikiOrderHint orderHint = new V2WikiOrderHint();
 		orderHint.setEtag("etag");
-		orderHint.setOrderHint(Arrays.asList(new String[] {"A", "B", "C", "D"}));
-		orderHint.setOwnerId("123");
-		orderHint.setOwnerObjectType(ObjectType.EVALUATION);
+		orderHint.setIdList(Arrays.asList(new String[] {"A", "B", "C", "D"}));
+		orderHint.setOwnerId(ownerId);
+		orderHint.setOwnerObjectType(ownerType);
 		
 		// Update order hint.
 		V2WikiOrderHint recordedOrderHint = wikiPageDao.updateOrderHint(orderHint, key);
 		
 		// Check if update happened.
-		assertTrue(Arrays.equals(orderHint.getOrderHint().toArray(), recordedOrderHint.getOrderHint().toArray()));
-		assertTrue(recordedOrderHint.getEtag().equals("etag"));
-		assertTrue(recordedOrderHint.getOwnerId().equals("123"));
+		assertTrue(Arrays.equals(orderHint.getIdList().toArray(), recordedOrderHint.getIdList().toArray()));
+		assertTrue(!recordedOrderHint.getEtag().equals("etag"));
+		assertTrue(recordedOrderHint.getOwnerId().equals(2084 + ""));
 		assertTrue(recordedOrderHint.getOwnerObjectType().equals(ObjectType.EVALUATION));
 	}
 	

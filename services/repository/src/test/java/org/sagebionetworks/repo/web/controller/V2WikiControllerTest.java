@@ -383,21 +383,21 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
 		
 		// Order hint has not been set yet.
-		assertNull(orderHint.getOrderHint());
+		assertNull(orderHint.getIdList());
 		
 		List<String> orderHintList = Arrays.asList(new String[] {"A", "B", "C", "D"});
 		
-		orderHint.setOrderHint(orderHintList);
+		orderHint.setIdList(orderHintList);
 		
 		V2WikiOrderHint updatedOrderHint = entityServletHelper.updateWikiOrderHint(adminUserId, key, orderHint);
 		
-		assertNotNull(updatedOrderHint.getOrderHint());
-		assertTrue(orderHintList.equals(updatedOrderHint.getOrderHint()));
+		assertNotNull(updatedOrderHint.getIdList());
+		assertTrue(orderHintList.equals(updatedOrderHint.getIdList()));
 		
 		// Get the updated order hint (make sure it was recorded).
 		V2WikiOrderHint postUpdateGetOrderHint = entityServletHelper.getWikiOrderHint(key, adminUserId);
 		
-		assertTrue(orderHintList.equals(postUpdateGetOrderHint.getOrderHint()));
+		assertTrue(orderHintList.equals(postUpdateGetOrderHint.getIdList()));
 		
 	}
 

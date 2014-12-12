@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,12 +17,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
+import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 
 /**
@@ -251,5 +255,22 @@ public class V2WikiTranslationUtilsTest {
 		Collections.sort(clone.getAttachmentFileHandleIds());
 		assertNotNull(clone);
 		assertEquals(dto, clone);
+	}
+	
+	@Test
+	public void testCreateWikiOrderHintDTOfromDBO() throws UnsupportedEncodingException {
+		V2DBOWikiOwner dbo = new V2DBOWikiOwner();
+		String listString = "1,2,3,4,5";
+		dbo.setOrderHint(listString.getBytes("UTF-8"));
+		dbo.setEtag("etag");
+		dbo.setOwnerId(new Long(456));
+		dbo.setOwnerType(ObjectType.EVALUATION.toString());
+		
+		V2WikiOrderHint orderHint = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
+		
+		assertTrue(Arrays.equals(orderHint.getIdList().toArray(), listString.split(",")));
+		assertTrue(orderHint.getEtag().equals(dbo.getEtag()));
+		assertTrue(orderHint.getOwnerId().equals(dbo.getOwnerId().toString()));
+		assertTrue(orderHint.getOwnerObjectType().toString().equals(dbo.getOwnerType()));
 	}
 }

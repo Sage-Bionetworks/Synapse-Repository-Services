@@ -110,7 +110,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_LOOKUP_WIKI_PAGE_KEY = "SELECT WO."+V2_COL_WIKI_ONWERS_OWNER_ID+", WO."+V2_COL_WIKI_ONWERS_OBJECT_TYPE+", WP."+V2_COL_WIKI_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WP, "+V2_TABLE_WIKI_OWNERS+" WO WHERE WP."+V2_COL_WIKI_ROOT_ID+" = WO."+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" AND WP."+V2_COL_WIKI_ID+" = ?";
 	private static final String SQL_DOES_EXIST = "SELECT "+V2_COL_WIKI_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+V2_COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
-	private static final String SQL_SELECT_WIKI_OWNER_ORDER_HINT_USING_ROOT_WIKI_ID = "SELECT " + V2_COL_WIKI_OWNERS_ORDER_HINT + " FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_OWNER_USING_ROOT_WIKI_ID = "SELECT * FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_USING_ID_AND_ROOT = "SELECT * FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT = "SELECT "+V2_COL_WIKI_MARKDOWN_VERSION+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
@@ -328,7 +327,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
 	
-	// TODO: return V2WikiOrderHint DTO?
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public V2WikiOrderHint updateOrderHint(V2WikiOrderHint orderHint, WikiPageKey key) throws NotFoundException {
@@ -336,30 +334,43 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
 		
 		// TODO: Check if key.getOwnerObjectId.equals(orderHint.getOwnerObjectId)??
+		// Get the WikiOwner DBO
+		V2DBOWikiOwner dbo = getWikiOwnerDBO(key.getWikiPageId());
+		if (orderHint.getIdList() == null) {
+			dbo.setOrderHint(null);
+		} else {
+			StringBuffer orderHintCSV = new StringBuffer();
+			for (int i = 0; i < orderHint.getIdList().size(); i++) {
+				orderHintCSV.append(orderHint.getIdList().get(i));
+				orderHintCSV.append(',');
+			}
+			String listString = orderHintCSV.toString();
+			try {
+				dbo.setOrderHint(listString.getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		
-		// TODO Verify only one result with given owner and objectId.
-		//V2DBOWikiOwner oldDBO = getWikiOwnerDBO(key.getWikiPageId());
+		boolean ret = basicDao.update(dbo);
+		
+		return getWikiOrderHint(key);
 		
 		//V2DBOWikiOwner newDBO = V2WikiTranslationUtils.createDBOFromDTO(orderHint);
 		
-		StringBuffer orderHintCSV = new StringBuffer();
-		for (int i = 0; i < orderHint.getOrderHint().size(); i++) {
-			orderHintCSV.append(orderHint.getOrderHint().get(i));
-			orderHintCSV.append(',');
-		}
+		
 		// TODO: Validate that there is only one matching DBO?
 		
-		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + " = ?";
+//		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + " = ?";
+//		
+//		// String class's split method will remove trailing empty strings for the fencepost ','
+//		
+//		try {
+//			simpleJdbcTemplate.update(updateSql, listString.getBytes("UTF-8"), key.getWikiPageId());
+//		} catch (UnsupportedEncodingException e) {
+//			throw new RuntimeException(e);
+//		}
 		
-		// String class's split method will remove trailing empty strings for the fencepost ','
-		String listString = orderHintCSV.toString();
-		try {
-			simpleJdbcTemplate.update(updateSql, listString.getBytes("UTF-8"), key.getWikiPageId());
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-		
-		return getWikiOrderHint(key);
 	}
 	
 //	@Override

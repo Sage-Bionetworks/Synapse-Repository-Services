@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
@@ -111,11 +112,8 @@ public class V2WikiTranslationUtils {
 		// Set order hint
 		byte[] orderHintBytes = dbo.getOrderHint();
 		if (orderHintBytes != null) {
-			String[] orderHint = null;
 			try {
-				String orderHintString = new String(orderHintBytes, "UTF-8");
-				orderHint = orderHintString.split(",");
-				dto.setOrderHint(Arrays.asList(orderHint));
+				dto.setIdList(getOrderHintIdListFromBytes(dbo.getOrderHint()));
 			} catch (UnsupportedEncodingException e) {
 				// TODO SOMETHING HERE??
 				e.printStackTrace();
@@ -123,6 +121,12 @@ public class V2WikiTranslationUtils {
 		}
 		
 		return dto;
+	}
+	
+	private static List<String> getOrderHintIdListFromBytes(byte[] orderHintBytes) throws UnsupportedEncodingException {
+		String idHintString = new String(orderHintBytes, "UTF-8");
+		String[] idHintArray = idHintString.split(",");
+		return Arrays.asList(idHintArray);
 	}
 	
 	/**

@@ -893,12 +893,12 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
+		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
 		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
 		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.
-		when(mockWikiDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType())).thenReturn("etag");
+		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etag");
 		
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -921,11 +921,11 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
+		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
 		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.
-		when(mockWikiDao.lockWikiOwnersForUpdate(orderHintDTO.getOwnerId(), orderHintDTO.getOwnerObjectType())).thenReturn("etag");
+		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etag");
 		
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
