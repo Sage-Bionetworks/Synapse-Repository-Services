@@ -893,7 +893,7 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
+		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
 		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
 		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
@@ -921,7 +921,7 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
+		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
 		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.

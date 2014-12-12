@@ -782,7 +782,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		orderHint.setOwnerObjectType(ownerType);
 		
 		// Update order hint.
-		V2WikiOrderHint recordedOrderHint = wikiPageDao.updateOrderHint(orderHint, key);
+		V2WikiOrderHint recordedOrderHint = wikiPageDao.updateIdList(orderHint, key);
 		
 		// Check if update happened.
 		assertTrue(Arrays.equals(orderHint.getIdList().toArray(), recordedOrderHint.getIdList().toArray()));
