@@ -372,11 +372,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 //		}
 		
 	}
-	
-//	@Override
-//	public String[] getOrderHint(WikiPageKey key) throws NotFoundException {
-//		return getOrderHint(Long.parseLong(key.getWikiPageId()));
-//	}
 
 	private void update(ObjectType ownerType, Long ownerIdLong,
 			V2DBOWikiPage newDBO) throws NotFoundException {
@@ -668,28 +663,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Now use the root to the the full tree
 		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
 	}
-	
-//	/**
-//	 * Lookup the the order hint.
-//	 * @param ownerId
-//	 * @param ownerType
-//	 * @throws NotFoundException
-//	 * @throws UnsupportedEncodingException 
-//	 */
-//	private String[] getOrderHint(Long rootWikiId) throws NotFoundException {
-//		String[] result = null;
-//		try{
-//			byte[] orderHint = simpleJdbcTemplate.queryForObject(SQL_SELECT_WIKI_OWNER_ORDER_HINT_USING_ROOT_WIKI_ID, byte[].class, rootWikiId);
-//			String orderHintCSV = new String(orderHint, "UTF-8");
-//			result = orderHintCSV.split(",");
-//		}catch(DataAccessException e){
-//			throw new NotFoundException("A root wiki with ID: "+rootWikiId);
-//		} catch(UnsupportedEncodingException e) {
-//			// TODO: Something here!!
-//		}
-//		return result;
-//	}
-
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
