@@ -115,8 +115,7 @@ public class V2WikiTranslationUtils {
 			try {
 				dto.setIdList(getOrderHintIdListFromBytes(dbo.getOrderHint()));
 			} catch (UnsupportedEncodingException e) {
-				// TODO SOMETHING HERE??
-				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		}
 		
