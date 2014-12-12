@@ -1,18 +1,16 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.AutoGenFactory;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -224,6 +222,7 @@ public class MessageUtils {
 		message.setObjectEtag(etag);
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
+		message.setTimestamp(new Date());
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}
 	

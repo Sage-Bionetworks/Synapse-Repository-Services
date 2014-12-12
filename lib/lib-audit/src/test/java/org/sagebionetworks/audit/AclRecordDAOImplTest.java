@@ -25,7 +25,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class AclRecordDAOImplTest {
 
 	@Autowired
-	AclRecordDAO aclRecordDao;
+	private AclRecordDAO aclRecordDao;
 	
 	@Autowired
 	private AmazonS3Client s3Client;

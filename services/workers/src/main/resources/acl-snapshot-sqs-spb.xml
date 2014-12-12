@@ -27,7 +27,7 @@
 
 	<!-- provides acl message queue workers -->
 	<bean id="aclQueueWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-		<property name="worker" value="org.sagebionetworks.acl.worker.AclWorker" />
+		<property name="worker" value="org.sagebionetworks.acl.worker.AclSnapshotWorker" />
 	</bean>
 
 	<!-- This gate ensures we never run more than the max number of runners for this worker  -->

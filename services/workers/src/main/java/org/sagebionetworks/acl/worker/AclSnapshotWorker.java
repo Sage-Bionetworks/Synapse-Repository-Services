@@ -20,9 +20,9 @@ import com.amazonaws.services.sqs.model.Message;
 /**
  * This worker writes ACL change messages to a file, and put the file to S3 
  */
-public class AclWorker implements Worker{
+public class AclSnapshotWorker implements Worker{
 
-	static private Logger log = LogManager.getLogger(AclWorker.class);
+	static private Logger log = LogManager.getLogger(AclSnapshotWorker.class);
 	private List<Message> messages;
 	private WorkerProgress workerProgress;
 	@Autowired
@@ -62,7 +62,11 @@ public class AclWorker implements Worker{
 		record.setEtag(change.getObjectEtag());
 		record.setObjectId(change.getObjectId());
 		record.setTimestamp(change.getTimestamp().getTime());
-		record.setChangeNumber(change.getChangeNumber().toString());
+		if (change.getChangeNumber() != null) {
+			record.setChangeNumber(change.getChangeNumber().toString());
+		} else {
+			record.setChangeNumber("null");
+		}
 		aclRecordDao.write(record);
 		return message;
 	}

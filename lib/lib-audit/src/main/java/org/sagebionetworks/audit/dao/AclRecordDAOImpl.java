@@ -100,6 +100,13 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	@Override
 	public void cleanUp() {
 		lineCount = 0;
+		if (currentFile.exists()) {
+			try {
+				Files.delete(currentFile.toPath());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		currentFile = null;
 	}
 }
