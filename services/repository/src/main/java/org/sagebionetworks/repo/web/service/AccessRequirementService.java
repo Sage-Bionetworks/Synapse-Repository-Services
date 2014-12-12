@@ -20,6 +20,11 @@ public interface AccessRequirementService {
 			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
+	
+	public AccessRequirement getAccessRequirement(
+			Long userId, String requirementId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException;
 
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
 			Long userId, RestrictableObjectDescriptor subjectId)

@@ -839,6 +839,9 @@ public class IT500SynapseJavaClient {
 		assertTrue(clone instanceof TermsOfUseAccessRequirement);
 		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
 		
+		// check that access type param works
+		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD));
+		
 		// create approval for the requirement
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
@@ -1450,6 +1453,8 @@ public class IT500SynapseJavaClient {
 		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
+		
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
 	}
 
 	@Test

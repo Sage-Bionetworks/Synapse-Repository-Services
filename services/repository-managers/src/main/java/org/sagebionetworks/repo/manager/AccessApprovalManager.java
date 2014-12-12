@@ -18,6 +18,16 @@ public interface AccessApprovalManager {
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
+	 * 
+	 * @param userInfo
+	 * @param approvalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AccessApproval getAccessApproval(UserInfo userInfo, String approvalId) throws DatastoreException, NotFoundException;
+
+	/**
 	 *  get all the access approvals for an entity
 	 */
 	public QueryResults<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;

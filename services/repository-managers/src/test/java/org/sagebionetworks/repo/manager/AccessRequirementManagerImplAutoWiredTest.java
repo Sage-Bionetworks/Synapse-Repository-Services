@@ -328,6 +328,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	}
 	
 	@Test
+	public void testGetAccessRequirement() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		AccessRequirement retrieved = accessRequirementManager.getAccessRequirement(adminUserInfo, ar.getId().toString());
+		assertEquals(ar, retrieved);
+	}
+	
+	@Test
 	public void testGetAccessRequirements() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);

@@ -220,7 +220,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
-
+	private static final String ACCESS_TYPE_PARAMETER = "accessType";
+	
 	private static final String EVALUATION_URI_PATH = "/evaluation";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	private static final String NAME = "name";
@@ -1382,8 +1383,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_REQUIREMENT + "/" + arId, getUserAgent());
 	}
+	
+	
 	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
+		return getUnmetAccessRequirements(subjectId, null);
+	}
+	
+	@Override
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException {
 		String uri = null;
 		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
 			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
@@ -1393,6 +1401,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri = TEAM+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
 		} else {
 			throw new SynapseClientException("Unsupported type "+subjectId.getType());
+		}
+		if (accessType!=null) {
+			uri += "?"+ACCESS_TYPE_PARAMETER+"="+accessType;
 		}
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);

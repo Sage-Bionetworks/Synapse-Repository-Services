@@ -426,6 +426,9 @@ public interface SynapseClient extends BaseClient {
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
 			RestrictableObjectDescriptor subjectId) throws SynapseException;
 
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException;
+
 	public <T extends AccessApproval> T createAccessApproval(T aa)
 			throws SynapseException;
 	

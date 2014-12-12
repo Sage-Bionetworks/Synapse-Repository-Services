@@ -36,6 +36,14 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
+	@Override
+	public AccessApproval getAccessApproval(
+			Long userId, String approvalId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessApprovalManager.getAccessApproval(userInfo, approvalId);
+	}
 
 	@Override
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId, 

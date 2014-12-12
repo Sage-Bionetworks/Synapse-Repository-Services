@@ -147,6 +147,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return result;
 	}
 	
+
+	@Override
+	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {
+		return accessRequirementDAO.get(requirementId);
+	}
+	
 	@Override
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		List<String> subjectIds = new ArrayList<String>();

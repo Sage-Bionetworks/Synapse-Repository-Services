@@ -82,6 +82,17 @@ public class AccessRequirementController extends BaseController {
 			@RequestBody AccessRequirement accessRequirement) throws Exception {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}	
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessRequirement 
+	getAccessRequirement(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {	
+		return serviceProvider.getAccessRequirementService().getAccessRequirement(userId, requirementId);
+	}
 
 	/**
 	 * Modify an existing Access Requirement.
@@ -140,7 +151,7 @@ public class AccessRequirementController extends BaseController {
 	 getUnfulfilledEntityAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM) ACCESS_TYPE accessType
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
@@ -188,7 +199,7 @@ public class AccessRequirementController extends BaseController {
 	 getUnfulfilledEvaluationAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM) ACCESS_TYPE accessType
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
@@ -237,7 +248,8 @@ public class AccessRequirementController extends BaseController {
 	 getUnfulfilledTeamAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM) ACCESS_TYPE accessType) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
+	) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);

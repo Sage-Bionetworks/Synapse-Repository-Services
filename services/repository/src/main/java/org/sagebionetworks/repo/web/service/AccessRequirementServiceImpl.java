@@ -73,6 +73,17 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 				"", 
 				false);
 	}
+	
+	@Override
+	public AccessRequirement getAccessRequirement(
+			Long userId, String requirementId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.getAccessRequirement(userInfo, requirementId);
+	}
+
+
 
 	@Override	
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
