@@ -18,6 +18,7 @@ import org.sagebionetworks.table.query.model.SqlDirective;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -55,9 +56,9 @@ public class QuerySpecificationTest {
 		DerivedColumn column = new DerivedColumn(valueExpression, null);
 		List<DerivedColumn> columns = Lists.newArrayList(column);
 		SelectList selectList = new SelectList(columns);
-		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
-		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
-		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
+		QuerySpecification element = new QuerySpecification(null, null, selectList, null);
+		assertEquals("SELECT FOUND_ROWS()", element.toString());
+		assertNull(element.doVisit(new GetTableNameVisitor()).getTableName());
 	}
 
 	@Test
@@ -75,6 +76,6 @@ public class QuerySpecificationTest {
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
 		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
+		assertEquals("syn123", element.doVisit(new GetTableNameVisitor()).getTableName());
 	}
-
 }

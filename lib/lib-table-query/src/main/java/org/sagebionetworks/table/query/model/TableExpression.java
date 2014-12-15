@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -16,7 +17,6 @@ public class TableExpression extends SQLElement {
 	Pagination pagination;
 
 	public TableExpression(FromClause fromClause, WhereClause whereClause, GroupByClause groupByClause, OrderByClause orderByClause, Pagination pagination) {
-		super();
 		this.fromClause = fromClause;
 		this.whereClause = whereClause;
 		this.groupByClause = groupByClause;
@@ -84,5 +84,9 @@ public class TableExpression extends SQLElement {
 		if (groupByClause != null) {
 			visitor.setIsAggregate();
 		}
+	}
+
+	public void visit(GetTableNameVisitor visitor) {
+		visit(fromClause, visitor);
 	}
 }

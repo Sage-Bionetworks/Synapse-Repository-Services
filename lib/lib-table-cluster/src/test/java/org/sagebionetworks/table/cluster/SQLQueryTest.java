@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.ColumnReference;
@@ -153,10 +154,11 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectDistinct() throws ParseException{
 		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", tableSchema);
-		assertEquals("SELECT DISTINCT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
-		assertFalse(translator.isAggregatedResult());
-		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
-		assertEquals(expectedSelect, translator.getSelectColumnModels().getColumnModels());
+		assertEquals("SELECT DISTINCT _C111_, _C333_ FROM T123", translator.getOutputSQL());
+		assertTrue(translator.isAggregatedResult());
+		List<SelectColumn> expectedSelect = Lists.newArrayList(TableModelUtils.createSelectColumn("foo", ColumnType.STRING, null),
+				TableModelUtils.createSelectColumn("bar", ColumnType.STRING, null));
+		assertEquals(expectedSelect, translator.getSelectColumnModels().getSelectColumns());
 	}
 	
 	@Test
@@ -548,12 +550,17 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testFoundRows() throws ParseException {
+		SqlQuery translator = new SqlQuery("select found_rows() from syn123", tableSchema);
+		assertEquals("SELECT FOUND_ROWS() FROM T123", translator.getOutputSQL());
+	}
+
+	@Test
 	public void testAllParts() throws ParseException{
-		SqlQuery translator = new SqlQuery(
-				"select found_rows(), foo, bar from syn123 where foobar >= 1.89e4 order by bar desc limit 10 offset 0", tableSchema);
+		SqlQuery translator = new SqlQuery("select foo, bar from syn123 where foobar >= 1.89e4 order by bar desc limit 10 offset 0",
+				tableSchema);
 		// The value should be bound in the SQL
-		assertEquals(
-				"SELECT FOUND_ROWS(), _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C444_ >= :b0 ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
+		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C444_ >= :b0 ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
 				translator.getOutputSQL());
 		assertEquals("1.89e4", translator.getParameters().get("b0"));
 		assertEquals(10L, translator.getParameters().get("b1"));
