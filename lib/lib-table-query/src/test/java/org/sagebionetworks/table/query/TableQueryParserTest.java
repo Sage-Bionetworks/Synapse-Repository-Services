@@ -563,9 +563,7 @@ public class TableQueryParserTest {
 	 * @return
 	 */
 	public static String toSQL(SQLElement element){
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		return builder.toString();
+		return element.toString();
 	}
 	
 	@Test

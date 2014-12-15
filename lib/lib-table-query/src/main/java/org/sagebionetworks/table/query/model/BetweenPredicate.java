@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltbetween predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -35,22 +38,22 @@ public class BetweenPredicate extends SQLElement {
 		return columnReferenceLHS;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		columnReferenceLHS.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.setLHSColumn(columnReferenceLHS);
-		}
-		if(not != null){
-			builder.append(" NOT");
-		}
-		builder.append(" BETWEEN ");
-		betweenRowValueConstructor.toSQL(builder, columnConvertor);
-		builder.append(" AND ");
-		andRowValueConstructorRHS.toSQL(builder, columnConvertor);
-		if (columnConvertor != null) {
-			columnConvertor.setLHSColumn(null);
-		}
+	public void visit(Visitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visit(betweenRowValueConstructor, visitor);
+		visit(andRowValueConstructorRHS, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visitor.setLHSColumn(columnReferenceLHS);
+		if(not != null){
+			visitor.append(" NOT");
+		}
+		visitor.append(" BETWEEN ");
+		visit(betweenRowValueConstructor, visitor);
+		visitor.append(" AND ");
+		visit(andRowValueConstructorRHS, visitor);
+		visitor.setLHSColumn(null);
+	}
 }

@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &ltvalue expression&gt in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -17,14 +18,6 @@ public class ValueExpression extends SQLElement {
 		this.numericValueExpression = numericValueExpression;
 	}
 
-	public boolean isAggregate() {
-		if (stringValueExpression != null) {
-			return stringValueExpression.isAggregate();
-		} else {
-			return numericValueExpression.isAggregate();
-		}
-	}
-
 	public StringValueExpression getStringValueExpression() {
 		return stringValueExpression;
 	}
@@ -33,12 +26,11 @@ public class ValueExpression extends SQLElement {
 		return numericValueExpression;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
 		if (this.stringValueExpression != null) {
-			this.stringValueExpression.toSQL(builder, columnConvertor);
+			visit(this.stringValueExpression, visitor);
 		} else {
-			this.numericValueExpression.toSQL(builder, columnConvertor);
+			visit(this.numericValueExpression, visitor);
 		}
 	}
 }

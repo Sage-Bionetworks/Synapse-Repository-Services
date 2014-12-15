@@ -535,9 +535,8 @@ public class SqlElementUntils {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
 			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
-				StringBuilder columnName = new StringBuilder();
-				spec.getSortKey().getColumnReference().toSQL(columnName, null);
-				originalSortSpecifications.put(columnName.toString(), spec);
+				String columnName = spec.getSortKey().getColumnReference().toString();
+				originalSortSpecifications.put(columnName, spec);
 			}
 		}
 

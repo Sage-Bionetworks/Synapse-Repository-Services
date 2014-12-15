@@ -16,11 +16,13 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -47,8 +49,6 @@ public class SQLUtils {
 	public static final String TABLE_PREFIX = "T";
 	private static final String COLUMN_PREFIX = "_C";
 	private static final String COLUMN_POSTFIX = "_";
-
-	private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile(COLUMN_PREFIX + "(\\d+)" + COLUMN_POSTFIX);
 
 	private static final String DOUBLE_NAN = Double.toString(Double.NaN);
 	private static final String DOUBLE_POSITIVE_INFINITY = Double.toString(Double.POSITIVE_INFINITY);
@@ -612,47 +612,6 @@ public class SQLUtils {
 	}
 
 	/**
-	 * Get the
-	 * 
-	 * @param columnName
-	 * @return
-	 */
-	public static String getColumnIdForColumnName(String columnName) {
-		if (columnName == null)
-			throw new IllegalArgumentException("Column name cannot be null");
-		Matcher matcher = COLUMN_NAME_PATTERN.matcher(columnName);
-		if(!matcher.matches()){
-			throw new IllegalArgumentException("name '" + columnName + "' is not a column name");
-		}
-		return matcher.group(1);
-	}
-
-	public static String replaceColumnNames(String name, Map<Long, ColumnModel> columnIdToModelMap) {
-		Matcher matcher = COLUMN_NAME_PATTERN.matcher(name);
-		StringBuffer sb = new StringBuffer();
-		while (matcher.find()) {
-			String columnId = matcher.group(1);
-			ColumnModel columnModel = columnIdToModelMap.get(Long.parseLong(columnId));
-			if (columnModel != null) {
-				matcher.appendReplacement(sb, columnModel.getName());
-			}
-		}
-		matcher.appendTail(sb);
-		return sb.toString();
-	}
-
-	/**
-	 * Does the column name start with the column prefix?
-	 * @param columnName
-	 * @return
-	 */
-	public static boolean isColumnName(String columnName){
-		if (columnName == null)
-			throw new IllegalArgumentException("Column name cannot be null");
-		return COLUMN_NAME_PATTERN.matcher(columnName).matches();
-	}
-	
-	/**
 	 * Create the DROP table SQL.
 	 * @param tableId
 	 * @return
@@ -774,10 +733,11 @@ public class SQLUtils {
 		// First we need a mapping from the the schema to the RowSet
 		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
 		int index = 0;
-		for (String header : toBind.getHeaders()) {
-			columnIndexMap.put(header, index);
+		for (SelectColumn header : toBind.getHeaders()) {
+			columnIndexMap.put(header.getId(), index);
 			index++;
 		}
+
 		// We will need a binding for every row
 		List<MapSqlParameterSource> results = Lists.newArrayListWithExpectedSize(toBind.getRows().size() * 2);
 		for(Row row: toBind.getRows()){

@@ -158,7 +158,7 @@ public class TrashManagerImpl implements TrashManager {
 		
 		// Make sure new parent is not in trash can.
 		if (trashCanDao.getTrashedEntity(newParentId) != null) {
-			throw new ParentInTrashCanException("The new parent " + newParentId + " is in the trash can and cannot be restored to.");
+			throw new ParentInTrashCanException("The intended parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
 		// Authorize on the new parent

@@ -3,6 +3,9 @@ package org.sagebionetworks.table.query.model;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltsearch condition&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
@@ -27,16 +30,20 @@ public class SearchCondition extends SQLElement {
 		return orBooleanTerms;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		boolean isFrist = true;
-		for(BooleanTerm booleanTerm: orBooleanTerms){
-			if(!isFrist){
-				builder.append(" OR ");
-			}
-			booleanTerm.toSQL(builder, columnConvertor);
-			isFrist = false;
+	public void visit(Visitor visitor) {
+		for (BooleanTerm booleanTerm : orBooleanTerms) {
+			visit(booleanTerm, visitor);
 		}
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		boolean isFirst = true;
+		for (BooleanTerm booleanTerm : orBooleanTerms) {
+			if (!isFirst) {
+				visitor.append(" OR ");
+			}
+			visit(booleanTerm, visitor);
+			isFirst = false;
+		}
+	}
 }

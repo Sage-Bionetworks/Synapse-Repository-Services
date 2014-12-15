@@ -212,7 +212,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertEquals(tableId, response.getTableId());
 		// Get the filehandle
 		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
-		checkResults(fileHandle, Lists.<String[]> newArrayList(), true);
+		checkResults(fileHandle, Lists.<String[]> newArrayList(new String[] { "a", "b", "c" }), true);
 	}
 
 	@Test
@@ -295,7 +295,9 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, null);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
+				null,
+				null, null);
 		return input;
 	}
 
