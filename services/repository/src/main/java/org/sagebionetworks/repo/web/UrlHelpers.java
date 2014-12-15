@@ -659,7 +659,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	// Access Requirement
-	public static final String ACCESS_REQUIREMENT_OWNER_ID_V2 = "/"+ObjectType.ACCESS_REQUIREMENT.name().toLowerCase()+"/{ownerId}";
+	public static final String ACCESS_REQUIREMENT_OWNER_ID_V2 = "/access_requirement/{ownerId}";
 	public static final String ACCESS_REQUIREMENT_WIKI_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_TREE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2;
