@@ -233,6 +233,94 @@ public class ITV2WikiPageTest {
 	}
 	
 	@Test
+	public void testAccessRequirementV2WikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ACCESS_REQUIREMENT, wiki.getId());
+		toDelete.add(key);
+		Date firstModifiedOn = wiki.getModifiedOn();
+		
+		// Add another file attachment and change the title and update the wiki
+		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
+		wiki.setTitle("Updated ITV2AccessRequirementWikiPageTest");
+		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		assertEquals(fileHandleTwo.getId(), wiki.getAttachmentFileHandleIds().get(1));
+		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertEquals("Updated ITV2AccessRequirementWikiPageTest", wiki.getTitle());
+		assertTrue(!wiki.getModifiedOn().equals(firstModifiedOn));
+		
+		// test get
+		wiki = synapse.getV2WikiPage(key);
+		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ACCESS_REQUIREMENT);
+		assertEquals(wiki, root);
+		
+		// get markdown file
+		String markdown = synapse.downloadV2WikiMarkdown(key);
+		assertNotNull(markdown);
+		String oldMarkdown = synapse.downloadVersionOfV2WikiMarkdown(key, new Long(0));
+		assertNotNull(oldMarkdown);
+		
+		// Get the tree
+		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
+		assertNotNull(tree);
+		assertNotNull(tree.getResults());
+		assertEquals(1, tree.getResults().size());
+		assertEquals(1, tree.getTotalNumberOfResults());
+		
+		// Get history
+		PaginatedResults<V2WikiHistorySnapshot> history = synapse.getV2WikiHistory(key, new Long(10), new Long(0));
+		assertNotNull(history);
+		assertNotNull(history.getResults());
+		assertTrue(history.getResults().size() == 2);
+		// First snapshot is most recent, so we want the last snapshot, version 0 (the first entry in history)
+		String versionToRestore = history.getResults().get(1).getVersion();
+		// Get the version first
+		V2WikiPage firstVersion = synapse.getVersionOfV2WikiPage(key, new Long(versionToRestore));
+		assertEquals(1, firstVersion.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), firstVersion.getAttachmentFileHandleIds().get(0));
+		assertEquals(firstModifiedOn, firstVersion.getModifiedOn());
+		
+		// Restore wiki to first state before update
+		wiki = synapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId(), new Long(versionToRestore));
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertNotNull(wiki.getMarkdownFileHandleId());
+		// Get history again
+		PaginatedResults<V2WikiHistorySnapshot> history2 = synapse.getV2WikiHistory(key, new Long(10), new Long(0));
+		assertNotNull(history2);
+		assertNotNull(history2.getResults());
+		assertTrue(history2.getResults().size() == 3);
+
+		assertTrue(wiki.getAttachmentFileHandleIds().size() == 1);
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertEquals("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip", wiki.getTitle());
+		
+		// Delete the wiki
+		synapse.deleteV2WikiPage(key);
+		// Now try to get it
+		try{
+			synapse.getV2WikiPage(key);
+			fail("This should have failed as the wiki was deleted");
+		}catch(SynapseException e){
+			// expected;
+		}
+	}
+	
+	@Test
 	public void testV2MethodsWithV1Models() throws IOException, SynapseException, JSONObjectAdapterException {
 		// Create V1 Wiki
 		WikiPage wiki = new WikiPage();
