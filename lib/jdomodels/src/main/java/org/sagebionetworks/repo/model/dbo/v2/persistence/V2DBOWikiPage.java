@@ -44,7 +44,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 @Table(name = V2_TABLE_WIKI_PAGE)
 public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2DBOWikiPage>, ObservableEntity {
-	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false, backupId = true)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false, backupId = true)
 	private Long id;
 	
 	@Field(name = V2_COL_WIKI_ETAG, nullable = false, etag = true)
@@ -53,29 +53,29 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, defaultNull = true)
 	private String title;
 	
-	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)
 	@ForeignKey(name = "V2_WIKI_CREATED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
 	
-	@Field(name = V2_COL_WIKI_CREATED_ON, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_CREATED_ON, nullable = false)
 	private Long createdOn;
 	
-	@Field(name = V2_COL_WIKI_MODIFIED_BY, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_MODIFIED_BY, nullable = false)
 	@ForeignKey(name = "V2_WIKI_MODIFIED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long modifiedBy;
 	
-	@Field(name = V2_COL_WIKI_MODIFIED_ON, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_MODIFIED_ON, nullable = false)
 	private Long modifiedOn;
 	
-	@Field(name = V2_COL_WIKI_PARENT_ID, defaultNull = true, nullable = true)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_PARENT_ID, defaultNull = true, nullable = true)
 	@ForeignKey(name = "V2_WIKI_PARENT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long parentId;
 	
-	@Field(name = V2_COL_WIKI_ROOT_ID, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_ROOT_ID, nullable = false)
 	@ForeignKey(name = "V2_WIKI_ROOT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long rootId;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION, nullable = false)
 	private Long markdownVersion;
 	
 	private static TableMapping<V2DBOWikiPage> tableMapping = AutoTableMapping.create(V2DBOWikiPage.class);

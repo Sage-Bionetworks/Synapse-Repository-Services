@@ -371,7 +371,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		// Make wiki page
 		V2WikiPage wiki = new V2WikiPage();
-		wiki.setTitle("testCreateEntityWikiRoundTrip-"+ownerId+"-"+ownerType);
+		wiki.setTitle("testWikiOrderHintReadUpdateForOwnerObject-"+ownerId+"-"+ownerType);
 		wiki.setMarkdownFileHandleId(markdownOneHandle.getId());
 		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
 		wiki = entityServletHelper.createV2WikiPage(adminUserId, ownerId, ownerType, wiki);
