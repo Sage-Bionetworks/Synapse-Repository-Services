@@ -14,11 +14,15 @@ import java.util.concurrent.Callable;
 
 import javax.sql.DataSource;
 
+import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -35,6 +39,8 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
@@ -216,16 +222,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		final List<Row> rows = new LinkedList<Row>();
 		final RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
+		rowSet.setHeaders(query.getSelectColumnModels().getSelectColumns());
 		// Stream over the results and save the results in a a list
 		queryAsStream(query, new RowAndHeaderHandler() {
 			@Override
+			public void writeHeader() {
+				// no-op
+			}
+
+			@Override
 			public void nextRow(Row row) {
 				rows.add(row);
-			}
-			
-			@Override
-			public void setHeaderColumnIds(List<String> headers) {
-				rowSet.setHeaders(headers);
 			}
 
 			@Override
@@ -239,38 +246,40 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public boolean queryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) {
-		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		final List<String> headers = new LinkedList<String>();
-		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
-		final Map<Integer, ColumnModel> modeledColumns = Maps.newHashMap();
+		ValidateArgument.required(query, "Query");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		handler.writeHeader();
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				ResultSetMetaData metadata = rs.getMetaData();
-				if (headers.isEmpty()) {
-					// Read the headers from the result set
-					populateHeadersFromResultsSet(headers,
-							nonMetadataColumnIndicies, query, modeledColumns, metadata);
-					handler.setHeaderColumnIds(headers);
-				}
-				// Read the results into a new list
-				List<String> values = new LinkedList<String>();
+
 				Row row = new Row();
+				List<String> values = new LinkedList<String>();
 				row.setValues(values);
-				if (!query.isAggregatedResult()) {
-					// Non-aggregate queries include two extra columns,
-					// row id and row version.
-					row.setRowId(rs.getLong(ROW_ID));
-					row.setVersionNumber(rs.getLong(ROW_VERSION));
+
+				// ROW_ID and ROW_VERSION are always appended to the list of columns
+				int selectModelIndex = 0;
+				int columnCount = metadata.getColumnCount();
+				List<SelectColumn> selectColumns = query.getSelectColumnModels().getSelectColumns();
+				// result sets use 1-base indexing
+				for (int i = 1; i <= columnCount; i++) {
+					String name = metadata.getColumnName(i);
+					if (ROW_ID.equals(name)) {
+						row.setRowId(rs.getLong(i));
+					} else if (ROW_VERSION.equals(name)) {
+						row.setVersionNumber(rs.getLong(i));
+					} else {
+						SelectColumn selectColumn = selectColumns.get(selectModelIndex++);
+						String value = rs.getString(i);
+						value = TableModelUtils.translateRowValueFromQuery(value, selectColumn);
+						values.add(value);
+					}
 				}
-				// fill the value list
-				for (Integer index : nonMetadataColumnIndicies) {
-					String value = rs.getString(index);
-					ColumnModel columnModel = modeledColumns.get(index);
-					value = TableModelUtils.translateRowValueFromQuery(value, columnModel);
-					values.add(value);
+				if (selectModelIndex != selectColumns.size()) {
+					throw new IllegalStateException("The number of columns returned (" + selectModelIndex
+							+ ") is not the same as the number expected (" + selectColumns.size() + ")");
 				}
 				handler.nextRow(row);
 			}
@@ -282,38 +291,4 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public <T> T executeInReadTransaction(TransactionCallback<T> callable) {
 		return readTransactionTemplate.execute(callable);
 	}
-
-	static void populateHeadersFromResultsSet(List<String> headers, List<Integer> nonMetadataColumnIndicies, SqlQuery query,
-			Map<Integer, ColumnModel> modeledColumns, ResultSetMetaData resultSetMetaData) throws SQLException {
-		// There are three possibilities, column ID, aggregate function, or row
-		// metadata.
-		Map<Long, ColumnModel> columnIdToModelMap = TableModelUtils.createIDtoColumnModelMap(query.getcolumnNameToModelMap().values());
-		int columnCount = resultSetMetaData.getColumnCount();
-		for (int i = 1; i < columnCount + 1; i++) {
-			String name = resultSetMetaData.getColumnName(i);
-			// If this is a real column then we can extract the ColumnId.
-			if (ROW_ID.equals(name) || ROW_VERSION.equals(name)) {
-				// We do not include row id or row version in the headers.
-				continue;
-			}
-			if (SQLUtils.isColumnName(name)) {
-				// Extract the column ID
-				String columnId = SQLUtils.getColumnIdForColumnName(name);
-				headers.add(columnId);
-				if (columnIdToModelMap != null) {
-					ColumnModel columnModel = columnIdToModelMap.get(Long.parseLong(columnId));
-					if (columnModel != null) {
-						modeledColumns.put(i, columnModel);
-					}
-				}
-			} else {
-				// replace column names where possible
-				name = SQLUtils.replaceColumnNames(name, columnIdToModelMap);
-				headers.add(name);
-			}
-			// This is not a row_id or row_version column.
-			nonMetadataColumnIndicies.add(i);
-		}
-	}
-
 }

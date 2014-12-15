@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltboolean primary&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -22,15 +25,22 @@ public class BooleanPrimary extends SQLElement {
 	public SearchCondition getSearchCondition() {
 		return searchCondition;
 	}
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if(predicate != null){
-			predicate.toSQL(builder, columnConvertor);
-		}else{
-			builder.append("( ");
-			searchCondition.toSQL(builder, columnConvertor);
-			builder.append(" )");
+
+	public void visit(Visitor visitor) {
+		if (predicate != null) {
+			visit(predicate, visitor);
+		} else {
+			visit(searchCondition, visitor);
 		}
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		if(predicate != null){
+			visit(predicate, visitor);
+		}else{
+			visitor.append("( ");
+			visit(searchCondition, visitor);
+			visitor.append(" )");
+		}
+	}
 }

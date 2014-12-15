@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltis predicate&gt in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -24,13 +27,16 @@ public abstract class IsPredicate extends SQLElement {
 
 	public abstract String getCompareValue();
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		columnReferenceLHS.toSQL(builder, columnConvertor);
-		builder.append(" IS ");
-		if(not != null){
-			builder.append("NOT ");
+	public void visit(Visitor visitor) {
+		visit(columnReferenceLHS, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visitor.append(" IS ");
+		if (not != null) {
+			visitor.append("NOT ");
 		}
-		builder.append(getCompareValue());
+		visitor.append(getCompareValue());
 	}
 }

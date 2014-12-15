@@ -67,6 +67,19 @@ public class AccessApprovalController extends BaseController {
 			@RequestBody AccessApproval accessApproval) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
 		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, accessApproval);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessApproval 
+	getAccessApproval(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String approvalId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {	
+		return serviceProvider.getAccessApprovalService().getAccessApproval(userId, approvalId);
+	}
+
+
 
 	/**
 	 * Retrieve the Access Approvals for the given Entity.  This service is only available to the ACT.

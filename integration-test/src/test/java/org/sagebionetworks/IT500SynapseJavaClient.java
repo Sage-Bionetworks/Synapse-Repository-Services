@@ -818,6 +818,8 @@ public class IT500SynapseJavaClient {
 		r = adminSynapse.createAccessRequirement(r);
 		accessRequirementsToDelete.add(r.getId());
 		
+		assertEquals(r, adminSynapse.getAccessRequirement(r.getId()));
+		
 		// check that owner can't download (since it's not a FileEntity)
 		assertFalse(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
@@ -839,11 +841,17 @@ public class IT500SynapseJavaClient {
 		assertTrue(clone instanceof TermsOfUseAccessRequirement);
 		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
 		
+		// check that access type param works
+		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD));
+		
 		// create approval for the requirement
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		synapseTwo.createAccessApproval(approval);
+		TermsOfUseAccessApproval created = synapseTwo.createAccessApproval(approval);
+		
+		// make sure we can retrieve by ID
+		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
 		
 		// get unmet requirements -- should be empty
 		ars = synapseTwo.getUnmetAccessRequirements(subjectId);
@@ -1450,6 +1458,8 @@ public class IT500SynapseJavaClient {
 		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
+		
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
 	}
 
 	@Test

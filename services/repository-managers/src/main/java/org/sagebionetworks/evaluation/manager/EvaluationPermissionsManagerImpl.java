@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -30,12 +31,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsManager {
@@ -209,8 +211,11 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	
 	private boolean hasUnmetAccessRequirements(UserInfo userInfo, String evalId, ACCESS_TYPE accessType) throws NotFoundException {
 		if ((PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
-			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
-					userInfo, evalId, accessRequirementDAO);
+			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+			rod.setId(evalId);
+			rod.setType(RestrictableObjectType.EVALUATION);
+			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
+					userInfo, rod, accessRequirementDAO, Collections.singletonList(accessType));
 			if (!unmetRequirements.isEmpty()) return true;
 		}
 		return false;

@@ -57,7 +57,7 @@ public interface AuthorizationManager {
 	 * Checks whether the given user can create the given access approval
 	 * 
 	 * @param userInfo
-	 * @param accessRequirement
+	 * @param accessApproval
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
 	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);

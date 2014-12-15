@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service.table;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -27,6 +29,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -35,6 +39,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Basic implementation of the TableServices.
@@ -76,7 +81,7 @@ public class TableServicesImpl implements TableServices {
 	@Override
 	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, String entityId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, entityId);
+		List<ColumnModel> models = columnModelManager.getColumnModelsForTable(user, entityId);
 		PaginatedColumnModels pcm = new PaginatedColumnModels();
 		pcm.setResults(models);
 		pcm.setTotalNumberOfResults((long) models.size());
@@ -100,8 +105,8 @@ public class TableServicesImpl implements TableServices {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForRowSet(user, rows.getTableId(), rows.getHeaders());
-		return tableRowManager.appendRows(user, rows.getTableId(), models, rows);
+		ColumnMapper columnMap = getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
+		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows);
 	}
 
 	@Override
@@ -110,8 +115,9 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToAppendOrUpdateOrDelete, "rowsToAppendOrUpdateOrDelete");
 		Validate.required(rowsToAppendOrUpdateOrDelete.getTableId(), "rowsToAppendOrUpdateOrDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToAppendOrUpdateOrDelete.getTableId());
-		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), models, rowsToAppendOrUpdateOrDelete);
+		List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, rowsToAppendOrUpdateOrDelete.getTableId());
+		ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
+		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), columnMap, rowsToAppendOrUpdateOrDelete);
 	}
 
 	@Override
@@ -119,8 +125,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToDelete, "rowsToDelete");
 		Validate.required(rowsToDelete.getTableId(), "rowsToDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToDelete.getTableId());
-		return tableRowManager.deleteRows(user, rowsToDelete.getTableId(), models, rowsToDelete);
+		return tableRowManager.deleteRows(user, rowsToDelete.getTableId(), rowsToDelete);
 	}
 
 	@Override
@@ -128,9 +133,9 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToGet, "rowsToGet");
 		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForRowSet(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
+		ColumnMapper columnMap = getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
-		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, models);
+		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columnMap);
 	}
 
 	@Override
@@ -138,16 +143,17 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getColumnsForTable(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
-		for (ColumnModel model : models) {
-			if (model.getColumnType() != ColumnType.FILEHANDLEID) {
-				throw new IllegalArgumentException("Column " + model.getId() + " is not of type FILEHANDLEID");
+		ColumnMapper mapper = getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
+		for (SelectColumnAndModel selectColumnAndModel : mapper.getSelectColumnAndModels()) {
+			if (selectColumnAndModel.getColumnModel() != null
+					&& selectColumnAndModel.getColumnModel().getColumnType() != ColumnType.FILEHANDLEID) {
+				throw new IllegalArgumentException("Column " + selectColumnAndModel.getColumnModel().getId() + " is not of type FILEHANDLEID");
 			}
 		}
-		RowSet rowSet = tableRowManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, models);
+		RowSet rowSet = tableRowManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, mapper);
 
 		// we expect there to be null entries, but the file handle manager does not
-		List<String> idsList = Lists.newArrayListWithCapacity(models.size() * rowSet.getRows().size());
+		List<String> idsList = Lists.newArrayListWithCapacity(mapper.columnModelCount() * rowSet.getRows().size());
 		for (Row row : rowSet.getRows()) {
 			for (String id : row.getValues()) {
 				if (id != null) {
@@ -166,7 +172,7 @@ public class TableServicesImpl implements TableServices {
 		// insert the file handles in order. Null ids will give null file handles
 		for (Row row : rowSet.getRows()) {
 			FileHandleResults rowHandles = new FileHandleResults();
-			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(models.size()));
+			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(mapper.columnModelCount()));
 			for (String id : row.getValues()) {
 				FileHandle fh;
 				if (id != null) {
@@ -215,33 +221,26 @@ public class TableServicesImpl implements TableServices {
 		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);
 	}
 
-	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException{
-		return columnModelManager.getColumnModelsForTable(user, tableId);
-	}
-
-	private List<ColumnModel> getCurrentColumnsForRowSet(UserInfo user, String tableId, List<String> headers) throws DatastoreException,
-			NotFoundException {
+	private ColumnMapper getCurrentColumns(UserInfo user, String tableId, List<SelectColumn> selectColumns)
+			throws DatastoreException, NotFoundException {
+		LinkedHashMap<String, SelectColumnAndModel> columnMap = Maps.newLinkedHashMap();
 		List<ColumnModel> columns = columnModelManager.getColumnModelsForTable(user, tableId);
-		Map<Long, ColumnModel> columnNameToIdMap = TableModelUtils.createIDtoColumnModelMap(columns);
-		List<ColumnModel> result = Lists.newArrayListWithCapacity(headers.size());
-		for (String header : headers) {
-			Long columnId = Long.parseLong(header);
-			ColumnModel cm = columnNameToIdMap.get(columnId);
-			if (cm == null) {
-				throw new IllegalArgumentException("column header " + header + " is not a valid column for this table");
+		Map<String, ColumnModel> columnIdToModelMap = TableModelUtils.createStringIDtoColumnModelMap(columns);
+		for (SelectColumn selectColumn : selectColumns) {
+			if (selectColumn.getId() == null) {
+				throw new IllegalArgumentException("column header " + selectColumn + " is not a valid column for this table");
 			}
-			result.add(cm);
+			ColumnModel columnModel = columnIdToModelMap.get(selectColumn.getId());
+			if (columnModel == null) {
+				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
+			}
+			columnMap.put(selectColumn.getId(), TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel));
 		}
-		return result;
+		return TableModelUtils.createColumnMapper(columnMap);
 	}
 
 	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {
 		return columnModelManager.getColumnModel(user, columnId);
-	}
-
-	private List<ColumnModel> getColumnsForTable(UserInfo user, String tableId, List<String> columnIds) throws DatastoreException,
-			NotFoundException {
-		return columnModelManager.getColumnModel(user, columnIds, true);
 	}
 
 	@Override

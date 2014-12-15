@@ -17,6 +17,11 @@ public interface AccessApprovalService {
 			UnauthorizedException, NotFoundException, InvalidModelException,
 			IOException;
 
+	public AccessApproval getAccessApproval(
+			Long userId, String approvalId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException;
+
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
 			RestrictableObjectDescriptor subjectId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;

@@ -424,7 +424,6 @@ public class TeamManagerImplTest {
 		rod.setId(TEAM_ID);
 		List<String> teamIds = Collections.singletonList(TEAM_ID);
 		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
-		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
 		Set<Long> principalIds = new HashSet<Long>();
 		for (Long id : userInfo.getGroups()) {

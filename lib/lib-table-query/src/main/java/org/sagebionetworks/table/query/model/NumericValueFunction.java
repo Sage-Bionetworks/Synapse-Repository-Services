@@ -1,5 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 public class NumericValueFunction extends SQLElement {
 
@@ -13,8 +18,21 @@ public class NumericValueFunction extends SQLElement {
 		return mysqlFunction;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append(mysqlFunction.name()).append("()");
+	public void visit(Visitor visitor) {
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append(mysqlFunction.name());
+		visitor.append("()");
+	}
+
+	public void visit(ColumnTypeVisitor visitor) {
+		switch (mysqlFunction) {
+		case FOUND_ROWS:
+			visitor.setColumnType(ColumnType.INTEGER);
+			break;
+		default:
+			throw new IllegalArgumentException("unexpected mysqlFuntion");
+		}
 	}
 }

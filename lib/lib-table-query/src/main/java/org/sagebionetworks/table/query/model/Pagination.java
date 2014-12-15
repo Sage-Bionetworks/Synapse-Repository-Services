@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -31,21 +34,24 @@ public class Pagination extends SQLElement {
 		return offset;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append("LIMIT ");
-		if (columnConvertor != null) {
-			columnConvertor.convertParam(limit, builder);
-		} else {
-			builder.append(limit);
-		}
+	public void visit(Visitor visitor) {
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("LIMIT ");
+		visitor.append(limit.toString());
 		if (offset != null) {
-			builder.append(" OFFSET ");
-			if (columnConvertor != null) {
-				columnConvertor.convertParam(offset, builder);
-			} else {
-				builder.append(offset);
-			}
+			visitor.append(" OFFSET ");
+			visitor.append(offset.toString());
+		}
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		visitor.append("LIMIT ");
+		visitor.convertParam(limit);
+		if (offset != null) {
+			visitor.append(" OFFSET ");
+			visitor.convertParam(offset);
 		}
 	}
 }

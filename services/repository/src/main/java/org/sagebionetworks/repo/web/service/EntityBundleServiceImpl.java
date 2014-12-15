@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -23,10 +24,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableBundle;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,7 +106,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId).getResults());
 		}		
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId).getResults());
+			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, ACCESS_TYPE.DOWNLOAD).getResults());
 		}
 		if((mask & EntityBundle.FILE_HANDLES) > 0 ){
 			try{
