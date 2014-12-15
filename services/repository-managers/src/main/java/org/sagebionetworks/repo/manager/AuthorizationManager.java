@@ -136,17 +136,6 @@ public interface AuthorizationManager {
 	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
 
 	/**
-	 * Check if the user can start a given Asynchronous job
-	 * 
-	 * @param userInfo
-	 * @param body
-	 * @return whether access is granted and, if not, a String giving the reason why
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
-
-	/**
 	 * 
 	 * @param userInfo
 	 * @param objectId

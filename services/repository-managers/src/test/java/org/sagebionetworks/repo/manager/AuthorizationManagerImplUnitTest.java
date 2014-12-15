@@ -461,54 +461,6 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanUserStartJobUploadJobHappyCase() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
-		// make the call
-		assertTrue(this.authorizationManager.canUserStartJob(userInfo, body).getAuthorized());
-	}
-	
-	@Test
-	public void testCanUserStartJobUploadJobAnonymous() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body).getAuthorized());
-	}
-	
-	@Test
-	public void testCanUserStartJobDownloadJobAnonymous() throws DatastoreException, NotFoundException{
-		DownloadFromTableRequest body = new DownloadFromTableRequest();
-		String tableId = "syn123";
-		body.setSql("select * from "+tableId);
-		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body).getAuthorized());
-	}
-	
-	@Test
-	public void testCanUserStartJobDownloadJobCanRead() throws DatastoreException, NotFoundException{
-		DownloadFromTableRequest body = new DownloadFromTableRequest();
-		String tableId = "syn123";
-		body.setSql("select * from "+tableId);
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// make the call
-		assertTrue(this.authorizationManager.canUserStartJob(userInfo, body).getAuthorized());
-	}
-	
-	@Test
 	public void testCanCreateToUAccessApproval() throws Exception {
 		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
 		this.authorizationManager.canCreateAccessApproval(userInfo, accessApproval);

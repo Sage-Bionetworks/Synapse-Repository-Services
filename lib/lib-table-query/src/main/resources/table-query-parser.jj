@@ -851,11 +851,11 @@ SortSpecification sortSpecification():
 }
 SortKey sortKey():
 {
-	ColumnReference columnReference = null;
+	ValueExpressionPrimary valueExpressionPrimary = null;
 }
 {
-	columnReference = columnReference()
-	{ return new SortKey(columnReference); }
+	valueExpressionPrimary = valueExpressionPrimary()
+	{ return new SortKey(valueExpressionPrimary); }
 }
 OrderingSpecification orderingSpecification():
 {}

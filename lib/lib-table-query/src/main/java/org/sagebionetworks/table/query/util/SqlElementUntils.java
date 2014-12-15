@@ -479,7 +479,7 @@ public class SqlElementUntils {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
 			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
-				String columnName = spec.getSortKey().getColumnReference().toString();
+				String columnName = spec.getSortKey().getValueExpressionPrimary().toString();
 				originalSortSpecifications.put(columnName, spec);
 			}
 		}
@@ -491,8 +491,8 @@ public class SqlElementUntils {
 			OrderingSpecification direction = sortItem.getDirection() == SortDirection.DESC ? OrderingSpecification.DESC
 					: OrderingSpecification.ASC;
 			originalSortSpecifications.remove(sortItem.getColumn());
-			sortSpecifications.add(new SortSpecification(new SortKey(new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(
-					sortItem.getColumn(), null))), null)), direction));
+			sortSpecifications.add(new SortSpecification(new SortKey(new ValueExpressionPrimary(new ColumnReference(new ColumnName(
+					new Identifier(new ActualIdentifier(sortItem.getColumn(), null))), null))), direction));
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
 		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));

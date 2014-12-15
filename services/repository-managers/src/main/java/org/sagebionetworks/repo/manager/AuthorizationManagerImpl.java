@@ -313,16 +313,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody bodyIntf) throws DatastoreException, NotFoundException {
-		if(bodyIntf == null) throw new IllegalArgumentException("Body cannot be null");
-		// Anonymous cannot start a job
-		if(AuthorizationUtils.isUserAnonymous(userInfo)) {
-			return AuthorizationManagerUtil.accessDenied("Anonymous user may not start job.");
-		}
-		return AuthorizationManagerUtil.AUTHORIZED;
-	}
-
-	@Override
 	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException {
 		if (objectType==ObjectType.ENTITY) {
 			return entityPermissionsManager.canCreateWiki(objectId, userInfo);
