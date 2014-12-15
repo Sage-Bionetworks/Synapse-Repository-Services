@@ -30,9 +30,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("one, two");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, setQuantifier, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT one, two FROM syn123", builder.toString());
+		assertEquals("SELECT one, two FROM syn123", element.toString());
 	}
 	
 	@Test
@@ -42,9 +40,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("one, two");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(sqlDirective, setQuantifier, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT SQL_CALC_FOUND_ROWS one, two FROM syn123", builder.toString());
+		assertEquals("SELECT SQL_CALC_FOUND_ROWS one, two FROM syn123", element.toString());
 	}
 
 	@Test
@@ -61,9 +57,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = new SelectList(columns);
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT FOUND_ROWS() FROM syn123", builder.toString());
+		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
 	}
 
 	@Test
@@ -72,9 +66,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("one, two");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, setQuantifier, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT DISTINCT one, two FROM syn123", builder.toString());
+		assertEquals("SELECT DISTINCT one, two FROM syn123", element.toString());
 	}
 
 	@Test
@@ -82,9 +74,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("FOUND_ROWS()");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT FOUND_ROWS() FROM syn123", builder.toString());
+		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
 	}
 
 }

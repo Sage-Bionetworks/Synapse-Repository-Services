@@ -84,7 +84,9 @@ import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -319,6 +321,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (ColumnModel cm : start) {
 			models.add(columnModelDao.createColumnModel(cm));
 		}
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 
 		List<String> header = TableModelUtils.getHeaders(models);
 		// bind the columns to the entity
@@ -326,16 +329,13 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
-		RowSet set = new RowSet();
-		set.setHeaders(TableModelUtils.getHeaders(models));
-		set.setRows(rows);
-		set.setTableId(tableId);
+		RawRowSet set = new RawRowSet(TableModelUtils.getHeaders(models), null, tableId, rows);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
-		set.setRows(rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		set = new RawRowSet(TableModelUtils.getHeaders(models), null, tableId, rows);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
 	}
 
 	public void createNewUser() throws NotFoundException {

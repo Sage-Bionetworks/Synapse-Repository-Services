@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltrow value constructor element&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -37,16 +40,22 @@ public class RowValueConstructorElement extends SQLElement {
 	public TruthValue getTruthSpecification() {
 		return truthSpecification;
 	}
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+
+	public void visit(Visitor visitor) {
+		if (valueExpression != null) {
+			visit(valueExpression, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		if(valueExpression != null){
-			valueExpression.toSQL(builder, columnConvertor);
+			visit(valueExpression, visitor);
 		}else if(nullSpecification != null){
-			builder.append("NULL");
+			visitor.append("NULL");
 		} else if (truthSpecification != null) {
-			builder.append(truthSpecification.name());
+			visitor.append(truthSpecification.name());
 		}else{
-			builder.append("DEFAULT");
+			visitor.append("DEFAULT");
 		}
 	}
 }

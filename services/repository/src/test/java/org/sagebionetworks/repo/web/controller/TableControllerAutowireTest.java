@@ -159,14 +159,14 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(cols, 3);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(3, results.getRows().size());
 		assertEquals(table.getId(), results.getTableId());
-		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
+		assertEquals(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns(), results.getHeaders());
 
 		// delete a row
 		RowSelection toDelete = new RowSelection();
@@ -250,14 +250,14 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(cols, 2);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(2, results.getRows().size());
 		assertEquals(table.getId(), results.getTableId());
-		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
+		assertEquals(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns(), results.getHeaders());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -303,7 +303,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results1 = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
@@ -342,7 +342,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results1 = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
@@ -411,7 +411,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "x", handleOne.getId()),
 				TableModelTestUtils.createRow(null, null, "x", handleTwo.getId())));
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
@@ -481,7 +481,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 				adminUserId);
 		RowSet set = new RowSet();
 		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, handleTwo.getId())));
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
@@ -543,17 +543,19 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 				TableModelTestUtils.createRow(null, null, handles.get(2).getId(), null, null),
 				TableModelTestUtils.createRow(null, null, null, null, handles.get(3).getId()),
 				TableModelTestUtils.createRow(null, null, null, null, null)));
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		// remove the string column
-		results.setHeaders(Lists.newArrayList(three.getId(), one.getId()));
+		results.setHeaders(TableModelUtils.createColumnModelColumnMapper(Lists.newArrayList(three, one), false).getSelectColumns());
 		TableFileHandleResults tableFileHandles = servletTestHelper.getTableFileHandles(dispatchServlet, results,
 				adminUserId);
 		assertEquals(2, tableFileHandles.getHeaders().size());
-		assertEquals(three.getId(), tableFileHandles.getHeaders().get(0));
-		assertEquals(one.getId(), tableFileHandles.getHeaders().get(1));
+		assertEquals(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns().get(2),
+				tableFileHandles.getHeaders().get(0));
+		assertEquals(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns().get(0),
+				tableFileHandles.getHeaders().get(1));
 		assertEquals(4, tableFileHandles.getRows().size());
 		int row = 0;
 		assertEquals(2, tableFileHandles.getRows().get(row).getList().size());
@@ -633,13 +635,13 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(cols, 3);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		set = new RowSet();
 		rows = TableModelTestUtils.createRows(cols, 3);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
@@ -695,13 +697,13 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		RowSet set = new RowSet();
 		List<Row> rows = TableModelTestUtils.createRows(cols, 3);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		set = new RowSet();
 		rows = TableModelTestUtils.createRows(cols, 3);
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(cols, false).getSelectColumns());
 		set.setTableId(table.getId());
 		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 

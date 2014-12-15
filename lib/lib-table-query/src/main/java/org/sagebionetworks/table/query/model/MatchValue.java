@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &ltmatch value&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -10,7 +11,6 @@ public class MatchValue extends SQLElement {
 
 	
 	public MatchValue(CharacterValueExpression characterValueExpression) {
-		super();
 		this.characterValueExpression = characterValueExpression;
 	}
 
@@ -18,9 +18,7 @@ public class MatchValue extends SQLElement {
 		return characterValueExpression;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		characterValueExpression.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(characterValueExpression, visitor);
 	}
-
 }

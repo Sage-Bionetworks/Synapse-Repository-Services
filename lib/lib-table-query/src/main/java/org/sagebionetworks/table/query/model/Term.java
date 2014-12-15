@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 public class Term extends SQLElement {
 
@@ -9,16 +10,11 @@ public class Term extends SQLElement {
 		this.factor = factor;
 	}
 
-	public boolean isAggregate() {
-		return factor.isAggregate();
-	}
-
 	public Factor getFactor() {
 		return factor;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.factor.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.factor, visitor);
 	}
 }
