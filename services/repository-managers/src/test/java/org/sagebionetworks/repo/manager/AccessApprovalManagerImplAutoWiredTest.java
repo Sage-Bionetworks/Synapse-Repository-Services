@@ -380,6 +380,9 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(1L, aas.getTotalNumberOfResults());
 		assertEquals(1, aas.getResults().size());
 		
+		AccessApproval retrieved = accessApprovalManager.getAccessApproval(adminUserInfo, aa.getId().toString());
+		assertEquals(aa, retrieved);
+		
 		// node B inherits the ARs and AAs from Node A
 		rod.setId(nodeBId);
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);

@@ -2139,6 +2139,10 @@ public class NodeDAOImplTest {
 		String publicProject = createProject("testGetProjectHeaders.name7", user1);
 		addReadAcl(publicProject, user1, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
 
+		// project owned by neither user but public
+		String publicProject2 = createProject("testGetProjectHeaders.name8", user2);
+		addReadAcl(publicProject2, user2, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
+
 		Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
 			@Override
 			public String apply(ProjectHeader input) {

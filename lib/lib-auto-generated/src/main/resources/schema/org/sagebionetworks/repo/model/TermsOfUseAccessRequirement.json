@@ -9,7 +9,7 @@
 	"properties": {
 		"termsOfUse": {
 			"type": "string",
-			"description": "Terms Of Use for Access, stored directly in the document (versus in a referenced Location)",
+			"description": "Terms Of Use for Access, stored directly in the document (versus in a referenced Location)  Required when creating or updating.",
 			"title": "Terms Of Use"
 		}
 	}

@@ -147,6 +147,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return result;
 	}
 	
+
+	@Override
+	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {
+		return accessRequirementDAO.get(requirementId);
+	}
+	
 	@Override
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		List<String> subjectIds = new ArrayList<String>();
@@ -161,28 +167,47 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 	
 	@Override
-	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
+	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<String> subjectIds = new ArrayList<String>();
 		subjectIds.add(subjectId.getId());
 		List<Long> unmetARIds = null;
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
-			subjectIds.addAll(nodeAncestorIds);
 			unmetARIds = new ArrayList<Long>();
-			unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
+			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
+			if (accessType==null || accessType==ACCESS_TYPE.DOWNLOAD) {
+				subjectIds.addAll(nodeAncestorIds);
+				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 						userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
-			List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
-			entityAndAncestorIds.add(subjectId.getId());
-			unmetARIds.addAll(AccessRequirementUtil.
-					unmetUploadAccessRequirementIdsForEntity(userInfo, 
+			}
+			if (accessType==null || accessType==ACCESS_TYPE.UPLOAD) {
+				List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
+				entityAndAncestorIds.add(subjectId.getId());
+				unmetARIds.addAll(AccessRequirementUtil.
+				unmetUploadAccessRequirementIdsForEntity(userInfo, 
 							entityAndAncestorIds, nodeDao, accessRequirementDAO));
+			}
 		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
-			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
-					userInfo, subjectId.getId(), accessRequirementDAO);
+			List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
+			if (accessType==null) {
+				accessTypes.add(ACCESS_TYPE.DOWNLOAD);
+				accessTypes.add(ACCESS_TYPE.PARTICIPATE);
+				accessTypes.add(ACCESS_TYPE.SUBMIT);
+			} else {
+				accessTypes.add(accessType);
+			}
+			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
+					userInfo, subjectId, accessRequirementDAO, accessTypes);
 		} else if (RestrictableObjectType.TEAM==subjectId.getType()) {
-			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForTeam(
-					userInfo, subjectId.getId(), accessRequirementDAO);
+			List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
+			if (accessType==null) {
+				accessTypes.add(ACCESS_TYPE.DOWNLOAD);
+				accessTypes.add(ACCESS_TYPE.PARTICIPATE);
+			} else {
+				accessTypes.add(accessType);
+			}
+			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
+					userInfo, subjectId, accessRequirementDAO, accessTypes);
 		} else {
 			throw new InvalidModelException("Unexpected object type "+subjectId.getType());
 		}

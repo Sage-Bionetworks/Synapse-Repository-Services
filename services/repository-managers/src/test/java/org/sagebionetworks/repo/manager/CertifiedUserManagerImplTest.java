@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
@@ -44,6 +45,7 @@ import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -592,6 +594,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException());
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
@@ -627,6 +630,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException());
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
 		PassingRecord passingRecord = captor.getValue();
@@ -643,6 +647,29 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testSubmitCertificationQuizAlreadyPassed() throws Exception {
+		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
+		QuizGenerator quizGenerator = createQuizGenerator();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		quizGenerator.writeToJSONObject(adapter);
+		String quizGeneratorAsString = adapter.toJSONString();
+		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
+		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(666L);
+		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
+		created.setCreatedBy(userInfo.getId().toString());
+		created.setCreatedOn(new Date());
+		created.setId(10101L);
+		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
+		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		PassingRecord previousPR = new PassingRecord();
+		previousPR.setPassed(true);
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenReturn(previousPR);
+		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 	}
 	
 	@Test

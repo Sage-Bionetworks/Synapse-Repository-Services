@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.query.jdo;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -14,7 +15,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -86,7 +86,7 @@ public class QueryUtils {
 		return nodeAlias + "." + SqlConstants.COL_NODE_BENEFACTOR_ID + " in (" + sql + ")";
 	}
 
-	public static String buildAuthorizationSelect(Set<Long> groups, Map<String, Object> parameters, int groupIndexToStartFrom) {
+	public static String buildAuthorizationSelect(Collection<Long> groups, Map<String, Object> parameters, int groupIndexToStartFrom) {
 		if (parameters == null)
 			throw new IllegalArgumentException("Parameters cannot be null");
 		// For all other cases we build up a filter
