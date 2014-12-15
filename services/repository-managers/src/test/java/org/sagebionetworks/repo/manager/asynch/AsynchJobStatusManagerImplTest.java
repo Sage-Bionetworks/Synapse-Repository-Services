@@ -100,21 +100,11 @@ public class AsynchJobStatusManagerImplTest {
 		manager.startJob(user, null);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
-	public void testStartJobBodyUploadUnauthorizedException() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.startJob(user, body);
-	}
-	
 	@Test
 	public void testStartJobBodyUploadHappy() throws DatastoreException, NotFoundException{
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
-		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(body, status.getRequestBody());
