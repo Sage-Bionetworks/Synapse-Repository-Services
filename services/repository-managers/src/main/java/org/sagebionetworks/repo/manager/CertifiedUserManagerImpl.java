@@ -332,6 +332,17 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	public PassingRecord submitCertificationQuizResponse(
 			UserInfo userInfo, QuizResponse response) throws NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		
+		// don't let someone take the test twice
+		try {
+			PassingRecord passingRecord = quizResponseDao.getPassingRecord(quizGenerator.getId(), userInfo.getId());
+			if(passingRecord.getPassed()) {
+				throw new UnauthorizedException("You have already passed the certification test.");
+			}
+		} catch (NotFoundException e) {
+			// OK
+		}
+		
 		Date now = new Date();
 		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
 		// grade the submission:  pass or fail?

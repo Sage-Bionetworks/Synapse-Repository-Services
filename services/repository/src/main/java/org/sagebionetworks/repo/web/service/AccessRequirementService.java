@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -16,7 +17,12 @@ public interface AccessRequirementService {
 			String entityId) throws Exception;
 
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId)
+			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException;
+	
+	public AccessRequirement getAccessRequirement(
+			Long userId, String requirementId)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 

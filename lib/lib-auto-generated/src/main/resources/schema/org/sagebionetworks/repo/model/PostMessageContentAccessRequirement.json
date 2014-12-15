@@ -9,7 +9,7 @@
 	"properties": {
 		"url": {
 			"type": "string",
-			"description": "The URL of the IFrame to be displayed for the user."
+			"description": "The URL of the IFrame to be displayed for the user.  Required when creating or updating."
 		}
 	}
 }

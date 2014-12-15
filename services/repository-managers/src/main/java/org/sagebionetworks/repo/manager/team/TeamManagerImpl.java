@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.manager.team;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +35,8 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -416,8 +419,12 @@ public class TeamManagerImpl implements TeamManager {
 	
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
-		List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForTeam(
-				memberUserInfo, teamId, accessRequirementDAO);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(teamId);
+		rod.setType(RestrictableObjectType.TEAM);
+		
+		List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
+				memberUserInfo, rod, accessRequirementDAO, Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
 		return !unmetRequirements.isEmpty();
 
 	}

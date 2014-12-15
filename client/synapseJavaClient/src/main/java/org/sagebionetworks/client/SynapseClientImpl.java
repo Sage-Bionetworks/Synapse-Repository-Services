@@ -220,7 +220,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
-
+	private static final String ACCESS_TYPE_PARAMETER = "accessType";
+	
 	private static final String EVALUATION_URI_PATH = "/evaluation";
 	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	private static final String NAME = "name";
@@ -1382,8 +1383,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_REQUIREMENT + "/" + arId, getUserAgent());
 	}
+	
+	
 	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
+		return getUnmetAccessRequirements(subjectId, null);
+	}
+	
+	@Override
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException {
 		String uri = null;
 		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
 			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
@@ -1394,12 +1402,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} else {
 			throw new SynapseClientException("Unsupported type "+subjectId.getType());
 		}
+		if (accessType!=null) {
+			uri += "?"+ACCESS_TYPE_PARAMETER+"="+accessType;
+		}
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
+	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException {
+		String uri = ACCESS_REQUIREMENT+"/"+requirementId;
+		JSONObject jsonObj = getEntity(uri);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObj, AccessRequirement.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -1457,6 +1479,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
 	}
 
+	@Override
+	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException {
+		String uri = ACCESS_APPROVAL+"/"+approvalId;
+		JSONObject jsonObj = getEntity(uri);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObj, AccessApproval.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 

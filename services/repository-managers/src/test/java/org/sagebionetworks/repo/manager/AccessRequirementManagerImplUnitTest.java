@@ -188,7 +188,7 @@ public class AccessRequirementManagerImplUnitTest {
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
 		when(accessRequirementDAO.getForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
-		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId).getResults();
+		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId, null).getResults();
 		assertEquals(arList, result);
 	}
 }

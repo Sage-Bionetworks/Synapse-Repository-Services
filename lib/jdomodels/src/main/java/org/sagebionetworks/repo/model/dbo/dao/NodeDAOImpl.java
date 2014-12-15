@@ -7,6 +7,7 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -49,6 +51,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -1299,6 +1302,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return refs;
 	}
 
+	private Collection<Long> getGroupsMinusPublic(Set<Long> usersGroups){
+		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, new Predicate<Long>() {
+			@Override
+			public boolean apply(Long input) {
+				return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue();
+			}
+		}));
+		return groups;
+	}
+
 	@Override
 	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset) {
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
@@ -1308,7 +1321,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		Map<String, Object> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationSelect(userInfo.getGroups(), parameters, 0);
+		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userInfo.getGroups()), parameters, 0);
 
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
@@ -1330,7 +1343,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		Map<String, Object> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationSelect(userToLookup.getGroups(), parameters, 0);
+		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userToLookup.getGroups()), parameters, 0);
 
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", userToLookup
