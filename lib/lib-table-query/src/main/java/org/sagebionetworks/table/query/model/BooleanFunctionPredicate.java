@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 public class BooleanFunctionPredicate extends SQLElement {
 
@@ -19,15 +23,18 @@ public class BooleanFunctionPredicate extends SQLElement {
 		return columnReference;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if (columnConvertor != null) {
-			columnConvertor.handleFunction(booleanFunction, columnReference, builder);
-		} else {
-			builder.append(booleanFunction.name());
-			builder.append('(');
-			columnReference.toSQL(builder, columnConvertor);
-			builder.append(')');
-		}
+	public void visit(Visitor visitor) {
+		visit(columnReference, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append(booleanFunction.name());
+		visitor.append("(");
+		visit(columnReference, visitor);
+		visitor.append(")");
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		visitor.handleFunction(booleanFunction, columnReference);
 	}
 }

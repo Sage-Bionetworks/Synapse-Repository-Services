@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 public class Factor extends SQLElement {
 
@@ -9,16 +10,11 @@ public class Factor extends SQLElement {
 		this.numericPrimary = numericPrimary;
 	}
 
-	public boolean isAggregate() {
-		return numericPrimary.isAggregate();
-	}
-
 	public NumericPrimary getNumericPrimary() {
 		return numericPrimary;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.numericPrimary.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.numericPrimary, visitor);
 	}
 }

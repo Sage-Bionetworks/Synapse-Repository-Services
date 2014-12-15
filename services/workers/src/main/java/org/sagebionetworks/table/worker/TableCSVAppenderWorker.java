@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,7 +128,9 @@ public class TableCSVAppenderWorker implements Worker {
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader);
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
 			// Append the data to the table
-			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, body.getUpdateEtag(), null, new ProgressCallback<Long>(){
+			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(),
+					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
+					new ProgressCallback<Long>() {
 
 				@Override
 				public void progressMade(Long count) {

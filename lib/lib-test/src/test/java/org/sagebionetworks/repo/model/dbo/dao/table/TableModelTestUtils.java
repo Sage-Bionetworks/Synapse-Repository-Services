@@ -2,21 +2,31 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.assertNull;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -42,6 +52,56 @@ public class TableModelTestUtils {
 	 */
 	public static List<ColumnModel> createOneOfEachType() {
 		return createOneOfEachType(false);
+	}
+
+	public static ColumnMapper createMapperForOneOfEachType() {
+		return new AbstractColumnMapper() {
+			@Override
+			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
+				List<SelectColumnAndModel> selectColumnAndModels = createSelectColumnAndModelList();
+				return Transform.toOrderedIdMap(selectColumnAndModels, new Function<SelectColumnAndModel, String>() {
+					@Override
+					public String apply(SelectColumnAndModel input) {
+						return input.getColumnModel().getId();
+					}
+				});
+			}
+
+			@Override
+			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
+				List<ColumnModel> oneOfEachType = createOneOfEachType(false);
+				return Transform.toList(oneOfEachType, new Function<ColumnModel, SelectColumnAndModel>() {
+					@Override
+					public SelectColumnAndModel apply(final ColumnModel input) {
+						return new SelectColumnAndModel() {
+							@Override
+							public String getName() {
+								return input.getName();
+							}
+
+							@Override
+							public ColumnType getColumnType() {
+								return input.getColumnType();
+							}
+
+							@Override
+							public SelectColumn getSelectColumn() {
+								SelectColumn selectColumn = new SelectColumn();
+								selectColumn.setName(input.getName());
+								selectColumn.setColumnType(input.getColumnType());
+								selectColumn.setId(input.getId());
+								return selectColumn;
+							}
+
+							@Override
+							public ColumnModel getColumnModel() {
+								return input;
+							}
+						};
+					}
+				});
+			}
+		};
 	}
 
 	public static final Function<ColumnModel, String> convertToNameFunction = new Function<ColumnModel, String>() {
@@ -359,26 +419,116 @@ public class TableModelTestUtils {
 		return cm;
 	}
 
+	public static SelectColumn createSelectColumn(Long id, String name, ColumnType type) {
+		SelectColumn scm = new SelectColumn();
+		if (id != null) {
+			scm.setId(id.toString());
+		}
+		scm.setName(name);
+		scm.setColumnType(type);
+		return scm;
+	}
+
 	/**
 	 * Create a CSV string from the passed row data.
-	 * @param  input List of rows where each row is represented by a string array.
+	 * 
+	 * @param input List of rows where each row is represented by a string array.
 	 * @return
+	 * @throws IOException
 	 */
-	public static String createCSVString(List<String[]> input) {
+	public static String createCSVString(List<String[]> input) throws IOException {
 		StringWriter writer = new StringWriter();
 		CSVWriter csvWriter = new CSVWriter(writer);
 		csvWriter.writeAll(input);
+		csvWriter.close();
 		return writer.toString();
 	}
 	
 	/**
 	 * Create a reader that wraps the passed row data.
+	 * 
 	 * @param input List of rows where each row is represented by a string array.
 	 * @return
+	 * @throws IOException
 	 */
-	public static CsvNullReader createReader(List<String[]> input) {
+	public static CsvNullReader createReader(List<String[]> input) throws IOException {
 		String csv = createCSVString(input);
 		StringReader reader = new StringReader(csv);
 		return new CsvNullReader(reader);
+	}
+
+	/**
+	 * Is the row ID null or invalid?
+	 * 
+	 * @param rowId
+	 * @return
+	 */
+	private static boolean isNullOrInvalid(Long rowId) {
+		if (rowId == null)
+			return true;
+		return rowId < 0;
+	}
+
+	/**
+	 * @param set
+	 */
+	private static void validateRowSet(RowSet set) {
+		if (set == null)
+			throw new IllegalArgumentException("RowSet cannot be null");
+		;
+		if (set.getHeaders() == null)
+			throw new IllegalArgumentException("RowSet.headers cannot be null");
+		if (set.getRows() == null)
+			throw new IllegalArgumentException("RowSet.rows cannot be null");
+		if (set.getRows().size() < 1)
+			throw new IllegalArgumentException("RowSet.rows must contain at least one row.");
+	}
+
+	/**
+	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
+	 * 
+	 * @param set
+	 * @param range
+	 */
+	public static void assignRowIdsAndVersionNumbers(RowSet set, IdRange range) {
+		validateRowSet(set);
+		Long id = range.getMinimumId();
+		for (Row row : set.getRows()) {
+			// Set the version number for each row
+			row.setVersionNumber(range.getVersionNumber());
+			if (isNullOrInvalid(row.getRowId())) {
+				if (range.getMinimumId() == null) {
+					throw new IllegalStateException("RowSet required at least one row ID but none were allocated.");
+				}
+				// This row needs an id.
+				row.setRowId(id);
+				id++;
+				// Validate we have not exceeded the rows
+				if (row.getRowId() > range.getMaximumId()) {
+					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
+				}
+			} else {
+				// Validate the rowId is within range
+				if (row.getRowId() > range.getMaximumUpdateId()) {
+					throw new IllegalArgumentException("Cannot update row: " + row.getRowId() + " because it does not exist.");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Extract the headers from a list of select columns
+	 * 
+	 * @param models
+	 * @return
+	 */
+	public static List<String> getHeadersFromSelectColumns(List<SelectColumn> columns) {
+		if (columns == null)
+			throw new IllegalArgumentException("ColumnModels cannot be null");
+		List<String> headers = new LinkedList<String>();
+		for (SelectColumn column : columns) {
+			headers.add(column.getId());
+		}
+		return headers;
 	}
 }

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -71,9 +73,8 @@ public interface TableRowManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId,
-			List<ColumnModel> models, RowSet delta) throws DatastoreException,
-			NotFoundException, IOException;
+	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta)
+			throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Append or update a set of partial rows to a table.
@@ -87,15 +88,14 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models,
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
 			PartialRowSet rowsToAppendOrUpdateOrDelete) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a set of rows from a table.
 	 * 
-	 * @param models
 	 */
-	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowSelection rowsToDelete)
+	public RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -130,10 +130,8 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	String appendRowsAsStream(UserInfo user, String tableId,
-			List<ColumnModel> models, Iterator<Row> rowStream, String etag,
-			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException,
-			NotFoundException, IOException;
+	String appendRowsAsStream(UserInfo user, String tableId, ColumnMapper columnMapper, Iterator<Row> rowStream, String etag,
+			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Get the current ColumnModel list for a table.
@@ -163,7 +161,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet)
+	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet, ColumnMapper schema)
 			throws IOException, NotFoundException;
 
 	/**
@@ -222,7 +220,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> models)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, ColumnMapper columnMapper)
 			throws IOException, NotFoundException;
 
 	/**
@@ -428,13 +426,14 @@ public interface TableRowManager {
 	 * @param sql
 	 * @param list
 	 * @param writer
+	 * @param writeHeader
 	 * @return
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
 	DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
-			boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException, TableFailedException;
+			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**
 	 * Update the current version cache if enabled
@@ -448,11 +447,19 @@ public interface TableRowManager {
 	 * @param models
 	 * @return
 	 */
+	public Long getMaxRowsPerPage(ColumnMapper columnMapper);
+
+	/**
+	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
+	 * 
+	 * @param models
+	 * @return
+	 */
 	public Long getMaxRowsPerPage(List<ColumnModel> models);
 
 	/**
-	 * Get the columns Models for a list of headers.  Only headers that are column models ID will have a column model in the result.
-	 * None column model id headers will be ignored.
+	 * Get the columns Models for a list of headers. Only headers that are column models ID will have a column model in
+	 * the result. None column model id headers will be ignored.
 	 * 
 	 * @param headers
 	 * @return

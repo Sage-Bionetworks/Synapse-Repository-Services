@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &ltvalue expression primary&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -22,14 +23,6 @@ public class ValueExpressionPrimary extends SQLElement {
 		this.setFunctionSpecification = setFunctionSpecification;
 	}
 
-	public boolean isAggregate() {
-		if (setFunctionSpecification != null) {
-			return setFunctionSpecification.isAggregate();
-		} else {
-			return false;
-		}
-	}
-
 	public SignedValueSpecification getSignedValueSpecification() {
 		return signedValueSpecification;
 	}
@@ -40,15 +33,14 @@ public class ValueExpressionPrimary extends SQLElement {
 		return setFunctionSpecification;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
 		// only one element at a time will be no null
 		if (signedValueSpecification != null) {
-			signedValueSpecification.toSQL(builder, columnConvertor);
-		}else if(columnReference != null){
-			columnReference.toSQL(builder, columnConvertor);
-		}else{
-			setFunctionSpecification.toSQL(builder, columnConvertor);
+			visit(signedValueSpecification, visitor);
+		} else if (columnReference != null) {
+			visit(columnReference, visitor);
+		} else {
+			visit(setFunctionSpecification, visitor);
 		}
 	}
 }

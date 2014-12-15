@@ -491,7 +491,7 @@ public class SQLUtilsTest {
 			rows.add(row);
 		}
 		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(oldSchema));
+		set.setHeaders(TableModelUtils.getSelectColumns(oldSchema, false));
 		set.setTableId("syn123");
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
@@ -515,13 +515,13 @@ public class SQLUtilsTest {
 		List<ColumnModel> newSchema = TableModelTestUtils.createOneOfEachType();
 		RowSet set = new RowSet();
 		set.setRows(TableModelTestUtils.createRows(newSchema, 3));
-		set.setHeaders(TableModelUtils.getHeaders(newSchema));
+		set.setHeaders(TableModelUtils.getSelectColumns(newSchema, false));
 		set.setTableId("syn123");
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
 		assertNotNull(results);
