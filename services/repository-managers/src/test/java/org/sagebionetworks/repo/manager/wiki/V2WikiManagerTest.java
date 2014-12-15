@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -893,8 +894,8 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
-		when(mockWikiDao.getWikiOrderHint(key)).thenReturn(orderHintDTO);
+		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
+		when(mockWikiDao.getWikiOrderHint(any(WikiPageKey.class))).thenReturn(orderHintDTO);
 		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.
@@ -903,10 +904,10 @@ public class V2WikiManagerTest {
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
-		wikiManager.updateOrderHint(user, key, orderHintDTO);
+		wikiManager.updateOrderHint(user, orderHintDTO);
 		
 		// Verify that the order hint was updated.
-		verify(mockWikiDao, times(1)).updateOrderHint(eq(orderHintDTO), eq(key));
+		verify(mockWikiDao, times(1)).updateOrderHint(eq(orderHintDTO), any(WikiPageKey.class));
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -921,7 +922,7 @@ public class V2WikiManagerTest {
 		orderHintDTO.setEtag("etag");
 		orderHintDTO.setOwnerId("123");
 		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
-		orderHintDTO.setOrderHint(Arrays.asList(new String[] {"A", "B", "C"}));
+		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
 		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
 		
 		// Return etag when locking Wiki Owner database.
@@ -930,7 +931,7 @@ public class V2WikiManagerTest {
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
-		wikiManager.updateOrderHint(user, key, orderHintDTO);
+		wikiManager.updateOrderHint(user, orderHintDTO);
 	}
 	
 	@Test
@@ -938,16 +939,20 @@ public class V2WikiManagerTest {
 		// Allow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
-		wikiManager.getOrderHint(user, key);
+		wikiManager.getOrderHint(user, key.getOwnerObjectId(), key.getOwnerObjectType());
 		
-		verify(mockWikiDao).getWikiOrderHint(key);
+		ArgumentCaptor<WikiPageKey> keyCaptor = ArgumentCaptor.forClass(WikiPageKey.class);
+		verify(mockWikiDao).getWikiOrderHint(keyCaptor.capture());
+		
+		assertEquals(keyCaptor.getValue().getOwnerObjectId(), key.getOwnerObjectId());
+		assertEquals(keyCaptor.getValue().getOwnerObjectType(), key.getOwnerObjectType());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOrderHintUnauthorized() throws DatastoreException, NotFoundException {
 		// Disallow user to access order hint.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		wikiManager.getOrderHint(user, key);
+		wikiManager.getOrderHint(user, key.getOwnerObjectId(), key.getOwnerObjectType());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1011,28 +1016,28 @@ public class V2WikiManagerTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetOrderHintNullKey() throws UnauthorizedException, NotFoundException {
-		wikiManager.getOrderHint(new UserInfo(true), null);
+	public void testGetOrderHintNullOwnerId() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(new UserInfo(true), null, key.getOwnerObjectType());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
-		wikiManager.getOrderHint(null, new WikiPageKey());
+		wikiManager.getOrderHint(null, key.getOwnerObjectId(), key.getOwnerObjectType());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateOrderHintNullKey() throws UnauthorizedException, NotFoundException {
-		wikiManager.updateOrderHint(new UserInfo(true), null, new V2WikiOrderHint());
+	public void testGetOrderHintNullObjectType() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(new UserInfo(true), key.getOwnerObjectId(), null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
-		wikiManager.updateOrderHint(null, new WikiPageKey(), new V2WikiOrderHint());
+		wikiManager.updateOrderHint(null, new V2WikiOrderHint());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateOrderHintNullUserOrderHint() throws UnauthorizedException, NotFoundException {
-		wikiManager.updateOrderHint(new UserInfo(true), new WikiPageKey(), null);
+		wikiManager.updateOrderHint(new UserInfo(true), null);
 	}
 	
 	@Test
