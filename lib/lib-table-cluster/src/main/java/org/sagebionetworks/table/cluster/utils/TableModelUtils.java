@@ -66,6 +66,11 @@ public class TableModelUtils {
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
+
+	/**
+	 * The maximum allowed value for the number characters for a string.
+	 */
+	public static final Long MAX_ALLOWED_STRING_SIZE = 1000L;
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.
@@ -746,7 +751,7 @@ public class TableModelUtils {
 				size += calculateMaxSizeForType(scm.getColumnType(), scm.getColumnModel().getMaximumSize());
 			} else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getColumnType(), 2000L);
+				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;
@@ -1224,14 +1229,6 @@ public class TableModelUtils {
 				return true;
 			}
 		};
-	}
-
-	public static ColumnMapper createColumnMapperFromColumnModels(LinkedHashMap<String, ColumnModel> columnIdToModelMap, boolean isAggregate) {
-		LinkedHashMap<String, SelectColumnAndModel> columnIdMap = Maps.newLinkedHashMap();
-		for (Entry<String, ColumnModel> entry : columnIdToModelMap.entrySet()) {
-			columnIdMap.put(entry.getKey(), createSelectColumnAndModel(entry.getValue(), isAggregate));
-		}
-		return createColumnMapper(columnIdMap);
 	}
 
 	public static ColumnModelMapper createSingleColumnColumnMapper(ColumnModel column, boolean isAggregate) {

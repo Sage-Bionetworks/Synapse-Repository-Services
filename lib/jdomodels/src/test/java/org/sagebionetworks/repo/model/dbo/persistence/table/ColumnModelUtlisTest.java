@@ -13,6 +13,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import com.google.common.collect.Lists;
 
@@ -82,12 +83,12 @@ public class ColumnModelUtlisTest {
 		original.setColumnType(ColumnType.STRING);
 		original.setEnumValues(null);
 		original.setDefaultValue("123");
-		original.setMaximumSize(ColumnModelUtlis.MAX_ALLOWED_STRING_SIZE+1);
+		original.setMaximumSize(TableModelUtils.MAX_ALLOWED_STRING_SIZE+1);
 		try {
 			ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 			fail("Should have failed as the size is too large");
 		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains(ColumnModelUtlis.MAX_ALLOWED_STRING_SIZE.toString()));
+			assertTrue(e.getMessage().contains(TableModelUtils.MAX_ALLOWED_STRING_SIZE.toString()));
 		}
 	}
 	

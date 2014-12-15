@@ -11,15 +11,15 @@ import java.util.Map;
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -86,7 +86,8 @@ public class SqlQuery {
 	 */
 	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
-		init(TableQueryParser.parserQuery(sql), tableSchema);
+		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
+		init(parsedQuery, tableSchema, parsedQuery.doVisit(new GetTableNameVisitor()).getTableName());
 	}
 	
 	/**
@@ -96,22 +97,25 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema) {
-		if(model == null) throw new IllegalArgumentException("The input model cannot be null");
-		init(model, tableSchema);
+	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema, String tableId) {
+		if (model == null)
+			throw new IllegalArgumentException("The input model cannot be null");
+		init(model, tableSchema, tableId);
 	}
 
 	/**
+	 * @param tableId
 	 * @param sql
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public void init(QuerySpecification parsedModel, List<ColumnModel> tableSchema) {
-		if (tableSchema == null)
-			throw new IllegalArgumentException("TableSchema cannot be null");
+	public void init(QuerySpecification parsedModel, List<ColumnModel> tableSchema, String tableId) {
+		ValidateArgument.required(tableSchema, "TableSchema");
+		ValidateArgument.required(tableId, "tableId");
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
-		this.tableId = SqlElementUntils.getTableId(model);
+		this.tableId = tableId;
+
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);

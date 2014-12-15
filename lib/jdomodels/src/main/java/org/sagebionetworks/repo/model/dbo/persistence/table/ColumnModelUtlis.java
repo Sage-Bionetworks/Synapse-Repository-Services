@@ -38,11 +38,6 @@ public class ColumnModelUtlis {
 	 * The default maximum number of characters for a string.
 	 */
 	public static Long DEFAULT_MAX_STRING_SIZE = 50L;
-	/**
-	 * The maximum allowed value for the number characters for a string.
-	 */
-	public static Long MAX_ALLOWED_STRING_SIZE = 1000L;
-
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 
 	/**
@@ -170,9 +165,9 @@ public class ColumnModelUtlis {
 				if(clone.getMaximumSize() == null){
 					// Use the default value
 					clone.setMaximumSize(DEFAULT_MAX_STRING_SIZE);
-				}else if(clone.getMaximumSize() > MAX_ALLOWED_STRING_SIZE){
+				}else if(clone.getMaximumSize() > TableModelUtils.MAX_ALLOWED_STRING_SIZE){
 					// The max is beyond the allowed size
-					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+MAX_ALLOWED_STRING_SIZE);
+					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+TableModelUtils.MAX_ALLOWED_STRING_SIZE);
 				} else if (clone.getMaximumSize() < 1) {
 					// The max is beyond the allowed size
 					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING must be greater than 0");

@@ -63,8 +63,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(columnNameToModelMap, "all columns");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
-			// All of the columns will be returned.
-			return TableModelUtils.createColumnMapperFromColumnModels(columnNameToModelMap, isAggregatedResult);
+			throw new IllegalStateException("The columns should have been expanded before getting here");
 		} else {
 			List<SelectColumnAndModel> selectColumnModels = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 			for (DerivedColumn dc : selectList.getColumns()) {

@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 
@@ -31,12 +30,6 @@ public class NumericPrimary extends SQLElement {
 			visit(valueExpressionPrimary, visitor);
 		} else {
 			visit(numericValueFunction, visitor);
-		}
-	}
-
-	public void visit(IsAggregateVisitor visitor) {
-		if (valueExpressionPrimary != null) {
-			visit(valueExpressionPrimary, visitor);
 		}
 	}
 }
