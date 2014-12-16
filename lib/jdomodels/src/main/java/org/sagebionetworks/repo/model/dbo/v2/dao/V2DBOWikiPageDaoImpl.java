@@ -335,6 +335,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Get the WikiOwner DBO
 		V2DBOWikiOwner dbo = getWikiOwnerDBO(key.getWikiPageId());
+		dbo.setEtag(orderHint.getEtag());
 		if (orderHint.getIdList() == null) {
 			dbo.setOrderHint(null);
 		} else {

@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -9,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -365,5 +368,44 @@ public class ITV2WikiPageTest {
 			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
+	}
+	
+	@Test
+	public void testV2WikiOrderHintRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testWikiRoundTrip");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		Date firstModifiedOn = wiki.getModifiedOn();
+		
+		// test get order hint
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		assertNotNull(hint);
+		assertNotNull(hint.getOwnerId());
+		assertNotNull(hint.getOwnerObjectType());
+		assertNull(hint.getIdList());	// Should be null by default
+		
+		// Update order hint
+		List<String> hintIdList = Arrays.asList(new String[] {"A", "X", "B", "Y", "C", "Z"});
+		hint.setIdList(hintIdList);
+		
+		V2WikiOrderHint updatedHint = synapse.updateV2WikiOrderHint(hint);
+		assertTrue(hint.getOwnerId().equals(updatedHint.getOwnerId()));
+		assertTrue(hint.getOwnerObjectType().equals(updatedHint.getOwnerObjectType()));
+		assertTrue(Arrays.equals(hint.getIdList().toArray(), updatedHint.getIdList().toArray()));
+
+		V2WikiOrderHint postUpdateHint = synapse.getV2OrderHint(key);
+		assertTrue(updatedHint.getOwnerId().equals(postUpdateHint.getOwnerId()));
+		assertTrue(updatedHint.getOwnerObjectType().equals(postUpdateHint.getOwnerObjectType()));
+		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), postUpdateHint.getIdList().toArray()));
 	}
 }

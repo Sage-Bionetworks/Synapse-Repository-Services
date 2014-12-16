@@ -333,6 +333,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new ConflictingUpdateException("ObjectId: "+orderHint.getOwnerId()+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		
+		orderHint.setEtag(UUID.randomUUID().toString());
+		
 		return wikiPageDao.updateOrderHint(orderHint, key);
 	}
 
