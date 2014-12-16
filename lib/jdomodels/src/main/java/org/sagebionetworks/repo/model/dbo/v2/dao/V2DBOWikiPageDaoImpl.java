@@ -578,10 +578,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 	
 	private V2DBOWikiOwner getWikiOwnerDBO(String rootWikiId) throws NotFoundException {
-		// In order to access a wiki you must know its owner.
-//		// If the root does not exist then the wiki does not exist.
-//		Long root = getRootWiki(ownerId, ownerType);
-		// We use the root in addition to the primary key (id) to enforce they are not out of sych.
 		List<V2DBOWikiOwner> list = simpleJdbcTemplate.query(SQL_SELECT_WIKI_OWNER_USING_ROOT_WIKI_ID, WIKI_OWNER_ROW_MAPPER, Long.parseLong(rootWikiId));
 		if(list.size() > 1) throw new DatastoreException("More than one Wiki owner found with the root wiki ID: " + rootWikiId);
 		if(list.size() < 1) throw new NotFoundException("No wiki page found with the root wiki ID: " + rootWikiId);
@@ -658,7 +654,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String lockWikiOwnersForUpdate(String rootWikiId) {
-		// Lock the wiki row and return current Etag.
+		// Lock the wiki owner row and return current Etag.
 		return simpleJdbcTemplate.queryForObject(SQL_LOCK_OWNERS_FOR_UPDATE, String.class, Long.parseLong(rootWikiId));
 	}
 	

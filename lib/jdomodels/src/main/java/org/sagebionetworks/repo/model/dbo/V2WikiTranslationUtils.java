@@ -102,7 +102,7 @@ public class V2WikiTranslationUtils {
 	 * @return
 	 */
 	public static V2WikiOrderHint createWikiOrderHintDTOfromDBO(V2DBOWikiOwner dbo){
-		if(dbo == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
+		if(dbo == null) throw new IllegalArgumentException("WikiOwner dbo cannot be null");
 		
 		V2WikiOrderHint dto = new V2WikiOrderHint();
 		dto.setOwnerId(dbo.getOwnerId().toString());

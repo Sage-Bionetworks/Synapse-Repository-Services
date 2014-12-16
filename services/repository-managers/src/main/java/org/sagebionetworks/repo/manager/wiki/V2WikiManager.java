@@ -143,10 +143,23 @@ public interface V2WikiManager {
 	 */
 	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
-	
+	/**
+	 * Gets the order hint associated with the given object id and object type.
+	 * @param user
+	 * @param objectId
+	 * @param objectType
+	 * @return The order hint associated with the given object id and object type.
+	 * @throws NotFoundException
+	 */
 	V2WikiOrderHint getOrderHint(UserInfo user, String objectId, ObjectType objectType) throws NotFoundException;
 	
+	/**
+	 * Updates the given order hint.
+	 * @param user
+	 * @param orderHint
+	 * @return The updated order hint.
+	 * @throws NotFoundException
+	 */
 	V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException;
-	
 	
 }

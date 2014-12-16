@@ -65,6 +65,13 @@ public interface V2WikiPageDao {
 	 */
 	V2WikiOrderHint getWikiOrderHint(WikiPageKey rootKey) throws NotFoundException;
 	
+	/**
+	 * Update the order hint of a root wiki page.
+	 * @param orderHint The order hint with changes made to update.
+	 * @param key The key to the wiki page.
+	 * @return The updated wiki order hint.
+	 * @throws NotFoundException
+	 */
 	V2WikiOrderHint updateOrderHint(V2WikiOrderHint orderHint, WikiPageKey key) throws NotFoundException;
 	
 	/**
