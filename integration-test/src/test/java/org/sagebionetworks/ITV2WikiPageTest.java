@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,9 +24,13 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -60,6 +65,7 @@ public class ITV2WikiPageTest {
 	private File imageFileTwo;
 	private File markdownFile;
 	private Project project;
+	private TermsOfUseAccessRequirement accessRequirement;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -109,10 +115,26 @@ public class ITV2WikiPageTest {
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		fileHandleTwo = (S3FileHandle) results.getList().get(1);
 		markdownHandle = (S3FileHandle) results.getList().get(2);
+		
+		// create the access requirement
+		accessRequirement = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(project.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setSubjectIds(Collections.singletonList(rod));
+		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
 	@After
 	public void after() throws Exception {
+		if (accessRequirement != null) {
+			try {
+				synapse.deleteAccessRequirement(accessRequirement.getId());
+			} catch (Exception e) {
+				// continue
+			}
+		}
 		if(fileHandle != null){
 			try {
 				synapse.deleteFileHandle(fileHandle.getId());
@@ -240,7 +262,7 @@ public class ITV2WikiPageTest {
 		wiki.setMarkdownFileHandleId(markdownHandle.getId());
 		wiki.setTitle("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip");
 		// Create a V2WikiPage
-		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		wiki = adminSynapse.createV2WikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
@@ -252,7 +274,7 @@ public class ITV2WikiPageTest {
 		// Add another file attachment and change the title and update the wiki
 		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
 		wiki.setTitle("Updated ITV2AccessRequirementWikiPageTest");
-		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		wiki = adminSynapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
@@ -294,7 +316,7 @@ public class ITV2WikiPageTest {
 		assertEquals(firstModifiedOn, firstVersion.getModifiedOn());
 		
 		// Restore wiki to first state before update
-		wiki = synapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId(), new Long(versionToRestore));
+		wiki = adminSynapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId(), new Long(versionToRestore));
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertNotNull(wiki.getMarkdownFileHandleId());
@@ -310,7 +332,7 @@ public class ITV2WikiPageTest {
 		assertEquals("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip", wiki.getTitle());
 		
 		// Delete the wiki
-		synapse.deleteV2WikiPage(key);
+		adminSynapse.deleteV2WikiPage(key);
 		// Now try to get it
 		try{
 			synapse.getV2WikiPage(key);
