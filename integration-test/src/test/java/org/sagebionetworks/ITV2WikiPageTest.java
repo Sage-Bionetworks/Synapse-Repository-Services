@@ -267,7 +267,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ACCESS_REQUIREMENT, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki.getId());
 		toDelete.add(key);
 		Date firstModifiedOn = wiki.getModifiedOn();
 		
@@ -286,7 +286,7 @@ public class ITV2WikiPageTest {
 		
 		// test get
 		wiki = synapse.getV2WikiPage(key);
-		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ACCESS_REQUIREMENT);
+		V2WikiPage root = synapse.getV2RootWikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT);
 		assertEquals(wiki, root);
 		
 		// get markdown file
