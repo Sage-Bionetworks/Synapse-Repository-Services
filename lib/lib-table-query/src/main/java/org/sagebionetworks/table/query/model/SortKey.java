@@ -7,18 +7,17 @@ import org.sagebionetworks.table.query.model.visitors.Visitor;
  */
 public class SortKey extends SQLElement {
 	
-	ColumnReference columnReference;
+	ValueExpressionPrimary valueExpressionPrimary;
 
-	public SortKey(ColumnReference columnReference) {
-		super();
-		this.columnReference = columnReference;
+	public SortKey(ValueExpressionPrimary valueExpressionPrimary) {
+		this.valueExpressionPrimary = valueExpressionPrimary;
 	}
 
-	public ColumnReference getColumnReference() {
-		return columnReference;
+	public ValueExpressionPrimary getValueExpressionPrimary() {
+		return valueExpressionPrimary;
 	}
 
 	public void visit(Visitor visitor) {
-		visit(columnReference, visitor);
+		visit(valueExpressionPrimary, visitor);
 	}
 }

@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
@@ -40,7 +41,9 @@ public class QuerySpecification extends SQLElement {
 	
 	public void visit(Visitor visitor) {
 		visit(selectList, visitor);
-		visit(tableExpression, visitor);
+		if (tableExpression != null) {
+			visit(tableExpression, visitor);
+		}
 	}
 
 	public void visit(ToSimpleSqlVisitor visitor) {
@@ -49,18 +52,31 @@ public class QuerySpecification extends SQLElement {
 			visitor.append(" ");
 			visitor.append(sqlDirective.name());
 		}
-		if(setQuantifier != null){
+		if (setQuantifier != null) {
 			visitor.append(" ");
 			visitor.append(setQuantifier.name());
 		}
 		visitor.append(" ");
 		visit(selectList, visitor);
-		visitor.append(" ");
-		visit(tableExpression, visitor);
+		if (tableExpression != null) {
+			visitor.append(" ");
+			visit(tableExpression, visitor);
+		}
 	}
 
 	public void visit(IsAggregateVisitor visitor) {
-		visit(tableExpression, visitor);
+		if (setQuantifier == SetQuantifier.DISTINCT) {
+			visitor.setIsAggregate();
+		}
+		if (tableExpression != null) {
+			visit(tableExpression, visitor);
+		}
 		visit(selectList, visitor);
+	}
+
+	public void visit(GetTableNameVisitor visitor) {
+		if (tableExpression != null) {
+			visit(tableExpression, visitor);
+		}
 	}
 }

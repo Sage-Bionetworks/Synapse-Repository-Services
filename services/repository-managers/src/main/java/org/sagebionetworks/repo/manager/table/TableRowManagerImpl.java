@@ -56,6 +56,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlDirective;
 import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
@@ -596,16 +597,16 @@ public class TableRowManagerImpl implements TableRowManager {
 				}
 				QuerySpecification paginatedModel = new QuerySpecification(SqlDirective.SQL_CALC_FOUND_ROWS, paginatedQuery.getModel()
 						.getSetQuantifier(), paginatedSelectList, paginatedQuery.getModel().getTableExpression());
-				paginatedQuery = new SqlQuery(paginatedModel, paginatedQuery.getTableSchema());
+				paginatedQuery = new SqlQuery(paginatedModel, paginatedQuery.getTableSchema(), paginatedQuery.getTableId());
 				// and make the count query "SELECT FOUND_ROWS()"
 				SelectList selectList = new SelectList(Lists.newArrayList(SQLTranslatorUtils.createDerivedColumn(MysqlFunction.FOUND_ROWS)));
-				TableExpression tableExpression = SqlElementUntils.removeOrderByClause(paginatedQuery.getModel().getTableExpression());
-				countQuery = new SqlQuery(new QuerySpecification(null, null, selectList, tableExpression), paginatedQuery.getTableSchema());
+				countQuery = new SqlQuery(new QuerySpecification(null, null, selectList, null), paginatedQuery.getTableSchema(),
+						paginatedQuery.getTableId());
 			} else {
 				QuerySpecification model = SqlElementUntils.convertToCountQuery(query.getModel());
 				// Lookup the column models for this table
 				List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
-				countQuery = new SqlQuery(model, columnModels);
+				countQuery = new SqlQuery(model, columnModels, query.getTableId());
 			}
 		}
 
@@ -761,10 +762,13 @@ public class TableRowManagerImpl implements TableRowManager {
 			model = SqlElementUntils.convertToSortedQuery(model, sortList);
 		}
 
-		String tableId = SqlElementUntils.getTableId(model);
+		String tableId = model.doVisit(new GetTableNameVisitor()).getTableName();
+		if (tableId == null) {
+			throw new IllegalArgumentException("Could not parse the table name in the sql expression: " + sql);
+		}
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		return new SqlQuery(model, columnModels);
+		return new SqlQuery(model, columnModels, tableId);
 	}
 
 	private SqlQuery createPaginatedQuery(SqlQuery query, Long offset, Long limit) {
@@ -774,10 +778,9 @@ public class TableRowManagerImpl implements TableRowManager {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
-		String tableId = SqlElementUntils.getTableId(model);
 		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		return new SqlQuery(model, columnModels);
+		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
+		return new SqlQuery(model, columnModels, query.getTableId());
 	}
 
 	/**

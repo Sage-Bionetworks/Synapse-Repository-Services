@@ -52,8 +52,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canUserStartJob(user, body));
 		// Dao does the rest.
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
 		// publish a message to get the work started

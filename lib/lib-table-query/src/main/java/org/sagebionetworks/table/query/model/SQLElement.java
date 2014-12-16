@@ -15,8 +15,20 @@ import org.sagebionetworks.util.IntrospectionUtils;
  */
 public abstract class SQLElement {
 
+	/**
+	 * override this method for the default tree crawl. Override this method with more specific visitors for alternate
+	 * tree crawl behaviours
+	 * 
+	 * @param visitor
+	 */
 	public abstract void visit(Visitor visitor);
 
+	/**
+	 * Call from visit(visitor) method to continue tree crawl
+	 * 
+	 * @param sqlElement
+	 * @param visitor
+	 */
 	protected void visit(SQLElement sqlElement, Visitor visitor) {
 		Method m = IntrospectionUtils.findNearestMethod(sqlElement, "visit", visitor);
 		try {
@@ -33,7 +45,19 @@ public abstract class SQLElement {
 	}
 
 	/**
-	 * visit this element and its children.
+	 * visit this element and its children with the specified visitor. Usage:
+	 * 
+	 * <pre>
+	 * TableNameVisitor visitor = new TableNameVisitor();
+	 * model.doVisit(visitor);
+	 * String tableName = visitor.getTableName();
+	 * </pre>
+	 * 
+	 * or, the shorter version:
+	 * 
+	 * <pre>
+	 * model.doVisit(new TableNameVisitor()).getTableName();
+	 * </pre>
 	 * 
 	 * @param visitor
 	 */
