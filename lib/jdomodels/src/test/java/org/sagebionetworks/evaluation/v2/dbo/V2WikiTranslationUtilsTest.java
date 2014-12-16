@@ -266,11 +266,81 @@ public class V2WikiTranslationUtilsTest {
 		dbo.setOwnerId(new Long(456));
 		dbo.setOwnerType(ObjectType.EVALUATION.toString());
 		
-		V2WikiOrderHint orderHint = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
+		V2WikiOrderHint dto = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
 		
-		assertTrue(Arrays.equals(orderHint.getIdList().toArray(), listString.split(",")));
-		assertTrue(orderHint.getEtag().equals(dbo.getEtag()));
-		assertTrue(orderHint.getOwnerId().equals(dbo.getOwnerId().toString()));
-		assertTrue(orderHint.getOwnerObjectType().toString().equals(dbo.getOwnerType()));
+		assertTrue(Arrays.equals(dto.getIdList().toArray(), listString.split(",")));
+		assertTrue(dto.getEtag().equals(dbo.getEtag()));
+		assertTrue(dto.getOwnerId().equals(dbo.getOwnerId().toString()));
+		assertTrue(dto.getOwnerObjectType().toString().equals(dbo.getOwnerType()));
+	}
+	
+	@Test
+	public void testCreateWikiOrderHintDTOfromDBOEmptyIdList() throws UnsupportedEncodingException {
+		V2DBOWikiOwner dbo = new V2DBOWikiOwner();
+		String listString = "";
+		dbo.setOrderHint(listString.getBytes("UTF-8"));
+		dbo.setEtag("etag");
+		dbo.setOwnerId(new Long(456));
+		dbo.setOwnerType(ObjectType.EVALUATION.toString());
+		
+		V2WikiOrderHint dto = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
+		
+		assertTrue(Arrays.equals(dto.getIdList().toArray(), listString.split(",")));
+		assertTrue(dto.getEtag().equals(dbo.getEtag()));
+		assertTrue(dto.getOwnerId().equals(dbo.getOwnerId().toString()));
+		assertTrue(dto.getOwnerObjectType().toString().equals(dbo.getOwnerType()));
+	}
+	
+	@Test
+	public void testCreateWikiOrderHintDTOfromDBONullIdList() throws UnsupportedEncodingException {
+		V2DBOWikiOwner dbo = new V2DBOWikiOwner();
+		dbo.setOrderHint(null);
+		dbo.setEtag("etag");
+		dbo.setOwnerId(new Long(456));
+		dbo.setOwnerType(ObjectType.EVALUATION.toString());
+		
+		V2WikiOrderHint dto = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
+		
+		assertTrue(dto.getIdList() == null);
+		assertTrue(dto.getEtag().equals(dbo.getEtag()));
+		assertTrue(dto.getOwnerId().equals(dbo.getOwnerId().toString()));
+		assertTrue(dto.getOwnerObjectType().toString().equals(dbo.getOwnerType()));
+	}
+	
+	@Test
+	public void testCreateWikiOwnerDBOfromOrderHintDTO() throws Exception {
+		V2WikiOrderHint dto = new V2WikiOrderHint();
+		dto.setEtag("etag");
+		dto.setIdList(Arrays.asList(new String[] {"A", "X", "B", "Y"}));
+		dto.setOwnerId("123");
+		dto.setOwnerObjectType(ObjectType.EVALUATION);
+		
+		V2DBOWikiOwner dbo = V2WikiTranslationUtils.createWikiOwnerDBOfromOrderHintDTO(dto, "456");
+		
+		assertTrue(dbo.getEtag().equals(dto.getEtag()));
+		assertTrue(dbo.getOwnerId().equals(Long.parseLong(dto.getOwnerId())));
+		assertTrue(dbo.getRootWikiId().equals(Long.parseLong("456")));
+		assertTrue(dbo.getOwnerTypeEnum().equals(dto.getOwnerObjectType()));
+	}
+	
+	@Test
+	public void testOrderHintConversionRoundTrip() {
+		V2WikiOrderHint dto = new V2WikiOrderHint();
+		dto.setEtag("etag");
+		dto.setIdList(Arrays.asList(new String[] {"A", "X", "B", "Y"}));
+		dto.setOwnerId("123");
+		dto.setOwnerObjectType(ObjectType.EVALUATION);
+		
+		// Convert to DBO.
+		V2DBOWikiOwner dbo = V2WikiTranslationUtils.createWikiOwnerDBOfromOrderHintDTO(dto, "456");
+		
+		// Back to DTO.
+		V2WikiOrderHint newDTO = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
+		
+		assertTrue(dto.getEtag().equals(newDTO.getEtag()));
+		assertTrue(dto.getOwnerId().equals(newDTO.getOwnerId()));
+		assertTrue(dto.getOwnerObjectType().equals(newDTO.getOwnerObjectType()));
+		assertTrue(Arrays.equals(dto.getIdList().toArray(), newDTO.getIdList().toArray()));
+		
 	}
 }

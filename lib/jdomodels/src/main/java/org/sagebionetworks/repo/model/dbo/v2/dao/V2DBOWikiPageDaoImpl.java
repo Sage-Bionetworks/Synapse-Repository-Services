@@ -334,23 +334,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
 		
 		// Get the WikiOwner DBO
-		V2DBOWikiOwner dbo = getWikiOwnerDBO(key.getWikiPageId());
-		dbo.setEtag(orderHint.getEtag());
-		if (orderHint.getIdList() == null) {
-			dbo.setOrderHint(null);
-		} else {
-			StringBuffer orderHintCSV = new StringBuffer();
-			for (int i = 0; i < orderHint.getIdList().size(); i++) {
-				orderHintCSV.append(orderHint.getIdList().get(i));
-				orderHintCSV.append(',');
-			}
-			String listString = orderHintCSV.toString();
-			try {
-				dbo.setOrderHint(listString.getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
-		}
+		V2DBOWikiOwner dbo = V2WikiTranslationUtils.createWikiOwnerDBOfromOrderHintDTO(orderHint, key.getWikiPageId());
 		
 		basicDao.update(dbo);
 		

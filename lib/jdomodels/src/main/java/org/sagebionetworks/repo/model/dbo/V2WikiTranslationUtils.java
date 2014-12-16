@@ -96,7 +96,7 @@ public class V2WikiTranslationUtils {
 	}
 	
 	/**
-	 * Create a wiki owner DTO from the DBOs;
+	 * Create a wiki order hint DTO from the DBO.
 	 * @param page
 	 * @param attachments
 	 * @return
@@ -120,6 +120,42 @@ public class V2WikiTranslationUtils {
 		}
 		
 		return dto;
+	}
+	
+	/**
+	 * Create a wiki owner DBO from the DTO
+	 * @param page
+	 * @param attachments
+	 * @return
+	 */
+	public static V2DBOWikiOwner createWikiOwnerDBOfromOrderHintDTO(V2WikiOrderHint dto, String rootWikiId){
+		if(dto == null) throw new IllegalArgumentException("Order Hint dto cannot be null");
+		if(rootWikiId == null) throw new IllegalArgumentException("Root Wiki Id rootWikiId cannot be null");
+		
+		V2DBOWikiOwner dbo = new V2DBOWikiOwner();
+		dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
+		dbo.setOwnerType(dto.getOwnerObjectType().name());
+		dbo.setOwnerTypeEnum(dto.getOwnerObjectType());
+		dbo.setRootWikiId(Long.parseLong(rootWikiId));
+		dbo.setEtag(dto.getEtag());
+
+		if (dto.getIdList() == null) {
+			dbo.setOrderHint(null);
+		} else {
+			StringBuffer orderHintCSV = new StringBuffer();
+			for (int i = 0; i < dto.getIdList().size(); i++) {
+				orderHintCSV.append(dto.getIdList().get(i));
+				orderHintCSV.append(',');
+			}
+			String listString = orderHintCSV.toString();
+			try {
+				dbo.setOrderHint(listString.getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
+		return dbo;
 	}
 	
 	private static List<String> getOrderHintIdListFromBytes(byte[] orderHintBytes) throws UnsupportedEncodingException {

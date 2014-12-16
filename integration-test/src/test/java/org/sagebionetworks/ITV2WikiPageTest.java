@@ -371,12 +371,12 @@ public class ITV2WikiPageTest {
 	}
 	
 	@Test
-	public void testV2WikiOrderHintRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+	public void testGetV2WikiOrderHint() throws Exception{
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
 		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
 		wiki.setMarkdownFileHandleId(markdownHandle.getId());
-		wiki.setTitle("ITV2WikiPageTest.testWikiRoundTrip");
+		wiki.setTitle("ITV2WikiPageTest.testGetV2WikiOrderHint");
 		// Create a V2WikiPage
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
@@ -385,7 +385,60 @@ public class ITV2WikiPageTest {
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
-		Date firstModifiedOn = wiki.getModifiedOn();
+		
+		// test get order hint
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		assertNotNull(hint);
+		assertNotNull(hint.getOwnerId().equals(project.getId()));
+		assertTrue(hint.getOwnerObjectType().equals(ObjectType.ENTITY));
+		assertNull(hint.getIdList());	// Should be null by default
+	}
+	
+	@Test
+	public void testUpdateV2WikiOrderHint() throws Exception{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testUpdateV2WikiOrderHint");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		
+		// Update order hint
+		List<String> hintIdList = Arrays.asList(new String[] {"A", "X", "B", "Y", "C", "Z"});
+		hint.setIdList(hintIdList);
+		
+		V2WikiOrderHint updatedHint = synapse.updateV2WikiOrderHint(hint);
+		
+		assertNotNull(updatedHint);
+		assertNotNull(updatedHint.getOwnerId().equals(project.getId()));
+		assertTrue(updatedHint.getOwnerObjectType().equals(ObjectType.ENTITY));
+		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), hintIdList.toArray()));
+	}
+	
+	@Test
+	public void testV2WikiOrderHintRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testV2WikiOrderHintRoundTrip");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
 		
 		// test get order hint
 		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
