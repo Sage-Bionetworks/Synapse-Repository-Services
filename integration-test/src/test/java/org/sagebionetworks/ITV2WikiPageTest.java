@@ -128,13 +128,6 @@ public class ITV2WikiPageTest {
 	
 	@After
 	public void after() throws Exception {
-		if (accessRequirement != null) {
-			try {
-				synapse.deleteAccessRequirement(accessRequirement.getId());
-			} catch (Exception e) {
-				// continue
-			}
-		}
 		if(fileHandle != null){
 			try {
 				synapse.deleteFileHandle(fileHandle.getId());
@@ -157,7 +150,14 @@ public class ITV2WikiPageTest {
 			synapse.deleteFileHandle(id);
 		}
 		for(WikiPageKey key: toDelete){
-			synapse.deleteV2WikiPage(key);
+			adminSynapse.deleteV2WikiPage(key);
+		}
+		if (accessRequirement != null) {
+			try {
+				adminSynapse.deleteAccessRequirement(accessRequirement.getId());
+			} catch (Exception e) {
+				// continue
+			}
 		}
 	}
 	
