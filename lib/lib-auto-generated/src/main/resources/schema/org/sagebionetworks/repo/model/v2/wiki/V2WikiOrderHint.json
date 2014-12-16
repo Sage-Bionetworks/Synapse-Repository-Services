@@ -20,7 +20,7 @@
 		},
 		"etag": {
 			"type": "string",
-			"description": "The title etag of this object"
+			"description": "The title etag of this object. Should be used to handle concurrently updating wiki order hints (e.g. if the etag of the order hint to update does not match the etag of the associated order hint in the database, reject the update)."
 		}
 	}
 }
