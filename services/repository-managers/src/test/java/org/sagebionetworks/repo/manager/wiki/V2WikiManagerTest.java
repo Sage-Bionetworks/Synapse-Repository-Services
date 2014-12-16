@@ -934,6 +934,19 @@ public class V2WikiManagerTest {
 		wikiManager.updateOrderHint(user, orderHintDTO);
 	}
 	
+	
+	@Test(expected=ConflictingUpdateException.class)
+	public void testUpdateOrderHintConflict() throws DatastoreException, NotFoundException {
+		V2WikiOrderHint hint = new V2WikiOrderHint();
+		hint.setOwnerId("000");
+		hint.setEtag("etag");
+		// return a different etag to trigger a conflict
+		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etagUpdate!!!");
+		// setup allow
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		wikiManager.updateOrderHint(user, hint);
+	}
+	
 	@Test
 	public void testGetOrderHintAuthorized() throws DatastoreException, NotFoundException {
 		// Allow user to access order hint.
