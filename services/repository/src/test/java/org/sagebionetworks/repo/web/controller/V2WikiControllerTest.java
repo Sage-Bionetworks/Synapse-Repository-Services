@@ -377,6 +377,9 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		wiki = entityServletHelper.createV2WikiPage(adminUserId, ownerId, ownerType, wiki);
 		assertNotNull(wiki);
 		
+		WikiPageKey wikiKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
+		toDelete.add(wikiKey);
+		
 		// Get OrderHint for the created project (should have a null order hint).
 		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(adminUserId, ownerId, ownerType);
 		
