@@ -91,4 +91,10 @@ public @interface Field {
 	 * Can this column be truncated if necessary before inserts and updates
 	 */
 	boolean truncatable() default false;
+	
+	/**
+	 * is a self foreign key (if I have a table with an ID column and a parent ID that is a foreign key
+	 * to the ID column, then set isSelfForeignKey = true on the parentID).
+	 */
+	boolean isSelfForeignKey() default false;
 }

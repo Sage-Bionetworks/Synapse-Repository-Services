@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -42,6 +45,9 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	private String modifiedBy;
 	@Field(name = "MODIFIED_ON", nullable = false)
 	private Date modifiedOn;
+	@Field(name = "PARENT_ID", isSelfForeignKey = true)
+	@ForeignKey(name = "PARENT_FK", table = "ANNOTATED_EXAMPLE_TEST", field = "ID", cascadeDelete = true)
+	private Long parentId;
 
 	public Long getId() {
 		return id;
@@ -137,6 +143,14 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 
 	public void setModifiedOn(Date modifiedOn) {
 		this.modifiedOn = modifiedOn;
+	}
+	
+	public Long getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(Long parentId) {
+		this.parentId = parentId;
 	}
 
 	@Override

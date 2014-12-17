@@ -143,9 +143,12 @@ public class V2WikiTranslationUtils {
 			dbo.setOrderHint(null);
 		} else {
 			StringBuffer orderHintCSV = new StringBuffer();
-			for (int i = 0; i < dto.getIdList().size(); i++) {
-				orderHintCSV.append(dto.getIdList().get(i));
+			if (!dto.getIdList().isEmpty()) {
+				orderHintCSV.append(dto.getIdList().get(0));
+			}
+			for (int i = 1; i < dto.getIdList().size(); i++) {
 				orderHintCSV.append(',');
+				orderHintCSV.append(dto.getIdList().get(i));
 			}
 			String listString = orderHintCSV.toString();
 			try {

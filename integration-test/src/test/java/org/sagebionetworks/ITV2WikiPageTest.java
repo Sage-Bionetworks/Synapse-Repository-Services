@@ -506,7 +506,7 @@ public class ITV2WikiPageTest {
 	}
 	
 	@Test
-	public void testUpdateV2WikiOrderHint() throws Exception{
+	public void testUpdateV2WikiOrderHintRoundTrip() throws Exception{
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
 		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
@@ -515,9 +515,6 @@ public class ITV2WikiPageTest {
 		// Create a V2WikiPage
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		assertNotNull(wiki.getAttachmentFileHandleIds());
-		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
-		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		
@@ -534,41 +531,7 @@ public class ITV2WikiPageTest {
 		assertFalse(updatedHint.getEtag().equals(hint.getEtag()));
 		assertTrue(updatedHint.getOwnerObjectType().equals(ObjectType.ENTITY));
 		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), hintIdList.toArray()));
-	}
-	
-	@Test
-	public void testV2WikiOrderHintRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
-		V2WikiPage wiki = new V2WikiPage();
-		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
-		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
-		wiki.setMarkdownFileHandleId(markdownHandle.getId());
-		wiki.setTitle("ITV2WikiPageTest.testV2WikiOrderHintRoundTrip");
-		// Create a V2WikiPage
-		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
-		assertNotNull(wiki);
-		assertNotNull(wiki.getAttachmentFileHandleIds());
-		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
-		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
-		toDelete.add(key);
 		
-		// test get order hint
-		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
-		assertNotNull(hint);
-		assertNotNull(hint.getOwnerId());
-		assertNotNull(hint.getOwnerObjectType());
-		assertNull(hint.getIdList());	// Should be null by default
-		
-		// Update order hint
-		List<String> hintIdList = Arrays.asList(new String[] {"A", "X", "B", "Y", "C", "Z"});
-		hint.setIdList(hintIdList);
-		
-		V2WikiOrderHint updatedHint = synapse.updateV2WikiOrderHint(hint);
-		assertTrue(hint.getOwnerId().equals(updatedHint.getOwnerId()));
-		assertTrue(hint.getOwnerObjectType().equals(updatedHint.getOwnerObjectType()));
-		assertFalse(updatedHint.getEtag().equals(hint.getEtag()));
-		assertTrue(Arrays.equals(hint.getIdList().toArray(), updatedHint.getIdList().toArray()));
-
 		V2WikiOrderHint postUpdateHint = synapse.getV2OrderHint(key);
 		assertTrue(updatedHint.getOwnerId().equals(postUpdateHint.getOwnerId()));
 		assertTrue(updatedHint.getOwnerObjectType().equals(postUpdateHint.getOwnerObjectType()));

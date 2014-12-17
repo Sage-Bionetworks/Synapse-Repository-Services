@@ -67,7 +67,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	@Field(name = V2_COL_WIKI_MODIFIED_ON, nullable = false)
 	private Long modifiedOn;
 	
-	@Field(name = V2_COL_WIKI_PARENT_ID, defaultNull = true, nullable = true)
+	@Field(name = V2_COL_WIKI_PARENT_ID, defaultNull = true, nullable = true, isSelfForeignKey = true)
 	@ForeignKey(name = "V2_WIKI_PARENT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long parentId;
 	
