@@ -30,43 +30,27 @@ public class AclRecordDAOImplTest {
 	@Autowired
 	private AmazonS3Client s3Client;
 	
+	private String BUCKET_NAME = "prod.acl.record.sagebase.org";
+	
 	@Before
 	public void before(){
 		assertNotNull(aclRecordDao);
-		assertNull(aclRecordDao.getCurrentFile());
-		assertEquals(0, aclRecordDao.getLineCount());
 		
 		assertNotNull(s3Client);
-		assertTrue(s3Client.doesBucketExist("prod.acl.record.sagebase.org"));
+		assertTrue(s3Client.doesBucketExist(BUCKET_NAME));
 	}
 	
 	@After
 	public void after(){
-		aclRecordDao.cleanUp();
 	}
 	
 	@Test
 	public void test() throws IOException{
 		List<AclRecord> records = createAclRecordList(5);
 		for (AclRecord record : records) {
-			aclRecordDao.write(record);
+			String fileName = aclRecordDao.write(record);
+			assertNotNull(s3Client.getObject(BUCKET_NAME, fileName));
 		}
-		assertNotNull(aclRecordDao.getCurrentFile());
-		assertEquals(5, aclRecordDao.getLineCount());
-		
-		records = createAclRecordList(1995);
-		for (AclRecord record : records) {
-			aclRecordDao.write(record);
-		}
-		assertNull(aclRecordDao.getCurrentFile());
-		assertEquals(0, aclRecordDao.getLineCount());
-		
-		records = createAclRecordList(1);
-		for (AclRecord record : records) {
-			aclRecordDao.write(record);
-		}
-		assertNotNull(aclRecordDao.getCurrentFile());
-		assertEquals(1, aclRecordDao.getLineCount());
  		
 	}
 

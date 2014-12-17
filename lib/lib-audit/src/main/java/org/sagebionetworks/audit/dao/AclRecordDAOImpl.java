@@ -6,10 +6,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
+import org.sagebionetworks.audit.utils.ObjectCSVWriter;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -17,15 +16,11 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 
 	@Autowired
 	private AmazonS3Client s3Client;
-
-	private static final int MAX_LINES = 2000;
 	private static final String BUCKET_NAME = "prod.acl.record.sagebase.org";
 	/**
 	 * Injected via Spring
 	 */
 	int stackInstanceNumber;
-	File currentFile = null;
-	int lineCount = 0;
 
 	/**
 	 * Injected via Spring
@@ -37,76 +32,42 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	}
 	
 	@Override
-	public void write(AclRecord record) throws IOException {
-		if (currentFile == null ) {
-			createNewFile();
-		}
-
-		CSVWriter csvWriter = new CSVWriter(new FileWriter(currentFile.getAbsoluteFile()));
-		csvWriter.writeNext(nextLine(record));
-		lineCount++;
+	public String write(AclRecord record) throws IOException {
+		File file = createNewFile();
+		
+		ObjectCSVWriter<AclRecord> csvWriter = new ObjectCSVWriter<AclRecord>(new FileWriter(file.getAbsoluteFile()), AclRecord.class);
+		csvWriter.append(record);
 		csvWriter.close();
 		
-		if (lineCount >= MAX_LINES) {
-			sendFileToS3();
-			Files.delete(currentFile.toPath());
-			currentFile = null;
-			lineCount = 0;
-		}
+		String fileName = sendFileToS3(file);
+		Files.delete(file.toPath());
+		file = null;
+	
+		return fileName;
 	}
 
-	private String[] nextLine(AclRecord record) {
-		String[] nextLine = new String[5];
-		nextLine[0] = record.getTimestamp().toString();
-		nextLine[1] = record.getChangeNumber();
-		nextLine[2] = record.getObjectId();
-		nextLine[3] = record.getChangeType();
-		nextLine[4] = record.getEtag();
-		return nextLine;
-	}
-
-	private void sendFileToS3() {
+	private String sendFileToS3(File file) {
 		if (!s3Client.doesBucketExist(BUCKET_NAME)) {
 			s3Client.createBucket(BUCKET_NAME);
 		}
-		s3Client.putObject(BUCKET_NAME, getKey(), currentFile);
+		String fileName = getKey();
+		s3Client.putObject(BUCKET_NAME, fileName, file);
+		
+		return fileName;
 	}
 
-	private void createNewFile() throws IOException {
-		currentFile = new File("temp.csv");
-		if (!currentFile.exists()) {
-			currentFile.createNewFile();
+	private File createNewFile() throws IOException {
+		File file = new File("temp.csv");
+		if (!file.exists()) {
+			file.createNewFile();
 		}
-		if (!currentFile.canWrite()) {
-			currentFile.setWritable(true);
+		if (!file.canWrite()) {
+			file.setWritable(true);
 		}
+		return file;
 	}
 
 	private String getKey() {
 		return KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), false);
-	}
-
-	// for testing only
-	@Override
-	public int getLineCount() {
-		return lineCount;
-	}
-	
-	@Override
-	public File getCurrentFile() {
-		return currentFile;
-	}
-
-	@Override
-	public void cleanUp() {
-		lineCount = 0;
-		if (currentFile.exists()) {
-			try {
-				Files.delete(currentFile.toPath());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		currentFile = null;
 	}
 }
