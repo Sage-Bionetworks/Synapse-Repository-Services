@@ -315,6 +315,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.getWikiOrderHint(key);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");

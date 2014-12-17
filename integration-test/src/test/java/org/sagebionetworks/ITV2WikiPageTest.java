@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -530,6 +531,7 @@ public class ITV2WikiPageTest {
 		
 		assertNotNull(updatedHint);
 		assertNotNull(updatedHint.getOwnerId().equals(project.getId()));
+		assertFalse(updatedHint.getEtag().equals(hint.getEtag()));
 		assertTrue(updatedHint.getOwnerObjectType().equals(ObjectType.ENTITY));
 		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), hintIdList.toArray()));
 	}
@@ -564,6 +566,7 @@ public class ITV2WikiPageTest {
 		V2WikiOrderHint updatedHint = synapse.updateV2WikiOrderHint(hint);
 		assertTrue(hint.getOwnerId().equals(updatedHint.getOwnerId()));
 		assertTrue(hint.getOwnerObjectType().equals(updatedHint.getOwnerObjectType()));
+		assertFalse(updatedHint.getEtag().equals(hint.getEtag()));
 		assertTrue(Arrays.equals(hint.getIdList().toArray(), updatedHint.getIdList().toArray()));
 
 		V2WikiOrderHint postUpdateHint = synapse.getV2OrderHint(key);

@@ -49,13 +49,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class V2WikiManagerTest {
-	@Autowired
 	V2WikiPageDao mockWikiDao;
-	@Autowired
 	V2WikiManagerImpl wikiManager;
-	@Autowired
 	AuthorizationManager mockAuthManager;
-	@Autowired
 	FileHandleDao mockFileDao;
 	WikiPageKey key;
 	UserInfo user;

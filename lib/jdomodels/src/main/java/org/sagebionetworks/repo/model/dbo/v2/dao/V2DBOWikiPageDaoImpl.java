@@ -628,16 +628,16 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Now use the root to the the full tree
 		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
 	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
+	
+	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)		// Mandatory because this method should be called from within a transaction,
+	@Override																	// otherwise the lock won't be held.
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
 		return simpleJdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
+	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)		// Mandatory because this method should be called from within a transaction,
+	@Override																	// otherwise the lock won't be held.
 	public String lockWikiOwnersForUpdate(String rootWikiId) {
 		// Lock the wiki owner row and return current Etag.
 		return simpleJdbcTemplate.queryForObject(SQL_LOCK_OWNERS_FOR_UPDATE, String.class, Long.parseLong(rootWikiId));
