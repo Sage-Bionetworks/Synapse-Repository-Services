@@ -143,11 +143,10 @@ public class V2WikiTranslationUtils {
 			dbo.setOrderHint(null);
 		} else {
 			StringBuffer orderHintCSV = new StringBuffer();
-			if (!dto.getIdList().isEmpty()) {
-				orderHintCSV.append(dto.getIdList().get(0));
-			}
-			for (int i = 1; i < dto.getIdList().size(); i++) {
-				orderHintCSV.append(',');
+			for (int i = 0; i < dto.getIdList().size(); i++) {
+				if (i > 0) {
+					orderHintCSV.append(',');
+				}
 				orderHintCSV.append(dto.getIdList().get(i));
 			}
 			String listString = orderHintCSV.toString();
