@@ -247,8 +247,9 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			}
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
-			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.txt", fieldValues);
-			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, false, null);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, urlString.replaceAll("&", "&amp;"));
+			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, true, null);
 			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
@@ -378,13 +379,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			Map<String,String> fieldValues = new HashMap<String,String>();
 			UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
-					userProfile.getFirstName()+" "+userProfile.getLastName());
+			userProfile.getFirstName()+" "+userProfile.getLastName());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, urlString.replaceAll("&", "&amp;"));
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
-			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.txt", fieldValues);
-			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, false, null);
+			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, true, null);
 			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
