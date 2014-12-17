@@ -641,7 +641,7 @@ public class TableModelUtilsTest {
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
 		CsvNullReader csvReader = new CsvNullReader(reader);
-		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()));
+		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -652,7 +652,7 @@ public class TableModelUtilsTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()));
+		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}

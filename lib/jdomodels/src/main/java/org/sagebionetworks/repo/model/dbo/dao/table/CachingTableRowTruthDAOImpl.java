@@ -60,10 +60,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 */
 	@Override
 	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta, long minVersion) throws IOException {
-		if (delta.getEtag() == null)
-			throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
-		long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
-
 		Iterable<Row> updatingRows = Iterables.filter(delta.getRows(), new Predicate<Row>() {
 			@Override
 			public boolean apply(Row row) {
@@ -71,13 +67,26 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 			}
 		});
 
-		Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(updatingRows);
-		Map<Long, Long> rowIdVersions = getLatestVersions(tableIdString, rowIds, minVersion);
+		Map<Long, Long> rowIds = TableModelUtils.getDistictValidRowIds(updatingRows);
+		Map<Long, Long> rowIdLatestVersions = getLatestVersions(tableIdString, rowIds.keySet(), minVersion);
 
-		for (Map.Entry<Long, Long> entry : rowIdVersions.entrySet()) {
-			if (entry.getValue().longValue() > versionOfEtag) {
-				throw new ConflictingUpdateException("Row id: " + entry.getKey()
-						+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+		if (delta.getEtag() != null) {
+			long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
+
+			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
+				if (entry.getValue().longValue() > versionOfEtag) {
+					throwUpdateConflict(entry.getKey());
+				}
+			}
+		} else {
+			// we didn't get passed in an etag. That means we have to check each row and version individually to make
+			// sure they are the latest version
+			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
+				Long latestVersionOfRow = entry.getValue();
+				Long lastVersionOfUpdateRow = rowIds.get(entry.getKey());
+				if (latestVersionOfRow.longValue() > lastVersionOfUpdateRow.longValue()) {
+					throwUpdateConflict(entry.getKey());
+				}
 			}
 		}
 	}

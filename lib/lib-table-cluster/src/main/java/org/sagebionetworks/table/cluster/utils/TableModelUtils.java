@@ -630,12 +630,12 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Set<Long> getDistictValidRowIds(Iterable<Row> rows) {
-		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
-		Set<Long> distictRowIds = new HashSet<Long>();
-		for(Row ref: rows){
-			if(!isNullOrInvalid(ref.getRowId())){
-				if (!distictRowIds.add(ref.getRowId())) {
+	public static Map<Long, Long> getDistictValidRowIds(Iterable<Row> rows) {
+		ValidateArgument.required(rows, "rows");
+		Map<Long, Long> distictRowIds = Maps.newHashMap();
+		for (Row ref : rows) {
+			if (!isNullOrInvalid(ref.getRowId())) {
+				if (distictRowIds.put(ref.getRowId(), ref.getVersionNumber()) != null) {
 					// the row id is found twice int the same rowset
 					throw new IllegalArgumentException("The row id " + ref.getRowId() + " is included more than once in the rowset");
 				}

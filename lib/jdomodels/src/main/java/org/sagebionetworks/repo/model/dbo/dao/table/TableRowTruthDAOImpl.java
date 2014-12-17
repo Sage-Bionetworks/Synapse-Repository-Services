@@ -24,7 +24,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -34,16 +33,14 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,7 +56,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -253,17 +249,27 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 *             when a conflict is found
 	 */
 	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException {
-		if (delta.getEtag() == null)
-			throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
-		// Lookup the version number for this update.
-		long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
-		long firstVersionToCheck = Math.max(minVersion - 1, versionOfEtag);
-		// Check each version greater than the version for the etag
-		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, firstVersionToCheck);
-		// check for row level conflicts
-		Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows());
-		for (TableRowChange change : changes) {
-			checkForRowLevelConflict(change, rowIds);
+		if (delta.getEtag() != null) {
+			// Lookup the version number for this update.
+			long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
+			long firstVersionToCheck = Math.max(minVersion - 1, versionOfEtag);
+			// Check each version greater than the version for the etag
+			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, firstVersionToCheck);
+			// check for row level conflicts
+			Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows()).keySet();
+			for (TableRowChange change : changes) {
+				checkForRowLevelConflict(change, rowIds);
+			}
+		} else {
+			// we have to check each row individually
+			// Check each version greater than the min version
+			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
+			// check for row level conflicts
+			// we scan from highest version down and once we encounter a row, we remove it from the map, since we are only interested in comparing to the latest version
+			Map<Long, Long> rowIdsAndVersions = TableModelUtils.getDistictValidRowIds(delta.getRows());
+			for (TableRowChange change : Lists.reverse(changes)) {
+				checkForRowLevelConflict(change, rowIdsAndVersions);
+			}
 		}
 	}
 
@@ -284,10 +290,30 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			public void nextRow(Row row) {
 				// Does this row match?
 				if (rowIds.contains(row.getRowId())) {
-					throw new ConflictingUpdateException(
-							"Row id: "
-									+ row.getRowId()
-									+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+					throwUpdateConflict(row.getRowId());
+				}
+			}
+		}, change);
+	}
+
+	/**
+	 * Check for a row level conflict in the passed map of row ids and versions, by scanning the rows of the change and
+	 * looking for the intersection with the passed row Ids.
+	 * 
+	 * @param change
+	 * @param rowIdsAndVersions (this map will be modified!)
+	 * @throws ConflictingUpdateException when a conflict is found
+	 */
+	private void checkForRowLevelConflict(final TableRowChange change, final Map<Long, Long> rowIdsAndVersions) throws IOException {
+		scanChange(new RowHandler() {
+			@Override
+			public void nextRow(Row row) {
+				// Does this row match?
+				Long version = rowIdsAndVersions.remove(row.getRowId());
+				if(version != null){
+					if (version.longValue() < row.getVersionNumber().longValue()) {
+						throwUpdateConflict(row.getRowId());
+					}
 				}
 			}
 		}, change);
@@ -758,4 +784,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		this.s3Bucket = s3Bucket;
 	}
 
+	protected void throwUpdateConflict(Long rowId) {
+		throw new ConflictingUpdateException("Row id: " + rowId
+				+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+	}
 }

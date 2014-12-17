@@ -630,6 +630,45 @@ public class TableRowTruthDAOImplTest {
 				toUpdateThree.getRows());
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateThreeRaw);
 	}
+
+	@Test
+	public void testAppendRowsUpdateNoConflictedNullEtag() throws IOException, NotFoundException {
+		// Create some test column models
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 3);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getHeaders(mapper.getColumnModels()), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		assertNotNull(refSet);
+		// Now fetch the rows for an update
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		// For this case each update will change a different row so there is no conflict.
+		// update row one
+		Row toUpdate = toUpdateOne.getRows().get(0);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate, 100);
+		toUpdateOne.getRows().clear();
+		toUpdateOne.getRows().add(toUpdate);
+		RawRowSet toUpdateOneRaw = new RawRowSet(set.getHeaders(), toUpdateOne.getEtag(), toUpdateOne.getTableId(), toUpdateOne.getRows());
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateOneRaw);
+		// update row two
+		toUpdate = toUpdateTwo.getRows().get(1);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate, 101);
+		toUpdateTwo.getRows().clear();
+		toUpdateTwo.getRows().add(toUpdate);
+		RawRowSet toUpdateTwoRaw = new RawRowSet(set.getHeaders(), toUpdateTwo.getEtag(), toUpdateTwo.getTableId(), toUpdateTwo.getRows());
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateTwoRaw);
+		// update row three
+		toUpdate = toUpdateThree.getRows().get(2);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate, 102);
+		toUpdateThree.getRows().clear();
+		toUpdateThree.getRows().add(toUpdate);
+		RawRowSet toUpdateThreeRaw = new RawRowSet(set.getHeaders(), null, toUpdateThree.getTableId(), toUpdateThree.getRows());
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateThreeRaw);
+	}
 	
 	@Test
 	public void testAppendRowsUpdateWithConflicts() throws IOException, NotFoundException{
@@ -685,6 +724,59 @@ public class TableRowTruthDAOImplTest {
 
 	}
 	
+	@Test
+	public void testAppendRowsUpdateWithConflictsNullEtag() throws IOException, NotFoundException {
+		// Create some test column models
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 3);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getHeaders(mapper.getColumnModels()), null, tableId, rows);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		assertNotNull(refSet);
+		tableRowTruthDao.updateLatestVersionCache(tableId, null);
+		// Now fetch the rows for an update
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		// For this case each update will change a different row so there is no conflict.
+		// update row one
+		Row toUpdate = toUpdateOne.getRows().get(0);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate, 100);
+		toUpdateOne.getRows().clear();
+		toUpdateOne.getRows().add(toUpdate);
+		RawRowSet toUpdateOneRaw = new RawRowSet(set.getHeaders(), toUpdateOne.getEtag(), toUpdateOne.getTableId(), toUpdateOne.getRows());
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateOneRaw);
+		// update row two
+		toUpdate = toUpdateTwo.getRows().get(1);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate, 101);
+		toUpdateTwo.getRows().clear();
+		toUpdateTwo.getRows().add(toUpdate);
+		RawRowSet toUpdateTwoRaw = new RawRowSet(set.getHeaders(), toUpdateTwo.getEtag(), toUpdateTwo.getTableId(), toUpdateTwo.getRows());
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateTwoRaw);
+		// update row one again
+		Row toUpdate1 = toUpdateThree.getRows().get(0);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate1, 102);
+		Row toUpdate2 = toUpdateThree.getRows().get(2);
+		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate2, 103);
+		toUpdateThree.getRows().clear();
+		toUpdateThree.getRows().add(toUpdate1);
+		toUpdateThree.getRows().add(toUpdate2);
+		try {
+			// This should trigger a row level conflict with the first update.
+			RawRowSet toUpdateThreeRaw = new RawRowSet(set.getHeaders(), null, toUpdateThree.getTableId(), toUpdateThree.getRows());
+			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateThreeRaw);
+			fail("Should have triggered a row level conflict with row zero");
+		} catch (ConflictingUpdateException e) {
+			// expected
+			assertEquals(
+					"Row id: 0 has been changed since last read.  Please get the latest value for this row and then attempt to update it again.",
+					e.getMessage());
+		}
+
+	}
+
 	@Test
 	public void testAppendDeleteRows() throws IOException, NotFoundException {
 		// Create some test column models
