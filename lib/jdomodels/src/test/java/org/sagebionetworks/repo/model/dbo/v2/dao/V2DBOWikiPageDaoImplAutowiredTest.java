@@ -756,7 +756,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	public void testGetAndUpdateOrderHint() throws Exception {
 		// Create a new wiki page.
 		V2WikiPage page = new V2WikiPage();
-		String ownerId = "syn2084";
+		String ownerId = "2086";
 		ObjectType ownerType = ObjectType.EVALUATION;
 		page.setTitle("Title");
 		page.setCreatedBy(creatorUserGroupId);
@@ -786,8 +786,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		// Check if update happened.
 		assertTrue(Arrays.equals(orderHint.getIdList().toArray(), recordedOrderHint.getIdList().toArray()));
-		assertTrue(!recordedOrderHint.getEtag().equals("etag"));
-		assertTrue(recordedOrderHint.getOwnerId().equals(2084 + ""));
+		assertTrue(recordedOrderHint.getOwnerId().equals(ownerId));
 		assertTrue(recordedOrderHint.getOwnerObjectType().equals(ObjectType.EVALUATION));
 	}
 	

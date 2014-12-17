@@ -28,7 +28,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	private Long ownerId;
 	
 	@Field(name = V2_COL_WIKI_ONWERS_OBJECT_TYPE, primary = true, nullable = false)
-	private ObjectType ownerTypeEnum;
+	private ObjectType ownerTypeEnum;	// TODO: Restrict valid enum values.
 	
 	@Field(name = V2_COL_WIKI_ONWERS_ROOT_WIKI_ID, nullable = false, backupId = true)
 	@ForeignKey(name = "V2_WIKI_OWNER_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
