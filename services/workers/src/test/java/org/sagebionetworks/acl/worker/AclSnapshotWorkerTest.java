@@ -21,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.sqs.model.Message;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -50,7 +51,7 @@ public class AclSnapshotWorkerTest {
 	
 	@Test
 	public void testWrongObjectType() throws Exception {
-		ObjectListing objListing = s3Client.listObjects(BUCKET_NAME);
+		int numberOfObj = numberOfObject(BUCKET_NAME);
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
 		List<Message> messages = Arrays.asList(one, two);
@@ -61,12 +62,12 @@ public class AclSnapshotWorkerTest {
 		// It should just return the results unchanged
 		assertNotNull(results);
 		assertEquals(messages, results);
-		assertEquals(objListing.getObjectSummaries().size(), s3Client.listObjects(BUCKET_NAME).getObjectSummaries().size());
+		assertEquals(numberOfObj, numberOfObject(BUCKET_NAME));
 	}
 	
 	@Test
 	public void testCorrectObjectType() throws Exception {
-		ObjectListing objListing = s3Client.listObjects(BUCKET_NAME);
+		int numberOfObj = numberOfObject(BUCKET_NAME);
 		Message three = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
 		Message four = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACCESS_CONTROL_LIST, "etag");
 		Message five = MessageUtils.buildMessage(ChangeType.CREATE, "789", ObjectType.ACCESS_CONTROL_LIST, "etag");
@@ -75,7 +76,7 @@ public class AclSnapshotWorkerTest {
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals(messages, results);
-		assertTrue(objListing.getObjectSummaries().size() + 3 == s3Client.listObjects(BUCKET_NAME).getObjectSummaries().size());
+		assertEquals(3, numberOfObject(BUCKET_NAME) - numberOfObj);
 	}
 	
 	/**
@@ -95,6 +96,17 @@ public class AclSnapshotWorkerTest {
 		ReflectionTestUtils.setField(aclWorker, "aclRecordDao", aclRecordDao);
 		aclWorker.setMessages(messages);
 		return aclWorker;
+	}
+	
+	private int numberOfObject(String bucketName) {
+		ObjectListing listing = s3Client.listObjects(bucketName);
+		List<S3ObjectSummary> summaries = listing.getObjectSummaries();
+
+		while (listing.isTruncated()) {
+		   listing = s3Client.listNextBatchOfObjects (listing);
+		   summaries.addAll (listing.getObjectSummaries());
+		}
+		return summaries.size();
 	}
 
 }
