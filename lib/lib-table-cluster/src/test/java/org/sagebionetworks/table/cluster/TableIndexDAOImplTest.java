@@ -16,19 +16,19 @@ import java.util.Random;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -263,6 +263,91 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001", "true", "404001", "505001", "syn606001.607001", "link708001");
 		assertEquals(expectedValues, row.getValues());
+	}
+
+	@Test
+	@Ignore
+	public void testLargeTable() throws ParseException {
+		// Create the table
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		long startTime = System.currentTimeMillis();
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
+		final int endgoal = 1000000;
+		final int batchsize = 100000;
+		final int distinctCount = 100;
+		for (int i = 0; i < endgoal / batchsize; i++) {
+			System.out.println(i);
+			List<Row> rows = Lists.newArrayListWithCapacity(batchsize);
+			for (int j = 0; j < batchsize; j += distinctCount) {
+				rows.addAll(TableModelTestUtils.createRows(allTypes, distinctCount));
+			}
+			RowSet set = new RowSet();
+			set.setRows(rows);
+			set.setHeaders(headers);
+			set.setTableId(tableId);
+			IdRange range = new IdRange();
+			range.setMinimumId(100L + i * batchsize);
+			range.setMaximumId(100L + i * batchsize + batchsize);
+			range.setVersionNumber(3L + i);
+			TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+			// Now fill the table with data
+			tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		}
+		long now;
+		List<Object> times = Lists.newArrayList();
+		now = System.currentTimeMillis();
+		times.add("Loading");
+		times.add(now - startTime);
+		startTime = now;
+
+		SqlQuery query;
+		RowSet results;
+
+		query = new SqlQuery("select distinct * from " + tableId, allTypes);
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals(distinctCount, results.getRows().size());
+		now = System.currentTimeMillis();
+		times.add("Distinct");
+		times.add(now - startTime);
+		startTime = now;
+
+		query = new SqlQuery("select distinct * from " + tableId, allTypes);
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals(distinctCount, results.getRows().size());
+		now = System.currentTimeMillis();
+		times.add("Distinct2");
+		times.add(now - startTime);
+		startTime = now;
+
+		// This is our query
+		query = new SqlQuery("select * from " + tableId + " where " + allTypes.get(0).getName() + " = '"
+				+ results.getRows().get(0).getValues().get(0) + "'", allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		now = System.currentTimeMillis();
+		times.add("Select");
+		times.add(now - startTime);
+		startTime = now;
+
+		// This is our query
+		query = new SqlQuery("select count(*) from " + tableId, allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals("" + endgoal, results.getRows().get(0).getValues().get(0));
+		now = System.currentTimeMillis();
+		times.add("Count");
+		times.add(now - startTime);
+		startTime = now;
+
+		for (int i = 0; i < times.size(); i += 2) {
+			System.err.println(times.get(i) + ": " + ((Long) times.get(i + 1) / 1000L));
+		}
 	}
 
 	@Test
