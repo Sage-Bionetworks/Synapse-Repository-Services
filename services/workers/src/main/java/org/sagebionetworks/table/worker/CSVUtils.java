@@ -142,4 +142,32 @@ public class CSVUtils {
 		// We failed to match a type
 		throw new IllegalArgumentException("Failed to match a cell value to a ColumnType. Value: "+value);
 	}
+
+	/**
+	 * make a rough guess as to what the extension for the file should be based on the separator.
+	 * 
+	 * @param separator
+	 * @return
+	 */
+	public static String guessExtension(String separator) {
+		String extension = "csv"; // by default, just use csv
+		if ("\t".equals(separator)) {
+			extension = "tsv";
+		}
+		return extension;
+	}
+
+	/**
+	 * make a rough guess as to what the extension for the file should be based on the separator.
+	 * 
+	 * @param separator
+	 * @return
+	 */
+	public static String guessContentType(String separator) {
+		String contentType = "text/csv";
+		if ("\t".equals(separator)) {
+			contentType = "text/tsv";
+		}
+		return contentType;
+	}
 }
