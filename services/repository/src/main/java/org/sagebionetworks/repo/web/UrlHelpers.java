@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -657,6 +658,17 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
+	// Access Requirement
+	public static final String ACCESS_REQUIREMENT_OWNER_ID_V2 = "/access_requirement/{ownerId}";
+	public static final String ACCESS_REQUIREMENT_WIKI_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_TREE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_HANDLE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_HANDLES_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_HISTORY_V2 = ACCESS_REQUIREMENT_WIKI_ID_V2 + WIKI_HISTORY_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	
 	// Asynchronous jobs
 	public static final String ASYNC_START_REQUEST = "/async/start";

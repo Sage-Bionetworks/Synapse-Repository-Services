@@ -101,11 +101,11 @@ public class IT502SynapseJavaClientAccountTest {
 	private String getTokenFromFile(File file, String endpoint) throws IOException {
 		// the email is written to a local file.  Read it and extract the link
 		String body = readFile(file);
-		int endpointIndex = body.indexOf(endpoint);
-		int tokenStart = endpointIndex+endpoint.length();
+		String startString = "href=\\\""+endpoint;
+		int endpointIndex = body.indexOf(startString);
+		int tokenStart = endpointIndex+startString.length();
 		assertTrue(tokenStart>=0);
-		int tokenEnd = body.indexOf("\\r\\n", tokenStart);
-		if (tokenEnd<0) tokenEnd = body.indexOf("\\n", tokenStart);
+		int tokenEnd = body.indexOf("\\\">", tokenStart);
 		assertTrue(tokenEnd>=0);
 		String token = body.substring(tokenStart, tokenEnd);
 		return token;
