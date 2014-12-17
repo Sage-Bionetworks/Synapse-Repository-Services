@@ -1,8 +1,0 @@
-Hello #displayname#,
-
-Please follow the link below to create your account.
-#link#
-
-This link is valid for the next 24 hours.
-
-#domain# Administrator
