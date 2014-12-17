@@ -5,7 +5,6 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,16 +36,11 @@ public class AclSnapshotWorkerTest {
 	private String BUCKET_NAME = "prod.acl.record.sagebase.org";
 
 	@Before
-	public void before() {
-		
+	public void before() {	
 		assertNotNull(aclRecordDao);
 		
 		assertNotNull(s3Client);
 		assertTrue(s3Client.doesBucketExist(BUCKET_NAME));
-	}
-	
-	@After
-	public void after() {
 	}
 	
 	@Test

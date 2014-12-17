@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,10 +37,6 @@ public class AclRecordDAOImplTest {
 		
 		assertNotNull(s3Client);
 		assertTrue(s3Client.doesBucketExist(BUCKET_NAME));
-	}
-	
-	@After
-	public void after(){
 	}
 	
 	@Test
