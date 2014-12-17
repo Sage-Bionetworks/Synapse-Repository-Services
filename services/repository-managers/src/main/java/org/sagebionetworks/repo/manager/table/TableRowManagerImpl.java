@@ -313,7 +313,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			batchSizeBytes += maxBytesPerRow;
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Validate there aren't any illegal file handle replaces
-				validateFileHandles(user, tableId, columnMapper, delta, etag);
+				validateFileHandles(user, tableId, columnMapper, delta.getRows());
 				// Send this batch and keep the etag.
 				etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
 				// Clear the batch
@@ -326,7 +326,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
-			validateFileHandles(user, tableId, columnMapper, delta, etag);
+			validateFileHandles(user, tableId, columnMapper, delta.getRows());
 			etag = appendBatchOfRowsToTable(user, columnMapper, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
@@ -1029,7 +1029,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
-	private void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, RawRowSet delta, String etag)
+	private void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, List<Row> rows)
 			throws IOException,
 			NotFoundException {
 
@@ -1045,7 +1045,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			return;
 		}
 
-		RowSetAccessor fileHandlesToCheckAccessor = TableModelUtils.getRowSetAccessor(delta.getRows(), columnMapper);
+		RowSetAccessor fileHandlesToCheckAccessor = TableModelUtils.getRowSetAccessor(rows, columnMapper);
 
 		// eliminate all file handles that are owned by current user
 		Set<String> ownedFileHandles = Sets.newHashSet();
