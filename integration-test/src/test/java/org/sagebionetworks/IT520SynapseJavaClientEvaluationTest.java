@@ -262,6 +262,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
+		
 		// Create AccessApproval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setRequirementId(tou.getId());

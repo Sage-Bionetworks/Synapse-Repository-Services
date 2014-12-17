@@ -3,6 +3,9 @@ package org.sagebionetworks.table.query.model;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltboolean term&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
@@ -26,15 +29,20 @@ public class BooleanTerm extends SQLElement {
 		return andBooleanFactors;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		boolean isFrist = true;
+	public void visit(Visitor visitor) {
+		for (BooleanFactor booleanFactor : andBooleanFactors) {
+			visit(booleanFactor, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		boolean isFirst = true;
 		for(BooleanFactor booleanFactor: andBooleanFactors){
-			if(!isFrist){
-				builder.append(" AND ");
+			if (!isFirst) {
+				visitor.append(" AND ");
 			}
-			booleanFactor.toSQL(builder, columnConvertor);
-			isFrist = false;
+			visit(booleanFactor, visitor);
+			isFirst = false;
 		}
 	}
 }

@@ -193,7 +193,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		
 		// now user will lack PARTICIPATE and SUBMIT access
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
 
 		// Make sure ACL is deleted when the evaluation is deleted
 		evaluationManager.deleteEvaluation(adminUserInfo, evalId);

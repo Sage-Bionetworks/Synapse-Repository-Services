@@ -1,22 +1,21 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltderived column&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
 public class DerivedColumn extends SQLElement {
 
-	ValueExpression valueExpression;
 	AsClause asClause;
+	ValueExpression valueExpression;
 	
 	public DerivedColumn(ValueExpression valueExpression, AsClause asClause) {
-		super();
 		this.valueExpression = valueExpression;
 		this.asClause = asClause;
-	}
-
-	public boolean isAggregate() {
-		return valueExpression.isAggregate();
 	}
 
 	public ValueExpression getValueExpression() {
@@ -27,13 +26,26 @@ public class DerivedColumn extends SQLElement {
 		return asClause;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		valueExpression.toSQL(builder, columnConvertor);
-		if(asClause!= null){
-			builder.append(" ");
-			asClause.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(valueExpression, visitor);
+		if (asClause != null) {
+			visit(asClause, visitor);
 		}
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(valueExpression, visitor);
+		if(asClause!= null){
+			visitor.append(" ");
+			visit(asClause, visitor);
+		}
+	}
+
+	public void visit(ToNameStringVisitor visitor) {
+		if (asClause != null) {
+			visit(asClause, visitor);
+		} else {
+			visit(valueExpression, visitor);
+		}
+	}
 }

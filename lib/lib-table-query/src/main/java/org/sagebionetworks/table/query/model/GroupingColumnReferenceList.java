@@ -3,6 +3,9 @@ package org.sagebionetworks.table.query.model;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltgrouping column reference list&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
@@ -27,16 +30,20 @@ public class GroupingColumnReferenceList extends SQLElement {
 		return groupingColumnReferences;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+	public void visit(Visitor visitor) {
+		for (GroupingColumnReference groupingColumnReference : groupingColumnReferences) {
+			visit(groupingColumnReference, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		boolean first = true;
 		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
 			if(!first){
-				builder.append(", ");
+				visitor.append(", ");
 			}
-			groupingColumnReference.toSQL(builder, columnConvertor);
+			visit(groupingColumnReference, visitor);
 			first = false;
 		}
 	}
-	
 }

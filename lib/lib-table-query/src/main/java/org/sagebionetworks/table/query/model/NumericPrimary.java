@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 public class NumericPrimary extends SQLElement {
 
@@ -14,14 +16,6 @@ public class NumericPrimary extends SQLElement {
 		this.numericValueFunction = numericValueFunction;
 	}
 
-	public boolean isAggregate() {
-		if (valueExpressionPrimary != null) {
-			return valueExpressionPrimary.isAggregate();
-		} else {
-			return false;
-		}
-	}
-
 	public NumericValueFunction getNumericValueFunction() {
 		return numericValueFunction;
 	}
@@ -31,11 +25,11 @@ public class NumericPrimary extends SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		if (this.valueExpressionPrimary != null) {
-			this.valueExpressionPrimary.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		if (valueExpressionPrimary != null) {
+			visit(valueExpressionPrimary, visitor);
 		} else {
-			this.numericValueFunction.toSQL(builder, columnConvertor);
+			visit(numericValueFunction, visitor);
 		}
 	}
 }

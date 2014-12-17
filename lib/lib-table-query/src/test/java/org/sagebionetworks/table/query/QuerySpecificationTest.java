@@ -18,6 +18,7 @@ import org.sagebionetworks.table.query.model.SqlDirective;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -30,9 +31,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("one, two");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, setQuantifier, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT one, two FROM syn123", builder.toString());
+		assertEquals("SELECT one, two FROM syn123", element.toString());
 	}
 	
 	@Test
@@ -42,9 +41,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("one, two");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(sqlDirective, setQuantifier, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT SQL_CALC_FOUND_ROWS one, two FROM syn123", builder.toString());
+		assertEquals("SELECT SQL_CALC_FOUND_ROWS one, two FROM syn123", element.toString());
 	}
 
 	@Test
@@ -59,11 +56,9 @@ public class QuerySpecificationTest {
 		DerivedColumn column = new DerivedColumn(valueExpression, null);
 		List<DerivedColumn> columns = Lists.newArrayList(column);
 		SelectList selectList = new SelectList(columns);
-		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
-		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT FOUND_ROWS() FROM syn123", builder.toString());
+		QuerySpecification element = new QuerySpecification(null, null, selectList, null);
+		assertEquals("SELECT FOUND_ROWS()", element.toString());
+		assertNull(element.doVisit(new GetTableNameVisitor()).getTableName());
 	}
 
 	@Test
@@ -72,9 +67,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("one, two");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, setQuantifier, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT DISTINCT one, two FROM syn123", builder.toString());
+		assertEquals("SELECT DISTINCT one, two FROM syn123", element.toString());
 	}
 
 	@Test
@@ -82,9 +75,7 @@ public class QuerySpecificationTest {
 		SelectList selectList = SqlElementUntils.createSelectList("FOUND_ROWS()");
 		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(null, null, selectList, tableExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder, null);
-		assertEquals("SELECT FOUND_ROWS() FROM syn123", builder.toString());
+		assertEquals("SELECT FOUND_ROWS() FROM syn123", element.toString());
+		assertEquals("syn123", element.doVisit(new GetTableNameVisitor()).getTableName());
 	}
-
 }

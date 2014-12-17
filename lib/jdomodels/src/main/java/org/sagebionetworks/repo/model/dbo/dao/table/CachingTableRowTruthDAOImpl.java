@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,11 +15,11 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -60,7 +59,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 * @throws ConflictingUpdateException when a conflict is found
 	 */
 	@Override
-	public void checkForRowLevelConflict(String tableIdString, RowSet delta, long minVersion) throws IOException {
+	public void checkForRowLevelConflict(String tableIdString, RawRowSet delta, long minVersion) throws IOException {
 		if (delta.getEtag() == null)
 			throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
 		long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
@@ -97,8 +96,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public List<RowSet> getRowSetOriginals(RowReferenceSet ref)
-			throws IOException, NotFoundException {
+	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException {
 		if (ref == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		if (ref.getTableId() == null)
@@ -110,22 +108,22 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		if (ref.getRows() == null)
 			throw new IllegalArgumentException(
 					"RowReferenceSet.rows cannot be null");
-		List<RowSet> results = getRowSetOriginalsFromCache(ref);
+		List<RawRowSet> results = getRowSetOriginalsFromCache(ref);
 		if (results != null) {
 			return results;
 		} else {
-			return super.getRowSetOriginals(ref);
+			return super.getRowSetOriginals(ref, columnMapper);
 		}
 	}
 
-	private List<RowSet> getRowSetOriginalsFromCache(RowReferenceSet ref) throws IOException, NotFoundException {
+	private List<RawRowSet> getRowSetOriginalsFromCache(RowReferenceSet ref) throws IOException, NotFoundException {
 
 		if (!tableRowCache.isEnabled()) {
 			return null;
 		}
 		SetMultimap<Long, Long> versions = TableModelUtils.createVersionToRowsMap(ref.getRows());
 
-		List<RowSet> results = new LinkedList<RowSet>();
+		List<RawRowSet> results = Lists.newArrayListWithCapacity(ref.getRows().size());
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
 			Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
 			Long version = versionWithRows.getKey();
@@ -134,12 +132,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 			final Map<Long, Row> resultRows = getRowsFromCacheOrS3(ref.getTableId(), rowsToGet, version, trc);
 
-			RowSet thisSet = new RowSet();
-			thisSet.setTableId(ref.getTableId());
-			thisSet.setEtag(trc.getEtag());
-			thisSet.setHeaders(trc.getHeaders());
-			thisSet.setRows(Lists.newArrayList(resultRows.values()));
-
+			RawRowSet thisSet = new RawRowSet(trc.getHeaders(), trc.getEtag(), ref.getTableId(), Lists.newArrayList(resultRows.values()));
 			results.add(thisSet);
 		}
 		return results;
@@ -178,7 +171,8 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public Row getRowOriginal(String tableIdString, final RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException {
+	public Row getRowOriginal(String tableIdString, final RowReference ref, ColumnModelMapper resultSchema) throws IOException,
+			NotFoundException {
 		if (ref == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		if (tableIdString == null)
@@ -189,9 +183,9 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		if (rowResult != null) {
 			TableRowChange trc = getTableRowChange(tableIdString, ref.getVersionNumber());
 			Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
-			return TableModelUtils.convertToSchemaAndMerge(rowResult, columnIndexMap, columns);
+			return TableModelUtils.convertToSchemaAndMerge(rowResult, columnIndexMap, resultSchema);
 		} else {
-			return super.getRowOriginal(tableIdString, ref, columns);
+			return super.getRowOriginal(tableIdString, ref, resultSchema);
 		}
 	}
 

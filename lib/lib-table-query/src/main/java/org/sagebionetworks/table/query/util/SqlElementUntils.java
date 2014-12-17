@@ -418,62 +418,6 @@ public class SqlElementUntils {
 	}
 	
 	/**
-	 * Get the tableId from a QuerySpecification 
-	 * @param model
-	 * @return
-	 */
-	public static String getTableId(QuerySpecification querySpecification){
-		if (querySpecification == null)
-			throw new IllegalArgumentException("QuerySpecification cannot be null");
-		return getTableId(querySpecification.getTableExpression());
-	}
-	
-	/**
-	 * Get the tableId from the passed SQL string.
-	 * @param sql
-	 * @return
-	 * @throws ParseException
-	 */
-	public static String getTableId(String sql) throws ParseException {
-		if (sql == null)
-			throw new IllegalArgumentException("SQL cannot be null");
-		return getTableId(new TableQueryParser(sql).querySpecification());
-	}
-
-	/**
-	 * Get the tableId from a TableExpression
-	 * @param tableExpression
-	 * @return
-	 */
-	public static String getTableId(TableExpression tableExpression) {
-		if (tableExpression == null)
-			throw new IllegalArgumentException("TableExpression cannot be null");
-		return getTableId(tableExpression.getFromClause());
-	}
-
-	/**
-	 * Get the tableId from a FromClause
-	 * @param fromClause
-	 * @return
-	 */
-	public static String getTableId(FromClause fromClause) {
-		if (fromClause == null)
-			throw new IllegalArgumentException("FromClause cannot be null");
-		return getTableId(fromClause.getTableReference());
-	}
-
-	/**
-	  * Get the tableId from a TableReference
-	 * @param tableReference
-	 * @return
-	 */
-	public static String getTableId(TableReference tableReference) {
-		if (tableReference == null)
-			throw new IllegalArgumentException("TableReference cannot be null");
-		return tableReference.getTableName();
-	}
-	
-	/**
 	 * Convert the passed query into a count query.
 	 * @param model
 	 * @return
@@ -535,9 +479,8 @@ public class SqlElementUntils {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
 			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
-				StringBuilder columnName = new StringBuilder();
-				spec.getSortKey().getColumnReference().toSQL(columnName, null);
-				originalSortSpecifications.put(columnName.toString(), spec);
+				String columnName = spec.getSortKey().getValueExpressionPrimary().toString();
+				originalSortSpecifications.put(columnName, spec);
 			}
 		}
 
@@ -548,8 +491,8 @@ public class SqlElementUntils {
 			OrderingSpecification direction = sortItem.getDirection() == SortDirection.DESC ? OrderingSpecification.DESC
 					: OrderingSpecification.ASC;
 			originalSortSpecifications.remove(sortItem.getColumn());
-			sortSpecifications.add(new SortSpecification(new SortKey(new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(
-					sortItem.getColumn(), null))), null)), direction));
+			sortSpecifications.add(new SortSpecification(new SortKey(new ValueExpressionPrimary(new ColumnReference(new ColumnName(
+					new Identifier(new ActualIdentifier(sortItem.getColumn(), null))), null))), direction));
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
 		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));

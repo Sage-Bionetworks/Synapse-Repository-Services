@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 public class NumericValueExpression extends SQLElement {
 
@@ -9,16 +10,11 @@ public class NumericValueExpression extends SQLElement {
 		this.term = term;
 	}
 
-	public boolean isAggregate() {
-		return term.isAggregate();
-	}
-
 	public Term getTerm() {
 		return term;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.term.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.term, visitor);
 	}
 }

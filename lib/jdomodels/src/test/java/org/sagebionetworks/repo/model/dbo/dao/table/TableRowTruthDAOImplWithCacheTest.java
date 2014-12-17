@@ -16,7 +16,9 @@ import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -66,26 +68,22 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 	@Test
 	public void testCacheIsUsed() throws Exception {
 		// Create some test column models
-		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelTestUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 5);
 		String tableId = "syn123";
-		RowSet set = new RowSet();
-		set.setHeaders(TableModelUtils.getHeaders(models));
-		set.setRows(rows);
-		set.setTableId(tableId);
+		RawRowSet set = new RawRowSet(TableModelUtils.getHeaders(mapper.getColumnModels()), null, tableId, rows);
 		// Append this change set
 		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
-		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertEquals(0, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 
-		rows = TableModelTestUtils.createRows(models, 1);
+		rows = TableModelTestUtils.createRows(mapper.getColumnModels(), 1);
 		rows.get(0).setRowId(refSet.getRows().get(0).getRowId());
 		rows.get(0).setVersionNumber(refSet.getRows().get(0).getVersionNumber());
-		set.setRows(rows);
-		set.setEtag(refSet.getEtag());
-		RowReferenceSet refs = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		set = new RawRowSet(TableModelUtils.getHeaders(mapper.getColumnModels()), refSet.getEtag(), tableId, rows);
+		RowReferenceSet refs = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertEquals(1, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
 		
@@ -94,9 +92,9 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
 
 		assertEquals(0, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
-		tableRowTruthDao.getRowSetOriginals(refs);
+		tableRowTruthDao.getRowSetOriginals(refs, mapper);
 		assertEquals(1, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
-		tableRowTruthDao.getRowSetOriginals(refs);
+		tableRowTruthDao.getRowSetOriginals(refs, mapper);
 		assertEquals(1, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
 	}
 

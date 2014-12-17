@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
@@ -46,8 +48,8 @@ public class TableServicesImplTest {
 	Long userId;
 	UserInfo userInfo;
 	QueryBundleRequest queryBundle;
-	List<ColumnModel> models;
-	List<String> headers;
+	ColumnMapper mapper;
+	List<SelectColumn> headers;
 	RowSet selectStar;
 	QueryResult selectStarResult;
 	String tableId;
@@ -71,18 +73,18 @@ public class TableServicesImplTest {
 		userId = 123L;
 		userInfo = new UserInfo(false, userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
-		models = TableModelTestUtils.createOneOfEachType();
-		headers = TableModelUtils.getHeaders(models);
+		mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		headers = mapper.getSelectColumns();
 		tableId = "syn456";
 		selectStar = new RowSet();
 		selectStar.setEtag("etag");
 		selectStar.setHeaders(headers);
 		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(models, 4));
+		selectStar.setRows(TableModelTestUtils.createRows(mapper.getColumnModels(), 4));
 		selectStarResult = new QueryResult();
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		sqlQuery = new SqlQuery("select * from "+tableId, models);
+		sqlQuery = new SqlQuery("select * from " + tableId, mapper.getColumnModels());
 	}
 }

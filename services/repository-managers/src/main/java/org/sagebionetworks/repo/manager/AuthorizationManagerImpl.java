@@ -87,6 +87,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
+				if (accessType==ACCESS_TYPE.READ) {
+					return AuthorizationManagerUtil.AUTHORIZED;					
+				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
 				return canAdminAccessRequirement(userInfo, accessRequirement);
 			case ACCESS_APPROVAL:
@@ -310,30 +313,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public boolean isAnonymousUser(UserInfo userInfo) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		return AuthorizationUtils.isUserAnonymous(userInfo);
-	}
-
-	@Override
-	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody bodyIntf) throws DatastoreException, NotFoundException {
-		if(bodyIntf == null) throw new IllegalArgumentException("Body cannot be null");
-		// Anonymous cannot start a job
-		if(AuthorizationUtils.isUserAnonymous(userInfo)) {
-			return AuthorizationManagerUtil.accessDenied("Anonymous user may not start job.");
-		}
-		return AuthorizationManagerUtil.AUTHORIZED;
-	}
-	
-	/**
-	 * Get the tableId from a SQL string
-	 * @param sql
-	 * @return
-	 */
-	private String getTableIDFromSQL(String sql){
-		// Parse the SQL
-		try {
-			return SqlElementUntils.getTableId(sql);
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
-		}
 	}
 
 	@Override

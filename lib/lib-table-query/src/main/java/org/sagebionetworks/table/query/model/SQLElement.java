@@ -1,5 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+import org.sagebionetworks.util.IntrospectionUtils;
 
 /**
  * An element that be serialized to SQL.
@@ -9,104 +15,61 @@ package org.sagebionetworks.table.query.model;
  */
 public abstract class SQLElement {
 
-	public interface ColumnConvertor {
+	/**
+	 * override this method for the default tree crawl. Override this method with more specific visitors for alternate
+	 * tree crawl behaviours
+	 * 
+	 * @param visitor
+	 */
+	public abstract void visit(Visitor visitor);
 
-		enum SQLClause {
-			SELECT, ORDER_BY, GROUP_BY, FUNCTION_PARAMETER
-		};
-
-		/**
-		 * Convert table name from sql to actual table name in index
-		 * 
-		 * @param tableName
-		 * @param builder
-		 */
-		void convertTableName(String tableName, StringBuilder builder);
-
-		/**
-		 * Convert column name from sql to actual column name in index table
-		 * 
-		 * @param columnReference
-		 * @param builder
-		 */
-		void convertColumn(ColumnReference columnReference, StringBuilder builder);
-
-		/**
-		 * Handle a boolean function on the current column
-		 * 
-		 * @param booleanFunction
-		 * @param columnReference
-		 * @param builder
-		 */
-		void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference, StringBuilder builder);
-
-		/**
-		 * Set the lhs column if valid, so the rhs can know that type to convert to. Always set back to null when lhs
-		 * goes out of scope
-		 * 
-		 * @param columnReferenceLHS
-		 */
-		void setLHSColumn(ColumnReference columnReferenceLHS);
-
-		/**
-		 * New AS column alias encountered. Call this to notify convertor that this new name now exists
-		 * 
-		 * @param columnName
-		 */
-		void addAsColumn(ColumnName columnName);
-
-		/**
-		 * parameterize a number
-		 * 
-		 * @param param
-		 * @param builder
-		 */
-		void convertParam(Number param, StringBuilder builder);
-
-		/**
-		 * parameterize a param that is known to be a number
-		 * 
-		 * @param param
-		 * @param builder
-		 */
-		void convertNumberParam(String param, StringBuilder builder);
-
-		/**
-		 * parameterize a string and convert if lhs is known
-		 * 
-		 * @param signedNumericLiteral
-		 * @param builder
-		 */
-		void convertParam(String signedNumericLiteral, StringBuilder builder);
-
-		/**
-		 * Indicates that columns are now interpreted as part of specific clause/ Always pop when clause goes out of
-		 * scope
-		 * 
-		 * @param currentClause
-		 */
-		void pushCurrentClause(SQLClause clause);
-
-		/**
-		 * Indicates that columns are no longer interpreted as part of specific clause. Always match push goes out of
-		 * scope
-		 * 
-		 * @param currentClause
-		 */
-		void popCurrentClause(SQLClause clause);
+	/**
+	 * Call from visit(visitor) method to continue tree crawl
+	 * 
+	 * @param sqlElement
+	 * @param visitor
+	 */
+	protected void visit(SQLElement sqlElement, Visitor visitor) {
+		Method m = IntrospectionUtils.findNearestMethod(sqlElement, "visit", visitor);
+		try {
+			m.invoke(sqlElement, visitor);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		} catch (InvocationTargetException e) {
+			if (e.getTargetException() instanceof RuntimeException) {
+				throw (RuntimeException) e.getTargetException();
+			} else {
+				throw new RuntimeException(e.getTargetException().getMessage(), e.getTargetException());
+			}
+		}
 	}
 
 	/**
-	 * Write this element as SQL to the passed StringBuilder.
+	 * visit this element and its children with the specified visitor. Usage:
 	 * 
-	 * @param builder
+	 * <pre>
+	 * TableNameVisitor visitor = new TableNameVisitor();
+	 * model.doVisit(visitor);
+	 * String tableName = visitor.getTableName();
+	 * </pre>
+	 * 
+	 * or, the shorter version:
+	 * 
+	 * <pre>
+	 * model.doVisit(new TableNameVisitor()).getTableName();
+	 * </pre>
+	 * 
+	 * @param visitor
 	 */
-	public abstract void toSQL(StringBuilder builder, ColumnConvertor columnConvertor);
+	public <V extends Visitor> V doVisit(V visitor) {
+		visit(this, visitor);
+		return visitor;
+	}
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		toSQL(sb, null);
-		return sb.toString();
+		ToSimpleSqlVisitor visitor = new ToSimpleSqlVisitor();
+		visit(this, visitor);
+		return visitor.getSql();
 	}
 }

@@ -57,7 +57,7 @@ public interface AuthorizationManager {
 	 * Checks whether the given user can create the given access approval
 	 * 
 	 * @param userInfo
-	 * @param accessRequirement
+	 * @param accessApproval
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
 	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
@@ -134,17 +134,6 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
-
-	/**
-	 * Check if the user can start a given Asynchronous job
-	 * 
-	 * @param userInfo
-	 * @param body
-	 * @return whether access is granted and, if not, a String giving the reason why
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 

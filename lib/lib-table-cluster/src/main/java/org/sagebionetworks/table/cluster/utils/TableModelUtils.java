@@ -5,10 +5,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,16 +22,24 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
+import org.sagebionetworks.repo.model.table.SelectColumnMapper;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.TimeUtils;
@@ -38,6 +48,7 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -55,6 +66,11 @@ public class TableModelUtils {
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
+
+	/**
+	 * The maximum allowed value for the number characters for a string.
+	 */
+	public static final Long MAX_ALLOWED_STRING_SIZE = 1000L;
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.
@@ -73,6 +89,27 @@ public class TableModelUtils {
 		}
 	}
 
+	public static final Function<ColumnModel, String> COLUMN_MODEL_TO_ID = new Function<ColumnModel, String>() {
+		@Override
+		public String apply(ColumnModel cm) {
+			return cm.getId();
+		}
+	};
+
+	public static final Function<SelectColumn, String> SELECT_COLUMN_TO_ID = new Function<SelectColumn, String>() {
+		@Override
+		public String apply(SelectColumn sc) {
+			return sc.getId();
+		}
+	};
+
+	public static final Function<SelectColumnAndModel, String> SELECT_COLUMN_AND_MODEL_TO_ID = new Function<SelectColumnAndModel, String>() {
+		@Override
+		public String apply(SelectColumnAndModel sc) {
+			return sc.getSelectColumn().getId();
+		}
+	};
+
 	/**
 	 * This utility will validate and convert the passed RowSet to an output CSV written to a GZip stream.
 	 * 
@@ -82,7 +119,7 @@ public class TableModelUtils {
 	 * @param isDeletion
 	 * @throws IOException
 	 */
-	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RowSet set, OutputStream out) throws IOException {
+	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RawRowSet set, OutputStream out) throws IOException {
 		GZIPOutputStream zipOut = null;
 		OutputStreamWriter osw = null;
 		CSVWriter csvWriter = null;
@@ -111,7 +148,7 @@ public class TableModelUtils {
 	 * @param models
 	 * @param set
 	 */
-	public static void validateAndWriteToCSV(List<ColumnModel> models, RowSet set, CSVWriter out) {
+	public static void validateAndWriteToCSV(List<ColumnModel> models, RawRowSet set, CSVWriter out) {
 		if (models == null)
 			throw new IllegalArgumentException("Models cannot be null");
 		validateRowSet(set);
@@ -188,7 +225,7 @@ public class TableModelUtils {
 	/**
 	 * @param set
 	 */
-	public static void validateRowSet(RowSet set) {
+	public static void validateRowSet(RawRowSet set) {
 		if (set == null)
 			throw new IllegalArgumentException("RowSet cannot be null");
 		;
@@ -338,14 +375,12 @@ public class TableModelUtils {
 	 * @param columnModel
 	 * @return
 	 */
-	public static String translateRowValueFromQuery(String value, ColumnModel columnModel) {
-		if (columnModel != null) {
-			if (columnModel.getColumnType() == ColumnType.BOOLEAN) {
-				if ("0".equals(value)) {
-					value = "false";
-				} else if ("1".equals(value)) {
-					value = "true";
-				}
+	public static String translateRowValueFromQuery(String value, SelectColumn selectColumn) {
+		if (selectColumn.getColumnType() == ColumnType.BOOLEAN) {
+			if ("0".equals(value)) {
+				value = "false";
+			} else if ("1".equals(value)) {
+				value = "true";
 			}
 		}
 		return value;
@@ -355,7 +390,7 @@ public class TableModelUtils {
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
-	public static int countEmptyOrInvalidRowIds(RowSet set){
+	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
 		validateRowSet(set);
 		int count = 0;
 		for (Row row : set.getRows()) {
@@ -392,7 +427,7 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
-	public static void assignRowIdsAndVersionNumbers(RowSet set, IdRange range){
+	public static void assignRowIdsAndVersionNumbers(RawRowSet set, IdRange range) {
 		validateRowSet(set);
 		Long id = range.getMinimumId();
 		for (Row row : set.getRows()) {
@@ -533,24 +568,31 @@ public class TableModelUtils {
 		}
 		return headers;
 	}
-	
+
 	/**
-	 * Create a delimited string of column model IDs.
+	 * Extract the headers from a list of column Models.s
+	 * 
 	 * @param models
 	 * @return
 	 */
-	public static String createDelimitedColumnModelIdString(List<String> headers){
-		if(headers == null) throw new IllegalArgumentException("headers cannot be null");
-		StringBuilder builder = new StringBuilder();
-		boolean first = true;
-		for(String id: headers){
-			if(!first){
-				builder.append(COLUMN_MODEL_ID_STRING_DELIMITER);
-			}
-			builder.append(id);
-			first=false;
+	public static List<SelectColumn> getSelectColumns(Collection<ColumnModel> models, boolean isAggregate) {
+		ValidateArgument.required(models, "models");
+		List<SelectColumn> result = Lists.newArrayListWithCapacity(models.size());
+		for (ColumnModel model : models) {
+			result.add(createSelectColumn(model, isAggregate));
 		}
-		return builder.toString();
+		return result;
+	}
+
+	/**
+	 * Create a delimited string of column model IDs.
+	 * 
+	 * @param models
+	 * @return
+	 */
+	public static String createDelimitedColumnModelIdString(List<String> headers) {
+		ValidateArgument.required(headers, "headers");
+		return StringUtils.join(headers, COLUMN_MODEL_ID_STRING_DELIMITER);
 	}
 	
 	/**
@@ -559,13 +601,9 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static List<String> readColumnModelIdsFromDelimitedString(String in){
-		if(in == null) throw new IllegalArgumentException("String cannot be null");
+		ValidateArgument.required(in, "String");
 		String[] split = in.split(COLUMN_MODEL_ID_STRING_DELIMITER);
-		List<String> result = new LinkedList<String>();
-		for(String id: split){
-			result.add(id);
-		}
-		return result;
+		return Arrays.asList(split);
 	}
 
 	/**
@@ -608,19 +646,21 @@ public class TableModelUtils {
 	
 	/**
 	 * Convert each passed RowSet into the passed schema and merge all results into a single output set.
+	 * 
 	 * @param sets
-	 * @param resultSchema
+	 * @param restultForm
 	 * @return
 	 */
-	public static RowSet convertToSchemaAndMerge(List<RowSet> sets, List<ColumnModel> resultSchema, String tableId, String etag) {
+	public static RowSet convertToSchemaAndMerge(List<RawRowSet> sets, ColumnModelMapper resultSchema, String tableId,
+			String etag) {
 		// Prepare the final set
 		RowSet out = new RowSet();
 		out.setTableId(tableId);
 		out.setRows(new LinkedList<Row>());
-		out.setHeaders(getHeaders(resultSchema));
+		out.setHeaders(resultSchema.getSelectColumns());
 		out.setEtag(etag);
 		// Transform each
-		for(RowSet set: sets){
+		for (RawRowSet set : sets) {
 			// Transform each and merge the results
 			convertToSchemaAndMerge(set, resultSchema, out);
 		}
@@ -629,17 +669,20 @@ public class TableModelUtils {
 	
 	/**
 	 * Convert the passed RowSet into the passed schema and append the rows to the passed output set.
+	 * 
 	 * @param sets
-	 * @param resultSchema
+	 * @param restultForm
 	 * @param sets
 	 */
-	public static void convertToSchemaAndMerge(RowSet in, List<ColumnModel> resultSchema, RowSet out){
+	public static void convertToSchemaAndMerge(RawRowSet in, ColumnModelMapper resultSchema, RowSet out) {
 		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(in);
 		// Now convert each row into the requested format.
 		// Process each row
 		for (Row row : in.getRows()) {
 			// First convert the values to
-			if (row.getValues() == null) continue;
+			if (row.getValues() == null) {
+				continue;
+			}
 			Row newRow = convertToSchemaAndMerge(row, columnIndexMap, resultSchema);
 			// add the new row to the out set
 			out.getRows().add(newRow);
@@ -652,28 +695,25 @@ public class TableModelUtils {
 	 * @param resultSchema
 	 * @param sets
 	 */
-	public static Row convertToSchemaAndMerge(Row row, Map<String, Integer> columnIndexMap, List<ColumnModel> resultSchema) {
-		// Convert the values to an array for quick lookup
-		String[] values = row.getValues().toArray(new String[row.getValues().size()]);
-
+	public static Row convertToSchemaAndMerge(Row row, Map<String, Integer> columnIndexMap, ColumnModelMapper resultSchema) {
 		// Create the new row
 		Row newRow = new Row();
 		newRow.setRowId(row.getRowId());
 		newRow.setVersionNumber(row.getVersionNumber());
-		List<String> newValues = new LinkedList<String>();
+		List<String> newValues = Lists.newArrayListWithCapacity(resultSchema.columnModelCount());
 		newRow.setValues(newValues);
 
 		// Now process all of the columns as defined by the schema
-		for (int i = 0; i < resultSchema.size(); i++) {
-			ColumnModel cm = resultSchema.get(i);
-			Integer valueIndex = columnIndexMap.get(cm.getId());
+		for (ColumnModel model : resultSchema.getColumnModels()) {
 			String value = null;
+			Integer valueIndex = columnIndexMap.get(model.getId());
 			if (valueIndex == null) {
-				// this means this column did not exist when this row as created, so set the value to the default value
-				value = cm.getDefaultValue();
+				// this means this column did not exist when this row as created, so set the value to the default
+				// value
+				value = model.getDefaultValue();
 			} else {
 				// Get the value
-				value = values[valueIndex];
+				value = row.getValues().get(valueIndex);
 			}
 			newValues.add(value);
 		}
@@ -683,20 +723,43 @@ public class TableModelUtils {
 	/**
 	 * Calculate the maximum row size for a given schema.
 	 * 
-	 * @param models
+	 * @param collection
 	 * @return
 	 */
-	public static int calculateMaxRowSize(List<ColumnModel> models){
-		if(models == null) throw new IllegalArgumentException("Models cannot be null");
+	public static int calculateMaxRowSize(Iterable<ColumnModel> models) {
+		ValidateArgument.required(models, "models");
 		int size = 0;
-		for(ColumnModel cm: models){
+		for (ColumnModel cm : models) {
 			size += calculateMaxSizeForType(cm.getColumnType(), cm.getMaximumSize());
 		}
 		return size;
 	}
 	
 	/**
-	 * Calculate the maximum size in bytes that a column of this type can be when represented as a string. 
+	 * Calculate the maximum row size for a given schema.
+	 * 
+	 * @param collection
+	 * @return
+	 */
+	public static int calculateMaxRowSizeForColumnModels(ColumnMapper columnMapper) {
+		int size = 0;
+		for (SelectColumnAndModel scm : columnMapper.getSelectColumnAndModels()) {
+			if (scm.getColumnType() == null) {
+				// we don't know the type, now what?
+				size += 64;
+			} else if (scm.getColumnModel() != null) {
+				size += calculateMaxSizeForType(scm.getColumnType(), scm.getColumnModel().getMaximumSize());
+			} else {
+				// we don't know the max size, now what?
+				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
+			}
+		}
+		return size;
+	}
+
+	/**
+	 * Calculate the maximum size in bytes that a column of this type can be when represented as a string.
+	 * 
 	 * @param cm
 	 * @return
 	 */
@@ -705,8 +768,9 @@ public class TableModelUtils {
 		switch (type) {
 		case STRING:
 		case LINK:
-			if (maxSize == null)
+			if (maxSize == null) {
 				throw new IllegalArgumentException("maxSize cannot be null for String types");
+			}
 			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
 		case BOOLEAN:
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
@@ -726,13 +790,13 @@ public class TableModelUtils {
 	/**
 	 * Is a request within the maximum number of bytes per request?
 	 * 
-	 * @param models - The schema of the request.  This determines the maximum number of bytes per row.
+	 * @param columnMapper - The schema of the request.  This determines the maximum number of bytes per row.
 	 * @param rowCount - The number of rows requested.
 	 * @param maxBytesPerRequest - The limit of the maximum number of bytes per request.
 	 */
-	public static boolean isRequestWithinMaxBytePerRequest(List<ColumnModel> models, int rowCount, int maxBytesPerRequest){
+	public static boolean isRequestWithinMaxBytePerRequest(ColumnMapper columnMapper, int rowCount, int maxBytesPerRequest){
 		// What is the size per row
-		int maxBytesPerRow = calculateMaxRowSize(models);
+		int maxBytesPerRow = calculateMaxRowSizeForColumnModels(columnMapper);
 		int neededBytes = rowCount*maxBytesPerRow;
 		return neededBytes <= maxBytesPerRequest;
 	}
@@ -767,8 +831,8 @@ public class TableModelUtils {
 	 * @param columns
 	 * @return
 	 */
-	public static Map<String, ColumnModel> createColumnNameToModelMap(List<ColumnModel> columns) {
-		Map<String, ColumnModel> map = Maps.newLinkedHashMap();
+	public static LinkedHashMap<String, ColumnModel> createColumnNameToModelMap(List<ColumnModel> columns) {
+		LinkedHashMap<String, ColumnModel> map = Maps.newLinkedHashMap();
 		for (ColumnModel cm : columns) {
 			map.put(cm.getName(), cm);
 		}
@@ -782,7 +846,13 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static Map<String, Integer> createColumnIdToIndexMap(TableRowChange rowChange) {
-		return createColumnIdToIndexMap(rowChange.getHeaders());
+		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		int index = 0;
+		for (String header : rowChange.getHeaders()) {
+			columnIndexMap.put(header, index);
+			index++;
+		}
+		return columnIndexMap;
 	}
 
 	/**
@@ -791,15 +861,21 @@ public class TableModelUtils {
 	 * @param rowset
 	 * @return
 	 */
-	public static Map<String, Integer> createColumnIdToIndexMap(RowSet rowset) {
+	public static Map<String, Integer> createColumnIdToIndexMap(RawRowSet rowset) {
 		return createColumnIdToIndexMap(rowset.getHeaders());
 	}
 
-	public static Map<String, Integer> createColumnIdToIndexMap(List<String> headers) {
+	/**
+	 * Map the input list of headers to their position in the list
+	 * 
+	 * @param headers
+	 * @return
+	 */
+	public static Map<String, Integer> createColumnIdToIndexMap(List<String> columnIds) {
 		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
 		int index = 0;
-		for (String header : headers) {
-			columnIndexMap.put(header, index);
+		for (String columnId : columnIds) {
+			columnIndexMap.put(columnId, index);
 			index++;
 		}
 		return columnIndexMap;
@@ -838,22 +914,14 @@ public class TableModelUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static String[] createColumnNameHeader(List<String> columnIds, Collection<ColumnModel> columns, boolean includeRowIdAndVersion){
-		Map<String, ColumnModel> map = TableModelUtils.createStringIDtoColumnModelMap(columns);
-		List<String> outHeaderList = new ArrayList<String>(columnIds.size()+2);
-		if(includeRowIdAndVersion){
+	public static String[] createColumnNameHeader(List<SelectColumn> selectColumns, boolean includeRowIdAndVersion) {
+		List<String> outHeaderList = Lists.newArrayListWithCapacity(selectColumns.size() + 2);
+		if (includeRowIdAndVersion) {
 			outHeaderList.add(TableConstants.ROW_ID);
 			outHeaderList.add(TableConstants.ROW_VERSION);
 		}
-		for(String id: columnIds){
-			String columnName = null;
-			ColumnModel cm = map.get(id);
-			if(cm != null){
-				columnName = cm.getName();
-			} else {
-				columnName = id;
-			}
-			outHeaderList.add(columnName);
+		for (SelectColumn selectColumn : selectColumns) {
+			outHeaderList.add(selectColumn.getName());
 		}
 		return outHeaderList.toArray(new String[outHeaderList.size()]);
 	}
@@ -933,7 +1001,7 @@ public class TableModelUtils {
 		return columnIdToIndex;
 	}
 
-	public static RowSetAccessor getRowSetAccessor(final RowSet rowset) {
+	public static RowSetAccessor getRowSetAccessor(final List<Row> rows, final ColumnMapper columnMapper) {
 		return new RowSetAccessor() {
 
 			private Map<String, Integer> columnIdToIndexMap = null;
@@ -950,11 +1018,11 @@ public class TableModelUtils {
 				if (rowIdToRowMap == null) {
 					rowIdToRowMap = Maps.newHashMap();
 					newRows = Lists.newLinkedList();
-					for (final Row row : rowset.getRows()) {
+					for (final Row row : rows) {
 						RowAccessor rowAccessor = new RowAccessor() {
 							public String getCell(String columnId) {
 								Integer index = getColumnIdToIndexMap().get(columnId);
-								if (row.getValues() == null || index >= row.getValues().size()) {
+								if (index == null || row.getValues() == null || index >= row.getValues().size()) {
 									return null;
 								}
 								return row.getValues().get(index);
@@ -977,7 +1045,8 @@ public class TableModelUtils {
 
 			private Map<String, Integer> getColumnIdToIndexMap() {
 				if (columnIdToIndexMap == null) {
-					columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowset);
+					columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(Lists.transform(columnMapper.getSelectColumns(),
+							SELECT_COLUMN_TO_ID));
 				}
 				return columnIdToIndexMap;
 			}
@@ -1022,5 +1091,186 @@ public class TableModelUtils {
 			version = Long.parseLong(versionString);
 		}
 		return new NodeIdAndVersion(id, version);
+	}
+
+	public static List<SelectColumn> getSelectColumnsFromColumnIds(List<String> columnIds, final SelectColumnMapper schema) {
+		return Transform.toList(columnIds, new Function<String, SelectColumn>() {
+			@Override
+			public SelectColumn apply(String columnId) {
+				return schema.getSelectColumnById(columnId);
+			}
+		});
+	}
+
+	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
+		SelectColumn newSelectColumn = new SelectColumn();
+		newSelectColumn.setName(name);
+		newSelectColumn.setColumnType(columnType);
+		newSelectColumn.setId(id);
+		return newSelectColumn;
+	}
+
+	public static SelectColumn createSelectColumn(ColumnModel model, boolean isAggregate) {
+		return createSelectColumn(model.getName(), model.getColumnType(), isAggregate ? null : model.getId());
+	}
+
+	public static SelectColumnAndModel createSelectColumnAndModel(final SelectColumn selectColumn, final ColumnModel columnModel) {
+		ValidateArgument.requirement(selectColumn != null || columnModel != null, "At least one of selectColumn or columnModel is required");
+		return new SelectColumnAndModel() {
+
+			@Override
+			public SelectColumn getSelectColumn() {
+				return selectColumn;
+			}
+
+			@Override
+			public ColumnModel getColumnModel() {
+				return columnModel;
+			}
+
+			@Override
+			public String getName() {
+				return selectColumn != null ? selectColumn.getName() : columnModel.getName();
+			}
+
+			@Override
+			public ColumnType getColumnType() {
+				return selectColumn != null ? selectColumn.getColumnType() : columnModel.getColumnType();
+			}
+
+			@Override
+			public int hashCode() {
+				final int prime = 31;
+				int result = 1;
+				result = prime * result + ((selectColumn == null) ? 0 : selectColumn.hashCode());
+				result = prime * result + ((columnModel == null) ? 0 : columnModel.hashCode());
+				return result;
+			}
+
+			@Override
+			public boolean equals(Object obj) {
+				if (this == obj)
+					return true;
+				if (obj == null)
+					return false;
+				if (getClass() != obj.getClass())
+					return false;
+				SelectColumnAndModel other = (SelectColumnAndModel) obj;
+				if (selectColumn == null) {
+					if (other.getSelectColumn() != null)
+						return false;
+				} else if (!selectColumn.equals(other.getSelectColumn()))
+					return false;
+				if (columnModel == null) {
+					if (other.getColumnModel() != null)
+						return false;
+				} else if (!columnModel.equals(other.getColumnModel()))
+					return false;
+				return true;
+			}
+		};
+	}
+
+	public static SelectColumnAndModel createSelectColumnAndModel(final ColumnModel columnModel, final boolean isAggregate) {
+		ValidateArgument.required(columnModel, "columnModel");
+		return new SelectColumnAndModel() {
+			SelectColumn selectColumn = null;
+
+			@Override
+			public SelectColumn getSelectColumn() {
+				if (selectColumn == null) {
+					selectColumn = createSelectColumn(columnModel, isAggregate);
+				}
+				return selectColumn;
+			}
+
+			@Override
+			public ColumnModel getColumnModel() {
+				return columnModel;
+			}
+
+			@Override
+			public String getName() {
+				return columnModel.getName();
+			}
+
+			@Override
+			public ColumnType getColumnType() {
+				return columnModel.getColumnType();
+			}
+
+			@Override
+			public int hashCode() {
+				final int prime = 31;
+				int result = 1;
+				result = prime * result + ((columnModel == null) ? 0 : columnModel.hashCode());
+				return result;
+			}
+
+			@Override
+			public boolean equals(Object obj) {
+				if (this == obj)
+					return true;
+				if (obj == null)
+					return false;
+				if (getClass() != obj.getClass())
+					return false;
+				SelectColumnAndModel other = (SelectColumnAndModel) obj;
+				if (getSelectColumn() == null) {
+					if (other.getSelectColumn() != null)
+						return false;
+				} else if (!getSelectColumn().equals(other.getSelectColumn()))
+					return false;
+				if (columnModel == null) {
+					if (other.getColumnModel() != null)
+						return false;
+				} else if (!columnModel.equals(other.getColumnModel()))
+					return false;
+				return true;
+			}
+		};
+	}
+
+	public static ColumnModelMapper createSingleColumnColumnMapper(ColumnModel column, boolean isAggregate) {
+		return createColumnModelColumnMapper(Collections.<ColumnModel> singletonList(column), isAggregate);
+	}
+
+	public static ColumnMapper createColumnModelColumnMapper(final List<ColumnModel> columnModels, boolean isAggregate) {
+		LinkedHashMap<String, SelectColumnAndModel> columnIdMap = Maps.newLinkedHashMap();
+		for (ColumnModel columnModel : columnModels) {
+			columnIdMap.put(columnModel.getId(), createSelectColumnAndModel(columnModel,isAggregate));
+		}
+		return createColumnMapper(columnIdMap);
+	}
+
+	public static ColumnMapper createColumnMapper(final LinkedHashMap<String, SelectColumnAndModel> columnIdMap) {
+		AbstractColumnMapper columnMapper = new AbstractColumnMapper() {
+
+			@Override
+			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
+				return columnIdMap;
+			}
+
+			@Override
+			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
+				return Lists.newArrayList(columnIdMap.values());
+			}
+		};
+		return columnMapper;
+	}
+
+	public static ColumnMapper createColumnMapper(final List<SelectColumnAndModel> columnList) {
+		ColumnMapper columnMapper = new AbstractColumnMapper() {
+			@Override
+			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
+				return Transform.toOrderedIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_ID);
+			}
+
+			@Override
+			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
+				return columnList;
+			}
+		};
+		return columnMapper;
 	}
 }

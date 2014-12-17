@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 
 /**
  * This matches &ltboolean test&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -36,16 +39,18 @@ public class BooleanTest extends SQLElement {
 		return truthValue;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		this.booleanPrimary.toSQL(builder, columnConvertor);
+	public void visit(Visitor visitor) {
+		visit(this.booleanPrimary, visitor);
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(this.booleanPrimary, visitor);
 		if(is != null){
-			builder.append(" IS ");
+			visitor.append(" IS ");
 			if(not != null){
-				builder.append("NOT ");
+				visitor.append("NOT ");
 			}
-			builder.append(this.truthValue.name());
+			visitor.append(this.truthValue.name());
 		}
 	}
-	
 }

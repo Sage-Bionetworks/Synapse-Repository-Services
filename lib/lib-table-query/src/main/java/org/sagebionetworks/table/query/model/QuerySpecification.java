@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
+import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &ltquery specification&gt in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -35,19 +39,44 @@ public class QuerySpecification extends SQLElement {
 		return tableExpression;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
-		builder.append("SELECT");
-		if (sqlDirective != null) {
-			builder.append(" ").append(sqlDirective.name());
+	public void visit(Visitor visitor) {
+		visit(selectList, visitor);
+		if (tableExpression != null) {
+			visit(tableExpression, visitor);
 		}
-		if(setQuantifier != null){
-			builder.append(" ").append(setQuantifier.name());
-		}
-		builder.append(" ");
-		selectList.toSQL(builder, columnConvertor);
-		builder.append(" ");
-		tableExpression.toSQL(builder, columnConvertor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("SELECT");
+		if (sqlDirective != null) {
+			visitor.append(" ");
+			visitor.append(sqlDirective.name());
+		}
+		if (setQuantifier != null) {
+			visitor.append(" ");
+			visitor.append(setQuantifier.name());
+		}
+		visitor.append(" ");
+		visit(selectList, visitor);
+		if (tableExpression != null) {
+			visitor.append(" ");
+			visit(tableExpression, visitor);
+		}
+	}
+
+	public void visit(IsAggregateVisitor visitor) {
+		if (setQuantifier == SetQuantifier.DISTINCT) {
+			visitor.setIsAggregate();
+		}
+		if (tableExpression != null) {
+			visit(tableExpression, visitor);
+		}
+		visit(selectList, visitor);
+	}
+
+	public void visit(GetTableNameVisitor visitor) {
+		if (tableExpression != null) {
+			visit(tableExpression, visitor);
+		}
+	}
 }
