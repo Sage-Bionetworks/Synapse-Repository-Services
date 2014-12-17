@@ -125,6 +125,38 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
+	 * Create a WikiPage with an AccessRequirement as an owner.
+	 * 
+	 * <p>
+	 * Note: The caller must be a member of the Synapse Access and Compliance Team.
+	 * </p>
+	 * <p>
+	 * If the passed WikiPage is a root (parentWikiId = null) and the owner
+	 * already has a root WikiPage, an error will be returned.
+	 * </p>
+	 * 
+	 * @param userId
+	 *            The user's id.
+	 * @param ownerId
+	 *            The ID of the owner AccessRequirement.
+	 * @param toCreate
+	 *            The WikiPage to create.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_V2, method = RequestMethod.POST)
+	public @ResponseBody
+	V2WikiPage createAccessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @RequestBody V2WikiPage toCreate)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().createWikiPage(userId, ownerId,
+				ObjectType.ACCESS_REQUIREMENT, toCreate);
+	}
+
+	/**
 	 * Create a WikiPage with an Evaluation as an owner.
 	 * 
 	 * <p>
@@ -183,6 +215,27 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
+	 * Get the root WikiPage for an AccessRequirement.
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning AccessRequirement.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	V2WikiPage getAccessRequirementRootWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getV2WikiService().getRootWikiPage(userId,
+				ownerId, ObjectType.ACCESS_REQUIREMENT);
+	}
+
+	/**
 	 * Get the root WikiPage for an Evaluation.
 	 * <p>
 	 * Note: The caller must be granted the <a
@@ -235,6 +288,30 @@ public class V2WikiController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiPage(userId,
 				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+	}
+
+	/**
+	 * Get a specific WikiPage of an Access Requirement.
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @param wikiId
+	 *            The ID of the WikiPage to get.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	V2WikiPage getAccessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().getWikiPage(userId,
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId), wikiVersion);
 	}
 
 	/**
@@ -352,6 +429,47 @@ public class V2WikiController extends BaseController {
 	
 
 	/**
+	 * Update a specific WikiPage of an Access Requirement. This adds a new entry 
+	 * to the history of changes made to this specific WikiPage. 
+	 * <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time a WikiPage is updated a new etag will be
+	 * issued to the WikiPage. When an update is requested, Synapse will compare
+	 * the etag of the passed WikiPage with the current etag of the WikiPage. If
+	 * the etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs the caller should
+	 * get the latest copy of the WikiPage and re-apply any changes to the
+	 * object, then re-attempt the update. This ensures the caller has all
+	 * changes applied by other users before applying their own changes.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be a member of the Synapse Access and Compliance Team.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @param wikiId
+	 *            The ID of the WikiPage to update.
+	 * @param toUpdate
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	V2WikiPage updateAcessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody V2WikiPage toUpdate) throws DatastoreException,
+			NotFoundException {
+		validateUpateArguments(wikiId, toUpdate);
+		return serviceProvider.getV2WikiService().updateWikiPage(userId, ownerId,
+				ObjectType.ACCESS_REQUIREMENT, toUpdate);
+	}
+
+	/**
 	 * Update a specific WikiPage of an Evaluation. This adds a new entry 
 	 * to the history of changes made to this specific WikiPage. 
 	 * <p>
@@ -451,6 +569,44 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
+	 * For a specific WikiPage of an Access Requirement, restore a version of the WikiPage's content.
+	 * <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time a WikiPage is updated a new etag will be
+	 * issued to the WikiPage. When an update is requested, Synapse will compare
+	 * the etag of the passed WikiPage with the current etag of the WikiPage. If
+	 * the etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs the caller should
+	 * get the latest copy of the WikiPage and re-apply any changes to the
+	 * object, then re-attempt the update. This ensures the caller has all
+	 * changes applied by other users before applying their own changes.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be a member of the Synapse Access and Compliance Team.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @param wikiId
+	 *            The ID of the WikiPage to update.
+	 * @param toUpdate
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	V2WikiPage restoreAccessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long wikiVersion,
+			@PathVariable String ownerId, @PathVariable String wikiId) 
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().restoreWikipage(userId, ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId, wikiVersion);
+	}
+
+	/**
 	 * For a specific WikiPage of an Evaluation, restore a version of the WikiPage's content.
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -520,6 +676,35 @@ public class V2WikiController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getV2WikiService().deleteWikiPage(userId,
 				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+	}
+
+	/**
+	 * Delete a specific WikiPage of an Access Requirement.
+	 * <p>
+	 * Note: When a WikiPage is deleted, the delete will cascade to all children
+	 * WikiPages (recursively) of the deleted WikiPage.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be a member of the Synapse Access and Compliance Team.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @param wikiId
+	 *            The ID of the WikiPage to delete.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.DELETE)
+	public @ResponseBody
+	void deleteAccessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
+		serviceProvider.getV2WikiService().deleteWikiPage(userId,
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId));
 	}
 
 	/**
@@ -625,6 +810,40 @@ public class V2WikiController extends BaseController {
 	/**
 	 * Get a paginated list of all <a
 	 * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader}">V2WikiHeaders</a>
+	 * that belong to the given owner Access Requirement. The resulting list can be used to
+	 * build a tree of the WikiPages for this owner. The first WikiHeader will
+	 * be for the root WikiPage (parentWikiId = null).
+	 * 
+	 * @param userId
+	 * @param offset
+	 *            The index of the pagination offset. For a page size of 10, the
+	 *            first page would be at offset = 0, and the second page would
+	 *            be at offset = 10.
+	 * @param limit
+	 *            Limits the size of the page returned. For example, a page size
+	 *            of 10 require limit = 10.
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_TREE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<V2WikiHeader> getAccessRequirementWikiHeaderTree(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getV2WikiService().getWikiHeaderTree(userId,
+				ownerId, ObjectType.ACCESS_REQUIREMENT, limit, offset);
+	}
+
+	/**
+	 * Get a paginated list of all <a
+	 * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader}">V2WikiHeaders</a>
 	 * that belong to the given owner Evaluation. The resulting list can be used
 	 * to build a tree of the WikiPages for this owner. The first WikiHeader
 	 * will be for the root WikiPage (parentWikiId = null).
@@ -709,6 +928,45 @@ public class V2WikiController extends BaseController {
 	/**
 	 * Get a paginated list of all <a
 	 * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot}">V2WikiHistorySnapshot</a>
+	 * that belong to a specific WikiPage, which belong to the given owner Access Requirement. The resulting list 
+	 * can be used to display a timeline of changes to the specific WikiPage for this owner. 
+	 * The first V2WikiHistorySnapshot describes the most recent change or update to the WikiPage.
+	 * 
+	 * @param userId
+	 * @param offset
+	 *            The index of the pagination offset. For a page size of 10, the
+	 *            first page would be at offset = 0, and the second page would
+	 *            be at offset = 10.
+	 * @param limit
+	 *            Limits the size of the page returned. For example, a page size
+	 *            of 10 require limit = 10.
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @param wikiId
+	 * 			  The ID of the WikiPage.
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_HISTORY_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<V2WikiHistorySnapshot> getAccessRequirementWikiHistory(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
+			@PathVariable String wikiId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getV2WikiService().getWikiHistory(userId, ownerId, ObjectType.ACCESS_REQUIREMENT, 
+				limit, offset, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId));
+
+	}
+
+	/**
+	 * Get a paginated list of all <a
+	 * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot}">V2WikiHistorySnapshot</a>
 	 * that belong to a specific WikiPage, which belong to the given owner Evaluation. The resulting list 
 	 * can be used to display a timeline of changes to the specific WikiPage for this owner. 
 	 * The first V2WikiHistorySnapshot describes the most recent change or update to the WikiPage.
@@ -782,6 +1040,34 @@ public class V2WikiController extends BaseController {
 		// Get the redirect url
 		return serviceProvider.getV2WikiService().getAttachmentFileHandles(
 				userId, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+	}
+
+	/**
+	 * Get the list of FileHandles for all file attachments of a specific
+	 * WikiPage for a given owning Access Requirement. This list will include Previews if
+	 * they exist and will provide information about file sizes, content types
+	 * and names.
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @param wikiId
+	 *            The ID of the WikiPage.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandleResults getAccessRequirementWikiAttachmenthHandles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
+			throws DatastoreException, NotFoundException {
+		// Get the redirect url
+		return serviceProvider.getV2WikiService().getAttachmentFileHandles(
+				userId, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId), wikiVersion);
 	}
 
 	/**
@@ -865,6 +1151,50 @@ public class V2WikiController extends BaseController {
 		String redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						fileName, wikiVersion);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+
+	/**
+	 * Get a URL that can be used to download a file for a given WikiPage file
+	 * attachment.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement
+	 * @param wikiId
+	 *            The ID of the WikiPage
+	 * @param fileName
+	 *            The name of the file to get. The file names can be found in
+	 *            the FileHandles from the <a
+	 *            href="${GET.entity.ownerId.wiki.wikiId.attachmenthandles}">GET
+	 *            /accessRequirement/{ownerId}/wiki/{wikiId}/attachmenthandles</a> method.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	void getAccessRequirementWikiAttachmentFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = true)  String fileName,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response,
+			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = serviceProvider.getV2WikiService()
+				.getAttachmentRedirectURL(userId,
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId),
 						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -977,6 +1307,50 @@ public class V2WikiController extends BaseController {
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
 	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement
+	 * @param wikiId
+	 *            The ID of the WikiPage
+	 * @param fileName
+	 *            The name of the file to get. The file names can be found in
+	 *            the FileHandles from the <a
+	 *            href="${GET.entity.ownerId.wiki.wikiId.attachmenthandles}">GET
+	 *            /accessRequirement/{ownerId}/wiki/{wikiId}/attachmenthandles</a> method.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	void getAccessRequirementWikiAttachmenPreviewFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = true) String fileName,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response,
+			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = serviceProvider.getV2WikiService()
+				.getAttachmentPreviewRedirectURL(userId,
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId),
+						fileName, wikiVersion);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+
+	/**
+	 * Get a URL that can be used to download a preview file for a given
+	 * WikiPage file attachment.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
 	 * <p>
 	 * Note: The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -1058,6 +1432,40 @@ public class V2WikiController extends BaseController {
 		String redirectUrl = serviceProvider.getV2WikiService()
 				.getMarkdownRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Get a URL that can be used to download the markdown file for a given
+	 * WikiPage.
+	 * 
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @param redirect
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	void getAccessRequirementWikiMarkdownFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Boolean redirect,
+			@RequestParam(required = false) Long wikiVersion,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = serviceProvider.getV2WikiService()
+				.getMarkdownRedirectURL(userId,
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
