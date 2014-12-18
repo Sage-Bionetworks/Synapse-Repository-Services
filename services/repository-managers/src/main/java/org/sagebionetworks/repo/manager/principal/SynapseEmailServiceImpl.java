@@ -40,8 +40,8 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	
 	public static void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
-		String homeDir = System.getProperty("user.home");
-		File file = new File(homeDir, to+".json");
+		String tmpDir = System.getProperty("java.io.tmpdir");
+		File file = new File(tmpDir, to+".json");
 		PrintWriter pw;
 		try {
 			pw = new PrintWriter(file);
