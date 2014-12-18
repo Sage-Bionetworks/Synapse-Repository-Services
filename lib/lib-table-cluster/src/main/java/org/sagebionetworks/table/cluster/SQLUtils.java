@@ -335,8 +335,6 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String alterTableSQLInner(Iterable<ColumnModel> toAdd, Iterable<String> toDrop, String tableId) {
-		boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled().get();
-
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append("`").append(getTableNameForId(tableId, TableType.INDEX)).append("`");
@@ -347,9 +345,6 @@ public class SQLUtils {
 				builder.append(",");
 			}
 			builder.append(" DROP COLUMN `").append(drop).append("`");
-			if (allIndexedEnabled) {
-				builder.append(", DROP INDEX `" + drop + "idx_`");
-			}
 			first = false;
 		}
 		// Now the adds
