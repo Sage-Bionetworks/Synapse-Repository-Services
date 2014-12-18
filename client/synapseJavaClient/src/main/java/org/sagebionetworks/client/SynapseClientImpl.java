@@ -132,6 +132,7 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -206,6 +207,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String WIKI_ID_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s";
 	private static final String WIKI_ID_VERSION_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s/%4$s";
 	private static final String WIKI_TREE_URI_TEMPLATE_V2 = "/%1$s/%2$s/wikiheadertree2";
+	private static final String WIKI_ORDER_HINT_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2orderhint";
 	private static final String WIKI_HISTORY_V2 = "/wikihistory";
 	private static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	private static final String ATTACHMENT_FILE = "/attachment";
@@ -2695,6 +2697,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = String.format(WIKI_ID_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId());
 		return updateJSONEntity(uri, toUpdate);
 	}
+	
+	@Override
+	public V2WikiOrderHint updateV2WikiOrderHint(V2WikiOrderHint toUpdate) throws JSONObjectAdapterException, SynapseException {
+		if (toUpdate == null) throw new IllegalArgumentException("toUpdate cannot be null");
+		if (toUpdate.getOwnerId() == null) throw new IllegalArgumentException("V2WikiOrderHint.getOwnerId() cannot be null");
+		if (toUpdate.getOwnerObjectType() == null) throw new IllegalArgumentException("V2WikiOrderHint.getOwnerObjectType() cannot be null");
+		
+		String uri = String.format(WIKI_ORDER_HINT_URI_TEMPLATE_V2, toUpdate.getOwnerObjectType().name().toLowerCase(), toUpdate.getOwnerId());
+		return updateJSONEntity(uri, toUpdate);
+	}
 
 	/**
 	 * Restore contents of a V2 WikiPage to the contents
@@ -2918,6 +2930,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		PaginatedResults<V2WikiHeader> paginated = new PaginatedResults<V2WikiHeader>(V2WikiHeader.class);
 		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
 		return paginated;
+	}
+	
+	@Override
+	public V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException, JSONObjectAdapterException {
+		if (key == null) throw new IllegalArgumentException("key cannot be null");
+		
+		String uri = String.format(WIKI_ORDER_HINT_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), key.getOwnerObjectId());
+		JSONObject object = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+		V2WikiOrderHint orderHint = new V2WikiOrderHint();
+		orderHint.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
+		return orderHint;
 	}
 	
 	/**

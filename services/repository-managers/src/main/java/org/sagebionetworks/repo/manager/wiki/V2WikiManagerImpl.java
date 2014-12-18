@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,6 +193,22 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
 		}
 	}
+	
+	/**
+	 * Validate that the user has update access to the owner object.
+	 * @param user
+	 * @param key
+	 * @throws NotFoundException
+	 */
+	private void validateUpdateAccess(UserInfo user, WikiPageKey key)
+			throws NotFoundException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
+		// Check that the user is allowed to perform this action
+		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.UPDATE).getAuthorized()){
+			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
+		}
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -281,6 +298,47 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		List<V2WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, type);
 		return new PaginatedResults<V2WikiHeader>(list, list.size());
 	}
+	
+	@Override
+	public V2WikiOrderHint getOrderHint(UserInfo user, String objectId,	ObjectType objectType) throws NotFoundException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(objectId == null) throw new IllegalArgumentException("ObjectId cannot be null");
+		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		
+		// Look up the root wiki
+		Long rootWikiId = wikiPageDao.getRootWiki(objectId, objectType);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(objectId, objectType, rootWikiId.toString());
+		
+		// Check that user has read access.
+		validateReadAccess(user, key);
+		
+		return wikiPageDao.getWikiOrderHint(key);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
+		
+		// Look up the root wiki
+		Long rootWikiId = wikiPageDao.getRootWiki(orderHint.getOwnerId(), orderHint.getOwnerObjectType());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(orderHint.getOwnerId(), orderHint.getOwnerObjectType(), rootWikiId.toString());
+		
+		// Check that user has update access.
+		validateUpdateAccess(user, key);
+		
+		// Before we can update the Wiki we need to lock.
+		String currentEtag = wikiPageDao.lockWikiOwnersForUpdate(key.getWikiPageId());
+		if(!currentEtag.equals(orderHint.getEtag())) {
+			throw new ConflictingUpdateException("ObjectId: "+orderHint.getOwnerId()+" was updated since you last fetched it, retrieve it again and reapply the update");
+		}
+		
+		orderHint.setEtag(UUID.randomUUID().toString());
+		
+		return wikiPageDao.updateOrderHint(orderHint, key);
+	}
+
 
 	@Override
 	public FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey key, Long version) throws NotFoundException {

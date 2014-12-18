@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -846,7 +847,24 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), WikiPage.class);
 	}
+	
+	/**
+	 * Get a wiki order hint.
+	 */
+	public V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/" + type.name().toLowerCase() + "/"
+						+ ownerId + "/wiki2orderhint",
+				userId, null);
+		
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), V2WikiOrderHint.class);
+	}
+	
 	/**
 	 * Get the root wiki page
 	 */
@@ -878,7 +896,7 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), WikiPage.class);
 	}
-
+	
 	/**
 	 * Get the paginated results of a wiki header
 	 */
@@ -1123,6 +1141,21 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), V2WikiPage.class);
+	}
+	
+	/**
+	 * Update an order hint
+	 */
+	public V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/" + orderHint.getOwnerObjectType().name().toLowerCase() + "/"
+						+ orderHint.getOwnerId() + "/wiki2orderhint", userId, orderHint);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), V2WikiOrderHint.class);
 	}
 
 	/**

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -385,6 +386,47 @@ public class V2WikiController extends BaseController {
 		return serviceProvider.getV2WikiService().updateWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toUpdate);
 	}
+	
+	/**
+	 * Update an order hint that corresponds to the given owner Entity.
+	 *  <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time an WikiOrderHint is updated a new etag will be
+	 * issued to the WikiOrderHint. When an update is requested, Synapse will compare
+	 * the etag of the passed WikiOrderHint with the current etag of the WikiOrderHint. If
+	 * the etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs the caller should
+	 * get the latest copy of the WikiOrderHint and re-apply any changes to the
+	 * object, then re-attempt the update. This ensures the caller has all
+	 * changes applied by other users before applying their own changes.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the owner.
+	 * </p>
+	 * 
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @param toUpdate
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.PUT)
+	public @ResponseBody
+	V2WikiOrderHint updateEntityWikiOrderHint(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @RequestBody V2WikiOrderHint toUpdate)
+			throws DatastoreException, NotFoundException {
+		if (toUpdate == null) throw new IllegalArgumentException("OrderHint cannot be null.");
+		return serviceProvider.getV2WikiService().updateWikiOrderHint(userId, toUpdate);
+	}
+	
+	
 
 	/**
 	 * Update a specific WikiPage of an Access Requirement. This adds a new entry 
@@ -734,6 +776,35 @@ public class V2WikiController extends BaseController {
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiHeaderTree(userId,
 				ownerId, ObjectType.ENTITY, limit, offset);
+	}
+	
+	/**
+	 * 
+	 * Get an order hint
+	 * that corresponds to the given owner Entity. The resulting hint can be used to
+	 * establish a relative ordering for the subwikis in
+	 * a tree of the WikiPages for this owner.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Entity.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.GET)
+	public @ResponseBody
+	V2WikiOrderHint getEntityWikiOrderHint(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getV2WikiService().getWikiOrderHint(userId, ownerId, ObjectType.ENTITY);
 	}
 
 	/**

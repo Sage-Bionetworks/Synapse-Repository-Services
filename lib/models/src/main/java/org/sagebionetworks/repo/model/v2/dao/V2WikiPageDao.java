@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -52,6 +53,26 @@ public interface V2WikiPageDao {
 	 * @throws NotFoundException 
 	 */
 	public V2WikiPage get(WikiPageKey key, Long version) throws NotFoundException;
+	
+	
+	/**
+	 * Get the order hint of a root wiki page.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException
+	 * @requires rootKey is the assosiated WikiPageKey of a root wiki.
+	 */
+	V2WikiOrderHint getWikiOrderHint(WikiPageKey rootKey) throws NotFoundException;
+	
+	/**
+	 * Update the order hint of a root wiki page.
+	 * @param orderHint The order hint with changes made to update.
+	 * @param key The key to the wiki page.
+	 * @return The updated wiki order hint.
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint updateOrderHint(V2WikiOrderHint orderHint, WikiPageKey key) throws NotFoundException;
 	
 	/**
 	 * Get the markdown of a wiki page as a string.
@@ -126,6 +147,13 @@ public interface V2WikiPageDao {
 	 * @return
 	 */
 	String lockForUpdate(String wikiId);
+	
+	/**
+	 * Lock for wiki owners for update, returning the current etag
+	 * @param wikiId
+	 * @return
+	 */
+	String lockWikiOwnersForUpdate(String rootWikiId);
 	
 	/**
 	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
