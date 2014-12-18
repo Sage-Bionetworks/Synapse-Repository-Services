@@ -235,6 +235,7 @@ public class CSVUtilsTest {
 		assertEquals("csv", CSVUtils.guessExtension(","));
 		assertEquals("tsv", CSVUtils.guessExtension("\t"));
 		assertEquals("csv", CSVUtils.guessExtension("!"));
+		assertEquals("csv", CSVUtils.guessExtension(null));
 	}
 
 	@Test
@@ -242,6 +243,7 @@ public class CSVUtilsTest {
 		assertEquals("text/csv", CSVUtils.guessContentType(","));
 		assertEquals("text/tsv", CSVUtils.guessContentType("\t"));
 		assertEquals("text/csv", CSVUtils.guessContentType("!"));
+		assertEquals("text/csv", CSVUtils.guessContentType(null));
 	}
 
 	/**

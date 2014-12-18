@@ -105,7 +105,11 @@ public class TableCSVDownloadWorker implements Worker {
 			long totalProgress = rowCount*2;
 			long currentProgress = 0;
 			// The CSV data will first be written to this file.
-			temp = File.createTempFile(fileName, "." + CSVUtils.guessExtension(request.getCsvTableDescriptor().getSeparator()));
+			temp = File.createTempFile(
+					fileName,
+					"."
+							+ CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
+									.getSeparator()));
 			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId());
@@ -126,8 +130,8 @@ public class TableCSVDownloadWorker implements Worker {
 			double bytesPerRow = rowCount == 0 ? 1 : temp.length() / rowCount;
 			// This will keep the progress updated as the file is uploaded.
 			UploadProgressListener uploadListener = new UploadProgressListener(workerProgress, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
-			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp,
-					CSVUtils.guessContentType(request.getCsvTableDescriptor().getSeparator()), uploadListener);
+			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, CSVUtils.guessContentType(request
+					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()), uploadListener);
 			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle
