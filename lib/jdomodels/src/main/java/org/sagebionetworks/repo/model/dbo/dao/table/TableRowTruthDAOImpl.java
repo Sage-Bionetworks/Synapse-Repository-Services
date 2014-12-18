@@ -732,7 +732,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeColumnIds);
 					}
 					Integer index = columnIdToIndexMap.get(columnId);
-					if (row.getValues() == null || index >= row.getValues().size()) {
+					if (row.getValues() == null || index == null || index >= row.getValues().size()) {
 						return null;
 					}
 					return row.getValues().get(index);

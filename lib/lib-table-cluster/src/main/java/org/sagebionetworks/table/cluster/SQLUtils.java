@@ -747,7 +747,10 @@ public class SQLUtils {
 		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
 		int index = 0;
 		for (SelectColumn header : toBind.getHeaders()) {
-			columnIndexMap.put(header.getId(), index);
+			// columns might no longer exists
+			if (header != null) {
+				columnIndexMap.put(header.getId(), index);
+			}
 			index++;
 		}
 
