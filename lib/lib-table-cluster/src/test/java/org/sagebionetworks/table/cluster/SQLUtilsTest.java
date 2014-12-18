@@ -10,6 +10,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -63,9 +64,13 @@ public class SQLUtilsTest {
 		// Build the create DDL for this table
 		String sql = SQLUtils.createTableSQL(simpleSchema, "syn123");
 		assertNotNull(sql);
+		String index = "";
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			index = ", INDEX `_C456_idx_` (`_C456_`)";
+		}
 		// Validate it contains the expected elements
-		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `_C456_` bigint(20) DEFAULT NULL, PRIMARY KEY (ROW_ID) )";
-		System.out.println(sql);
+		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `_C456_` bigint(20) DEFAULT NULL"
+				+ index + ", PRIMARY KEY (ROW_ID) )";
 		assertEquals(expected, sql);
 	}
 	
@@ -376,7 +381,12 @@ public class SQLUtilsTest {
 		// This should drop columns 1 & 3 and then add columns 0 & 4
 		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
 		assertNotNull(sql);
-		String expected = "ALTER TABLE `T999` DROP COLUMN `_C1_`, DROP COLUMN `_C3_`, ADD COLUMN `_C0_` bigint(20) DEFAULT NULL, ADD COLUMN `_C4_` bigint(20) DEFAULT NULL";
+		String index = "";
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			index = ",ADD INDEX `_C0_idx_` (`_C0_`),ADD INDEX `_C4_idx_` (`_C4_`)";
+		}
+		String expected = "ALTER TABLE `T999` DROP COLUMN `_C1_`, DROP COLUMN `_C3_`, ADD COLUMN `_C0_` bigint(20) DEFAULT NULL, ADD COLUMN `_C4_` bigint(20) DEFAULT NULL"
+				+ index;
 		assertEquals(expected, sql);
 	}
 	
