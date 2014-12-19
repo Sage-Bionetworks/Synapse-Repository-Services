@@ -10,9 +10,15 @@
 			"description": "The id of the principal who is granted access."
 		},
 		"accessType": {
-			"type": "object",
-			"description": "The name of one ACCESS_TYPE that the principalId has.",
-			"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
+			"type": "array",
+			"description": "A list of types of access granted to the given principal",
+			"uniqueItems": true,
+			"items": {
+				"type": "object",
+				"description": "The status of this URL",
+				"name": "ACCESS_TYPE",
+				"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
+			}
 		}
 	}
 }

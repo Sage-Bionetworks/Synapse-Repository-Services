@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 public interface ResourceAccessRecordDAO {
 	
 	/**
-	 * writes an resource access record to a file and pushes it to S3
+	 * writes resource access records to a file and pushes it to S3
 	 * 
 	 * @param records - the resource access records to write
 	 * @return the path of the file that is stored in S3

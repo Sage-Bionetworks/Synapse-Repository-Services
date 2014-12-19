@@ -4,6 +4,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Before;
@@ -47,7 +49,7 @@ public class ResourceAccessRecordDAOImplTest {
 		List<ResourceAccessRecord> list = new ArrayList<ResourceAccessRecord>();
 		for (int i = 0; i < numberOfRecords; i++) {
 			ResourceAccessRecord newRecord = new ResourceAccessRecord();
-			newRecord.setAccessType(ACCESS_TYPE.CREATE);
+			newRecord.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ)));
 			newRecord.setChangeNumber(-1L);
 			newRecord.setPrincipalId(-1L);
 

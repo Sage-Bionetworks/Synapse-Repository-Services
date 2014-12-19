@@ -131,12 +131,21 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public AccessControlList get(Long id) throws DatastoreException,
-			NotFoundException {
+	public AccessControlList get(Long id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOAccessControlList.ACL_ID, id);
 		AccessControlList acl = doGet(param);
 		return acl;
+	}
+	
+	@Override
+	public ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(DBOAccessControlList.ACL_ID, id);
+		DBOAccessControlList dboAcl;
+		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		ObjectType ownerType = ObjectType.valueOf(dboAcl.getOwnerType());
+		return ownerType;
 	}
 
 	/*
@@ -201,18 +210,18 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public void delete(String ownerId, ObjectType ownerType) throws DatastoreException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
-		Long dboId;
-		try {
-			DBOAccessControlList origDbo = selectForUpdate(ownerKey, ownerType);
-			dboId = origDbo.getId();
-		} catch (Throwable e) {
-			// this case happens when user tries to delete a non-exist acl
-			dboId = -1L;
-		}
-
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, ownerKey);
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
+
+		Long dboId;
+		try {
+			DBOAccessControlList origDbo = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, params);
+			dboId = origDbo.getId();
+		} catch (NotFoundException e) {
+			dboId = -1L;
+		}	
+		
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
 		
 		transactionalMessenger.sendMessageAfterCommit(dboId.toString(), ObjectType.ACCESS_CONTROL_LIST, 
