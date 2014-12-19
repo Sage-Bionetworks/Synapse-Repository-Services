@@ -184,7 +184,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select avg(inttype) from syn123", tableSchema);
 		assertEquals("SELECT AVG(_C888_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.INTEGER, null)), translator
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.DOUBLE, null)), translator
 				.getSelectColumnModels().getSelectColumns());
 	}
 	
@@ -193,7 +193,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select avg(inttype), bar from syn123", tableSchema);
 		assertEquals("SELECT AVG(_C888_), _C333_ FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.INTEGER, null),
+		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.DOUBLE, null),
 				TableModelUtils.createSelectColumn("bar", ColumnType.STRING, null)), translator.getSelectColumnModels().getSelectColumns());
 	}
 
@@ -597,11 +597,6 @@ public class SQLQueryTest {
 				.getSelectColumns().get(4));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testTypeSetFunctionCannotAvgString() throws Exception {
-		new SqlQuery("select avg(foo) from syn123", tableSchema);
-	}
-
 	@Test
 	public void testTypeSetFunctionIntegers() throws Exception {
 		SqlQuery translator = new SqlQuery("select min(inttype), max(inttype), sum(inttype), avg(inttype), count(inttype) from syn123",
@@ -613,7 +608,7 @@ public class SQLQueryTest {
 				.getSelectColumns().get(1));
 		assertEquals(TableModelUtils.createSelectColumn("SUM(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
 				.getSelectColumns().get(2));
-		assertEquals(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
+		assertEquals(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.DOUBLE, null), translator.getSelectColumnModels()
 				.getSelectColumns().get(3));
 		assertEquals(TableModelUtils.createSelectColumn("COUNT(inttype)", ColumnType.INTEGER, null), translator.getSelectColumnModels()
 				.getSelectColumns().get(4));
