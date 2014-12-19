@@ -224,9 +224,17 @@ public class SQLUtils {
 		if (indexes != null && !justNames) {
 			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled().get();
 			if (allIndexedEnabled) {
-				indexes.add("INDEX `" + columnName + "idx_` (`" + columnName + "`)");
+				appendColumnIndexDefinition(columnName, indexes);
 			}
 		}
+	}
+
+	static void appendColumnIndexDefinition(String columnName, List<String> indexes) {
+		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`)");
+	}
+
+	static String getColumnIndexName(String columnName) {
+		return columnName + "idx_";
 	}
 
 	/**

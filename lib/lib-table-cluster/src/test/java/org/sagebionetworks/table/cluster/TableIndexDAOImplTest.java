@@ -7,11 +7,14 @@ import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -30,9 +33,13 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.StringUtils;
 
 import com.google.common.collect.Lists;
 
@@ -615,5 +622,57 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(4), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string4", "103004");
 		assertEquals(expectedValues, row.getValues());
+	}
+
+	@Test
+	public void testAddingRemovingIndexes() throws Exception {
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setName("foo");
+		foo.setId("111");
+		foo.setMaximumSize(10L);
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.INTEGER);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		schema.add(foo);
+		schema.add(bar);
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+
+		tableIndexDAO.removeIndexes(tableId);
+
+		checkIndexes(tableId, "ROW_ID");
+
+		tableIndexDAO.addIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID", SQLUtils.getColumnNameForId(foo.getId()), SQLUtils.getColumnNameForId(bar.getId()));
+		tableIndexDAO.addIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID", SQLUtils.getColumnNameForId(foo.getId()), SQLUtils.getColumnNameForId(bar.getId()));
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+	}
+
+	private void checkIndexes(String tableId, final String... indexes) throws Exception {
+		JdbcTemplate template = (JdbcTemplate) ReflectionStaticTestUtils.getField(tableIndexDAO, "template");
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+
+		// Bind variables do not seem to work here
+		final AtomicInteger count = new AtomicInteger(0);
+		template.query("show columns from " + tableName, new RowMapper<Void>() {
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				boolean hasIndex = !StringUtils.isEmpty(rs.getString("Key"));
+				String column = rs.getString("Field");
+				if (hasIndex) {
+					count.incrementAndGet();
+					assertTrue("Index on " + column, Arrays.asList(indexes).contains(column));
+				}
+				return null;
+			}
+		});
+		assertEquals(indexes.length, count.get());
 	}
 }

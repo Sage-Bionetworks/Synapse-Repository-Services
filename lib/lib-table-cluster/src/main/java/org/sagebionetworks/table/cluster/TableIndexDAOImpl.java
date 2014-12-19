@@ -16,11 +16,14 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
@@ -101,6 +104,49 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 		}
 		return true;
+	}
+
+	@Override
+	public void addIndexes(String tableId) {
+		List<String> columns = getCurrentTableColumns(tableId);
+		// do one by one and ignore any errors for adding a duplicate index
+		List<String> indexes = Lists.newArrayList();
+		for (String column : columns) {
+			if (TableConstants.isReservedColumnName(column)) {
+				continue;
+			}
+			SQLUtils.appendColumnIndexDefinition(column, indexes);
+		}
+		for (String index : indexes) {
+			try {
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " add "
+						+ index);
+			} catch (BadSqlGrammarException e) {
+				if (e.getCause() == null || e.getCause().getMessage() == null || !e.getCause().getMessage().startsWith("Duplicate key name")) {
+					throw e;
+				}
+			}
+		}
+	}
+
+	@Override
+	public void removeIndexes(String tableId) {
+		List<String> columns = getCurrentTableColumns(tableId);
+		// do one by one and ignore any errors for removing non-existant indexes
+		for (String column : columns) {
+			if (TableConstants.isReservedColumnName(column)) {
+				continue;
+			}
+			try {
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " drop index "
+						+ SQLUtils.getColumnIndexName(column));
+			} catch (BadSqlGrammarException e) {
+				if (e.getCause() == null || e.getCause().getMessage() == null
+						|| !e.getCause().getMessage().contains("check that column/key exists")) {
+					throw e;
+				}
+			}
+		}
 	}
 
 	@Override
