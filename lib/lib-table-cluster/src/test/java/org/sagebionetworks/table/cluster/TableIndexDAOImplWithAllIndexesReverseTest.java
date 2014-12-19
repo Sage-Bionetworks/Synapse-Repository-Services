@@ -11,7 +11,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class TableIndexDAOImplWithAllIndexesReverseTest extends TableIndexDAOImplTest {
 
-	private StackConfiguration oldStackConfiguration;
+	private StackConfiguration oldStackConfiguration = null;
 
 	@Before
 	public void setupStackConfig() {
@@ -19,11 +19,13 @@ public class TableIndexDAOImplWithAllIndexesReverseTest extends TableIndexDAOImp
 		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
 		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(
 				new ImmutablePropertyAccessor<Boolean>(!oldStackConfiguration.getTableAllIndexedEnabled().get()));
-		ReflectionTestUtils.setField(oldStackConfiguration, "singleton", mockedStackConfiguration);
+		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
 	}
-	
+
 	@After
 	public void teardownStackConfig() {
-		ReflectionTestUtils.setField(oldStackConfiguration, "singleton", oldStackConfiguration);
+		if (oldStackConfiguration != null) {
+			ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", oldStackConfiguration);
+		}
 	}
 }
