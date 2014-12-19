@@ -16,11 +16,14 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 
 	@Autowired
 	private AmazonS3Client s3Client;
-	private static final String BUCKET_NAME = "prod.acl.record.sagebase.org";
 	/**
 	 * Injected via Spring
 	 */
 	int stackInstanceNumber;
+	/**
+	 * Injected via Spring
+	 */
+	private String aclRecordBucketName;
 
 	/**
 	 * Injected via Spring
@@ -29,6 +32,14 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	 */
 	public void setStackInstanceNumber(int stackInstanceNumber) {
 		this.stackInstanceNumber = stackInstanceNumber;
+	}
+	/**
+	 * Injected via Spring
+	 * 
+	 * @param auditRecordBucketName
+	 */
+	public void setAclRecordBucketName(String aclRecordBucketName) {
+		this.aclRecordBucketName = aclRecordBucketName;
 	}
 	
 	@Override
@@ -47,11 +58,11 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	}
 
 	private String sendFileToS3(File file) {
-		if (!s3Client.doesBucketExist(BUCKET_NAME)) {
-			s3Client.createBucket(BUCKET_NAME);
+		if (!s3Client.doesBucketExist(aclRecordBucketName)) {
+			s3Client.createBucket(aclRecordBucketName);
 		}
 		String fileName = getKey();
-		s3Client.putObject(BUCKET_NAME, fileName, file);
+		s3Client.putObject(aclRecordBucketName, fileName, file);
 		
 		return fileName;
 	}

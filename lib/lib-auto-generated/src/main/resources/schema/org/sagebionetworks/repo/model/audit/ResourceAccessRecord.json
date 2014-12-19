@@ -12,8 +12,7 @@
 		"accessType": {
 			"type": "string",
 			"description": "The name of one ACCESS_TYPE that the principalId has.",
-			"name": "ACCESS_TYPE",
-			"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
+			"name": "ACCESS_TYPE"
 		}
 	}
 }

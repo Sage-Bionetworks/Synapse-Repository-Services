@@ -36,18 +36,15 @@
 		},
 		"createdBy": {
 			"type": "string",
-			"description": "UNUSED -- maintained only for backwards compatibility with archived objects",
 			"description": "From the ACL object."
 		},
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "UNUSED -- maintained only for backwards compatibility with archived objects",
 			"description": "From the ACL object."
 		},
 		"modifiedBy": {
 			"type": "string",
-			"description": "UNUSED -- maintained only for backwards compatibility with archived objects",
 			"description": "From the ACL object."
 		},
 		"uri": {
