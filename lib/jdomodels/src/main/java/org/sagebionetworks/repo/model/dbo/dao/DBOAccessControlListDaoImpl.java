@@ -185,8 +185,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		return acl;
 	}
-	
-	
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -267,5 +265,4 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
 	}
-
 }
