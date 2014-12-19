@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.PropertyAccessor;
@@ -90,8 +89,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		aclDAO.update(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
-		acl.setModifiedOn(new Date());
-		acl.setModifiedBy(userInfo.getId().toString());
 		return acl;
 	}
 
@@ -116,9 +113,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// persist acl and return
 		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
-		acl.setModifiedOn(new Date());
-		acl.setModifiedBy(userInfo.getId().toString());
-		acl.setCreatedBy(userInfo.getId().toString());
 		return acl;
 	}
 
