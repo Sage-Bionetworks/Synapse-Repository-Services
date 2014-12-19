@@ -109,11 +109,7 @@ public class AclSnapshotWorker implements Worker{
 		try {
 			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
 			record.setOwnerId(acl.getId());
-			record.setCreatedBy(acl.getCreatedBy());
 			record.setCreationDate(acl.getCreationDate());
-			record.setModifiedBy(acl.getModifiedBy());
-			record.setModifiedOn(acl.getModifiedOn());
-			record.setUri(acl.getUri());
 			record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
 		} catch (Throwable e) {
 			// if the change message carries a fake aclId, the fields extracted from the acl object will be null

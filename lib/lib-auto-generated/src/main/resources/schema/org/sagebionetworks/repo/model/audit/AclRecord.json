@@ -35,23 +35,6 @@
 			"type": "string",
 			"format": "date-time",
 			"description": "From the ACL object."
-		},
-		"createdBy": {
-			"type": "string",
-			"description": "From the ACL object."
-		},
-		"modifiedOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "From the ACL object."
-		},
-		"modifiedBy": {
-			"type": "string",
-			"description": "From the ACL object."
-		},
-		"uri": {
-			"type": "string",
-			"description": "From the ACL object."
 		}
 	}
 }
