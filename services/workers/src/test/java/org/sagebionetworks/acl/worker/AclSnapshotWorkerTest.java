@@ -71,6 +71,8 @@ public class AclSnapshotWorkerTest {
 	private String aclRecordBucket;
 	private String resourceAccessRecordBucket;
 	
+	private int TIME_OUT = 30 * 1000;
+	
 	@Before
 	public void before() throws Exception {
 		assertNotNull(config);
@@ -140,14 +142,7 @@ public class AclSnapshotWorkerTest {
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
 
-		List<String> newAclKeys = getKeys(aclRecordBucket);
-		List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
-		
-		assertTrue(newAclKeys.removeAll(aclKeys));
-		assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
-		
-		assertEquals(1, newAclKeys.size());
-		assertEquals(0, newResourceKeys.size());
+		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
 	
 		// Test UPDATE
 		
@@ -171,14 +166,8 @@ public class AclSnapshotWorkerTest {
 
 		aclDao.update(acl, ObjectType.ENTITY);
 
-		newAclKeys = getKeys(aclRecordBucket);
-		newResourceKeys = getKeys(resourceAccessRecordBucket);
-		
-		assertTrue(newAclKeys.removeAll(aclKeys));
-		assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
-		
-		assertEquals(1, newAclKeys.size());
-		assertEquals(0, newResourceKeys.size());
+		// TODO: change the number of ra to 1 after fixing getting acl
+		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
 
 		// Test DELETE
 	
@@ -188,14 +177,7 @@ public class AclSnapshotWorkerTest {
 		// Delete the acl
 		aclDao.delete(node.getId(), ObjectType.ENTITY);
 
-		newAclKeys = getKeys(aclRecordBucket);
-		newResourceKeys = getKeys(resourceAccessRecordBucket);
-		
-		assertTrue(newAclKeys.removeAll(aclKeys));
-		assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
-		
-		assertEquals(1, newAclKeys.size());
-		assertEquals(0, newResourceKeys.size());
+		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
 	}
 
 	@After 
@@ -221,6 +203,22 @@ public class AclSnapshotWorkerTest {
 			keys.add(summary.getKey());
 		}
 		return keys;
+	}
+	
+	private boolean waitForObject(List<String> aclKeys, List<String> resourceAccessKeys, int noAcl, int noRA) {
+		long start = System.currentTimeMillis();
+		while (System.currentTimeMillis() < start + TIME_OUT) {
+			List<String> newAclKeys = getKeys(aclRecordBucket);
+			List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
+			
+			assertTrue(newAclKeys.removeAll(aclKeys));
+			assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
+			
+			if (noAcl == newAclKeys.size() && noRA == newResourceKeys.size()){
+				return true;
+			}
+		}
+		return false;
 	}
 
 }

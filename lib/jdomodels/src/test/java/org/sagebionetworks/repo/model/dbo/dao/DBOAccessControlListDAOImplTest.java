@@ -119,6 +119,7 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(message);
 		assertEquals(ChangeType.CREATE, message.getChangeType());
 		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
+		assertEquals(acl, aclDAO.get(Long.parseLong(message.getObjectId())));
 
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
@@ -246,8 +247,6 @@ public class DBOAccessControlListDAOImplTest {
 		} catch (NotFoundException e) {  // any other kind of exception will cause a failure
 			// as expected
 		}
-
-
 	}
 
 
