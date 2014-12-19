@@ -7,12 +7,12 @@ import java.nio.file.Files;
 
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.ObjectCSVWriter;
-import org.sagebionetworks.repo.model.audit.AclRecord;
+import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
-public class AclRecordDAOImpl implements AclRecordDAO {
+public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -23,7 +23,7 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	private String aclRecordBucketName;
+	private String resourceAccessRecordBucketName;
 
 	/**
 	 * Injected via Spring
@@ -34,15 +34,16 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	public void setAclRecordBucketName(String aclRecordBucketName) {
-		this.aclRecordBucketName = aclRecordBucketName;
+	public void setResouceAccessRecordBucketName(String resourceAccessRecordBucketName) {
+		this.resourceAccessRecordBucketName = resourceAccessRecordBucketName;
 	}
 	
 	@Override
-	public String write(AclRecord record) throws IOException {
+	public String write(ResourceAccessRecord record) throws IOException {
 		File file = createNewFile();
 		
-		ObjectCSVWriter<AclRecord> csvWriter = new ObjectCSVWriter<AclRecord>(new FileWriter(file.getAbsoluteFile()), AclRecord.class);
+		ObjectCSVWriter<ResourceAccessRecord> csvWriter = 
+				new ObjectCSVWriter<ResourceAccessRecord>(new FileWriter(file.getAbsoluteFile()), ResourceAccessRecord.class);
 		csvWriter.append(record);
 		csvWriter.close();
 		
@@ -54,11 +55,11 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	}
 
 	private String sendFileToS3(File file) {
-		if (!s3Client.doesBucketExist(aclRecordBucketName)) {
-			s3Client.createBucket(aclRecordBucketName);
+		if (!s3Client.doesBucketExist(resourceAccessRecordBucketName)) {
+			s3Client.createBucket(resourceAccessRecordBucketName);
 		}
 		String fileName = getKey();
-		s3Client.putObject(aclRecordBucketName, fileName, file);
+		s3Client.putObject(resourceAccessRecordBucketName, fileName, file);
 		
 		return fileName;
 	}
