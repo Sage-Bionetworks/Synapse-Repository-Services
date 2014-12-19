@@ -73,10 +73,10 @@ public class DBOAccessControlListDAOImplTest {
 	public void setUp() throws Exception {
 		changeDAO.deleteAllChanges();
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		
+
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
 		modifiedById = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-		
+
 		// create a resource on which to apply permissions
 		node = new Node();
 		node.setName("foo");
@@ -89,14 +89,14 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(nodeId);
 		node = nodeDAO.getNode(nodeId);
 		nodeList.add(node);
-		
+
 		// create a group to give the permissions to
 		group = new UserGroup();
 		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
-		
+
 		// Create a second user
 		group2 = new UserGroup();
 		group2.setIsIndividual(false);
@@ -111,7 +111,7 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
-		
+
 		// Did a message get sent?
 		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
 		assertNotNull(changes);
@@ -148,7 +148,7 @@ public class DBOAccessControlListDAOImplTest {
 		// TODO assertEquals(ra.getDisplayName(), raClone.getDisplayName());
 		assertEquals(ra.getAccessType(), raClone.getAccessType());
 		aclList.add(acl);
-		
+
 		changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
 		assertNotNull(changes);
 		message = changes.get(0);
