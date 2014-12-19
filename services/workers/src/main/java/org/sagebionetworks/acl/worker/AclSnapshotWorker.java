@@ -9,6 +9,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -28,7 +29,9 @@ public class AclSnapshotWorker implements Worker{
 	@Autowired
 	private AclRecordDAO aclRecordDao;
 	@Autowired
-	DBOChangeDAO changeDAO;
+	private DBOChangeDAO changeDAO;
+	@Autowired
+	private AccessControlListDAO accessControlListDao;
 	
 	@Override
 	public List<Message> call() throws Exception {
@@ -53,21 +56,14 @@ public class AclSnapshotWorker implements Worker{
 		// Keep this message invisible
 		workerProgress.progressMadeForMessage(message);
 		
-		AclRecord record = new AclRecord();
 		ChangeMessage change = MessageUtils.extractMessageBody(message);
 		if (change.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {
 			throw new IllegalArgumentException("ObjectType must be ACCESS_CONTROL_LIST");
 		}
-		record.setChangeType(change.getChangeType().name());
-		record.setEtag(change.getObjectEtag());
-		record.setObjectId(change.getObjectId());
-		record.setTimestamp(change.getTimestamp().getTime());
-		if (change.getChangeNumber() != null) {
-			record.setChangeNumber(change.getChangeNumber().toString());
-		} else {
-			record.setChangeNumber("null");
-		}
-		aclRecordDao.write(record);
+		
+		AclRecord aclRecord = new AclRecord();
+		
+		aclRecordDao.write(aclRecord);
 		return message;
 	}
 

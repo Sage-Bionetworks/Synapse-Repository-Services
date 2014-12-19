@@ -117,10 +117,8 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(changes);
 		ChangeMessage message = changes.get(0);
 		assertNotNull(message);
-		assertEquals(nodeId, "syn" + message.getObjectId());
 		assertEquals(ChangeType.CREATE, message.getChangeType());
 		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
-		assertEquals(acl.getEtag(), message.getObjectEtag());
 
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
@@ -154,10 +152,8 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(changes);
 		message = changes.get(0);
 		assertNotNull(message);
-		assertEquals(nodeId, "syn" + message.getObjectId());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
-		assertEquals(acl.getEtag(), message.getObjectEtag());
 	}
 
 
@@ -171,7 +167,6 @@ public class DBOAccessControlListDAOImplTest {
 			assertNotNull(changes);
 			ChangeMessage message = changes.get(0);
 			assertNotNull(message);
-			assertEquals(n.getId(), "syn" + message.getObjectId());
 			assertEquals(ChangeType.DELETE, message.getChangeType());
 			assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 		}

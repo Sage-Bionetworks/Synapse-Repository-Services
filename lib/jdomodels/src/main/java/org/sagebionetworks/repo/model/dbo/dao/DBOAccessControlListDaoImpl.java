@@ -87,7 +87,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(), ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.ACCESS_CONTROL_LIST, 
+				UUID.randomUUID().toString(), ChangeType.CREATE);
 		return acl.getId(); // This preserves the "syn" prefix
 	}
 
@@ -192,21 +193,30 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		// Now recreate it from the passed data.
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
-		String objectId = acl.getId().startsWith("syn") ? acl.getId().substring(3) : acl.getId();
-		transactionalMessenger.sendMessageAfterCommit(objectId, ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(), ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.ACCESS_CONTROL_LIST, 
+				UUID.randomUUID().toString(), ChangeType.UPDATE);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String ownerId, ObjectType ownerType) throws DatastoreException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
+		Long dboId;
+		try {
+			DBOAccessControlList origDbo = selectForUpdate(ownerKey, ownerType);
+			dboId = origDbo.getId();
+		} catch (Throwable e) {
+			// this case happens when user tries to delete a non-exist acl
+			dboId = -1L;
+		}
+
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, ownerKey);
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
 		
-		String objectId = ownerId.startsWith("syn") ? ownerId.substring(3) : ownerId;
-		transactionalMessenger.sendMessageAfterCommit(objectId, ObjectType.ACCESS_CONTROL_LIST, ChangeType.DELETE);
+		transactionalMessenger.sendMessageAfterCommit(dboId.toString(), ObjectType.ACCESS_CONTROL_LIST, 
+				UUID.randomUUID().toString(), ChangeType.DELETE);
 	}
 
 	@Override
