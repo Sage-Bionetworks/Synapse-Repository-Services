@@ -1,12 +1,8 @@
 package org.sagebionetworks.audit.dao;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 
-import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
-import org.sagebionetworks.audit.utils.ObjectCSVWriter;
+import org.sagebionetworks.audit.utils.SimpleRecordWriter;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,11 +15,12 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	int stackInstanceNumber;
+	private int stackInstanceNumber;
 	/**
 	 * Injected via Spring
 	 */
 	private String aclRecordBucketName;
+	private SimpleRecordWriter<AclRecord> writer;
 
 	/**
 	 * Injected via Spring
@@ -37,44 +34,17 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	public void setAclRecordBucketName(String aclRecordBucketName) {
 		this.aclRecordBucketName = aclRecordBucketName;
 	}
+	/**
+	 * Initialize is called when this bean is first created.
+	 * 
+	 */
+	public void initialize() {
+		writer = new SimpleRecordWriter<AclRecord>(s3Client, stackInstanceNumber, 
+				aclRecordBucketName, AclRecord.class);
+	}
 	
 	@Override
 	public String write(AclRecord record) throws IOException {
-		File file = createNewFile();
-		
-		ObjectCSVWriter<AclRecord> csvWriter = new ObjectCSVWriter<AclRecord>(new FileWriter(file.getAbsoluteFile()), AclRecord.class);
-		csvWriter.append(record);
-		csvWriter.close();
-		
-		String fileName = sendFileToS3(file);
-		Files.delete(file.toPath());
-		file = null;
-	
-		return fileName;
-	}
-
-	private String sendFileToS3(File file) {
-		if (!s3Client.doesBucketExist(aclRecordBucketName)) {
-			s3Client.createBucket(aclRecordBucketName);
-		}
-		String fileName = getKey();
-		s3Client.putObject(aclRecordBucketName, fileName, file);
-		
-		return fileName;
-	}
-
-	private File createNewFile() throws IOException {
-		File file = new File("temp.csv");
-		if (!file.exists()) {
-			file.createNewFile();
-		}
-		if (!file.canWrite()) {
-			file.setWritable(true);
-		}
-		return file;
-	}
-
-	private String getKey() {
-		return KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), false);
+		return writer.write(record);
 	}
 }

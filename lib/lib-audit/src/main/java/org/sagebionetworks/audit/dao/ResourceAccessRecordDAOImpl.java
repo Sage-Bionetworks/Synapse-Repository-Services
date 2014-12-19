@@ -1,12 +1,8 @@
 package org.sagebionetworks.audit.dao;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 
-import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
-import org.sagebionetworks.audit.utils.ObjectCSVWriter;
+import org.sagebionetworks.audit.utils.SimpleRecordWriter;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,11 +15,12 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	int stackInstanceNumber;
+	private int stackInstanceNumber;
 	/**
 	 * Injected via Spring
 	 */
 	private String resourceAccessRecordBucketName;
+	private SimpleRecordWriter<ResourceAccessRecord> writer;
 
 	/**
 	 * Injected via Spring
@@ -37,45 +34,17 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	public void setResourceAccessRecordBucketName(String resourceAccessRecordBucketName) {
 		this.resourceAccessRecordBucketName = resourceAccessRecordBucketName;
 	}
+	/**
+	 * Initialize is called when this bean is first created.
+	 * 
+	 */
+	public void initialize() {
+		writer = new SimpleRecordWriter<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
+				resourceAccessRecordBucketName, ResourceAccessRecord.class);
+	}
 	
 	@Override
 	public String write(ResourceAccessRecord record) throws IOException {
-		File file = createNewFile();
-		
-		ObjectCSVWriter<ResourceAccessRecord> csvWriter = 
-				new ObjectCSVWriter<ResourceAccessRecord>(new FileWriter(file.getAbsoluteFile()), ResourceAccessRecord.class);
-		csvWriter.append(record);
-		csvWriter.close();
-		
-		String fileName = sendFileToS3(file);
-		Files.delete(file.toPath());
-		file = null;
-	
-		return fileName;
-	}
-
-	private String sendFileToS3(File file) {
-		if (!s3Client.doesBucketExist(resourceAccessRecordBucketName)) {
-			s3Client.createBucket(resourceAccessRecordBucketName);
-		}
-		String fileName = getKey();
-		s3Client.putObject(resourceAccessRecordBucketName, fileName, file);
-		
-		return fileName;
-	}
-
-	private File createNewFile() throws IOException {
-		File file = new File("temp.csv");
-		if (!file.exists()) {
-			file.createNewFile();
-		}
-		if (!file.canWrite()) {
-			file.setWritable(true);
-		}
-		return file;
-	}
-
-	private String getKey() {
-		return KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), false);
+		return writer.write(record);
 	}
 }
