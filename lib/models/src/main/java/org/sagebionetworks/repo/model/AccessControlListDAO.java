@@ -30,6 +30,15 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 */
 	public AccessControlList get(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param id - the id of the acl (not the ownerId)
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AccessControlList get(Long id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update the JDO

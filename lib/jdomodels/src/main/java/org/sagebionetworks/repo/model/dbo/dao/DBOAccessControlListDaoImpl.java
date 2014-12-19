@@ -87,8 +87,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
-		String objectId = acl.getId().startsWith("syn") ? acl.getId().substring(3) : acl.getId();
-		transactionalMessenger.sendMessageAfterCommit(objectId, ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(), ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(), ChangeType.CREATE);
 		return acl.getId(); // This preserves the "syn" prefix
 	}
 
@@ -125,9 +124,27 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
-		DBOAccessControlList dboAcl = null;
 		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
+		AccessControlList acl = doGet(param);
+		return acl;
+	}
+
+	@Override
+	public AccessControlList get(Long id) throws DatastoreException,
+			NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(DBOAccessControlList.ACL_ID, id);
+		AccessControlList acl = doGet(param);
+		return acl;
+	}
+
+	/*
+	 * allows us to get the ACL with different parameters
+	 */
+	private AccessControlList doGet(MapSqlParameterSource param) throws NotFoundException {
+		DBOAccessControlList dboAcl;
 		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		ObjectType ownerType = ObjectType.valueOf(dboAcl.getOwnerType());
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ownerType);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, dboAcl.getId());
@@ -150,6 +167,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		return acl;
 	}
+	
+	
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -221,4 +240,5 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
 	}
+
 }
