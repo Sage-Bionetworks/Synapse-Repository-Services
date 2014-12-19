@@ -166,8 +166,7 @@ public class AclSnapshotWorkerTest {
 
 		aclDao.update(acl, ObjectType.ENTITY);
 
-		// TODO: change the number of ra to 1 after fixing getting acl
-		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
+		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
 		// Test DELETE
 	
