@@ -1,13 +1,13 @@
 {
-	"description": "Data recored from a single access control list change message.",
+	"description": "Data recored from an access control list change message and its associated access control list object and the acl's dbo.",
 	"properties": {
 		"changeNumber": {
 			"type": "string",
 			"description": "The application change number created as a result of this change."
 		},
-		"objectId": {
+		"aclId": {
 			"type": "string",
-			"description": "The ID of the object."
+			"description": "The ID of the access control list object."
 		},
 		"etag": {
 			"type": "string",
@@ -15,11 +15,44 @@
 		},
 		"timestamp": {
 			"type": "integer",
-			"description": "The timestamp of the event, in UTC milliseconds."
+			"description": "The timestamp of the change event, in UTC milliseconds."
 		},	
 		"changeType": {
 			"type": "string",
 			"description": "The type of a change event."
+		},
+		"objectId": {
+			"type": "string",
+			"description": "The ID of the owner object. (From the DboAccessControlList)"
+		},
+		"objectType": {
+			"type": "string",
+			"description": "The type of the owner object. (From the DboAccessControlList)"
+		},
+		"creationDate": {
+			"type": "string",
+			"format": "date-time",
+			"description": "From the ACL object."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "UNUSED -- maintained only for backwards compatibility with archived objects",
+			"description": "From the ACL object."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "UNUSED -- maintained only for backwards compatibility with archived objects",
+			"description": "From the ACL object."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "UNUSED -- maintained only for backwards compatibility with archived objects",
+			"description": "From the ACL object."
+		},
+		"uri": {
+			"type": "string",
+			"description": "From the ACL object."
 		}
 	}
 }
