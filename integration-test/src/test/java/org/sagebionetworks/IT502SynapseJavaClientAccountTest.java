@@ -94,8 +94,8 @@ public class IT502SynapseJavaClientAccountTest {
 	}
 	
 	public static File getFileForEmail(String email) {
-		String homeDir = System.getProperty("user.home");
-		return new File(homeDir, email+".json");
+		String tempir = System.getProperty("java.io.tempdir");
+		return new File(tempir, email+".json");
 	}
 	
 	private String getTokenFromFile(File file, String endpoint) throws IOException {
