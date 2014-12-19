@@ -2,7 +2,7 @@
 	"description": "Data recored from an access control list change message and its associated access control list object and the acl's dbo.",
 	"properties": {
 		"changeNumber": {
-			"type": "string",
+			"type": "integer",
 			"description": "The application change number created as a result of this change."
 		},
 		"aclId": {
@@ -19,15 +19,17 @@
 		},	
 		"changeType": {
 			"type": "string",
-			"description": "The type of a change event."
+			"description": "The type of change that occurred",
+			"$ref": "org.sagebionetworks.repo.model.message.ChangeType"
 		},
-		"objectId": {
+		"ownerId": {
 			"type": "string",
 			"description": "The ID of the owner object. (From the DboAccessControlList)"
 		},
-		"objectType": {
+		"ownerType": {
 			"type": "string",
-			"description": "The type of the owner object. (From the DboAccessControlList)"
+			"description": "The type of the owner object. (From the DboAccessControlList)",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
 		},
 		"creationDate": {
 			"type": "string",

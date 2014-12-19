@@ -2,17 +2,17 @@
 	"description": "Data recored from an access control list change message and one element from its associated access control list's resource access object.",
 	"properties": {
 		"changeNumber": {
-			"type": "string",
+			"type": "integer",
 			"description": "The application change number created as a result of this change."
 		},
 		"principalId": {
-			"type": "string",
-			"description": "The id of the principal who is granted access"
+			"type": "integer",
+			"description": "The id of the principal who is granted access."
 		},
 		"accessType": {
-			"type": "string",
+			"type": "object",
 			"description": "The name of one ACCESS_TYPE that the principalId has.",
-			"name": "ACCESS_TYPE"
+			"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
 		}
 	}
 }

@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +30,12 @@ public class AclRecordDAOImplTest {
 	@Autowired
 	private AmazonS3Client s3Client;
 	
-	private String BUCKET_NAME = "prod.acl.record.sagebase.org";
+	private String BUCKET_NAME = "dev.acl.record.sagebase.org";
 	
 	@Before
 	public void before(){
 		assertNotNull(aclRecordDao);
-		
 		assertNotNull(s3Client);
-		assertTrue(s3Client.doesBucketExist(BUCKET_NAME));
 	}
 	
 	@Test
@@ -51,14 +50,16 @@ public class AclRecordDAOImplTest {
 
 	private List<AclRecord> createAclRecordList(int numberOfRecords) {
 		List<AclRecord> list = new ArrayList<AclRecord>();
-		Random random = new Random();
 		for (int i = 0; i < numberOfRecords; i++) {
 			AclRecord newRecord = new AclRecord();
 			newRecord.setTimestamp(System.currentTimeMillis());
-			newRecord.setChangeNumber(Integer.toString(random.nextInt()));
-			newRecord.setChangeType(ChangeType.CREATE.name());
-			newRecord.setObjectId(Integer.toString(random.nextInt()));
+			newRecord.setChangeNumber(-1L);
+			newRecord.setChangeType(ChangeType.CREATE);
+			newRecord.setOwnerId("-1");
 			newRecord.setEtag("etag");
+			newRecord.setAclId("-1");
+			newRecord.setOwnerType(ObjectType.ENTITY);
+
 			list.add(newRecord);
 		}
 		return list;

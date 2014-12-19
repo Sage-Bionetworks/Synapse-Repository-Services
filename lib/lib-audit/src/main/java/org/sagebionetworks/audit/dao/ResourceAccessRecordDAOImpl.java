@@ -34,7 +34,7 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	public void setResouceAccessRecordBucketName(String resourceAccessRecordBucketName) {
+	public void setResourceAccessRecordBucketName(String resourceAccessRecordBucketName) {
 		this.resourceAccessRecordBucketName = resourceAccessRecordBucketName;
 	}
 	
