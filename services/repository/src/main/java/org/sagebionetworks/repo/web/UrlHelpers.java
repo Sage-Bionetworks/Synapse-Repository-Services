@@ -710,6 +710,8 @@ public class UrlHelpers {
 	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_GET_REQUEST;
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
+	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";
+	public static final String ADMIN_TABLE_REMOVE_INDEXES = ADMIN + ENTITY_TABLE + "/removeindexes";
 
 	// Team
 	public static final String TEAM = "/team";
