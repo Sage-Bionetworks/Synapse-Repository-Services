@@ -1,106 +1,226 @@
 package org.sagebionetworks.acl.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
+import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.sqs.model.Message;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:test-context.xml", "classpath:audit-dao.spb.xml"})
+@ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class AclSnapshotWorkerTest {
 
 	@Autowired
+	StackConfiguration config;
+	@Autowired
 	private AclRecordDAO aclRecordDao;
+	@Autowired
+	private ResourceAccessRecordDAO resourceAccessRecordDao;
+	
+	@Autowired
+	private AccessControlListDAO aclDao;	
+	@Autowired
+	private NodeDAO nodeDao;
+	@Autowired
+	private UserGroupDAO userGroupDao;
 	
 	@Autowired
 	private AmazonS3Client s3Client;
-	
-	private String BUCKET_NAME = "prod.acl.record.sagebase.org";
 
+	private Node node;
+	private UserGroup group;
+	private UserGroup group2;
+	
+	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
+	
+	private Long createdById;
+	private Long modifiedById;
+	
+	private String aclRecordBucket;
+	private String resourceAccessRecordBucket;
+	
 	@Before
-	public void before() {	
+	public void before() throws Exception {
+		assertNotNull(config);
 		assertNotNull(aclRecordDao);
+		assertNotNull(resourceAccessRecordDao);
+		
+		assertNotNull(aclDao);
+		assertNotNull(nodeDao);
+		assertNotNull(userGroupDao);
 		
 		assertNotNull(s3Client);
-		assertTrue(s3Client.doesBucketExist(BUCKET_NAME));
+		
+		// Setting up
+		
+		aclRecordBucket = config.getAclRecordBucketName();
+		resourceAccessRecordBucket = config.getResourceAccessRecordBucketName();
+		
+		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
+		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
+		modifiedById = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		
+		// create a resource on which to apply permissions
+		node = new Node();
+		node.setName("foo");
+		node.setCreatedOn(new Date());
+		node.setCreatedByPrincipalId(createdById);
+		node.setModifiedOn(new Date());
+		node.setModifiedByPrincipalId(modifiedById);
+		node.setNodeType(EntityType.project.name());
+		String nodeId = nodeDao.createNew(node);
+		assertNotNull(nodeId);
+		node = nodeDao.getNode(nodeId);
+		
+		// create a group to give the permissions to
+		group = new UserGroup();
+		group.setIsIndividual(false);
+		group.setId(userGroupDao.create(group).toString());
+		assertNotNull(group.getId());
+		groupList.add(group);
+		
+		// Create a second user
+		group2 = new UserGroup();
+		group2.setIsIndividual(false);
+		group2.setId(userGroupDao.create(group2).toString());
+		assertNotNull(group2.getId());
+		groupList.add(group2);
+		
 	}
 	
 	@Test
-	public void testWrongObjectType() throws Exception {
-		int numberOfObj = numberOfObject(BUCKET_NAME);
-		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
-		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
-		List<Message> messages = Arrays.asList(one, two);
-		// Create the worker
-		AclSnapshotWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		// It should just return the results unchanged
-		assertNotNull(results);
-		assertEquals(messages, results);
-		assertEquals(numberOfObj, numberOfObject(BUCKET_NAME));
-	}
-	
-	@Test
-	public void testCorrectObjectType() throws Exception {
-		int numberOfObj = numberOfObject(BUCKET_NAME);
-		Message three = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
-		Message four = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACCESS_CONTROL_LIST, "etag");
-		Message five = MessageUtils.buildMessage(ChangeType.CREATE, "789", ObjectType.ACCESS_CONTROL_LIST, "etag");
-		List<Message> messages = Arrays.asList(three, four,five);
-		AclSnapshotWorker worker = createNewWorker(messages);
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
-		assertEquals(3, numberOfObject(BUCKET_NAME) - numberOfObj);
-	}
-	
-	/**
-	 * Helper to create a new worker for a list of messages.
-	 * @param messages
-	 * @return
-	 */
-	public AclSnapshotWorker createNewWorker(List<Message> messages){
-		AclSnapshotWorker aclWorker = new AclSnapshotWorker();
-		aclWorker.setWorkerProgress(new WorkerProgress() {
-			@Override
-			public void progressMadeForMessage(Message message) {}
+	public void test() throws Exception {
+		
+		// Test CREATE
+		
+		List<String> aclKeys = getKeys(aclRecordBucket);
+		List<String> resourceAccessKeys = getKeys(resourceAccessRecordBucket);
+		
+		assertNotNull(aclKeys);
+		assertNotNull(resourceAccessKeys);
+		
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setId(node.getId());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		String aclId = aclDao.create(acl, ObjectType.ENTITY);
+		assertEquals(node.getId(), aclId);
 
-			@Override
-			public void retryMessage(Message message, int retryTimeoutInSeconds) {}
-		});
-		ReflectionTestUtils.setField(aclWorker, "aclRecordDao", aclRecordDao);
-		aclWorker.setMessages(messages);
-		return aclWorker;
+		List<String> newAclKeys = getKeys(aclRecordBucket);
+		List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
+		
+		assertTrue(newAclKeys.removeAll(aclKeys));
+		assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
+		
+		assertEquals(1, newAclKeys.size());
+		assertEquals(0, newResourceKeys.size());
+	
+		// Test UPDATE
+		
+		aclKeys = getKeys(aclRecordBucket);
+		resourceAccessKeys = getKeys(resourceAccessRecordBucket);
+		
+		// Update ACL for this node
+		acl = aclDao.get(node.getId(), ObjectType.ENTITY);
+		assertNotNull(acl);
+		assertNotNull(acl.getEtag());
+		assertEquals(node.getId(), acl.getId());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(group.getId()));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ
+				})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+
+		aclDao.update(acl, ObjectType.ENTITY);
+
+		newAclKeys = getKeys(aclRecordBucket);
+		newResourceKeys = getKeys(resourceAccessRecordBucket);
+		
+		assertTrue(newAclKeys.removeAll(aclKeys));
+		assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
+		
+		assertEquals(1, newAclKeys.size());
+		assertEquals(0, newResourceKeys.size());
+
+		// Test DELETE
+	
+		aclKeys = getKeys(aclRecordBucket);
+		resourceAccessKeys = getKeys(resourceAccessRecordBucket);
+			
+		// Delete the acl
+		aclDao.delete(node.getId(), ObjectType.ENTITY);
+
+		newAclKeys = getKeys(aclRecordBucket);
+		newResourceKeys = getKeys(resourceAccessRecordBucket);
+		
+		assertTrue(newAclKeys.removeAll(aclKeys));
+		assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
+		
+		assertEquals(1, newAclKeys.size());
+		assertEquals(0, newResourceKeys.size());
+	}
+
+	@After 
+	public void cleanUp() throws Exception {
+		nodeDao.delete(node.getId());
+		for (UserGroup g : groupList) {
+			userGroupDao.delete(g.getId());
+		}
+		groupList.clear();
 	}
 	
-	private int numberOfObject(String bucketName) {
+	private List<String> getKeys(String bucketName) {
 		ObjectListing listing = s3Client.listObjects(bucketName);
 		List<S3ObjectSummary> summaries = listing.getObjectSummaries();
-
+		List<String> keys = new ArrayList<String>();
+ 
 		while (listing.isTruncated()) {
 		   listing = s3Client.listNextBatchOfObjects (listing);
 		   summaries.addAll (listing.getObjectSummaries());
 		}
-		return summaries.size();
+		
+		for (S3ObjectSummary summary : summaries) {
+			keys.add(summary.getKey());
+		}
+		return keys;
 	}
 
 }
