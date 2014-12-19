@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
@@ -54,7 +55,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SELECT_FOR_UPDATE = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE+" FOR UPDATE";
-
+	
+	private static final String SQL_SELECT_ALL_ACL_WITH_ACL_ID = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_ID+" = ?";
+	
 	/**
 	 * Keep a copy of the row mapper.
 	 */
@@ -126,34 +129,39 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
 		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
-		AccessControlList acl = doGet(param);
+		DBOAccessControlList dboAcl;
+		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		AccessControlList acl = doGet(dboAcl);
 		return acl;
 	}
 
 	@Override
 	public AccessControlList get(Long id) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOAccessControlList.ACL_ID, id);
-		AccessControlList acl = doGet(param);
+		DBOAccessControlList dboAcl = getDboAcl(id);
+		AccessControlList acl = doGet(dboAcl);
 		return acl;
 	}
 	
 	@Override
 	public ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOAccessControlList.ACL_ID, id);
-		DBOAccessControlList dboAcl;
-		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		DBOAccessControlList dboAcl = getDboAcl(id);
 		ObjectType ownerType = ObjectType.valueOf(dboAcl.getOwnerType());
 		return ownerType;
+	}
+	
+	private DBOAccessControlList getDboAcl(Long id) throws DatastoreException, NotFoundException {
+		List<DBOAccessControlList> dboList = null;
+		dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_ACL_WITH_ACL_ID, aclRowMapper, id);
+		if (dboList.size() != 1) {
+			throw new NotFoundException(); 
+		}
+		return dboList.get(0);
 	}
 
 	/*
 	 * allows us to get the ACL with different parameters
 	 */
-	private AccessControlList doGet(MapSqlParameterSource param) throws NotFoundException {
-		DBOAccessControlList dboAcl;
-		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+	private AccessControlList doGet(DBOAccessControlList dboAcl) throws NotFoundException {
 		ObjectType ownerType = ObjectType.valueOf(dboAcl.getOwnerType());
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ownerType);
 		// Now fetch the rest of the data for this ACL
