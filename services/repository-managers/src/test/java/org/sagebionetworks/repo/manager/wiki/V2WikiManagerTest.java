@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,13 +49,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class V2WikiManagerTest {
-	@Autowired
 	V2WikiPageDao mockWikiDao;
-	@Autowired
 	V2WikiManagerImpl wikiManager;
-	@Autowired
 	AuthorizationManager mockAuthManager;
-	@Autowired
 	FileHandleDao mockFileDao;
 	WikiPageKey key;
 	UserInfo user;
@@ -242,7 +241,7 @@ public class V2WikiManagerTest {
 	    newIds.add(one.getId());
 		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(page);
 	    verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);   
-	}	
+	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
@@ -879,6 +878,92 @@ public class V2WikiManagerTest {
 		
 	}
 	
+	@Test 
+	public void testUpdateOrderHintAuthorized() throws DatastoreException, NotFoundException {
+		String ownerId = "556";
+		ObjectType ownerType = ObjectType.EVALUATION;
+		String wikiId = "0";
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
+		
+		// Return OrderHint DTO 
+		V2WikiOrderHint orderHintDTO = new V2WikiOrderHint();
+		orderHintDTO.setEtag("etag");
+		orderHintDTO.setOwnerId("123");
+		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
+		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
+		when(mockWikiDao.getWikiOrderHint(any(WikiPageKey.class))).thenReturn(orderHintDTO);
+		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
+		
+		// Return etag when locking Wiki Owner database.
+		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etag");
+		
+		// Allow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		wikiManager.updateOrderHint(user, orderHintDTO);
+		
+		// Verify that the order hint was updated.
+		verify(mockWikiDao, times(1)).updateOrderHint(eq(orderHintDTO), any(WikiPageKey.class));
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testUpdateOrderHintUnauthorized() throws DatastoreException, NotFoundException {
+		String ownerId = "556";
+		ObjectType ownerType = ObjectType.EVALUATION;
+		String wikiId = "0";
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
+		
+		// Return OrderHint DTO 
+		V2WikiOrderHint orderHintDTO = new V2WikiOrderHint();
+		orderHintDTO.setEtag("etag");
+		orderHintDTO.setOwnerId("123");
+		orderHintDTO.setOwnerObjectType(ObjectType.EVALUATION);
+		orderHintDTO.setIdList(Arrays.asList(new String[] {"A", "B", "C"}));
+		when(mockWikiDao.updateOrderHint(orderHintDTO, key)).thenReturn(orderHintDTO);
+		
+		// Return etag when locking Wiki Owner database.
+		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etag");
+		
+		// Allow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		wikiManager.updateOrderHint(user, orderHintDTO);
+	}
+	
+	
+	@Test(expected=ConflictingUpdateException.class)
+	public void testUpdateOrderHintConflict() throws DatastoreException, NotFoundException {
+		V2WikiOrderHint hint = new V2WikiOrderHint();
+		hint.setOwnerId("000");
+		hint.setEtag("etag");
+		// return a different etag to trigger a conflict
+		when(mockWikiDao.lockWikiOwnersForUpdate(anyString())).thenReturn("etagUpdate!!!");
+		// setup allow
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		wikiManager.updateOrderHint(user, hint);
+	}
+	
+	@Test
+	public void testGetOrderHintAuthorized() throws DatastoreException, NotFoundException {
+		// Allow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		wikiManager.getOrderHint(user, key.getOwnerObjectId(), key.getOwnerObjectType());
+		
+		ArgumentCaptor<WikiPageKey> keyCaptor = ArgumentCaptor.forClass(WikiPageKey.class);
+		verify(mockWikiDao).getWikiOrderHint(keyCaptor.capture());
+		
+		assertEquals(keyCaptor.getValue().getOwnerObjectId(), key.getOwnerObjectId());
+		assertEquals(keyCaptor.getValue().getOwnerObjectType(), key.getOwnerObjectType());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOrderHintUnauthorized() throws DatastoreException, NotFoundException {
+		// Disallow user to access order hint.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		wikiManager.getOrderHint(user, key.getOwnerObjectId(), key.getOwnerObjectType());
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWikiPageNullUser() throws UnauthorizedException, NotFoundException{
 		wikiManager.createWikiPage(null, "123", ObjectType.ENTITY, new V2WikiPage());
@@ -937,6 +1022,31 @@ public class V2WikiManagerTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteNullKey() throws UnauthorizedException, NotFoundException{
 		wikiManager.deleteWiki(new UserInfo(true), null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetOrderHintNullOwnerId() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(new UserInfo(true), null, key.getOwnerObjectType());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(null, key.getOwnerObjectId(), key.getOwnerObjectType());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetOrderHintNullObjectType() throws UnauthorizedException, NotFoundException {
+		wikiManager.getOrderHint(new UserInfo(true), key.getOwnerObjectId(), null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateOrderHintNullUserInfo() throws UnauthorizedException, NotFoundException {
+		wikiManager.updateOrderHint(null, new V2WikiOrderHint());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateOrderHintNullUserOrderHint() throws UnauthorizedException, NotFoundException {
+		wikiManager.updateOrderHint(new UserInfo(true), null);
 	}
 	
 	@Test

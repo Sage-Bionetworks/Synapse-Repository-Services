@@ -42,6 +42,7 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * 
@@ -641,7 +642,7 @@ public class TableModelUtilsTest {
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
 		CsvNullReader csvReader = new CsvNullReader(reader);
-		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()));
+		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -652,7 +653,7 @@ public class TableModelUtilsTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()));
+		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -711,9 +712,11 @@ public class TableModelUtilsTest {
 		List<Row> refs = new LinkedList<Row>();
 		Row ref = new Row();
 		ref.setRowId(100l);
+		ref.setVersionNumber(500L);
 		refs.add(ref);
 		ref = new Row();
 		ref.setRowId(101l);
+		ref.setVersionNumber(501L);
 		refs.add(ref);
 		ref = new Row();
 		ref.setRowId(null);
@@ -721,9 +724,9 @@ public class TableModelUtilsTest {
 		ref = new Row();
 		ref.setRowId(-1l);
 		refs.add(ref);
-		Set<Long> expected = new HashSet<Long>();
-		expected.add(101l);
-		expected.add(100l);
+		Map<Long, Long> expected = Maps.newHashMap();
+		expected.put(101l, 501L);
+		expected.put(100l, 500L);
 		assertEquals(expected, TableModelUtils.getDistictValidRowIds(refs));
 	}
 	
@@ -732,12 +735,15 @@ public class TableModelUtilsTest {
 		List<Row> refs = new LinkedList<Row>();
 		Row ref = new Row();
 		ref.setRowId(100l);
+		ref.setVersionNumber(500L);
 		refs.add(ref);
 		ref = new Row();
 		ref.setRowId(101l);
+		ref.setVersionNumber(501L);
 		refs.add(ref);
 		ref = new Row();
 		ref.setRowId(100l);
+		ref.setVersionNumber(600L);
 		refs.add(ref);
 		ref = new Row();
 		ref.setRowId(null);

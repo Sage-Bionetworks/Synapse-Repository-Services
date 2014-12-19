@@ -1,0 +1,26 @@
+{
+	"description": "A V2WikiOrderHint contains the order hint for the root wiki that corresponds to the given owner ID and type.",
+	"properties": {
+		"ownerId": {
+			"type": "string",
+			"description": "The ID of the owner of the wiki page with rootWikiId."
+		},
+		"ownerObjectType": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.ObjectType",
+			"description": "The owner of this page.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"idList": {
+			"type": "array",
+			"description": "The list of sub wiki ids that in the order that they should be placed relative to their siblings.",
+            "items":{
+                "type":"string"
+            }
+		},
+		"etag": {
+			"type": "string",
+			"description": "The title etag of this object. Should be used to handle concurrently updating wiki order hints (e.g. if the etag of the order hint to update does not match the etag of the associated order hint in the database, reject the update)."
+		}
+	}
+}

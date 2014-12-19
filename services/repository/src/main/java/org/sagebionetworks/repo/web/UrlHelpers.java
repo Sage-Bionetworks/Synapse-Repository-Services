@@ -629,6 +629,7 @@ public class UrlHelpers {
 	// V2 Wiki URL
 	public static final String WIKI_V2 = "/wiki2";
 	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
+	public static final String WIKI_V2_ORDER_HINT = "/wiki2orderhint";
 	public static final String WIKI_HISTORY_V2 = "/wikihistory";
 	public static final String ATTACHMENT_V2 = "/attachment";
 	public static final String ATTACHMENT_PREVIEW_V2 = "/attachmentpreview";
@@ -639,6 +640,7 @@ public class UrlHelpers {
 	// Entity
 	public static final String ENTITY_OWNER_ID_V2 = ENTITY+"/{ownerId}";
 	public static final String ENTITY_WIKI_V2 = ENTITY_OWNER_ID_V2 + WIKI_V2;
+	public static final String ENTITY_WIKI_V2_ORDER_HINT = ENTITY_OWNER_ID_V2 + WIKI_V2_ORDER_HINT;
 	public static final String ENTITY_WIKI_TREE_V2 = ENTITY_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
 	public static final String ENTITY_WIKI_ID_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2;
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_HANDLE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_HANDLES_V2;
@@ -708,6 +710,8 @@ public class UrlHelpers {
 	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_GET_REQUEST;
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
+	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";
+	public static final String ADMIN_TABLE_REMOVE_INDEXES = ADMIN + ENTITY_TABLE + "/removeindexes";
 
 	// Team
 	public static final String TEAM = "/team";

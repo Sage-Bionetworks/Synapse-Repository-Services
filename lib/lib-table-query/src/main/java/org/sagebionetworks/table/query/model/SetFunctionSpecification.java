@@ -84,7 +84,6 @@ public class SetFunctionSpecification extends SQLElement {
 				visit(valueExpression, visitor);
 				break;
 			case SUM:
-			case AVG:
 				// the type is the type of the underlying value, only valid for numbers
 				visit(valueExpression, visitor);
 				if (visitor.getColumnType() != null
@@ -92,6 +91,10 @@ public class SetFunctionSpecification extends SQLElement {
 					throw new IllegalArgumentException("Cannot calculate " + setFunctionType.name() + " for type "
 							+ visitor.getColumnType().name());
 				}
+				break;
+			case AVG:
+				// averages for integers actually come back as doubles
+				visitor.setColumnType(ColumnType.DOUBLE);
 				break;
 			default:
 				throw new IllegalArgumentException("unhandled set function type");

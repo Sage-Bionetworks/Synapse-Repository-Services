@@ -469,6 +469,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_PARENT_ID			= "PARENT_ID";
 	public static final String V2_COL_WIKI_ROOT_ID				= "ROOT_ID";
 	public static final String V2_COL_WIKI_MARKDOWN_VERSION		= "MARKDOWN_VERSION";
+	public static final String V2_COL_WIKI_ORDER_HINT			= "ORDER_HINT";
 	public static final String V2_DDL_FILE_WIKI_PAGE 			= "schema/v2-WikiPage-ddl.sql";
 	
 	// The wiki markdown table
@@ -494,6 +495,8 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_ONWERS_OWNER_ID				= "OWNER_ID";
 	public static final String V2_COL_WIKI_ONWERS_OBJECT_TYPE			= "OWNER_OBJECT_TYPE";
 	public static final String V2_COL_WIKI_ONWERS_ROOT_WIKI_ID			= "ROOT_WIKI_ID";
+	public static final String V2_COL_WIKI_OWNERS_ORDER_HINT			= "ORDER_HINT";
+	public static final String V2_COL_WIKI_OWNERS_ETAG					= "ETAG";
 	public static final String V2_DDL_FILE_WIKI_ONWERS					= "schema/v2-WikiOwners-ddl.sql";
 	
 	// The alias used for the dataset table.

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -160,4 +161,22 @@ public interface V2WikiService {
 	 */
 	V2WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
 
+	/**
+	 * Get the order hint of the given wiki that corresponds to the given WikiPageKey.
+	 * @param userId
+	 * @param ownerId
+	 * @param type
+	 * @return
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type) throws NotFoundException;
+	
+	/**
+	 * Update the order hint of the wiki that corresponds to the given WikiPageKey.
+	 * @param userId
+	 * @param orderHint
+	 * @return
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws NotFoundException;
 }

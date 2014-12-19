@@ -687,7 +687,17 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Is the Table create all indexes feature enabled?
+	 * 
+	 * @return
+	 */
+	public PropertyAccessor<Boolean> getTableAllIndexedEnabled() {
+		return new StackConfigurationBooleanPropertyAccessor("org.sagebionetworks.table.allindexed.enabled");
+	}
+
+	/**
 	 * Is the DOI feature enabled?
+	 * 
 	 * @return
 	 */
 	public boolean getDoiEnabled(){

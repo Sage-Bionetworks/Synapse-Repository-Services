@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +78,21 @@ public class V2WikiServiceImpl implements V2WikiService {
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return wikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
+	}
+	
+	@Override
+	public V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type)
+			throws NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getOrderHint(user, ownerId, type);
+	}
+	
+	@Override
+	public V2WikiOrderHint updateWikiOrderHint(Long userId,
+			V2WikiOrderHint orderHint)
+			throws NotFoundException{
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.updateOrderHint(user, orderHint);
 	}
 
 	@Override

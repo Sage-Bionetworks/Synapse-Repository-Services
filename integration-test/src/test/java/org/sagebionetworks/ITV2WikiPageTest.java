@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -9,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -39,6 +42,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -475,5 +479,62 @@ public class ITV2WikiPageTest {
 			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
+	}
+	
+	@Test
+	public void testGetV2WikiOrderHint() throws Exception{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testGetV2WikiOrderHint");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		
+		// test get order hint
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		assertNotNull(hint);
+		assertNotNull(hint.getOwnerId().equals(project.getId()));
+		assertTrue(hint.getOwnerObjectType().equals(ObjectType.ENTITY));
+		assertNull(hint.getIdList());	// Should be null by default
+	}
+	
+	@Test
+	public void testUpdateV2WikiOrderHintRoundTrip() throws Exception{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testUpdateV2WikiOrderHint");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		
+		// Update order hint
+		List<String> hintIdList = Arrays.asList(new String[] {"A", "X", "B", "Y", "C", "Z"});
+		hint.setIdList(hintIdList);
+		
+		V2WikiOrderHint updatedHint = synapse.updateV2WikiOrderHint(hint);
+		
+		assertNotNull(updatedHint);
+		assertNotNull(updatedHint.getOwnerId().equals(project.getId()));
+		assertFalse(updatedHint.getEtag().equals(hint.getEtag()));
+		assertTrue(updatedHint.getOwnerObjectType().equals(ObjectType.ENTITY));
+		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), hintIdList.toArray()));
+		
+		V2WikiOrderHint postUpdateHint = synapse.getV2OrderHint(key);
+		assertTrue(updatedHint.getOwnerId().equals(postUpdateHint.getOwnerId()));
+		assertTrue(updatedHint.getOwnerObjectType().equals(postUpdateHint.getOwnerObjectType()));
+		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), postUpdateHint.getIdList().toArray()));
 	}
 }

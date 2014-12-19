@@ -28,6 +28,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
 	public static final String TEMPLATE_KEY_USERNAME = "#username#";
 	public static final String TEMPLATE_KEY_WEB_LINK = "#link#";
+	public static final String TEMPLATE_KEY_HTML_SAFE_WEB_LINK = "#htmlSafelink#";
 	public static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
 	public static final String TEMPLATE_KEY_DETAILS = "#details#";
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";

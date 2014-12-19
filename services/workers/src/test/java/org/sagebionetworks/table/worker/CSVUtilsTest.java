@@ -230,6 +230,22 @@ public class CSVUtilsTest {
 		valiateExpectedTyeps(expected, start);
 	}
 
+	@Test
+	public void testExtensionGuess() {
+		assertEquals("csv", CSVUtils.guessExtension(","));
+		assertEquals("tsv", CSVUtils.guessExtension("\t"));
+		assertEquals("csv", CSVUtils.guessExtension("!"));
+		assertEquals("csv", CSVUtils.guessExtension(null));
+	}
+
+	@Test
+	public void testContentTypeGuess() {
+		assertEquals("text/csv", CSVUtils.guessContentType(","));
+		assertEquals("text/tsv", CSVUtils.guessContentType("\t"));
+		assertEquals("text/csv", CSVUtils.guessContentType("!"));
+		assertEquals("text/csv", CSVUtils.guessContentType(null));
+	}
+
 	/**
 	 * Validate the expected types.
 	 * 

@@ -1,67 +1,56 @@
 package org.sagebionetworks.repo.model.dbo.v2.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_DDL_FILE_WIKI_ATTATCHMENT_RESERVATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_ATTACHMENT_RESERVATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
+import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-
+@Table(name = V2_TABLE_WIKI_ATTACHMENT_RESERVATION, constraints={"UNIQUE KEY `V2_WIKI_UNIQUE_FILE_HANDLE_ID` (`"+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+"`, `" + V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID + "`)"})
 public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<V2DBOWikiAttachmentReservation, V2DBOWikiAttachmentReservation> {
-	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("wikiId", V2_COL_WIKI_ATTACHMENT_RESERVATION_ID, true).withIsBackupId(true),
-		new FieldColumn("fileHandleId", V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID, true),
-		new FieldColumn("timeStamp", V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP),
-	};
 
+	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_ID, primary = true, backupId = true, nullable = false)
+	@ForeignKey(name = "V2_WIKI_ATTACH_RESERVE_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long wikiId;
+	
+	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID, primary = true, nullable = false)
+	@ForeignKey(name = "V2_WIKI_FILE_HAND_RESERVE_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
 	private Long fileHandleId;
+	
+	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP, nullable = false)
 	private Timestamp timeStamp;
+	
+	private static TableMapping<V2DBOWikiAttachmentReservation> tableMapping = AutoTableMapping.create(V2DBOWikiAttachmentReservation.class);
 	
 	@Override
 	public TableMapping<V2DBOWikiAttachmentReservation> getTableMapping() {
-		return new TableMapping<V2DBOWikiAttachmentReservation>(){
-
-			@Override
-			public V2DBOWikiAttachmentReservation mapRow(ResultSet rs, int rowNum)throws SQLException {
-				V2DBOWikiAttachmentReservation result = new V2DBOWikiAttachmentReservation();
-				result.setWikiId(rs.getLong(V2_COL_WIKI_ATTACHMENT_RESERVATION_ID));
-				result.setFileHandleId(rs.getLong(V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID));
-				result.setTimeStamp(rs.getTimestamp(V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP));
-				return result;
-			}
-
-			@Override
-			public String getTableName() {
-				return V2_TABLE_WIKI_ATTACHMENT_RESERVATION;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return V2_DDL_FILE_WIKI_ATTATCHMENT_RESERVATION;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends V2DBOWikiAttachmentReservation> getDBOClass() {
-				return V2DBOWikiAttachmentReservation.class;
-			}
-			
-		};
+		return tableMapping;
 	}
 
 	public Long getWikiId() {

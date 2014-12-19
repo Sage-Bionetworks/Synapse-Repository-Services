@@ -7,32 +7,39 @@ import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.StringUtils;
 
 import com.google.common.collect.Lists;
 
@@ -263,6 +270,91 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001", "true", "404001", "505001", "syn606001.607001", "link708001");
 		assertEquals(expectedValues, row.getValues());
+	}
+
+	@Test
+	@Ignore
+	public void testLargeTable() throws ParseException {
+		// Create the table
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		long startTime = System.currentTimeMillis();
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
+		final int endgoal = 1000000;
+		final int batchsize = 100000;
+		final int distinctCount = 100;
+		for (int i = 0; i < endgoal / batchsize; i++) {
+			System.out.println(i);
+			List<Row> rows = Lists.newArrayListWithCapacity(batchsize);
+			for (int j = 0; j < batchsize; j += distinctCount) {
+				rows.addAll(TableModelTestUtils.createRows(allTypes, distinctCount));
+			}
+			RowSet set = new RowSet();
+			set.setRows(rows);
+			set.setHeaders(headers);
+			set.setTableId(tableId);
+			IdRange range = new IdRange();
+			range.setMinimumId(100L + i * batchsize);
+			range.setMaximumId(100L + i * batchsize + batchsize);
+			range.setVersionNumber(3L + i);
+			TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+			// Now fill the table with data
+			tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+		}
+		long now;
+		List<Object> times = Lists.newArrayList();
+		now = System.currentTimeMillis();
+		times.add("Loading");
+		times.add(now - startTime);
+		startTime = now;
+
+		SqlQuery query;
+		RowSet results;
+
+		query = new SqlQuery("select distinct * from " + tableId, allTypes);
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals(distinctCount, results.getRows().size());
+		now = System.currentTimeMillis();
+		times.add("Distinct");
+		times.add(now - startTime);
+		startTime = now;
+
+		query = new SqlQuery("select distinct * from " + tableId, allTypes);
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals(distinctCount, results.getRows().size());
+		now = System.currentTimeMillis();
+		times.add("Distinct2");
+		times.add(now - startTime);
+		startTime = now;
+
+		// This is our query
+		query = new SqlQuery("select * from " + tableId + " where " + allTypes.get(0).getName() + " = '"
+				+ results.getRows().get(0).getValues().get(0) + "'", allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		now = System.currentTimeMillis();
+		times.add("Select");
+		times.add(now - startTime);
+		startTime = now;
+
+		// This is our query
+		query = new SqlQuery("select count(*) from " + tableId, allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals("" + endgoal, results.getRows().get(0).getValues().get(0));
+		now = System.currentTimeMillis();
+		times.add("Count");
+		times.add(now - startTime);
+		startTime = now;
+
+		for (int i = 0; i < times.size(); i += 2) {
+			System.err.println(times.get(i) + ": " + ((Long) times.get(i + 1) / 1000L));
+		}
 	}
 
 	@Test
@@ -530,5 +622,57 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(4), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string4", "103004");
 		assertEquals(expectedValues, row.getValues());
+	}
+
+	@Test
+	public void testAddingRemovingIndexes() throws Exception {
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setName("foo");
+		foo.setId("111");
+		foo.setMaximumSize(10L);
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.INTEGER);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		schema.add(foo);
+		schema.add(bar);
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+
+		tableIndexDAO.removeIndexes(tableId);
+
+		checkIndexes(tableId, "ROW_ID");
+
+		tableIndexDAO.addIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID", SQLUtils.getColumnNameForId(foo.getId()), SQLUtils.getColumnNameForId(bar.getId()));
+		tableIndexDAO.addIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID", SQLUtils.getColumnNameForId(foo.getId()), SQLUtils.getColumnNameForId(bar.getId()));
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+	}
+
+	private void checkIndexes(String tableId, final String... indexes) throws Exception {
+		JdbcTemplate template = (JdbcTemplate) ReflectionStaticTestUtils.getField(tableIndexDAO, "template");
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+
+		// Bind variables do not seem to work here
+		final AtomicInteger count = new AtomicInteger(0);
+		template.query("show columns from " + tableName, new RowMapper<Void>() {
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				boolean hasIndex = !StringUtils.isEmpty(rs.getString("Key"));
+				String column = rs.getString("Field");
+				if (hasIndex) {
+					count.incrementAndGet();
+					assertTrue("Index on " + column, Arrays.asList(indexes).contains(column));
+				}
+				return null;
+			}
+		});
+		assertEquals(indexes.length, count.get());
 	}
 }

@@ -801,6 +801,74 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
+	public void testRemoveColumn() throws Exception {
+		// Create one column
+		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
+				TableModelTestUtils.createColumn(null, "col1", ColumnType.STRING)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		// add data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a")));
+		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
+
+		// add new column
+		schema.add(columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.STRING)));
+		headers = TableModelUtils.getHeaders(schema);
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		// set data on new column
+		PartialRow firstRow = TableModelTestUtils.createPartialRow(queryResult.getQueryResults().getRows().get(0).getRowId(), "col2", "b");
+		PartialRowSet firstRowChange = new PartialRowSet();
+		firstRowChange.setRows(Lists.newArrayList(firstRow));
+		firstRowChange.setTableId(tableId);
+		tableRowManager.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				firstRowChange);
+
+		// wait for table to be available
+		sql = "select * from " + tableId;
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals(2, queryResult.getQueryResults().getRows().get(0).getValues().size());
+
+		// remove column a
+		schema.remove(0);
+		headers = TableModelUtils.getHeaders(schema);
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		// wait for table to be available
+		sql = "select * from " + tableId;
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
+
+		// set data again
+		firstRow = TableModelTestUtils.createPartialRow(queryResult.getQueryResults().getRows().get(0).getRowId(), "col2", "c");
+		firstRowChange = new PartialRowSet();
+		firstRowChange.setRows(Lists.newArrayList(firstRow));
+		firstRowChange.setTableId(tableId);
+		tableRowManager.appendPartialRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				firstRowChange);
+
+	}
+
+	@Test
 	public void testDates() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "coldate", ColumnType.DATE)));

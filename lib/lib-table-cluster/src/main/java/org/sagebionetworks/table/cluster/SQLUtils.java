@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -186,7 +187,7 @@ public class SQLUtils {
 		columns.add(ROW_ID + " bigint(20) NOT NULL");
 		columns.add(ROW_VERSION + " bigint(20) NOT NULL");
 		for (int i = 0; i < newSchema.size(); i++) {
-			appendColumnDefinitionsToBuilder(columns, newSchema.get(i), false);
+			appendColumnDefinitionsToBuilder(columns, columns, newSchema.get(i), false);
 		}
 		columns.add("PRIMARY KEY (" + ROW_ID + ")");
 		return StringUtils.join(columns, ", ");
@@ -198,30 +199,42 @@ public class SQLUtils {
 	 * @param builder
 	 * @param newSchema
 	 */
-	static void appendColumnDefinitionsToBuilder(List<String> columns,
-			ColumnModel newSchema, boolean justNames) {
+	static void appendColumnDefinitionsToBuilder(List<String> columns, List<String> indexes, ColumnModel newSchema, boolean justNames) {
+		String columnName = getColumnNameForId(newSchema.getId());
 		switch (newSchema.getColumnType()) {
 		case DOUBLE:
 			if (justNames) {
-				columns.add(getColumnNameForId(newSchema.getId()));
-				columns.add(TableConstants.DOUBLE_PREFIX + getColumnNameForId(newSchema.getId()));
+				columns.add(columnName);
+				columns.add(TableConstants.DOUBLE_PREFIX + columnName);
 			} else {
-				columns.add("`" + getColumnNameForId(newSchema.getId()) + "` "
-						+ getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()) + " "
+				columns.add("`" + columnName + "` " + getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()) + " "
 						+ getSQLDefaultForColumnType(newSchema.getColumnType(), newSchema.getDefaultValue()));
-				columns.add("`" + TableConstants.DOUBLE_PREFIX + getColumnNameForId(newSchema.getId()) + "` " + DOUBLE_ENUM_CLAUSE);
+				columns.add("`" + TableConstants.DOUBLE_PREFIX + columnName + "` " + DOUBLE_ENUM_CLAUSE);
 			}
 			break;
 		default:
 			if (justNames) {
-				columns.add(getColumnNameForId(newSchema.getId()));
+				columns.add(columnName);
 			} else {
-				columns.add("`" + getColumnNameForId(newSchema.getId()) + "` "
-						+ getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()) + " "
+				columns.add("`" + columnName + "` " + getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()) + " "
 						+ getSQLDefaultForColumnType(newSchema.getColumnType(), newSchema.getDefaultValue()));
 			}
 			break;
 		}
+		if (indexes != null && !justNames) {
+			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled().get();
+			if (allIndexedEnabled) {
+				appendColumnIndexDefinition(columnName, indexes);
+			}
+		}
+	}
+
+	static void appendColumnIndexDefinition(String columnName, List<String> indexes) {
+		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`)");
+	}
+
+	static String getColumnIndexName(String columnName) {
+		return columnName + "idx_";
 	}
 
 	/**
@@ -344,14 +357,22 @@ public class SQLUtils {
 		}
 		// Now the adds
 		List<String> columnsToAdd = Lists.newArrayList();
+		List<String> indexes = Lists.newArrayList();
 		for (ColumnModel add : toAdd) {
-			appendColumnDefinitionsToBuilder(columnsToAdd, add, false);
+			appendColumnDefinitionsToBuilder(columnsToAdd, indexes, add, false);
 		}
 		for (String add : columnsToAdd) {
 			if (!first) {
 				builder.append(",");
 			}
 			builder.append(" ADD COLUMN ").append(add);
+			first = false;
+		}
+		for (String add : indexes) {
+			if (!first) {
+				builder.append(",");
+			}
+			builder.append("ADD " + add);
 			first = false;
 		}
 		return builder.toString();
@@ -371,7 +392,7 @@ public class SQLUtils {
 		oldColumnSet.remove(ROW_VERSION);
 		for (ColumnModel cm : newSchema) {
 			List<String> columnNames = Lists.newArrayList();
-			appendColumnDefinitionsToBuilder(columnNames, cm, true);
+			appendColumnDefinitionsToBuilder(columnNames, null, cm, true);
 			boolean added = false;
 			for (String columnName : columnNames) {
 				if (!oldColumnSet.remove(columnName)) {
@@ -500,7 +521,7 @@ public class SQLUtils {
 						} else {
 							ColumnModel cm = cmIterator.next();
 							List<String> columns = Lists.newArrayList();
-							appendColumnDefinitionsToBuilder(columns, cm, true);
+							appendColumnDefinitionsToBuilder(columns, null, cm, true);
 							if (columns.size() == 1) {
 								return columns.get(0);
 							} else {
@@ -734,7 +755,10 @@ public class SQLUtils {
 		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
 		int index = 0;
 		for (SelectColumn header : toBind.getHeaders()) {
-			columnIndexMap.put(header.getId(), index);
+			// columns might no longer exists
+			if (header != null) {
+				columnIndexMap.put(header.getId(), index);
+			}
 			index++;
 		}
 

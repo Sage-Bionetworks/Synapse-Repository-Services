@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -354,6 +357,49 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals(childRestored.getAttachmentFileHandleIds().size(), 1);
 		assertEquals(childRestored.getAttachmentFileHandleIds().get(0), fileOneHandle.getId());
 		assertEquals(child.getTitle(), childRestored.getTitle());	
+	}
+	
+	@Test
+	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
+		// create an entity
+		entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		
+		String ownerId = entity.getId();
+		ObjectType ownerType = ObjectType.ENTITY;
+		
+		// Make wiki page
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setTitle("testWikiOrderHintReadUpdateForOwnerObject-"+ownerId+"-"+ownerType);
+		wiki.setMarkdownFileHandleId(markdownOneHandle.getId());
+		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
+		wiki = entityServletHelper.createV2WikiPage(adminUserId, ownerId, ownerType, wiki);
+		assertNotNull(wiki);
+		
+		WikiPageKey wikiKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
+		toDelete.add(wikiKey);
+		
+		// Get OrderHint for the created project (should have a null order hint).
+		V2WikiOrderHint orderHint = entityServletHelper.getWikiOrderHint(adminUserId, ownerId, ownerType);
+		
+		// Order hint has not been set yet.
+		assertNull(orderHint.getIdList());
+		
+		List<String> orderHintList = Arrays.asList(new String[] {"A", "B", "C", "D"});
+		
+		orderHint.setIdList(orderHintList);
+		
+		V2WikiOrderHint updatedOrderHint = entityServletHelper.updateWikiOrderHint(adminUserId, orderHint);
+		
+		assertNotNull(updatedOrderHint.getIdList());
+		assertTrue(orderHintList.equals(updatedOrderHint.getIdList()));
+		
+		// Get the updated order hint (make sure it was recorded).
+		V2WikiOrderHint postUpdateGetOrderHint = entityServletHelper.getWikiOrderHint(adminUserId, ownerId, ownerType);
+		
+		assertTrue(orderHintList.equals(postUpdateGetOrderHint.getIdList()));
+		
 	}
 
 }
