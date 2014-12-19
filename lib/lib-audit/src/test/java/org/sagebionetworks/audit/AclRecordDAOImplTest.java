@@ -40,11 +40,8 @@ public class AclRecordDAOImplTest {
 	@Test
 	public void test() throws IOException{
 		List<AclRecord> records = createAclRecordList(5);
-		for (AclRecord record : records) {
-			String fileName = aclRecordDao.write(record);
-			assertNotNull(s3Client.getObject(BUCKET_NAME, fileName));
-		}
- 		
+		String fileName = aclRecordDao.write(records);
+		assertNotNull(s3Client.getObject(BUCKET_NAME, fileName));
 	}
 
 	private List<AclRecord> createAclRecordList(int numberOfRecords) {

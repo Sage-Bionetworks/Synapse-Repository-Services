@@ -1,6 +1,7 @@
 package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.audit.utils.SimpleRecordWriter;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
@@ -44,7 +45,7 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	}
 	
 	@Override
-	public String write(ResourceAccessRecord record) throws IOException {
-		return writer.write(record);
+	public String write(List<ResourceAccessRecord> records) throws IOException {
+		return writer.write(records);
 	}
 }

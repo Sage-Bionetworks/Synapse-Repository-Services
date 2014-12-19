@@ -39,11 +39,8 @@ public class ResourceAccessRecordDAOImplTest {
 	@Test
 	public void test() throws IOException{
 		List<ResourceAccessRecord> records = createResourceAccessRecordList(5);
-		for (ResourceAccessRecord record : records) {
-			String fileName = resourceAccessRecordDao.write(record);
-			assertNotNull(s3Client.getObject(BUCKET_NAME, fileName));
-		}
- 		
+		String fileName = resourceAccessRecordDao.write(records);
+		assertNotNull(s3Client.getObject(BUCKET_NAME, fileName));
 	}
 
 	private List<ResourceAccessRecord> createResourceAccessRecordList(int numberOfRecords) {

@@ -4,11 +4,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
- * This class helps write a record to a file and push the file to S3.
+ * This class helps write records to a file and push the file to S3.
  */
 public class SimpleRecordWriter<T> {
 	private AmazonS3Client s3Client;
@@ -24,11 +25,13 @@ public class SimpleRecordWriter<T> {
 		this.objectClass = objectClass;
 	}
 	
-	public String write(T record) throws IOException {
+	public String write(List<T> records) throws IOException {
 		File file = createNewFile();
 		
 		ObjectCSVWriter<T> csvWriter = new ObjectCSVWriter<T>(new FileWriter(file.getAbsoluteFile()), objectClass);
-		csvWriter.append(record);
+		for (T record : records) {
+			csvWriter.append(record);
+		}
 		csvWriter.close();
 		
 		String fileName = sendFileToS3(file);

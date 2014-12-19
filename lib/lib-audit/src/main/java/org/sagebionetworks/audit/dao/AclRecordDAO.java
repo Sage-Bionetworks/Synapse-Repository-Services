@@ -1,6 +1,7 @@
 package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.audit.AclRecord;
 
@@ -11,12 +12,12 @@ import org.sagebionetworks.repo.model.audit.AclRecord;
 public interface AclRecordDAO {
 
 	/**
-	 * writes an acl record to a file and pushes it to S3
+	 * writes acl records to a file and pushes it to S3
 	 * 
-	 * @param record the acl record to write
+	 * @param records the acl records to write
 	 * @return the path of the file that is stored in S3
 	 * @throws IOException
 	 */
-	String write(AclRecord record) throws IOException;
+	String write(List<AclRecord> records) throws IOException;
 	
 }

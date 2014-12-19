@@ -1,5 +1,6 @@
 package org.sagebionetworks.acl.worker;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
+import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.AclRecord;
@@ -28,6 +30,8 @@ public class AclSnapshotWorker implements Worker{
 	private WorkerProgress workerProgress;
 	@Autowired
 	private AclRecordDAO aclRecordDao;
+	@Autowired
+	private ResourceAccessRecordDAO resourceAccessRecordDao;
 	@Autowired
 	private DBOChangeDAO changeDAO;
 	@Autowired
@@ -62,8 +66,10 @@ public class AclSnapshotWorker implements Worker{
 		}
 		
 		AclRecord aclRecord = new AclRecord();
+		//List<ResourceAccessRecord> resourceAccessRecords = getResourceAccessRecordList();
 		
-		aclRecordDao.write(aclRecord);
+		aclRecordDao.write(Arrays.asList(aclRecord));
+		//resourceAccessRecordDao.write(resourceAccessRecords);
 		return message;
 	}
 
