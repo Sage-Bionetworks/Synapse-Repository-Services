@@ -157,6 +157,12 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 	}
 
+	@Test  (expected=NotFoundException.class)
+	public void testGetWithBadAclID() throws Exception {
+		Long aclId = -598787L;
+		AccessControlList acl = aclDAO.get(aclId);
+		assertNull(acl);
+	}
 
 	@After
 	public void tearDown() throws Exception {

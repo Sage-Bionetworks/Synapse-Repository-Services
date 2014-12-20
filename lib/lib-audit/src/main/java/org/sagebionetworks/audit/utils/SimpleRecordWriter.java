@@ -26,19 +26,21 @@ public class SimpleRecordWriter<T> {
 	}
 	
 	public String write(List<T> records) throws IOException {
-		File file = createNewFile();
-		
-		ObjectCSVWriter<T> csvWriter = new ObjectCSVWriter<T>(new FileWriter(file.getAbsoluteFile()), objectClass);
-		for (T record : records) {
-			csvWriter.append(record);
+		File file = File.createTempFile("temp", ".csv");
+		try {
+			ObjectCSVWriter<T> csvWriter = new ObjectCSVWriter<T>(new FileWriter(file), objectClass);
+			try {
+				for (T record : records) {
+					csvWriter.append(record);
+				}
+			} finally {
+				csvWriter.close();
+			}
+			return sendFileToS3(file);
+			
+		} finally {
+			file.delete();
 		}
-		csvWriter.close();
-		
-		String fileName = sendFileToS3(file);
-		Files.delete(file.toPath());
-		file = null;
-	
-		return fileName;
 	}
 
 	private String sendFileToS3(File file) {
@@ -49,17 +51,6 @@ public class SimpleRecordWriter<T> {
 		s3Client.putObject(bucketName, fileName, file);
 		
 		return fileName;
-	}
-
-	private File createNewFile() throws IOException {
-		File file = new File("temp.csv");
-		if (!file.exists()) {
-			file.createNewFile();
-		}
-		if (!file.canWrite()) {
-			file.setWritable(true);
-		}
-		return file;
 	}
 
 	private String getKey() {
