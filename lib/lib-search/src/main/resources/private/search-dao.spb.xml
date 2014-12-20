@@ -10,18 +10,38 @@
 
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
+	
+	<!-- Create the CloudSearchHttpClientProvider -->
+	<bean id="cloudSearchHttpClientProvider"
+		class="org.sagebionetworks.search.CloudSearchHttpClientProvider"
+		init-method="_init"
+		scope="singleton">
+	</bean>
+	
+	<bean id="cloudSearchClient"
+		class="org.sagebionetworks.search.CloudSearchClient"
+		init-method="_init"
+		scope="singleton">
+	</bean>
 
 	<!-- Create the AWS search client using the current credentials. -->
-	<bean id="awsSearchClient" class="com.amazonaws.services.cloudsearch.AmazonCloudSearchClient" scope="singleton">
+	<bean id="awsSearchClient"
+		class="com.amazonaws.services.cloudsearch.AmazonCloudSearchClient"
+		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
 	<!-- The search DAO -->
-	<bean id="searchDomainSetup" class="org.sagebionetworks.search.SearchDomainSetupImpl" scope="singleton">
+	<bean id="searchDomainSetup"
+		class="org.sagebionetworks.search.SearchDomainSetupImpl"
+		scope="singleton">
 	    <property name="searchEnabled" ref="stackConfiguration.searchEnabled"/>
 	</bean>
 	
 	<!-- The search DAO -->
-	<bean id="searchDao" class="org.sagebionetworks.search.SearchDaoImpl" scope="singleton" />
+	<bean id="searchDao"
+		class="org.sagebionetworks.search.SearchDaoImpl"
+		scope="singleton">
+	</bean>
 	
 </beans>
