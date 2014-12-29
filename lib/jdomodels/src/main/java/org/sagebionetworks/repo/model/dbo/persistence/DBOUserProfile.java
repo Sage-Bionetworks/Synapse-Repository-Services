@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PREFS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_PROFILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, DBOUserProfile> {
 	private Long ownerId;
 	private byte[] properties;
+	private byte[] preferences;
 	private String eTag;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
@@ -38,6 +40,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn(OWNER_ID_FIELD_NAME, COL_USER_PROFILE_ID, true).withIsBackupId(true),
 		new FieldColumn("properties", COL_USER_PROFILE_PROPS_BLOB),
+		new FieldColumn("preferences", COL_USER_PROFILE_PREFS_BLOB),
 		new FieldColumn("eTag", COL_USER_PROFILE_ETAG).withIsEtag(true)
 		};
 
@@ -50,9 +53,13 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 			public DBOUserProfile mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				DBOUserProfile up = new DBOUserProfile();
 				up.setOwnerId(rs.getLong(COL_USER_PROFILE_ID));
-				java.sql.Blob blob = rs.getBlob(COL_USER_PROFILE_PROPS_BLOB);
-				if(blob != null){
-					up.setProperties(blob.getBytes(1, (int) blob.length()));
+				java.sql.Blob propsBlob = rs.getBlob(COL_USER_PROFILE_PROPS_BLOB);
+				if(propsBlob != null){
+					up.setProperties(propsBlob.getBytes(1, (int) propsBlob.length()));
+				}
+				java.sql.Blob prefsBlob = rs.getBlob(COL_USER_PROFILE_PREFS_BLOB);
+				if(prefsBlob != null){
+					up.setPreferences(prefsBlob.getBytes(1, (int) prefsBlob.length()));
 				}
 				up.seteTag(rs.getString(COL_USER_PROFILE_ETAG));
 				return up;
@@ -87,13 +94,26 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	public byte[] getProperties() {
 		return properties;
 	}
-
+	
+	/**
+	 * @return the preferences
+	 */
+	public byte[] getPreferences() {
+		return preferences;
+	}
 
 	/**
 	 * @param properties the properties to set
 	 */
 	public void setProperties(byte[] properties) {
 		this.properties = properties;
+	}
+
+	/**
+	 * @param preferences the preferences to set
+	 */
+	public void setPreferences(byte[] preferences) {
+		this.preferences = preferences;
 	}
 
 	/**
@@ -138,6 +158,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
+		result = prime * result + Arrays.hashCode(preferences);
 		return result;
 	}
 
@@ -165,6 +186,8 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 		} else if (!ownerId.equals(other.ownerId))
 			return false;
 		if (!Arrays.equals(properties, other.properties))
+			return false;
+		if (!Arrays.equals(preferences, other.preferences))
 			return false;
 		return true;
 	}
