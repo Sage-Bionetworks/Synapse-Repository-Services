@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +19,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserPreference;
+import org.sagebionetworks.repo.model.UserPreferenceBoolean;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
@@ -64,6 +68,11 @@ public class DBOUserProfileDAOImplTest {
 		userProfile.setLastName("bar");
 		userProfile.setRStudioUrl("http://rstudio.com");
 		userProfile.setEtag(NodeConstants.ZERO_E_TAG);
+		Map<String, UserPreference> prefs = new HashMap<String, UserPreference>();
+		UserPreferenceBoolean pref = new UserPreferenceBoolean();
+		pref.setValue(true);
+		prefs.put("aKey", pref);
+		userProfile.setPreferences(prefs);
 		
 		long initialCount = userProfileDAO.getCount();
 		// Create it
@@ -75,6 +84,11 @@ public class DBOUserProfileDAOImplTest {
 		// Fetch it
 		UserProfile clone = userProfileDAO.get(id);
 		assertNotNull(clone);
+		assertNotNull(clone.getPreferences());
+		assertTrue(clone.getPreferences().containsKey("aKey"));
+		assertEquals(UserPreferenceBoolean.class, clone.getPreferences().get("aKey").getClass());
+		UserPreferenceBoolean v = (UserPreferenceBoolean)clone.getPreferences().get("aKey");
+		assertEquals(true, v.getValue());
 		assertEquals(userProfile, clone);
 
 		// Update it

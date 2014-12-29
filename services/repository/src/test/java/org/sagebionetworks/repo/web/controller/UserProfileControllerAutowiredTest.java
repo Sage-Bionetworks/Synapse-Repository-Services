@@ -202,28 +202,22 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		userProfile.setUserName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.name());
 		userProfile.setEmails(Collections.singletonList("migrationAdmin@sagebase.org"));
-		Set<UserPreference> preferences = userProfile.getPreferences();
+		Map<String, UserPreference> preferences = userProfile.getPreferences();
 		if (preferences==null) {
-			preferences = new HashSet<UserPreference>();
+			preferences = new HashMap<String, UserPreference>();
 			userProfile.setPreferences(preferences);
 		}
 		{
 			UserPreferenceBoolean pref = new UserPreferenceBoolean();
-			pref.setName("testPref");
 			pref.setValue(true);
-			preferences.add(pref);
+			preferences.put("testPref", pref);
 		}
 		servletTestHelper.updateUserProfile(adminUserId, userProfile);
 		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
-		boolean foundIt = false;
-		for (UserPreference pref : userProfile.getPreferences()) {
-			if (pref.getName().equals("testPref")) {
-				foundIt=true;
-				assertTrue(((UserPreferenceBoolean)pref).getValue());
-				break;
-			}
-		}
-		assertTrue(foundIt);
+		Map<String, UserPreference> prefs = userProfile.getPreferences();
+		assertTrue(prefs.containsKey("testPref"));
+		UserPreferenceBoolean pref = (UserPreferenceBoolean)prefs.get("testPref");
+		assertEquals(true, pref.getValue());
 	}
 	
 }
