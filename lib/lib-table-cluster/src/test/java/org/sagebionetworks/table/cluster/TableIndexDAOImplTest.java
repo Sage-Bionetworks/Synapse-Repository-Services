@@ -300,7 +300,8 @@ public class TableIndexDAOImplTest {
 	public void testLargeTableJustInTime() throws ParseException {
 		oldStackConfiguration = StackConfiguration.singleton();
 		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
-		stub(mockedStackConfiguration.getTableJustInTimeIndexedEnabled()).toReturn(new ImmutablePropertyAccessor<Boolean>(true));
+		// stub(mockedStackConfiguration.getTableJustInTimeIndexedEnabled()).toReturn(new
+		// ImmutablePropertyAccessor<Boolean>(true));
 		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
 
 		testLargeTable();
@@ -354,7 +355,8 @@ public class TableIndexDAOImplTest {
 		runTest(allTypes, endgoal, distinctCount, times);
 
 		System.err.println("All indexes: " + StackConfiguration.singleton().getTableAllIndexedEnabled().get());
-		System.err.println("Just in time indexes: " + StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get());
+		// System.err.println("Just in time indexes: " +
+		// StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get());
 		for (int i = 0; i < times.size(); i += 2) {
 			System.err.println(times.get(i) + ": " + ((Long) times.get(i + 1) / 1000L));
 		}
@@ -386,9 +388,9 @@ public class TableIndexDAOImplTest {
 		times.add(now - startTime);
 		startTime = now;
 
-		if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
-			tableIndexDAO.addIndex(tableId, allTypes.get(0));
-		}
+		// if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
+		// tableIndexDAO.addIndex(tableId, allTypes.get(0));
+		// }
 		query = new SqlQuery("select * from " + tableId + " where " + allTypes.get(0).getName() + " = '"
 				+ results.getRows().get(0).getValues().get(0) + "'", allTypes);
 		// Now query for the results
@@ -408,9 +410,9 @@ public class TableIndexDAOImplTest {
 		times.add(now - startTime);
 		startTime = now;
 
-		if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
-			tableIndexDAO.addIndex(tableId, allTypes.get(1));
-		}
+		// if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
+		// tableIndexDAO.addIndex(tableId, allTypes.get(1));
+		// }
 		query = new SqlQuery("select * from " + tableId + " order by " + allTypes.get(1).getName() + " asc limit 20", allTypes);
 		// Now query for the results
 		results = tableIndexDAO.query(query);
@@ -420,9 +422,9 @@ public class TableIndexDAOImplTest {
 		times.add(now - startTime);
 		startTime = now;
 
-		if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
-			tableIndexDAO.addIndex(tableId, allTypes.get(2));
-		}
+		// if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
+		// tableIndexDAO.addIndex(tableId, allTypes.get(2));
+		// }
 		query = new SqlQuery("select * from " + tableId + " order by " + allTypes.get(2).getName() + " desc limit 20", allTypes);
 		// Now query for the results
 		results = tableIndexDAO.query(query);
