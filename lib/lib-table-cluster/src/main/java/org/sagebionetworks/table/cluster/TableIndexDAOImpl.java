@@ -9,16 +9,14 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -44,12 +42,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
-	private static final String FIELD = "Field";
 	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
+	private static final String FIELD = "Field";
+	private static final String TYPE = "Type";
+	private static final Pattern VARCHAR = Pattern.compile("varchar\\((\\d+)\\)");
 
 	private final DataSourceTransactionManager transactionManager;
 	private final TransactionTemplate writeTransactionTemplate;
@@ -86,7 +85,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
 			String tableId) {
 		// First determine if we have any columns for this table yet
-		List<String> oldColumns = getCurrentTableColumns(tableId);
+		List<ColumnDefinition> oldColumnDefs = getCurrentTableColumns(tableId);
+		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
+			@Override
+			public String apply(ColumnDefinition input) {
+				return input.name;
+			}
+		});
 		// Build the SQL to create or update the table
 		String dml = SQLUtils.creatOrAlterTableSQL(oldColumns, newSchema, tableId);
 		// If there is nothing to apply then do nothing
@@ -108,14 +113,14 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void addIndexes(String tableId) {
-		List<String> columns = getCurrentTableColumns(tableId);
+		List<ColumnDefinition> columns = getCurrentTableColumns(tableId);
 		// do one by one and ignore any errors for adding a duplicate index
 		List<String> indexes = Lists.newArrayList();
-		for (String column : columns) {
-			if (TableConstants.isReservedColumnName(column)) {
+		for (ColumnDefinition column : columns) {
+			if (TableConstants.isReservedColumnName(column.name)) {
 				continue;
 			}
-			SQLUtils.appendColumnIndexDefinition(column, indexes);
+			SQLUtils.appendColumnIndexDefinition(column.name, column.maxSize, indexes);
 		}
 		for (String index : indexes) {
 			try {
@@ -131,18 +136,39 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void removeIndexes(String tableId) {
-		List<String> columns = getCurrentTableColumns(tableId);
+		List<ColumnDefinition> columns = getCurrentTableColumns(tableId);
 		// do one by one and ignore any errors for removing non-existant indexes
-		for (String column : columns) {
-			if (TableConstants.isReservedColumnName(column)) {
+		for (ColumnDefinition column : columns) {
+			if (TableConstants.isReservedColumnName(column.name)) {
 				continue;
 			}
 			try {
 				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " drop index "
-						+ SQLUtils.getColumnIndexName(column));
+						+ SQLUtils.getColumnIndexName(column.name));
 			} catch (BadSqlGrammarException e) {
 				if (e.getCause() == null || e.getCause().getMessage() == null
 						|| !e.getCause().getMessage().contains("check that column/key exists")) {
+					throw e;
+				}
+			}
+		}
+	}
+
+	@Override
+	public void addIndex(String tableId, ColumnModel columnModel) {
+		// do one by one and ignore any errors for adding a duplicate index
+		String column = SQLUtils.getColumnNameForId(columnModel.getId());
+		if (TableConstants.isReservedColumnName(column)) {
+			return;
+		}
+		List<String> indexes = Lists.newArrayList();
+		SQLUtils.appendColumnIndexDefinition(column, columnModel.getMaximumSize(), indexes);
+
+		for (String index : indexes) {
+			try {
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " add " + index);
+			} catch (BadSqlGrammarException e) {
+				if (e.getCause() == null || e.getCause().getMessage() == null || !e.getCause().getMessage().startsWith("Duplicate key name")) {
 					throw e;
 				}
 			}
@@ -162,18 +188,25 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<String> getCurrentTableColumns(String tableId) {
+	public List<ColumnDefinition> getCurrentTableColumns(String tableId) {
 		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
 		// Bind variables do not seem to work here
 		try {
-			return template.query(SQL_SHOW_COLUMNS + tableName,
-					new RowMapper<String>() {
-						@Override
-						public String mapRow(ResultSet rs, int rowNum)
-								throws SQLException {
-							return rs.getString(FIELD);
-						}
-					});
+			return template.query(SQL_SHOW_COLUMNS + tableName, new RowMapper<ColumnDefinition>() {
+				@Override
+				public ColumnDefinition mapRow(ResultSet rs, int rowNum) throws SQLException {
+					ColumnDefinition columnDefinition = new ColumnDefinition();
+					columnDefinition.name = rs.getString(FIELD);
+					columnDefinition.maxSize = null;
+					String type = rs.getString(TYPE);
+					Matcher m = VARCHAR.matcher(type);
+					if (m.matches()) {
+						columnDefinition.columnType = ColumnType.STRING;
+						columnDefinition.maxSize = Long.parseLong(m.group(1));
+					}
+					return columnDefinition;
+				}
+			});
 		} catch (BadSqlGrammarException e) {
 			// Spring throws this when the table does not
 			return null;
