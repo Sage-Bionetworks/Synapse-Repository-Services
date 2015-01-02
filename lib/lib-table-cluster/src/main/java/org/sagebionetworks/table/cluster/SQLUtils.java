@@ -11,13 +11,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -56,6 +54,9 @@ public class SQLUtils {
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
+
+	private static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255; // from docs, max length is 767 bytes, 767/3 = 255
+																	// characters
 
 	public enum TableType {
 		/**
@@ -224,13 +225,20 @@ public class SQLUtils {
 		if (indexes != null && !justNames) {
 			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled().get();
 			if (allIndexedEnabled) {
-				appendColumnIndexDefinition(columnName, indexes);
+				appendColumnIndexDefinition(columnName, newSchema.getMaximumSize(), indexes);
 			}
 		}
 	}
 
-	static void appendColumnIndexDefinition(String columnName, List<String> indexes) {
-		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`)");
+	static void appendColumnIndexDefinition(String columnName, Long maximumSize, List<String> indexes) {
+		String prefixLength = "";
+		if (maximumSize != null) {
+			long columnSize = maximumSize.longValue();
+			if (columnSize > MAX_MYSQL_VARCHAR_INDEX_LENGTH) {
+				prefixLength = "(" + MAX_MYSQL_VARCHAR_INDEX_LENGTH + ")";
+			}
+		}
+		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`" + prefixLength + ")");
 	}
 
 	static String getColumnIndexName(String columnName) {
