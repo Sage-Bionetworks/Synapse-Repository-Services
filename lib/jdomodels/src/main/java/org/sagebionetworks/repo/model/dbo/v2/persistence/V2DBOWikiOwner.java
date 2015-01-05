@@ -22,8 +22,10 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 @Table(name = V2_TABLE_WIKI_OWNERS, constraints = {"UNIQUE INDEX (`" + V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + "`)"})
-public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, V2DBOWikiOwner> {
+public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, V2DBOWikiOwnerBackup> {
 	
+	public static final String MIGRATED_NEW_ETAG = "migrated-new-etag";
+
 	@Field(name = V2_COL_WIKI_ONWERS_OWNER_ID, primary = true, nullable = false)
 	private Long ownerId;
 	
@@ -100,25 +102,41 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	}
 
 	@Override
-	public MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwner> getTranslator() {
+	public MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwnerBackup> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwner>(){
+		return new MigratableTableTranslation<V2DBOWikiOwner, V2DBOWikiOwnerBackup>(){
 			
 			@Override
 			public V2DBOWikiOwner createDatabaseObjectFromBackup(
-					V2DBOWikiOwner backup) {
-				return backup;
+					V2DBOWikiOwnerBackup backup) {
+				V2DBOWikiOwner dbo  = new  V2DBOWikiOwner();
+				if(backup.getEtag() == null){
+					dbo.setEtag(MIGRATED_NEW_ETAG);
+				}else{
+					dbo.setEtag(backup.getEtag());
+				}
+				dbo.setOrderHint(backup.getOrderHint());
+				dbo.setOwnerId(backup.getOwnerId());
+				dbo.setOwnerTypeEnum(backup.getOwnerType());
+				dbo.setRootWikiId(backup.getRootWikiId());
+				return dbo;
 			}
 	
 			@Override
-			public V2DBOWikiOwner createBackupFromDatabaseObject(V2DBOWikiOwner dbo) {
-				return dbo;
+			public V2DBOWikiOwnerBackup createBackupFromDatabaseObject(V2DBOWikiOwner dbo) {
+				V2DBOWikiOwnerBackup backup = new V2DBOWikiOwnerBackup();
+				backup.setEtag(dbo.getEtag());
+				backup.setOrderHint(dbo.getOrderHint());
+				backup.setOwnerId(dbo.getOwnerId());
+				backup.setOwnerType(dbo.getOwnerTypeEnum());
+				backup.setRootWikiId(dbo.getRootWikiId());
+				return backup;
 			}};
 	}
 
 	@Override
-	public Class<? extends V2DBOWikiOwner> getBackupClass() {
-		return V2DBOWikiOwner.class;
+	public Class<? extends V2DBOWikiOwnerBackup> getBackupClass() {
+		return V2DBOWikiOwnerBackup.class;
 	}
 
 	@Override
