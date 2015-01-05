@@ -28,7 +28,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	private Long ownerId;
 	
 	@Field(name = V2_COL_WIKI_ONWERS_OBJECT_TYPE, primary = true, nullable = false)
-	private ObjectType ownerTypeEnum;
+	private ObjectType ownerType;
 	
 	@Field(name = V2_COL_WIKI_ONWERS_ROOT_WIKI_ID, nullable = false, backupId = true)
 	@ForeignKey(name = "V2_WIKI_OWNER_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
@@ -37,7 +37,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	@Field(name = V2_COL_WIKI_OWNERS_ORDER_HINT, type = "mediumblob", defaultNull = true)
 	private byte[] orderHint;
 	
-	@Field(name = V2_COL_WIKI_OWNERS_ETAG, nullable = false, etag = true)
+	@Field(name = V2_COL_WIKI_OWNERS_ETAG, nullable = true, etag = true)
 	private String etag;
 	
 	private static TableMapping<V2DBOWikiOwner> tableMapping = AutoTableMapping.create(V2DBOWikiOwner.class);
@@ -55,21 +55,14 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 		this.ownerId = ownerId;
 	}
 	
-	public String getOwnerType() {
-		return ownerTypeEnum.name();
+	public ObjectType getOwnerType() {
+		return ownerType;
 	}
 	
-	public void setOwnerType(String ownerType) {
-		this.ownerTypeEnum = ObjectType.valueOf(ownerType);
+	public void setOwnerType(ObjectType ownerType) {
+		this.ownerType = ownerType;
 	}
 	
-	public ObjectType getOwnerTypeEnum(){
-		return this.ownerTypeEnum;
-	}
-	
-	public void setOwnerTypeEnum(ObjectType owner){
-		this.ownerTypeEnum = owner;
-	}
 	public Long getRootWikiId() {
 		return rootWikiId;
 	}
@@ -138,7 +131,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 		int result = 1;
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result
-				+ ((ownerTypeEnum == null) ? 0 : ownerTypeEnum.hashCode());
+				+ ((ownerType == null) ? 0 : ownerType.hashCode());
 		result = prime * result
 				+ ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
 		return result;
@@ -158,7 +151,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 				return false;
 		} else if (!ownerId.equals(other.ownerId))
 			return false;
-		if (ownerTypeEnum != other.ownerTypeEnum)
+		if (ownerType != other.ownerType)
 			return false;
 		if (rootWikiId == null) {
 			if (other.rootWikiId != null)
