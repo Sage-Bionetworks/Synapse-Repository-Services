@@ -743,6 +743,80 @@ public class TableIndexDAOImplTest {
 		checkIndexes(tableId, "ROW_ID");
 	}
 
+	@Test
+	public void testTooManyColumns() throws Exception {
+		List<ColumnModel> schema = Lists.newArrayList();
+		List<String> indexes = Lists.newArrayList();
+		indexes.add( "ROW_ID");
+		for (int i = 0; i < 100; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.STRING);
+			cm.setName("foo" + i);
+			cm.setId("111" + i);
+			cm.setMaximumSize(30L);
+			schema.add(cm);
+			if (indexes.size() < 64) {
+				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
+			}
+		}
+
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		checkIndexes(tableId, indexes.toArray(new String[0]));
+	}
+
+	@Test
+	public void testTooManyColumnsAppended() throws Exception {
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		List<String> indexes = Lists.newArrayList();
+		indexes.add("ROW_ID");
+		for (int i = 0; i < 63; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.STRING);
+			cm.setName("foo" + i);
+			cm.setId("111" + i);
+			cm.setMaximumSize(30L);
+			schema.add(cm);
+			if (indexes.size() < 64) {
+				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
+			}
+		}
+
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		checkIndexes(tableId, indexes.toArray(new String[0]));
+
+		// replace 10 columns
+		for (int i = 30; i < 40; i++) {
+			ColumnModel cm = schema.get(i);
+			cm.setId("333" + i);
+			indexes.set(i + 1, SQLUtils.getColumnNameForId(cm.getId()));
+		}
+
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		checkIndexes(tableId, indexes.toArray(new String[0]));
+
+		// replace 10 and add 10 columns
+		for (int i = 20; i < 30; i++) {
+			ColumnModel cm = schema.get(i);
+			cm.setId("444" + i);
+			indexes.set(i + 1, SQLUtils.getColumnNameForId(cm.getId()));
+		}
+		for (int i = 0; i < 10; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.STRING);
+			cm.setName("foo" + i);
+			cm.setId("222" + i);
+			cm.setMaximumSize(30L);
+			schema.add(cm);
+			if (indexes.size() < 64) {
+				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
+			}
+		}
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		checkIndexes(tableId, indexes.toArray(new String[0]));
+	}
+
 	private void checkIndexes(String tableId, final String... indexes) throws Exception {
 		JdbcTemplate template = (JdbcTemplate) ReflectionStaticTestUtils.getField(tableIndexDAO, "template");
 		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
