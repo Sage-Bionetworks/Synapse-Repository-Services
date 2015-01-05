@@ -124,12 +124,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		for (String index : indexes) {
 			try {
-				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " add "
-						+ index);
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " add " + index);
 			} catch (BadSqlGrammarException e) {
-				if (e.getCause() == null || e.getCause().getMessage() == null || !e.getCause().getMessage().startsWith("Duplicate key name")) {
-					throw e;
+				if (e.getCause() != null && e.getCause().getMessage() != null) {
+					String message = e.getCause().getMessage();
+					if (message.startsWith("Duplicate key name") || message.startsWith("Too many keys")) {
+						continue;
+					}
 				}
+				throw e;
 			}
 		}
 	}
