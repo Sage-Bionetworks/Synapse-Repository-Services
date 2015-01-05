@@ -763,6 +763,15 @@ public class TableIndexDAOImplTest {
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
 		checkIndexes(tableId, indexes.toArray(new String[0]));
+
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+
+		tableIndexDAO.addIndexes(tableId);
+		checkIndexes(tableId, indexes.toArray(new String[0]));
+
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
 	}
 
 	@Test
