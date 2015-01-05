@@ -2,14 +2,18 @@ package org.sagebionetworks.table.cluster;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.stub;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -20,6 +24,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -29,6 +34,7 @@ import com.google.common.collect.Lists;
 public class SQLUtilsTest {
 	
 	List<ColumnModel> simpleSchema;
+	private StackConfiguration oldStackConfiguration = null;
 	
 	@Before
 	public void before(){
@@ -38,8 +44,27 @@ public class SQLUtilsTest {
 		col.setDefaultValue(null);
 		col.setId("456");
 		simpleSchema.add(col);
+		col = new ColumnModel();
+		col.setColumnType(ColumnType.STRING);
+		col.setDefaultValue(null);
+		col.setId("789");
+		col.setMaximumSize(300L);
+		simpleSchema.add(col);
+		col = new ColumnModel();
+		col.setColumnType(ColumnType.STRING);
+		col.setDefaultValue(null);
+		col.setId("123");
+		col.setMaximumSize(150L);
+		simpleSchema.add(col);
 	}
-	
+
+	@After
+	public void teardownStackConfig() {
+		if (oldStackConfiguration != null) {
+			ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", oldStackConfiguration);
+		}
+	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateTableSQLNullSchema(){
 		// cannot be null
@@ -64,16 +89,32 @@ public class SQLUtilsTest {
 		// Build the create DDL for this table
 		String sql = SQLUtils.createTableSQL(simpleSchema, "syn123");
 		assertNotNull(sql);
-		String index = "";
+		String index1 = "";
+		String index2 = "";
+		String index3 = "";
 		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
-			index = ", INDEX `_C456_idx_` (`_C456_`)";
+			index1 = ", INDEX `_C456_idx_` (`_C456_`)";
+			index2 = ", INDEX `_C789_idx_` (`_C789_`(255))";
+			index3 = ", INDEX `_C123_idx_` (`_C123_`)";
 		}
 		// Validate it contains the expected elements
-		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `_C456_` bigint(20) DEFAULT NULL"
-				+ index + ", PRIMARY KEY (ROW_ID) )";
+		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL"
+				+ ", `_C456_` bigint(20) DEFAULT NULL" + index1
+				+ ", `_C789_` varchar(300) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL" + index2
+				+ ", `_C123_` varchar(150) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL" + index3 + ", PRIMARY KEY (ROW_ID) )";
 		assertEquals(expected, sql);
 	}
-	
+
+	@Test
+	public void testCreateTableSQLInvertAllIndexes() {
+		oldStackConfiguration = StackConfiguration.singleton();
+		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
+		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(
+				new ImmutablePropertyAccessor<Boolean>(!oldStackConfiguration.getTableAllIndexedEnabled().get()));
+		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
+		testCreateTableSQL();
+	}
+
 	@Test
 	public void testGetSQLTypeForColumnTypeString(){
 		String expected = "varchar(13) CHARACTER SET utf8 COLLATE utf8_general_ci";
