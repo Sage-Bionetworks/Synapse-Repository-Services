@@ -107,8 +107,11 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		assertEquals(ChangeType.CREATE, message.getChangeType());
 		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 
-		// TEST GET ACL USING LONG ID
+		// TEST GET ACL USING Long Id
 		assertEquals(acl, aclDAO.get(Long.parseLong(message.getObjectId())));
+		
+		// TEST getOwnerType USING Long Id
+		assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(Long.parseLong(message.getObjectId())));
 
 		// UPDATE ACL
 
