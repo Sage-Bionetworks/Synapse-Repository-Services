@@ -762,7 +762,9 @@ public class TableIndexDAOImplTest {
 
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		checkIndexes(tableId, indexes.toArray(new String[0]));
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
 
 		tableIndexDAO.removeIndexes(tableId);
 		checkIndexes(tableId, "ROW_ID");
@@ -793,7 +795,9 @@ public class TableIndexDAOImplTest {
 
 		// Create the table.
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		checkIndexes(tableId, indexes.toArray(new String[0]));
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
 
 		// replace 10 columns
 		for (int i = 30; i < 40; i++) {
@@ -803,7 +807,9 @@ public class TableIndexDAOImplTest {
 		}
 
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		checkIndexes(tableId, indexes.toArray(new String[0]));
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
 
 		// replace 10 and add 10 columns
 		for (int i = 20; i < 30; i++) {
@@ -823,7 +829,9 @@ public class TableIndexDAOImplTest {
 			}
 		}
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
-		checkIndexes(tableId, indexes.toArray(new String[0]));
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
 	}
 
 	private void checkIndexes(String tableId, final String... indexes) throws Exception {
