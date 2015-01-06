@@ -28,4 +28,11 @@ public interface ResourceAccessRecordDAO {
 	 * @throws IOException 
 	 */
 	List<ResourceAccessRecord> getBatch(String key) throws IOException;
+
+	/**
+	 * Delete all stack instance batches from the bucket.
+	 * This should never be called on a production system.
+	 * 
+	 */
+	void deleteAllStackInstanceBatches();
 }

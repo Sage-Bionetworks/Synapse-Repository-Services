@@ -60,4 +60,8 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	public List<AclRecord> getBatch(String key) throws IOException {
 		return worker.read(key);
 	}
+	@Override
+	public void deleteAllStackInstanceBatches() {
+		worker.deleteAllStackInstanceBatches();
+	}
 }

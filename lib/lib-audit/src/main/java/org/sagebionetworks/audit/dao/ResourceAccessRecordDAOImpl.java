@@ -60,4 +60,8 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	public List<ResourceAccessRecord> getBatch(String key) throws IOException {
 		return worker.read(key);
 	}
+	@Override
+	public void deleteAllStackInstanceBatches() {
+		worker.deleteAllStackInstanceBatches();
+	}
 }

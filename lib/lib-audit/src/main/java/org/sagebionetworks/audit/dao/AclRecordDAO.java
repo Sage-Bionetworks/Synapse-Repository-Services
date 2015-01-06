@@ -28,4 +28,11 @@ public interface AclRecordDAO {
 	 * @throws IOException 
 	 */
 	List<AclRecord> getBatch(String key) throws IOException;
+
+	/**
+	 * Delete all stack instance batches from the bucket.
+	 * This should never be called on a production system.
+	 * 
+	 */
+	void deleteAllStackInstanceBatches();
 }
