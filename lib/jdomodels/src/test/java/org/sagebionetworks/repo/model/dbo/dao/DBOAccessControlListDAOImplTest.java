@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
@@ -23,8 +22,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -45,7 +42,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessControlListDAOImplTest {
-	
+
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
@@ -54,9 +51,6 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	DBOChangeDAO changeDAO;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
@@ -71,7 +65,6 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		changeDAO.deleteAllChanges();
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
@@ -112,15 +105,6 @@ public class DBOAccessControlListDAOImplTest {
 		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
 
-		// Did a message get sent?
-		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
-		assertNotNull(changes);
-		ChangeMessage message = changes.get(0);
-		assertNotNull(message);
-		assertEquals(ChangeType.CREATE, message.getChangeType());
-		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
-		assertEquals(acl, aclDAO.get(Long.parseLong(message.getObjectId())));
-
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
 		assertNotNull(acl.getEtag());
@@ -148,13 +132,6 @@ public class DBOAccessControlListDAOImplTest {
 		// TODO assertEquals(ra.getDisplayName(), raClone.getDisplayName());
 		assertEquals(ra.getAccessType(), raClone.getAccessType());
 		aclList.add(acl);
-
-		changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
-		assertNotNull(changes);
-		message = changes.get(0);
-		assertNotNull(message);
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 	}
 
 	@Test  (expected=NotFoundException.class)
@@ -169,13 +146,6 @@ public class DBOAccessControlListDAOImplTest {
 		for (Node n : nodeList) {
 			nodeDAO.delete(n.getId());
 			aclDAO.delete(n.getId(), ObjectType.ENTITY);
-			
-			List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
-			assertNotNull(changes);
-			ChangeMessage message = changes.get(0);
-			assertNotNull(message);
-			assertEquals(ChangeType.DELETE, message.getChangeType());
-			assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 		}
 		nodeList.clear();
 		aclList.clear();
