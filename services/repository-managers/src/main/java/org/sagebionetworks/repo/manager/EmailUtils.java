@@ -39,7 +39,6 @@ public class EmailUtils {
 		if (sender != null) {
 			source = sender + " <" + source + ">";
 		}
-		String opsEmail = StackConfiguration.getSynapseOpsEmailAddress();
 		
 		// Construct an object to contain the recipient address
         Destination destination = new Destination().withToAddresses(recipientEmail);
@@ -66,8 +65,7 @@ public class EmailUtils {
 		SendEmailRequest request = new SendEmailRequest()
 				.withSource(source)
 				.withDestination(destination)
-				.withMessage(message)
-				.withReturnPath(opsEmail);
+				.withMessage(message);
 		return request;
 	}
 	

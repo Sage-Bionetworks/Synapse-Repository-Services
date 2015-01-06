@@ -1,9 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.stub;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -22,6 +20,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.TableIndexDAO.ColumnDefinition;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
@@ -39,6 +40,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import com.google.common.collect.Lists;
@@ -77,8 +79,8 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetCurrentTableColumnsDoesNotExist(){
 		// There should not be any columns for this table as it does not exist
-		List<String> names = tableIndexDAO.getCurrentTableColumns(tableId);
-		assertEquals(null, names);
+		List<ColumnDefinition> columns = tableIndexDAO.getCurrentTableColumns(tableId);
+		assertNull(columns);
 	}
 	
 	@Test
@@ -91,33 +93,33 @@ public class TableIndexDAOImplTest {
 		updated = tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		assertFalse("The table already existed in that state so it should not have been updated",updated);
 		// Now we should be able to see the columns that were created
-		List<String> names = tableIndexDAO.getCurrentTableColumns(tableId);
+		List<ColumnDefinition> columns = tableIndexDAO.getCurrentTableColumns(tableId);
 		// There should be a column for each column in the schema plus one ROW_ID and one ROW_VERSION plus one extra for doubles.
-		assertEquals(allTypes.size() + 2 + 1, names.size());
+		assertEquals(allTypes.size() + 2 + 1, columns.size());
 		for (int i = 0; i < allTypes.size(); i++) {
 			// Now remove a column and update the table
 			ColumnModel removed = allTypes.remove(0);
 			tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 			// Now we should be able to see the columns that were created
-			names = tableIndexDAO.getCurrentTableColumns(tableId);
+			columns = tableIndexDAO.getCurrentTableColumns(tableId);
 			// There should be a column for each column in the schema plus one ROW_ID and one ROW_VERSION.
 			int extraColumns = 1;
 			if (removed.getColumnType() == ColumnType.DOUBLE) {
 				extraColumns = 0;
 			}
-			assertEquals("removed " + removed, allTypes.size() + 2 + extraColumns, names.size());
+			assertEquals("removed " + removed, allTypes.size() + 2 + extraColumns, columns.size());
 			// Now add a column
 			allTypes.add(removed);
 			tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 			// Now we should be able to see the columns that were created
-			names = tableIndexDAO.getCurrentTableColumns(tableId);
+			columns = tableIndexDAO.getCurrentTableColumns(tableId);
 			// There should be a column for each column in the schema plus one ROW_ID and one ROW_VERSION.
-			assertEquals("readded " + removed, allTypes.size() + 2 + 1, names.size());
+			assertEquals("readded " + removed, allTypes.size() + 2 + 1, columns.size());
 		}
 		// Now delete the table
 		assertTrue(tableIndexDAO.deleteTable(tableId));
-		names = tableIndexDAO.getCurrentTableColumns(tableId);
-		assertEquals(null, names);
+		columns = tableIndexDAO.getCurrentTableColumns(tableId);
+		assertEquals(null, columns);
 	}
 	
 	@Test
@@ -272,6 +274,46 @@ public class TableIndexDAOImplTest {
 		assertEquals(expectedValues, row.getValues());
 	}
 
+	private StackConfiguration oldStackConfiguration = null;
+
+	@Test
+	@Ignore
+	public void testLargeTableReverse() throws ParseException {
+		oldStackConfiguration = StackConfiguration.singleton();
+		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
+		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(
+				new ImmutablePropertyAccessor<Boolean>(!oldStackConfiguration.getTableAllIndexedEnabled().get()));
+		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
+
+		testLargeTable();
+
+		try {
+		} finally {
+			if (oldStackConfiguration != null) {
+				ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", oldStackConfiguration);
+			}
+		}
+	}
+
+	@Test
+	@Ignore
+	public void testLargeTableJustInTime() throws ParseException {
+		oldStackConfiguration = StackConfiguration.singleton();
+		StackConfiguration mockedStackConfiguration = Mockito.spy(oldStackConfiguration);
+		// stub(mockedStackConfiguration.getTableJustInTimeIndexedEnabled()).toReturn(new
+		// ImmutablePropertyAccessor<Boolean>(true));
+		ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", mockedStackConfiguration);
+
+		testLargeTable();
+
+		try {
+		} finally {
+			if (oldStackConfiguration != null) {
+				ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", oldStackConfiguration);
+			}
+		}
+	}
+
 	@Test
 	@Ignore
 	public void testLargeTable() throws ParseException {
@@ -281,11 +323,11 @@ public class TableIndexDAOImplTest {
 		// Now add some data
 		long startTime = System.currentTimeMillis();
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes, false);
-		final int endgoal = 1000000;
+		final int endgoal = 10000000;
 		final int batchsize = 100000;
 		final int distinctCount = 100;
 		for (int i = 0; i < endgoal / batchsize; i++) {
-			System.out.println(i);
+			System.out.print(i);
 			List<Row> rows = Lists.newArrayListWithCapacity(batchsize);
 			for (int j = 0; j < batchsize; j += distinctCount) {
 				rows.addAll(TableModelTestUtils.createRows(allTypes, distinctCount));
@@ -302,12 +344,28 @@ public class TableIndexDAOImplTest {
 			// Now fill the table with data
 			tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		}
-		long now;
+		System.out.println("");
+
 		List<Object> times = Lists.newArrayList();
-		now = System.currentTimeMillis();
+
 		times.add("Loading");
-		times.add(now - startTime);
-		startTime = now;
+		times.add(System.currentTimeMillis() - startTime);
+
+		runTest(allTypes, endgoal, distinctCount, times);
+		runTest(allTypes, endgoal, distinctCount, times);
+
+		System.err.println("All indexes: " + StackConfiguration.singleton().getTableAllIndexedEnabled().get());
+		// System.err.println("Just in time indexes: " +
+		// StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get());
+		for (int i = 0; i < times.size(); i += 2) {
+			System.err.println(times.get(i) + ": " + ((Long) times.get(i + 1) / 1000L));
+		}
+	}
+
+	private void runTest(List<ColumnModel> allTypes, final int endgoal, final int distinctCount, List<Object> times)
+			throws ParseException {
+		long now;
+		long startTime = System.currentTimeMillis();
 
 		SqlQuery query;
 		RowSet results;
@@ -330,7 +388,9 @@ public class TableIndexDAOImplTest {
 		times.add(now - startTime);
 		startTime = now;
 
-		// This is our query
+		// if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
+		// tableIndexDAO.addIndex(tableId, allTypes.get(0));
+		// }
 		query = new SqlQuery("select * from " + tableId + " where " + allTypes.get(0).getName() + " = '"
 				+ results.getRows().get(0).getValues().get(0) + "'", allTypes);
 		// Now query for the results
@@ -341,7 +401,39 @@ public class TableIndexDAOImplTest {
 		times.add(now - startTime);
 		startTime = now;
 
-		// This is our query
+		query = new SqlQuery("select * from " + tableId + " limit 20", allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		now = System.currentTimeMillis();
+		times.add("Limit");
+		times.add(now - startTime);
+		startTime = now;
+
+		// if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
+		// tableIndexDAO.addIndex(tableId, allTypes.get(1));
+		// }
+		query = new SqlQuery("select * from " + tableId + " order by " + allTypes.get(1).getName() + " asc limit 20", allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		now = System.currentTimeMillis();
+		times.add("Limit sort asc");
+		times.add(now - startTime);
+		startTime = now;
+
+		// if (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get()) {
+		// tableIndexDAO.addIndex(tableId, allTypes.get(2));
+		// }
+		query = new SqlQuery("select * from " + tableId + " order by " + allTypes.get(2).getName() + " desc limit 20", allTypes);
+		// Now query for the results
+		results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		now = System.currentTimeMillis();
+		times.add("Limit sort desc");
+		times.add(now - startTime);
+		startTime = now;
+
 		query = new SqlQuery("select count(*) from " + tableId, allTypes);
 		// Now query for the results
 		results = tableIndexDAO.query(query);
@@ -351,10 +443,6 @@ public class TableIndexDAOImplTest {
 		times.add("Count");
 		times.add(now - startTime);
 		startTime = now;
-
-		for (int i = 0; i < times.size(); i += 2) {
-			System.err.println(times.get(i) + ": " + ((Long) times.get(i + 1) / 1000L));
-		}
 	}
 
 	@Test
@@ -630,7 +718,7 @@ public class TableIndexDAOImplTest {
 		foo.setColumnType(ColumnType.STRING);
 		foo.setName("foo");
 		foo.setId("111");
-		foo.setMaximumSize(10L);
+		foo.setMaximumSize(1000L);
 		ColumnModel bar = new ColumnModel();
 		bar.setColumnType(ColumnType.INTEGER);
 		bar.setId("222");
@@ -653,6 +741,97 @@ public class TableIndexDAOImplTest {
 		checkIndexes(tableId, "ROW_ID");
 		tableIndexDAO.removeIndexes(tableId);
 		checkIndexes(tableId, "ROW_ID");
+	}
+
+	@Test
+	public void testTooManyColumns() throws Exception {
+		List<ColumnModel> schema = Lists.newArrayList();
+		List<String> indexes = Lists.newArrayList();
+		indexes.add( "ROW_ID");
+		for (int i = 0; i < 100; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.STRING);
+			cm.setName("foo" + i);
+			cm.setId("111" + i);
+			cm.setMaximumSize(30L);
+			schema.add(cm);
+			if (indexes.size() < 64) {
+				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
+			}
+		}
+
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
+
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+
+		tableIndexDAO.addIndexes(tableId);
+		checkIndexes(tableId, indexes.toArray(new String[0]));
+
+		tableIndexDAO.removeIndexes(tableId);
+		checkIndexes(tableId, "ROW_ID");
+	}
+
+	@Test
+	public void testTooManyColumnsAppended() throws Exception {
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		List<String> indexes = Lists.newArrayList();
+		indexes.add("ROW_ID");
+		for (int i = 0; i < 63; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.STRING);
+			cm.setName("foo" + i);
+			cm.setId("111" + i);
+			cm.setMaximumSize(30L);
+			schema.add(cm);
+			if (indexes.size() < 64) {
+				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
+			}
+		}
+
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
+
+		// replace 10 columns
+		for (int i = 30; i < 40; i++) {
+			ColumnModel cm = schema.get(i);
+			cm.setId("333" + i);
+			indexes.set(i + 1, SQLUtils.getColumnNameForId(cm.getId()));
+		}
+
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
+
+		// replace 10 and add 10 columns
+		for (int i = 20; i < 30; i++) {
+			ColumnModel cm = schema.get(i);
+			cm.setId("444" + i);
+			indexes.set(i + 1, SQLUtils.getColumnNameForId(cm.getId()));
+		}
+		for (int i = 0; i < 10; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.STRING);
+			cm.setName("foo" + i);
+			cm.setId("222" + i);
+			cm.setMaximumSize(30L);
+			schema.add(cm);
+			if (indexes.size() < 64) {
+				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
+			}
+		}
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		if (StackConfiguration.singleton().getTableAllIndexedEnabled().get()) {
+			checkIndexes(tableId, indexes.toArray(new String[0]));
+		}
 	}
 
 	private void checkIndexes(String tableId, final String... indexes) throws Exception {

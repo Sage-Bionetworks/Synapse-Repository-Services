@@ -39,7 +39,6 @@ public class EmailUtilsTest {
 		assertEquals("<html>bar</html>", request.getMessage().getBody().getHtml().getData());
 		assertNull(request.getMessage().getBody().getText());
 		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
-		assertEquals("synapse-ops@sagebase.org", request.getReturnPath());
 }
 	
 	@Test

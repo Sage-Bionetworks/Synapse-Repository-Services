@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
@@ -14,7 +15,13 @@ import org.springframework.transaction.support.TransactionCallback;
  *
  */
 public interface TableIndexDAO {
-	
+
+	public static class ColumnDefinition {
+		public String name;
+		public ColumnType columnType;
+		public Long maxSize;
+	}
+
 	/**
 	 * Create or update a table with the given schema.
 	 * 
@@ -37,7 +44,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<String> getCurrentTableColumns(String tableId);
+	public List<ColumnDefinition> getCurrentTableColumns(String tableId);
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -127,4 +134,6 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	public void removeIndexes(String tableId);
+
+	public void addIndex(String tableId, ColumnModel columnModel);
 }

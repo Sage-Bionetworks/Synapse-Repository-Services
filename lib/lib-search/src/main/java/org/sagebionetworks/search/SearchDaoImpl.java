@@ -55,30 +55,12 @@ public class SearchDaoImpl implements SearchDao {
 	
 	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
 	
-	private static final HttpClient httpClient;
-
-	static {
-		ThreadSafeClientConnManager connectionManager;
-		try {
-			connectionManager = HttpClientHelper.createClientConnectionManager(true);
-			// ensure that we can have *many* simultaneous connections to
-			// CloudSearch
-			connectionManager.setDefaultMaxPerRoute(StackConfiguration.getHttpClientMaxConnsPerRoute());
-			HttpParams clientParams = new BasicHttpParams();
-			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,20*1000);
-			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT, 20*1000);
-			httpClient = new DefaultHttpClient(connectionManager, clientParams);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
-	
-	private CloudSearchClient cloudHttpClient = null;
+	@Autowired
+	CloudSearchClient cloudHttpClient = null;
 	
 	@Override
 	public boolean postInitialize() throws Exception {
@@ -93,9 +75,12 @@ public class SearchDaoImpl implements SearchDao {
 
 		String searchEndPoint = searchDomainSetup.getSearchEndpoint();
 		log.info("Search endpoint: " + searchEndPoint);
+		cloudHttpClient.setSearchServiceEndpoint(searchEndPoint);
 		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
 		log.info("Document endpoint: " + documentEndPoint);
-		cloudHttpClient = new CloudSearchClient(httpClient, searchEndPoint,	documentEndPoint);
+		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
+		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
+		//cloudHttpClient._init();
 		return true;
 	}
 

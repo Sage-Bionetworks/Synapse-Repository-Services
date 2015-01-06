@@ -11,13 +11,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -56,6 +54,10 @@ public class SQLUtils {
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
+
+	private static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255; // from docs, max length is 767 bytes, 767/3 = 255
+																	// characters
+	private static final int MAX_MYSQL_SECONDARY_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indexes
 
 	public enum TableType {
 		/**
@@ -130,7 +132,18 @@ public class SQLUtils {
 		if (toAdd.isEmpty() && toDrop.isEmpty()) {
 			return null;
 		}
-		return alterTableSQLInner(toAdd, toDrop, tableId);
+		int indexCount;
+		// column count - 2 for row_id and row_version columns which don't count towards possible indexes
+		int columnCount = oldColumns.size() - 2;
+		if (columnCount <= MAX_MYSQL_SECONDARY_INDEX_COUNT) {
+			// if we have less than the max indexes, all columns have indexes and we remove the ones we drop
+			indexCount = columnCount - toDrop.size();
+		} else {
+			// we don't know which columns we are dropping and which have indexes. We estimate the index count
+			// conservatively
+			indexCount = Math.min(columnCount - toDrop.size(), MAX_MYSQL_SECONDARY_INDEX_COUNT);
+		}
+		return alterTableSQLInner(toAdd, toDrop, tableId, indexCount);
 	}
 
 	/**
@@ -186,8 +199,10 @@ public class SQLUtils {
 		// Every table must have a ROW_ID and ROW_VERSION
 		columns.add(ROW_ID + " bigint(20) NOT NULL");
 		columns.add(ROW_VERSION + " bigint(20) NOT NULL");
+		int indexCount = 0;
 		for (int i = 0; i < newSchema.size(); i++) {
-			appendColumnDefinitionsToBuilder(columns, columns, newSchema.get(i), false);
+			appendColumnDefinitionsToBuilder(columns, columns, newSchema.get(i), false, indexCount);
+			indexCount++;
 		}
 		columns.add("PRIMARY KEY (" + ROW_ID + ")");
 		return StringUtils.join(columns, ", ");
@@ -198,8 +213,10 @@ public class SQLUtils {
 	 * 
 	 * @param builder
 	 * @param newSchema
+	 * @param indexCount
 	 */
-	static void appendColumnDefinitionsToBuilder(List<String> columns, List<String> indexes, ColumnModel newSchema, boolean justNames) {
+	static void appendColumnDefinitionsToBuilder(List<String> columns, List<String> indexes, ColumnModel newSchema, boolean justNames,
+			int indexCount) {
 		String columnName = getColumnNameForId(newSchema.getId());
 		switch (newSchema.getColumnType()) {
 		case DOUBLE:
@@ -221,16 +238,23 @@ public class SQLUtils {
 			}
 			break;
 		}
-		if (indexes != null && !justNames) {
+		if (indexes != null && !justNames && indexCount < MAX_MYSQL_SECONDARY_INDEX_COUNT) {
 			boolean allIndexedEnabled = StackConfiguration.singleton().getTableAllIndexedEnabled().get();
 			if (allIndexedEnabled) {
-				appendColumnIndexDefinition(columnName, indexes);
+				appendColumnIndexDefinition(columnName, newSchema.getMaximumSize(), indexes);
 			}
 		}
 	}
 
-	static void appendColumnIndexDefinition(String columnName, List<String> indexes) {
-		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`)");
+	static void appendColumnIndexDefinition(String columnName, Long maximumSize, List<String> indexes) {
+		String prefixLength = "";
+		if (maximumSize != null) {
+			long columnSize = maximumSize.longValue();
+			if (columnSize > MAX_MYSQL_VARCHAR_INDEX_LENGTH) {
+				prefixLength = "(" + MAX_MYSQL_VARCHAR_INDEX_LENGTH + ")";
+			}
+		}
+		indexes.add("INDEX `" + getColumnIndexName(columnName) + "` (`" + columnName + "`" + prefixLength + ")");
 	}
 
 	static String getColumnIndexName(String columnName) {
@@ -342,7 +366,7 @@ public class SQLUtils {
 	 * @param toRemove
 	 * @return
 	 */
-	public static String alterTableSQLInner(Iterable<ColumnModel> toAdd, Iterable<String> toDrop, String tableId) {
+	public static String alterTableSQLInner(Iterable<ColumnModel> toAdd, Iterable<String> toDrop, String tableId, int indexCount) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append("`").append(getTableNameForId(tableId, TableType.INDEX)).append("`");
@@ -359,7 +383,8 @@ public class SQLUtils {
 		List<String> columnsToAdd = Lists.newArrayList();
 		List<String> indexes = Lists.newArrayList();
 		for (ColumnModel add : toAdd) {
-			appendColumnDefinitionsToBuilder(columnsToAdd, indexes, add, false);
+			appendColumnDefinitionsToBuilder(columnsToAdd, indexes, add, false, indexCount);
+			indexCount++;
 		}
 		for (String add : columnsToAdd) {
 			if (!first) {
@@ -392,7 +417,7 @@ public class SQLUtils {
 		oldColumnSet.remove(ROW_VERSION);
 		for (ColumnModel cm : newSchema) {
 			List<String> columnNames = Lists.newArrayList();
-			appendColumnDefinitionsToBuilder(columnNames, null, cm, true);
+			appendColumnDefinitionsToBuilder(columnNames, null, cm, true, 0);
 			boolean added = false;
 			for (String columnName : columnNames) {
 				if (!oldColumnSet.remove(columnName)) {
@@ -521,7 +546,7 @@ public class SQLUtils {
 						} else {
 							ColumnModel cm = cmIterator.next();
 							List<String> columns = Lists.newArrayList();
-							appendColumnDefinitionsToBuilder(columns, null, cm, true);
+							appendColumnDefinitionsToBuilder(columns, null, cm, true, 0);
 							if (columns.size() == 1) {
 								return columns.get(0);
 							} else {
