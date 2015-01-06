@@ -1,27 +1,22 @@
 package org.sagebionetworks.audit.dao;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.audit.utils.AccessRecordUtils;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.ObjectCSVReader;
-import org.sagebionetworks.audit.utils.ObjectCSVWriter;
+import org.sagebionetworks.audit.utils.SimpleRecordWriter;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
@@ -51,6 +46,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 */
 	int stackInstanceNumber;
 	String stackInstancePrefixString;
+	private SimpleRecordWriter<AccessRecord> writer;
 
 	/**
 	 * Injected via Spring
@@ -81,6 +77,8 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(auditRecordBucketName);
+		writer = new SimpleRecordWriter<AccessRecord>(s3Client, stackInstanceNumber, 
+				auditRecordBucketName, AccessRecord.class, HEADERS);
 	}
 	
 	@Override
@@ -94,31 +92,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// Order the batch by timestamp
 		AccessRecordUtils.sortByTimestamp(batch);
-		// Write the data to a gzip
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		GZIPOutputStream zipOut = new GZIPOutputStream(out);
-		OutputStreamWriter osw = new OutputStreamWriter(zipOut);
-		ObjectCSVWriter<AccessRecord> writer = new ObjectCSVWriter<AccessRecord>(
-				osw, AccessRecord.class, HEADERS);
-		// Write all of the data
-		for (AccessRecord ar : batch) {
-			writer.append(ar);
-		}
-		writer.close();
-		// Create an input stream
-		byte[] bytes = out.toByteArray();
-		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-		// Build a new key
-		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber,
-				timestamp, rolling);
-		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("application/x-gzip");
-		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
-		om.setContentLength(bytes.length);
-		s3Client.putObject(auditRecordBucketName, key, in, om);
-		return key;
-
+		return writer.write(batch, timestamp, rolling);
 	}
 
 	@Override

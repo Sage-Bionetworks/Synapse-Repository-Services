@@ -11,6 +11,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 
 public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 
+	private final static String[] HEADERS = new String[]{"principalId", "changeNumber", "accessType"};
+
 	@Autowired
 	private AmazonS3Client s3Client;
 	/**
@@ -40,12 +42,17 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	 * 
 	 */
 	public void initialize() {
+		if (resourceAccessRecordBucketName == null)
+			throw new IllegalArgumentException(
+					"bucketName has not been set and cannot be null");
+		// Create the bucket if it does not exist
+		s3Client.createBucket(resourceAccessRecordBucketName);
 		writer = new SimpleRecordWriter<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
-				resourceAccessRecordBucketName, ResourceAccessRecord.class);
+				resourceAccessRecordBucketName, ResourceAccessRecord.class, HEADERS);
 	}
 	
 	@Override
 	public String write(List<ResourceAccessRecord> records) throws IOException {
-		return writer.write(records);
+		return writer.write(records, System.currentTimeMillis(), false);
 	}
 }

@@ -11,6 +11,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 
 public class AclRecordDAOImpl implements AclRecordDAO {
 
+	private final static String[] HEADERS = new String[]{"timestamp", "creationDate", "changeType", "etag", "ownerId", "ownerType", "changeNumber", "aclId"};
+
 	@Autowired
 	private AmazonS3Client s3Client;
 	/**
@@ -40,12 +42,17 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	 * 
 	 */
 	public void initialize() {
+		if (aclRecordBucketName == null)
+			throw new IllegalArgumentException(
+					"bucketName has not been set and cannot be null");
+		// Create the bucket if it does not exist
+		s3Client.createBucket(aclRecordBucketName);
 		writer = new SimpleRecordWriter<AclRecord>(s3Client, stackInstanceNumber, 
-				aclRecordBucketName, AclRecord.class);
+				aclRecordBucketName, AclRecord.class, HEADERS);
 	}
 	
 	@Override
 	public String write(List<AclRecord> records) throws IOException {
-		return writer.write(records);
+		return writer.write(records, System.currentTimeMillis(), false);
 	}
 }
