@@ -1,8 +1,6 @@
 package org.sagebionetworks.acl.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +28,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.audit.AclRecord;
+import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -40,7 +41,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
-public class AclSnapshotWorkerTest {
+public class AclSnapshotWorkerIntegrationTest {
 
 	@Autowired
 	StackConfiguration config;
@@ -78,15 +79,15 @@ public class AclSnapshotWorkerTest {
 		assertNotNull(config);
 		assertNotNull(aclRecordDao);
 		assertNotNull(resourceAccessRecordDao);
-		
+
 		assertNotNull(aclDao);
 		assertNotNull(nodeDao);
 		assertNotNull(userGroupDao);
-		
+
 		assertNotNull(s3Client);
-		
+
 		// Setting up
-		
+
 		aclRecordBucket = config.getAclRecordBucketName();
 		resourceAccessRecordBucket = config.getResourceAccessRecordBucketName();
 		
@@ -143,6 +144,15 @@ public class AclSnapshotWorkerTest {
 		assertEquals(node.getId(), aclId);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
+		String key = getNewAclKey(aclKeys);
+		assertNotNull(key);
+		List<AclRecord> aclRecords = aclRecordDao.getBatch(key);
+		assertEquals(1, aclRecords.size());
+		AclRecord aclRecord = aclRecords.get(0);
+		assertNotNull(aclRecord);
+		assertEquals(ObjectType.ENTITY, aclRecord.getOwnerType());
+		assertEquals(node.getId(), aclRecord.getOwnerId());
+		assertEquals(ChangeType.CREATE, aclRecord.getChangeType());
 	
 		// Test UPDATE
 		
@@ -159,7 +169,7 @@ public class AclSnapshotWorkerTest {
 		ra.setPrincipalId(Long.parseLong(group.getId()));
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(
 				Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ
+						ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD
 				})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
@@ -167,6 +177,26 @@ public class AclSnapshotWorkerTest {
 		aclDao.update(acl, ObjectType.ENTITY);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
+		
+		key = getNewAclKey(aclKeys);
+		assertNotNull(key);
+		aclRecords = aclRecordDao.getBatch(key);
+		assertEquals(1, aclRecords.size());
+		aclRecord = aclRecords.get(0);
+		assertNotNull(aclRecord);
+		assertEquals(ObjectType.ENTITY, aclRecord.getOwnerType());
+		assertEquals(node.getId(), aclRecord.getOwnerId());
+		assertEquals(ChangeType.UPDATE, aclRecord.getChangeType());
+		
+		key = getNewResourceAccessRecordKey(resourceAccessKeys);
+		assertNotNull(key);
+		List<ResourceAccessRecord> raRecords = resourceAccessRecordDao.getBatch(key);
+		assertEquals(1, raRecords.size());
+		ResourceAccessRecord raRecord = raRecords.get(0);
+		assertNotNull(raRecord);
+		assertEquals(group.getId(), raRecord.getPrincipalId().toString());
+		assertEquals(ra.getAccessType(), raRecord.getAccessType());
+		assertEquals(aclRecord.getChangeNumber(), raRecord.getChangeNumber());
 
 		// Test DELETE
 	
@@ -177,6 +207,15 @@ public class AclSnapshotWorkerTest {
 		aclDao.delete(node.getId(), ObjectType.ENTITY);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
+		key = getNewAclKey(aclKeys);
+		assertNotNull(key);
+		aclRecords = aclRecordDao.getBatch(key);
+		assertEquals(1, aclRecords.size());
+		aclRecord = aclRecords.get(0);
+		assertNotNull(aclRecord);
+		assertNull(aclRecord.getOwnerId());
+		assertNull(aclRecord.getOwnerType());
+		assertEquals(ChangeType.DELETE, aclRecord.getChangeType());
 	}
 
 	@After 
@@ -186,6 +225,9 @@ public class AclSnapshotWorkerTest {
 			userGroupDao.delete(g.getId());
 		}
 		groupList.clear();
+
+		aclRecordDao.deleteAllStackInstanceBatches();
+		resourceAccessRecordDao.deleteAllStackInstanceBatches();
 	}
 	
 	private List<String> getKeys(String bucketName) {
@@ -197,7 +239,7 @@ public class AclSnapshotWorkerTest {
 		   listing = s3Client.listNextBatchOfObjects (listing);
 		   summaries.addAll (listing.getObjectSummaries());
 		}
-		
+
 		for (S3ObjectSummary summary : summaries) {
 			keys.add(summary.getKey());
 		}
@@ -209,10 +251,10 @@ public class AclSnapshotWorkerTest {
 		while (System.currentTimeMillis() < start + TIME_OUT) {
 			List<String> newAclKeys = getKeys(aclRecordBucket);
 			List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
-			
-			assertTrue(newAclKeys.removeAll(aclKeys));
-			assertTrue(newResourceKeys.removeAll(resourceAccessKeys));
-			
+
+			newAclKeys.removeAll(aclKeys);
+			newResourceKeys.removeAll(resourceAccessKeys);
+
 			if (noAcl == newAclKeys.size() && noRA == newResourceKeys.size()){
 				return true;
 			}
@@ -220,4 +262,15 @@ public class AclSnapshotWorkerTest {
 		return false;
 	}
 
+	private String getNewAclKey(List<String> aclKeys) {
+		List<String> newAclKeys = getKeys(aclRecordBucket);
+		newAclKeys.removeAll(aclKeys);
+		return newAclKeys.get(0);
+	}
+
+	private String getNewResourceAccessRecordKey(List<String> resourceAccessKeys) {
+		List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
+		newResourceKeys.removeAll(resourceAccessKeys);
+		return newResourceKeys.get(0);
+	}
 }

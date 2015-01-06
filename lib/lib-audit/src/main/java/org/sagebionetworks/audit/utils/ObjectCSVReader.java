@@ -3,6 +3,7 @@ package org.sagebionetworks.audit.utils;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -154,6 +155,8 @@ public class ObjectCSVReader<T> {
 					field.set(newObject, ACCESS_TYPE.valueOf(value));
 				}else if (field.getType() == Set.class) {
 					field.set(newObject, getSetOfAccessType(value));
+				}else if (field.getType() == Date.class) {
+					field.set(newObject, new Date(value));
 				} else {
 					throw new IllegalArgumentException(
 							"Unsupported field type: "
