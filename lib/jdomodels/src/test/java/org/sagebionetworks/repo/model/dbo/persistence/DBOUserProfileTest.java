@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +15,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserPreference;
+import org.sagebionetworks.repo.model.UserPreferenceBoolean;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -65,6 +69,7 @@ public class DBOUserProfileTest {
 		userProfile.setOwnerId(Long.parseLong(individualGroup.getId()));
 		userProfile.seteTag("10");
 		userProfile.setProperties("My dog has fleas.".getBytes());
+		userProfile.setPreferences("Some user prefs".getBytes());
 		
 		// Create it
 		DBOUserProfile clone = dboBasicDao.createNew(userProfile);
@@ -84,6 +89,14 @@ public class DBOUserProfileTest {
 		clone = dboBasicDao.getObjectByPrimaryKey(DBOUserProfile.class, params);
 		assertNotNull(clone);
 		assertEquals(newContent, new String(clone.getProperties()));
+		// Updated prefs
+		String newPrefs = "New user prefs";
+		clone.setPreferences(newPrefs.getBytes());
+		dboBasicDao.update(clone);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOUserProfile.class, params);
+		assertNotNull(clone);
+		assertNotNull(clone.getPreferences());
+		assertEquals(newPrefs, new String(clone.getPreferences()));
 		
 		// Delete it
 		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOUserProfile.class,  params);

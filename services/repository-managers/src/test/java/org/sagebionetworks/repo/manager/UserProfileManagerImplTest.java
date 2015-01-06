@@ -7,7 +7,9 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +19,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserPreference;
+import org.sagebionetworks.repo.model.UserPreferenceBoolean;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -119,6 +123,11 @@ public class UserProfileManagerImplTest {
 			profile.setLastName("Bond");
 			profile.setOwnerId(this.userId.toString());
 			profile.setUserName(USER_NAME);
+			Map<String, UserPreference> prefs = new HashMap<String, UserPreference>();
+			UserPreferenceBoolean pref = new UserPreferenceBoolean();
+			pref.setValue(true);
+			prefs.put("someBoolPref", pref);
+			profile.setPreferences(prefs);
 			// Create the profile
 			created = this.userProfileManager.createUserProfile(profile);
 			// the changed fields are etag and emails (which are ignored)
@@ -140,6 +149,10 @@ public class UserProfileManagerImplTest {
 		
 		// Make sure we can update it
 		created.setUserName("newUsername");
+		Map<String, UserPreference> prefs = created.getPreferences();
+		UserPreferenceBoolean pref = (UserPreferenceBoolean)prefs.get("someBoolPref");
+		assertEquals(true, pref.getValue());
+		pref.setValue(false);
 		String startEtag = created.getEtag();
 		// Changing emails is currently disabled See 
 		UserProfile updated = userProfileManager.updateUserProfile(userInfo, created);

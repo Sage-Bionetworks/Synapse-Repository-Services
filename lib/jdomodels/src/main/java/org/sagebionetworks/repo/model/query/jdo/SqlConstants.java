@@ -72,6 +72,7 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_ID				= "OWNER_ID";
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
+	public static final String COL_USER_PROFILE_PREFS_BLOB		= "PREFERENCES";
 	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
 
 	// The Project Settings table
