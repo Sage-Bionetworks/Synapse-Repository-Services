@@ -141,6 +141,13 @@ public class DBOAccessControlListDAOImplTest {
 		assertNull(acl);
 	}
 
+	@Test  (expected=NotFoundException.class)
+	public void testGetOwnerTypeWithBadAclID() throws Exception {
+		Long aclId = -598787L;
+		ObjectType ownerType = aclDAO.getOwnerType(aclId);
+		assertNull(ownerType);
+	}
+
 	@After
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) {
