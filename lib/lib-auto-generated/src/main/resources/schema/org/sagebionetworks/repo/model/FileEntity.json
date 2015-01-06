@@ -9,7 +9,7 @@
     "properties":{
         "dataFileHandleId":{
             "type":"string",
-            "description":"Type of Media"
+            "description":"ID of the file associated with this entity."
         }
     }
 }
