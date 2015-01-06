@@ -27,6 +27,7 @@ public class SimpleRecordWorker<T> {
 	private String bucketName;
 	private Class<T> objectClass;
 	private String[] headers;
+	String stackInstancePrefixString;
 
 	public SimpleRecordWorker(AmazonS3Client s3Client, int stackInstanceNumber, 
 			String bucketName, Class<T> objectClass, String[] headers) {
@@ -35,6 +36,7 @@ public class SimpleRecordWorker<T> {
 		this.bucketName = bucketName;
 		this.objectClass = objectClass;
 		this.headers = headers;
+		this.stackInstancePrefixString = KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber);
 	}
 
 	/**
@@ -113,7 +115,7 @@ public class SimpleRecordWorker<T> {
 	 * Delete all stack instance batches from the bucket. This should never be called on a production system.
 	 * 
 	 */
-	public void deleteAllStackInstanceBatches(String stackInstancePrefixString) {
+	public void deleteAllStackInstanceBatches() {
 		// List all object with the prefix
 		boolean done = false;
 		while(!done){
@@ -131,7 +133,7 @@ public class SimpleRecordWorker<T> {
 	/**
 	 * List all of the objects in this bucket with the stack instance prefix string and the provided marker.
 	 */
-	public ObjectListing listBatchKeys(String stackInstancePrefixString, String marker) {
+	public ObjectListing listBatchKeys(String marker) {
 		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.bucketName).withPrefix(stackInstancePrefixString).withMarker(marker));
 	}
 }

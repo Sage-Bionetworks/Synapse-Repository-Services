@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.audit.utils.AccessRecordUtils;
-import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.SimpleRecordWorker;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +36,6 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 * Injected via Spring
 	 */
 	int stackInstanceNumber;
-	String stackInstancePrefixString;
 	private SimpleRecordWorker<AccessRecord> worker;
 
 	/**
@@ -56,7 +54,6 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 */
 	public void setStackInstanceNumber(int stackInstanceNumber) {
 		this.stackInstanceNumber = stackInstanceNumber;
-		this.stackInstancePrefixString = KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber);
 	}
 
 	/**
@@ -99,12 +96,12 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	
 	@Override
 	public void deleteAllStackInstanceBatches() {
-		worker.deleteAllStackInstanceBatches(this.stackInstancePrefixString);
+		worker.deleteAllStackInstanceBatches();
 	}
 	
 	@Override
 	public ObjectListing listBatchKeys(String marker) {
-		return worker.listBatchKeys(stackInstancePrefixString, marker);
+		return worker.listBatchKeys( marker);
 	}
 
 }
