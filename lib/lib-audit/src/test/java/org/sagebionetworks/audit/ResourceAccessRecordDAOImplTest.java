@@ -1,5 +1,6 @@
 package org.sagebionetworks.audit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
@@ -41,8 +42,9 @@ public class ResourceAccessRecordDAOImplTest {
 	@Test
 	public void test() throws IOException{
 		List<ResourceAccessRecord> records = createResourceAccessRecordList(5);
-		String fileName = resourceAccessRecordDao.write(records);
-		assertNotNull(s3Client.getObject(BUCKET_NAME, fileName));
+		String key = resourceAccessRecordDao.saveBatch(records);
+		assertNotNull(s3Client.getObject(BUCKET_NAME, key));
+		assertEquals(records, resourceAccessRecordDao.getBatch(key));
 	}
 
 	private List<ResourceAccessRecord> createResourceAccessRecordList(int numberOfRecords) {

@@ -3,7 +3,7 @@ package org.sagebionetworks.audit.dao;
 import java.io.IOException;
 import java.util.List;
 
-import org.sagebionetworks.audit.utils.SimpleRecordWriter;
+import org.sagebionetworks.audit.utils.SimpleRecordWorker;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +23,7 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	 * Injected via Spring
 	 */
 	private String aclRecordBucketName;
-	private SimpleRecordWriter<AclRecord> writer;
+	private SimpleRecordWorker<AclRecord> worker;
 
 	/**
 	 * Injected via Spring
@@ -47,12 +47,17 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(aclRecordBucketName);
-		writer = new SimpleRecordWriter<AclRecord>(s3Client, stackInstanceNumber, 
+		worker = new SimpleRecordWorker<AclRecord>(s3Client, stackInstanceNumber, 
 				aclRecordBucketName, AclRecord.class, HEADERS);
 	}
 	
 	@Override
-	public String write(List<AclRecord> records) throws IOException {
-		return writer.write(records, System.currentTimeMillis(), false);
+	public String saveBatch(List<AclRecord> records) throws IOException {
+		return worker.write(records, System.currentTimeMillis(), false);
+	}
+
+	@Override
+	public List<AclRecord> getBatch(String key) throws IOException {
+		return worker.read(key);
 	}
 }

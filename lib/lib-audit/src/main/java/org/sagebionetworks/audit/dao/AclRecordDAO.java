@@ -12,12 +12,20 @@ import org.sagebionetworks.repo.model.audit.AclRecord;
 public interface AclRecordDAO {
 
 	/**
-	 * writes acl records to a file and pushes it to S3
+	 * Save a batch of acl records to a file and pushes it to S3
 	 * 
 	 * @param records the acl records to write
 	 * @return the path of the file that is stored in S3
 	 * @throws IOException
 	 */
-	String write(List<AclRecord> records) throws IOException;
+	String saveBatch(List<AclRecord> records) throws IOException;
 	
+	/**
+	 * Get a batch of AclRecords from the permanent store using its key
+	 * 
+	 * @param key - The key of the batch
+	 * @return a batch of AclRecords
+	 * @throws IOException 
+	 */
+	List<AclRecord> getBatch(String key) throws IOException;
 }

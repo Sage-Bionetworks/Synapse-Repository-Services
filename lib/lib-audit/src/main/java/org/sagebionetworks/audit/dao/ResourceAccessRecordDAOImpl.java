@@ -3,7 +3,7 @@ package org.sagebionetworks.audit.dao;
 import java.io.IOException;
 import java.util.List;
 
-import org.sagebionetworks.audit.utils.SimpleRecordWriter;
+import org.sagebionetworks.audit.utils.SimpleRecordWorker;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +23,7 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	 * Injected via Spring
 	 */
 	private String resourceAccessRecordBucketName;
-	private SimpleRecordWriter<ResourceAccessRecord> writer;
+	private SimpleRecordWorker<ResourceAccessRecord> worker;
 
 	/**
 	 * Injected via Spring
@@ -47,12 +47,17 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(resourceAccessRecordBucketName);
-		writer = new SimpleRecordWriter<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
+		worker = new SimpleRecordWorker<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
 				resourceAccessRecordBucketName, ResourceAccessRecord.class, HEADERS);
 	}
-	
+
 	@Override
-	public String write(List<ResourceAccessRecord> records) throws IOException {
-		return writer.write(records, System.currentTimeMillis(), false);
+	public String saveBatch(List<ResourceAccessRecord> records) throws IOException {
+		return worker.write(records, System.currentTimeMillis(), false);
+	}
+
+	@Override
+	public List<ResourceAccessRecord> getBatch(String key) throws IOException {
+		return worker.read(key);
 	}
 }

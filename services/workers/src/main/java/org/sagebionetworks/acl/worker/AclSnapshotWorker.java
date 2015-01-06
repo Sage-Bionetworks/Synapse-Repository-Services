@@ -73,9 +73,9 @@ public class AclSnapshotWorker implements Worker{
 		AclRecord aclRecord = buildAclRecord(changeMessage);
 		List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage);
 		
-		aclRecordDao.write(Arrays.asList(aclRecord));
+		aclRecordDao.saveBatch(Arrays.asList(aclRecord));
 		if (!resourceAccessRecords.isEmpty()) {
-			resourceAccessRecordDao.write(resourceAccessRecords);
+			resourceAccessRecordDao.saveBatch(resourceAccessRecords);
 		}
 		return message;
 	}

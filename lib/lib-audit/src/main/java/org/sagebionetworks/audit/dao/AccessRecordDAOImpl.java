@@ -1,24 +1,16 @@
 package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 import org.sagebionetworks.audit.utils.AccessRecordUtils;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
-import org.sagebionetworks.audit.utils.ObjectCSVReader;
-import org.sagebionetworks.audit.utils.SimpleRecordWriter;
+import org.sagebionetworks.audit.utils.SimpleRecordWorker;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 /**
  * This implementation of the AccessRecordDAO uses S3 as the permanent
@@ -46,7 +38,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 */
 	int stackInstanceNumber;
 	String stackInstancePrefixString;
-	private SimpleRecordWriter<AccessRecord> writer;
+	private SimpleRecordWorker<AccessRecord> worker;
 
 	/**
 	 * Injected via Spring
@@ -77,7 +69,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(auditRecordBucketName);
-		writer = new SimpleRecordWriter<AccessRecord>(s3Client, stackInstanceNumber, 
+		worker = new SimpleRecordWorker<AccessRecord>(s3Client, stackInstanceNumber, 
 				auditRecordBucketName, AccessRecord.class, HEADERS);
 	}
 	
@@ -92,61 +84,27 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// Order the batch by timestamp
 		AccessRecordUtils.sortByTimestamp(batch);
-		return writer.write(batch, timestamp, rolling);
+		return worker.write(batch, timestamp, rolling);
 	}
 
 	@Override
 	public List<AccessRecord> getBatch(String key) throws IOException {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		// Attempt to download the object
-		S3Object object = s3Client.getObject(auditRecordBucketName, key);
-		InputStream input = object.getObjectContent();
-		try {
-			// Read the data
-			GZIPInputStream zipIn = new GZIPInputStream(input);
-			InputStreamReader isr = new InputStreamReader(zipIn);
-			ObjectCSVReader<AccessRecord> reader = new ObjectCSVReader<AccessRecord>(
-					isr, AccessRecord.class, HEADERS);
-			List<AccessRecord> results = new LinkedList<AccessRecord>();
-			AccessRecord record = null;
-			while ((record = reader.next()) != null) {
-				results.add(record);
-			}
-			reader.close();
-			return results;
-		} finally {
-			if (input != null) {
-				input.close();
-			}
-		}
+		return worker.read(key);
 	}
 
 	@Override
 	public void deleteBactch(String key) {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		s3Client.deleteObject(auditRecordBucketName, key);
+		worker.delete(key);
 	}
 	
 	@Override
 	public void deleteAllStackInstanceBatches() {
-		// List all object with the prefix
-		boolean done = false;
-		while(!done){
-			ObjectListing listing = s3Client.listObjects(auditRecordBucketName, this.stackInstancePrefixString);
-			done = !listing.isTruncated();
-			// Delete all
-			if(listing.getObjectSummaries() != null){
-				for(S3ObjectSummary summary: listing.getObjectSummaries()){
-					s3Client.deleteObject(auditRecordBucketName, summary.getKey());
-				}
-			}
-		}
+		worker.deleteAllStackInstanceBatches(this.stackInstancePrefixString);
 	}
 	
 	@Override
 	public ObjectListing listBatchKeys(String marker) {
-		// List all of the objects in this bucket with the stack instance prefix string and the provided marker.
-		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.auditRecordBucketName).withPrefix(this.stackInstancePrefixString).withMarker(marker));
+		return worker.listBatchKeys(stackInstancePrefixString, marker);
 	}
 
 }
