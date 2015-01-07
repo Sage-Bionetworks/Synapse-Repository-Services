@@ -46,16 +46,12 @@ public class AclSnapshotWorkerTest {
 		mockAccessControlListDao = Mockito.mock(AccessControlListDAO.class);
 	}
 
-	@After
-	public void cleanUp() {
-		
-	}
-
 	@Test
 	public void testNonAclChangeMessage() throws Exception {
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
-		List<Message> messages = Arrays.asList(one, two);
+		Message three = null;
+		List<Message> messages = Arrays.asList(one, two, three);
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
 		// Make the call
@@ -159,6 +155,7 @@ public class AclSnapshotWorkerTest {
 		verify(mockAccessControlListDao, Mockito.times(2)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Arrays.asList(aclRecord));
+		// fail sometimes
 		verify(mockResourceAccessRecordDao, Mockito.times(1)).saveBatch(Arrays.asList(raRecord1, raRecord2));
 	}
 	
