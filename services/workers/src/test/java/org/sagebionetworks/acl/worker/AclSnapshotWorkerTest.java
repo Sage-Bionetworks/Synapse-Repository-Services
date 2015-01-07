@@ -100,7 +100,99 @@ public class AclSnapshotWorkerTest {
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Arrays.asList(aclRecord));
 		verify(mockResourceAccessRecordDao, never()).saveBatch(Matchers.anyList());
 	}
-	
+
+	@Test
+	public void testBuildAclRecord() throws Exception {
+		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
+		Long timestamp = System.currentTimeMillis();
+		Date creationDate = new Date();
+		Long id = 123L;
+		Long principalId = 456L;
+		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
+		ResourceAccess ra1 = new ResourceAccess();
+		ResourceAccess ra2 = new ResourceAccess();
+		ra1.setPrincipalId(principalId);
+		ra2.setPrincipalId(principalId);
+		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
+		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
+		resourceAccess.addAll(Arrays.asList(ra1, ra2));
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("789"); // ownerId
+		acl.setCreationDate(creationDate);
+		acl.setResourceAccess(resourceAccess);
+		
+		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
+		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
+
+		AclRecord aclRecord = new AclRecord();
+		aclRecord.setAclId("123");
+		aclRecord.setChangeNumber(null);
+		aclRecord.setChangeType(ChangeType.UPDATE);
+		aclRecord.setCreationDate(creationDate);
+		aclRecord.setEtag("etag");
+		aclRecord.setOwnerId("789");
+		aclRecord.setOwnerType(ObjectType.ENTITY);
+		aclRecord.setTimestamp(timestamp);
+
+		// Create the worker
+		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
+
+		assertEquals(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one)));
+	}
+
+	@Test
+	public void testBuildResourceAccessRecord() throws Exception {
+		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
+		Long timestamp = System.currentTimeMillis();
+		Date creationDate = new Date();
+		Long id = 123L;
+		Long principalId = 456L;
+		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
+		ResourceAccess ra1 = new ResourceAccess();
+		ResourceAccess ra2 = new ResourceAccess();
+		ra1.setPrincipalId(principalId);
+		ra2.setPrincipalId(principalId);
+		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
+		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
+		resourceAccess.addAll(Arrays.asList(ra1, ra2));
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("789"); // ownerId
+		acl.setCreationDate(creationDate);
+		acl.setResourceAccess(resourceAccess);
+		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
+		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
+		
+		AclRecord aclRecord = new AclRecord();
+		aclRecord.setAclId("123");
+		aclRecord.setChangeNumber(null);
+		aclRecord.setChangeType(ChangeType.UPDATE);
+		aclRecord.setCreationDate(creationDate);
+		aclRecord.setEtag("etag");
+		aclRecord.setOwnerId("789");
+		aclRecord.setOwnerType(ObjectType.ENTITY);
+		aclRecord.setTimestamp(timestamp);
+		
+		ResourceAccessRecord raRecord1 = new ResourceAccessRecord();
+		ResourceAccessRecord raRecord2 = new ResourceAccessRecord();
+		raRecord1.setChangeNumber(null);
+		raRecord2.setChangeNumber(null);
+		raRecord1.setPrincipalId(principalId);
+		raRecord2.setPrincipalId(principalId);
+		raRecord1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
+		raRecord2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
+
+		// Create the worker
+		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
+
+		Set<ResourceAccessRecord> expected = new HashSet<ResourceAccessRecord>(
+				Arrays.asList(raRecord1, raRecord2));
+		Set<ResourceAccessRecord> actual = new HashSet<ResourceAccessRecord>(
+				worker.buildResourceAccessRecordList(MessageUtils.extractMessageBody(one)));
+		assertEquals(expected, actual);
+	}
+
 	@Test
 	public void testUpdateACL() throws Exception {
 		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
@@ -153,9 +245,8 @@ public class AclSnapshotWorkerTest {
 		// confirm that the DAOs have been called
 		verify(mockAccessControlListDao, Mockito.times(2)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
-		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Arrays.asList(aclRecord));
-		// fail sometimes
-		verify(mockResourceAccessRecordDao, Mockito.times(1)).saveBatch(Arrays.asList(raRecord1, raRecord2));
+		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
+		verify(mockResourceAccessRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 	}
 	
 	@Test

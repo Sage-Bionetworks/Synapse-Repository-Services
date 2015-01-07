@@ -89,7 +89,7 @@ public class AclSnapshotWorker implements Worker{
 		return message;
 	}
 
-	private List<ResourceAccessRecord> buildResourceAccessRecordList(ChangeMessage message) {
+	protected List<ResourceAccessRecord> buildResourceAccessRecordList(ChangeMessage message) {
 		List<ResourceAccessRecord> records = new ArrayList<ResourceAccessRecord>();
 		try {
 			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
@@ -107,7 +107,7 @@ public class AclSnapshotWorker implements Worker{
 		return records;
 	}
 
-	private AclRecord buildAclRecord(ChangeMessage message) {
+	protected AclRecord buildAclRecord(ChangeMessage message) {
 		AclRecord record = new AclRecord();
 		record.setAclId(message.getObjectId());
 		record.setChangeNumber(message.getChangeNumber());
