@@ -38,9 +38,18 @@ public class AclSnapshotWorker implements Worker{
 	@Autowired
 	private ResourceAccessRecordDAO resourceAccessRecordDao;
 	@Autowired
-	private DBOChangeDAO changeDAO;
+	private DBOChangeDAO changeDao;
 	@Autowired
 	private AccessControlListDAO accessControlListDao;
+
+	// for unit test only
+	AclSnapshotWorker(AclRecordDAO aclRecordDao, ResourceAccessRecordDAO resourceAccessRecordDao,
+			DBOChangeDAO changeDao, AccessControlListDAO accessControlListDao) {
+		this.aclRecordDao = aclRecordDao;
+		this.resourceAccessRecordDao = resourceAccessRecordDao;
+		this.changeDao = changeDao;
+		this.accessControlListDao = accessControlListDao;
+	}
 	
 	@Override
 	public List<Message> call() throws Exception {
