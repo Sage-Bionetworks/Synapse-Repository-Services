@@ -245,7 +245,16 @@ public class AclSnapshotWorkerIntegrationTest {
 		}
 		return keys;
 	}
-	
+
+	/**
+	 * Helper method that continue looking into s3 bucket and find noAcl number
+	 * of new AclRecord log files compare to aclKeys - the list of old AclRecord
+	 * log files, and noRA number of new ResourceAccessRecord log files compare
+	 * to resourceAccessKeys - the list of old ResourceAccessRecord log files.
+	 * 
+	 * @return true if found what was looking for in TIME_OUT milliseconds,
+	 *         false otherwise.
+	 */
 	private boolean waitForObject(List<String> aclKeys, List<String> resourceAccessKeys, int noAcl, int noRA) {
 		long start = System.currentTimeMillis();
 		while (System.currentTimeMillis() < start + TIME_OUT) {
@@ -262,12 +271,18 @@ public class AclSnapshotWorkerIntegrationTest {
 		return false;
 	}
 
+	/**
+	 * @return the first new Acl key in S3 compare to old aclKeys
+	 */
 	private String getNewAclKey(List<String> aclKeys) {
 		List<String> newAclKeys = getKeys(aclRecordBucket);
 		newAclKeys.removeAll(aclKeys);
 		return newAclKeys.get(0);
 	}
 
+	/**
+	 * @return the first new ResourceAccess key in S3 compare to old resourceAccessKeys
+	 */
 	private String getNewResourceAccessRecordKey(List<String> resourceAccessKeys) {
 		List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
 		newResourceKeys.removeAll(resourceAccessKeys);
