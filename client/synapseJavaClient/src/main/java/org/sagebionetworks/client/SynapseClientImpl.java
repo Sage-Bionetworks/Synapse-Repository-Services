@@ -52,50 +52,8 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AutoGenFactory;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -123,7 +81,6 @@ import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -131,7 +88,6 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -1920,15 +1876,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 
 		UploadDestination uploadDestination = uploadDestinations.get(0);
-		if (uploadDestination instanceof S3UploadDestination) {
-			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, uploadDestination.getId());
-		} else {
-			throw new NotImplementedException("non-S3 uploads not implemented yet.");
+		switch (uploadDestination.getUploadType()) {
+		case HTTPS:
+		case SFTP:
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
+		case S3:
+			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
+		default:
+			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
 		}
 	}
 
 	private S3FileHandle createFileHandleS3(File temp, String contentType, Boolean shouldPreviewBeCreated,
-			String uploadDestinationId) throws SynapseException, IOException {
+			UploadDestination uploadDestination) throws SynapseException, IOException {
 		if (temp == null) {
 			throw new IllegalArgumentException("File cannot be null");
 		}
@@ -1937,7 +1897,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setUploadDestinationId(uploadDestinationId);
+		ccftr.setUploadDestination(uploadDestination);
 		ccftr.setContentType(contentType);
 		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
@@ -3944,14 +3904,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 
 		UploadDestination uploadDestination = uploadDestinations.get(0);
-		
-		
-		if (uploadDestination instanceof S3UploadDestination) {
-			return uploadToS3FileHandle(content, contentType, uploadDestination.getId());
-		} else {
-			throw new NotImplementedException("non-S3 uploads not implemented yet.");
+		switch (uploadDestination.getUploadType()) {
+		case HTTPS:
+		case SFTP:
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
+		case S3:
+			return uploadToS3FileHandle(content, contentType, (S3UploadDestination) uploadDestination);
+		default:
+			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
 		}
-
 	}
 
 	/**
@@ -3973,7 +3934,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 *        'chunk'
 	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
 	 */
-	private String uploadToS3FileHandle(byte[] content, ContentType contentType, String uploadDestinationId)
+	private String uploadToS3FileHandle(byte[] content, ContentType contentType, UploadDestination uploadDestination)
 			throws SynapseClientException, SynapseException {
     	if (content==null || content.length==0) throw new IllegalArgumentException("Missing content.");
 		
@@ -3991,7 +3952,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ccftr.setFileName("content");
 		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
-		ccftr.setUploadDestinationId(uploadDestinationId);
+		ccftr.setUploadDestination(uploadDestination);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		
