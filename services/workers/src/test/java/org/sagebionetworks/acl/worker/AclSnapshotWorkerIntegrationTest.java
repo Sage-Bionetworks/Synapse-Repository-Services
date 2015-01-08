@@ -72,7 +72,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	private String aclRecordBucket;
 	private String resourceAccessRecordBucket;
 	
-	private int TIME_OUT = 30 * 1000;
+	private int TIME_OUT = 60 * 1000;
 	
 	@Before
 	public void before() throws Exception {
@@ -229,7 +229,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		aclRecordDao.deleteAllStackInstanceBatches();
 		resourceAccessRecordDao.deleteAllStackInstanceBatches();
 	}
-	
+
 	private List<String> getKeys(String bucketName) {
 		ObjectListing listing = s3Client.listObjects(bucketName);
 		List<S3ObjectSummary> summaries = listing.getObjectSummaries();

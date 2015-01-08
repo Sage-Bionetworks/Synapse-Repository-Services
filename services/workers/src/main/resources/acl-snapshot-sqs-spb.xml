@@ -34,8 +34,8 @@
 	<bean id="aclWorkerSemaphore"
 			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
 			scope="singleton">
-		<property name="lockTimeoutMS" value="1800000" />
-		<property name="maxCount" value="10" />
+		<property name="lockTimeoutMS" value="10000" />
+		<property name="maxCount" value="1" />
 	</bean>
 
 	<!-- Pull messages off the search queue, create works, deletes successfully 
@@ -47,9 +47,9 @@
 		<property name="messageQueue" ref="aclMessageQueue" />
 		<property name="workerFactory" ref="aclQueueWorkerFactory" />
 		<property name="workerSemaphore" ref="aclWorkerSemaphore" />
-		<property name="maxNumberOfWorkerThreads" value="3" />
+		<property name="maxNumberOfWorkerThreads" value="1" />
 		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
+		<property name="visibilityTimeoutSec" value="10" />
 	</bean>
 
 	<!-- This trigger is used to process messages from the search queue. -->
@@ -64,8 +64,8 @@
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="15" />
-		<property name="repeatInterval" value="983" />
+		<property name="startDelay" value="37" />
+		<property name="repeatInterval" value="987" />
 	</bean>
 
 </beans>
