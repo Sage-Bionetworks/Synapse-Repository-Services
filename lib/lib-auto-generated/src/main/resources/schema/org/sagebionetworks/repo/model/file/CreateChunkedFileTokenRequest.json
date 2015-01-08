@@ -13,9 +13,9 @@
 			"description": "The file's content MD5 (should be a HEX encoded string).",
 			"type": "string"
 		},
-		"s3UploadDestination": {
-			"description": "The upload destination for this parent.",
-			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+		"uploadDestinationId": {
+			"description": "The ID of the upload destination to which the file is to be loaded.",
+			"type": "string"
 		}
 	}
 }
