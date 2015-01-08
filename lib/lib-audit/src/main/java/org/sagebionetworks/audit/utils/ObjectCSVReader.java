@@ -3,6 +3,7 @@ package org.sagebionetworks.audit.utils;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,8 +11,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.message.ChangeType;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -147,12 +146,13 @@ public class ObjectCSVReader<T> {
 					field.set(newObject, Double.parseDouble(value));
 				}else if (field.getType() == Float.class) {
 					field.set(newObject, Float.parseFloat(value));
-				}else if (field.getType() == ObjectType.class) {
-					field.set(newObject, ObjectType.valueOf(value));
-				}else if (field.getType() == ChangeType.class) {
-					field.set(newObject, ChangeType.valueOf(value));
-				}else if (field.getType() == ACCESS_TYPE.class) {
-					field.set(newObject, ACCESS_TYPE.valueOf(value));
+				}else if (field.getType().isEnum()) {
+					try {
+						Method method = field.getType().getMethod("valueOf", String.class);
+						field.set(newObject, method.invoke(null, value));
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
 				}else if (field.getType() == Set.class) {
 					field.set(newObject, getSetOfAccessType(value));
 				}else if (field.getType() == Date.class) {

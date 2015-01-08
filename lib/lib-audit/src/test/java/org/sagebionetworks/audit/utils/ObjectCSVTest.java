@@ -14,6 +14,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.audit.utils.ExampleObject.SomeEnum;
+import org.sagebionetworks.repo.model.ObjectType;
 
 /**
  * Tests for both ObjectCSVReader and the ObjectCSVWriter.
@@ -36,6 +38,7 @@ public class ObjectCSVTest {
 			ob.setaDouble(12312312.34234/i);
 			ob.setAnInteger(new Integer(i));
 			ob.setaFloat(new Float(123.456*i));
+			ob.setSomeEnum(SomeEnum.A);
 			// Add some nulls
 			if(i%3 == 0){
 				ob.setaBoolean(null);
@@ -52,7 +55,7 @@ public class ObjectCSVTest {
 	
 	@Test
 	public void testGetNonStaticFieldNames(){
-		String[] expected = new String[]{"aString","aLong","aBoolean","aDouble","anInteger","aFloat"};
+		String[] expected = new String[]{"aString","aLong","aBoolean","aDouble","anInteger","aFloat","someEnum"};
 		String[] restuls = ObjectCSVWriter.getNonStaticFieldNames(ExampleObject.class);
 		assertTrue(Arrays.equals(expected, restuls));
 	}
@@ -131,7 +134,7 @@ public class ObjectCSVTest {
 	@Test
 	public void testRoundTripWithHeaders() throws IOException{
 		// For this case we are providing the headers.
-		String[] headers = new String[]{"aString", "aLong", "aBoolean", "aDouble", "anInteger", "aFloat"};
+		String[] headers = new String[]{"aString", "aLong", "aBoolean", "aDouble", "anInteger", "aFloat", "someEnum"};
 		// Use the headers to build up the CSV.
 		StringWriter writer = new StringWriter();
 		ObjectCSVWriter<ExampleObject> csv = new ObjectCSVWriter<ExampleObject>(writer, ExampleObject.class, headers);
