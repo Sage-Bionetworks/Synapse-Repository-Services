@@ -1306,7 +1306,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, new Predicate<Long>() {
 			@Override
 			public boolean apply(Long input) {
-				return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue();
+				return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue()
+						&& input.longValue() != BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue()
+						&& input.longValue() != BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue();
 			}
 		}));
 		return groups;
