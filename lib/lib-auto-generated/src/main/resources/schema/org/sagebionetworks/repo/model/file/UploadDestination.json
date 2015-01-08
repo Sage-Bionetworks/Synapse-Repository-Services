@@ -4,7 +4,7 @@
 	"properties": {
 		"id": {
 			"type":"string",
-			"description":"The ID of the upload destination",
+			"description":"The ID of the upload destination"
 		},
         "concreteType": {
             "type": "string",
