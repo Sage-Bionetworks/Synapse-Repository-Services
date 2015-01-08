@@ -1852,13 +1852,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException {
-		return createFileHandleS3(temp, contentType, null, null);
+		return createFileHandleUsingChunkedUpload(temp, contentType, null, null);
 	}
 
 	@Override
 	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated) throws SynapseException, IOException {
-		return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+		return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, null);
 	}
 
 	@Override
@@ -1872,7 +1872,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
 		if (uploadDestinations.isEmpty()) {
 			// default to S3
-			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, null);
 		}
 
 		UploadDestination uploadDestination = uploadDestinations.get(0);
@@ -1881,13 +1881,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		case SFTP:
 			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
 		case S3:
-			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
+			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
 		default:
 			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
 		}
 	}
 
-	private S3FileHandle createFileHandleS3(File temp, String contentType, Boolean shouldPreviewBeCreated,
+	private S3FileHandle createFileHandleUsingChunkedUpload(File temp, String contentType, Boolean shouldPreviewBeCreated,
 			UploadDestination uploadDestination) throws SynapseException, IOException {
 		if (temp == null) {
 			throw new IllegalArgumentException("File cannot be null");
