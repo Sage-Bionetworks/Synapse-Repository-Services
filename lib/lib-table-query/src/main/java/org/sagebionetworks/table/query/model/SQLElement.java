@@ -3,6 +3,7 @@ package org.sagebionetworks.table.query.model;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
 import org.sagebionetworks.table.query.model.visitors.Visitor;
 import org.sagebionetworks.util.IntrospectionUtils;
@@ -71,5 +72,20 @@ public abstract class SQLElement {
 		ToSimpleSqlVisitor visitor = new ToSimpleSqlVisitor();
 		visit(this, visitor);
 		return visitor.getSql();
+	}
+	
+	/**
+	 * Does the passed element have the same name as this element?
+	 * @param other The other element to compare the name to.
+	 * @return
+	 */
+	public boolean nameEquals(SQLElement other){
+		// Get this elements name
+		ToNameStringVisitor thisNameVisitor = new ToNameStringVisitor();
+		this.visit(thisNameVisitor);
+		// Get the other elements name.
+		ToNameStringVisitor otherNameVisitor = new ToNameStringVisitor();
+		other.visit(otherNameVisitor);
+		return thisNameVisitor.getName().equals(otherNameVisitor.getName());
 	}
 }
