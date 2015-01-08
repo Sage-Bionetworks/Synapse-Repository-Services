@@ -6,10 +6,6 @@
             "type": "string",
             "description": "Indicates which implementation this object represents."
         },
-		"uploadType": {
-			"name": "UploadType",
-			"$ref": "org.sagebionetworks.repo.model.file.UploadType"
-		},
 		"banner": {
 			"type": "string",
 			"description": "The optional banner to show every time a file is uploaded"

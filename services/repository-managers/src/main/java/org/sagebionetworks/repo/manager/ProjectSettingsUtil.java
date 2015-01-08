@@ -37,29 +37,23 @@ public class ProjectSettingsUtil {
 		if (setting == null) {
 			throw new IllegalArgumentException("Setting cannot be null.");
 		}
-		if ((setting.getUploadType() == null)) {
-			throw new IllegalArgumentException("Setting.getUploadType() cannot be null.");
-		}
 		
 		if (setting instanceof ExternalUploadDestinationSetting) {
+			ExternalUploadDestinationSetting externalUploadDestinationSetting = (ExternalUploadDestinationSetting)setting;
+			if ((externalUploadDestinationSetting.getUploadType() == null)) {
+				throw new IllegalArgumentException("Setting.getUploadType() cannot be null.");
+			}
 			if (((ExternalUploadDestinationSetting) setting).getUrl() == null) {
 				throw new IllegalArgumentException("setting.getUrl() cannot be null.");
 			}
-			if (setting.getUploadType() == UploadType.S3) {
-				throw new IllegalArgumentException("UploadType.S3 invalid for ExternalUploadDestinationSetting.");
-			}
-			if ((setting.getUploadType() == UploadType.HTTPS) && 
+			if ((externalUploadDestinationSetting.getUploadType() == UploadType.HTTPS) && 
 					(!((ExternalUploadDestinationSetting) setting).getUrl().toLowerCase().startsWith("https:"))) {
 				throw new IllegalArgumentException("setting.getUrl() must start with 'http' if setting.getUploadType() is UploadType.HTTP.");
 			}
-			if ((setting.getUploadType() == UploadType.SFTP) && 
+			if ((externalUploadDestinationSetting.getUploadType() == UploadType.SFTP) && 
 					(!((ExternalUploadDestinationSetting) setting).getUrl().toLowerCase().startsWith("sftp"))) {
 				throw new IllegalArgumentException("setting.getUrl() must start with 'sftp' if setting.getUploadType() is UploadType.SFTP.");
 			}
-		}
-		if ((setting instanceof S3UploadDestinationSetting) &&
-				(setting.getUploadType() != UploadType.S3)) {
-			throw new IllegalArgumentException("setting.getUploadType() must be UploadType.S3 if type is S3UploadDestinationSetting.");
 		}
 	}
 

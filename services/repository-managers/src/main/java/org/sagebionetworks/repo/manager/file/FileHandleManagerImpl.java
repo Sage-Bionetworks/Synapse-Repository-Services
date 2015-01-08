@@ -596,7 +596,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				|| uploadDestinationsSettings.getDestinations().isEmpty()) {
 			uploadDestinationsSettings = new UploadDestinationListSetting();
 			S3UploadDestinationSetting s3UploadDestinationSetting = new S3UploadDestinationSetting();
-			s3UploadDestinationSetting.setUploadType(UploadType.S3);
 			uploadDestinationsSettings.setDestinations(Collections.<UploadDestinationSetting> singletonList(s3UploadDestinationSetting));
 		}
 
@@ -606,20 +605,27 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String filename = UUID.randomUUID().toString();
 		for (UploadDestinationSetting uploadDestinationSetting : uploadDestinationsSettings.getDestinations()) {
 			UploadDestination uploadDestination;
-
-			switch (uploadDestinationSetting.getUploadType()) {
-			case HTTPS:
-			case SFTP:
-				List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
-				uploadDestination = createExternalUploadDestination(uploadDestinationSetting, nodePath, filename);
-				break;
-			default:
-			case S3:
+			
+			if (uploadDestinationSetting instanceof S3UploadDestinationSetting) {
 				uploadDestination = createS3UploadDestination(uploadDestinationSetting);
-				break;
+			} else if (uploadDestinationSetting instanceof ExternalUploadDestinationSetting) {
+				UploadType uploadType = ((ExternalUploadDestinationSetting)uploadDestinationSetting).getUploadType();
+				ExternalUploadDestination externalUploadDestination;
+				switch (uploadType) {
+				case HTTPS:
+				case SFTP:
+					List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
+					externalUploadDestination = createExternalUploadDestination(uploadDestinationSetting, nodePath, filename);
+					break;
+				default:
+					throw new IllegalArgumentException("Unexpected uploadType: "+uploadType);
+				}
+				externalUploadDestination.setUploadType(uploadType);
+				uploadDestination = externalUploadDestination;
+			} else {
+				throw new IllegalArgumentException("Unexpected type: "+uploadDestinationSetting.getClass());
 			}
 
-			uploadDestination.setUploadType(uploadDestinationSetting.getUploadType());
 			uploadDestination.setBanner(uploadDestinationSetting.getBanner());
 			destinations.add(uploadDestination);
 		}
@@ -633,7 +639,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return s3UploadDestination;
 	}
 
-	private UploadDestination createExternalUploadDestination(UploadDestinationSetting uploadDestinationSetting, List<EntityHeader> nodePath,
+	private ExternalUploadDestination createExternalUploadDestination(UploadDestinationSetting uploadDestinationSetting, List<EntityHeader> nodePath,
 			String filename) {
 		ExternalUploadDestinationSetting externalUploadDestinationSetting = (ExternalUploadDestinationSetting) uploadDestinationSetting;
 		StringBuilder url = new StringBuilder(externalUploadDestinationSetting.getUrl());

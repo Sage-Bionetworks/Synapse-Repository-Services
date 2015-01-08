@@ -286,7 +286,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		settings.setProjectId(project.getId());
 		settings.setSettingsType("upload");
 		S3UploadDestinationSetting destination = new S3UploadDestinationSetting();
-		destination.setUploadType(UploadType.S3);
 		settings.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));
 		projectSettingsDAO.create(settings);
 	}

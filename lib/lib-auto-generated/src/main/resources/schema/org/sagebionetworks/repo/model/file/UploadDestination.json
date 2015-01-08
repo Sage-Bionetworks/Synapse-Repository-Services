@@ -6,19 +6,9 @@
             "type": "string",
             "description": "Indicates which implementation this object represents."
         },
-		"uploadType": {
-			"type": "string",
-			"name": "UploadType",
-			"id": "org.sagebionetworks.repo.model.file.UploadType",
-			"enum": [
-				"S3",
-				"SFTP",
-				"HTTPS"
-			]
-		},
 		"banner": {
 			"type": "string",
-			"description": "If set, the client should show this banner everytime an upload is initiated"
+			"description": "If set, the client should show this banner every time an upload is initiated"
 		}
 	}
 }
