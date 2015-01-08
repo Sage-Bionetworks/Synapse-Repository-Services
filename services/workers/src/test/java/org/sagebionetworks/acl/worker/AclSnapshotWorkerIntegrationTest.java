@@ -39,6 +39,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+// it's necessary to drop the database every time before running this test
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class AclSnapshotWorkerIntegrationTest {
@@ -126,9 +127,9 @@ public class AclSnapshotWorkerIntegrationTest {
 	
 	@Test
 	public void test() throws Exception {
-		
+
 		// Test CREATE
-		
+
 		List<String> aclKeys = getKeys(aclRecordBucket);
 		List<String> resourceAccessKeys = getKeys(resourceAccessRecordBucket);
 		

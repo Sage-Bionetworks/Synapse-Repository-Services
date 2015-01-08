@@ -42,6 +42,9 @@ public class AclSnapshotWorker implements Worker{
 	@Autowired
 	private AccessControlListDAO accessControlListDao;
 
+	public AclSnapshotWorker() {
+	}
+
 	// for unit test only
 	AclSnapshotWorker(AclRecordDAO aclRecordDao, ResourceAccessRecordDAO resourceAccessRecordDao,
 			DBOChangeDAO changeDao, AccessControlListDAO accessControlListDao) {
