@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 
 public class ProjectSettingsUtilTest {
 
@@ -33,6 +36,13 @@ public class ProjectSettingsUtilTest {
 			ProjectSettingsUtil.validateUploadDestinationSetting(setting);		
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingMismatchedProtocols1() {
+		ExternalUploadDestinationSetting setting = new ExternalUploadDestinationSetting();
+		setting.setUrl("http://someurl");
+		setting.setUploadType(UploadType.S3);
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateUploadDestinationSettingMismatchedProtocols2() {
@@ -49,10 +59,18 @@ public class ProjectSettingsUtilTest {
 		setting.setUrl("s3://someurl");
 		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
 	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateUploadDestinationSettingMismatchedProtocolS3UploadInvalid() {
+		S3UploadDestinationSetting setting = new S3UploadDestinationSetting();
+		setting.setUploadType(UploadType.SFTP);
+		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
+	}
 	
 	@Test
 	public void testValidateUploadDestinationSettingMismatchedProtocolS3UploadValid() {
 		S3UploadDestinationSetting setting = new S3UploadDestinationSetting();
+		setting.setUploadType(UploadType.S3);
 		ProjectSettingsUtil.validateUploadDestinationSetting(setting);
 	}
 	

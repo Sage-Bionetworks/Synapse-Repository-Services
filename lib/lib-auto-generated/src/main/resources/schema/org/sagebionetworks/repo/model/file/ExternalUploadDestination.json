@@ -6,15 +6,6 @@
 		}
 	],
 	"properties": {
-		"uploadType": {
-			"type": "string",
-			"name": "UploadType",
-			"id": "org.sagebionetworks.repo.model.file.UploadType",
-			"enum": [
-				"SFTP",
-				"HTTPS"
-			]
-		},
 		"url": {
 			"type": "string",
 			"description": "the generated file URL for uploading to the external destination"
