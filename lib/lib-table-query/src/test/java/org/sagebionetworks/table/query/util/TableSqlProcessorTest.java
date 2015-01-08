@@ -14,68 +14,60 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Identifier;
-import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.util.TableSqlProcessor;
 
 public class TableSqlProcessorTest {
 	
 	@Test
-	public void testCreateAlias(){
-		assertEquals("countFooBar", TableSqlProcessor.createAlias("count(\"Foo Bar\")"));
-		assertEquals("foo123", TableSqlProcessor.createAlias(" foo123 "));
-	}
-	
-	@Test
-	public void testGetStringValue() throws ParseException{
+	public void testGetName() throws ParseException{
 		Identifier a = new TableQueryParser("foo").identifier();
 		Identifier b = new TableQueryParser("\"foo\"").identifier();
 		// They should have the same string value even though one is in quotes.
-		assertEquals(TableSqlProcessor.getStringValue(a), TableSqlProcessor.getStringValue(b));
+		assertEquals(TableSqlProcessor.getName(a), TableSqlProcessor.getName(b));
 	}
 	
 	@Test
-	public void testGetStringValueFunction() throws ParseException{
+	public void testGetNameFunction() throws ParseException{
 		ValueExpressionPrimary a = new TableQueryParser("count(*)").valueExpressionPrimary();
 		ValueExpressionPrimary b = new TableQueryParser("COUNT(*)").valueExpressionPrimary();
 		// They should have the same string value even though one is in quotes.
-		assertEquals(TableSqlProcessor.getStringValue(a), TableSqlProcessor.getStringValue(b));
+		assertEquals(TableSqlProcessor.getName(a), TableSqlProcessor.getName(b));
 	}
 	
 	@Test
-	public void testGetStringValueFunction2() throws ParseException{
+	public void testGetNameFunction2() throws ParseException{
 		ValueExpressionPrimary a = new TableQueryParser("foo").valueExpressionPrimary();
 		ValueExpressionPrimary b = new TableQueryParser("\"foo\"").valueExpressionPrimary();
 		// They should have the same string value even though one is in quotes.
-		assertEquals(TableSqlProcessor.getStringValue(a), TableSqlProcessor.getStringValue(b));
+		assertEquals(TableSqlProcessor.getName(a), TableSqlProcessor.getName(b));
 	}
 	
 	@Test
-	public void testIsSameColumnSortKeyTrue() throws ParseException{
+	public void testNameEqualsSortKeyTrue() throws ParseException{
 		SortKey a = new TableQueryParser("foo").sortKey();
 		SortKey b = new TableQueryParser("\"foo\"").sortKey();
-		assertTrue(TableSqlProcessor.isSameColumn(a, b));
+		assertTrue(TableSqlProcessor.nameEquals(a, b));
 	}
 	
 	@Test
-	public void testIsSameDerivedColumn() throws ParseException{
+	public void testNameEqualsDerivedColumn() throws ParseException{
 		DerivedColumn a = new TableQueryParser("count(foo)").derivedColumn();
 		DerivedColumn b = new TableQueryParser("COUNT( \"foo\" )").derivedColumn();
-		assertTrue(TableSqlProcessor.isSameColumn(a, b));
+		assertTrue(TableSqlProcessor.nameEquals(a, b));
 	}
 	@Test
-	public void testIsSameColumnSortKeyFalse() throws ParseException{
+	public void testNameEqualsSortKeyFalse() throws ParseException{
 		SortKey a = new TableQueryParser("bar").sortKey();
 		SortKey b = new TableQueryParser("\"foo\"").sortKey();
-		assertFalse(TableSqlProcessor.isSameColumn(a, b));
+		assertFalse(TableSqlProcessor.nameEquals(a, b));
 	}
 	
 	@Test
-	public void testIsSameColumnSortSpecification() throws ParseException{
+	public void testNameEqualsSortSpecification() throws ParseException{
 		SortKey a = new TableQueryParser("foo asc").sortKey();
 		SortKey b = new TableQueryParser("\"foo\" DESC").sortKey();
-		assertTrue(TableSqlProcessor.isSameColumn(a, b));
+		assertTrue(TableSqlProcessor.nameEquals(a, b));
 	}
 	
 	@Test

@@ -74,18 +74,4 @@ public abstract class SQLElement {
 		return visitor.getSql();
 	}
 	
-	/**
-	 * Does the passed element have the same name as this element?
-	 * @param other The other element to compare the name to.
-	 * @return
-	 */
-	public boolean nameEquals(SQLElement other){
-		// Get this elements name
-		ToNameStringVisitor thisNameVisitor = new ToNameStringVisitor();
-		this.visit(thisNameVisitor);
-		// Get the other elements name.
-		ToNameStringVisitor otherNameVisitor = new ToNameStringVisitor();
-		other.visit(otherNameVisitor);
-		return thisNameVisitor.getName().equals(otherNameVisitor.getName());
-	}
 }
