@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -46,6 +48,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 	private Long modifiedById;
 
 	private Node node;
+	private String nodeId;
 	private UserGroup group;
 	private UserGroup group2;
 
@@ -53,9 +56,9 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
 
-	@Test
-	public void test() throws Exception {
-		// SET UP
+
+	@Before
+	public void setUp() throws Exception {
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
@@ -69,7 +72,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedById);
 		node.setNodeType(EntityType.project.name());
-		String nodeId = nodeDAO.createNew(node);
+		nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
 		node = nodeDAO.getNode(nodeId);
 		nodeList.add(node);
@@ -87,7 +90,10 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
+	}
 
+	@Test
+	public void test() throws Exception {
 		// CREATE ACL
 		changeDAO.deleteAllChanges();
 		
@@ -163,8 +169,10 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 			assertEquals(ChangeType.DELETE, message.getChangeType());
 			assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 		}
+	}
 
-		// CLEAN UP
+	@After
+	public void cleanUp() throws Exception {
 		nodeList.clear();
 		aclList.clear();
 		for (UserGroup g : groupList) {
