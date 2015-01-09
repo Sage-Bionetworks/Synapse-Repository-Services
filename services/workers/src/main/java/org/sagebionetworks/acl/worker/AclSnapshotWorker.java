@@ -102,21 +102,22 @@ public class AclSnapshotWorker implements Worker{
 
 	protected List<ResourceAccessRecord> buildResourceAccessRecordList(ChangeMessage message, AccessControlList acl) {
 		List<ResourceAccessRecord> records = new ArrayList<ResourceAccessRecord>();
-		if (acl != null) {
-			Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
-			if (resourceAccessSet == null) {
-				return records;
-			}
-			for (ResourceAccess resourceAccess : resourceAccessSet) {
-				Set<ACCESS_TYPE> accessTypeSet = resourceAccess.getAccessType();
-				if (accessTypeSet != null) {
-					for (ACCESS_TYPE accessType : accessTypeSet) {
-						ResourceAccessRecord record = new ResourceAccessRecord();
-						record.setChangeNumber(message.getChangeNumber());
-						record.setPrincipalId(resourceAccess.getPrincipalId());
-						record.setAccessType(accessType);
-						records.add(record);
-					}
+		if (acl == null) {
+			return records;
+		}
+		Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
+		if (resourceAccessSet == null) {
+			return records;
+		}
+		for (ResourceAccess resourceAccess : resourceAccessSet) {
+			Set<ACCESS_TYPE> accessTypeSet = resourceAccess.getAccessType();
+			if (accessTypeSet != null) {
+				for (ACCESS_TYPE accessType : accessTypeSet) {
+					ResourceAccessRecord record = new ResourceAccessRecord();
+					record.setChangeNumber(message.getChangeNumber());
+					record.setPrincipalId(resourceAccess.getPrincipalId());
+					record.setAccessType(accessType);
+					records.add(record);
 				}
 			}
 		}
