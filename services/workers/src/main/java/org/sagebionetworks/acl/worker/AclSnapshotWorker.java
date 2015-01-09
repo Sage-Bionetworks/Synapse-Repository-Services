@@ -132,14 +132,15 @@ public class AclSnapshotWorker implements Worker{
 		record.setTimestamp(message.getTimestamp().getTime());
 		record.setEtag(message.getObjectEtag());
 
-		if (acl != null) {
-			record.setOwnerId(acl.getId());
-			record.setCreationDate(acl.getCreationDate());
-			try {
-				record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-			} catch (Exception e) {
-				// do nothing, the ownerType field remains null
-			}
+		if (acl == null) {
+			return record;
+		}
+		record.setOwnerId(acl.getId());
+		record.setCreationDate(acl.getCreationDate());
+		try {
+			record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
+		} catch (Exception e) {
+			// do nothing, the ownerType field remains null
 		}
 
 		return record;
