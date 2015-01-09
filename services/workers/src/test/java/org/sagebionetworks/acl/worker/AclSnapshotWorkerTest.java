@@ -131,25 +131,6 @@ public class AclSnapshotWorkerTest {
 		assertEquals(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one), acl));
 	}
 
-	/**
-	 * @return true if record1 and record 2 is relatively the same 
-	 * (most fields are the same except for timestamp and changeNumber, 
-	 * and timestamp difference is less then .1 second 
-	 * and both changeNumbers are null.)
-	 *         false otherwise
-	 */
-/*	private boolean compareAclRecords(AclRecord record1, AclRecord record2) {
-		return (record1.getAclId().equals(record2.getAclId())) &&
-				(record1.getChangeType().equals(record2.getChangeType())) &&
-				(record1.getCreationDate().equals(record2.getCreationDate())) &&
-				(record1.getEtag().equals(record2.getEtag())) &&
-				(record1.getOwnerId().equals(record2.getOwnerId())) &&
-				(record1.getOwnerType().equals(record2.getOwnerType())) &&
-				(Math.abs(record1.getTimestamp() - record2.getTimestamp()) < 100) &&
-				(record1.getChangeNumber() == null) &&
-				(record2.getChangeNumber() == null);
-	}*/
-
 	@Test
 	public void testBuildResourceAccessRecord() throws Exception {
 		Long timestamp = System.currentTimeMillis();
