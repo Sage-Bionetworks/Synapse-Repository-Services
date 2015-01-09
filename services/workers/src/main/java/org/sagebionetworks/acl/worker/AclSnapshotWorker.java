@@ -92,7 +92,6 @@ public class AclSnapshotWorker implements Worker{
 
 		AclRecord aclRecord = buildAclRecord(changeMessage, acl);
 		List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage, acl);
-		System.out.println(aclRecord);
 
 		aclRecordDao.saveBatch(Arrays.asList(aclRecord));
 		if (!resourceAccessRecords.isEmpty()) {
@@ -109,12 +108,12 @@ public class AclSnapshotWorker implements Worker{
 				return records;
 			}
 			for (ResourceAccess resourceAccess : resourceAccessSet) {
-				ResourceAccessRecord record = new ResourceAccessRecord();
-				record.setChangeNumber(message.getChangeNumber());
-				record.setPrincipalId(resourceAccess.getPrincipalId());
 				Set<ACCESS_TYPE> accessTypeSet = resourceAccess.getAccessType();
 				if (accessTypeSet != null) {
 					for (ACCESS_TYPE accessType : accessTypeSet) {
+						ResourceAccessRecord record = new ResourceAccessRecord();
+						record.setChangeNumber(message.getChangeNumber());
+						record.setPrincipalId(resourceAccess.getPrincipalId());
 						record.setAccessType(accessType);
 						records.add(record);
 					}

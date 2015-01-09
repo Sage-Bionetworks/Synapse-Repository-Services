@@ -157,14 +157,15 @@ public class AclSnapshotWorkerTest {
 		Date creationDate = new Date(timestamp);
 		Long id = 123L;
 		String ownerId = "789";
-		Long principalId = 456L;
+		Long principalId1 = 456L;
+		Long principalId2 = 654L;
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		ResourceAccess ra1 = new ResourceAccess();
 		ResourceAccess ra2 = new ResourceAccess();
-		ra1.setPrincipalId(principalId);
-		ra2.setPrincipalId(principalId);
-		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
-		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
+		ra1.setPrincipalId(principalId1);
+		ra2.setPrincipalId(principalId2);
+		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
+		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
 		resourceAccess.addAll(Arrays.asList(ra1, ra2));
 		
 		AccessControlList acl = new AccessControlList();
@@ -186,18 +187,26 @@ public class AclSnapshotWorkerTest {
 		
 		ResourceAccessRecord raRecord1 = new ResourceAccessRecord();
 		ResourceAccessRecord raRecord2 = new ResourceAccessRecord();
+		ResourceAccessRecord raRecord3 = new ResourceAccessRecord();
+		ResourceAccessRecord raRecord4 = new ResourceAccessRecord();
 		raRecord1.setChangeNumber(null);
 		raRecord2.setChangeNumber(null);
-		raRecord1.setPrincipalId(principalId);
-		raRecord2.setPrincipalId(principalId);
+		raRecord3.setChangeNumber(null);
+		raRecord4.setChangeNumber(null);
+		raRecord1.setPrincipalId(principalId1);
+		raRecord2.setPrincipalId(principalId1);
+		raRecord3.setPrincipalId(principalId2);
+		raRecord4.setPrincipalId(principalId2);
 		raRecord1.setAccessType(ACCESS_TYPE.READ);
 		raRecord2.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		raRecord3.setAccessType(ACCESS_TYPE.READ);
+		raRecord4.setAccessType(ACCESS_TYPE.DOWNLOAD);
 
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
 
 		Set<ResourceAccessRecord> expected = new HashSet<ResourceAccessRecord>(
-				Arrays.asList(raRecord1, raRecord2));
+				Arrays.asList(raRecord1, raRecord2, raRecord3, raRecord4));
 		Set<ResourceAccessRecord> actual = new HashSet<ResourceAccessRecord>(
 				worker.buildResourceAccessRecordList(MessageUtils.extractMessageBody(one), acl));
 		assertEquals(expected, actual);
