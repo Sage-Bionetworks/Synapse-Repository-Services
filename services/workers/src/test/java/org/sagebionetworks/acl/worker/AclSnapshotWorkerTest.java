@@ -68,8 +68,9 @@ public class AclSnapshotWorkerTest {
 
 	@Test
 	public void testCreateACL() throws Exception {
-		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
-		Date creationDate = new Date();
+		Long timestamp = System.currentTimeMillis();
+		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag", timestamp);
+		Date creationDate = new Date(timestamp);
 		Long id = 123L;
 		AccessControlList acl = new AccessControlList();
 		acl.setId("789"); // ownerId
@@ -93,10 +94,11 @@ public class AclSnapshotWorkerTest {
 
 	@Test
 	public void testBuildAclRecord() throws Exception {
-		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
 		Long timestamp = System.currentTimeMillis();
-		Date creationDate = new Date();
+		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag", timestamp);
+		Date creationDate = new Date(timestamp);
 		Long id = 123L;
+		String ownerId = "789";
 		Long principalId = 456L;
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		ResourceAccess ra1 = new ResourceAccess();
@@ -108,26 +110,26 @@ public class AclSnapshotWorkerTest {
 		resourceAccess.addAll(Arrays.asList(ra1, ra2));
 		
 		AccessControlList acl = new AccessControlList();
-		acl.setId("789"); // ownerId
+		acl.setId(ownerId);
 		acl.setCreationDate(creationDate);
 		acl.setResourceAccess(resourceAccess);
 		
-		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
-		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
+		Mockito.when(mockAccessControlListDao.get(id)).thenReturn(acl);
+		Mockito.when(mockAccessControlListDao.getOwnerType(id)).thenReturn(ObjectType.ENTITY);
 
 		AclRecord aclRecord = new AclRecord();
-		aclRecord.setAclId("123");
+		aclRecord.setAclId(id.toString());
 		aclRecord.setChangeNumber(null);
 		aclRecord.setChangeType(ChangeType.UPDATE);
 		aclRecord.setCreationDate(creationDate);
 		aclRecord.setEtag("etag");
-		aclRecord.setOwnerId("789");
+		aclRecord.setOwnerId(ownerId);
 		aclRecord.setOwnerType(ObjectType.ENTITY);
 		aclRecord.setTimestamp(timestamp);
 
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
-		assertTrue(compareAclRecords(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one), acl)));
+		assertEquals(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one), acl));
 	}
 
 	/**
@@ -137,7 +139,7 @@ public class AclSnapshotWorkerTest {
 	 * and both changeNumbers are null.)
 	 *         false otherwise
 	 */
-	private boolean compareAclRecords(AclRecord record1, AclRecord record2) {
+/*	private boolean compareAclRecords(AclRecord record1, AclRecord record2) {
 		return (record1.getAclId().equals(record2.getAclId())) &&
 				(record1.getChangeType().equals(record2.getChangeType())) &&
 				(record1.getCreationDate().equals(record2.getCreationDate())) &&
@@ -147,14 +149,15 @@ public class AclSnapshotWorkerTest {
 				(Math.abs(record1.getTimestamp() - record2.getTimestamp()) < 100) &&
 				(record1.getChangeNumber() == null) &&
 				(record2.getChangeNumber() == null);
-	}
+	}*/
 
 	@Test
 	public void testBuildResourceAccessRecord() throws Exception {
-		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
 		Long timestamp = System.currentTimeMillis();
-		Date creationDate = new Date();
+		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag", timestamp);
+		Date creationDate = new Date(timestamp);
 		Long id = 123L;
+		String ownerId = "789";
 		Long principalId = 456L;
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		ResourceAccess ra1 = new ResourceAccess();
@@ -166,19 +169,19 @@ public class AclSnapshotWorkerTest {
 		resourceAccess.addAll(Arrays.asList(ra1, ra2));
 		
 		AccessControlList acl = new AccessControlList();
-		acl.setId("789"); // ownerId
+		acl.setId(ownerId);
 		acl.setCreationDate(creationDate);
 		acl.setResourceAccess(resourceAccess);
-		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
-		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
+		Mockito.when(mockAccessControlListDao.get(id)).thenReturn(acl);
+		Mockito.when(mockAccessControlListDao.getOwnerType(id)).thenReturn(ObjectType.ENTITY);
 		
 		AclRecord aclRecord = new AclRecord();
-		aclRecord.setAclId("123");
+		aclRecord.setAclId(id.toString());
 		aclRecord.setChangeNumber(null);
 		aclRecord.setChangeType(ChangeType.UPDATE);
 		aclRecord.setCreationDate(creationDate);
 		aclRecord.setEtag("etag");
-		aclRecord.setOwnerId("789");
+		aclRecord.setOwnerId(ownerId);
 		aclRecord.setOwnerType(ObjectType.ENTITY);
 		aclRecord.setTimestamp(timestamp);
 		
@@ -203,8 +206,9 @@ public class AclSnapshotWorkerTest {
 
 	@Test
 	public void testUpdateACL() throws Exception {
-		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
-		Date creationDate = new Date();
+		Long timestamp = System.currentTimeMillis();
+		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag", timestamp );
+		Date creationDate = new Date(timestamp);
 		Long id = 123L;
 		Long principalId = 456L;
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
@@ -239,9 +243,9 @@ public class AclSnapshotWorkerTest {
 	
 	@Test
 	public void testDeleteACL() throws Exception {
-		Message one = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag");
 		Long timestamp = System.currentTimeMillis();
-		Date creationDate = new Date();
+		Message one = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag", timestamp);
+		Date creationDate = new Date(timestamp);
 		Long id = 123L;
 		AccessControlList acl = new AccessControlList();
 		acl.setId("789"); // ownerId

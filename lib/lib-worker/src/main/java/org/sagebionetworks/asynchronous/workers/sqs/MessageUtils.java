@@ -225,7 +225,26 @@ public class MessageUtils {
 		message.setTimestamp(new Date());
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}
-	
+
+	/**
+	 * Build a generic message.
+	 * @param changeType
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @param timestamp
+	 * @return
+	 */
+	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag, Long timestamp){
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectEtag(etag);
+		message.setObjectId(objectId);
+		message.setObjectType(objectType);
+		message.setTimestamp(new Date(timestamp));
+		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+	}
+
 	/**
 	 * Constructs a list of lists, each sublist containing no more than 10 items
 	 */

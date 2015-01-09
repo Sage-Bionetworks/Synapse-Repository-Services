@@ -64,7 +64,7 @@ public class AclSnapshotWorker implements Worker{
 				if(returned != null){
 					toDelete.add(returned);
 				}
-			}catch(Throwable e){
+			} catch(Throwable e){
 				// Treat unknown errors as unrecoverable and return them
 				toDelete.add(message);
 				log.error("Worker Failed", e);
