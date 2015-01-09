@@ -76,7 +76,7 @@ public class AclSnapshotWorkerTest {
 		acl.setCreationDate(creationDate);
 		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
-		
+
 		List<Message> messages = Arrays.asList(one);
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
@@ -85,7 +85,7 @@ public class AclSnapshotWorkerTest {
 		assertNotNull(results);
 		assertEquals(messages, results);
 		// confirm that the DAOs have been called
-		verify(mockAccessControlListDao, Mockito.times(2)).get(id);
+		verify(mockAccessControlListDao, Mockito.times(1)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 		verify(mockResourceAccessRecordDao, never()).saveBatch(Matchers.anyList());
@@ -127,7 +127,7 @@ public class AclSnapshotWorkerTest {
 
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
-		assertTrue(compareAclRecords(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one))));
+		assertTrue(compareAclRecords(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one), acl)));
 	}
 
 	/**
@@ -197,7 +197,7 @@ public class AclSnapshotWorkerTest {
 		Set<ResourceAccessRecord> expected = new HashSet<ResourceAccessRecord>(
 				Arrays.asList(raRecord1, raRecord2));
 		Set<ResourceAccessRecord> actual = new HashSet<ResourceAccessRecord>(
-				worker.buildResourceAccessRecordList(MessageUtils.extractMessageBody(one)));
+				worker.buildResourceAccessRecordList(MessageUtils.extractMessageBody(one), acl));
 		assertEquals(expected, actual);
 	}
 
@@ -231,7 +231,7 @@ public class AclSnapshotWorkerTest {
 		assertNotNull(results);
 		assertEquals(messages, results);
 		// confirm that the DAOs have been called
-		verify(mockAccessControlListDao, Mockito.times(2)).get(id);
+		verify(mockAccessControlListDao, Mockito.times(1)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 		verify(mockResourceAccessRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
@@ -257,7 +257,7 @@ public class AclSnapshotWorkerTest {
 		assertNotNull(results);
 		assertEquals(messages, results);
 		// confirm that the DAOs have been called
-		verify(mockAccessControlListDao, Mockito.times(2)).get(id);
+		verify(mockAccessControlListDao, Mockito.times(1)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 		verify(mockResourceAccessRecordDao, never()).saveBatch(Matchers.anyList());

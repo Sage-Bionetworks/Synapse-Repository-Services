@@ -81,10 +81,18 @@ public class AclSnapshotWorker implements Worker{
 		if (changeMessage.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {
 			throw new IllegalArgumentException("ObjectType must be ACCESS_CONTROL_LIST");
 		}
-		
-		AclRecord aclRecord = buildAclRecord(changeMessage);
-		List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage);
-		
+
+		AccessControlList acl = null;
+		try {
+			acl = accessControlListDao.get(Long.parseLong(changeMessage.getObjectId()));
+		} catch (Throwable e) {
+			// do nothing, other methods need to check for null acl
+		}
+
+		AclRecord aclRecord = buildAclRecord(changeMessage, acl);
+		List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage, acl);
+		System.out.println(aclRecord);
+
 		aclRecordDao.saveBatch(Arrays.asList(aclRecord));
 		if (!resourceAccessRecords.isEmpty()) {
 			resourceAccessRecordDao.saveBatch(resourceAccessRecords);
@@ -92,11 +100,13 @@ public class AclSnapshotWorker implements Worker{
 		return message;
 	}
 
-	protected List<ResourceAccessRecord> buildResourceAccessRecordList(ChangeMessage message) {
+	protected List<ResourceAccessRecord> buildResourceAccessRecordList(ChangeMessage message, AccessControlList acl) {
 		List<ResourceAccessRecord> records = new ArrayList<ResourceAccessRecord>();
-		try {
-			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
+		if (acl != null) {
 			Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
+			if (resourceAccessSet == null) {
+				return records;
+			}
 			for (ResourceAccess resourceAccess : resourceAccessSet) {
 				ResourceAccessRecord record = new ResourceAccessRecord();
 				record.setChangeNumber(message.getChangeNumber());
@@ -104,29 +114,28 @@ public class AclSnapshotWorker implements Worker{
 				record.setAccessType(resourceAccess.getAccessType());
 				records.add(record);
 			}
-		} catch (Throwable e) {
-			// the change message carries a fake aclId, do nothing
 		}
 		return records;
 	}
 
-	protected AclRecord buildAclRecord(ChangeMessage message) {
+	protected AclRecord buildAclRecord(ChangeMessage message, AccessControlList acl) {
 		AclRecord record = new AclRecord();
 		record.setAclId(message.getObjectId());
 		record.setChangeNumber(message.getChangeNumber());
 		record.setChangeType(message.getChangeType());
 		record.setTimestamp(message.getTimestamp().getTime());
 		record.setEtag(message.getObjectEtag());
-		
-		try {
-			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
+
+		if (acl != null) {
 			record.setOwnerId(acl.getId());
 			record.setCreationDate(acl.getCreationDate());
-			record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-		} catch (Throwable e) {
-			// if the change message carries a fake aclId, the fields extracted from the acl object will be null
+			try {
+				record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
+			} catch (Exception e) {
+				// do nothing, the ownerType field remains null
+			}
 		}
-		
+
 		return record;
 	}
 
