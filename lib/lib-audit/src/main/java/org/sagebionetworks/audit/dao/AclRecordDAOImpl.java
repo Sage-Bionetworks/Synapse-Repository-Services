@@ -3,7 +3,7 @@ package org.sagebionetworks.audit.dao;
 import java.io.IOException;
 import java.util.List;
 
-import org.sagebionetworks.audit.utils.SimpleRecordWorker;
+import org.sagebionetworks.audit.utils.ObjectCSVDAO;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +23,7 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 	 * Injected via Spring
 	 */
 	private String aclRecordBucketName;
-	private SimpleRecordWorker<AclRecord> worker;
+	private ObjectCSVDAO<AclRecord> worker;
 
 	/**
 	 * Injected via Spring
@@ -47,7 +47,7 @@ public class AclRecordDAOImpl implements AclRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(aclRecordBucketName);
-		worker = new SimpleRecordWorker<AclRecord>(s3Client, stackInstanceNumber, 
+		worker = new ObjectCSVDAO<AclRecord>(s3Client, stackInstanceNumber, 
 				aclRecordBucketName, AclRecord.class, HEADERS);
 	}
 	

@@ -21,7 +21,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 /**
  * This class helps write records to a file and push the file to S3.
  */
-public class SimpleRecordWorker<T> {
+public class ObjectCSVDAO<T> {
 	private AmazonS3Client s3Client;
 	private int stackInstanceNumber;
 	private String bucketName;
@@ -29,7 +29,7 @@ public class SimpleRecordWorker<T> {
 	private String[] headers;
 	String stackInstancePrefixString;
 
-	public SimpleRecordWorker(AmazonS3Client s3Client, int stackInstanceNumber, 
+	public ObjectCSVDAO(AmazonS3Client s3Client, int stackInstanceNumber, 
 			String bucketName, Class<T> objectClass, String[] headers) {
 		this.s3Client = s3Client;
 		this.stackInstanceNumber = stackInstanceNumber;

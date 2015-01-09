@@ -3,7 +3,7 @@ package org.sagebionetworks.audit.dao;
 import java.io.IOException;
 import java.util.List;
 
-import org.sagebionetworks.audit.utils.SimpleRecordWorker;
+import org.sagebionetworks.audit.utils.ObjectCSVDAO;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +23,7 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	 * Injected via Spring
 	 */
 	private String resourceAccessRecordBucketName;
-	private SimpleRecordWorker<ResourceAccessRecord> worker;
+	private ObjectCSVDAO<ResourceAccessRecord> worker;
 
 	/**
 	 * Injected via Spring
@@ -47,7 +47,7 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(resourceAccessRecordBucketName);
-		worker = new SimpleRecordWorker<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
+		worker = new ObjectCSVDAO<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
 				resourceAccessRecordBucketName, ResourceAccessRecord.class, HEADERS);
 	}
 
