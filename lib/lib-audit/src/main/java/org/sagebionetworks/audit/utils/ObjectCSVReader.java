@@ -5,12 +5,9 @@ import java.io.Reader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -153,8 +150,6 @@ public class ObjectCSVReader<T> {
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					}
-				}else if (field.getType() == Set.class) {
-					field.set(newObject, getSetOfAccessType(value));
 				}else if (field.getType() == Date.class) {
 					field.set(newObject, new Date(value));
 				} else {
@@ -169,18 +164,6 @@ public class ObjectCSVReader<T> {
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private Set<ACCESS_TYPE> getSetOfAccessType(String value) {
-		Set<ACCESS_TYPE> set = new HashSet<ACCESS_TYPE>();
-		if (value.startsWith("[")) value = value.substring(1);
-		if (value.endsWith("]")) value = value.substring(0, value.length()-1);
-		String delims = ",";
-		String[] list = value.split(delims);
-		for (String s : list) {
-			set.add(ACCESS_TYPE.valueOf(s.trim()));
-		}
-		return set;
 	}
 
 	/**
