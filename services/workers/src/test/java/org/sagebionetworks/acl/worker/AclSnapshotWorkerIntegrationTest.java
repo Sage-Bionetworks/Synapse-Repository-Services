@@ -70,9 +70,6 @@ public class AclSnapshotWorkerIntegrationTest {
 	private Long createdById;
 	private Long modifiedById;
 	
-	private String aclRecordBucket;
-	private String resourceAccessRecordBucket;
-	
 	private int TIME_OUT = 60 * 1000;
 	
 	@Before
@@ -88,9 +85,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		assertNotNull(s3Client);
 
 		// Setting up
-
-		aclRecordBucket = config.getAclRecordBucketName();
-		resourceAccessRecordBucket = config.getResourceAccessRecordBucketName();
 		
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
@@ -176,20 +170,20 @@ public class AclSnapshotWorkerIntegrationTest {
 		assertNotNull(key);
 		List<ResourceAccessRecord> raRecords = resourceAccessRecordDao.getBatch(key);
 		assertEquals(4, raRecords.size());
-		Set<ACCESS_TYPE> actual1 = new HashSet<ACCESS_TYPE>();
-		for (ResourceAccessRecord raRecord : raRecords) {
-			if (raRecord.getPrincipalId().toString().equals(group.getId()))
-				actual1.add(raRecord.getAccessType());
+		Set<ACCESS_TYPE> actualRaSet1 = new HashSet<ACCESS_TYPE>();
+		for (ResourceAccessRecord record : raRecords) {
+			if (record.getPrincipalId().toString().equals(group.getId()))
+				actualRaSet1.add(record.getAccessType());
 		}
-		Set<ACCESS_TYPE> actual2 = new HashSet<ACCESS_TYPE>();
-		for (ResourceAccessRecord raRecord : raRecords) {
-			if (raRecord.getPrincipalId().toString().equals(group2.getId()))
-				actual2.add(raRecord.getAccessType());
+		Set<ACCESS_TYPE> actualRaSet2 = new HashSet<ACCESS_TYPE>();
+		for (ResourceAccessRecord record : raRecords) {
+			if (record.getPrincipalId().toString().equals(group2.getId()))
+				actualRaSet2.add(record.getAccessType());
 		}
 		ResourceAccessRecord raRecord = raRecords.get(0);
 		assertNotNull(raRecord);
-		assertEquals(ra1.getAccessType(), actual1);
-		assertEquals(ra2.getAccessType(), actual2);
+		assertEquals(ra1.getAccessType(), actualRaSet1);
+		assertEquals(ra2.getAccessType(), actualRaSet2);
 		assertEquals(aclRecord.getChangeNumber(), raRecord.getChangeNumber());
 	
 		// Test UPDATE
@@ -237,20 +231,20 @@ public class AclSnapshotWorkerIntegrationTest {
 		assertNotNull(key);
 		raRecords = resourceAccessRecordDao.getBatch(key);
 		assertEquals(4, raRecords.size());
-		actual1 = new HashSet<ACCESS_TYPE>();
+		actualRaSet1 = new HashSet<ACCESS_TYPE>();
 		for (ResourceAccessRecord record : raRecords) {
 			if (record.getPrincipalId().toString().equals(group.getId()))
-				actual1.add(record.getAccessType());
+				actualRaSet1.add(record.getAccessType());
 		}
-		actual2 = new HashSet<ACCESS_TYPE>();
+		actualRaSet2 = new HashSet<ACCESS_TYPE>();
 		for (ResourceAccessRecord record : raRecords) {
 			if (record.getPrincipalId().toString().equals(group2.getId()))
-				actual2.add(record.getAccessType());
+				actualRaSet2.add(record.getAccessType());
 		}
 		raRecord = raRecords.get(0);
 		assertNotNull(raRecord);
-		assertEquals(ra1.getAccessType(), actual1);
-		assertEquals(ra2.getAccessType(), actual2);
+		assertEquals(ra1.getAccessType(), actualRaSet1);
+		assertEquals(ra2.getAccessType(), actualRaSet2);
 		assertEquals(aclRecord.getChangeNumber(), raRecord.getChangeNumber());
 
 		// Test DELETE
