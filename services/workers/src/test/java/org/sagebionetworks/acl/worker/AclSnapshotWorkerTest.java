@@ -190,8 +190,8 @@ public class AclSnapshotWorkerTest {
 		raRecord2.setChangeNumber(null);
 		raRecord1.setPrincipalId(principalId);
 		raRecord2.setPrincipalId(principalId);
-		raRecord1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
-		raRecord2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
+		raRecord1.setAccessType(ACCESS_TYPE.READ);
+		raRecord2.setAccessType(ACCESS_TYPE.DOWNLOAD);
 
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));

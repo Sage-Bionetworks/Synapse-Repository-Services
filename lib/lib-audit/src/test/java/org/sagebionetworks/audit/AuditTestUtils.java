@@ -90,7 +90,7 @@ public class AuditTestUtils {
 		List<ResourceAccessRecord> list = new ArrayList<ResourceAccessRecord>();
 		for (int i = 0; i < numberOfRecords; i++) {
 			ResourceAccessRecord newRecord = new ResourceAccessRecord();
-			newRecord.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ)));
+			newRecord.setAccessType(ACCESS_TYPE.READ);
 			newRecord.setChangeNumber(-1L);
 			newRecord.setPrincipalId(-1L);
 

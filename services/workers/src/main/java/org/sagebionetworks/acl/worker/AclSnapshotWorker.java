@@ -13,6 +13,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -111,8 +112,13 @@ public class AclSnapshotWorker implements Worker{
 				ResourceAccessRecord record = new ResourceAccessRecord();
 				record.setChangeNumber(message.getChangeNumber());
 				record.setPrincipalId(resourceAccess.getPrincipalId());
-				record.setAccessType(resourceAccess.getAccessType());
-				records.add(record);
+				Set<ACCESS_TYPE> accessTypeSet = resourceAccess.getAccessType();
+				if (accessTypeSet != null) {
+					for (ACCESS_TYPE accessType : accessTypeSet) {
+						record.setAccessType(accessType);
+						records.add(record);
+					}
+				}
 			}
 		}
 		return records;
