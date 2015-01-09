@@ -2,6 +2,7 @@ package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.audit.utils.AccessRecordUtils;
 import org.sagebionetworks.audit.utils.ObjectCSVDAO;
@@ -36,7 +37,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 * Injected via Spring
 	 */
 	int stackInstanceNumber;
-	private ObjectCSVDAO<AccessRecord> worker;
+	private ObjectCSVDAO<AccessRecord> objectCsvDao;
 
 	/**
 	 * Injected via Spring
@@ -66,7 +67,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(auditRecordBucketName);
-		worker = new ObjectCSVDAO<AccessRecord>(s3Client, stackInstanceNumber, 
+		objectCsvDao = new ObjectCSVDAO<AccessRecord>(s3Client, stackInstanceNumber, 
 				auditRecordBucketName, AccessRecord.class, HEADERS);
 	}
 	
@@ -81,27 +82,32 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// Order the batch by timestamp
 		AccessRecordUtils.sortByTimestamp(batch);
-		return worker.write(batch, timestamp, rolling);
+		return objectCsvDao.write(batch, timestamp, rolling);
 	}
 
 	@Override
 	public List<AccessRecord> getBatch(String key) throws IOException {
-		return worker.read(key);
+		return objectCsvDao.read(key);
 	}
 
 	@Override
 	public void deleteBactch(String key) {
-		worker.delete(key);
+		objectCsvDao.delete(key);
 	}
 	
 	@Override
 	public void deleteAllStackInstanceBatches() {
-		worker.deleteAllStackInstanceBatches();
+		objectCsvDao.deleteAllStackInstanceBatches();
 	}
 	
 	@Override
 	public ObjectListing listBatchKeys(String marker) {
-		return worker.listBatchKeys( marker);
+		return objectCsvDao.listBatchKeys( marker);
+	}
+
+	@Override
+	public Set<String> listAllKeys() {
+		return objectCsvDao.listAllKeys();
 	}
 
 }

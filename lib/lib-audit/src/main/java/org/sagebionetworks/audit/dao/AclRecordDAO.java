@@ -2,6 +2,7 @@ package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.audit.AclRecord;
 
@@ -35,4 +36,15 @@ public interface AclRecordDAO {
 	 * 
 	 */
 	void deleteAllStackInstanceBatches();
+
+	/**
+	 * @return all keys found this this bucket
+	 */
+	Set<String> listAllKeys();
+
+	/**
+	 * Delete a batch.
+	 * @param key
+	 */
+	void deleteBactch(String key);
 }

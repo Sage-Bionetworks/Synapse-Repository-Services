@@ -22,9 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:audit-dao.spb.xml" })
 public class AccessRecordDAOImplTest {
@@ -82,16 +79,7 @@ public class AccessRecordDAOImplTest {
 			keys.add(key);
 		}
 		// Now iterate over all key and ensure all keys are found
-		Set<String> foundKeys = new HashSet<String>();
-		String marker = null;
-		do{
-			System.out.println("marker: "+marker);
-			ObjectListing listing = accessRecordDAO.listBatchKeys(marker);
-			marker = listing.getNextMarker();
-			for(S3ObjectSummary summ: listing.getObjectSummaries()){
-				foundKeys.add(summ.getKey());
-			}
-		}while(marker != null);
+		Set<String> foundKeys = accessRecordDAO.listAllKeys();
 		// the two set should be equal
 		assertEquals(keys, foundKeys);
 	}

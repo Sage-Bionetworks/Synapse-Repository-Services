@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -135,5 +137,21 @@ public class ObjectCSVDAO<T> {
 	 */
 	public ObjectListing listBatchKeys(String marker) {
 		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.bucketName).withPrefix(stackInstancePrefixString).withMarker(marker));
+	}
+
+	/**
+	 * @return all keys found in this bucket
+	 */
+	public Set<String> listAllKeys() {
+		Set<String> foundKeys = new HashSet<String>();
+		String marker = null;
+		do{
+			ObjectListing listing = listBatchKeys(marker);
+			marker = listing.getNextMarker();
+			for(S3ObjectSummary summ: listing.getObjectSummaries()){
+				foundKeys.add(summ.getKey());
+			}
+		}while(marker != null);
+		return foundKeys;
 	}
 }

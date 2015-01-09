@@ -2,6 +2,7 @@ package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.audit.utils.ObjectCSVDAO;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
@@ -23,7 +24,7 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 	 * Injected via Spring
 	 */
 	private String resourceAccessRecordBucketName;
-	private ObjectCSVDAO<ResourceAccessRecord> worker;
+	private ObjectCSVDAO<ResourceAccessRecord> objectCsvDao;
 
 	/**
 	 * Injected via Spring
@@ -47,21 +48,29 @@ public class ResourceAccessRecordDAOImpl implements ResourceAccessRecordDAO {
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
 		s3Client.createBucket(resourceAccessRecordBucketName);
-		worker = new ObjectCSVDAO<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
+		objectCsvDao = new ObjectCSVDAO<ResourceAccessRecord>(s3Client, stackInstanceNumber, 
 				resourceAccessRecordBucketName, ResourceAccessRecord.class, HEADERS);
 	}
 
 	@Override
 	public String saveBatch(List<ResourceAccessRecord> records) throws IOException {
-		return worker.write(records, System.currentTimeMillis(), false);
+		return objectCsvDao.write(records, System.currentTimeMillis(), false);
 	}
 
 	@Override
 	public List<ResourceAccessRecord> getBatch(String key) throws IOException {
-		return worker.read(key);
+		return objectCsvDao.read(key);
 	}
 	@Override
 	public void deleteAllStackInstanceBatches() {
-		worker.deleteAllStackInstanceBatches();
+		objectCsvDao.deleteAllStackInstanceBatches();
+	}
+	@Override
+	public Set<String> listAllKeys() {
+		return objectCsvDao.listAllKeys();
+	}
+	@Override
+	public void deleteBactch(String key) {
+		objectCsvDao.delete(key);
 	}
 }

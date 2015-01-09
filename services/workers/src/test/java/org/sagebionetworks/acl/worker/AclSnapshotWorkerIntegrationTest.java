@@ -130,8 +130,8 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		// Test CREATE
 
-		List<String> aclKeys = getKeys(aclRecordBucket);
-		List<String> resourceAccessKeys = getKeys(resourceAccessRecordBucket);
+		Set<String> aclKeys = aclRecordDao.listAllKeys();
+		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		
 		assertNotNull(aclKeys);
 		assertNotNull(resourceAccessKeys);
@@ -157,8 +157,8 @@ public class AclSnapshotWorkerIntegrationTest {
 	
 		// Test UPDATE
 		
-		aclKeys = getKeys(aclRecordBucket);
-		resourceAccessKeys = getKeys(resourceAccessRecordBucket);
+		aclKeys = aclRecordDao.listAllKeys();
+		resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		
 		// Update ACL for this node
 		acl = aclDao.get(node.getId(), ObjectType.ENTITY);
@@ -201,8 +201,8 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		// Test DELETE
 	
-		aclKeys = getKeys(aclRecordBucket);
-		resourceAccessKeys = getKeys(resourceAccessRecordBucket);
+		aclKeys = aclRecordDao.listAllKeys();
+		resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 			
 		// Delete the acl
 		aclDao.delete(node.getId(), ObjectType.ENTITY);
@@ -231,22 +231,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		resourceAccessRecordDao.deleteAllStackInstanceBatches();
 	}
 
-	private List<String> getKeys(String bucketName) {
-		ObjectListing listing = s3Client.listObjects(bucketName);
-		List<S3ObjectSummary> summaries = listing.getObjectSummaries();
-		List<String> keys = new ArrayList<String>();
- 
-		while (listing.isTruncated()) {
-		   listing = s3Client.listNextBatchOfObjects (listing);
-		   summaries.addAll (listing.getObjectSummaries());
-		}
-
-		for (S3ObjectSummary summary : summaries) {
-			keys.add(summary.getKey());
-		}
-		return keys;
-	}
-
 	/**
 	 * Helper method that continue looking into s3 bucket and find noAcl number
 	 * of new AclRecord log files compare to aclKeys - the list of old AclRecord
@@ -256,11 +240,11 @@ public class AclSnapshotWorkerIntegrationTest {
 	 * @return true if found what was looking for in TIME_OUT milliseconds,
 	 *         false otherwise.
 	 */
-	private boolean waitForObject(List<String> aclKeys, List<String> resourceAccessKeys, int noAcl, int noRA) {
+	private boolean waitForObject(Set<String> aclKeys, Set<String> resourceAccessKeys, int noAcl, int noRA) {
 		long start = System.currentTimeMillis();
 		while (System.currentTimeMillis() < start + TIME_OUT) {
-			List<String> newAclKeys = getKeys(aclRecordBucket);
-			List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
+			Set<String> newAclKeys = aclRecordDao.listAllKeys();
+			Set<String> newResourceKeys = resourceAccessRecordDao.listAllKeys();
 
 			newAclKeys.removeAll(aclKeys);
 			newResourceKeys.removeAll(resourceAccessKeys);
@@ -275,18 +259,18 @@ public class AclSnapshotWorkerIntegrationTest {
 	/**
 	 * @return the first new Acl key in S3 compare to old aclKeys
 	 */
-	private String getNewAclKey(List<String> aclKeys) {
-		List<String> newAclKeys = getKeys(aclRecordBucket);
+	private String getNewAclKey(Set<String> aclKeys) {
+		Set<String> newAclKeys = aclRecordDao.listAllKeys();
 		newAclKeys.removeAll(aclKeys);
-		return newAclKeys.get(0);
+		return new ArrayList<String>(newAclKeys).get(0);
 	}
 
 	/**
 	 * @return the first new ResourceAccess key in S3 compare to old resourceAccessKeys
 	 */
-	private String getNewResourceAccessRecordKey(List<String> resourceAccessKeys) {
-		List<String> newResourceKeys = getKeys(resourceAccessRecordBucket);
+	private String getNewResourceAccessRecordKey(Set<String> resourceAccessKeys) {
+		Set<String> newResourceKeys = resourceAccessRecordDao.listAllKeys();
 		newResourceKeys.removeAll(resourceAccessKeys);
-		return newResourceKeys.get(0);
+		return new ArrayList<String>(newResourceKeys).get(0);
 	}
 }
