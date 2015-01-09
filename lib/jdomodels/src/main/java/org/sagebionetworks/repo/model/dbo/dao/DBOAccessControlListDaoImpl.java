@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -55,9 +56,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SELECT_FOR_UPDATE = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE+" FOR UPDATE";
-	
+
 	private static final String SQL_SELECT_ALL_ACL_WITH_ACL_ID = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_ID+" = ?";
-	
+
+	private static final String SQL_SELECT_OWNER_TYPE_FOR_RESOURCE = "SELECT "+COL_ACL_OWNER_TYPE+" FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_ID+" = ?";
+
+	private static final String SQL_SELECT_ACL_ID_FOR_RESOURCE = "SELECT "+COL_ACL_ID+" FROM "+TABLE_ACCESS_CONTROL_LIST+
+			" WHERE "+COL_ACL_OWNER_ID+" = ? AND "+COL_ACL_OWNER_TYPE+" = ?";
 	/**
 	 * Keep a copy of the row mapper.
 	 */
@@ -141,12 +146,24 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		AccessControlList acl = doGet(dboAcl);
 		return acl;
 	}
-	
+
+	@Override
+	public Long getAclId(String id, ObjectType objectType)
+			throws DatastoreException, NotFoundException {
+		try {
+			return simpleJdbcTemplate.queryForLong(SQL_SELECT_ACL_ID_FOR_RESOURCE, KeyFactory.stringToKey(id), objectType.name());
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
+	}
+
 	@Override
 	public ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException {
-		DBOAccessControlList dboAcl = getDboAcl(id);
-		ObjectType ownerType = ObjectType.valueOf(dboAcl.getOwnerType());
-		return ownerType;
+		try {
+			return ObjectType.valueOf(simpleJdbcTemplate.queryForObject(SQL_SELECT_OWNER_TYPE_FOR_RESOURCE, String.class, id));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 	
 	private DBOAccessControlList getDboAcl(Long id) throws DatastoreException, NotFoundException {
@@ -220,18 +237,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		params.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, ownerKey);
 		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 
-		Long dboId;
 		try {
-			DBOAccessControlList origDbo = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, params);
-			dboId = origDbo.getId();
+			Long dboId = getAclId(ownerId, ownerType);
+			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
+			transactionalMessenger.sendMessageAfterCommit(dboId.toString(), ObjectType.ACCESS_CONTROL_LIST, 
+					UUID.randomUUID().toString(), ChangeType.DELETE);
 		} catch (NotFoundException e) {
-			dboId = -1L;
-		}	
-		
-		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
-		
-		transactionalMessenger.sendMessageAfterCommit(dboId.toString(), ObjectType.ACCESS_CONTROL_LIST, 
-				UUID.randomUUID().toString(), ChangeType.DELETE);
+			// if there is no valid AclId for this ownerId and ownerType, do nothing
+		}
 	}
 
 	@Override

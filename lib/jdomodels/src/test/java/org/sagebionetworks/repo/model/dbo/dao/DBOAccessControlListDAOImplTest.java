@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,20 +133,6 @@ public class DBOAccessControlListDAOImplTest {
 		aclList.add(acl);
 	}
 
-	@Test  (expected=NotFoundException.class)
-	public void testGetWithBadAclID() throws Exception {
-		Long aclId = -598787L;
-		AccessControlList acl = aclDAO.get(aclId);
-		assertNull(acl);
-	}
-
-	@Test  (expected=NotFoundException.class)
-	public void testGetOwnerTypeWithBadAclID() throws Exception {
-		Long aclId = -598787L;
-		ObjectType ownerType = aclDAO.getOwnerType(aclId);
-		assertNull(ownerType);
-	}
-
 	@After
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) {
@@ -220,18 +205,67 @@ public class DBOAccessControlListDAOImplTest {
 		AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
 		
 		assertEquals(acl, acl2);
-		
-		aclList.remove(acl);
-		aclDAO.delete(id, ObjectType.ENTITY);
-		
-		try {
-			aclDAO.get(id, ObjectType.ENTITY);
-			fail("NotFoundException expected");	
-		} catch (NotFoundException e) {  // any other kind of exception will cause a failure
-			// as expected
-		}
 	}
 
+	/**
+	 * Test get method with bad ownerId
+	 * @throws Exception
+	 */
+	@Test (expected=NotFoundException.class)
+	public void testGetWithBadId() throws Exception {
+		AccessControlList acl = aclList.iterator().next();
+		String id = acl.getId();
+		aclList.remove(acl);
+		aclDAO.delete(id, ObjectType.ENTITY);
+		aclDAO.get(id, ObjectType.ENTITY);
+	}
+
+	/**
+	 * This test tests 2 methods:
+	 *     get using aclID, and
+	 *     getAclId using ownerId and ownerType
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetAclId() throws Exception {
+		// get an ownerId
+		AccessControlList acl = aclList.iterator().next();
+		String id = acl.getId();
+		// get the AclId using ownerId and ownerType
+		Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
+		// get the acl using the AclId
+		AccessControlList acl2 = aclDAO.get(aclId);
+		assertEquals(acl, acl2);
+		
+	}
+
+	@Test  (expected=NotFoundException.class)
+	public void testGetWithBadAclID() throws Exception {
+		Long aclId = -598787L;
+		AccessControlList acl = aclDAO.get(aclId);
+		assertNull(acl);
+	}
+
+	/**
+	 * Test method getOwnerType using AclId
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetOwnerType() throws Exception {
+		// get an ownerId
+		AccessControlList acl = aclList.iterator().next();
+		String id = acl.getId();
+		// get the AclId using ownerId and ownerType
+		Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
+		assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(aclId));
+	}
+
+	@Test  (expected=NotFoundException.class)
+	public void testGetOwnerTypeWithBadAclID() throws Exception {
+		Long aclId = -598787L;
+		ObjectType ownerType = aclDAO.getOwnerType(aclId);
+		assertNull(ownerType);
+	}
 
 	/**
 	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.Base)}.
