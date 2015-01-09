@@ -1852,13 +1852,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException {
-		return createFileHandleS3(temp, contentType, null, null);
+		return createFileHandleUsingChunkedUpload(temp, contentType, null, null);
 	}
 
 	@Override
 	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated) throws SynapseException, IOException {
-		return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+		return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, null);
 	}
 
 	@Override
@@ -1872,7 +1872,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
 		if (uploadDestinations.isEmpty()) {
 			// default to S3
-			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, null);
 		}
 
 		UploadDestination uploadDestination = uploadDestinations.get(0);
@@ -1881,14 +1881,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		case SFTP:
 			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
 		case S3:
-			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
+			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
 		default:
 			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
 		}
 	}
 
-	private S3FileHandle createFileHandleS3(File temp, String contentType, Boolean shouldPreviewBeCreated,
-			S3UploadDestination s3UploadDestination) throws SynapseException, IOException {
+	private S3FileHandle createFileHandleUsingChunkedUpload(File temp, String contentType, Boolean shouldPreviewBeCreated,
+			UploadDestination uploadDestination) throws SynapseException, IOException {
 		if (temp == null) {
 			throw new IllegalArgumentException("File cannot be null");
 		}
@@ -1897,7 +1897,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setS3UploadDestination(s3UploadDestination);
+		ccftr.setUploadDestination(uploadDestination);
 		ccftr.setContentType(contentType);
 		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
@@ -3934,7 +3934,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 *        'chunk'
 	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
 	 */
-	private String uploadToS3FileHandle(byte[] content, ContentType contentType, S3UploadDestination s3UploadDestination)
+	private String uploadToS3FileHandle(byte[] content, ContentType contentType, UploadDestination uploadDestination)
 			throws SynapseClientException, SynapseException {
     	if (content==null || content.length==0) throw new IllegalArgumentException("Missing content.");
 		
@@ -3952,7 +3952,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ccftr.setFileName("content");
 		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
-		ccftr.setS3UploadDestination(s3UploadDestination);
+		ccftr.setUploadDestination(uploadDestination);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		

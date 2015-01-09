@@ -2,6 +2,10 @@
 	"description": "The upload destination contains information to start an upload to different types of destinations.",
 	"type": "interface",
 	"properties": {
+		"id": {
+			"type":"string",
+			"description":"The ID of the upload destination"
+		},
         "concreteType": {
             "type": "string",
             "description": "Indicates which implementation this object represents."
@@ -18,7 +22,7 @@
 		},
 		"banner": {
 			"type": "string",
-			"description": "If set, the client should show this banner everytime an upload is initiated"
+			"description": "If set, the client should show this banner every time an upload is initiated"
 		}
 	}
 }
