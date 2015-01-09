@@ -37,7 +37,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	@Field(name = V2_COL_WIKI_OWNERS_ORDER_HINT, type = "mediumblob", defaultNull = true)
 	private byte[] orderHint;
 	
-	@Field(name = V2_COL_WIKI_OWNERS_ETAG, nullable = true, etag = true)
+	@Field(name = V2_COL_WIKI_OWNERS_ETAG, nullable = false, etag = true)
 	private String etag;
 	
 	private static TableMapping<V2DBOWikiOwner> tableMapping = AutoTableMapping.create(V2DBOWikiOwner.class);
