@@ -2,10 +2,6 @@
 	"description": "The upload destination contains information to start an upload to different types of destinations.",
 	"type": "interface",
 	"properties": {
-		"id": {
-			"type":"string",
-			"description":"The ID of the upload destination"
-		},
         "concreteType": {
             "type": "string",
             "description": "Indicates which implementation this object represents."
