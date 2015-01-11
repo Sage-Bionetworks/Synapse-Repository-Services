@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -65,9 +67,7 @@ public class AclSnapshotWorker implements Worker{
 				if(returned != null){
 					toDelete.add(returned);
 				}
-			} catch(Throwable e){
-				// Treat unknown errors as unrecoverable and return them
-				toDelete.add(message);
+			} catch(Throwable e) {
 				log.error("Worker Failed", e);
 			}
 		}
@@ -77,34 +77,53 @@ public class AclSnapshotWorker implements Worker{
 	private Message process(Message message) throws Throwable {
 		// Keep this message invisible
 		workerProgress.progressMadeForMessage(message);
-		
+
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		if (changeMessage.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {
-			throw new IllegalArgumentException("ObjectType must be ACCESS_CONTROL_LIST");
+			// do nothing when receive a non-acl message
+			return message;
+		}
+
+		if (changeMessage.getChangeType() == ChangeType.DELETE) {
+			AclRecord aclRecord = buildAclRecord(changeMessage);
+			aclRecordDao.saveBatch(Arrays.asList(aclRecord));
+			return message;
 		}
 
 		AccessControlList acl = null;
 		try {
 			acl = accessControlListDao.get(Long.parseLong(changeMessage.getObjectId()));
-		} catch (Throwable e) {
-			// do nothing, other methods need to check for null acl
+		} catch (NumberFormatException e) {
+			return message;
+		} catch (NotFoundException e) {
+			log.error("Cannot find acl for a " + changeMessage.getChangeType() + "message.", e) ;
+			return message;
 		}
 
 		AclRecord aclRecord = buildAclRecord(changeMessage, acl);
 		List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage, acl);
 
-		aclRecordDao.saveBatch(Arrays.asList(aclRecord));
+		if (aclRecord != null) {
+			aclRecordDao.saveBatch(Arrays.asList(aclRecord));
+		}
 		if (!resourceAccessRecords.isEmpty()) {
 			resourceAccessRecordDao.saveBatch(resourceAccessRecords);
 		}
 		return message;
 	}
 
+	private AclRecord buildAclRecord(ChangeMessage message) {
+		AclRecord record = new AclRecord();
+		record.setAclId(message.getObjectId());
+		record.setChangeNumber(message.getChangeNumber());
+		record.setChangeType(message.getChangeType());
+		record.setTimestamp(message.getTimestamp().getTime());
+		record.setEtag(message.getObjectEtag());
+		return record;
+	}
+
 	protected List<ResourceAccessRecord> buildResourceAccessRecordList(ChangeMessage message, AccessControlList acl) {
 		List<ResourceAccessRecord> records = new ArrayList<ResourceAccessRecord>();
-		if (acl == null) {
-			return records;
-		}
 		Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
 		if (resourceAccessSet == null) {
 			return records;
@@ -124,25 +143,16 @@ public class AclSnapshotWorker implements Worker{
 		return records;
 	}
 
-	protected AclRecord buildAclRecord(ChangeMessage message, AccessControlList acl) {
-		AclRecord record = new AclRecord();
-		record.setAclId(message.getObjectId());
-		record.setChangeNumber(message.getChangeNumber());
-		record.setChangeType(message.getChangeType());
-		record.setTimestamp(message.getTimestamp().getTime());
-		record.setEtag(message.getObjectEtag());
-
-		if (acl == null) {
-			return record;
-		}
+	protected AclRecord buildAclRecord(ChangeMessage message, AccessControlList acl) throws NotFoundException{
+		AclRecord record = buildAclRecord(message);
 		record.setOwnerId(acl.getId());
 		record.setCreationDate(acl.getCreationDate());
 		try {
 			record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-		} catch (Exception e) {
-			// do nothing, the ownerType field remains null
+		} catch (NotFoundException e) {
+			log.entry("Old message: the ownerType of an ACL does not exist anymore.", e);
+			return null;
 		}
-
 		return record;
 	}
 

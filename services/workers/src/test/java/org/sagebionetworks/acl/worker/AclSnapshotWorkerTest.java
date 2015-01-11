@@ -49,8 +49,7 @@ public class AclSnapshotWorkerTest {
 	public void testNonAclChangeMessage() throws Exception {
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
-		Message three = null;
-		List<Message> messages = Arrays.asList(one, two, three);
+		List<Message> messages = Arrays.asList(one, two);
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
 		// Make the call
@@ -250,8 +249,8 @@ public class AclSnapshotWorkerTest {
 		assertNotNull(results);
 		assertEquals(messages, results);
 		// confirm that the DAOs have been called
-		verify(mockAccessControlListDao, Mockito.times(1)).get(id);
-		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
+		verify(mockAccessControlListDao, Mockito.never()).get(id);
+		verify(mockAccessControlListDao, Mockito.never()).getOwnerType(Matchers.anyLong());
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 		verify(mockResourceAccessRecordDao, never()).saveBatch(Matchers.anyList());
 	}
