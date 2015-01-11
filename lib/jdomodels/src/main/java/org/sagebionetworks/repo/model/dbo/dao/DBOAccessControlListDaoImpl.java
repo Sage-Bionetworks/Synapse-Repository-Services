@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -47,6 +49,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
+	static private Log log = LogFactory.getLog(DBOAccessControlListDaoImpl.class);	
 
 	private static final String SELECT_ACCESS_TYPES_FOR_RESOURCE = "SELECT "+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" FROM "+TABLE_RESOURCE_ACCESS_TYPE+" WHERE "+COL_RESOURCE_ACCESS_TYPE_ID+" = ?";
 
@@ -63,6 +66,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SQL_SELECT_ACL_ID_FOR_RESOURCE = "SELECT "+COL_ACL_ID+" FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = ? AND "+COL_ACL_OWNER_TYPE+" = ?";
+
+	private static final String DELETE_ALL_ACL = "DELETE FROM "+TABLE_ACCESS_CONTROL_LIST;
+
 	/**
 	 * Keep a copy of the row mapper.
 	 */
@@ -244,6 +250,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 					UUID.randomUUID().toString(), ChangeType.DELETE);
 		} catch (NotFoundException e) {
 			// if there is no valid AclId for this ownerId and ownerType, do nothing
+			log.info("Atempted to delete an ACL that does not exist. OwnerId: " + ownerId + ", ownerType: " + ownerType);
 		}
 	}
 
@@ -277,5 +284,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
+	}
+
+	@Override
+	public void deleteAllAcl() {
+		simpleJdbcTemplate.update(DELETE_ALL_ACL);
 	}
 }

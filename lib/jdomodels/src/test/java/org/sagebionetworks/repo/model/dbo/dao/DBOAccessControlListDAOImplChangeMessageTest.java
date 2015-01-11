@@ -93,8 +93,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 	}
 
 	@Test
-	public void test() throws Exception {
-		// CREATE ACL
+	public void testCreate() throws Exception {
 		changeDAO.deleteAllChanges();
 		
 		// Create an ACL for this node
@@ -118,8 +117,19 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		
 		// TEST getOwnerType USING Long Id
 		assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(Long.parseLong(message.getObjectId())));
+	}
 
-		// UPDATE ACL
+	@Test
+	public void testUpdate() throws Exception {
+		changeDAO.deleteAllChanges();
+
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setId(nodeId);
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
+		assertEquals(nodeId, aclId);
 
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
@@ -148,31 +158,40 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		aclList.add(acl);
 
 		// Did a message get sent?
-		changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
 		assertNotNull(changes);
-		message = changes.get(0);
+		ChangeMessage message = changes.get(0);
 		assertNotNull(message);
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
 		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 		assertEquals(acl, aclDAO.get(Long.parseLong(message.getObjectId())));
+	}
 
-		// DELETE ACL
+	@Test
+	public void testDelete() throws Exception {
+		changeDAO.deleteAllChanges();
 
-		for (Node n : nodeList) {
-			nodeDAO.delete(n.getId());
-			aclDAO.delete(n.getId(), ObjectType.ENTITY);
-			
-			changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
-			assertNotNull(changes);
-			message = changes.get(0);
-			assertNotNull(message);
-			assertEquals(ChangeType.DELETE, message.getChangeType());
-			assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
-		}
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setId(nodeId);
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
+		assertEquals(nodeId, aclId);
+
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
+
+		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
+		assertNotNull(changes);
+		ChangeMessage message = changes.get(0);
+		assertNotNull(message);
+		assertEquals(ChangeType.DELETE, message.getChangeType());
+		assertEquals(ObjectType.ACCESS_CONTROL_LIST, message.getObjectType());
 	}
 
 	@After
 	public void cleanUp() throws Exception {
+		aclDAO.deleteAllAcl();
 		nodeList.clear();
 		aclList.clear();
 		for (UserGroup g : groupList) {
