@@ -2,12 +2,13 @@ package org.sagebionetworks.acl.worker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 
@@ -24,30 +25,26 @@ public class AclSnapshotWorkerTestUtils {
 	 * Get the set of ResourceAccess from a list of ResourceAccessRecord
 	 */
 	public static Set<ResourceAccess> getSetOfResourceAccess(List<ResourceAccessRecord> source) {
-		List<Long> principalIds = getListOfUniquePrincipalIds(source);
-		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
-		for (Long id : principalIds) {
-			ResourceAccess ra = new ResourceAccess();
-			ra.setPrincipalId(id);
-			Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
-			for (ResourceAccessRecord record : source) {
-				if (record.getPrincipalId().equals(id)) {
-					accessTypes.add(record.getAccessType());
-				}
-			}
-			ra.setAccessType(accessTypes);
-			set.add(ra);
-		}
-		return set;
-	}
-
-	private static List<Long> getListOfUniquePrincipalIds(
-			List<ResourceAccessRecord> source) {
-		Set<Long> set = new HashSet<Long>();
+		Map<Long, Set<ACCESS_TYPE>> map = new HashMap<Long, Set<ACCESS_TYPE>>();
 		for (ResourceAccessRecord record : source) {
-			set.add(record.getPrincipalId());
+			if (!map.containsKey(record.getPrincipalId())) {
+				map.put(record.getPrincipalId(), new HashSet<ACCESS_TYPE>());
+			}
 		}
-		return new ArrayList<Long>(set);
+		for (ResourceAccessRecord record : source) {
+			Set<ACCESS_TYPE> accessTypes = map.get(record.getPrincipalId());
+			accessTypes.add(record.getAccessType());
+			map.put(record.getPrincipalId(), accessTypes);
+		}
+		Set<Long> keys = map.keySet();
+		Set<ResourceAccess> setToReturn = new HashSet<ResourceAccess>();
+		for (Long key : keys) {
+			ResourceAccess ra = new ResourceAccess();
+			ra.setPrincipalId(key);
+			ra.setAccessType(map.get(key));
+			setToReturn.add(ra);
+		}
+		return setToReturn;
 	}
 
 	/**
