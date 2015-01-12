@@ -222,7 +222,6 @@ public class MessageUtils {
 		message.setObjectEtag(etag);
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
-		message.setTimestamp(new Date());
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}
 
