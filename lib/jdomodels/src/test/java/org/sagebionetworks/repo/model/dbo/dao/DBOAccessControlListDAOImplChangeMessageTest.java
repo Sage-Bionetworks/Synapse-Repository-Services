@@ -95,7 +95,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 	@Test
 	public void testCreate() throws Exception {
 		changeDAO.deleteAllChanges();
-		
+
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
 		acl.setId(nodeId);
@@ -114,7 +114,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 
 		// TEST GET ACL USING Long Id
 		assertEquals(acl, aclDAO.get(Long.parseLong(message.getObjectId())));
-		
+
 		// TEST getOwnerType USING Long Id
 		assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(Long.parseLong(message.getObjectId())));
 	}

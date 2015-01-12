@@ -97,7 +97,7 @@ public class AclSnapshotWorkerTest {
 		Long id = 123L;
 		String ownerId = "789";
 		Set<ResourceAccess> resourceAccess =
-				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(456L, 654L), 2);
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(456L, 654L), 2, false);
 		AccessControlList acl = new AccessControlList();
 		acl.setId(ownerId);
 		acl.setCreationDate(creationDate);
@@ -131,7 +131,7 @@ public class AclSnapshotWorkerTest {
 		Long principalId1 = 456L;
 		Long principalId2 = 654L;
 		Set<ResourceAccess> resourceAccess =
-				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(principalId1, principalId2), 2);
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(principalId1, principalId2), 2, false);
 		AccessControlList acl = new AccessControlList();
 		acl.setId(ownerId);
 		acl.setCreationDate(creationDate);
@@ -165,7 +165,7 @@ public class AclSnapshotWorkerTest {
 		Date creationDate = new Date(timestamp);
 		Long id = 123L;
 		Set<ResourceAccess> resourceAccess =
-				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(456L, 654L), 2);
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(456L, 654L), 2, false);
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId("789"); // ownerId

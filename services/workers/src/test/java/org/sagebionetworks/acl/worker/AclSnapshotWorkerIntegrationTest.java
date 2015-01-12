@@ -1,12 +1,14 @@
 package org.sagebionetworks.acl.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +22,6 @@ import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -36,8 +37,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 // it's necessary to drop the database every time before running this test
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -52,7 +51,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	private ResourceAccessRecordDAO resourceAccessRecordDao;
 	
 	@Autowired
-	private AccessControlListDAO aclDao;	
+	private AccessControlListDAO aclDao;
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
@@ -66,6 +65,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	private UserGroup group2;
 	
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
+	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
 	
 	private Long createdById;
 	private Long modifiedById;
@@ -120,36 +120,21 @@ public class AclSnapshotWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void test() throws Exception {
-
-		// Test CREATE
-
+	public void testCreate() throws Exception {
 		Set<String> aclKeys = aclRecordDao.listAllKeys();
 		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
-		
 		assertNotNull(aclKeys);
 		assertNotNull(resourceAccessKeys);
-		
+
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
+		aclList.add(acl);
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ResourceAccess ra1 = new ResourceAccess();
-		ResourceAccess ra2 = new ResourceAccess();
-		ra1.setPrincipalId(Long.parseLong(group.getId()));
-		ra2.setPrincipalId(Long.parseLong(group2.getId()));
-		ra1.setAccessType(new HashSet<ACCESS_TYPE>(
-				Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD
-				})));
-		ra2.setAccessType(new HashSet<ACCESS_TYPE>(
-				Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD
-				})));
-		ras.add(ra1);
-		ras.add(ra2);
+		Set<ResourceAccess> ras =
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
+						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
 		acl.setResourceAccess(ras);
 
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
@@ -170,58 +155,47 @@ public class AclSnapshotWorkerIntegrationTest {
 		assertNotNull(key);
 		List<ResourceAccessRecord> raRecords = resourceAccessRecordDao.getBatch(key);
 		assertEquals(4, raRecords.size());
-		Set<ACCESS_TYPE> actualRaSet1 = new HashSet<ACCESS_TYPE>();
-		for (ResourceAccessRecord record : raRecords) {
-			if (record.getPrincipalId().toString().equals(group.getId()))
-				actualRaSet1.add(record.getAccessType());
-		}
-		Set<ACCESS_TYPE> actualRaSet2 = new HashSet<ACCESS_TYPE>();
-		for (ResourceAccessRecord record : raRecords) {
-			if (record.getPrincipalId().toString().equals(group2.getId()))
-				actualRaSet2.add(record.getAccessType());
-		}
-		ResourceAccessRecord raRecord = raRecords.get(0);
-		assertNotNull(raRecord);
-		assertEquals(ra1.getAccessType(), actualRaSet1);
-		assertEquals(ra2.getAccessType(), actualRaSet2);
-		assertEquals(aclRecord.getChangeNumber(), raRecord.getChangeNumber());
-	
-		// Test UPDATE
-		
+		assertEquals(ras, AclSnapshotWorkerTestUtils.getSetOfResourceAccess(raRecords));
+		assertEquals(aclRecord.getChangeNumber(), raRecords.get(0).getChangeNumber());
+	}
+
+	@Test
+	public void testUpdate() throws Exception {
+		Set<String> aclKeys = aclRecordDao.listAllKeys();
+		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		aclList.add(acl);
+		acl.setId(node.getId());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		Set<ResourceAccess> ras =
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
+						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
+		acl.setResourceAccess(ras);
+		String aclId = aclDao.create(acl, ObjectType.ENTITY);
+		assertEquals(node.getId(), aclId);
+		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
+
 		aclKeys = aclRecordDao.listAllKeys();
 		resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
-		
 		// Update ACL for this node
 		acl = aclDao.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
 		assertNotNull(acl.getEtag());
 		assertEquals(node.getId(), acl.getId());
-		ras = new HashSet<ResourceAccess>();
-		ra1 = new ResourceAccess();
-		ra2 = new ResourceAccess();
-		ra1.setPrincipalId(Long.parseLong(group.getId()));
-		ra2.setPrincipalId(Long.parseLong(group2.getId()));
-		ra1.setAccessType(new HashSet<ACCESS_TYPE>(
-				Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ, ACCESS_TYPE.CREATE
-				})));
-		ra2.setAccessType(new HashSet<ACCESS_TYPE>(
-				Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ, ACCESS_TYPE.DELETE
-				})));
-		ras.add(ra1);
-		ras.add(ra2);
+		ras = AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
+				Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, true);
 		acl.setResourceAccess(ras);
 
 		aclDao.update(acl, ObjectType.ENTITY);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
-		key = getNewAclKey(aclKeys);
+		String key = getNewAclKey(aclKeys);
 		assertNotNull(key);
-		aclRecords = aclRecordDao.getBatch(key);
+		List<AclRecord> aclRecords = aclRecordDao.getBatch(key);
 		assertEquals(1, aclRecords.size());
-		aclRecord = aclRecords.get(0);
+		AclRecord aclRecord = aclRecords.get(0);
 		assertNotNull(aclRecord);
 		assertEquals(ObjectType.ENTITY, aclRecord.getOwnerType());
 		assertEquals(node.getId(), aclRecord.getOwnerId());
@@ -229,38 +203,42 @@ public class AclSnapshotWorkerIntegrationTest {
 		
 		key = getNewResourceAccessRecordKey(resourceAccessKeys);
 		assertNotNull(key);
-		raRecords = resourceAccessRecordDao.getBatch(key);
+		List<ResourceAccessRecord> raRecords = resourceAccessRecordDao.getBatch(key);
 		assertEquals(4, raRecords.size());
-		actualRaSet1 = new HashSet<ACCESS_TYPE>();
-		for (ResourceAccessRecord record : raRecords) {
-			if (record.getPrincipalId().toString().equals(group.getId()))
-				actualRaSet1.add(record.getAccessType());
-		}
-		actualRaSet2 = new HashSet<ACCESS_TYPE>();
-		for (ResourceAccessRecord record : raRecords) {
-			if (record.getPrincipalId().toString().equals(group2.getId()))
-				actualRaSet2.add(record.getAccessType());
-		}
-		raRecord = raRecords.get(0);
-		assertNotNull(raRecord);
-		assertEquals(ra1.getAccessType(), actualRaSet1);
-		assertEquals(ra2.getAccessType(), actualRaSet2);
-		assertEquals(aclRecord.getChangeNumber(), raRecord.getChangeNumber());
 
-		// Test DELETE
-	
+		assertEquals(ras, AclSnapshotWorkerTestUtils.getSetOfResourceAccess(raRecords));
+		assertEquals(aclRecord.getChangeNumber(), raRecords.get(0).getChangeNumber());
+	}
+
+	@Test
+	public void testDelete() throws Exception {
+		Set<String> aclKeys = aclRecordDao.listAllKeys();
+		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		aclList.add(acl);
+		acl.setId(node.getId());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		Set<ResourceAccess> ras =
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
+						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
+		acl.setResourceAccess(ras);
+		String aclId = aclDao.create(acl, ObjectType.ENTITY);
+		assertEquals(node.getId(), aclId);
+		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
+
 		aclKeys = aclRecordDao.listAllKeys();
 		resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
-			
+
 		// Delete the acl
 		aclDao.delete(node.getId(), ObjectType.ENTITY);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 0));
-		key = getNewAclKey(aclKeys);
+		String key = getNewAclKey(aclKeys);
 		assertNotNull(key);
-		aclRecords = aclRecordDao.getBatch(key);
+		List<AclRecord> aclRecords = aclRecordDao.getBatch(key);
 		assertEquals(1, aclRecords.size());
-		aclRecord = aclRecords.get(0);
+		AclRecord aclRecord = aclRecords.get(0);
 		assertNotNull(aclRecord);
 		assertNull(aclRecord.getOwnerId());
 		assertNull(aclRecord.getOwnerType());
@@ -273,6 +251,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		for (UserGroup g : groupList) {
 			userGroupDao.delete(g.getId());
 		}
+		aclDao.deleteAllAcl();
 		groupList.clear();
 
 		aclRecordDao.deleteAllStackInstanceBatches();

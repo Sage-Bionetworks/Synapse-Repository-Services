@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 
@@ -18,6 +19,36 @@ public class AclSnapshotWorkerTestUtils {
 			ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE, ACCESS_TYPE.UPLOAD,
 			ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SEND_MESSAGE,
 			ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.UPDATE_SUBMISSION));
+
+	/**
+	 * Get the set of ResourceAccess from a list of ResourceAccessRecord
+	 */
+	public static Set<ResourceAccess> getSetOfResourceAccess(List<ResourceAccessRecord> source) {
+		List<Long> principalIds = getListOfUniquePrincipalIds(source);
+		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
+		for (Long id : principalIds) {
+			ResourceAccess ra = new ResourceAccess();
+			ra.setPrincipalId(id);
+			Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+			for (ResourceAccessRecord record : source) {
+				if (record.getPrincipalId().equals(id)) {
+					accessTypes.add(record.getAccessType());
+				}
+			}
+			ra.setAccessType(accessTypes);
+			set.add(ra);
+		}
+		return set;
+	}
+
+	private static List<Long> getListOfUniquePrincipalIds(
+			List<ResourceAccessRecord> source) {
+		Set<Long> set = new HashSet<Long>();
+		for (ResourceAccessRecord record : source) {
+			set.add(record.getPrincipalId());
+		}
+		return new ArrayList<Long>(set);
+	}
 
 	/**
 	 * Generate a set of ResourceAccessRecord based on a set of ResourceAccess
@@ -41,9 +72,15 @@ public class AclSnapshotWorkerTestUtils {
 	 * @param principalIds
 	 * @param numberOfAccessType
 	 */
-	public static Set<ResourceAccess> createSetOfResourceAccess(List<Long> principalIds, int numberOfAccessType) {
+	public static Set<ResourceAccess> createSetOfResourceAccess(List<Long> principalIds,
+			int numberOfAccessType, boolean onUpdate) {
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
-		Set<ACCESS_TYPE> accessTypes = createSetOfAccessType(numberOfAccessType);
+		Set<ACCESS_TYPE> accessTypes;
+		if (onUpdate) {
+			accessTypes = new HashSet<ACCESS_TYPE>(accessTypeArray.subList(2, numberOfAccessType + 2));
+		} else {
+			accessTypes = new HashSet<ACCESS_TYPE>(accessTypeArray.subList(0, numberOfAccessType));
+		}
 		for (Long principalId : principalIds) {
 			ResourceAccess ra = new ResourceAccess();
 			ra.setPrincipalId(principalId);
@@ -51,14 +88,5 @@ public class AclSnapshotWorkerTestUtils {
 			set.add(ra);
 		}
 		return set;
-	}
-
-	/**
-	 * @param numberOfAccessType
-	 * @throws IndexOutOfBoundsException
-	 */
-	public static Set<ACCESS_TYPE> createSetOfAccessType (int numberOfAccessType)
-			throws IndexOutOfBoundsException {
-		return new HashSet<ACCESS_TYPE>(accessTypeArray.subList(0, numberOfAccessType));
 	}
 }

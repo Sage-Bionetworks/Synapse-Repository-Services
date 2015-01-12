@@ -94,7 +94,7 @@ public class AclSnapshotWorker implements Worker{
 		try {
 			acl = accessControlListDao.get(Long.parseLong(changeMessage.getObjectId()));
 		} catch (NotFoundException e) {
-			log.error("Cannot find acl for a " + changeMessage.getChangeType() + "message.", e) ;
+			log.error("Cannot find acl for a " + changeMessage.getChangeType() + " message: " + changeMessage.toString(), e) ;
 			return message;
 		}
 
