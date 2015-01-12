@@ -19,7 +19,6 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -97,21 +96,13 @@ public class AclSnapshotWorkerTest {
 		Date creationDate = new Date(timestamp);
 		Long id = 123L;
 		String ownerId = "789";
-		Long principalId = 456L;
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		ResourceAccess ra1 = new ResourceAccess();
-		ResourceAccess ra2 = new ResourceAccess();
-		ra1.setPrincipalId(principalId);
-		ra2.setPrincipalId(principalId);
-		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
-		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
-		resourceAccess.addAll(Arrays.asList(ra1, ra2));
-		
+		Set<ResourceAccess> resourceAccess =
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(456L, 654L), 2);
 		AccessControlList acl = new AccessControlList();
 		acl.setId(ownerId);
 		acl.setCreationDate(creationDate);
 		acl.setResourceAccess(resourceAccess);
-		
+
 		Mockito.when(mockAccessControlListDao.get(id)).thenReturn(acl);
 		Mockito.when(mockAccessControlListDao.getOwnerType(id)).thenReturn(ObjectType.ENTITY);
 
@@ -139,15 +130,8 @@ public class AclSnapshotWorkerTest {
 		String ownerId = "789";
 		Long principalId1 = 456L;
 		Long principalId2 = 654L;
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		ResourceAccess ra1 = new ResourceAccess();
-		ResourceAccess ra2 = new ResourceAccess();
-		ra1.setPrincipalId(principalId1);
-		ra2.setPrincipalId(principalId2);
-		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
-		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
-		resourceAccess.addAll(Arrays.asList(ra1, ra2));
-		
+		Set<ResourceAccess> resourceAccess =
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(principalId1, principalId2), 2);
 		AccessControlList acl = new AccessControlList();
 		acl.setId(ownerId);
 		acl.setCreationDate(creationDate);
@@ -164,29 +148,11 @@ public class AclSnapshotWorkerTest {
 		aclRecord.setOwnerId(ownerId);
 		aclRecord.setOwnerType(ObjectType.ENTITY);
 		aclRecord.setTimestamp(timestamp);
-		
-		ResourceAccessRecord raRecord1 = new ResourceAccessRecord();
-		ResourceAccessRecord raRecord2 = new ResourceAccessRecord();
-		ResourceAccessRecord raRecord3 = new ResourceAccessRecord();
-		ResourceAccessRecord raRecord4 = new ResourceAccessRecord();
-		raRecord1.setChangeNumber(null);
-		raRecord2.setChangeNumber(null);
-		raRecord3.setChangeNumber(null);
-		raRecord4.setChangeNumber(null);
-		raRecord1.setPrincipalId(principalId1);
-		raRecord2.setPrincipalId(principalId1);
-		raRecord3.setPrincipalId(principalId2);
-		raRecord4.setPrincipalId(principalId2);
-		raRecord1.setAccessType(ACCESS_TYPE.READ);
-		raRecord2.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		raRecord3.setAccessType(ACCESS_TYPE.READ);
-		raRecord4.setAccessType(ACCESS_TYPE.DOWNLOAD);
 
 		// Create the worker
 		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
 
-		Set<ResourceAccessRecord> expected = new HashSet<ResourceAccessRecord>(
-				Arrays.asList(raRecord1, raRecord2, raRecord3, raRecord4));
+		Set<ResourceAccessRecord> expected = AclSnapshotWorkerTestUtils.createSetOfResourceAccessRecord(resourceAccess);
 		Set<ResourceAccessRecord> actual = new HashSet<ResourceAccessRecord>(
 				worker.buildResourceAccessRecordList(MessageUtils.extractMessageBody(one), acl));
 		assertEquals(expected, actual);
@@ -198,16 +164,9 @@ public class AclSnapshotWorkerTest {
 		Message one = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ACCESS_CONTROL_LIST, "etag", timestamp );
 		Date creationDate = new Date(timestamp);
 		Long id = 123L;
-		Long principalId = 456L;
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		ResourceAccess ra1 = new ResourceAccess();
-		ResourceAccess ra2 = new ResourceAccess();
-		ra1.setPrincipalId(principalId);
-		ra2.setPrincipalId(principalId);
-		ra1.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
-		ra2.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.DOWNLOAD)));
-		resourceAccess.addAll(Arrays.asList(ra1, ra2));
-		
+		Set<ResourceAccess> resourceAccess =
+				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(456L, 654L), 2);
+
 		AccessControlList acl = new AccessControlList();
 		acl.setId("789"); // ownerId
 		acl.setCreationDate(creationDate);
@@ -228,7 +187,7 @@ public class AclSnapshotWorkerTest {
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 		verify(mockResourceAccessRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 	}
-	
+
 	@Test
 	public void testDeleteACL() throws Exception {
 		Long timestamp = System.currentTimeMillis();

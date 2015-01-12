@@ -93,8 +93,6 @@ public class AclSnapshotWorker implements Worker{
 		AccessControlList acl = null;
 		try {
 			acl = accessControlListDao.get(Long.parseLong(changeMessage.getObjectId()));
-		} catch (NumberFormatException e) {
-			return message;
 		} catch (NotFoundException e) {
 			log.error("Cannot find acl for a " + changeMessage.getChangeType() + "message.", e) ;
 			return message;
@@ -150,8 +148,7 @@ public class AclSnapshotWorker implements Worker{
 		try {
 			record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
 		} catch (NotFoundException e) {
-			log.entry("Old message: the ownerType of an ACL does not exist anymore.", e);
-			return null;
+			log.info("Old message: the ownerType of an ACL does not exist anymore.", e);
 		}
 		return record;
 	}
