@@ -139,10 +139,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(Long.parseLong(group.getId()));
-		ra.setAccessType(new HashSet<ACCESS_TYPE>(
-				Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ
-				})));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 
