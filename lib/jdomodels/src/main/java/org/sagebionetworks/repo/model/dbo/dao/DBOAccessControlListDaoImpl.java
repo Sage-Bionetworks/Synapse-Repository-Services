@@ -140,8 +140,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
 		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
-		DBOAccessControlList dboAcl;
-		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		AccessControlList acl = doGet(dboAcl);
 		return acl;
 	}
