@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -56,7 +55,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	private ResourceAccessRecordDAO resourceAccessRecordDao;
 	
 	@Autowired
-	private AccessControlListDAO aclDao;
+	private  AccessControlListDAO aclDao;
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
@@ -70,7 +69,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	private UserGroup group2;
 	
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
-	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
+	private  Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
 	
 	private Long createdById;
 	private Long modifiedById;
@@ -257,7 +256,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		cleanUpAclList();
 	}
 
-	@After 
+	@After
 	public void cleanUp() throws Exception {
 		nodeDao.delete(node.getId());
 		for (UserGroup g : groupList) {
@@ -268,7 +267,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		resourceAccessRecordDao.deleteAllStackInstanceBatches();
 	}
 
-	private void cleanUpAclList() throws NotFoundException {
+	private void cleanUpAclList() throws Exception {
 		for (AccessControlList acl : aclList) {
 			aclDao.delete(acl.getId(), ObjectType.ENTITY);
 		}
