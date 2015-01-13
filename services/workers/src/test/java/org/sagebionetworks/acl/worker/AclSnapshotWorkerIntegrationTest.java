@@ -90,6 +90,8 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		assertNotNull(s3Client);
 
+		// wait for 10 seconds
+		Thread.sleep(10000);
 		// discard a few Ids
 		for (int i = 0; i < 100; i++){
 			idGenerator.generateNewId(TYPE.ACL_ID);
