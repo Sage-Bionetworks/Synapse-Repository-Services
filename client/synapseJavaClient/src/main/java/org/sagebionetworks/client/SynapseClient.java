@@ -1889,13 +1889,17 @@ public interface SynapseClient extends BaseClient {
 	void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException;
 	
 	/**
-	 * Returns a paginated list of Teams registered for the given Challenge.
+	 * Returns a paginated list of Teams registered for the given Challenge,
+	 * optionally filtered to show just the Teams in which the given userId 
+	 * is a member.  Results sorted alphabetically.
 	 * The user making the request must have READ access to the Challenge.
 	 * @param challengeId
+	 * @param userId optional  if included only the Teams having this userId
+	 * as a member are returned.
 	 * @param limit optional
 	 * @param offset optional
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedResults<Team> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
+	public PaginatedResults<Team> listChallengeTeams(String challengeId, String userId, Long limit, Long offset) throws SynapseException;
 }
