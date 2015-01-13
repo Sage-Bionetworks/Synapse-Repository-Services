@@ -90,7 +90,7 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		assertNotNull(s3Client);
 
-		// wait for 10 seconds
+		// wait 10 seconds for S3 to be in a consistent state before testing
 		Thread.sleep(10000);
 		// discard a few Ids
 		for (int i = 0; i < 100; i++){
