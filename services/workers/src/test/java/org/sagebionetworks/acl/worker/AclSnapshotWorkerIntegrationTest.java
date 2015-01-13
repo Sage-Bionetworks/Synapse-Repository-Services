@@ -314,7 +314,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		for (String raKey : newResourceKeys) {
 			List<ResourceAccessRecord> newRaRecords = resourceAccessRecordDao.getBatch(raKey);
 
-			if (compareRaRecords(new HashSet<ResourceAccessRecord>(newRaRecords),expectedRaRecords)) {
+			if (compareRaRecords(new HashSet<ResourceAccessRecord>(newRaRecords), expectedRaRecords)) {
 				return true;
 			}
 		}
