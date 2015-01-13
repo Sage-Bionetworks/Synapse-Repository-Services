@@ -103,6 +103,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
+		aclList.add(acl);
 
 		// Did a message get sent?
 		List<ChangeMessage> changes = changeDAO.listChanges(changeDAO.getCurrentChangeNumber(), ObjectType.ACCESS_CONTROL_LIST, Long.MAX_VALUE);
@@ -188,7 +189,9 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 
 	@After
 	public void cleanUp() throws Exception {
-		aclDAO.deleteAllAcl();
+		for (AccessControlList acl : aclList) {
+			aclDAO.delete(acl.getId(), ObjectType.ENTITY);
+		}
 		nodeList.clear();
 		aclList.clear();
 		for (UserGroup g : groupList) {

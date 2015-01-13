@@ -78,10 +78,4 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Delete all ACL in the database
-	 * only used to clean up tests
-	 */
-	public void deleteAllAcl();
 }
