@@ -200,13 +200,11 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@Test
 	public void testGet() throws Exception {
-		
-		AccessControlList acl = aclList.iterator().next();
-		String id = acl.getId();
-		
-		AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
-		
-		assertEquals(acl, acl2);
+		for (AccessControlList acl : aclList) {
+			String id = acl.getId();
+			AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
+			assertEquals(acl, acl2);
+		}
 	}
 
 	/**
@@ -230,15 +228,14 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@Test
 	public void testGetAclId() throws Exception {
-		// get an ownerId
-		AccessControlList acl = aclList.iterator().next();
-		String id = acl.getId();
-		// get the AclId using ownerId and ownerType
-		Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
-		// get the acl using the AclId
-		AccessControlList acl2 = aclDAO.get(aclId);
-		assertEquals(acl, acl2);
-		
+		for (AccessControlList acl : aclList) {
+			String id = acl.getId();
+			// get the AclId using ownerId and ownerType
+			Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
+			// get the acl using the AclId
+			AccessControlList acl2 = aclDAO.get(aclId);
+			assertEquals(acl, acl2);
+		}
 	}
 
 	@Test  (expected=NotFoundException.class)
@@ -254,12 +251,12 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@Test
 	public void testGetOwnerType() throws Exception {
-		// get an ownerId
-		AccessControlList acl = aclList.iterator().next();
-		String id = acl.getId();
-		// get the AclId using ownerId and ownerType
-		Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
-		assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(aclId));
+		for (AccessControlList acl : aclList) {
+			String id = acl.getId();
+			// get the AclId using ownerId and ownerType
+			Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
+			assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(aclId));
+		}
 	}
 
 	@Test  (expected=NotFoundException.class)

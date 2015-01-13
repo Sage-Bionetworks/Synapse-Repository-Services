@@ -19,6 +19,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -43,6 +45,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class AclSnapshotWorkerIntegrationTest {
 
+	@Autowired
+	private IdGenerator idGenerator;
 	@Autowired
 	StackConfiguration config;
 	@Autowired
@@ -74,6 +78,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws Exception {
+		assertNotNull(idGenerator);
 		assertNotNull(config);
 		assertNotNull(aclRecordDao);
 		assertNotNull(resourceAccessRecordDao);
@@ -84,16 +89,21 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		assertNotNull(s3Client);
 
+		// discard a few Ids
+		for (int i = 0; i < 100; i++){
+			idGenerator.generateNewId(TYPE.ACL_ID);
+		}
+
 		// Setting up
-		
+
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		
+
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
 		modifiedById = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-		
+
 		// create a resource on which to apply permissions
 		node = new Node();
-		node.setName("foo");
+		node.setName("testNodeForAclSnapshotWorker");
 		node.setCreatedOn(new Date());
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedOn(new Date());
@@ -130,17 +140,16 @@ public class AclSnapshotWorkerIntegrationTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
-
+		aclList.add(acl);
 		Set<ResourceAccess> ras =
 				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
 						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
 		acl.setResourceAccess(ras);
 
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
-		assertEquals(node.getId(), aclId);
-		aclList.add(acl);
-
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
+		assertEquals(node.getId(), aclId);
+
 		String key = getNewAclKey(aclKeys);
 		assertNotNull(key);
 		List<AclRecord> aclRecords = aclRecordDao.getBatch(key);
@@ -167,13 +176,13 @@ public class AclSnapshotWorkerIntegrationTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		aclList.add(acl);
 		Set<ResourceAccess> ras =
 				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
 						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
 		acl.setResourceAccess(ras);
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
-		aclList.add(acl);
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
 		aclKeys = aclRecordDao.listAllKeys();
@@ -188,7 +197,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		acl.setResourceAccess(ras);
 
 		aclDao.update(acl, ObjectType.ENTITY);
-		aclList.add(acl);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
@@ -219,13 +227,13 @@ public class AclSnapshotWorkerIntegrationTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		aclList.add(acl);
 		Set<ResourceAccess> ras =
 				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
 						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
 		acl.setResourceAccess(ras);
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
-		aclList.add(acl);
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
 		aclKeys = aclRecordDao.listAllKeys();
@@ -253,7 +261,7 @@ public class AclSnapshotWorkerIntegrationTest {
 			userGroupDao.delete(g.getId());
 		}
 		for (AccessControlList acl : aclList) {
-			aclDao.delete(acl.getId(), ObjectType.ENTITY);
+			//aclDao.delete(acl.getId(), ObjectType.ENTITY);
 		}
 		groupList.clear();
 
