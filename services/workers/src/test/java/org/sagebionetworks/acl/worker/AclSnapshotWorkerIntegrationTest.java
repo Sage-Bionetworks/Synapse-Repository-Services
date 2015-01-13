@@ -41,7 +41,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
-// it's necessary to drop the database every time before running this test
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class AclSnapshotWorkerIntegrationTest {
