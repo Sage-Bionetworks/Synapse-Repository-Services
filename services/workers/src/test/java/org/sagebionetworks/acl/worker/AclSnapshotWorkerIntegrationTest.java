@@ -129,8 +129,6 @@ public class AclSnapshotWorkerIntegrationTest {
 
 	@Test
 	public void testCreate() throws Exception {
-		// wait 10 seconds for S3 to be in a consistent state
-		Thread.sleep(10000);
 		Set<String> aclKeys = aclRecordDao.listAllKeys();
 		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		assertNotNull(aclKeys);
@@ -178,8 +176,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
 
-		// wait 10 seconds for S3 to be in a consistent state
-		Thread.sleep(10000);
 		Set<String> aclKeys = aclRecordDao.listAllKeys();
 		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		assertNotNull(aclKeys);
@@ -226,8 +222,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
 
-		// wait 10 seconds for S3 to be in a consistent state
-		Thread.sleep(10000);
 		Set<String> aclKeys = aclRecordDao.listAllKeys();
 		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		assertNotNull(aclKeys);
