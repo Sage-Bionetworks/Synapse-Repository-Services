@@ -75,7 +75,7 @@ public class AclSnapshotWorkerIntegrationTest {
 	private Long createdById;
 	private Long modifiedById;
 	
-	private int TIME_OUT = 60 * 1000;
+	private static final int TIME_OUT = 60 * 1000;
 	
 	@Before
 	public void before() throws Exception {
