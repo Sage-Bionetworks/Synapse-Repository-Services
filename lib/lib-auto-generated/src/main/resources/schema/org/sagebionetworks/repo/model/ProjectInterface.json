@@ -1,0 +1,10 @@
+{
+    "title":"Project Interface",
+    "description":"An interface for Project and its subtypes",
+    "type":"interface",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        }
+    ]
+}

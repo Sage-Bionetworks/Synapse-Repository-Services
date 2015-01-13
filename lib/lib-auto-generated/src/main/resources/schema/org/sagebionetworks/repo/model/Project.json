@@ -3,7 +3,7 @@
     "description":"A Project is a top-level container for organizing data in Synapse.",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.Entity"
+            "$ref":"org.sagebionetworks.repo.model.ProjectInterface"
         }
     ]
 }
