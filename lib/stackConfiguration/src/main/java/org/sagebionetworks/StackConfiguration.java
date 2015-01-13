@@ -1498,12 +1498,30 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * Get the name of the audit record bucket.
+	 * Get the name of the audit access record bucket.
 	 * 
 	 * @return
 	 */
 	public String getAuditRecordBucketName() {
 		return String.format(StackConstants.ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the name of the audit ACL record bucket.
+	 * 
+	 * @return
+	 */
+	public String getAclRecordBucketName() {
+		return String.format(StackConstants.ACL_RECORD_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the name of the audit ACL Resource Access record bucket.
+	 * 
+	 * @return
+	 */
+	public String getResourceAccessRecordBucketName() {
+		return String.format(StackConstants.RESOURCE_ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
 	}
 	
 	/**

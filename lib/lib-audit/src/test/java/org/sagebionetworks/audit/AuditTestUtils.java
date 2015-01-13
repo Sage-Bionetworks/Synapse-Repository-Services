@@ -1,10 +1,18 @@
 package org.sagebionetworks.audit;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.model.audit.AclRecord;
+import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
+import org.sagebionetworks.repo.model.message.ChangeType;
 
 /**
  * 
@@ -19,7 +27,7 @@ public class AuditTestUtils {
 	 * @param startTimestamp
 	 * @return
 	 */
-	public static List<AccessRecord> createList(int count, long startTimestamp){
+	public static List<AccessRecord> createAccessRecordList(int count, long startTimestamp){
 		List<AccessRecord> list = new LinkedList<AccessRecord>();
 		for(int i=0; i<count; i++){
 			AccessRecord ar = new AccessRecord();
@@ -53,5 +61,41 @@ public class AuditTestUtils {
 	
 	enum Method{
 		GET,POST,PUT,DELETE
+	}
+
+	/**
+	 * create and return numberOfRecords AclRecords
+	 */
+	public static List<AclRecord> createAclRecordList(int numberOfRecords) {
+		List<AclRecord> list = new ArrayList<AclRecord>();
+		for (int i = 0; i < numberOfRecords; i++) {
+			AclRecord newRecord = new AclRecord();
+			newRecord.setTimestamp(System.currentTimeMillis());
+			newRecord.setChangeNumber(-1L);
+			newRecord.setChangeType(ChangeType.CREATE);
+			newRecord.setOwnerId("-1");
+			newRecord.setEtag("etag");
+			newRecord.setAclId("-1");
+			newRecord.setOwnerType(ObjectType.ENTITY);
+
+			list.add(newRecord);
+		}
+		return list;
+	}
+
+	/**
+	 * create and return numberOfRecords ResourceAccessRecords
+	 */
+	public static List<ResourceAccessRecord> createResourceAccessRecordList(int numberOfRecords) {
+		List<ResourceAccessRecord> list = new ArrayList<ResourceAccessRecord>();
+		for (int i = 0; i < numberOfRecords; i++) {
+			ResourceAccessRecord newRecord = new ResourceAccessRecord();
+			newRecord.setAccessType(ACCESS_TYPE.READ);
+			newRecord.setChangeNumber(-1L);
+			newRecord.setPrincipalId(-1L);
+
+			list.add(newRecord);
+		}
+		return list;
 	}
 }

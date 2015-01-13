@@ -1,12 +1,14 @@
 package org.sagebionetworks.audit.utils;
 
+import org.sagebionetworks.repo.model.ObjectType;
+
 /**
  * A simple test class for ObjectCSV reading and writing.
  * @author jmhill
  *
  */
 public class ExampleObject {
-	
+	public enum SomeEnum { A, B, C };
 	public static String A_STATIC_FIEDS = "Static Fields should not be included";
 
 	private String aString;
@@ -15,7 +17,14 @@ public class ExampleObject {
 	private Double aDouble;
 	private Integer anInteger;
 	private Float aFloat;
+	private SomeEnum someEnum;
 	
+	public SomeEnum getSomeEnum() {
+		return someEnum;
+	}
+	public void setSomeEnum(SomeEnum someEnum) {
+		this.someEnum = someEnum;
+	}
 	public Float getaFloat() {
 		return aFloat;
 	}
@@ -65,6 +74,8 @@ public class ExampleObject {
 		result = prime * result + ((aString == null) ? 0 : aString.hashCode());
 		result = prime * result
 				+ ((anInteger == null) ? 0 : anInteger.hashCode());
+		result = prime * result
+				+ ((someEnum == null) ? 0 : someEnum.hashCode());
 		return result;
 	}
 	@Override
@@ -106,6 +117,8 @@ public class ExampleObject {
 				return false;
 		} else if (!anInteger.equals(other.anInteger))
 			return false;
+		if (someEnum != other.someEnum)
+			return false;
 		return true;
 	}
 	@Override
@@ -114,5 +127,4 @@ public class ExampleObject {
 				+ ", aBoolean=" + aBoolean + ", aDouble=" + aDouble
 				+ ", anInteger=" + anInteger + ", aFloat=" + aFloat + "]";
 	}
-	
 }

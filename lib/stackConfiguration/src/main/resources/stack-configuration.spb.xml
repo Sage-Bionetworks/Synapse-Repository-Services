@@ -19,6 +19,7 @@
 	<bean name="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[QUERY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
@@ -121,6 +122,8 @@
 	
 	<!-- Audit config -->
 	<bean id="stackConfiguration.auditRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.aclRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.resourceAccessRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.stackInstanceNumber" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Logging -->

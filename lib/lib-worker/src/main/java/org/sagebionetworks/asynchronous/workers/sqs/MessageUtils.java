@@ -1,18 +1,16 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.AutoGenFactory;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -226,7 +224,26 @@ public class MessageUtils {
 		message.setObjectType(objectType);
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}
-	
+
+	/**
+	 * Build a generic message.
+	 * @param changeType
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @param timestamp
+	 * @return
+	 */
+	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag, Long timestamp){
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectEtag(etag);
+		message.setObjectId(objectId);
+		message.setObjectType(objectType);
+		message.setTimestamp(new Date(timestamp));
+		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+	}
+
 	/**
 	 * Constructs a list of lists, each sublist containing no more than 10 items
 	 */

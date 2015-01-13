@@ -30,6 +30,34 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 */
 	public AccessControlList get(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the ACL's ID using ownerId and objectType
+	 * @param id
+	 * @param objectType
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public Long getAclId(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get an ACL using the ACL's ID
+	 * @param id - the id of the acl (not the ownerId)
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AccessControlList get(Long id) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the OwnerType using the ACL's ID
+	 * @param id - the id of the acl (not the ownerId)
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update the JDO
@@ -51,4 +79,9 @@ public interface AccessControlListDAO  {
 	 */
 	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
 
+	/**
+	 * Delete all ACL in the database
+	 * only used to clean up tests
+	 */
+	public void deleteAllAcl();
 }

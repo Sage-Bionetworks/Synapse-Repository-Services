@@ -2,6 +2,7 @@ package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 
@@ -36,6 +37,11 @@ public interface AccessRecordDAO {
 	 * @throws IOException 
 	 */
 	List<AccessRecord> getBatch(String key) throws IOException;
+
+	/**
+	 * @return all keys found this this bucket
+	 */
+	Set<String> listAllKeys();
 
 	/**
 	 * Delete a batch.
