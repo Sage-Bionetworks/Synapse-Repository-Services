@@ -93,19 +93,27 @@ public class AclSnapshotWorker implements Worker{
 		AccessControlList acl = null;
 		try {
 			acl = accessControlListDao.get(Long.parseLong(changeMessage.getObjectId()));
+			if (!acl.getEtag().equals(changeMessage.getObjectEtag())) {
+				log.info("Ignoring old message.");
+				return message;
+			}
 		} catch (NotFoundException e) {
 			log.error("Cannot find acl for a " + changeMessage.getChangeType() + " message: " + changeMessage.toString(), e) ;
 			return message;
 		}
 
-		AclRecord aclRecord = buildAclRecord(changeMessage, acl);
-		List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage, acl);
-
-		aclRecordDao.saveBatch(Arrays.asList(aclRecord));
-		if (!resourceAccessRecords.isEmpty()) {
-			resourceAccessRecordDao.saveBatch(resourceAccessRecords);
+		try {
+			AclRecord aclRecord = buildAclRecord(changeMessage, acl);
+			aclRecordDao.saveBatch(Arrays.asList(aclRecord));
+			List<ResourceAccessRecord> resourceAccessRecords = buildResourceAccessRecordList(changeMessage, acl);
+			if (!resourceAccessRecords.isEmpty()) {
+				resourceAccessRecordDao.saveBatch(resourceAccessRecords);
+			}
+			return message;
+		} catch (NotFoundException e) {
+			log.info("Could not find ownerType for an acl record.");
+			return message;
 		}
-		return message;
 	}
 
 	private AclRecord buildAclRecord(ChangeMessage message) {
@@ -143,11 +151,7 @@ public class AclSnapshotWorker implements Worker{
 		AclRecord record = buildAclRecord(message);
 		record.setOwnerId(acl.getId());
 		record.setCreationDate(acl.getCreationDate());
-		try {
-			record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-		} catch (NotFoundException e) {
-			log.info("Old message: the ownerType of an ACL does not exist anymore.", e);
-		}
+		record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
 		return record;
 	}
 

@@ -72,6 +72,7 @@ public class AclSnapshotWorkerTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId("789"); // ownerId
 		acl.setCreationDate(creationDate);
+		acl.setEtag("etag");
 		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
 
@@ -171,6 +172,7 @@ public class AclSnapshotWorkerTest {
 		acl.setId("789"); // ownerId
 		acl.setCreationDate(creationDate);
 		acl.setResourceAccess(resourceAccess);
+		acl.setEtag("etag");
 		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
 		
@@ -197,6 +199,7 @@ public class AclSnapshotWorkerTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId("789"); // ownerId
 		acl.setCreationDate(creationDate);
+		acl.setEtag("etag");
 		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
 		

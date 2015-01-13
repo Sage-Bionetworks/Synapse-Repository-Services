@@ -102,7 +102,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.ACCESS_CONTROL_LIST, 
-				UUID.randomUUID().toString(), ChangeType.CREATE);
+				acl.getEtag(), ChangeType.CREATE);
 		return acl.getId(); // This preserves the "syn" prefix
 	}
 
@@ -231,7 +231,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.ACCESS_CONTROL_LIST, 
-				UUID.randomUUID().toString(), ChangeType.UPDATE);
+				acl.getEtag(), ChangeType.UPDATE);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
