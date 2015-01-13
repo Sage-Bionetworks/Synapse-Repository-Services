@@ -67,8 +67,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static final String SQL_SELECT_ACL_ID_FOR_RESOURCE = "SELECT "+COL_ACL_ID+" FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = ? AND "+COL_ACL_OWNER_TYPE+" = ?";
 
-	private static final String DELETE_ALL_ACL = "DELETE FROM "+TABLE_ACCESS_CONTROL_LIST;
-
 	/**
 	 * Keep a copy of the row mapper.
 	 */
@@ -283,10 +281,5 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
 		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
-	}
-
-	@Override
-	public void deleteAllAcl() {
-		simpleJdbcTemplate.update(DELETE_ALL_ACL);
 	}
 }

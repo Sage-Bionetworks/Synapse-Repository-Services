@@ -128,7 +128,6 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
-		aclList.add(acl);
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 
@@ -139,6 +138,7 @@ public class AclSnapshotWorkerIntegrationTest {
 
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
+		aclList.add(acl);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 		String key = getNewAclKey(aclKeys);
@@ -165,7 +165,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
-		aclList.add(acl);
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		Set<ResourceAccess> ras =
@@ -174,6 +173,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		acl.setResourceAccess(ras);
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
+		aclList.add(acl);
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
 		aclKeys = aclRecordDao.listAllKeys();
@@ -188,6 +188,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		acl.setResourceAccess(ras);
 
 		aclDao.update(acl, ObjectType.ENTITY);
+		aclList.add(acl);
 
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
@@ -216,7 +217,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		Set<String> resourceAccessKeys = resourceAccessRecordDao.listAllKeys();
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
-		aclList.add(acl);
 		acl.setId(node.getId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		Set<ResourceAccess> ras =
@@ -225,6 +225,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		acl.setResourceAccess(ras);
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
 		assertEquals(node.getId(), aclId);
+		aclList.add(acl);
 		assertTrue(waitForObject(aclKeys, resourceAccessKeys, 1, 1));
 
 		aclKeys = aclRecordDao.listAllKeys();
@@ -251,7 +252,9 @@ public class AclSnapshotWorkerIntegrationTest {
 		for (UserGroup g : groupList) {
 			userGroupDao.delete(g.getId());
 		}
-		aclDao.deleteAllAcl();
+		for (AccessControlList acl : aclList) {
+			aclDao.delete(acl.getId(), ObjectType.ENTITY);
+		}
 		groupList.clear();
 
 		aclRecordDao.deleteAllStackInstanceBatches();

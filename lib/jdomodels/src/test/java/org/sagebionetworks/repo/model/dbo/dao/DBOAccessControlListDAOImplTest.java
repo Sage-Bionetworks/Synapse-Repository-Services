@@ -135,7 +135,9 @@ public class DBOAccessControlListDAOImplTest {
 
 	@After
 	public void tearDown() throws Exception {
-		aclDAO.deleteAllAcl();
+		for (AccessControlList acl : aclList){
+			aclDAO.delete(acl.getId(), ObjectType.ENTITY);
+		}
 		for (Node n : nodeList) {
 			nodeDAO.delete(n.getId());
 		}
