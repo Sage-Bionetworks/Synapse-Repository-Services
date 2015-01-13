@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -252,6 +253,8 @@ public class AclSnapshotWorkerIntegrationTest {
 		assertNull(aclRecord.getOwnerId());
 		assertNull(aclRecord.getOwnerType());
 		assertEquals(ChangeType.DELETE, aclRecord.getChangeType());
+		// only clean up the acl after verything is done
+		cleanUpAclList();
 	}
 
 	@After 
@@ -260,13 +263,15 @@ public class AclSnapshotWorkerIntegrationTest {
 		for (UserGroup g : groupList) {
 			userGroupDao.delete(g.getId());
 		}
-		for (AccessControlList acl : aclList) {
-			//aclDao.delete(acl.getId(), ObjectType.ENTITY);
-		}
 		groupList.clear();
-
 		aclRecordDao.deleteAllStackInstanceBatches();
 		resourceAccessRecordDao.deleteAllStackInstanceBatches();
+	}
+
+	private void cleanUpAclList() throws NotFoundException {
+		for (AccessControlList acl : aclList) {
+			aclDao.delete(acl.getId(), ObjectType.ENTITY);
+		}
 	}
 
 	/**
