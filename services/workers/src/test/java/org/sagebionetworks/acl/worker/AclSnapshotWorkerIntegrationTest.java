@@ -259,8 +259,8 @@ public class AclSnapshotWorkerIntegrationTest {
 	}
 
 	/**
-	 * Helper method that continue looking into s3 bucket and find new AclRecord
-	 * log files and new ResourceAccessRecord log files.
+	 * Helper method that keep looking for new AclRecord log files and new 
+	 * ResourceAccessRecord log files in S3.
 	 * 
 	 * @return true if found the expectedAclRecord and expectedRaRecords in TIME_OUT milliseconds,
 	 *         false otherwise.
