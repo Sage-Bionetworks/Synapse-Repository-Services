@@ -6207,6 +6207,44 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public EntityQueryResults entityQuery(EntityQuery query) throws SynapseException {
 		return asymmetricalPost(getRepoEndpoint(), QUERY, query, EntityQueryResults.class, null);
 	}
+	
+	/**
+	 * Register a Team for a Challenge.
+	 * The user making this request must have SUBMIT access to the Challenge and
+	 * be an administrator of the Team.
+	 * @param challengeId
+	 * @param teamId
+	 * @throws SynapseException
+	 */
+	public void addTeamToChallenge(String challengeId, String teamId) throws SynapseException {
+		throw new RuntimeException("Not Yet Implemented");
+	}
+	
+	/**
+	 * Remove a registered Team from a Challenge.
+	 * The user making this request must have SUBMIT access to the Challenge and
+	 * be an administrator of the Team.
+	 * @param challengeId
+	 * @param teamId
+	 * @throws SynapseException
+	 */
+	public void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException  {
+		throw new RuntimeException("Not Yet Implemented");
+	}
+	
+	/**
+	 * Returns a paginated list of Teams registered for the given Challenge.
+	 * The user making the request must have READ access to the Challenge.
+	 * @param challengeId
+	 * @param limit optional
+	 * @param offset optional
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<Team> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException  {
+		throw new RuntimeException("Not Yet Implemented");
+	}
+
 
 }
 
