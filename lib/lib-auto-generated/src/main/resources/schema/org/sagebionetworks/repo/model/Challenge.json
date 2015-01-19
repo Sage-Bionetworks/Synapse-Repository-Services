@@ -1,9 +1,11 @@
 {
     "title":"Challenge",
-    "description":"A Challenge is a special kind of Project, used to organize data and track participation in a data analysis challenge.",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.ProjectInterface"
-        }
-    ]
+    "description":"Settings for a Challenge Project.",
+	"properties": {
+		"participantTeamId":{
+			"type": "string",
+			"description": "The ID of the Team which users join to participate in the Challenge"
+		}
+	}
+
 }

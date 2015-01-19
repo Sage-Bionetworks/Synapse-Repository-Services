@@ -36,6 +36,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOComment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupNode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
@@ -150,6 +151,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				
 
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupNode" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />

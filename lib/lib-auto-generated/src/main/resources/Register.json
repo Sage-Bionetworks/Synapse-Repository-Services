@@ -37,14 +37,6 @@
         },
         {
             "validParentTypes":[
-                "DEFAULT"
-            ],
-            "name":"challenge",
-            "entityType":"org.sagebionetworks.repo.model.Challenge",
-            "defaultParentPath":"/root"
-        },
-        {
-            "validParentTypes":[
            		"org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Data"
             ],

@@ -265,6 +265,13 @@ public class SqlConstants {
     public static final String COL_GROUP_MEMBERS_GROUP_ID  = "GROUP_ID";
     public static final String COL_GROUP_MEMBERS_MEMBER_ID = "MEMBER_ID";
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
+    
+    // The group node table
+    public static final String TABLE_CHALLENGE_TEAM         = "CHALLENGE_TEAM";
+    public static final String COL_GROUP_NODE_ID 		= "ID";
+    public static final String COL_GROUP_NODE_ETAG		= "ETAG";
+    public static final String COL_GROUP_NODE_GROUP_ID  = "GROUP_ID";
+    public static final String COL_GROUP_NODE_NODE_ID 	= "NODE_ID";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID          = "ID";
