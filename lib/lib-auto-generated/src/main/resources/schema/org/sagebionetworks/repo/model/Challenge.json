@@ -4,7 +4,7 @@
 	"properties": {
 		"id":{
 			"type":"string",
-			"description":"The ID of this Challenge object",
+			"description":"The ID of this Challenge object"
 		},
 		"etag": {
 			"type": "string",

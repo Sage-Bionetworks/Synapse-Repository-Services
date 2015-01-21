@@ -132,8 +132,11 @@
 		depends-on="userGroupDAO" 
 		init-method="bootstrapGroups" />
 
-	<bean id="groupNodeDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupNodeDAOImpl"/>
+	<bean id="challengeTeamDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOChallengeTeamDAOImpl"/>
+	
+	<bean id="challengeDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOChallengeDAOImpl"/>
 	
 		<bean id="principalAliasDao"
 		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalAliasDaoImpl"

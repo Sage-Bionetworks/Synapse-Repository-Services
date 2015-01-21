@@ -1,0 +1,18 @@
+{
+    "title":"ChallengeSummary",
+    "description":"Summary information for a Challenge",
+	"properties": {
+		"id":{
+			"type":"string",
+			"description":"The ID of this Challenge object"
+		},
+		"name":{
+			"type":"string",
+			"description":"The name of the associated Challenge project"			
+		},
+		"participantTeamId":{
+			"type": "string",
+			"description": "The ID of the Team which users join to participate in the Challenge"
+		}
+	}
+}
