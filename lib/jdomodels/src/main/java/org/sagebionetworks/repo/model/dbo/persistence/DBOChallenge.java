@@ -17,65 +17,66 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 /**
  * Mapping between groups and nodes.  Used to relate Teams to Challenges
  */
-@Table(name = TABLE_CHALLENGE_TEAM)
-public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTeam, DBOChallengeTeam> {
-	@Field(name = COL_CHALLENGE_TEAM_ID, backupId = true, primary = true, nullable = false)
+@Table(name = TABLE_CHALLENGE)
+public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOChallenge> {
+	@Field(name = COL_CHALLENGE_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 	
-	@Field(name = COL_CHALLENGE_TEAM_ETAG, backupId = false, primary = false, nullable = false, etag=true)
+	@Field(name = COL_CHALLENGE_ETAG, backupId = false, primary = false, nullable = false, etag=true)
 	private String etag;
 	
-	@Field(name = COL_CHALLENGE_TEAM_TEAM_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
-	private Long teamId;
+	@Field(name = COL_CHALLENGE_PARTICIPANT_TEAM_ID, backupId = false, primary = false, nullable = true)
+	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = false)
+	private Long participantTeamId;
 	
-	@Field(name = COL_CHALLENGE_TEAM_CHALLENGE_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_CHALLENGE, field = COL_CHALLENGE_ID, cascadeDelete = true)
+	@Field(name = COL_CHALLENGE_PROJECT_ID, backupId = false, primary = false, nullable = false)
+	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true)
 	private Long challengeId;
 	
 	@Field(name=COL_CHALLENGE_SERIALIZED_ENTITY, blob = "mediumblob", backupId = false, primary = false, nullable = false)
 	private byte[] serializedEntity;
 	
-	private static TableMapping<DBOChallengeTeam> tableMapping = AutoTableMapping.create(DBOChallengeTeam.class);
+	private static TableMapping<DBOChallenge> tableMapping = AutoTableMapping.create(DBOChallenge.class);
 
 	@Override
-	public TableMapping<DBOChallengeTeam> getTableMapping() {
+	public TableMapping<DBOChallenge> getTableMapping() {
 		return tableMapping;
 	}
 
+
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.CHALLENGE_TEAM;
+		return MigrationType.CHALLENGE;
 	}
 
 
 	@Override
-	public MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam> getTranslator() {
+	public MigratableTableTranslation<DBOChallenge, DBOChallenge> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam>(){
+		return new MigratableTableTranslation<DBOChallenge, DBOChallenge>(){
 
 			@Override
-			public DBOChallengeTeam createDatabaseObjectFromBackup(
-					DBOChallengeTeam backup) {
+			public DBOChallenge createDatabaseObjectFromBackup(
+					DBOChallenge backup) {
 				return backup;
 			}
 
 			@Override
-			public DBOChallengeTeam createBackupFromDatabaseObject(DBOChallengeTeam dbo) {
+			public DBOChallenge createBackupFromDatabaseObject(DBOChallenge dbo) {
 				return dbo;
 			}};
 	}
 
 
 	@Override
-	public Class<? extends DBOChallengeTeam> getBackupClass() {
-		return DBOChallengeTeam.class;
+	public Class<? extends DBOChallenge> getBackupClass() {
+		return DBOChallenge.class;
 	}
 
 
 	@Override
-	public Class<? extends DBOChallengeTeam> getDatabaseObjectClass() {
-		return DBOChallengeTeam.class;
+	public Class<? extends DBOChallenge> getDatabaseObjectClass() {
+		return DBOChallenge.class;
 	}
 
 
@@ -85,37 +86,46 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 		return null;
 	}
 
+
 	public Long getId() {
 		return id;
 	}
+
 
 	public void setId(Long id) {
 		this.id = id;
 	}
 
+
 	public String getEtag() {
 		return etag;
 	}
+
 
 	public void setEtag(String etag) {
 		this.etag = etag;
 	}
 
-	public Long getTeamId() {
-		return teamId;
+
+	public Long getParticipantTeamId() {
+		return participantTeamId;
 	}
 
-	public void setTeamId(Long teamId) {
-		this.teamId = teamId;
+
+	public void setParticipantTeamId(Long participantTeamId) {
+		this.participantTeamId = participantTeamId;
 	}
+
 
 	public Long getChallengeId() {
 		return challengeId;
 	}
 
+
 	public void setChallengeId(Long challengeId) {
 		this.challengeId = challengeId;
 	}
+
 
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
@@ -135,10 +145,14 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 				+ ((challengeId == null) ? 0 : challengeId.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime
+				* result
+				+ ((participantTeamId == null) ? 0 : participantTeamId
+						.hashCode());
 		result = prime * result + Arrays.hashCode(serializedEntity);
-		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
 		return result;
 	}
+
 
 	@Override
 	public boolean equals(Object obj) {
@@ -148,7 +162,7 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOChallengeTeam other = (DBOChallengeTeam) obj;
+		DBOChallenge other = (DBOChallenge) obj;
 		if (challengeId == null) {
 			if (other.challengeId != null)
 				return false;
@@ -164,15 +178,16 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (!Arrays.equals(serializedEntity, other.serializedEntity))
-			return false;
-		if (teamId == null) {
-			if (other.teamId != null)
+		if (participantTeamId == null) {
+			if (other.participantTeamId != null)
 				return false;
-		} else if (!teamId.equals(other.teamId))
+		} else if (!participantTeamId.equals(other.participantTeamId))
+			return false;
+		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		return true;
 	}
 
-
+	
+	
 }

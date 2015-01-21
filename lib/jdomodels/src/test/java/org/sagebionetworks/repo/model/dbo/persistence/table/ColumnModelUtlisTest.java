@@ -50,7 +50,7 @@ public class ColumnModelUtlisTest {
 		expected.setMaximumSize(444L);
 		
 		// Normalize
-		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
 		assertNotSame("A new object should have been created", normlaized, original);
 		assertEquals(expected.toString(), normlaized.toString());
@@ -63,7 +63,7 @@ public class ColumnModelUtlisTest {
 		expected.setName("name");
 		expected.setDefaultValue("123");
 		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE);
+		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE);
 		//input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
@@ -71,7 +71,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		// Setting this to null should result in the default size.
 		original.setMaximumSize(null);
-		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
 		assertNotSame("A new object should have been created", normlaized, original);
 		assertEquals(expected, normlaized);
@@ -85,7 +85,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(TableModelUtils.MAX_ALLOWED_STRING_SIZE+1);
 		try {
-			ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+			ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 			fail("Should have failed as the size is too large");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains(TableModelUtils.MAX_ALLOWED_STRING_SIZE.toString()));
@@ -99,14 +99,14 @@ public class ColumnModelUtlisTest {
 		expected.setName("name");
 		expected.setDefaultValue("123");
 		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE-1);
+		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
 		// input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
 		original.setEnumValues(null);
 		original.setDefaultValue("123");
-		original.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE-1);
-		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		original.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
 		assertNotSame("A new object should have been created", normlaized, original);
 		assertEquals(expected, normlaized);
@@ -120,7 +120,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(12L);
 
-		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertNull(normalized.getEnumValues());
 	}
 
@@ -131,7 +131,7 @@ public class ColumnModelUtlisTest {
 		original.setEnumValues(Lists.newArrayList("", "  "));
 		original.setDefaultValue("123");
 
-		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertNull(normalized.getEnumValues());
 	}
 
@@ -143,7 +143,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("aa");
 		original.setMaximumSize(12L);
 
-		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertEquals(Lists.newArrayList("", "aa", "bb"), normalized.getEnumValues());
 	}
 
@@ -155,7 +155,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(12L);
 
-		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertEquals(Lists.newArrayList("1.123", "234.0"), normalized.getEnumValues());
 	}
 
@@ -167,7 +167,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(12L);
 
-		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
 	@Test(expected = NumberFormatException.class)
@@ -178,7 +178,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(12L);
 
-		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -189,7 +189,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(5L);
 
-		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -200,7 +200,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue("123");
 		original.setMaximumSize(5L);
 
-		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
 	@Test
@@ -211,7 +211,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue(null);
 		original.setMaximumSize(5L);
 
-		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -222,7 +222,7 @@ public class ColumnModelUtlisTest {
 		original.setDefaultValue(null);
 		original.setMaximumSize(5L);
 
-		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
 	@Test
@@ -236,35 +236,35 @@ public class ColumnModelUtlisTest {
 	@Test
 	public void testCalculateHash() throws JSONObjectAdapterException{
 		// Create two copies of the original
-		ColumnModel clone = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		ColumnModel clone = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		clone.setId("999");
 		clone.setName(clone.getName());
 		Collections.shuffle(clone.getEnumValues());
 		// The clone and the original should produce the same hash.
-		String originalHash = ColumnModelUtlis.calculateHash(ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton()
+		String originalHash = ColumnModelUtils.calculateHash(ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton()
 				.getTableMaxEnumValues()));
-		ColumnModel normalizedClone1 = ColumnModelUtlis.createNormalizedClone(clone, StackConfiguration.singleton().getTableMaxEnumValues());
-		String cloneHash = ColumnModelUtlis.calculateHash(normalizedClone1);
+		ColumnModel normalizedClone1 = ColumnModelUtils.createNormalizedClone(clone, StackConfiguration.singleton().getTableMaxEnumValues());
+		String cloneHash = ColumnModelUtils.calculateHash(normalizedClone1);
 		assertEquals("The two objects have the same normalized from so they should have the same hash.",originalHash, cloneHash);
 		// Now changing anything should give a new hash
 		clone.setDefaultValue("  Trot  ");
-		ColumnModel normalizedClone2 = ColumnModelUtlis.createNormalizedClone(clone, StackConfiguration.singleton().getTableMaxEnumValues());
-		String cloneHash2 = ColumnModelUtlis.calculateHash(normalizedClone2);
+		ColumnModel normalizedClone2 = ColumnModelUtils.createNormalizedClone(clone, StackConfiguration.singleton().getTableMaxEnumValues());
+		String cloneHash2 = ColumnModelUtils.calculateHash(normalizedClone2);
 		assertFalse(cloneHash2.equals(cloneHash));
 	}
 	
 	@Test
 	public void testRoundTrip() {
 		// first calculate the hash of the original object
-		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
-		String originalHash = ColumnModelUtlis.calculateHash(normalized);
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		String originalHash = ColumnModelUtils.calculateHash(normalized);
 		normalized.setId("123");
 		// Now write to DTO
-		DBOColumnModel dbo = ColumnModelUtlis.createDBOFromDTO(original, StackConfiguration.singleton().getTableMaxEnumValues());
+		DBOColumnModel dbo = ColumnModelUtils.createDBOFromDTO(original, StackConfiguration.singleton().getTableMaxEnumValues());
 		assertEquals(new Long(123), dbo.getId());
 		assertEquals(originalHash, dbo.getHash());
 		// Now make a clone
-		ColumnModel clone = ColumnModelUtlis.createDTOFromDBO(dbo);
+		ColumnModel clone = ColumnModelUtils.createDTOFromDBO(dbo);
 		assertEquals(normalized, clone);
 	}
 	

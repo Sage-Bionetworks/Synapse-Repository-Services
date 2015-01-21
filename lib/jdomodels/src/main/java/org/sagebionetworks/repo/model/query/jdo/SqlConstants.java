@@ -266,12 +266,20 @@ public class SqlConstants {
     public static final String COL_GROUP_MEMBERS_MEMBER_ID = "MEMBER_ID";
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
     
-    // The group node table
+    // The CHALLENGE table
+    public static final String TABLE_CHALLENGE         				= "CHALLENGE_TEAM";
+    public static final String COL_CHALLENGE_ID 					= "ID";
+    public static final String COL_CHALLENGE_ETAG					= "ETAG";
+    public static final String COL_CHALLENGE_PROJECT_ID 			= "PROJECT_ID";
+    public static final String COL_CHALLENGE_PARTICIPANT_TEAM_ID  	= "TEAM_ID";
+	public static final String COL_CHALLENGE_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
+
+    // The CHALLENGE-TEAM table
     public static final String TABLE_CHALLENGE_TEAM         = "CHALLENGE_TEAM";
-    public static final String COL_GROUP_NODE_ID 		= "ID";
-    public static final String COL_GROUP_NODE_ETAG		= "ETAG";
-    public static final String COL_GROUP_NODE_GROUP_ID  = "GROUP_ID";
-    public static final String COL_GROUP_NODE_NODE_ID 	= "NODE_ID";
+    public static final String COL_CHALLENGE_TEAM_ID 		= "ID";
+    public static final String COL_CHALLENGE_TEAM_ETAG		= "ETAG";
+    public static final String COL_CHALLENGE_TEAM_TEAM_ID  = "TEAM_ID";
+    public static final String COL_CHALLENGE_TEAM_CHALLENGE_ID 	= "CHALLENGE_ID";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID          = "ID";

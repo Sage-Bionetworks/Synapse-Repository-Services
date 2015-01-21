@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
-import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
+import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner;
@@ -84,7 +84,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		String likeString = preparePrefix(namePrefix);
 		List<DBOColumnModel> dbos = jdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
 		// Convert to DTOs
-		return ColumnModelUtlis.createDTOFromDBO(dbos);
+		return ColumnModelUtils.createDTOFromDBO(dbos);
 	}
 	@Override
 	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
@@ -92,7 +92,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOColumnModel> dbos = jdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
 		// Convert to DTOs
-		return ColumnModelUtlis.createDTOFromDBO(dbos);
+		return ColumnModelUtils.createDTOFromDBO(dbos);
 	}
 	/**
 	 * @param namePrefix
@@ -116,7 +116,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws DatastoreException, NotFoundException {
 		// Convert to the DBO
-		DBOColumnModel dbo = ColumnModelUtlis.createDBOFromDTO(model, StackConfiguration.singleton().getTableMaxEnumValues());
+		DBOColumnModel dbo = ColumnModelUtils.createDBOFromDTO(model, StackConfiguration.singleton().getTableMaxEnumValues());
 		// check to see if a column model already exists with this hash.
 		String existingId = getColumnForHash(dbo.getHash());
 		if(existingId != null){
@@ -136,7 +136,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
 		DBOColumnModel dbo = basicDao.getObjectByPrimaryKey(DBOColumnModel.class, param);
-		return ColumnModelUtlis.createDTOFromDBO(dbo);
+		return ColumnModelUtils.createDTOFromDBO(dbo);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -189,15 +189,15 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			basicDao.createOrUpdate(owner);
 			
 			// first bind these columns to the object. This binding is permanent and can only grow over time.
-			List<DBOBoundColumn> permanent = ColumnModelUtlis.createDBOBoundColumnList(objectId, newCurrentColumnIds);
+			List<DBOBoundColumn> permanent = ColumnModelUtils.createDBOBoundColumnList(objectId, newCurrentColumnIds);
 			// Sort by columnId to prevent deadlock
-			ColumnModelUtlis.sortByColumnId(permanent);
+			ColumnModelUtils.sortByColumnId(permanent);
 			// Insert or update the batch
 			basicDao.createOrUpdateBatch(permanent);
 			// Now replace the current current ordinal binding for this object.
 			jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
 			// Now insert the ordinal values
-			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtlis.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
+			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtils.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
 			// this is just an insert
 			basicDao.createBatch(ordinal);
 			return newCurrentColumnIds.size();
@@ -229,7 +229,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		List<DBOColumnModel> dbos = namedTemplate.query(sql, parameters,ROW_MAPPER);
 		// Convert to DTOs
-		List<ColumnModel> results = ColumnModelUtlis.createDTOFromDBO(dbos);
+		List<ColumnModel> results = ColumnModelUtils.createDTOFromDBO(dbos);
 		if(results.size() < ids.size()){
 			// this could be a case of duplicate ids, in which case we want to throw a more specific error
 			Set<String> idSet = Sets.newHashSet();
