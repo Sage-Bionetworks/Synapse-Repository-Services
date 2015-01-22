@@ -9,6 +9,8 @@ public interface ChallengeDAO {
 	
 	public Challenge create(Challenge dto) throws DatastoreException;
 	
+	public Challenge getForProject(String projectId) throws NotFoundException, DatastoreException;
+	
 	public List<ChallengeSummary> listForUser(String principalId, long limit, long offset) throws NotFoundException, DatastoreException;
 	
 	public long listForUserCount(String principalId) throws NotFoundException, DatastoreException;

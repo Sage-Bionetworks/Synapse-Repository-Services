@@ -1,6 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PARTICIPANT_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_SERIALIZED_ENTITY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,7 +26,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 /**
  * Mapping between groups and nodes.  Used to relate Teams to Challenges
  */
-@Table(name = TABLE_CHALLENGE)
+@Table(name = TABLE_CHALLENGE, constraints = { 
+		"unique key UNIQUE_PDCD_NAME ("+ COL_CHALLENGE_PROJECT_ID +")" })
 public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOChallenge> {
 	@Field(name = COL_CHALLENGE_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
@@ -31,7 +41,7 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 	
 	@Field(name = COL_CHALLENGE_PROJECT_ID, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true)
-	private Long challengeId;
+	private Long projectId;
 	
 	@Field(name=COL_CHALLENGE_SERIALIZED_ENTITY, blob = "mediumblob", backupId = false, primary = false, nullable = false)
 	private byte[] serializedEntity;
@@ -117,13 +127,13 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 	}
 
 
-	public Long getChallengeId() {
-		return challengeId;
+	public Long getProjectId() {
+		return projectId;
 	}
 
 
-	public void setChallengeId(Long challengeId) {
-		this.challengeId = challengeId;
+	public void setProjectId(Long projectId) {
+		this.projectId = projectId;
 	}
 
 
@@ -142,7 +152,7 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((challengeId == null) ? 0 : challengeId.hashCode());
+				+ ((projectId == null) ? 0 : projectId.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime
@@ -163,10 +173,10 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 		if (getClass() != obj.getClass())
 			return false;
 		DBOChallenge other = (DBOChallenge) obj;
-		if (challengeId == null) {
-			if (other.challengeId != null)
+		if (projectId == null) {
+			if (other.projectId != null)
 				return false;
-		} else if (!challengeId.equals(other.challengeId))
+		} else if (!projectId.equals(other.projectId))
 			return false;
 		if (etag == null) {
 			if (other.etag != null)

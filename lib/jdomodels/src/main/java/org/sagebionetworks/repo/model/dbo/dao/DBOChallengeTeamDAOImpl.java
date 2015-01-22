@@ -103,41 +103,40 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Override
 	public ChallengeTeam update(ChallengeTeam dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {
+		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
+		validateChallengeTeam(dto);
+		DBOChallengeTeam dbo;
 		try {
-			if (dto.getId()==null) throw new InvalidModelException("ID is required.");
-			validateChallengeTeam(dto);
-			DBOChallengeTeam dbo;
-			
 			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class, 
 					new SinglePrimaryKeySqlParameterSource(dto.getId()));
 			
-			if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
-				throw new IllegalArgumentException(
-						"You cannot change the challenge ID.");
-			}
-			if (!dbo.getTeamId().equals(Long.parseLong(dto.getTeamId()))) {
-				throw new IllegalArgumentException(
-						"You cannot change the Team ID.");
-			}
-			// Check dbo's etag against dto's etag
-			// if different rollback and throw a meaningful exception
-			if (!dbo.getEtag().equals(dto.getEtag())) {
-				throw new ConflictingUpdateException(
-						"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
-			}
-			copyDTOtoDBO(dto, dbo);
-			// Update with a new e-tag
-			dbo.setEtag(UUID.randomUUID().toString());
-
-			boolean success = basicDao.update(dbo);
-			if (!success)
-				throw new DatastoreException("Unsuccessful updating ChallengeTeam in database.");
-
-			dbo = basicDao.getObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
-			return copyDBOtoDTO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found.");
 		}
+		if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
+			throw new IllegalArgumentException(
+					"You cannot change the challenge ID.");
+		}
+		if (!dbo.getTeamId().equals(Long.parseLong(dto.getTeamId()))) {
+			throw new IllegalArgumentException(
+					"You cannot change the Team ID.");
+		}
+		// Check dbo's etag against dto's etag
+		// if different rollback and throw a meaningful exception
+		if (!dbo.getEtag().equals(dto.getEtag())) {
+			throw new ConflictingUpdateException(
+					"ChallengeTeam was updated since you last fetched it. Retrieve it again and reapply the update.");
+		}
+		copyDTOtoDBO(dto, dbo);
+		// Update with a new e-tag
+		dbo.setEtag(UUID.randomUUID().toString());
+
+		boolean success = basicDao.update(dbo);
+		if (!success)
+			throw new DatastoreException("Unsuccessful updating ChallengeTeam in database.");
+
+		dbo = basicDao.getObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		return copyDBOtoDTO(dbo);
 	}
 	
 	@Override
@@ -156,6 +155,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		return jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_COUNT, Long.class, challengeId);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(long id) throws NotFoundException, DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(id));
