@@ -2,7 +2,7 @@
     "title":"ChallengeSummary",
     "description":"Summary information for a Challenge",
 	"properties": {
-		"id":{
+		"challengeId":{
 			"type":"string",
 			"description":"The ID of this Challenge object"
 		},

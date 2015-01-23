@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
 
 import java.io.IOException;
@@ -20,6 +26,7 @@ import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -43,12 +50,18 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static final String SELECT_FOR_CHALLENGE_SQL_CORE = 
 			" FROM "+TABLE_CHALLENGE_TEAM+" where "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
 
+	// TODO ORDER BY TEAM NAME !!!
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
 			"SELECT * "+SELECT_FOR_CHALLENGE_SQL_CORE+
 			" LIMIT ? OFFSET ?";
 	
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
 			"SELECT count(*) "+SELECT_FOR_CHALLENGE_SQL_CORE;
+	
+	// select ?? from 
+	private static final String SELECT_CHALLENGE_FOR_EVALUATION = "SELECT c."+COL_CHALLENGE_ID+
+			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_EVALUATION+" e WHERE c."+
+			COL_CHALLENGE_PROJECT_ID+"=e."+COL_EVALUATION_CONTENT_SOURCE+" AND e."+COL_EVALUATION_ID+"=?";
 
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -83,6 +96,15 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public ChallengeTeam createForEvaluation(ChallengeTeam dto, String evaluationID) 
+			throws NotFoundException, DatastoreException {
+		Long projectId = jdbcTemplate.queryForObject(SELECT_CHALLENGE_FOR_EVALUATION, Long.class, evaluationID);
+		dto.setChallengeId(KeyFactory.keyToString(projectId));
+		return create(dto);
 	}
 	
 	public static ChallengeTeam copyDBOtoDTO(DBOChallengeTeam dbo) {
