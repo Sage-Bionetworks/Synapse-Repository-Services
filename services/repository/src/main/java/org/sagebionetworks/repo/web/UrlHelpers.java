@@ -708,6 +708,9 @@ public class UrlHelpers {
 	public static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE + "/upload/csv/preview";
 	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_START_REQUEST;
 	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_GET_REQUEST;
+	public static final String TABLE_APPEND = TABLE+"/append";
+	public static final String TABLE_APPEND_ROW_ASYNC_START = TABLE_APPEND + ASYNC_START_REQUEST;
+	public static final String TABLE_APPEND_ROW_ASYNC_GET = TABLE_APPEND + ASYNC_GET_REQUEST;
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
 	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";

@@ -35,9 +35,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -56,6 +59,7 @@ import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -110,6 +114,8 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -123,6 +129,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -264,10 +271,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
 	protected static final String TABLE_QUERY_NEXTPAGE = TABLE_QUERY + "/nextPage";
-	protected static final String TABLE_PARITAL = TABLE + "/partial";
 	protected static final String TABLE_DOWNLOAD_CSV = TABLE + "/download/csv";
 	protected static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
 	protected static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE + "/upload/csv/preview";
+	protected static final String TABLE_APPEND = TABLE+"/append";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -5397,21 +5404,35 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException {
-		if(toAppend == null) throw new IllegalArgumentException("RowSet cannot be null");
-		if(toAppend.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
-		String url = ENTITY + "/" + toAppend.getTableId() + TABLE;
-		return asymmetricalPost(getRepoEndpoint(), url, toAppend, RowReferenceSet.class, null);
+	public String appendRowSetToTableStart(AppendableRowSet rowSet)
+			throws SynapseException {
+		AppendableRowSetRequest request = new AppendableRowSetRequest();
+		request.setToAppend(rowSet);
+		return startAsynchJob(AsynchJobType.TableAppendRowSet, request);
 	}
 
 	@Override
-	public RowReferenceSet appendPartialRowsToTable(PartialRowSet toAppend) throws SynapseException, SynapseTableUnavailableException {
-		if (toAppend == null)
-			throw new IllegalArgumentException("RowSet cannot be null");
-		if (toAppend.getTableId() == null)
-			throw new IllegalArgumentException("RowSet.tableId cannot be null");
-		String url = ENTITY + "/" + toAppend.getTableId() + TABLE_PARITAL;
-		return asymmetricalPost(getRepoEndpoint(), url, toAppend, RowReferenceSet.class, null);
+	public RowReferenceSet appendRowSetToTableGet(String token)
+			throws SynapseException, SynapseResultNotReadyException {
+		RowReferenceSetResults rrs = (RowReferenceSetResults) getAsyncResult(AsynchJobType.TableAppendRowSet, token);
+		return rrs.getRowReferenceSet();
+	}
+
+	@Override
+	public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet,
+			long timeout) throws SynapseException, InterruptedException {
+		long start = System.currentTimeMillis();
+		// Start the job
+		String jobId = appendRowSetToTableStart(rowSet);
+		do{
+			try{
+				return appendRowSetToTableGet(jobId);
+			}catch(SynapseResultNotReadyException e){
+				Thread.sleep(1000);
+			}
+		}while(System.currentTimeMillis() - start < timeout);
+		// ran out of time.
+		throw new SynapseClientException("Timed out waiting for jobId: "+jobId);
 	}
 
 	@Override

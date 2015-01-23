@@ -91,6 +91,7 @@ public class MigrationManagerImplAutowireTest {
 	private PreviewFileHandle preview;
 	private long startCount;
 	private String tableId;
+	StackConfiguration stackConfig;
 	
 	@Before
 	public void before() throws Exception {
@@ -140,6 +141,7 @@ public class MigrationManagerImplAutowireTest {
 			rowSet.setTableId(tableId);
 			tableRowManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet);
 		}
+		stackConfig = new StackConfiguration();
 	}
 	
 	@After
@@ -249,15 +251,21 @@ public class MigrationManagerImplAutowireTest {
 			rowRefs.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
 			tableRowManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
 
-			CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
-			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-			assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+			if(stackConfig.getDynamoTableRowCacheEnabled()){
+				CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
+				assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+				assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+			}
+
 
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
 
 			assertNull(indexDao.getRowCountForTable(tableId));
-			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			if(stackConfig.getDynamoTableRowCacheEnabled()){
+				CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
+				assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			}
 			assertNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
 		}
 	}

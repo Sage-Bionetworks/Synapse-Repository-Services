@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
+import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 /**
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.table.UploadToTableResult;
  */
 public enum AsynchJobType {
 	
+	TableAppendRowSet(TABLE_APPEND, RowReferenceSetResults.class),
 	TableQuery(TABLE_QUERY, QueryResultBundle.class),
 	TableQueryNextPage(TABLE_QUERY_NEXTPAGE, QueryResult.class),
 	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class),

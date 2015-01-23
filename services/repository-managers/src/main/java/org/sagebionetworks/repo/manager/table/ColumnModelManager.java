@@ -6,9 +6,11 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PaginatedIds;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ColumnModelManager {
@@ -109,5 +111,16 @@ public interface ColumnModelManager {
 	 * @param user
 	 */
 	public boolean truncateAllColumnData(UserInfo user);
+	
+	/**
+	 * Build a column map for a table using the provided select columns.
+	 * @param user
+	 * @param tableId
+	 * @param selectColumns
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ColumnMapper getCurrentColumns(UserInfo user, String tableId, List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException;
 }
 

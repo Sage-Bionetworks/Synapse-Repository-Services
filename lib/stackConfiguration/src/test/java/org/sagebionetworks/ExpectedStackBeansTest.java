@@ -58,6 +58,7 @@ public class ExpectedStackBeansTest {
 			
 			"stackConfiguration.searchEnabled",
 			"stackConfiguration.dynamoEnabled",
+			"stackConfiguration.dynamoTableRowCacheEnabled",
 			
 			"stackConfiguration.fileMultipartUploadDaemonTimeoutMS",
 			"stackConfiguration.fileMultipartUploadDaemonMainMaxThreads",

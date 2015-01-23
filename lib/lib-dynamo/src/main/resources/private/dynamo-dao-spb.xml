@@ -47,7 +47,8 @@
 
 	<bean id="rowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoImpl">
 		<constructor-arg ref="dynamoClient" />
-		<property name="dynamoEnabled" ref="stackConfiguration.dynamoEnabled"/>		
+		<property name="dynamoEnabled" ref="stackConfiguration.dynamoEnabled"/>
+		<property name="rowCacheEnabled" ref="stackConfiguration.dynamoTableRowCacheEnabled"/>			
 	</bean>
 
 </beans>

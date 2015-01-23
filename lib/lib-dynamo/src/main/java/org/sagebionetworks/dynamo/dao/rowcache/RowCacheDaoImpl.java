@@ -39,6 +39,8 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 
 	DynamoDBMapper mapper;
 
+	private boolean rowCacheEnabled;
+	
 	public RowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
 		super(dynamoClient);
 		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboRowCache.class));
@@ -68,7 +70,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 
 	@Override
 	public boolean isEnabled() {
-		return isDynamoEnabled();
+		return isDynamoEnabled() && isRowCacheEnabled();
 	}
 
 	@Override
@@ -171,4 +173,13 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 		PaginatedScanList<DboRowCache> scanResult = mapper.scan(DboRowCache.class, scanExpression);
 		mapper.batchDelete(uniqueify(scanResult, ROW_CACHE_COMPARATOR));
 	}
+
+	public void setRowCacheEnabled(boolean rowCacheEnabled) {
+		this.rowCacheEnabled = rowCacheEnabled;
+	}
+
+	public boolean isRowCacheEnabled() {
+		return rowCacheEnabled;
+	}
+	
 }

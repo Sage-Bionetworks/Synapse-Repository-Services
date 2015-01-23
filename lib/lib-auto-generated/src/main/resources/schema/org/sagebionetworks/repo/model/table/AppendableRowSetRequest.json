@@ -1,0 +1,13 @@
+{
+    "title":"AppendRowRequest",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+    "properties":{
+        "toAppend":{
+			"$ref": "org.sagebionetworks.repo.model.table.AppendableRowSet"
+        }
+    }
+}

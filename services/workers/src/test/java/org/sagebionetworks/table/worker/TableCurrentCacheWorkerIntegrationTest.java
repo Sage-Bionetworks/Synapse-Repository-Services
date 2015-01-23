@@ -84,7 +84,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	@Before
 	public void before() throws NotFoundException, DatastoreException, IOException, InterruptedException{
 		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
+		Assume.assumeTrue(config.getTableEnabled() && config.getDynamoTableRowCacheEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		tableCurrentCacheQueueMessageReveiver.emptyQueue();
@@ -98,7 +98,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	
 	@After
 	public void after(){
-		if(config.getTableEnabled()){
+		if(config.getTableEnabled() && config.getDynamoTableRowCacheEnabled()){
 			// cleanup
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database

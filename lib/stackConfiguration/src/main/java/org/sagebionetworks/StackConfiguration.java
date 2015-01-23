@@ -678,6 +678,11 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.dynamo.enabled"));
 	}
 	
+	public boolean getDynamoTableRowCacheEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.dynamo.table.row.cache.enabled"));
+	}
+	
 	/**
 	 * Is the Table feature enabled?
 	 * @return
