@@ -73,6 +73,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -1148,26 +1149,6 @@ public interface SynapseClient extends BaseClient {
 
 	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException;
-	
-	/**
-	 * Append or update rows to table entity.
-	 * 
-	 * @param toAppend
-	 * @return
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException
-	 */
-	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException, SynapseTableUnavailableException;
-	
-	/**
-	 * Append or update partial rows to table entity.
-	 * 
-	 * @param toAppend
-	 * @return
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException
-	 */
-	public RowReferenceSet appendPartialRowsToTable(PartialRowSet toAppend) throws SynapseException, SynapseTableUnavailableException;
 
 	/**
 	 * Delete rows from table entity.
@@ -1379,6 +1360,33 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseResultNotReadyException
 	 */
 	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Start an asynchronous job to append data to a table.
+	 * @param rowSet Data to append.
+	 * @return JobId token that can be used get the results of the append.
+	 */
+	public String appendRowSetToTableStart(AppendableRowSet rowSet) throws SynapseException;
+	
+	/**
+	 * Get the results of a table append RowSet job using the jobId token returned when the job was started.
+	 * @param token
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	public RowReferenceSet appendRowSetToTableGet(String token) throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Run an asynchronous to append data to a table.
+	 * Note: This is a convenience function that wraps the start job and get loop of an asynchronous job.
+	 * @param rowSet
+	 * @param timeout
+	 * @return
+	 * @throws SynapseException 
+	 * @throws InterruptedException 
+	 */
+	public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet, long timeout) throws SynapseException, InterruptedException;
 
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,

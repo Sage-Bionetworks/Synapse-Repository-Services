@@ -48,7 +48,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	@Override
-	@Deprecated
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");

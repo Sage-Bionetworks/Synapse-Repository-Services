@@ -85,28 +85,10 @@ public interface TableServices {
 	 */
 	public PaginatedColumnModels listColumnModels(Long userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException;
 	
-	/**
-	 * Append rows to a table.
-	 * 
-	 * @param userId
-	 * @param rowsToAppend
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws IOException
-	 */
+	@Deprecated // This is now asynchronous
 	public RowReferenceSet appendRows(Long userId, RowSet rowsToAppend) throws DatastoreException, NotFoundException, IOException;
 
-	/**
-	 * Append rows to a table.
-	 * 
-	 * @param userId
-	 * @param rowsToAppendOrUpdate
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws IOException
-	 */
+	@Deprecated // This is now asynchronous
 	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
 			DatastoreException, IOException;
 

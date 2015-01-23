@@ -100,6 +100,7 @@ public class TableServicesImpl implements TableServices {
 		return columnModelManager.listColumnModels(user, prefix, limit, offset);
 	}
 
+	@Deprecated // This is now asynchronous
 	@Override
 	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
@@ -108,7 +109,8 @@ public class TableServicesImpl implements TableServices {
 		ColumnMapper columnMap = getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
 		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows);
 	}
-
+	
+	@Deprecated // This is now asynchronous
 	@Override
 	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
 			DatastoreException, IOException {

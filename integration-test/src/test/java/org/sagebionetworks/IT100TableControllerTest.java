@@ -75,6 +75,7 @@ public class IT100TableControllerTest {
 	private List<File> tempFiles = Lists.newArrayList();
 	
 	private static long MAX_QUERY_TIMEOUT_MS = 1000*60*5;
+	private static long MAX_APPEND_TIMEOUT = 30*1000;
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -191,7 +192,7 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		RowReferenceSet results1 = synapse.appendRowsToTable(set);
+		RowReferenceSet results1 = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 		assertNotNull(results1);
 		assertNotNull(results1.getRows());
 		assertEquals(2, results1.getRows().size());
@@ -216,7 +217,7 @@ public class IT100TableControllerTest {
 			row.setRowId(null);
 			row.setVersionNumber(null);
 		}
-		RowReferenceSet results2 = synapse.appendRowsToTable(queryResults);
+		RowReferenceSet results2 = synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
 		assertNotNull(results2);
 		assertNotNull(results2.getRows());
 		// run the query again, but this time get the counts
@@ -308,12 +309,12 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(Lists.reverse(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns()));
 		set.setTableId(table.getId());
-		RowReferenceSet newRows = synapse.appendRowsToTable(set);
+		RowReferenceSet newRows = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 
 		PartialRowSet toAppend = new PartialRowSet();
 		toAppend.setTableId(table.getId());
 		toAppend.setRows(partialRows);
-		RowReferenceSet newRows2 = synapse.appendPartialRowsToTable(toAppend);
+		RowReferenceSet newRows2 = synapse.appendRowsToTable(toAppend, MAX_APPEND_TIMEOUT);
 
 		// get in original order
 		RowReferenceSet toGet = new RowReferenceSet();
@@ -379,7 +380,7 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set);
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 
 		// Now attempt to query for the table results
 		Long count = waitForCountResults("select * from " + table.getId() + " where one > -2.2");
@@ -416,7 +417,7 @@ public class IT100TableControllerTest {
 			set.setRows(TableModelTestUtils.createRows(columns, 4));
 			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 			set.setTableId(table.getId());
-			synapse.appendRowsToTable(set);
+			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 		}
 
 		// Now query for the table results
@@ -518,7 +519,7 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		RowReferenceSet results = synapse.appendRowsToTable(set);
+		RowReferenceSet results = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 
 		TableFileHandleResults fileHandles = synapse.getFileHandlesFromTable(results);
 		assertEquals(fileHandle.getId(), fileHandles.getRows().get(0).getList().get(0).getId());
@@ -606,7 +607,7 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set);
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 		// Query for the results
 		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L);
 		// Change the data
@@ -615,11 +616,11 @@ public class IT100TableControllerTest {
 			row.setValues(Arrays.asList(oldValue+" changed"));
 		}
 		// Apply the changes
-		synapse.appendRowsToTable(queryResults);
+		synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
 		
 		// If we try to apply the same change again we should get a conflict
 		try{
-			synapse.appendRowsToTable(queryResults);
+			synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
 			fail("Should not be able to apply the same change twice.  It should result in a SynapseConflictingUpdateException update exception.");
 		}catch(SynapseConflictingUpdateException e){
 			// expected
@@ -646,14 +647,14 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set);
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 
 		PartialRowSet partialSet = new PartialRowSet();
 		List<PartialRow> partialRows = Lists.newArrayList(TableModelTestUtils.createPartialRow(null, one.getId(), "test"),
 				TableModelTestUtils.createPartialRow(null, one.getId(), "test"));
 		partialSet.setRows(partialRows);
 		partialSet.setTableId(table.getId());
-		synapse.appendPartialRowsToTable(partialSet);
+		synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT);
 
 		// Query for the results
 		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 0L, 2L);
@@ -663,7 +664,7 @@ public class IT100TableControllerTest {
 			row.setValues(Arrays.asList(oldValue + " changed"));
 		}
 		// Apply the changes
-		synapse.appendRowsToTable(queryResults);
+		synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
 
 		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 2L, 2L);
 		// Change the data
@@ -677,7 +678,7 @@ public class IT100TableControllerTest {
 		// Apply the changes using partial
 		partialSet.setRows(partialRows);
 		partialSet.setTableId(table.getId());
-		synapse.appendPartialRowsToTable(partialSet);
+		synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT);
 
 		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", null, null);
 		// Check that the changed data is there
@@ -723,7 +724,7 @@ public class IT100TableControllerTest {
 			set.setRows(rows);
 			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 			set.setTableId(table.getId());
-			synapse.appendRowsToTable(set);
+			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
 		}
 
 		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true, 0xff);

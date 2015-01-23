@@ -44,6 +44,7 @@
 	<import resource="classpath:message-to-user-sqs-spb.xml" />
     <import resource="classpath:table-cluster-sqs-spb.xml" />
     <import resource="classpath:table-current-cache-sqs-spb.xml" />
+    <import resource="classpath:table-append-rowset-sqs-spb.xml" />
     <import resource="classpath:table-csv-appender-sqs-spb.xml" />
     <import resource="classpath:table-csv-appender-preview-sqs-spb.xml" />
     <import resource="classpath:table-csv-downloader-sqs-spb.xml" />
@@ -77,6 +78,7 @@
 				<ref bean="tableQueueMessageReveiverTrigger" />
 				<ref bean="tableCurrentCacheQueueMessageReveiverTrigger" />
 				<ref bean="cloudwatchTrigger" />
+				<ref bean="tableAppendRowSetMessageReveiverTrigger" />
 				<ref bean="tableCSVAppenderQueueMessageReveiverTrigger" />
 				<ref bean="tableCSVAppenderPreviewQueueMessageReveiverTrigger" />
 				<ref bean="tableCSVDownloaderQueueMessageReveiverTrigger" />
