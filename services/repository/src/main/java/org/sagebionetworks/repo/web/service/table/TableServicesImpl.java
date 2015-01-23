@@ -106,7 +106,7 @@ public class TableServicesImpl implements TableServices {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		ColumnMapper columnMap = getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
+		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
 		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows);
 	}
 	
@@ -135,7 +135,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToGet, "rowsToGet");
 		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		ColumnMapper columnMap = getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
+		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
 		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columnMap);
 	}
@@ -145,7 +145,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ColumnMapper mapper = getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
+		ColumnMapper mapper = columnModelManager.getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
 		for (SelectColumnAndModel selectColumnAndModel : mapper.getSelectColumnAndModels()) {
 			if (selectColumnAndModel.getColumnModel() != null
 					&& selectColumnAndModel.getColumnModel().getColumnType() != ColumnType.FILEHANDLEID) {
@@ -221,24 +221,6 @@ public class TableServicesImpl implements TableServices {
 		// Use the FileHandle ID to get the URL
 		String previewFileHandleId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);
-	}
-
-	private ColumnMapper getCurrentColumns(UserInfo user, String tableId, List<SelectColumn> selectColumns)
-			throws DatastoreException, NotFoundException {
-		LinkedHashMap<String, SelectColumnAndModel> columnMap = Maps.newLinkedHashMap();
-		List<ColumnModel> columns = columnModelManager.getColumnModelsForTable(user, tableId);
-		Map<String, ColumnModel> columnIdToModelMap = TableModelUtils.createStringIDtoColumnModelMap(columns);
-		for (SelectColumn selectColumn : selectColumns) {
-			if (selectColumn.getId() == null) {
-				throw new IllegalArgumentException("column header " + selectColumn + " is not a valid column for this table");
-			}
-			ColumnModel columnModel = columnIdToModelMap.get(selectColumn.getId());
-			if (columnModel == null) {
-				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
-			}
-			columnMap.put(selectColumn.getId(), TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel));
-		}
-		return TableModelUtils.createColumnMapper(columnMap);
 	}
 
 	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {

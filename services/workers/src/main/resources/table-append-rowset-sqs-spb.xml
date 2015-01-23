@@ -38,7 +38,7 @@
 	<bean id="tableAppendRowSetSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" value="600000" />
-		<property name="maxNumberRunners" value="4" />
+		<property name="maxNumberRunners" value="20" />
 		<property name="semaphoreKey" value="tableAppendRowSet" />		
 		<property name="runner" ref="tableAppendRowSetMessageReveiver" />
 	</bean>

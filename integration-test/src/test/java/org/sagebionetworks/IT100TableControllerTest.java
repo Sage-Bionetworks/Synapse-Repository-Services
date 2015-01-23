@@ -31,6 +31,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
@@ -622,7 +623,7 @@ public class IT100TableControllerTest {
 		try{
 			synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
 			fail("Should not be able to apply the same change twice.  It should result in a SynapseConflictingUpdateException update exception.");
-		}catch(SynapseConflictingUpdateException e){
+		}catch(SynapseBadRequestException e){
 			// expected
 			System.out.println(e.getMessage());
 			assertTrue(e.getMessage().contains("Row id:"));

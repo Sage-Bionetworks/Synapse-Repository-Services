@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.worker;
 
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,8 +19,6 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.amazonaws.services.sqs.model.Message;
 

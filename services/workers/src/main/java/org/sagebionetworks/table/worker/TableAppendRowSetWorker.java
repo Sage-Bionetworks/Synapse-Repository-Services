@@ -15,10 +15,10 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -95,28 +95,31 @@ public class TableAppendRowSetWorker implements Worker {
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			AppendableRowSetRequest body = (AppendableRowSetRequest) status.getRequestBody();
-			AppendableRowSet partialRowSet = body.getToAppend();
-			if(partialRowSet == null){
+			AppendableRowSet appendSet = body.getToAppend();
+			if(appendSet == null){
 				throw new IllegalArgumentException("ToAppend cannot be null");
 			}
-			if(partialRowSet.getTableId() == null){
+			if(appendSet.getTableId() == null){
 				throw new IllegalArgumentException("Table ID cannot be null");
 			}
-			String tableId = partialRowSet.getTableId();
+			String tableId = appendSet.getTableId();
 			long progressCurrent = 0L;
 			long progressTotal = 100L;
 			// Start the progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
 			// Do the work
-			List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, tableId);
-			ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
 			RowReferenceSet results = null;
-			if(partialRowSet instanceof PartialRowSet){
-				results = tableRowManager.appendPartialRows(user, tableId, columnMap, (PartialRowSet)partialRowSet);
-			}else if(partialRowSet instanceof RowSet){
-				results = tableRowManager.appendRows(user, tableId, columnMap, (RowSet)partialRowSet);
+			if(appendSet instanceof PartialRowSet){
+				PartialRowSet partialRowSet = (PartialRowSet) appendSet;
+				List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, tableId);
+				ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
+				results =  tableRowManager.appendPartialRows(user, tableId, columnMap, partialRowSet);
+			}else if(appendSet instanceof RowSet){
+				RowSet rowSet = (RowSet)appendSet;
+				ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, tableId, rowSet.getHeaders());
+				results = tableRowManager.appendRows(user, tableId, columnMap, rowSet);
 			}else{
-				throw new IllegalArgumentException("Unknown RowSet type: "+partialRowSet.getClass().getName());
+				throw new IllegalArgumentException("Unknown RowSet type: "+appendSet.getClass().getName());
 			}
 
 			RowReferenceSetResults  rrsr = new RowReferenceSetResults();
@@ -129,7 +132,6 @@ public class TableAppendRowSetWorker implements Worker {
 		}
 	}
 	
-
 	/**
 	 * Extract the AsynchUploadRequestBody from the message.
 	 * @param message

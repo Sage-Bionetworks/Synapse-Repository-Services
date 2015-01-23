@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -12,16 +14,21 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PaginatedIds;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Basic implementation of the ColumnModelManager.
@@ -171,6 +178,25 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return columnModelDao.getColumnModelsForObject(tableId);
+	}
+
+	@Override
+	public ColumnMapper getCurrentColumns(UserInfo user, String tableId,
+			List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException {
+		LinkedHashMap<String, SelectColumnAndModel> columnMap = Maps.newLinkedHashMap();
+		List<ColumnModel> columns = getColumnModelsForTable(user, tableId);
+		Map<String, ColumnModel> columnIdToModelMap = TableModelUtils.createStringIDtoColumnModelMap(columns);
+		for (SelectColumn selectColumn : selectColumns) {
+			if (selectColumn.getId() == null) {
+				throw new IllegalArgumentException("column header " + selectColumn + " is not a valid column for this table");
+			}
+			ColumnModel columnModel = columnIdToModelMap.get(selectColumn.getId());
+			if (columnModel == null) {
+				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
+			}
+			columnMap.put(selectColumn.getId(), TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel));
+		}
+		return TableModelUtils.createColumnMapper(columnMap);
 	}
 	
 	
