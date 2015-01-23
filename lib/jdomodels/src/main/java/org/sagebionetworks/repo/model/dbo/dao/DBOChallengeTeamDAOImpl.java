@@ -6,8 +6,16 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,16 +29,19 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,10 +69,21 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
 			"SELECT count(*) "+SELECT_FOR_CHALLENGE_SQL_CORE;
 	
-	// select ?? from 
 	private static final String SELECT_CHALLENGE_FOR_EVALUATION = "SELECT c."+COL_CHALLENGE_ID+
 			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_EVALUATION+" e WHERE c."+
 			COL_CHALLENGE_PROJECT_ID+"=e."+COL_EVALUATION_CONTENT_SOURCE+" AND e."+COL_EVALUATION_ID+"=?";
+
+	private static final String SELECT_FOR_MEMBER_SQL_CORE = 
+			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
+			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
+			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
+
+	private static final String SELECT_FOR_MEMBER_PAGINATED = 
+			"SELECT t.* "+SELECT_FOR_MEMBER_SQL_CORE+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_FOR_MEMBER_COUNT = 
+			"SELECT count(*) "+SELECT_FOR_MEMBER_SQL_CORE;
 
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -181,5 +203,42 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Override
 	public void delete(long id) throws NotFoundException, DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(id));
+	}
+	
+	private static final String SELECT_REGISTRATABLE_TEAMS_CORE = 
+			TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
+			" AND "+ "gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?"+
+			" AND t."+COL_TEAM_ID+" NOT IN (SELECT "+COL_CHALLENGE_TEAM_TEAM_ID+" FROM "+TABLE_CHALLENGE_TEAM+
+			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
+	
+	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
+	
+	private static final String SELECT_REGISTRATABLE_TEAMS_PAGINATED = 
+			"SELECT t.* FROM "+SELECT_REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_REGISTRATABLE_TEAMS_COUNT = 
+			"SELECT count(*) FROM "+SELECT_REGISTRATABLE_TEAMS_CORE;
+	
+
+	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
+	
+	/*
+	 * Returns the Teams which are NOT registered for the challenge and on which is current user is an ADMIN.
+	 */
+	@Override
+	public List<Team> listRegistratable(String challengeId, String userId,
+			long limit, long offset) throws NotFoundException,
+			DatastoreException {
+		List<DBOTeam> dbos = jdbcTemplate.query(SELECT_REGISTRATABLE_TEAMS_PAGINATED, 
+				TEAM_ROW_MAPPER, userId, challengeId, limit, offset);
+		List<Team> result = new ArrayList<Team>();
+		for (DBOTeam dbo : dbos) result.add(TeamUtils.copyDboToDto(dbo));
+		return result;
+	}
+
+	@Override
+	public long listRegistratableCount(String challengeId, String userId)
+			throws NotFoundException, DatastoreException {
+		return jdbcTemplate.queryForObject(SELECT_REGISTRATABLE_TEAMS_COUNT, Long.class, userId, challengeId);
 	}
 }

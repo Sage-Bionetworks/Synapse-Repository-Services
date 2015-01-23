@@ -1,16 +1,28 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PARTICIPANT_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.io.IOException;
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -24,12 +36,14 @@ import org.sagebionetworks.repo.model.ChallengeSummary;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -59,7 +73,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 				throws SQLException {
 			DBOChallenge dbo = DBO_CHALLENGE_TABLE_MAPPING.mapRow(rs, rowNum);
 			ChallengeSummary result = new ChallengeSummary();
-			result.setId(dbo.getId().toString());
+			result.setChallengeId(dbo.getId().toString());
 			result.setName(rs.getString(COL_NODE_NAME));
 			result.setParticipantTeamId(dbo.getParticipantTeamId().toString());
 			return result;
@@ -76,14 +90,71 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			" c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?";
 	
-
+	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
+	
 	private static final String SELECT_SUMMARIES_FOR_USER_PAGINATED = 
 			"SELECT n."+COL_NODE_NAME+", t.* "+SELECT_SUMMARIES_FOR_USER_SQL_CORE+
-			" LIMIT ? OFFSET ?";
+			LIMIT_OFFSET;
 	
 	private static final String SELECT_SUMMARIES_FOR_USER_COUNT = 
 			"SELECT count(c.*) "+SELECT_SUMMARIES_FOR_USER_SQL_CORE;
 
+	private static final String SELECT_MEMBERS_IN_REGISTERED_TEAM = 
+			"SELECT gm1."+COL_GROUP_MEMBERS_MEMBER_ID+
+			" FROM "+
+			TABLE_CHALLENGE+" c, "+
+			TABLE_CHALLENGE_TEAM+" ct, "+
+			TABLE_GROUP_MEMBERS+" gm1, "+
+			TABLE_GROUP_MEMBERS+" gm2 "+
+			" WHERE "+
+			" c."+COL_CHALLENGE_ID+"=? "+
+			" AND c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm1."+COL_GROUP_MEMBERS_GROUP_ID+
+			" AND ct."+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=c."+COL_CHALLENGE_ID+
+			" AND ct."+COL_CHALLENGE_TEAM_TEAM_ID+"=gm2."+COL_GROUP_MEMBERS_GROUP_ID+
+			" AND gm1."+COL_GROUP_MEMBERS_MEMBER_ID+"gm2."+COL_GROUP_MEMBERS_MEMBER_ID;
+
+	private static final String SELECT_PARTICIPANTS_CORE =
+			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_GROUP_MEMBERS+" gm LEFT OUTER JOIN "+
+			TABLE_USER_PROFILE+" up ON (gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+") "+
+			"LEFT OUTER JOIN "+TABLE_PRINCIPAL_ALIAS+" pa ON (gm."+
+			COL_GROUP_MEMBERS_MEMBER_ID+"=pa."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" AND pa."+
+					COL_PRINCIPAL_ALIAS_TYPE+"='"+AliasEnum.USER_NAME.name()+"'"+") "+
+			" WHERE c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
+			" AND c."+COL_CHALLENGE_ID+"=?";
+	
+	private static final String SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_CORE =
+			SELECT_PARTICIPANTS_CORE+
+			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
+			" NOT IN ("+SELECT_MEMBERS_IN_REGISTERED_TEAM+")";
+	
+	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE =
+			SELECT_PARTICIPANTS_CORE+
+			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
+			" IN ("+SELECT_MEMBERS_IN_REGISTERED_TEAM+")";
+	
+	private static final String SELECT_PARTICIPANTS_PREFIX = 
+			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+
+			", up."+COL_USER_PROFILE_ID+
+			", pa."+COL_BOUND_ALIAS_DISPLAY;
+	
+	private static final String SELECT_PARTICIPANTS =
+			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_PARTICIPANTS_COUNT =
+			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM =
+			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT =
+			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM =
+			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT =
+			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Challenge create(Challenge dto) throws DatastoreException {
@@ -191,6 +262,54 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	@Override
 	public void delete(long id) throws NotFoundException, DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallenge.class, new SinglePrimaryKeySqlParameterSource(id));
+	}
+
+	/**
+	 * Return challenge participants.  If affiliated=true, return just participants affiliated with 
+	 * some registered Team.  If false, return those affiliated with no Team.  If missing return 
+	 * all participants.
+	 */
+	@Override
+	public List<UserGroupHeader> listParticipants(String challengeId,
+			Boolean affiliated, Long limit, Long offset)
+			throws NotFoundException, DatastoreException {
+		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
+		if (affiliated==null) {
+			return jdbcTemplate.query(SELECT_PARTICIPANTS, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
+		} else if (affiliated) {
+			return jdbcTemplate.query(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
+		} else {
+			return jdbcTemplate.query(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
+		}
+	}
+	
+	private static final RowMapper<UserGroupHeader> CHALLENGE_PARTICIPANT_ROW_MAPPER = new RowMapper<UserGroupHeader>(){
+		@Override
+		public UserGroupHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
+			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
+			UserGroupHeader ugh = new UserGroupHeader();
+			Blob upProperties = rs.getBlob(COL_USER_PROFILE_PROPS_BLOB);
+			if (upProperties!=null) {
+				ugh.setIsIndividual(true);
+				ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
+				UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
+			} else {
+				ugh.setIsIndividual(false);
+			}
+			return ugh;
+		}
+	};
+	
+	@Override
+	public long listParticipantsCount(String challengeId, Boolean affiliated)
+			throws NotFoundException, DatastoreException {
+		if (affiliated==null) {
+			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_COUNT, Long.class, challengeId);
+		} else if (affiliated) {
+			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId);
+		} else {
+			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId);
+		}
 	}
 
 }

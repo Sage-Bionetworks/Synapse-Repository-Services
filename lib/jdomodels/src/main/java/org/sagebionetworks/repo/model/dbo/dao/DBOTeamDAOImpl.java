@@ -74,7 +74,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	private static final RowMapper<DBOTeam> teamRowMapper = (new DBOTeam()).getTableMapping();
+	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
 	private static final String SELECT_PAGINATED = 
 			"SELECT * FROM "+TABLE_TEAM+" order by "+COL_TEAM_ID+" asc "+
@@ -83,38 +83,23 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_COUNT = 
 			"SELECT COUNT(*) FROM "+TABLE_TEAM;
 
-	private static final String SELECT_FOR_MEMBER_SQL_CORE = 
+	private static final String SELECT_FOR_MEMBER_CORE = 
 			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
 			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
 			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
 
 	private static final String SELECT_FOR_MEMBER_PAGINATED = 
-			"SELECT t.* "+SELECT_FOR_MEMBER_SQL_CORE+
+			"SELECT t.* "+SELECT_FOR_MEMBER_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_FOR_MEMBER_COUNT = 
-			"SELECT count(*) "+SELECT_FOR_MEMBER_SQL_CORE;
+			"SELECT count(*) "+SELECT_FOR_MEMBER_CORE;
 
 	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
 
-	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
-			" FROM "+
-				TABLE_TEAM+" t, "+
-				TABLE_ACCESS_CONTROL_LIST+" acl, "+
-				TABLE_RESOURCE_ACCESS+" ra, "+
-				TABLE_RESOURCE_ACCESS_TYPE+" at, "+
-				TABLE_GROUP_MEMBERS+" gm "+
-			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
-			" and acl."+COL_ACL_OWNER_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
-			" and acl."+COL_OWNER_TYPE+"='"+ObjectType.TEAM.name()+
-			"' and ra."+COL_RESOURCE_ACCESS_GROUP_ID+"=gm."+COL_GROUP_MEMBERS_MEMBER_ID+
-			" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+COL_ACL_ID+
-			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
-			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='"+ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE+"'";
-			
 	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS =
 				"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+
-				SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
+				TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
 	
 	private static final String SELECT_ALL_TEAMS_AND_MEMBERS =
 			"SELECT t.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
@@ -157,7 +142,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
 	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT = 
-			"SELECT COUNT(gm."+COL_GROUP_MEMBERS_MEMBER_ID+") "+SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
+			"SELECT COUNT(gm."+COL_GROUP_MEMBERS_MEMBER_ID+") "+TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
 			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
 	private static final String IS_MEMBER_AN_ADMIN = 
@@ -205,7 +190,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, teamRowMapper, param);
+		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, TEAM_ROW_MAPPER, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
@@ -227,7 +212,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_FOR_MEMBER_PAGINATED, teamRowMapper, param);
+		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_FOR_MEMBER_PAGINATED, TEAM_ROW_MAPPER, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
@@ -251,7 +236,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(COL_TEAM_ID, dto.getId());
 		DBOTeam dbo = null;
 		try{
-			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, teamRowMapper, param);
+			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, TEAM_ROW_MAPPER, param);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
@@ -331,7 +316,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				if (upProperties!=null) {
 					ugh.setIsIndividual(true);
 					ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-					fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
+					UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
 				} else {
 					ugh.setIsIndividual(false);
 				}
@@ -339,14 +324,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			return tmp;
 		}
 	};
-	
-	private static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, String userName, UserGroupHeader ugh) throws SQLException {
-		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
-		ugh.setFirstName(up.getFirstName());
-		ugh.setLastName(up.getLastName());
-		ugh.setPic(up.getPic());
-		ugh.setUserName(userName);
-	}
 	
 	public static class TeamMemberId {
 		private Long teamId;
@@ -427,7 +404,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
 			if (upProperties!=null) {
 				ugh.setIsIndividual(true);
-				fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
+				UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
 			} else {
 				ugh.setIsIndividual(false);
 			}
