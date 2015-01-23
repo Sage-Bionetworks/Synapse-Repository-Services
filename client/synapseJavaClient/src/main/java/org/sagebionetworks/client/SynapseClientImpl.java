@@ -125,6 +125,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -5409,7 +5410,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public RowReferenceSet appendRowSetToTableGet(String token)
 			throws SynapseException, SynapseResultNotReadyException {
-		return (RowReferenceSet) getAsyncResult(AsynchJobType.TableAppendRowSet, token);
+		RowReferenceSetResults rrs = (RowReferenceSetResults) getAsyncResult(AsynchJobType.TableAppendRowSet, token);
+		return rrs.getRowReferenceSet();
 	}
 
 	@Override
