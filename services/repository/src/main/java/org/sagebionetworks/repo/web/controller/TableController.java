@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -14,12 +13,12 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -80,7 +79,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * Once the columns for a TableEntity have been created and assigned to the
  * TableEntity, rows can be added to the table using <a
- * href="${POST.table.append.async.start}">POST /table/append/asynch/start</a>. Each <a
+ * href="${POST.entity.id.table.append.async.start}">POST /entity/{id}/table/append/async/start</a>. Each <a
  * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
  * table will automatically be assigned a rowId and a versionNumber and can be
  * found in the resulting <a
@@ -91,14 +90,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * new versionNumber will automatically be assigned the Row. While previous
  * versions of any row are kept, only the current version of any row will appear
  * in the table index used to support the query service: <a
- * href="${POST.table.query.async.start}">POST /table/query/async/start</a> </p>
+ * href="${POST.entity.id.table.query.async.start}">POST /entity/{id}/table/query/async/start</a> </p>
  * <p>
- * Use the <a href="${POST.table.query.async.start}">POST
- * /table/query/async/start</a> services to query for the current rows of a
+ * Use the <a href="${POST.entity.id.table.query.async.start}">POST
+ * /entity/{id}/table/query/async/start</a> services to query for the current rows of a
  * table. The returned <a
  * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
  * query can be modified and returned to update the rows of a table using <a
- * href="${POST.table.append.async.start}">POST /table/append/asynch/start</a>.
+ * href="${POST.entity.id.table.append.async.start}">POST /entity/{id}/table/append/async/start</a>.
  * </p>
  * <p>
  * There is also an <a
@@ -299,6 +298,35 @@ public class TableController extends BaseController {
 				rows);
 	}
 
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId startAppendRowsJob(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AppendableRowSetRequest request) throws DatastoreException,
+			NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	RowReferenceSetResults getAppendRowsResult(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws NotReadyException,
+			NotFoundException, AsynchJobFailedException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (RowReferenceSetResults) jobStatus.getResponseBody();
+	}
+
 	/**
 	 * <p>
 	 * Asynchronously start a job to append row data to a table. This method is
@@ -388,12 +416,14 @@ public class TableController extends BaseController {
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId startAppendRowsJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AppendableRowSetRequest request) throws DatastoreException,
-			NotFoundException, IOException {
+			@PathVariable String id, @RequestBody AppendableRowSetRequest request)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -403,8 +433,8 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get the results of a PartialRowSet update to a table
-	 * started with <a href="${POST.table.append.async.start}">POST
-	 * /table/partial/async/start</a>
+	 * started with <a href="${POST.entity.id.table.append.async.start}">POST
+	 * /entity/{id}/table/partial/async/start</a>
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status
 	 * code of 202 (ACCEPTED) and the response body will be a <a
@@ -420,12 +450,15 @@ public class TableController extends BaseController {
 	 * @throws AsynchJobFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	RowReferenceSetResults getAppendRowsResult(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
 			@PathVariable String asyncToken) throws NotReadyException,
 			NotFoundException, AsynchJobFailedException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -627,10 +660,39 @@ public class TableController extends BaseController {
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody QueryBundleRequest query) throws DatastoreException,
+			NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, query);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResultBundle queryAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws NotReadyException,
+			NotFoundException, AsynchJobFailedException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (QueryResultBundle) jobStatus.getResponseBody();
+	}
+
 	/**
 	 * Asynchronously start a query. Use the returned job id and <a
-	 * href="${GET.table.query.async.get.asyncToken}">GET
-	 * /table/query/async/get</a> to get the results of the query
+	 * href="${GET.entity.id.table.query.async.get.asyncToken}">GET
+	 * /entity/{id}/table/query/async/get</a> to get the results of the query
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a
 	 * single table. The following pseudo-syntax is the basic supported format:
@@ -692,6 +754,8 @@ public class TableController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
 	 * @param query
 	 * @param isConsistent
 	 *            Defaults to true. When true, a query will be run only if the
@@ -717,12 +781,14 @@ public class TableController extends BaseController {
 	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId queryAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody QueryBundleRequest query) throws DatastoreException,
-			NotFoundException, IOException {
+			@PathVariable String id, @RequestBody QueryBundleRequest query)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, query);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -732,7 +798,7 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get the results of a query started with <a
-	 * href="${POST.table.query.async.start}">POST /table/query/async/start</a>.
+	 * href="${POST.entity.id.table.query.async.start}">POST /entity/{id}/table/query/async/start</a>.
 	 * 
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status
@@ -742,6 +808,8 @@ public class TableController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
 	 * @param asyncToken
 	 * @return
 	 * @throws NotReadyException
@@ -751,33 +819,21 @@ public class TableController extends BaseController {
 	 *             when the asynchronous job failed
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	QueryResultBundle queryAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws NotReadyException,
-			NotFoundException, AsynchJobFailedException {
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws NotReadyException, NotFoundException, AsynchJobFailedException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
 		return (QueryResultBundle) jobStatus.getResponseBody();
 	}
 
-	/**
-	 * Asynchronously get a next page of a query. Use the returned job id and <a
-	 * href="${POST.table.query.nextPage.async.start}">POST
-	 * /table/query/nextPage/async/start</a> to get the results of the query.
-	 * The page token comes from the query result of a <a
-	 * href="${GET.table.query.async.get.asyncToken}">GET
-	 * /table/query/async/get</a>.
-	 * 
-	 * @param userId
-	 * @param nextPageToken
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -792,27 +848,7 @@ public class TableController extends BaseController {
 		return asyncJobId;
 	}
 
-	/**
-	 * Asynchronously get the results of a nextPage query started with <a
-	 * href="${POST.table.query.nextPage.async.start}">POST
-	 * /table/query/nextPage/async/start</a>
-	 * 
-	 * <p>
-	 * Note: When the result is not ready yet, this method will return a status
-	 * code of 202 (ACCEPTED) and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
-	 * >AsynchronousJobStatus</a> object.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param asyncToken
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws AsynchJobFailedException
-	 * @throws NotReadyException
-	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -828,17 +864,78 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a csv download. Use the returned job id and <a
-	 * href="${GET.table.download.csv.async.get.asyncToken}">GET
-	 * /table/download/csv/async/get</a> to get the results of the query
+	 * Asynchronously get a next page of a query. Use the returned job id and <a
+	 * href="${POST.entity.id.table.query.nextPage.async.start}">POST
+	 * /entity/{id}/table/query/nextPage/async/start</a> to get the results of the query.
+	 * The page token comes from the query result of a <a
+	 * href="${GET.entity.id.table.query.async.get.asyncToken}">GET
+	 * /entity/{id}/table/query/async/get</a>.
 	 * 
 	 * @param userId
-	 * @param downloadRequest
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param nextPageToken
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryNextPageAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody QueryNextPageToken nextPageToken)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, nextPageToken);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a nextPage query started with <a
+	 * href="${POST.entity.id.table.query.nextPage.async.start}">POST
+	 * /entity/{id}/table/query/nextPage/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResult queryNextPageAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (QueryResult) jobStatus.getResponseBody();
+	}
+
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -853,27 +950,7 @@ public class TableController extends BaseController {
 		return asyncJobId;
 	}
 
-	/**
-	 * Asynchronously get the results of a csv download started with <a
-	 * href="${POST.table.download.csv.async.start}">POST
-	 * /table/download/csv/async/start</a>
-	 * 
-	 * <p>
-	 * Note: When the result is not ready yet, this method will return a status
-	 * code of 202 (ACCEPTED) and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
-	 * >AsynchronousJobStatus</a> object.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param asyncToken
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws AsynchJobFailedException
-	 * @throws NotReadyException
-	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -889,22 +966,75 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * <p>
-	 * The method can be used to test both the parameters for reading an upload
-	 * CSV file and the required table schema. The caller can then adjust both
-	 * parameters and schema before applying the CSV to that table.
-	 * </p>
-	 * Asynchronously start a csv upload preview. Use the returned job id and <a
-	 * href="${GET.table.upload.csv.preview.async.get.asyncToken}">GET
-	 * /table/upload/csv/preview/async/get/{asyncToken}</a> to get the results.
+	 * Asynchronously start a csv download. Use the returned job id and <a
+	 * href="${GET.entity.id.table.download.csv.async.get.asyncToken}">GET
+	 * /entity/{id}/table/download/csv/async/get</a> to get the results of the query
 	 * 
 	 * @param userId
-	 * @param uploadRequest
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param downloadRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvDownloadAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody DownloadFromTableRequest downloadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, downloadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a csv download started with <a
+	 * href="${POST.entity.id.table.download.csv.async.start}">POST
+	 * /entity/{id}/table/download/csv/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	DownloadFromTableResult csvDownloadAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (DownloadFromTableResult) jobStatus.getResponseBody();
+	}
+
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -919,27 +1049,7 @@ public class TableController extends BaseController {
 		return asyncJobId;
 	}
 
-	/**
-	 * Asynchronously get the results of a csv upload preview started with <a
-	 * href="${POST.table.upload.csv.preview.async.start}">POST
-	 * /table/upload/csv/async/start</a>
-	 * 
-	 * <p>
-	 * Note: When the result is not ready yet, this method will return a status
-	 * code of 202 (ACCEPTED) and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
-	 * >AsynchronousJobStatus</a> object.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param asyncToken
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws AsynchJobFailedException
-	 * @throws NotReadyException
-	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -955,17 +1065,80 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a csv upload. Use the returned job id and <a
-	 * href="${GET.table.upload.csv.async.get.asyncToken}">GET
-	 * /table/upload/csv/async/get</a> to get the results of the query
+	 * <p>
+	 * The method can be used to test both the parameters for reading an upload
+	 * CSV file and the required table schema. The caller can then adjust both
+	 * parameters and schema before applying the CSV to that table.
+	 * </p>
+	 * Asynchronously start a csv upload preview. Use the returned job id and <a
+	 * href="${GET.entity.id.table.upload.csv.preview.async.get.asyncToken}">GET
+	 * /entity/{id}/table/upload/csv/preview/async/get/{asyncToken}</a> to get the results.
 	 * 
 	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
 	 * @param uploadRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadPreviewAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody UploadToTablePreviewRequest uploadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a csv upload preview started with <a
+	 * href="${POST.entity.id.table.upload.csv.preview.async.start}">POST
+	 * /entity/{id}/table/upload/csv/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTablePreviewResult csvUploadPreviewAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (UploadToTablePreviewResult) jobStatus.getResponseBody();
+	}
+
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -980,10 +1153,55 @@ public class TableController extends BaseController {
 		return asyncJobId;
 	}
 
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTableResult csvUploadAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException,
+			NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (UploadToTableResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Asynchronously start a csv upload. Use the returned job id and <a
+	 * href="${GET.entity.id.table.upload.csv.async.get.asyncToken}">GET
+	 * /entity/{id}/table/upload/csv/async/get</a> to get the results of the query
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param uploadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody UploadToTableRequest uploadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
 	/**
 	 * Asynchronously get the results of a csv upload started with <a
-	 * href="${POST.table.upload.csv.async.start}">POST
-	 * /table/upload/csv/async/start</a>
+	 * href="${POST.entity.id.table.upload.csv.async.start}">POST
+	 * /entity/{id}/table/upload/csv/async/start</a>
 	 * 
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status
@@ -993,6 +1211,8 @@ public class TableController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
 	 * @param asyncToken
 	 * @return
 	 * @throws DatastoreException
@@ -1002,13 +1222,15 @@ public class TableController extends BaseController {
 	 * @throws NotReadyException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	UploadToTableResult csvUploadAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws DatastoreException,
-			NotFoundException, IOException, AsynchJobFailedException,
-			NotReadyException {
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
