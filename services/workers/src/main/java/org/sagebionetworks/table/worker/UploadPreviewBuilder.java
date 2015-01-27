@@ -3,7 +3,10 @@ package org.sagebionetworks.table.worker;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -74,6 +77,8 @@ public class UploadPreviewBuilder {
 		checkSchemaAfterScan();
 		// Apply headers
 		applyHeadersToSchema();
+		// Make sure the names are unique
+		makeColumnNamesUnique();
 		results.setSuggestedColumns(extractSuggestedColumns());
 		results.setRowsScanned(new Long(rowsScanned));
 		results.setSampleRows(extractSampleRows());
@@ -198,9 +203,28 @@ public class UploadPreviewBuilder {
 			}
 			// Set the header names.
 			for (int i = 0; i < header.length; i++) {
-				// Use the header as long as it is not empty or 
-				schema[i].setName(header[i]);
+				// Use the processed from of the header
+				schema[i].setName(processHeader(header[i]));
 			}
+		}
+	}
+	
+	/**
+	 * Scan all name and change duplicates to be unique.
+	 */
+	private void makeColumnNamesUnique(){
+		Map<String, Integer> nameCount = new HashMap<String, Integer>(schema.length);
+		for (int i = 0; i < schema.length; i++) {
+			String name = schema[i].getName();
+			Integer count = nameCount.get(name);
+			if(count == null){
+				count = 0;
+			}else{
+				String uniqueName = name+count;
+				schema[i].setName(uniqueName);
+			}
+			count++;
+			nameCount.put(name, count);
 		}
 	}
 	
@@ -212,10 +236,25 @@ public class UploadPreviewBuilder {
 	 */
 	public static String processHeader(String originalHeader){
 		if(originalHeader == null){
-			return null;
+			return "col";
 		}
-		
-		return originalHeader;
+		// Replace all space with underscore
+		String newHeader = originalHeader.trim().replaceAll("\\s", "_");
+		// Replace all non-alpha-numeric-underscores with empty string.
+		newHeader = newHeader.replaceAll("[^\\w_]", "").trim();
+		// If there is nothing left use 'col'
+		if("".equals(newHeader)){
+			newHeader = "col";
+		}
+		// must have at least one alpha numeric
+		if(!(Pattern.compile("[a-zA-Z0-9]").matcher(newHeader).find())){
+			newHeader = "col";
+		}
+		// key words cannot be used as column names.
+		if(TableConstants.isKeyWord(newHeader)){
+			newHeader = "_"+newHeader;
+		}
+		return newHeader;
 	}
 
 }
