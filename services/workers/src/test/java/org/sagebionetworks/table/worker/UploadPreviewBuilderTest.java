@@ -1,11 +1,12 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,9 +15,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
-
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -119,13 +117,13 @@ public class UploadPreviewBuilderTest {
 		// 0
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
-		cm.setName(null);
+		cm.setName("col1");
 		cm.setMaximumSize(3L);
 		expectedSchema.add(cm);
 		// 1
 		cm = new ColumnModel();
 		cm.setColumnType(ColumnType.INTEGER);
-		cm.setName(null);
+		cm.setName("col2");
 		expectedSchema.add(cm);
 		
 		List<Row> expectedRows = new ArrayList<Row>();
@@ -273,5 +271,101 @@ public class UploadPreviewBuilderTest {
 		assertNotNull(result);
 		assertEquals(new Long(3), result.getRowsScanned());
 	}
+	
 
+	/**
+	 * PLFM-3191 occurs when the first line is not a header 
+	 * and at least one column contains all empty strings.
+	 * @throws IOException
+	 */
+	@Test
+	public void testPLFM_3191() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] { "EEE", "", "foo" });
+		input.add(new String[] { "FFF", "", "bar" });
+		input.add(new String[] { "GGG", "", "foo" });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(false);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		request.setDoFullFileScan(false);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CsvNullReader reader = new CsvNullReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockReporter, request);
+		// Set the max beyond the number of rows we have.
+		builder.setMaxRowsInpartialScan(input.size()-1);
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertEquals(new Long(3), result.getRowsScanned());
+	}
+	
+	/**
+	 * PLFM-3190 is cause by csv with a single row.
+	 * @throws IOException
+	 */
+	@Test
+	public void testPLFM_3190() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] { "EEE", "123", "foo" });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		request.setDoFullFileScan(false);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CsvNullReader reader = new CsvNullReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockReporter, request);
+		// Set the max beyond the number of rows we have.
+		builder.setMaxRowsInpartialScan(input.size()-1);
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertEquals(new Long(3), result.getRowsScanned());
+	}
+	
+	@Test
+	public void testOneRowNoHeader() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] { "EEE", "123", "foo" });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(false);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		request.setDoFullFileScan(false);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CsvNullReader reader = new CsvNullReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockReporter, request);
+		// Set the max beyond the number of rows we have.
+		builder.setMaxRowsInpartialScan(input.size()-1);
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertEquals(new Long(3), result.getRowsScanned());
+	}
+
+	@Test
+	public void testBadHeaders() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] { "Date", "", null, "\"quote\"", "~!@#$%^&* ()_+{}:<>?/.,;'" });
+		input.add(new String[] { "EEE", "123", "foo", "bar", "car" });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(false);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		request.setDoFullFileScan(false);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CsvNullReader reader = new CsvNullReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockReporter, request);
+		// Set the max beyond the number of rows we have.
+		builder.setMaxRowsInpartialScan(input.size()-1);
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertEquals(new Long(3), result.getRowsScanned());
+	}
 }
