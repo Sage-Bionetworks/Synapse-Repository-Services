@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PARTICIPANT_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENG
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
@@ -74,7 +75,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			ChallengeSummary result = new ChallengeSummary();
 			result.setChallengeId(dbo.getId().toString());
 			result.setName(rs.getString(COL_NODE_NAME));
-			result.setProjectId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+			result.setProjectId(KeyFactory.keyToString(rs.getLong(NODE_ID_LABEL)));
 			result.setParticipantTeamId(dbo.getParticipantTeamId().toString());
 			return result;
 		}};
@@ -85,19 +86,21 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static final String SELECT_SUMMARIES_FOR_USER_SQL_CORE = 
 			" FROM "+TABLE_NODE+" n, "+
 					TABLE_CHALLENGE+" c, "+
-					TABLE_GROUP_MEMBERS+" gm, "+
+					TABLE_GROUP_MEMBERS+" gm "+
 			" WHERE n."+COL_NODE_PROJECT_ID+"=c."+COL_CHALLENGE_PROJECT_ID+
-			" c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
+			" AND c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?";
 	
-	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
+	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ? ";
+	
+	private static final String NODE_ID_LABEL = "NODE_ID";
 	
 	private static final String SELECT_SUMMARIES_FOR_USER_PAGINATED = 
-			"SELECT n."+COL_NODE_NAME+", n."+COL_NODE_ID+", t.* "+SELECT_SUMMARIES_FOR_USER_SQL_CORE+
+			"SELECT n."+COL_NODE_NAME+", n."+COL_NODE_ID+" AS "+NODE_ID_LABEL+", c.* "+SELECT_SUMMARIES_FOR_USER_SQL_CORE+
 			LIMIT_OFFSET;
 	
 	private static final String SELECT_SUMMARIES_FOR_USER_COUNT = 
-			"SELECT count(c.*) "+SELECT_SUMMARIES_FOR_USER_SQL_CORE;
+			"SELECT count(c."+COL_CHALLENGE_ID+") "+SELECT_SUMMARIES_FOR_USER_SQL_CORE;
 
 	private static final String SELECT_MEMBERS_IN_REGISTERED_TEAM = 
 			"SELECT gm1."+COL_GROUP_MEMBERS_MEMBER_ID+
@@ -141,19 +144,19 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_PARTICIPANTS_COUNT =
-			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_CORE+LIMIT_OFFSET;
+			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_CORE;
 	
 	private static final String SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM =
 			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT =
-			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
+			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_CORE;
 	
 	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM =
 			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT =
-			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE+LIMIT_OFFSET;
+			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE;
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -205,15 +208,20 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 
 	@Override
 	public Challenge getForProject(String projectId) throws NotFoundException, DatastoreException {
-		DBOChallenge dbo = jdbcTemplate.queryForObject(SELECT_FOR_PROJECT, DBO_CHALLENGE_TABLE_MAPPING, projectId);
-		return copyDBOtoDTO(dbo);
+		try {
+			DBOChallenge dbo = jdbcTemplate.queryForObject(SELECT_FOR_PROJECT, DBO_CHALLENGE_TABLE_MAPPING, 
+				KeyFactory.stringToKey(projectId));
+			return copyDBOtoDTO(dbo);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Cannot find the Challenge for project "+projectId);
+		}
 	}
 
 	@Override
 	public List<ChallengeSummary> listForUser(String principalId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		List<ChallengeSummary> summaries = jdbcTemplate.query(SELECT_SUMMARIES_FOR_USER_PAGINATED, CHALLENGE_SUMMARY_MAPPING, principalId, offset, limit);
+		List<ChallengeSummary> summaries = jdbcTemplate.query(SELECT_SUMMARIES_FOR_USER_PAGINATED, CHALLENGE_SUMMARY_MAPPING, principalId, limit, offset);
 		return summaries;
 	}
 
@@ -221,6 +229,18 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	public long listForUserCount(String principalId) throws NotFoundException,
 			DatastoreException {
 		return jdbcTemplate.queryForObject(SELECT_SUMMARIES_FOR_USER_COUNT, Long.class, principalId);
+	}
+
+	@Override
+	public List<ChallengeSummary> listForUser(String principalId, String userId, long limit,
+			long offset) throws NotFoundException, DatastoreException {
+		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
+		throw new RuntimeException("NYI");	}
+
+	@Override
+	public long listForUserCount(String principalId, String userId) throws NotFoundException,
+			DatastoreException {
+		throw new RuntimeException("NYI");
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

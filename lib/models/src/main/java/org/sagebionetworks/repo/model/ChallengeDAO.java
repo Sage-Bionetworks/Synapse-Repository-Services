@@ -11,11 +11,23 @@ public interface ChallengeDAO {
 	
 	public Challenge getForProject(String projectId) throws NotFoundException, DatastoreException;
 	
+	/*
+	 * returns the Challenges for which the given participant is registered
+	 */
 	public List<ChallengeSummary> listForUser(String principalId, long limit, long offset) 
 			throws NotFoundException, DatastoreException;
 	
 	public long listForUserCount(String principalId) throws NotFoundException, DatastoreException;
 	
+	/*
+	 * returns the Challenges for which the given participant is registered and the given user has read access 
+	 * (that it, has READ access to the project linked to this challenge)
+	 */
+	public List<ChallengeSummary> listForUser(String principalId, String userId, long limit, long offset) 
+			throws NotFoundException, DatastoreException;
+	
+	public long listForUserCount(String principalId, String userId) throws NotFoundException, DatastoreException;
+
 	public Challenge update(Challenge dto) throws NotFoundException, DatastoreException;
 	
 	public void delete(long id) throws NotFoundException, DatastoreException;
