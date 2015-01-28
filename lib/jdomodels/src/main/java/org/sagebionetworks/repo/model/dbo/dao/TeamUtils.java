@@ -67,7 +67,6 @@ public class TeamUtils {
 	
 	// SQL building block to select admin Team members and the Teams on which they are admin's
 	public static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
-			" FROM "+
 				TABLE_TEAM+" t, "+
 				TABLE_ACCESS_CONTROL_LIST+" acl, "+
 				TABLE_RESOURCE_ACCESS+" ra, "+

@@ -1,21 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -70,42 +59,27 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 			result.setChallengeId(dto.getChallengeId());			
 			result.setMessage(dto.getMessage());
 			result.setTeamId(dto.getTeamId());
-			result.setUserId(null); // TODO
-			result.setUserIsAdmin(false); // TODO
+			result.setUserId(rs.getString(SPECIFIED_USER));
+			result.setUserIsAdmin(null!=rs.getString(COL_GROUP_MEMBERS_MEMBER_ID));
 			return result;
 		}};
 	
-
-	
 	private static final String SELECT_FOR_CHALLENGE_SQL_CORE = 
-			" FROM "+TABLE_CHALLENGE_TEAM+" where "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
+			" FROM "+TABLE_CHALLENGE_TEAM+" ct, LEFT JOIN ("+TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
+			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?) ON ct."+COL_CHALLENGE_TEAM_TEAM_ID+"=t."+COL_TEAM_ID+
+			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
 
-	// TODO ORDER BY TEAM NAME !!!
-	// TODO include user id and whether she is an admin
+	private static final String SPECIFIED_USER = "SPECIFIED_USER";
+	
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
-			"SELECT * "+SELECT_FOR_CHALLENGE_SQL_CORE+
+			"SELECT gm."+COL_GROUP_MEMBERS_MEMBER_ID+" as "+SPECIFIED_USER+", ct.*, gm. "+COL_GROUP_MEMBERS_MEMBER_ID+
+			SELECT_FOR_CHALLENGE_SQL_CORE+
 			" LIMIT ? OFFSET ?";
 	
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
-			"SELECT count(*) "+SELECT_FOR_CHALLENGE_SQL_CORE;
+			"SELECT count(*) "+" FROM "+TABLE_CHALLENGE_TEAM+
+			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
 	
-	private static final String SELECT_CHALLENGE_FOR_EVALUATION = "SELECT c."+COL_CHALLENGE_ID+
-			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_EVALUATION+" e WHERE c."+
-			COL_CHALLENGE_PROJECT_ID+"=e."+COL_EVALUATION_CONTENT_SOURCE+" AND e."+COL_EVALUATION_ID+"=?";
-
-	private static final String SELECT_FOR_MEMBER_SQL_CORE = 
-			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
-			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
-			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
-
-	private static final String SELECT_FOR_MEMBER_PAGINATED = 
-			"SELECT t.* "+SELECT_FOR_MEMBER_SQL_CORE+
-			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	private static final String SELECT_FOR_MEMBER_COUNT = 
-			"SELECT count(*) "+SELECT_FOR_MEMBER_SQL_CORE;
-
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
@@ -195,10 +169,10 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 	
 	@Override
-	public List<ChallengeTeamSummary> listForChallenge(String challengeId, long limit,
+	public List<ChallengeTeamSummary> listForChallenge(String userId, String challengeId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		return jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, CHALLENGE_TEAM_SUMMARY_MAPPING, challengeId, offset, limit);
+		return jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, CHALLENGE_TEAM_SUMMARY_MAPPING, userId, challengeId, limit, offset);
 	}
 
 	@Override
