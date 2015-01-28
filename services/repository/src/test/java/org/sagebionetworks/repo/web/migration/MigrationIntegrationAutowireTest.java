@@ -209,6 +209,14 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDAO;
+	
+	@Autowired
+	private ChallengeDAO challengeDAO;
+	
+	@Autowired
+	private ChallengeTeamDAO challengeTeamDAO;
+	
+	private Team team;
 
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -243,6 +251,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private Submission submission;
 
 	private HttpServletRequest mockRequest;
+	
+	private Challenge challenge;
+	private ChallengeTeam challengeTeam;
 
 	@Before
 	public void before() throws Exception {
@@ -279,6 +290,20 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createCommunity(sampleGroup2);
 		createParticipantData(sampleGroup);
 		createQuizResponse();
+		createChallengeAndRegisterTeam();
+	}
+	
+	private void createChallengeAndRegisterTeam() {
+		challenge = new Challenge();
+		challenge.setParticipantTeamId(team.getId());
+		challenge.setProjectId(project.getId());
+		challenge = challengeDAO.create(challenge);
+		
+		challengeTeam = new ChallengeTeam();
+		challengeTeam.setChallengeId(challenge.getId());
+		// this is nonsensical:  We are registering a team which is the challenge 
+		// participant team.  However it does the job of exercising object migration.
+		challengeTeam.setTeamId(team.getId());
 	}
 	
 	private void createProjectSetting() {
@@ -627,11 +652,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private void createTeamsRequestsAndInvitations(UserGroup group) {
 		String otherUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
 
-		Team team = new Team();
+		team = new Team();
 		team.setId(group.getId());
 		team.setName(UUID.randomUUID().toString());
 		team.setDescription("test team");
-		teamDAO.create(team);
+		team = teamDAO.create(team);
 
 		// create a MembershipRqstSubmission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
