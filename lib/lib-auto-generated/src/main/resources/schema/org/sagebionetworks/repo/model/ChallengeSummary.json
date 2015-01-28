@@ -6,6 +6,10 @@
 			"type":"string",
 			"description":"The ID of this Challenge object"
 		},
+		"projectId":{
+			"type":"string",
+			"description":"The ID of the associated Challenge project"			
+		},
 		"name":{
 			"type":"string",
 			"description":"The name of the associated Challenge project"			

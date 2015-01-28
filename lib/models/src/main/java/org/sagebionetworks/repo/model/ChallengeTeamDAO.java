@@ -9,9 +9,7 @@ public interface ChallengeTeamDAO {
 	
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException;
 	
-	public ChallengeTeam createForEvaluation(ChallengeTeam dto, String evaluationID) throws NotFoundException, DatastoreException;
-	
-	public List<ChallengeTeam> listForChallenge(String challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
+	public List<ChallengeTeamSummary> listForChallenge(String challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
 	
 	public long listForChallengeCount(String challengeId) throws NotFoundException, DatastoreException;
 	

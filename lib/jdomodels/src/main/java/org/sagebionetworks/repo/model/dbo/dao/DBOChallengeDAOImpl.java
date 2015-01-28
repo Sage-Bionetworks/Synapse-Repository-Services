@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PARTICIPANT_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
@@ -67,7 +67,6 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			(new DBOChallenge()).getTableMapping();
 	
 	private static RowMapper<ChallengeSummary> CHALLENGE_SUMMARY_MAPPING = new RowMapper<ChallengeSummary>() {
-
 		@Override
 		public ChallengeSummary mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
@@ -75,6 +74,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			ChallengeSummary result = new ChallengeSummary();
 			result.setChallengeId(dbo.getId().toString());
 			result.setName(rs.getString(COL_NODE_NAME));
+			result.setProjectId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 			result.setParticipantTeamId(dbo.getParticipantTeamId().toString());
 			return result;
 		}};
@@ -93,7 +93,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
 	
 	private static final String SELECT_SUMMARIES_FOR_USER_PAGINATED = 
-			"SELECT n."+COL_NODE_NAME+", t.* "+SELECT_SUMMARIES_FOR_USER_SQL_CORE+
+			"SELECT n."+COL_NODE_NAME+", n."+COL_NODE_ID+", t.* "+SELECT_SUMMARIES_FOR_USER_SQL_CORE+
 			LIMIT_OFFSET;
 	
 	private static final String SELECT_SUMMARIES_FOR_USER_COUNT = 

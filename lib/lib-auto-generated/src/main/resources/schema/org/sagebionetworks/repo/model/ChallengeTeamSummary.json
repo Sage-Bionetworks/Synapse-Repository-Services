@@ -1,0 +1,30 @@
+{
+    "title":"Challenge Team Summary",
+    "description":"Summary information about the relationship between a Challenge and registered Team",
+	"properties": {
+		"id":{
+			"type":"string",
+			"description":"The ID of this ChallengeTeam object"
+		},
+		"challengeId":{
+			"type":"string",
+			"description":"The ID of the Challenge"
+		},
+		"teamId":{
+			"type":"string",
+			"description":"The ID of the Team"
+		},
+		"message":{
+			"type": "string",
+			"description": "A descriptive message for the Team in the context of the Challenge"
+		},
+		"userId":{
+			"type": "string",
+			"description":"The participant of interest"
+		},
+		"userIsAdmin":{
+			"type":"boolean",
+			"description":"true if the user indicated by 'userId' is an administrator of the team indicated by 'teamId'"
+		}
+	}
+}

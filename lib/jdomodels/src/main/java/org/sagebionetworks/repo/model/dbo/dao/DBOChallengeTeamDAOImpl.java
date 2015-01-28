@@ -18,6 +18,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +28,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
+import org.sagebionetworks.repo.model.ChallengeTeamSummary;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -36,7 +39,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -58,10 +60,28 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static TableMapping<DBOChallengeTeam> DBO_CHALLENGE_TEAM_TABLE_MAPPING =
 			(new DBOChallengeTeam()).getTableMapping();
 	
+	private static RowMapper<ChallengeTeamSummary> CHALLENGE_TEAM_SUMMARY_MAPPING = new RowMapper<ChallengeTeamSummary>() {
+		@Override
+		public ChallengeTeamSummary mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			ChallengeTeam dto = copyDBOtoDTO(DBO_CHALLENGE_TEAM_TABLE_MAPPING.mapRow(rs, rowNum));
+			ChallengeTeamSummary result = new ChallengeTeamSummary();
+			result.setId(dto.getId());
+			result.setChallengeId(dto.getChallengeId());			
+			result.setMessage(dto.getMessage());
+			result.setTeamId(dto.getTeamId());
+			result.setUserId(null); // TODO
+			result.setUserIsAdmin(false); // TODO
+			return result;
+		}};
+	
+
+	
 	private static final String SELECT_FOR_CHALLENGE_SQL_CORE = 
 			" FROM "+TABLE_CHALLENGE_TEAM+" where "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
 
 	// TODO ORDER BY TEAM NAME !!!
+	// TODO include user id and whether she is an admin
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
 			"SELECT * "+SELECT_FOR_CHALLENGE_SQL_CORE+
 			" LIMIT ? OFFSET ?";
@@ -120,15 +140,6 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		}
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public ChallengeTeam createForEvaluation(ChallengeTeam dto, String evaluationID) 
-			throws NotFoundException, DatastoreException {
-		Long projectId = jdbcTemplate.queryForObject(SELECT_CHALLENGE_FOR_EVALUATION, Long.class, evaluationID);
-		dto.setChallengeId(KeyFactory.keyToString(projectId));
-		return create(dto);
-	}
-	
 	public static ChallengeTeam copyDBOtoDTO(DBOChallengeTeam dbo) {
 		ChallengeTeam dto;
 		try {
@@ -184,13 +195,10 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 	
 	@Override
-	public List<ChallengeTeam> listForChallenge(String challengeId, long limit,
+	public List<ChallengeTeamSummary> listForChallenge(String challengeId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		List<DBOChallengeTeam> dbos = jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, DBO_CHALLENGE_TEAM_TABLE_MAPPING, challengeId, offset, limit);
-		List<ChallengeTeam> dtos = new ArrayList<ChallengeTeam>();
-		for (DBOChallengeTeam dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
-		return dtos;
+		return jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, CHALLENGE_TEAM_SUMMARY_MAPPING, challengeId, offset, limit);
 	}
 
 	@Override
