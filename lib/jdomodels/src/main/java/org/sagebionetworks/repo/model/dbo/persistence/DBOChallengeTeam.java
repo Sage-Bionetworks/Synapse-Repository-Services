@@ -33,7 +33,7 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 	@ForeignKey(table = TABLE_CHALLENGE, field = COL_CHALLENGE_ID, cascadeDelete = true)
 	private Long challengeId;
 	
-	@Field(name=COL_CHALLENGE_SERIALIZED_ENTITY, blob = "mediumblob", backupId = false, primary = false, nullable = false)
+	@Field(name=COL_CHALLENGE_TEAM_SERIALIZED_ENTITY, blob = "mediumblob", backupId = false, primary = false, nullable = false)
 	private byte[] serializedEntity;
 	
 	private static TableMapping<DBOChallengeTeam> tableMapping = AutoTableMapping.create(DBOChallengeTeam.class);

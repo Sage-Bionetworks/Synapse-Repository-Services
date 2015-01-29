@@ -26,5 +26,5 @@ public interface ChallengeTeamDAO {
 	
 	public ChallengeTeam update(ChallengeTeam dto) throws NotFoundException, DatastoreException;
 	
-	public void delete(long id) throws NotFoundException, DatastoreException;
+	public void delete(long id) throws DatastoreException;
 }

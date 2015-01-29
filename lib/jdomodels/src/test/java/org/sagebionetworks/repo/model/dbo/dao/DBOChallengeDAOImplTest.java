@@ -126,7 +126,6 @@ public class DBOChallengeDAOImplTest {
 		challengeDAO.listParticipants(challenge.getId(), null, 10L, 0L);
 		challengeDAO.listParticipantsCount(challenge.getId(), null);
 		
-		
 		challengeDAO.delete(Long.parseLong(challenge.getId()));
 		challenge=null;
 	}

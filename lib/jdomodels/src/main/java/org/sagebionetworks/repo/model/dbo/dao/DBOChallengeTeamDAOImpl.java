@@ -183,7 +183,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(long id) throws NotFoundException, DatastoreException {
+	public void delete(long id) throws DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(id));
 	}
 	

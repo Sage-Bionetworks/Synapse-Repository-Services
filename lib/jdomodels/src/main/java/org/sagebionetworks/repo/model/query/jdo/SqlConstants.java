@@ -267,7 +267,7 @@ public class SqlConstants {
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
     
     // The CHALLENGE table
-    public static final String TABLE_CHALLENGE         				= "CHALLENGE_TEAM";
+    public static final String TABLE_CHALLENGE         				= "CHALLENGE";
     public static final String COL_CHALLENGE_ID 					= "ID";
     public static final String COL_CHALLENGE_ETAG					= "ETAG";
     public static final String COL_CHALLENGE_PROJECT_ID 			= "PROJECT_ID";
@@ -275,11 +275,12 @@ public class SqlConstants {
 	public static final String COL_CHALLENGE_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
 
     // The CHALLENGE-TEAM table
-    public static final String TABLE_CHALLENGE_TEAM         = "CHALLENGE_TEAM";
-    public static final String COL_CHALLENGE_TEAM_ID 		= "ID";
-    public static final String COL_CHALLENGE_TEAM_ETAG		= "ETAG";
-    public static final String COL_CHALLENGE_TEAM_TEAM_ID  = "TEAM_ID";
-    public static final String COL_CHALLENGE_TEAM_CHALLENGE_ID 	= "CHALLENGE_ID";
+    public static final String TABLE_CHALLENGE_TEAM        				= "CHALLENGE_TEAM";
+    public static final String COL_CHALLENGE_TEAM_ID 					= "ID";
+    public static final String COL_CHALLENGE_TEAM_ETAG					= "ETAG";
+    public static final String COL_CHALLENGE_TEAM_TEAM_ID  				= "TEAM_ID";
+    public static final String COL_CHALLENGE_TEAM_CHALLENGE_ID 			= "CHALLENGE_ID";
+	public static final String COL_CHALLENGE_TEAM_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID          = "ID";
