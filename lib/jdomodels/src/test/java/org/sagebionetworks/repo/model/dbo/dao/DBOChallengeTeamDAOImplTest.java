@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
+import org.sagebionetworks.repo.model.ChallengeTeamSummary;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -161,17 +162,42 @@ public class DBOChallengeTeamDAOImplTest {
 	}
 	
 	/*
-	 * check that 'listRegistratable' and 'listRegistratableCount' return the right values
+	 * check 'listRegistratable' and 'listRegistratableCount'
 	 */
 	private void checkRegistratable(String challengeId, String principalId, List<Team> expected) throws Exception {
 		if (expected==null) expected = Collections.EMPTY_LIST;
-		assertEquals(
-				expected,
+		assertEquals(expected,
 				challengeTeamDAO.listRegistratable(challengeId, principalId, 1L+expected.size(), 0L));
 		assertEquals(expected.size(), challengeTeamDAO.listRegistratableCount(challengeId, principalId));
 		
 		// check that pagination works
 		assertTrue(challengeTeamDAO.listRegistratable(challengeId, principalId, 1L, expected.size()).isEmpty());
+	}
+	
+	/*
+	 * check listForChallenge and listForChallengeCount
+	 */
+	private void checkListForChallenge(String userId, String challengeId, 
+			List<ChallengeTeamSummary> expected) throws Exception {
+		if (expected==null) expected = Collections.EMPTY_LIST;
+		assertEquals(expected,
+				challengeTeamDAO.listForChallenge(userId, challengeId, 1L+expected.size(), 0));
+		assertEquals(expected.size(), challengeTeamDAO.listForChallengeCount(challengeId));		
+		
+		// check that pagination works
+		assertTrue(challengeTeamDAO.listForChallenge(userId, challengeId, 1L, expected.size()).isEmpty());
+	}
+	
+	private static ChallengeTeamSummary createChallengeTeamSummary(
+			ChallengeTeam ct, String userId, boolean userIsAdmin) {
+		ChallengeTeamSummary result = new ChallengeTeamSummary();
+		result.setChallengeId(ct.getChallengeId());
+		result.setId(ct.getId());
+		result.setMessage(ct.getMessage());
+		result.setTeamId(ct.getTeamId());
+		result.setUserId(userId);
+		result.setUserIsAdmin(userIsAdmin);
+		return result;
 	}
 
 	@Test
@@ -181,16 +207,19 @@ public class DBOChallengeTeamDAOImplTest {
 		checkRegistratable(challenge.getId(), principalId, Collections.singletonList(registeredTeam));
 		// not registratable by another user
 		checkRegistratable(challenge.getId(), "000", null);
+		
+		// check that no Teams are currently registered for the challenge
+		checkListForChallenge(principalId, challenge.getId(), null);
+		checkListForChallenge(principalId, "000", null);
+		checkListForChallenge("000", challenge.getId(), null);
 				
 		challengeTeam = new ChallengeTeam();
 		challengeTeam.setChallengeId(challenge.getId());
 		challengeTeam.setMessage("Join Our Team!!");
 		challengeTeam.setTeamId(registeredTeam.getId());
-		
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
 		
 		challengeTeam.setMessage("Please, please, join our Team!!");
-		
 		ChallengeTeam updated = challengeTeamDAO.update(challengeTeam);
 		challengeTeam.setEtag(updated.getEtag());
 		assertEquals(challengeTeam, updated);
@@ -200,8 +229,18 @@ public class DBOChallengeTeamDAOImplTest {
 		// try a different challengeId
 		checkRegistratable("000", principalId, Collections.singletonList(registeredTeam));
 		
-//		challengeTeamDAO.listForChallenge(userId, challengeId, limit, offset)
-//		challengeTeamDAO.listForChallengeCount(challengeId)		
+		// check that it's listed
+		ChallengeTeamSummary challengeTeamSummary = 
+				createChallengeTeamSummary(challengeTeam, principalId, /*isAdmin*/true);
+		checkListForChallenge(principalId, challenge.getId(), 
+				Collections.singletonList(challengeTeamSummary));
+		// but not for other challenges
+		checkListForChallenge(principalId, "000", null);
+		// check for other principal
+		challengeTeamSummary = 
+				createChallengeTeamSummary(challengeTeam, "000", /*isAdmin*/false);
+		checkListForChallenge("000", challenge.getId(), 
+				Collections.singletonList(challengeTeamSummary));
 		
 		challengeTeamDAO.delete(Long.parseLong(challengeTeam.getId()));
 		challengeTeam=null;
