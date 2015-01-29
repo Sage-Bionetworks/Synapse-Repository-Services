@@ -71,14 +71,30 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 
 	private static final String SPECIFIED_USER = "SPECIFIED_USER";
 	
+	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ?";
+	
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
 			"SELECT gm."+COL_GROUP_MEMBERS_MEMBER_ID+" as "+SPECIFIED_USER+", ct.*, gm. "+COL_GROUP_MEMBERS_MEMBER_ID+
-			SELECT_FOR_CHALLENGE_SQL_CORE+
-			" LIMIT ? OFFSET ?";
+			SELECT_FOR_CHALLENGE_SQL_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
 			"SELECT count(*) "+" FROM "+TABLE_CHALLENGE_TEAM+
 			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
+	
+	private static final String SELECT_REGISTRATABLE_TEAMS_CORE = 
+			TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
+			" AND "+ "gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?"+
+			" AND t."+COL_TEAM_ID+" NOT IN (SELECT "+COL_CHALLENGE_TEAM_TEAM_ID+" FROM "+TABLE_CHALLENGE_TEAM+
+			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?)";
+	
+	private static final String SELECT_REGISTRATABLE_TEAMS_PAGINATED = 
+			"SELECT t.* FROM "+SELECT_REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
+	
+	private static final String SELECT_REGISTRATABLE_TEAMS_COUNT = 
+			"SELECT count(*) FROM "+SELECT_REGISTRATABLE_TEAMS_CORE;
+	
+
+	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -186,23 +202,6 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	public void delete(long id) throws DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(id));
 	}
-	
-	private static final String SELECT_REGISTRATABLE_TEAMS_CORE = 
-			TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
-			" AND "+ "gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?"+
-			" AND t."+COL_TEAM_ID+" NOT IN (SELECT "+COL_CHALLENGE_TEAM_TEAM_ID+" FROM "+TABLE_CHALLENGE_TEAM+
-			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
-	
-	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
-	
-	private static final String SELECT_REGISTRATABLE_TEAMS_PAGINATED = 
-			"SELECT t.* FROM "+SELECT_REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
-	
-	private static final String SELECT_REGISTRATABLE_TEAMS_COUNT = 
-			"SELECT count(*) FROM "+SELECT_REGISTRATABLE_TEAMS_CORE;
-	
-
-	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
 	/*
 	 * Returns the Teams which are NOT registered for the challenge and on which is current user is an ADMIN.
