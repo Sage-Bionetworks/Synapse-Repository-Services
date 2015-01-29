@@ -1325,12 +1325,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userInfo.getGroups()), parameters, 0);
 
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+		String auth2 = QueryUtils.buildAuthorizationFilter(userInfo.isAdmin(), userInfo.getGroups(), parameters, "n", userInfo.getGroups()
+				.size());
+
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
 		params.addValues(parameters);
 		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + SELECT_PROJECTS_SQL_JOIN_STATS
-				+ SELECT_PROJECTS_ORDER + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2;
+				+ (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2));
 		return getProjectHeaders(params, selectSql, countSql);
 	}
 			
