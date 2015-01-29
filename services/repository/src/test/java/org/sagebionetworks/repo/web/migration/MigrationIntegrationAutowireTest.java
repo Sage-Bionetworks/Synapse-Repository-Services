@@ -304,6 +304,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// this is nonsensical:  We are registering a team which is the challenge 
 		// participant team.  However it does the job of exercising object migration.
 		challengeTeam.setTeamId(team.getId());
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
 	}
 	
 	private void createProjectSetting() {

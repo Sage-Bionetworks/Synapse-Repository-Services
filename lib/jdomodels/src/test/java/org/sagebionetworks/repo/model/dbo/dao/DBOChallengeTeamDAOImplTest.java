@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import static org.junit.Assert.*;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOChallengeTeamDAOImplTest {
@@ -102,6 +104,20 @@ public class DBOChallengeTeamDAOImplTest {
 		challengeTeam.setTeamId(registeredTeam.getId());
 		
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
+		
+		challengeTeam.setMessage("Please, please, join our Team!!");
+		
+		ChallengeTeam updated = challengeTeamDAO.update(challengeTeam);
+		assertEquals(challengeTeam.getMessage(), updated.getMessage());
+
+		
+//		challengeTeamDAO.listForChallenge(userId, challengeId, limit, offset)
+//		challengeTeamDAO.listForChallengeCount(challengeId)
+//		
+//		challengeTeamDAO.listRegistratable(challengeId, userId, limit, offset)
+//		challengeTeamDAO.listRegistratableCount(challengeId, userId)
+		
+		
 		
 		challengeTeamDAO.delete(Long.parseLong(challengeTeam.getId()));
 		challengeTeam=null;
