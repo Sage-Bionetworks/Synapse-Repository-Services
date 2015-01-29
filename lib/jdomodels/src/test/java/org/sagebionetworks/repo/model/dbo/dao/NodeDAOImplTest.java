@@ -2122,12 +2122,22 @@ public class NodeDAOImplTest {
 		// project owned by neither user
 		createProject("testGetProjectHeaders.name4", user2);
 
-		// project with owned sub folder
+		// project with owned sub folder but no permission to project
 		String subFolderProject = createProject("testGetProjectHeaders.name5", user2);
 		Node folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1", Long.parseLong(user1));
 		folder.setParentId(subFolderProject);
 		folder.setNodeType(EntityType.folder.name());
 		String ownerFolder = this.nodeDao.createNew(folder);
+		toDelete.add(ownerFolder);
+		addReadAcl(ownerFolder, group);
+
+		// project with owned sub folder and permission to project
+		String subFolderProject2 = createProject("testGetProjectHeaders.name5a", user2);
+		addReadAcl(subFolderProject2, user1);
+		folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1a", Long.parseLong(user1));
+		folder.setParentId(subFolderProject2);
+		folder.setNodeType(EntityType.folder.name());
+		ownerFolder = this.nodeDao.createNew(folder);
 		toDelete.add(ownerFolder);
 		addReadAcl(ownerFolder, group);
 
@@ -2154,7 +2164,7 @@ public class NodeDAOImplTest {
 
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(user1Info, 100, 0);
 		List<String> projectIds = Lists.transform(projectHeaders.getResults(), transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject, groupParticipate, participate, owned), projectIds);
+		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
 
 		List<String> projectIds2 = Lists.newArrayList();
 		for (int i = 0; i < 5; i++) {
@@ -2177,15 +2187,19 @@ public class NodeDAOImplTest {
 		projectStatsDAO.update(projectStat);
 
 		projectHeaders = nodeDao.getMyProjectHeaders(user1Info, 100, 0);
-		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject, groupParticipate),
+		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject2, groupParticipate),
 				Lists.transform(projectHeaders.getResults(), transformToId));
 
 		// user3 only has access to group project
 		projectHeaders = nodeDao.getProjectHeadersForUser(user1Info, user3Info, 100, 0);
 		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
 
-		// group only has access to group project
+		// group only has access to group projects, and only user1 can access sub folder project
 		projectHeaders = nodeDao.getProjectHeadersForTeam(teamDAO.get(group), user1Info, 100, 0);
+		assertEquals(Lists.newArrayList(groupParticipate, subFolderProject2), Lists.transform(projectHeaders.getResults(), transformToId));
+
+		// group only has access to group project and user3 cannot access sub folder project
+		projectHeaders = nodeDao.getProjectHeadersForTeam(teamDAO.get(group), user3Info, 100, 0);
 		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
 	}
 
