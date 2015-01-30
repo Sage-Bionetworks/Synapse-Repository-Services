@@ -236,7 +236,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertNull(session);
 
 		// Session is valid again
-		authDAO.revalidateSessionToken(credential.getPrincipalId(), DomainType.SYNAPSE);
+		assertFalse("The session token should not need to be revaliated.",authDAO.revalidateSessionTokenIfNeeded(credential.getPrincipalId(), DomainType.SYNAPSE));
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}

@@ -24,10 +24,15 @@ public interface AuthenticationDAO {
 	public Long checkUserCredentials(long principalId, String passHash);
 	
 	/**
-	 * Updates the timestamp associated with the user's session token
+	 * Updates the timestamp associated with the user's session token it needed.
+	 * Unconditionally updating the timestamp of a session token was cuasing users to be
+	 * locked out of their accounts (see PLFM-3206).  Now we only update the timestamp
+	 * if it is past its half-life.
+	 * 
 	 * It is the caller's responsibility to determine if the session token is still valid
+	 * @return true if the timstamp was reset. Returns false if an update was not needed.
 	 */
-	public void revalidateSessionToken(long principalId, DomainType domain);
+	public boolean revalidateSessionTokenIfNeeded(long principalId, DomainType domain);
 	
 	/**
 	 * Changes the user's session token to the specified string
