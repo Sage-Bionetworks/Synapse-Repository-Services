@@ -8,6 +8,12 @@
         "id":{
             "type":"string",
             "description":"The id of the project"
+        },
+        "lastActivity":{
+			"type": "string",
+			"format": "date-time",
+			"description": "The optional last recorded activity for this project and the current user.",
+			"title": "Last Activity"
         }
     }
 }

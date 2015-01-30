@@ -2096,6 +2096,43 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
+	public void testGetProjectHeadersReturnInfo() throws Exception {
+		UserInfo user1Info = createUserInfo(user1);
+
+		String owned = createProject("testGetProjectHeaders.name1", user1);
+		toDelete.add(owned);
+		Node ownedProject = nodeDao.getNode(owned);
+		// now add ACL for the user
+		addReadAcl(owned, user1);
+
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(user1Info, 100, 0);
+		assertEquals(1, projectHeaders.getTotalNumberOfResults());
+		ProjectHeader header = projectHeaders.getResults().get(0);
+		assertEquals(ownedProject.getName(), header.getName());
+		assertEquals(owned, header.getId());
+		assertNull(header.getLastActivity());
+		Date before = new Date();
+
+		// touching project stats
+		Thread.sleep(2);
+		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
+		projectStatsDAO.update(projectStat);
+
+		PaginatedResults<ProjectHeader> projectHeadersAfter = nodeDao.getMyProjectHeaders(user1Info, 100, 0);
+		assertEquals(1, projectHeadersAfter.getTotalNumberOfResults());
+		ProjectHeader headerAfter = projectHeadersAfter.getResults().get(0);
+		assertEquals(ownedProject.getName(), headerAfter.getName());
+		assertEquals(owned, headerAfter.getId());
+		assertNotNull(headerAfter.getLastActivity());
+
+		Thread.sleep(2);
+		Date after = new Date();
+
+		assertTrue(headerAfter.getLastActivity().after(before));
+		assertTrue(headerAfter.getLastActivity().before(after));
+	}
+
+	@Test
 	public void testGetProjectHeaders() throws Exception {
 		UserInfo user1Info = createUserInfo(user1);
 		UserInfo user2Info = createUserInfo(user2);
