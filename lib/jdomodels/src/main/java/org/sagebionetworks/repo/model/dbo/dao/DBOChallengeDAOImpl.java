@@ -175,7 +175,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			" AND c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm1."+COL_GROUP_MEMBERS_GROUP_ID+
 			" AND ct."+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=c."+COL_CHALLENGE_ID+
 			" AND ct."+COL_CHALLENGE_TEAM_TEAM_ID+"=gm2."+COL_GROUP_MEMBERS_GROUP_ID+
-			" AND gm1."+COL_GROUP_MEMBERS_MEMBER_ID+"gm2."+COL_GROUP_MEMBERS_MEMBER_ID;
+			" AND gm1."+COL_GROUP_MEMBERS_MEMBER_ID+"=gm2."+COL_GROUP_MEMBERS_MEMBER_ID;
 
 	private static final String SELECT_PARTICIPANTS_CORE =
 			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_GROUP_MEMBERS+" gm LEFT OUTER JOIN "+
@@ -381,9 +381,9 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		if (affiliated==null) {
 			return jdbcTemplate.query(SELECT_PARTICIPANTS, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
 		} else if (affiliated) {
-			return jdbcTemplate.query(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
+			return jdbcTemplate.query(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, challengeId, limit, offset);
 		} else {
-			return jdbcTemplate.query(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
+			return jdbcTemplate.query(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, challengeId, limit, offset);
 		}
 	}
 	
@@ -410,9 +410,9 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		if (affiliated==null) {
 			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_COUNT, Long.class, challengeId);
 		} else if (affiliated) {
-			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId);
+			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId, challengeId);
 		} else {
-			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId);
+			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId, challengeId);
 		}
 	}
 
