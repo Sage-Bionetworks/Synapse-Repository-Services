@@ -6210,7 +6210,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	/**
 	 * Register a Team for a Challenge.
-	 * The user making this request must have SUBMIT access to the Challenge and
+	 * The user making this request must be registered for the Challenge and
 	 * be an administrator of the Team.
 	 * @param challengeId
 	 * @param teamId
@@ -6222,30 +6222,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	/**
 	 * Remove a registered Team from a Challenge.
-	 * The user making this request must have SUBMIT access to the Challenge and
+	 * The user making this request must be registered for the Challenge and
 	 * be an administrator of the Team.
 	 * @param challengeId
 	 * @param teamId
 	 * @throws SynapseException
 	 */
-	public void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException  {
+	public void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException {
 		throw new RuntimeException("Not Yet Implemented");
 	}
 	
 	/**
-	 * Returns a paginated list of Teams registered for the given Challenge,
-	 * optionally filtered to show just the Teams in which the given userId 
-	 * is a member.  Results sorted alphabetically.
-	 * The user making the request must have READ access to the Challenge.
+	 * Returns a paginated list of Teams registered for the given Challenge.
+	 * The user making the request must have READ access to the Challenge Project.
 	 * @param challengeId
-	 * @param userId optional  if included only the Teams having this userId
-	 * as a member are returned.
 	 * @param limit optional
 	 * @param offset optional
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<Team> listChallengeTeams(String challengeId, String userId, Long limit, Long offset) throws SynapseException  {
+	public PaginatedResults<ChallengeTeamSummary> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException {
 		throw new RuntimeException("Not Yet Implemented");
 	}
 
