@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.util.TimeUtils;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -172,8 +173,8 @@ public class IT970UserProfileController {
 		});
 
 		PaginatedResults<ProjectHeader> projects5 = adminSynapse.getProjectsForTeam(Long.parseLong(teamToDelete), 100, 0);
-		// alphabetical
-		assertEquals(alphabetical, projects5.getResults());
+		// alphabetical, but last activity not set
+		assertEquals(nullOutLastActivity(alphabetical), projects5.getResults());
 
 		// change order
 		folder.setName("folder1-renamed");
@@ -194,14 +195,14 @@ public class IT970UserProfileController {
 		});
 
 		PaginatedResults<ProjectHeader> projects3 = synapse.getMyProjects(Integer.MAX_VALUE, 0);
-		assertEquals(Lists.reverse(projects.getResults()), projects3.getResults());
+		assertEquals(nullOutLastActivity(Lists.reverse(projects.getResults())), nullOutLastActivity(projects3.getResults()));
 
 		PaginatedResults<ProjectHeader> projects4 = adminSynapse.getProjectsFromUser(userToDelete, 100, 0);
-		assertEquals(Lists.reverse(projects.getResults()), projects4.getResults());
+		assertEquals(nullOutLastActivity(Lists.reverse(projects.getResults())), nullOutLastActivity(projects4.getResults()));
 
 		projects5 = adminSynapse.getProjectsForTeam(Long.parseLong(teamToDelete), 100, 0);
 		// still alphabetical
-		assertEquals(alphabetical, projects5.getResults());
+		assertEquals(nullOutLastActivity(alphabetical), projects5.getResults());
 
 		// ignore trashed projects
 		synapse.deleteEntity(entity);
@@ -209,5 +210,18 @@ public class IT970UserProfileController {
 		assertEquals(1, projects.getTotalNumberOfResults());
 		assertEquals(1, projects.getResults().size());
 		assertEquals(entity2.getId(), projects.getResults().get(0).getId());
+	}
+
+	private List<ProjectHeader> nullOutLastActivity(List<ProjectHeader> alphabetical) {
+		return Lists.transform(alphabetical, new Function<ProjectHeader, ProjectHeader>() {
+			@Override
+			public ProjectHeader apply(ProjectHeader input) {
+				ProjectHeader output = new ProjectHeader();
+				output.setId(input.getId());
+				output.setName(input.getName());
+				output.setLastActivity(null);
+				return output;
+			}
+		});
 	}
 }

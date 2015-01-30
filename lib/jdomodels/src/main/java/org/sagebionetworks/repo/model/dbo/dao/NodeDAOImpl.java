@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -90,10 +89,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		"select count(*) from (" + 
 			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
 	private static final String SELECT_PROJECTS_SQL1 =
-		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE + " from (" +
-			" select distinct n." + COL_NODE_PROJECT_ID +
-			" from ( ";
+		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE;
+	private static final String SELECT_PROJECTS_STATS_FIELD =
+		", ps." + COL_PROJECT_STAT_LAST_ACCESSED;
 	private static final String SELECT_PROJECTS_SQL2 =
+		" from (" +
+			" select distinct n." + COL_NODE_PROJECT_ID +
+				" from ( ";
+	private static final String SELECT_PROJECTS_SQL3 =
 			" ) acls" +
 			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
 			" where n." + COL_NODE_PROJECT_ID + " is not null" +
@@ -1332,10 +1335,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
 		params.addValues(parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + SELECT_PROJECTS_SQL_JOIN_STATS
-				+ (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2));
-		return getProjectHeaders(params, selectSql, countSql);
+		String selectSql = SELECT_PROJECTS_SQL1 + SELECT_PROJECTS_STATS_FIELD + SELECT_PROJECTS_SQL2 + authForLookup + SELECT_PROJECTS_SQL3
+				+ SELECT_PROJECTS_SQL_JOIN_STATS + (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + (auth2.isEmpty() ? "" : (" where " + auth2));
+		return getProjectHeaders(params, selectSql, countSql, true);
 	}
 			
 
@@ -1358,10 +1361,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
 		params.addValues(parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + SELECT_PROJECTS_SQL_JOIN_STATS
-				+ (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2));
-		return getProjectHeaders(params, selectSql, countSql);
+		String selectSql = SELECT_PROJECTS_SQL1 + SELECT_PROJECTS_STATS_FIELD + SELECT_PROJECTS_SQL2 + authForLookup + SELECT_PROJECTS_SQL3
+				+ SELECT_PROJECTS_SQL_JOIN_STATS + (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + (auth2.isEmpty() ? "" : (" where " + auth2));
+		return getProjectHeaders(params, selectSql, countSql, true);
 	}
 
 	@Override
@@ -1383,23 +1386,29 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
 		params.addValues(parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2))
-				+ SELECT_TEAMS_ORDER + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2 + (auth2.isEmpty() ? "" : (" where " + auth2));
-		return getProjectHeaders(params, selectSql, countSql);
+		String selectSql = SELECT_PROJECTS_SQL1 + SELECT_PROJECTS_SQL2 + authForLookup + SELECT_PROJECTS_SQL3
+				+ (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_TEAMS_ORDER + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + (auth2.isEmpty() ? "" : (" where " + auth2));
+		return getProjectHeaders(params, selectSql, countSql, false);
 	}
 
-	private PaginatedResults<ProjectHeader> getProjectHeaders(MapSqlParameterSource params, String selectSql, String countSql) {
-		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSql, params,
-				new RowMapper<ProjectHeader>() {
-					@Override
-					public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-						ProjectHeader header = new ProjectHeader();
-						header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-						header.setName(rs.getString(COL_NODE_NAME));
-						return header;
+	private PaginatedResults<ProjectHeader> getProjectHeaders(MapSqlParameterSource params, String selectSql, String countSql,
+			final boolean hasLastActivity) {
+		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSql, params, new RowMapper<ProjectHeader>() {
+			@Override
+			public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ProjectHeader header = new ProjectHeader();
+				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+				header.setName(rs.getString(COL_NODE_NAME));
+				if (hasLastActivity) {
+					long lastActivity = rs.getLong(COL_PROJECT_STAT_LAST_ACCESSED);
+					if (!rs.wasNull()) {
+						header.setLastActivity(new Date(lastActivity));
 					}
-				});
+				}
+				return header;
+			}
+		});
 
 		// return the page of objects, along with the total result count
 		PaginatedResults<ProjectHeader> queryResults = new PaginatedResults<ProjectHeader>();
