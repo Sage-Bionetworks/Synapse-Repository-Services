@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
@@ -115,6 +118,14 @@ public class UserProfileUtils {
 		dto.setEntityId(KeyFactory.keyToString(dbo.getNodeId()));
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		return dto;
+	}
+	
+	public static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, String userName, UserGroupHeader ugh) throws SQLException {
+		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
+		ugh.setFirstName(up.getFirstName());
+		ugh.setLastName(up.getLastName());
+		ugh.setPic(up.getPic());
+		ugh.setUserName(userName);
 	}
 
 }

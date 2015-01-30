@@ -81,6 +81,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+				<!-- Challenge -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam" />
 				<!-- Table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner" />
@@ -149,7 +152,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				
-
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />

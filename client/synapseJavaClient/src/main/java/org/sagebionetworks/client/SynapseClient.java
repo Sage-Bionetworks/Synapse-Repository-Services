@@ -1875,4 +1875,35 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
+	
+	/**
+	 * Register a Team for a Challenge.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * @param challengeId
+	 * @param teamId
+	 * @throws SynapseException
+	 */
+	public void addTeamToChallenge(String challengeId, String teamId) throws SynapseException;
+	
+	/**
+	 * Remove a registered Team from a Challenge.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * @param challengeId
+	 * @param teamId
+	 * @throws SynapseException
+	 */
+	public void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException;
+	
+	/**
+	 * Returns a paginated list of Teams registered for the given Challenge.
+	 * The user making the request must have READ access to the Challenge Project.
+	 * @param challengeId
+	 * @param limit optional
+	 * @param offset optional
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<ChallengeTeamSummary> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
 }

@@ -32,7 +32,7 @@ import com.thoughtworks.xstream.XStream;
  * @author John
  *
  */
-public class ColumnModelUtlis {
+public class ColumnModelUtils {
 	
 	/**
 	 * The default maximum number of characters for a string.
@@ -100,7 +100,7 @@ public class ColumnModelUtlis {
 		if(dbos == null) throw new IllegalArgumentException("DBOColumnModel cannot be null");
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		for(DBOColumnModel dbo: dbos){
-			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
+			results.add(ColumnModelUtils.createDTOFromDBO(dbo));
 		}
 		return results;
 	}

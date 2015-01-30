@@ -248,6 +248,8 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
+		expectedPrimaryTypes.add(MigrationType.CHALLENGE);
+		expectedPrimaryTypes.add(MigrationType.CHALLENGE_TEAM);
 		expectedPrimaryTypes.add(MigrationType.COMMUNITY_TEAM);
 		expectedPrimaryTypes.add(MigrationType.BRIDGE_PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.BRIDGE_USER_PARTICIPANT_MAP);

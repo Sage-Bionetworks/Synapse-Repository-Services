@@ -22,7 +22,7 @@ public class SqlConstants {
 	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
 	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
-	public static final String COL_NODE_ANNOATIONS		= "ANNOTATIONS_ID_OID";
+	public static final String COL_NODE_ANNOTATIONS		= "ANNOTATIONS_ID_OID";
 	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
 	public static final String COL_NODE_ETAG 			= "ETAG";
 	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
@@ -265,6 +265,22 @@ public class SqlConstants {
     public static final String COL_GROUP_MEMBERS_GROUP_ID  = "GROUP_ID";
     public static final String COL_GROUP_MEMBERS_MEMBER_ID = "MEMBER_ID";
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
+    
+    // The CHALLENGE table
+    public static final String TABLE_CHALLENGE         				= "CHALLENGE";
+    public static final String COL_CHALLENGE_ID 					= "ID";
+    public static final String COL_CHALLENGE_ETAG					= "ETAG";
+    public static final String COL_CHALLENGE_PROJECT_ID 			= "PROJECT_ID";
+    public static final String COL_CHALLENGE_PARTICIPANT_TEAM_ID  	= "TEAM_ID";
+	public static final String COL_CHALLENGE_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
+
+    // The CHALLENGE-TEAM table
+    public static final String TABLE_CHALLENGE_TEAM        				= "CHALLENGE_TEAM";
+    public static final String COL_CHALLENGE_TEAM_ID 					= "ID";
+    public static final String COL_CHALLENGE_TEAM_ETAG					= "ETAG";
+    public static final String COL_CHALLENGE_TEAM_TEAM_ID  				= "TEAM_ID";
+    public static final String COL_CHALLENGE_TEAM_CHALLENGE_ID 			= "CHALLENGE_ID";
+	public static final String COL_CHALLENGE_TEAM_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID          = "ID";
@@ -278,8 +294,6 @@ public class SqlConstants {
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
 	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_GROUP_ID		= "GROUP_ID";
-	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
-	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
 	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
 	public static final String DDL_FILE_RES_ACCESS				= "schema/ResourceAccess-ddl.sql";
 	

@@ -45,6 +45,8 @@
         "FAVORITE",
         "TRASH_CAN",
         "DOI",
+        "CHALLENGE",
+        "CHALLENGE_TEAM",
         "COMMUNITY_TEAM",
         "BRIDGE_PARTICIPANT",
         "BRIDGE_USER_PARTICIPANT_MAP",
