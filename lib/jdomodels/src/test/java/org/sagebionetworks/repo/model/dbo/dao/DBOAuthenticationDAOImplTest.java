@@ -236,7 +236,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertNull(session);
 
 		// Session is valid again
-		authDAO.revalidateSessionToken(credential.getPrincipalId(), DomainType.SYNAPSE);
+		assertTrue(authDAO.revalidateSessionTokenIfNeeded(credential.getPrincipalId(), DomainType.SYNAPSE));
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}
