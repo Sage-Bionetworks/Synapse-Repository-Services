@@ -73,6 +73,6 @@ public class DBOAuthenticationDAOImplUnitTest {
 		// call under test
 		assertTrue("The token needed to be revalidated",authDao.revalidateSessionTokenIfNeeded(principalId, domainType));
 		verify(mockUserGroupDao).touch(principalId);
-		verify(mockJdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
+		verify(mockJdbcTemplate).update(anyString(), Matchers.<Object>anyVararg());
 	}
 }
