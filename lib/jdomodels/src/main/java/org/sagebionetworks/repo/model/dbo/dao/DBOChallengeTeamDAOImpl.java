@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -110,8 +111,16 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		DBOChallengeTeam dbo = copyDTOtoDBO(dto);
 		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
 		dbo.setEtag(UUID.randomUUID().toString());
-		DBOChallengeTeam created = basicDao.createNew(dbo);
-		return copyDBOtoDTO(created);
+		try {
+			DBOChallengeTeam created = basicDao.createNew(dbo);
+			return copyDBOtoDTO(created);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new IllegalArgumentException("The specified team may already be registered for this challenge.", e);
+			} else {
+				throw e;
+			}
+		}
 	}
 
 	public static void validateChallengeTeam(ChallengeTeam dto) {
@@ -192,7 +201,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 	
 	@Override
-	public List<ChallengeTeamSummary> listForChallenge(String userId, String challengeId, long limit,
+	public List<ChallengeTeamSummary> listForChallenge(long userId, long challengeId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		return jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, CHALLENGE_TEAM_SUMMARY_MAPPING, 
@@ -200,7 +209,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 
 	@Override
-	public long listForChallengeCount(String challengeId)
+	public long listForChallengeCount(long challengeId)
 			throws NotFoundException, DatastoreException {
 		return jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_COUNT, Long.class, challengeId);
 	}
@@ -215,7 +224,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	 * Returns the Teams which are NOT registered for the challenge and on which is current user is an ADMIN.
 	 */
 	@Override
-	public List<Team> listRegistratable(String challengeId, String userId,
+	public List<Team> listRegistratable(long challengeId, long userId,
 			long limit, long offset) throws NotFoundException,
 			DatastoreException {
 		List<DBOTeam> dbos = jdbcTemplate.query(SELECT_REGISTRATABLE_TEAMS_PAGINATED, 
@@ -226,7 +235,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 
 	@Override
-	public long listRegistratableCount(String challengeId, String userId)
+	public long listRegistratableCount(long challengeId, long userId)
 			throws NotFoundException, DatastoreException {
 		return jdbcTemplate.queryForObject(SELECT_REGISTRATABLE_TEAMS_COUNT, Long.class, userId, challengeId);
 	}

@@ -1,6 +1,16 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
 public class AuthorizationSqlUtil {
 	
@@ -10,15 +20,15 @@ public class AuthorizationSqlUtil {
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
 
-	private static final String AUTHORIZATION_SQL_SELECT = "select acl." + SqlConstants.COL_ACL_OWNER_ID + " " + SqlConstants.COL_ACL_ID;
+	private static final String AUTHORIZATION_SQL_SELECT = "select acl." + COL_ACL_OWNER_ID + " " + COL_ACL_ID;
 
 	public static final String AUTHORIZATION_SQL_FROM = " from "+
-			SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
-			SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
-			SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at ";
+			TABLE_ACCESS_CONTROL_LIST+" acl, "+
+			TABLE_RESOURCE_ACCESS+" ra, "+
+			TABLE_RESOURCE_ACCESS_TYPE+" at ";
 	
 	private static final String AUTHORIZATION_SQL_WHERE_1 = 
-		"where (ra."+SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID+
+		"where (ra."+COL_RESOURCE_ACCESS_GROUP_ID+
 		" in (";
 
 	/**
@@ -26,30 +36,30 @@ public class AuthorizationSqlUtil {
 	 */
 	public static final String ACCESS_TYPE_BIND_VAR = "type";
 	public static final String RESOURCE_ID_BIND_VAR = "resourceId";
-	public static final String RESOURCE_TYPE_BIND_VAR = SqlConstants.COL_ACL_OWNER_TYPE;
+	public static final String RESOURCE_TYPE_BIND_VAR = COL_ACL_OWNER_TYPE;
 	
 	private static final String AUTHORIZATION_SQL_WHERE_2 = 
 		"))"+
-	    " and acl."+SqlConstants.COL_ACL_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_OWNER+
-	    " and acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+
-		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_ID+
-		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
+	    " and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+	    " and acl."+COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+
+		" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
+		" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
 	
 	private static final String CAN_ACCESS_SQL_1 =
-			"SELECT COUNT(acl." + SqlConstants.COL_ACL_ID + ") " +
+			"SELECT COUNT(acl." + COL_ACL_ID + ") " +
 			"FROM " +
-					SqlConstants.TABLE_ACCESS_CONTROL_LIST + " acl, " +
-					SqlConstants.TABLE_RESOURCE_ACCESS + " ra, " +
-					SqlConstants.TABLE_RESOURCE_ACCESS_TYPE + " aat " +
+					TABLE_ACCESS_CONTROL_LIST + " acl, " +
+					TABLE_RESOURCE_ACCESS + " ra, " +
+					TABLE_RESOURCE_ACCESS_TYPE + " at " +
 			"WHERE " +
-					"ra." + SqlConstants.COL_RESOURCE_ACCESS_OWNER + "=acl." + SqlConstants.COL_ACL_ID +
-					" AND aat." + SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID + "=ra." + SqlConstants.COL_RESOURCE_ACCESS_ID +
-					" AND (ra."+SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID+" IN (";
+					"ra." + COL_RESOURCE_ACCESS_OWNER + "=acl." + COL_ACL_ID +
+					" AND at." + COL_RESOURCE_ACCESS_TYPE_ID + "=ra." + COL_RESOURCE_ACCESS_ID +
+					" AND (ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (";
 
 	private static final String CAN_ACCESS_SQL_2 = "))" +
-					" AND aat." + SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
-					" AND acl." + SqlConstants.COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
-					+ " AND acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR;
+					" AND at." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
+					" AND acl." + COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
+					+ " AND acl."+COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR;
 
 	/**
 	 * The bind variable prefix used for group ID for the authorization SQL.

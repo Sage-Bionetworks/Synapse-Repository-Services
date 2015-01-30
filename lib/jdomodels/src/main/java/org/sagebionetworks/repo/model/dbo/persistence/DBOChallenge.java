@@ -6,10 +6,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENG
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * Mapping between groups and nodes.  Used to relate Teams to Challenges
  */
 @Table(name = TABLE_CHALLENGE, constraints = { 
-		"unique key UNIQUE_PDCD_NAME ("+ COL_CHALLENGE_PROJECT_ID +")" })
+		"unique key UNIQUE_CHALL_PID ("+ COL_CHALLENGE_PROJECT_ID +")" })
 public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOChallenge> {
 	@Field(name = COL_CHALLENGE_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
@@ -35,8 +35,10 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 	@Field(name = COL_CHALLENGE_ETAG, backupId = false, primary = false, nullable = false, etag=true)
 	private String etag;
 	
-	@Field(name = COL_CHALLENGE_PARTICIPANT_TEAM_ID, backupId = false, primary = false, nullable = true)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = false)
+	// NOTE:  This is a FK to the TEAM table, not the USER_GROUP table, ensuring that the
+	// principal registered is a Team
+	@Field(name = COL_CHALLENGE_PARTICIPANT_TEAM_ID, backupId = false, primary = false, nullable = false)
+	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = false)
 	private Long participantTeamId;
 	
 	@Field(name = COL_CHALLENGE_PROJECT_ID, backupId = false, primary = false, nullable = false)

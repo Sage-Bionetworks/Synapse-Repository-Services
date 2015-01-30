@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ID;
@@ -26,7 +26,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 /**
  * Mapping between groups and nodes.  Used to relate Teams to Challenges
  */
-@Table(name = TABLE_CHALLENGE_TEAM)
+@Table(name = TABLE_CHALLENGE_TEAM, constraints = { 
+		"unique key UNIQUE_CT_CHALL_AND_TEAM ("+ COL_CHALLENGE_TEAM_TEAM_ID + "," + COL_CHALLENGE_TEAM_CHALLENGE_ID +")" })
 public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTeam, DBOChallengeTeam> {
 	@Field(name = COL_CHALLENGE_TEAM_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
@@ -34,8 +35,10 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 	@Field(name = COL_CHALLENGE_TEAM_ETAG, backupId = false, primary = false, nullable = false, etag=true)
 	private String etag;
 	
+	// NOTE:  This is a FK to the TEAM table, not the USER_GROUP table, ensuring that the
+	// principal registered is a Team
 	@Field(name = COL_CHALLENGE_TEAM_TEAM_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
+	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = true)
 	private Long teamId;
 	
 	@Field(name = COL_CHALLENGE_TEAM_CHALLENGE_ID, backupId = false, primary = false, nullable = false)

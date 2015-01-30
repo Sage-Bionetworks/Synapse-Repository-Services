@@ -36,9 +36,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOComment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam" />
-								<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation" />
@@ -83,6 +81,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+				<!-- Challenge -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam" />
 				<!-- Table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner" />

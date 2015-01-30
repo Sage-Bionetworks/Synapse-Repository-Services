@@ -13,16 +13,16 @@ public interface ChallengeTeamDAO {
 	 * List the Teams registered for the given challenge along with whether the specified
 	 * user is an admin/captain in the Team
 	 */
-	public List<ChallengeTeamSummary> listForChallenge(String userId, String challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
+	public List<ChallengeTeamSummary> listForChallenge(long userId, long challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
 	
-	public long listForChallengeCount(String challengeId) throws NotFoundException, DatastoreException;
+	public long listForChallengeCount(long challengeId) throws NotFoundException, DatastoreException;
 	
 	/*
 	 * Returns the Teams which are NOT registered for the challenge and on which is current user is an ADMIN.
 	 */
-	public List<Team> listRegistratable(String challengeId, String userId, long limit, long offset) throws NotFoundException, DatastoreException;
+	public List<Team> listRegistratable(long challengeId, long userId, long limit, long offset) throws NotFoundException, DatastoreException;
 	
-	public long listRegistratableCount(String challengeId, String userId) throws NotFoundException, DatastoreException;
+	public long listRegistratableCount(long challengeId, long userId) throws NotFoundException, DatastoreException;
 	
 	public ChallengeTeam update(ChallengeTeam dto) throws NotFoundException, DatastoreException;
 	
