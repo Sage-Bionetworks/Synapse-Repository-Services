@@ -67,7 +67,7 @@ public class UserThrottleFilter implements Filter {
 					consumer.addProfileData(lockUnavailableEvent);
 					HttpServletResponse httpResponse = (HttpServletResponse) response;
 					httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-					httpResponse.getWriter().println("{\"reason\": \"Too many concurrent requests\"}");
+					httpResponse.getWriter().println(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
 				}
 			} catch (IOException e) {
 				throw e;

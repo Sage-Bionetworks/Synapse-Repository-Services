@@ -69,8 +69,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, domain)) {
 			throw new TermsOfUseException();
 		}
-		
-		authDAO.revalidateSessionToken(principalId, domain);
+		authDAO.revalidateSessionTokenIfNeeded(principalId, domain);
 		return principalId;
 	}
 

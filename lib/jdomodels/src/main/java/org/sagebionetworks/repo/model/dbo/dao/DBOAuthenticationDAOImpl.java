@@ -33,74 +33,73 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
-	
+
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
+	@Autowired
+	Clock clock;
 	
 	/**
 	 * A session token expires after 1 day
 	 */
 	public static final Long SESSION_EXPIRATION_TIME = 1000 * 60 * 60 * 24L;
+	public static final long HALF_SESSION_EXPIRATION = SESSION_EXPIRATION_TIME/2;
 	
-	private static final String ID_PARAM_NAME = "id";
-	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
-	private static final String PASSWORD_PARAM_NAME = "password";
-	private static final String TOKEN_PARAM_NAME = "token";
-	private static final String TIME_PARAM_NAME = "time";
-	private static final String DOMAIN_PARAM_NAME = "domain";
+	public static final String SELECT_VALIDATED_ON_FROM_SESSION_TOKEN = "SELECT "+
+			COL_SESSION_TOKEN_VALIDATED_ON+
+			" FROM "+TABLE_SESSION_TOKEN+" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+
+			" = ? AND "+COL_SESSION_TOKEN_DOMAIN+" = ? ";
 	
 	private static final String SELECT_ID_BY_EMAIL_AND_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+
 				" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
-				" AND "+SqlConstants.COL_USER_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
-				" AND "+SqlConstants.COL_CREDENTIAL_PASS_HASH+"=:"+PASSWORD_PARAM_NAME;
+				" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?"+
+				" AND "+SqlConstants.COL_CREDENTIAL_PASS_HASH+"=?";
 	
 	private static final String UPDATE_VALIDATION_TIME = 
 			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
-					SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"=:"+TIME_PARAM_NAME+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"=:"+ID_PARAM_NAME + 
-			" AND " + SqlConstants.COL_SESSION_TOKEN_DOMAIN + "=:"+DOMAIN_PARAM_NAME;
+					SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?"+ 
+			" AND " + SqlConstants.COL_SESSION_TOKEN_DOMAIN + "= ?";
 	
 	private static final String IF_VALID_SUFFIX = 
-			" AND "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+">:"+TIME_PARAM_NAME;
+			" AND "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"> ?";
 	
 	// NOTE: Neither in this version, or the prior version, were you selecting by user's name
 	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID = 
-		String.format("SELECT %s, %s FROM %s st, %s tou WHERE tou.%s=st.%s AND tou.%s=st.%s AND st.%s=:%s AND tou.%s=:%s AND st.%s>:%s;",
-			COL_SESSION_TOKEN_SESSION_TOKEN, COL_TERMS_OF_USE_AGREEMENT_AGREEMENT,
-			TABLE_SESSION_TOKEN, TABLE_TERMS_OF_USE_AGREEMENT,
-			COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID, COL_SESSION_TOKEN_PRINCIPAL_ID,
-			COL_TERMS_OF_USE_AGREEMENT_DOMAIN, COL_SESSION_TOKEN_DOMAIN,
-			COL_SESSION_TOKEN_PRINCIPAL_ID, PRINCIPAL_ID_PARAM_NAME,
-			COL_TERMS_OF_USE_AGREEMENT_DOMAIN, DOMAIN_PARAM_NAME,
-			COL_SESSION_TOKEN_VALIDATED_ON, TIME_PARAM_NAME
-		);
+			"SELECT st."+COL_SESSION_TOKEN_SESSION_TOKEN+", tou."+COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+" FROM "+TABLE_SESSION_TOKEN+" st, "+TABLE_TERMS_OF_USE_AGREEMENT+
+			" tou WHERE tou."+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"=st."+COL_SESSION_TOKEN_PRINCIPAL_ID+" AND tou."+COL_TERMS_OF_USE_AGREEMENT_DOMAIN+
+			"=st."+COL_SESSION_TOKEN_DOMAIN+" AND st."+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? AND tou."+COL_TERMS_OF_USE_AGREEMENT_DOMAIN+
+			"= ? AND st."+COL_SESSION_TOKEN_VALIDATED_ON+" > ?";
+
 	
 	private static final String NULLIFY_SESSION_TOKEN = 
 			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
 					SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
 
 	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
 			"SELECT "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_SESSION_TOKEN+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
 	
 	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
 			SELECT_PRINCIPAL_BY_TOKEN+IF_VALID_SUFFIX;
@@ -109,28 +108,28 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PASS_HASH+
 				" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
-			" AND "+SqlConstants.COL_USER_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME;
+			" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?";
 	
 	private static final String UPDATE_PASSWORD = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
-			SqlConstants.COL_CREDENTIAL_PASS_HASH+"=:"+PASSWORD_PARAM_NAME+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
+			SqlConstants.COL_CREDENTIAL_PASS_HASH+"= ?"+
+			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_SECRET_KEY = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_SECRET_KEY+
 			" FROM "+SqlConstants.TABLE_CREDENTIAL+
-		" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
+		" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String UPDATE_SECRET_KEY = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
-			SqlConstants.COL_CREDENTIAL_SECRET_KEY+"=:"+TOKEN_PARAM_NAME+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
+			SqlConstants.COL_CREDENTIAL_SECRET_KEY+"= ?"+
+			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_TOU_ACCEPTANCE = 
 			"SELECT "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
 			" FROM "+SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT+
-		" WHERE "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"=:"+ID_PARAM_NAME+
-		" AND "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN+"=:"+DOMAIN_PARAM_NAME;
+		" WHERE "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"= ?"+
+		" AND "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN+"= ?";
 	
 	private RowMapper<Session> sessionRowMapper = new RowMapper<Session>() {
 		@Override
@@ -152,11 +151,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public Long checkUserCredentials(long principalId, String passHash) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		param.addValue(PASSWORD_PARAM_NAME, passHash);
 		try {
-			return simpleJdbcTemplate.queryForLong(SELECT_ID_BY_EMAIL_AND_PASSWORD, param);
+			return jdbcTemplate.queryForObject(SELECT_ID_BY_EMAIL_AND_PASSWORD, new SingleColumnRowMapper<Long>(), principalId, passHash);
 		} catch (EmptyResultDataAccessException e) {
 			throw new UnauthenticatedException("The provided username/password combination is incorrect");
 		}
@@ -164,17 +160,26 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void revalidateSessionToken(long principalId, DomainType domain) {
+	public boolean revalidateSessionTokenIfNeeded(long principalId, DomainType domain) {
 		if (domain == null) {
 			throw new UnauthenticatedException("Domain must be declared to revalidate session token");
 		}
-		userGroupDAO.touch(principalId);
-		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(TIME_PARAM_NAME, new Date().getTime());
-		param.addValue(DOMAIN_PARAM_NAME, domain.name());
-		simpleJdbcTemplate.update(UPDATE_VALIDATION_TIME, param);
+		// Determine the last time the token was re-validate.
+		Long lastValidatedOn = jdbcTemplate.queryForObject(SELECT_VALIDATED_ON_FROM_SESSION_TOKEN, new SingleColumnRowMapper<Long>(), principalId, domain.name());
+		long now = clock.currentTimeMillis();
+		/*
+		 * Only revalidate a token if it is past its half-life.
+		 * See: PLFM-3202 & PLFM-3206
+		 */
+		if(lastValidatedOn + HALF_SESSION_EXPIRATION < now){
+			// The session token needs to be revaldiated.
+			userGroupDAO.touch(principalId);
+			jdbcTemplate.update(UPDATE_VALIDATION_TIME, clock.currentTimeMillis(),principalId, domain.name());
+			return true;
+		}else{
+			// no need to update.
+			return false;
+		}
 	}
 	
 	@Override
@@ -202,13 +207,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public Session getSessionTokenIfValid(long principalId, Date now, DomainType domain) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		param.addValue(DOMAIN_PARAM_NAME, domain.name());
-		param.addValue(TIME_PARAM_NAME, now.getTime() - SESSION_EXPIRATION_TIME);
+		long time = now.getTime() - SESSION_EXPIRATION_TIME;
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID, sessionRowMapper,
-					param);
+			return jdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID, sessionRowMapper,
+					principalId, domain.name(), time);
 		} catch(EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -221,19 +223,13 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		if (principalId != null) {
 			userGroupDAO.touch(principalId);
 		}
-		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TOKEN_PARAM_NAME, sessionToken);
-		simpleJdbcTemplate.update(NULLIFY_SESSION_TOKEN, param);
+		jdbcTemplate.update(NULLIFY_SESSION_TOKEN, sessionToken);
 	}
 
 	@Override
-	public Long getPrincipal(String sessionToken) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TOKEN_PARAM_NAME, sessionToken);
-		
+	public Long getPrincipal(String sessionToken) {		
 		try {
-			return simpleJdbcTemplate.queryForLong(SELECT_PRINCIPAL_BY_TOKEN, param); 
+			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN,new SingleColumnRowMapper<Long>(), sessionToken); 
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -241,12 +237,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public Long getPrincipalIfValid(String sessionToken) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TOKEN_PARAM_NAME, sessionToken);
-		param.addValue(TIME_PARAM_NAME, new Date().getTime() - SESSION_EXPIRATION_TIME);
-		
+		long time =clock.currentTimeMillis() - SESSION_EXPIRATION_TIME;
 		try {
-			return simpleJdbcTemplate.queryForLong(SELECT_PRINCIPAL_BY_TOKEN_IF_VALID, param); 
+			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN_IF_VALID, new SingleColumnRowMapper<Long>(), sessionToken, time); 
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -254,11 +247,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public byte[] getPasswordSalt(long principalId) throws NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
 		String passHash;
 		try {
-			passHash = simpleJdbcTemplate.queryForObject(SELECT_PASSWORD, String.class, param);
+			passHash = jdbcTemplate.queryForObject(SELECT_PASSWORD, new SingleColumnRowMapper<String>(), principalId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("User (" + principalId + ") does not exist");
 		}
@@ -272,19 +263,13 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void changePassword(long principalId, String passHash) {
 		userGroupDAO.touch(principalId);
-		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(PASSWORD_PARAM_NAME, passHash);
-		simpleJdbcTemplate.update(UPDATE_PASSWORD, param);
+		jdbcTemplate.update(UPDATE_PASSWORD, passHash, principalId);
 	}
 	
 	@Override
 	public String getSecretKey(long principalId) throws NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, principalId);
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, param);
+			return jdbcTemplate.queryForObject(SELECT_SECRET_KEY, new SingleColumnRowMapper<String>(), principalId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(e);
 		}
@@ -300,21 +285,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void changeSecretKey(long principalId, String secretKey) {
 		userGroupDAO.touch(principalId);
-		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(TOKEN_PARAM_NAME, secretKey);
-		simpleJdbcTemplate.update(UPDATE_SECRET_KEY, param);
+		jdbcTemplate.update(UPDATE_SECRET_KEY, secretKey, principalId);
 	}
 
 	@Override
 	public boolean hasUserAcceptedToU(long principalId, DomainType domain) throws NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(DOMAIN_PARAM_NAME, domain.name());
 		Boolean acceptance;
 		try {
-			acceptance = simpleJdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, param);
+			acceptance = jdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, new SingleColumnRowMapper<Boolean>(), principalId, domain.name());
 		} catch (EmptyResultDataAccessException e) {
 			// It's possible now that there is no record. That shouldn't be an
 			// exception, that's a "false, not accepted".
