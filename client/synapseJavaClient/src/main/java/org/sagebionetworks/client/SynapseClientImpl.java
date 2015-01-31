@@ -6254,7 +6254,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	/**
-	 * Returns a paginated list of Teams registered for the given Challenge.
+	 * Returns a paginated list of IDs of Teams registered for the given Challenge.
 	 * The user making the request must have READ access to the Challenge Project.
 	 * @param challengeId
 	 * @param limit optional
@@ -6262,7 +6262,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ChallengeTeamSummary> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException {
+	public IdList listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException {
 		throw new RuntimeException("Not Yet Implemented");
 	}
 

@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
-import org.sagebionetworks.repo.model.ChallengeTeamSummary;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -178,29 +177,17 @@ public class DBOChallengeTeamDAOImplTest {
 	/*
 	 * check listForChallenge and listForChallengeCount
 	 */
-	private void checkListForChallenge(long userId, long challengeId, 
-			List<ChallengeTeamSummary> expected) throws Exception {
+	private void checkListForChallenge(long challengeId, 
+			List<ChallengeTeam> expected) throws Exception {
 		if (expected==null) expected = Collections.EMPTY_LIST;
 		assertEquals(expected,
-				challengeTeamDAO.listForChallenge(userId, challengeId, 1L+expected.size(), 0));
+				challengeTeamDAO.listForChallenge(challengeId, 1L+expected.size(), 0L));
 		assertEquals(expected.size(), challengeTeamDAO.listForChallengeCount(challengeId));		
 		
 		// check that pagination works
-		assertTrue(challengeTeamDAO.listForChallenge(userId, challengeId, 1L, expected.size()).isEmpty());
+		assertTrue(challengeTeamDAO.listForChallenge(challengeId, 1L, expected.size()).isEmpty());
 	}
 	
-	private static ChallengeTeamSummary createChallengeTeamSummary(
-			ChallengeTeam ct, Long userId, boolean userIsAdmin) {
-		ChallengeTeamSummary result = new ChallengeTeamSummary();
-		result.setChallengeId(ct.getChallengeId());
-		result.setId(ct.getId());
-		result.setMessage(ct.getMessage());
-		result.setTeamId(ct.getTeamId());
-		result.setUserId(userId.toString());
-		result.setUserIsAdmin(userIsAdmin);
-		return result;
-	}
-
 	@Test
 	public void testRoundTrip() throws Exception {
 		// check that the team _can_ be registered (by an admin of the team)
@@ -211,9 +198,8 @@ public class DBOChallengeTeamDAOImplTest {
 		checkRegistratable(challengeId, 0L, null);
 		
 		// check that no Teams are currently registered for the challenge
-		checkListForChallenge(principalId, challengeId, null);
-		checkListForChallenge(principalId, 0L, null);
-		checkListForChallenge(0L, challengeId, null);
+		checkListForChallenge(challengeId, null);
+		checkListForChallenge(0L, null);
 				
 		challengeTeam = new ChallengeTeam();
 		challengeTeam.setChallengeId(challenge.getId());
@@ -230,17 +216,9 @@ public class DBOChallengeTeamDAOImplTest {
 		checkRegistratable(challengeId, principalId, null);
 		
 		// check that it's listed
-		ChallengeTeamSummary challengeTeamSummary = 
-				createChallengeTeamSummary(challengeTeam, principalId, /*isAdmin*/true);
-		checkListForChallenge(principalId, challengeId, 
-				Collections.singletonList(challengeTeamSummary));
+		checkListForChallenge(challengeId, Collections.singletonList(updated));
 		// but not for other challenges
-		checkListForChallenge(principalId, 0L, null);
-		// check for other principal
-		challengeTeamSummary = 
-				createChallengeTeamSummary(challengeTeam, 0L, /*isAdmin*/false);
-		checkListForChallenge(0L, challengeId, 
-				Collections.singletonList(challengeTeamSummary));
+		checkListForChallenge(0L, null);
 		
 		// the database should not allow same challenge-team combination
 		// to be registered twice

@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
-import org.sagebionetworks.repo.model.ChallengeSummary;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -35,7 +34,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -142,7 +140,7 @@ public class DBOChallengeDAOImplTest {
 		teamsToDelete.clear();
 	}
 	
-	private void checkListForUser(List<ChallengeSummary> expected, long participantId) throws Exception {
+	private void checkListForUser(List<Challenge> expected, long participantId) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
 		assertEquals(expected,
 				challengeDAO.listForUser(participantId, expected.size()+1, 0));
@@ -151,7 +149,7 @@ public class DBOChallengeDAOImplTest {
 		assertTrue(challengeDAO.listForUser(participantId, 10L, expected.size()).isEmpty());		
 	}
 
-	private void checkListForUser(List<ChallengeSummary> expected, long participantId, long requesterId) throws Exception {
+	private void checkListForUser(List<Challenge> expected, long participantId, long requesterId) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
 		assertEquals(expected,
 				challengeDAO.listForUser(participantId, Collections.singletonList(requesterId), expected.size()+1, 0));
@@ -160,9 +158,9 @@ public class DBOChallengeDAOImplTest {
 		assertTrue(challengeDAO.listForUser(participantId, Collections.singletonList(requesterId), 10L, expected.size()).isEmpty());		
 	}
 
-	private void checkListParticipants(Set<UserGroupHeader> expected, long challengeId, Boolean isAffiliated) throws Exception {
+	private void checkListParticipants(Set<Long> expected, long challengeId, Boolean isAffiliated) throws Exception {
 		if (expected==null) expected = Collections.emptySet();
-		Set<UserGroupHeader> actual = new HashSet<UserGroupHeader>(
+		Set<Long> actual = new HashSet<Long>(
 				challengeDAO.listParticipants(challengeId, isAffiliated, expected.size()+1, 0));
 		// need to compare contents, not order
 		assertEquals(expected,actual);		
@@ -173,9 +171,9 @@ public class DBOChallengeDAOImplTest {
 	
 	private void checkListParticipantsVariants(
 			long challengeId, 
-			Set<UserGroupHeader> expectedAll,
-			Set<UserGroupHeader> expectedAffiliated,
-			Set<UserGroupHeader> expectedUNAffiliated
+			Set<Long> expectedAll,
+			Set<Long> expectedAffiliated,
+			Set<Long> expectedUNAffiliated
 			) throws Exception {
 		checkListParticipants(expectedAll, challengeId, null);
 		checkListParticipants(expectedAffiliated, challengeId, true);
@@ -214,12 +212,7 @@ public class DBOChallengeDAOImplTest {
 			//as expected
 		}
 		
-		ChallengeSummary challengeSummary = new ChallengeSummary();
-		challengeSummary.setChallengeId(challenge.getId());
-		challengeSummary.setName(node.getName());
-		challengeSummary.setParticipantTeamId(participantTeam2.getId());
-		challengeSummary.setProjectId(node.getId());
-		checkListForUser(Collections.singletonList(challengeSummary),participantId);
+		checkListForUser(Collections.singletonList(challenge),participantId);
 		
 		// other user is
 		checkListForUser(null, 0L);
@@ -231,21 +224,17 @@ public class DBOChallengeDAOImplTest {
 		// the requester is not registered for the challenge ...
 		checkListForUser(null, requester, requester);
 		// ... but now he can see the 'participant' is registered
-		checkListForUser(Collections.singletonList(challengeSummary), participantId, requester);
+		checkListForUser(Collections.singletonList(challenge), participantId, requester);
 		
 		
 		// Now let's check the participants list
 		// First, show that just one user is a participant
-		UserGroupHeader ugh1 = new UserGroupHeader();
-		ugh1.setUserName("migrationAdmin");
-		ugh1.setOwnerId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
-		ugh1.setIsIndividual(true);
 		long challengeId = Long.parseLong(challenge.getId());
 				
 		checkListParticipantsVariants(challengeId, 
-				Collections.singleton(ugh1), // expected list of all participants
+				Collections.singleton(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()), // expected list of all participants
 				null, // expected list of participants affiliated with some team
-				Collections.singleton(ugh1)); // expected list of participants NOT affiliated with any team
+				Collections.singleton(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())); // expected list of participants NOT affiliated with any team
 
 		// now let's affiliate the participant with a team
 		ChallengeTeam challengeTeam = new ChallengeTeam();
@@ -254,27 +243,22 @@ public class DBOChallengeDAOImplTest {
 		challengeTeam = challengeTeamDAO.create(challengeTeam); // will get cleaned up when 'challenge' is deleted
 		
 		checkListParticipantsVariants(challengeId, 
-				Collections.singleton(ugh1), // expected list of all participants
-				Collections.singleton(ugh1), // expected list of participants affiliated with some team
+				Collections.singleton(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()), // expected list of all participants
+				Collections.singleton(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()), // expected list of participants affiliated with some team
 				null); // expected list of participants NOT affiliated with any team
 
 		// now sign up a second user for the challenge
 		groupMembersDAO.addMembers(participantTeam2.getId(), Collections.singletonList(requester.toString()));
 		
-		UserGroupHeader ugh2 = new UserGroupHeader();
-		ugh2.setUserName("anonymous");
-		ugh2.setOwnerId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
-		ugh2.setIsIndividual(true);
-		
-		Set<UserGroupHeader> both = new HashSet<UserGroupHeader>();
-		both.add(ugh1);
-		both.add(ugh2);
+		Set<Long> both = new HashSet<Long>();
+		both.add(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		both.add(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		// since the second participant is not on a challenge team, he will show up as unaffiliated
 		checkListParticipantsVariants(challengeId, 
 				both, // expected list of all participants
-				Collections.singleton(ugh1), // expected list of participants affiliated with some team
-				Collections.singleton(ugh2)); // expected list of participants NOT affiliated with any team
+				Collections.singleton(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()), // expected list of participants affiliated with some team
+				Collections.singleton(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())); // expected list of participants NOT affiliated with any team
 		
 		
 		// lastly, let's make sure a project can't have two challenges

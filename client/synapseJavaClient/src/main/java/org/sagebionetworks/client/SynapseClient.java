@@ -1897,7 +1897,7 @@ public interface SynapseClient extends BaseClient {
 	public void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException;
 	
 	/**
-	 * Returns a paginated list of Teams registered for the given Challenge.
+	 * Returns a paginated list of IDs of Teams registered for the given Challenge.
 	 * The user making the request must have READ access to the Challenge Project.
 	 * @param challengeId
 	 * @param limit optional
@@ -1905,5 +1905,5 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ChallengeTeamSummary> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
+	public IdList listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
 }

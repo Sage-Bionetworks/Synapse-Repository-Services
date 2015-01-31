@@ -21,7 +21,7 @@
 		},
 		"message":{
 			"type": "string",
-			"description": "A descriptive message for the Team in the context of the Challenge"
+			"description": "A descriptive message for the Team in the context of the Challenge.  Limited to 500 characters."
 		}
 	}
 }
