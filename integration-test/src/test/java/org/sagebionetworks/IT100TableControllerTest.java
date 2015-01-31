@@ -32,7 +32,6 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
@@ -175,6 +174,7 @@ public class IT100TableControllerTest {
 		
 		// now create a table entity
 		TableEntity table = createTable(Lists.newArrayList(one.getId(), two.getId()));
+		String tableId = table.getId();
 		
 		assertNotNull(table);
 		assertNotNull(table.getId());
@@ -193,7 +193,7 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		RowReferenceSet results1 = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+		RowReferenceSet results1 = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, tableId);
 		assertNotNull(results1);
 		assertNotNull(results1.getRows());
 		assertEquals(2, results1.getRows().size());
@@ -201,7 +201,7 @@ public class IT100TableControllerTest {
 		assertEquals(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns(), results1.getHeaders());
 		
 		// Now attempt to query for the table results
-		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), null, null);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), null, null, table.getId());
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
 		assertEquals(results1.getEtag(), queryResults.getEtag());
@@ -218,11 +218,11 @@ public class IT100TableControllerTest {
 			row.setRowId(null);
 			row.setVersionNumber(null);
 		}
-		RowReferenceSet results2 = synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
+		RowReferenceSet results2 = synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT, tableId);
 		assertNotNull(results2);
 		assertNotNull(results2.getRows());
 		// run the query again, but this time get the counts
-		Long count = waitForCountResults("select * from " + table.getId());
+		Long count = waitForCountResults("select * from " + table.getId(), tableId);
 		assertNotNull(count);
 		assertEquals("There should be 4 rows in this table", 4L, count.longValue());
 
@@ -237,12 +237,12 @@ public class IT100TableControllerTest {
 		assertEquals(1, results4.getRows().size());
 
 		// run the query again, to get the counts
-		count = waitForCountResults("select * from " + table.getId());
+		count = waitForCountResults("select * from " + table.getId(), tableId);
 		assertEquals("There should be 3 rows in this table", 3L, count.longValue());
 		
 		// run a bundled query
 		int mask = 0x1 | 0x2 | 0x4 | 0x8;
-		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId(), 0L, 2L, mask);
+		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId(), 0L, 2L, mask, tableId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResult().getQueryResults());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
@@ -254,7 +254,7 @@ public class IT100TableControllerTest {
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
 
-		bundle = waitForBundleQueryResults("select one from " + table.getId(), 2L, 2L, mask);
+		bundle = waitForBundleQueryResults("select one from " + table.getId(), 2L, 2L, mask, tableId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResult().getQueryResults());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
@@ -310,12 +310,12 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(Lists.reverse(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns()));
 		set.setTableId(table.getId());
-		RowReferenceSet newRows = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+		RowReferenceSet newRows = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
 		PartialRowSet toAppend = new PartialRowSet();
 		toAppend.setTableId(table.getId());
 		toAppend.setRows(partialRows);
-		RowReferenceSet newRows2 = synapse.appendRowsToTable(toAppend, MAX_APPEND_TIMEOUT);
+		RowReferenceSet newRows2 = synapse.appendRowsToTable(toAppend, MAX_APPEND_TIMEOUT, table.getId());
 
 		// get in original order
 		RowReferenceSet toGet = new RowReferenceSet();
@@ -381,22 +381,22 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
 		// Now attempt to query for the table results
-		Long count = waitForCountResults("select * from " + table.getId() + " where one > -2.2");
+		Long count = waitForCountResults("select * from " + table.getId() + " where one > -2.2", table.getId());
 		assertEquals(4L, count.longValue());
-		count = waitForCountResults("select * from " + table.getId() + " where one > -1.3");
+		count = waitForCountResults("select * from " + table.getId() + " where one > -1.3", table.getId());
 		assertEquals(4L, count.longValue());
-		count = waitForCountResults("select * from " + table.getId() + " where one > -.3");
+		count = waitForCountResults("select * from " + table.getId() + " where one > -.3", table.getId());
 		assertEquals(3L, count.longValue());
-		count = waitForCountResults("select * from " + table.getId() + " where one > -.1");
+		count = waitForCountResults("select * from " + table.getId() + " where one > -.1", table.getId());
 		assertEquals(2L, count.longValue());
-		count = waitForCountResults("select * from " + table.getId() + " where one > .1");
+		count = waitForCountResults("select * from " + table.getId() + " where one > .1", table.getId());
 		assertEquals(2L, count.longValue());
-		count = waitForCountResults("select * from " + table.getId() + " where one > .3");
+		count = waitForCountResults("select * from " + table.getId() + " where one > .3", table.getId());
 		assertEquals(1L, count.longValue());
-		count = waitForCountResults("select * from " + table.getId() + " where one > 1.3");
+		count = waitForCountResults("select * from " + table.getId() + " where one > 1.3", table.getId());
 		assertEquals(0L, count.longValue());
 	}
 
@@ -418,26 +418,27 @@ public class IT100TableControllerTest {
 			set.setRows(TableModelTestUtils.createRows(columns, 4));
 			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 			set.setTableId(table.getId());
-			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 		}
 
 		// Now query for the table results
-		Long count = waitForCountResults("select * from " + table.getId());
+		Long count = waitForCountResults("select * from " + table.getId(), table.getId());
 		assertEquals(40L, count.longValue());
 
 		adminSynapse.rebuildTableCacheAndIndex(table.getId());
 		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true,
-				SynapseClient.COUNT_PARTMASK);
+				SynapseClient.COUNT_PARTMASK, table.getId());
 		try {
-			synapse.queryTableEntityBundleAsyncGet(asyncToken);
+			synapse.queryTableEntityBundleAsyncGet(asyncToken, table.getId());
 			fail("table should be invalid");
 		} catch (SynapseResultNotReadyException e) {
 		}
+		final String tableId = table.getId();
 		count = TimeUtils.waitFor(MAX_QUERY_TIMEOUT_MS, 500L, new Callable<Pair<Boolean, QueryResultBundle>>() {
 			@Override
 			public Pair<Boolean, QueryResultBundle> call() throws Exception {
 				try {
-					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken);
+					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
 					return Pair.create(true, result);
 				} catch (SynapseResultNotReadyException e) {
 					return Pair.create(false, null);
@@ -454,8 +455,8 @@ public class IT100TableControllerTest {
 	 * @return
 	 * @throws Exception
 	 */
-	public RowSet waitForQueryResults(String sql, Long offset, Long limit) throws Exception {
-		return waitForBundleQueryResults(sql, offset, limit, SynapseClient.QUERY_PARTMASK).getQueryResult().getQueryResults();
+	public RowSet waitForQueryResults(String sql, Long offset, Long limit, String tableId) throws Exception {
+		return waitForBundleQueryResults(sql, offset, limit, SynapseClient.QUERY_PARTMASK, tableId).getQueryResult().getQueryResults();
 	}
 
 	/**
@@ -466,8 +467,8 @@ public class IT100TableControllerTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	public long waitForCountResults(String sql) throws Exception {
-		return waitForBundleQueryResults(sql, null, null, SynapseClient.COUNT_PARTMASK).getQueryCount();
+	public long waitForCountResults(String sql, String tableId) throws Exception {
+		return waitForBundleQueryResults(sql, null, null, SynapseClient.COUNT_PARTMASK, tableId).getQueryCount();
 	}
 	
 	/**
@@ -478,13 +479,13 @@ public class IT100TableControllerTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask) throws Exception {
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, offset, limit, true, partsMask);
+	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask, final String tableId) throws Exception {
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, offset, limit, true, partsMask, tableId);
 		return TimeUtils.waitFor(MAX_QUERY_TIMEOUT_MS, 500L, new Callable<Pair<Boolean, QueryResultBundle>>() {
 			@Override
 			public Pair<Boolean, QueryResultBundle> call() throws Exception {
 				try {
-					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken);
+					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
 					return Pair.create(true, result);
 				} catch (SynapseResultNotReadyException e) {
 					return Pair.create(false, null);
@@ -520,7 +521,7 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		RowReferenceSet results = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+		RowReferenceSet results = synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
 		TableFileHandleResults fileHandles = synapse.getFileHandlesFromTable(results);
 		assertEquals(fileHandle.getId(), fileHandles.getRows().get(0).getList().get(0).getId());
@@ -584,7 +585,7 @@ public class IT100TableControllerTest {
 		TableEntity table = createTable(null);
 		// Now attempt to query for the table results
 		// This table has no rows and no columns
-		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L, table.getId());
 		assertNotNull(queryResults);
 		assertNull(queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
@@ -608,20 +609,20 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 		// Query for the results
-		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L, table.getId());
 		// Change the data
 		for(Row row: queryResults.getRows()){
 			String oldValue = row.getValues().get(0);
 			row.setValues(Arrays.asList(oldValue+" changed"));
 		}
 		// Apply the changes
-		synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT, table.getId());
 		
 		// If we try to apply the same change again we should get a conflict
 		try{
-			synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
+			synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT, table.getId());
 			fail("Should not be able to apply the same change twice.  It should result in a SynapseConflictingUpdateException update exception.");
 		}catch(SynapseBadRequestException e){
 			// expected
@@ -648,26 +649,26 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 
 		PartialRowSet partialSet = new PartialRowSet();
 		List<PartialRow> partialRows = Lists.newArrayList(TableModelTestUtils.createPartialRow(null, one.getId(), "test"),
 				TableModelTestUtils.createPartialRow(null, one.getId(), "test"));
 		partialSet.setRows(partialRows);
 		partialSet.setTableId(table.getId());
-		synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT, table.getId());
 
 		// Query for the results
-		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 0L, 2L);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 0L, 2L, table.getId());
 		// Change the data
 		for (Row row : queryResults.getRows()) {
 			String oldValue = row.getValues().get(0);
 			row.setValues(Arrays.asList(oldValue + " changed"));
 		}
 		// Apply the changes
-		synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT, table.getId());
 
-		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 2L, 2L);
+		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 2L, 2L, table.getId());
 		// Change the data
 		partialRows = Lists.newArrayList();
 		for (int i = 0; i < 2; i++) {
@@ -679,9 +680,9 @@ public class IT100TableControllerTest {
 		// Apply the changes using partial
 		partialSet.setRows(partialRows);
 		partialSet.setTableId(table.getId());
-		synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT);
+		synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT, table.getId());
 
-		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", null, null);
+		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", null, null, table.getId());
 		// Check that the changed data is there
 		assertEquals(4, queryResults.getRows().size());
 		for (Row row : queryResults.getRows()) {
@@ -725,25 +726,26 @@ public class IT100TableControllerTest {
 			set.setRows(rows);
 			set.setHeaders(TableModelUtils.createColumnModelColumnMapper(columns, false).getSelectColumns());
 			set.setTableId(table.getId());
-			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT);
+			synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
 		}
 
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true, 0xff);
+		final String tableId = table.getId();
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true, 0xff, tableId);
 		QueryResultBundle result = waitForAsync(new Callable<QueryResultBundle>() {
 			@Override
 			public QueryResultBundle call() throws Exception {
-				return synapse.queryTableEntityBundleAsyncGet(asyncToken);
+				return synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
 			}
 		});
 		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowsNeeded, result.getQueryCount().intValue());
 		assertNotNull(result.getQueryResult().getNextPageToken());
 
-		final String nextPageAsyncToken = synapse.queryTableEntityNextPageAsyncStart(result.getQueryResult().getNextPageToken().getToken());
+		final String nextPageAsyncToken = synapse.queryTableEntityNextPageAsyncStart(result.getQueryResult().getNextPageToken().getToken(), tableId);
 		QueryResult nextPageResult = waitForAsync(new Callable<QueryResult>() {
 			@Override
 			public QueryResult call() throws Exception {
-				return synapse.queryTableEntityNextPageAsyncGet(nextPageAsyncToken);
+				return synapse.queryTableEntityNextPageAsyncGet(nextPageAsyncToken, tableId);
 			}
 		});
 		assertEquals(rowsNeeded - result.getMaxRowsPerPage().intValue(), nextPageResult.getQueryResults().getRows().size());

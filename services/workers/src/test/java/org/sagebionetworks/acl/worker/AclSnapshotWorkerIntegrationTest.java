@@ -21,7 +21,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -88,11 +87,6 @@ public class AclSnapshotWorkerIntegrationTest {
 		assertNotNull(userGroupDao);
 
 		assertNotNull(s3Client);
-
-		// discard a few Ids
-		for (int i = 0; i < 100; i++){
-			idGenerator.generateNewId(TYPE.ACL_ID);
-		}
 
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
