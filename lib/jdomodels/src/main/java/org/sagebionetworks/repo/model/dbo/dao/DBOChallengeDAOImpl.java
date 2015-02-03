@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_JOIN;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
@@ -15,19 +16,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
 import java.io.IOException;
 import java.sql.Blob;
@@ -105,17 +100,13 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 
 	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE = 
 			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_FROM_CORE+","+
-			TABLE_ACCESS_CONTROL_LIST+" acl, "+
-			TABLE_RESOURCE_ACCESS+" ra, "+
-			TABLE_RESOURCE_ACCESS_TYPE+" at "+
+			AUTHORIZATION_SQL_TABLES+
 			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_WHERE_CORE+
 			" and acl."+COL_ACL_OWNER_ID+"=n."+COL_NODE_ID+
 			" and acl."+COL_ACL_OWNER_TYPE+"='ENTITY'"+
-			" and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
-			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
+			" and "+AUTHORIZATION_SQL_JOIN+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='READ'"+
 			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (";
-
 
 	/*
 	 * Adds 'requesterGroupCount' number of bind variables, for a total of requesterGroupCount+3
