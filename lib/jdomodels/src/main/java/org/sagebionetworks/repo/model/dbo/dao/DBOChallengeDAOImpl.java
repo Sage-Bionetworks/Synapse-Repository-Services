@@ -200,7 +200,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	public Challenge create(Challenge dto) throws DatastoreException {
 		validateChallenge(dto);
 		DBOChallenge dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
+		dbo.setId(idGenerator.generateNewId(TYPE.CHALLENGE_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		try {
 			DBOChallenge created = basicDao.createNew(dbo);

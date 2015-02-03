@@ -79,7 +79,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
 		validateChallengeTeam(dto);
 		DBOChallengeTeam dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
+		dbo.setId(idGenerator.generateNewId(TYPE.CHALLENGE_TEAM_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		try {
 			DBOChallengeTeam created = basicDao.createNew(dbo);
