@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -199,6 +200,8 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		} catch (IllegalArgumentException e) {
 			if (e.getCause() instanceof DuplicateKeyException) {
 				throw new IllegalArgumentException("The specified project may already have a challenge.", e);
+			} else if (e.getCause() instanceof DataIntegrityViolationException) {
+				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.");
 			} else {
 				throw e;
 			}
@@ -325,10 +328,19 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		copyDTOtoDBO(dto, dbo);
 		// Update with a new e-tag
 		dbo.setEtag(UUID.randomUUID().toString());
-
-		boolean success = basicDao.update(dbo);
-		if (!success)
-			throw new DatastoreException("Unsuccessful updating Challenge in database.");
+		
+		try {
+			boolean success = basicDao.update(dbo);
+			if (!success)
+				throw new DatastoreException("Unsuccessful updating Challenge in database.");
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DataIntegrityViolationException) {
+				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.");
+			} else {
+				throw e;
+			}
+		}
+			
 
 		dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
 		return copyDBOtoDTO(dbo);

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -135,7 +136,7 @@ public class DBOChallengeDAOImplTest {
 		for (Node node : nodesToDelete) {
 			nodeDAO.delete(node.getId());
 		}
-		if (challenge!=null) {
+		if (challenge!=null && challenge.getId()!=null) {
 			challengeDAO.delete(Long.parseLong(challenge.getId()));
 			challenge = null;
 		}
@@ -165,7 +166,24 @@ public class DBOChallengeDAOImplTest {
 		assertEquals(participantTeam.getId(), challenge.getParticipantTeamId());
 		assertEquals(node.getId(), challenge.getProjectId());		
 	}
-		
+	
+	@Test(expected=InvalidModelException.class)
+	public void testCreateWithIllegalProject() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		challenge = new Challenge();
+		challenge.setProjectId("syn00000");
+		challenge.setParticipantTeamId(participantTeam.getId());
+		challenge = challengeDAO.create(challenge);
+	}
+	
+	@Test(expected=InvalidModelException.class)
+	public void testCreateWithIllegalTeam() throws Exception {
+		Team participantTeam = new Team();
+		participantTeam.setId("000");
+		createNodeAndChallenge(participantTeam);
+		challengeDAO.create(challenge);
+	}
+	
 	@Test
 	public void testGet() throws Exception {
 		Team participantTeam = createTeam(participantId.toString());
@@ -188,13 +206,25 @@ public class DBOChallengeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetNonExistent() throws Exception {
+	public void testUpdateWithIllegalTeam() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		createNodeAndChallenge(participantTeam);
+		challenge = challengeDAO.create(challenge);
+		
+		Team participantTeam2 = new Team();
+		participantTeam2.setId("000");
+		challenge.setParticipantTeamId(participantTeam2.getId());
 		try {
-			challengeDAO.getForProject("syn987654321");
-			fail("Expected NotFoundException");
-		} catch (NotFoundException e) {
-			//as expected
-		}		
+			challengeDAO.update(challenge);
+			fail("expected InvalidModelException");
+		} catch (InvalidModelException e) {
+			// as expected
+		}
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testGetNonExistent() throws Exception {
+		challengeDAO.getForProject("syn987654321");		
 	}
 	
 	private void checkListForUser(List<Challenge> expected, long participantId) throws Exception {
