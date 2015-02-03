@@ -195,25 +195,27 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	@Override
 	public void updateLatestVersionCache(String tableIdString, ProgressCallback<Long> progressCallback) throws IOException {
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		// Lookup the version number for this update.
-		long latestCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
-		// Check each version greater than the latest cached version (must do this in ascending order)
-		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableIdString, latestCachedVersion);
+		if (tableRowCache.isCurrentVersionCacheEnabled()) {
+			Long tableId = KeyFactory.stringToKey(tableIdString);
+			// Lookup the version number for this update.
+			long latestCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			// Check each version greater than the latest cached version (must do this in ascending order)
+			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableIdString, latestCachedVersion);
 
-		for (TableRowChange change : changes) {
-			final Map<Long, Long> rowIdVersionNumbers = Maps.newHashMap();
-			final List<Row> rows = Lists.newArrayListWithCapacity(change.getRowCount().intValue());
-			scanChange(new RowHandler() {
-				@Override
-				public void nextRow(Row row) {
-					rowIdVersionNumbers.put(row.getRowId(), row.getVersionNumber());
-					rows.add(row);
+			for (TableRowChange change : changes) {
+				final Map<Long, Long> rowIdVersionNumbers = Maps.newHashMap();
+				final List<Row> rows = Lists.newArrayListWithCapacity(change.getRowCount().intValue());
+				scanChange(new RowHandler() {
+					@Override
+					public void nextRow(Row row) {
+						rowIdVersionNumbers.put(row.getRowId(), row.getVersionNumber());
+						rows.add(row);
+					}
+				}, change);
+				tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers, progressCallback);
+				if (progressCallback != null) {
+					progressCallback.progressMade(change.getRowVersion());
 				}
-			}, change);
-			tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers, progressCallback);
-			if (progressCallback != null) {
-				progressCallback.progressMade(change.getRowVersion());
 			}
 		}
 	}
@@ -231,16 +233,18 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 * bit behind
 	 */
 	private void verifyCurrentCacheUptodateEnough(String tableIdString) throws TableUnavilableException {
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
-		// this number represents the number of rowsets that the cache is behind on the current stata
-		int rowSetsBehind = super.countRowSetsForTableGreaterThanVersion(tableIdString, lastCachedVersion);
-		if (rowSetsBehind > MAX_CACHE_BEHIND) {
-			TableStatus status = new TableStatus();
-			status.setProgressMessage("Still caching current versions for " + rowSetsBehind + " rows");
-			status.setProgressCurrent((long) rowSetsBehind);
-			status.setProgressTotal(0L);
-			throw new TableUnavilableException(status);
+		if (tableRowCache.isCurrentVersionCacheEnabled()) {
+			Long tableId = KeyFactory.stringToKey(tableIdString);
+			long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			// this number represents the number of rowsets that the cache is behind on the current stata
+			int rowSetsBehind = super.countRowSetsForTableGreaterThanVersion(tableIdString, lastCachedVersion);
+			if (rowSetsBehind > MAX_CACHE_BEHIND) {
+				TableStatus status = new TableStatus();
+				status.setProgressMessage("Still caching current versions for " + rowSetsBehind + " rows");
+				status.setProgressCurrent((long) rowSetsBehind);
+				status.setProgressTotal(0L);
+				throw new TableUnavilableException(status);
+			}
 		}
 	}
 
