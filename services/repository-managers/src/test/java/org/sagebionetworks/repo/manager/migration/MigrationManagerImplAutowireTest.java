@@ -252,9 +252,9 @@ public class MigrationManagerImplAutowireTest {
 			tableRowManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
-			if(stackConfig.getDynamoTableRowCacheEnabled()){
-				CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
-				assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
+			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			if (stackConfig.getDynamoTableRowCacheEnabled()) {
 				assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
 			}
 
@@ -262,10 +262,8 @@ public class MigrationManagerImplAutowireTest {
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
 
 			assertNull(indexDao.getRowCountForTable(tableId));
-			if(stackConfig.getDynamoTableRowCacheEnabled()){
-				CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
-				assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-			}
+			currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
+			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
 			assertNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
 		}
 	}

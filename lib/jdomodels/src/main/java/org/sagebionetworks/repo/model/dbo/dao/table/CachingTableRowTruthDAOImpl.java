@@ -94,9 +94,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	@Override
 	public void truncateAllRowData() {
 		super.truncateAllRowData();
-		if (tableRowCache.isEnabled()) {
-			tableRowCache.truncateAllData();
-		}
+		tableRowCache.truncateAllData();
 	}
 
 	/**
@@ -127,9 +125,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	private List<RawRowSet> getRowSetOriginalsFromCache(RowReferenceSet ref) throws IOException, NotFoundException {
 
-		if (!tableRowCache.isEnabled()) {
-			return null;
-		}
 		SetMultimap<Long, Long> versions = TableModelUtils.createVersionToRowsMap(ref.getRows());
 
 		List<RawRowSet> results = Lists.newArrayListWithCapacity(ref.getRows().size());
@@ -200,36 +195,32 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	@Override
 	public void updateLatestVersionCache(String tableIdString, ProgressCallback<Long> progressCallback) throws IOException {
-		if (tableRowCache.isEnabled()) {
-			Long tableId = KeyFactory.stringToKey(tableIdString);
-			// Lookup the version number for this update.
-			long latestCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
-			// Check each version greater than the latest cached version (must do this in ascending order)
-			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableIdString, latestCachedVersion);
+		Long tableId = KeyFactory.stringToKey(tableIdString);
+		// Lookup the version number for this update.
+		long latestCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+		// Check each version greater than the latest cached version (must do this in ascending order)
+		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableIdString, latestCachedVersion);
 
-			for (TableRowChange change : changes) {
-				final Map<Long, Long> rowIdVersionNumbers = Maps.newHashMap();
-				final List<Row> rows = Lists.newArrayListWithCapacity(change.getRowCount().intValue());
-				scanChange(new RowHandler() {
-					@Override
-					public void nextRow(Row row) {
-						rowIdVersionNumbers.put(row.getRowId(), row.getVersionNumber());
-						rows.add(row);
-					}
-				}, change);
-				tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers, progressCallback);
-				if (progressCallback != null) {
-					progressCallback.progressMade(change.getRowVersion());
+		for (TableRowChange change : changes) {
+			final Map<Long, Long> rowIdVersionNumbers = Maps.newHashMap();
+			final List<Row> rows = Lists.newArrayListWithCapacity(change.getRowCount().intValue());
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(Row row) {
+					rowIdVersionNumbers.put(row.getRowId(), row.getVersionNumber());
+					rows.add(row);
 				}
+			}, change);
+			tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers, progressCallback);
+			if (progressCallback != null) {
+				progressCallback.progressMade(change.getRowVersion());
 			}
 		}
 	}
 
 	@Override
 	public void removeCaches(Long tableId) throws IOException {
-		if (tableRowCache.isEnabled()) {
-			tableRowCache.removeFromCache(tableId);
-		}
+		tableRowCache.removeFromCache(tableId);
 	}
 
 	/**
@@ -240,44 +231,40 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 * bit behind
 	 */
 	private void verifyCurrentCacheUptodateEnough(String tableIdString) throws TableUnavilableException {
-		if (tableRowCache.isEnabled()) {
-			Long tableId = KeyFactory.stringToKey(tableIdString);
-			long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
-			// this number represents the number of rowsets that the cache is behind on the current stata
-			int rowSetsBehind = super.countRowSetsForTableGreaterThanVersion(tableIdString, lastCachedVersion);
-			if (rowSetsBehind > MAX_CACHE_BEHIND) {
-				TableStatus status = new TableStatus();
-				status.setProgressMessage("Still caching current versions for " + rowSetsBehind + " rows");
-				status.setProgressCurrent((long) rowSetsBehind);
-				status.setProgressTotal(0L);
-				throw new TableUnavilableException(status);
-			}
+		Long tableId = KeyFactory.stringToKey(tableIdString);
+		long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+		// this number represents the number of rowsets that the cache is behind on the current stata
+		int rowSetsBehind = super.countRowSetsForTableGreaterThanVersion(tableIdString, lastCachedVersion);
+		if (rowSetsBehind > MAX_CACHE_BEHIND) {
+			TableStatus status = new TableStatus();
+			status.setProgressMessage("Still caching current versions for " + rowSetsBehind + " rows");
+			status.setProgressCurrent((long) rowSetsBehind);
+			status.setProgressTotal(0L);
+			throw new TableUnavilableException(status);
 		}
 	}
 
 	@Override
 	public RowSetAccessor getLatestVersionsWithRowData(String tableIdString, Set<Long> rowIds, long minVersion) throws IOException {
 		try {
-			if (tableRowCache.isEnabled()) {
-				Long tableId = KeyFactory.stringToKey(tableIdString);
-				// Lookup the version number for this update.
-				long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			Long tableId = KeyFactory.stringToKey(tableIdString);
+			// Lookup the version number for this update.
+			long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
 
-				// Check each version greater than the version for the etag (must do this in ascending order)
-				RowSetAccessor lastestVersionsFromS3 = super.getLatestVersionsWithRowData(tableIdString, rowIds, lastCachedVersion + 1);
+			// Check each version greater than the version for the etag (must do this in ascending order)
+			RowSetAccessor lastestVersionsFromS3 = super.getLatestVersionsWithRowData(tableIdString, rowIds, lastCachedVersion + 1);
 
-				Set<Long> rowIdsLeft = Sets.difference(rowIds, lastestVersionsFromS3.getRowIdToRowMap().keySet());
-				final Map<Long, RowAccessor> latestVersionsFromCache = getLatestVersionsFromCache(tableIdString, rowIdsLeft);
+			Set<Long> rowIdsLeft = Sets.difference(rowIds, lastestVersionsFromS3.getRowIdToRowMap().keySet());
+			final Map<Long, RowAccessor> latestVersionsFromCache = getLatestVersionsFromCache(tableIdString, rowIdsLeft);
 
-				latestVersionsFromCache.putAll(lastestVersionsFromS3.getRowIdToRowMap());
+			latestVersionsFromCache.putAll(lastestVersionsFromS3.getRowIdToRowMap());
 
-				return new RowSetAccessor() {
-					@Override
-					public Map<Long, RowAccessor> getRowIdToRowMap() {
-						return latestVersionsFromCache;
-					}
-				};
-			}
+			return new RowSetAccessor() {
+				@Override
+				public Map<Long, RowAccessor> getRowIdToRowMap() {
+					return latestVersionsFromCache;
+				}
+			};
 		} catch (Exception e) {
 			log.error("Error getting latest from cache: " + e.getMessage(), e);
 		}
@@ -312,19 +299,17 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	@Override
 	public Map<Long, Long> getLatestVersions(String tableIdString, Set<Long> rowIds, long minVersion) throws IOException {
 		try {
-			if (tableRowCache.isEnabled()) {
-				Long tableId = KeyFactory.stringToKey(tableIdString);
-				// Lookup the version number for this update.
-				long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			Long tableId = KeyFactory.stringToKey(tableIdString);
+			// Lookup the version number for this update.
+			long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
 
-				// Check each version greater than the version for the etag (must do this in ascending order)
-				Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, rowIds, lastCachedVersion + 1);
-				Set<Long> rowIdsLeft = Sets.difference(rowIds, lastestVersionsFromS3.keySet());
-				Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdsLeft);
+			// Check each version greater than the version for the etag (must do this in ascending order)
+			Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, rowIds, lastCachedVersion + 1);
+			Set<Long> rowIdsLeft = Sets.difference(rowIds, lastestVersionsFromS3.keySet());
+			Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdsLeft);
 
-				lastestVersionsFromCache.putAll(lastestVersionsFromS3);
-				return lastestVersionsFromCache;
-			}
+			lastestVersionsFromCache.putAll(lastestVersionsFromS3);
+			return lastestVersionsFromCache;
 		} catch (Exception e) {
 			log.error("Error getting latest from cache: " + e.getMessage(), e);
 		}
@@ -335,21 +320,19 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion, long rowIdOffset, long limit) throws IOException,
 			NotFoundException, TableUnavilableException {
 		try {
-			if (tableRowCache.isEnabled()) {
-				verifyCurrentCacheUptodateEnough(tableIdString);
+			verifyCurrentCacheUptodateEnough(tableIdString);
 
-				Long tableId = KeyFactory.stringToKey(tableIdString);
-				// Lookup the version number for this update.
-				long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			Long tableId = KeyFactory.stringToKey(tableIdString);
+			// Lookup the version number for this update.
+			long lastCachedVersion = tableRowCache.getLatestCurrentVersionNumber(tableId);
 
-				// Check each version greater than the version for the etag (must do this in ascending order)
-				Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, lastCachedVersion + 1, rowIdOffset, limit);
-				Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdOffset, limit);
+			// Check each version greater than the version for the etag (must do this in ascending order)
+			Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, lastCachedVersion + 1, rowIdOffset, limit);
+			Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdOffset, limit);
 
-				// merge the two by overwriting the cached versions with the ones from S3
-				lastestVersionsFromCache.putAll(lastestVersionsFromS3);
-				return lastestVersionsFromCache;
-			}
+			// merge the two by overwriting the cached versions with the ones from S3
+			lastestVersionsFromCache.putAll(lastestVersionsFromS3);
+			return lastestVersionsFromCache;
 		} catch (TableUnavilableException e) {
 			throw e;
 		} catch (Exception e) {
