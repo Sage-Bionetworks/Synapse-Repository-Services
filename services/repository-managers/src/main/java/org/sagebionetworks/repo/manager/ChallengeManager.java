@@ -60,8 +60,9 @@ public interface ChallengeManager {
 	 * @param userInfo
 	 * @param challengeId
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public void deleteChallenge(UserInfo userInfo, long challengeId) throws DatastoreException;
+	public void deleteChallenge(UserInfo userInfo, long challengeId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

@@ -187,6 +187,15 @@ public class DBOChallengeDAOImplTest {
 	@Test
 	public void testGet() throws Exception {
 		Team participantTeam = createTeam(participantId.toString());
+		createNodeAndChallenge(participantTeam);
+		challenge = challengeDAO.create(challenge);
+		Challenge retrieved = challengeDAO.get(Long.parseLong(challenge.getId()));
+		assertEquals(challenge, retrieved);	
+	}
+		
+	@Test
+	public void testGetFromProjectId() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
 		Node node = createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
 		Challenge retrieved = challengeDAO.getForProject(node.getId());

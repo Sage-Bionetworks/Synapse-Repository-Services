@@ -4,12 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -81,7 +86,7 @@ public class ChallengeManagerImplTest {
 	}
 
 	@Test(expected=UnauthorizedException.class)
-	public void getForProjectIdUnathorized() throws Exception {
+	public void getChallengeForProjectIdUnathorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
 						AuthorizationManagerUtil.ACCESS_DENIED);
@@ -90,7 +95,89 @@ public class ChallengeManagerImplTest {
 	
 	@Test
 	public void testListChallengesForParticipant() throws Exception {
+		UserInfo requester = new UserInfo(false);
+		long limit = 10L;
+		long offset = 0L;
+		long participantId = 123L;
+		Challenge publicChallenge = newChallenge(); publicChallenge.setId("123");
+		Challenge privateChallenge = newChallenge(); privateChallenge.setId("456");
+		List<Challenge> participantsPublicChallenges = Collections.singletonList(newChallenge());
+		List<Challenge> participantsPrivateChallenges = new ArrayList<Challenge>();
+		participantsPrivateChallenges.add(publicChallenge);
+		participantsPrivateChallenges.add(privateChallenge);
 		
+		when(mockChallengeDAO.listForUser(participantId, limit, offset)).thenReturn(participantsPrivateChallenges);
+		when(mockChallengeDAO.listForUserCount(participantId)).thenReturn((long)participantsPrivateChallenges.size());
+		// requester can see only the public challenge
+		when(mockChallengeDAO.listForUser(participantId, requester.getGroups(), limit, offset)).thenReturn(participantsPublicChallenges);
+		when(mockChallengeDAO.listForUserCount(participantId, requester.getGroups())).thenReturn((long)participantsPublicChallenges.size());
+		
+		ChallengePagedResults expected = new ChallengePagedResults();
+		expected.setResults(participantsPublicChallenges);
+		expected.setTotalNumberOfResults((long)participantsPublicChallenges.size());
+		assertEquals(expected, challengeManager.listChallengesForParticipant(requester, participantId, limit, offset));
+
+		// now check administrative access
+		requester = new UserInfo(true);
+		
+		expected = new ChallengePagedResults();
+		expected.setResults(participantsPrivateChallenges);
+		expected.setTotalNumberOfResults((long)participantsPrivateChallenges.size());
+		assertEquals(expected, challengeManager.listChallengesForParticipant(requester, participantId, limit, offset));
 	}
 
+	@Test
+	public void testUpdateChallenge() throws Exception {
+		Challenge challenge = newChallenge(); 
+		challenge.setId("111");
+		Challenge updated = newChallenge(); 
+		updated.setId("111"); 
+		updated.setParticipantTeamId("999");
+		when(mockChallengeDAO.update(challenge)).thenReturn(updated);
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+						AuthorizationManagerUtil.AUTHORIZED);
+		
+		assertEquals(updated, challengeManager.updateChallenge(USER_INFO, challenge));
+		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testUpdateChallengeUnathorized() throws Exception {
+		Challenge challenge = newChallenge();
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+						AuthorizationManagerUtil.ACCESS_DENIED);
+		challengeManager.updateChallenge(USER_INFO, challenge);
+	}
+	
+	@Test
+	public void testDeleteChallenge() throws Exception {
+		Long challengeId = 111L;
+		Challenge challenge = newChallenge(); 
+		challenge.setId(challengeId.toString());
+		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+						AuthorizationManagerUtil.AUTHORIZED);
+		
+		challengeManager.deleteChallenge(USER_INFO, challengeId);
+		verify(mockChallengeDAO).get(challengeId);
+		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.DELETE);
+		verify(mockChallengeDAO).delete(challengeId);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testDeleteChallengeUnathorized() throws Exception {
+		Long challengeId = 111L;
+		Challenge challenge = newChallenge(); 
+		challenge.setId(challengeId.toString());
+		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+						AuthorizationManagerUtil.ACCESS_DENIED);
+		challengeManager.deleteChallenge(USER_INFO, challengeId);
+	}
 }

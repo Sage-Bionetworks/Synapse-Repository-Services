@@ -39,7 +39,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Challenge createChallenge(UserInfo userInfo, Challenge challenge) throws DatastoreException, NotFoundException {
-		if(challenge.getProjectId()==null) throw new InvalidModelException("Project ID is required.");
+		if (challenge.getProjectId()==null) throw new InvalidModelException("Project ID is required.");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, 
 						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
@@ -49,7 +49,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	@Override
 	public Challenge getChallengeByProjectId(UserInfo userInfo, String projectId)
 			throws DatastoreException, NotFoundException {
-		if(projectId==null) throw new IllegalArgumentException("Project ID is required.");
+		if (projectId==null) throw new IllegalArgumentException("Project ID is required.");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, 
 						projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
@@ -70,18 +70,26 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return result;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Challenge updateChallenge(UserInfo userInfo, Challenge challenge)
 			throws DatastoreException, NotFoundException {
-		// TODO Auto-generated method stub
-		return null;
+		if (challenge.getProjectId()==null) throw new InvalidModelException("Project ID is required.");
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, 
+						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		return challengeDAO.update(challenge);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteChallenge(UserInfo userInfo, long challengeId)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
+			throws DatastoreException, NotFoundException {
+		Challenge challenge = challengeDAO.get(challengeId);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, 
+						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+		challengeDAO.delete(challengeId);
 	}
 
 	@Override

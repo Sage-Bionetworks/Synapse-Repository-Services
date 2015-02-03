@@ -10,6 +10,8 @@ public interface ChallengeDAO {
 	
 	public Challenge create(Challenge dto) throws DatastoreException;
 	
+	public Challenge get(long challengeId) throws NotFoundException, DatastoreException;
+	
 	public Challenge getForProject(String projectId) throws NotFoundException, DatastoreException;
 	
 	/*

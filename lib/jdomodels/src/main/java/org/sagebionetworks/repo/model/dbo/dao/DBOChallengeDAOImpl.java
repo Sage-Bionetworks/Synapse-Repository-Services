@@ -54,6 +54,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -254,6 +255,13 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Cannot find the Challenge for project "+projectId);
 		}
+	}
+	
+	@Override
+	public Challenge get(long challengeId) throws NotFoundException, DatastoreException {
+		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(challengeId);
+		DBOChallenge dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, param);
+		return copyDBOtoDTO(dbo);
 	}
 
 	@Override
