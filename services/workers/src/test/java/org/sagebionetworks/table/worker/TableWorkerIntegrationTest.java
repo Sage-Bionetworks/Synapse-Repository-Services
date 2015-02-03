@@ -720,14 +720,12 @@ public class TableWorkerIntegrationTest {
 				return tableIndexDAO.getRowCountForTable(tableId) != null;
 			}
 		}));
-		if(config.getDynamoTableRowCacheEnabled()){
-			assertTrue("Current index was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
-				@Override
-				public boolean apply(Void input) {
-					return tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0, 1000).size() == 2;
-				}
-			}));
-		}
+		assertTrue("Current index was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				return tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0, 1000).size() == 2;
+			}
+		}));
 
 		// now we still should get the index taken care of
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
