@@ -13,6 +13,8 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.Maps;
+
 public class TableRowCacheImpl implements TableRowCache {
 	@Autowired
 	ConnectionFactory connectionFactory;
@@ -24,7 +26,12 @@ public class TableRowCacheImpl implements TableRowCache {
 	StackConfiguration stackConfiguration;
 
 	@Override
-	public boolean isEnabled() {
+	public boolean isCurrentVersionCacheEnabled() {
+		return stackConfiguration.getTableEnabled();
+	}
+
+	@Override
+	public boolean isRowCacheEnabled() {
 		return stackConfiguration.getTableEnabled() && rowCacheDao.isEnabled();
 	}
 
@@ -94,7 +101,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	@Override
 	public Map<Long, Row> getRowsFromCache(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
 		if (!rowCacheDao.isEnabled()) {
-			return Collections.emptyMap();
+			return Maps.newHashMap();
 		}
 		return rowCacheDao.getRows(tableId, version, rowsToGet);
 	}
