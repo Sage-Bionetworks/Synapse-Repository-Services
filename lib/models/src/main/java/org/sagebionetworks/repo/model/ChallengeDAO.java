@@ -25,10 +25,10 @@ public interface ChallengeDAO {
 	 * (that it, has READ access to the project linked to this challenge)
 	 * a requester is given by the list of their principals (user ID and groups they belong to)
 	 */
-	public List<Challenge> listForUser(long principalId, List<Long> requesterPrincipals, long limit, long offset) 
+	public List<Challenge> listForUser(long principalId, Set<Long> requesterPrincipals, long limit, long offset) 
 			throws NotFoundException, DatastoreException;
 	
-	public long listForUserCount(long principalId, List<Long> requesterPrincipals) 
+	public long listForUserCount(long principalId, Set<Long> requesterPrincipals) 
 			throws NotFoundException, DatastoreException;
 
 	public Challenge update(Challenge dto) throws NotFoundException, DatastoreException;

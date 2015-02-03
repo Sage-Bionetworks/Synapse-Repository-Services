@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface ChallengeManager {
 	
 	/**
+	 * CREATE permission is required in referenced project
 	 * 
 	 * @param userInfo
 	 * @param challenge
@@ -23,7 +24,7 @@ public interface ChallengeManager {
 	public Challenge createChallenge(UserInfo userInfo, Challenge challenge) throws DatastoreException, NotFoundException;
 
 	/**
-	 * 
+	 * READ permission is required in the specified project
 	 * @param userInfo
 	 * @param projectId
 	 * @return
@@ -33,15 +34,18 @@ public interface ChallengeManager {
 	public Challenge getChallengeByProjectId(UserInfo userInfo, String projectId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * 
+	 * For a Challenge to be in the returned list the caller given by 'userInfo' must be 
+	 * a Synapse Administrator or have READ permission on the associated project.
 	 * @param userInfo
 	 * @param participantId
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public ChallengePagedResults listChallengesForParticipant(UserInfo userInfo, String participantId) throws DatastoreException;
+	public ChallengePagedResults listChallengesForParticipant(UserInfo userInfo, long participantId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
+	 * UPDATE permission required in referenced project.
 	 * 
 	 * @param userInfo
 	 * @param challenge

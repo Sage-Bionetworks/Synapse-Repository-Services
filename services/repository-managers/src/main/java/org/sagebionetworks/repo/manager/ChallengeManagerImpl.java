@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
+import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -23,9 +24,14 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	ChallengeDAO challengeDAO;
 	
 	@Autowired
+	ChallengeDAO challengeTeamDAO;
+	
+	@Autowired
 	AuthorizationManager authorizationManager;
 	
-	public ChallengeManagerImpl(ChallengeDAO challengeDAO, AuthorizationManager authorizationManager) {
+	public ChallengeManagerImpl(ChallengeDAO challengeDAO, 
+			ChallengeTeamDAO challengeTeamDAO, 
+			AuthorizationManager authorizationManager) {
 		this.challengeDAO=challengeDAO;
 		this.authorizationManager=authorizationManager;
 	}
@@ -52,9 +58,16 @@ public class ChallengeManagerImpl implements ChallengeManager {
 
 	@Override
 	public ChallengePagedResults listChallengesForParticipant(
-			UserInfo userInfo, String participantId) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
+			UserInfo userInfo, long participantId, long limit, long offset) throws NotFoundException, DatastoreException {
+		ChallengePagedResults result = new ChallengePagedResults();
+		if (userInfo.isAdmin()) {
+			result.setResults(challengeDAO.listForUser(participantId, limit, offset));
+			result.setTotalNumberOfResults(challengeDAO.listForUserCount(participantId));
+		} else {
+			result.setResults(challengeDAO.listForUser(participantId, userInfo.getGroups(), limit, offset));
+			result.setTotalNumberOfResults(challengeDAO.listForUserCount(participantId, userInfo.getGroups()));
+		}
+		return result;
 	}
 
 	@Override

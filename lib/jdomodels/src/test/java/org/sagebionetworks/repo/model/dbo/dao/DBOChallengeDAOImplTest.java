@@ -239,10 +239,10 @@ public class DBOChallengeDAOImplTest {
 	private void checkListForUser(List<Challenge> expected, long participantId, long requesterId) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
 		assertEquals(expected,
-				challengeDAO.listForUser(participantId, Collections.singletonList(requesterId), expected.size()+1, 0));
-		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, Collections.singletonList(requesterId)));
+				challengeDAO.listForUser(participantId, Collections.singleton(requesterId), expected.size()+1, 0));
+		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, Collections.singleton(requesterId)));
 		// test pagination
-		assertTrue(challengeDAO.listForUser(participantId, Collections.singletonList(requesterId), 10L, expected.size()).isEmpty());		
+		assertTrue(challengeDAO.listForUser(participantId, Collections.singleton(requesterId), 10L, expected.size()).isEmpty());		
 	}
 
 	@Test
