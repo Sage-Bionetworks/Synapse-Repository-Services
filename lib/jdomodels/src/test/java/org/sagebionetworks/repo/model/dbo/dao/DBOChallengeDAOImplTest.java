@@ -262,7 +262,6 @@ public class DBOChallengeDAOImplTest {
 		Team participantTeam = createTeam(participantId.toString());
 		createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
-		Team participantTeam2 = createTeam(participantId.toString());
 				
 		// Now let's check the participants list
 		// First, show that just one user is a participant
@@ -276,7 +275,8 @@ public class DBOChallengeDAOImplTest {
 		// now let's affiliate the participant with a team
 		ChallengeTeam challengeTeam = new ChallengeTeam();
 		challengeTeam.setChallengeId(challenge.getId());
-		challengeTeam.setTeamId(participantTeam.getId()); // (for convenience we reuse this spare team)
+		Team participantTeam2 = createTeam(participantId.toString());
+		challengeTeam.setTeamId(participantTeam2.getId());
 		challengeTeam = challengeTeamDAO.create(challengeTeam); // will get cleaned up when 'challenge' is deleted
 		
 		checkListParticipantsVariants(challengeId, 
@@ -285,7 +285,7 @@ public class DBOChallengeDAOImplTest {
 				null); // expected list of participants NOT affiliated with any team
 
 		// now sign up a second user for the challenge
-		groupMembersDAO.addMembers(participantTeam2.getId(), Collections.singletonList(requester.toString()));
+		groupMembersDAO.addMembers(participantTeam.getId(), Collections.singletonList(requester.toString()));
 		
 		Set<Long> both = new HashSet<Long>();
 		both.add(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
