@@ -65,5 +65,15 @@ public class ChallengeManagerImplTest {
 						AuthorizationManagerUtil.ACCESS_DENIED);
 		challengeManager.createChallenge(userInfo, challenge);
 	}
+	
+	@Test
+	public void getForProjectId() throws Exception {
+		
+	}
+
+	@Test
+	public void getForProjectIdUnathorized() throws Exception {
+		
+	}
 
 }
