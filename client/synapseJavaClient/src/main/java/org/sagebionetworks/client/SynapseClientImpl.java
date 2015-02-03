@@ -3655,7 +3655,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException 
 	 */
 	@SuppressWarnings("unchecked")
-	private <T extends JSONEntity> T doCreateJSONEntity(String uri, T entity) throws JSONObjectAdapterException, SynapseException {
+	<T extends JSONEntity> T doCreateJSONEntity(String uri, T entity) throws JSONObjectAdapterException, SynapseException {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}

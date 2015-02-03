@@ -1,6 +1,5 @@
 package org.sagebionetworks.client;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -61,6 +60,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	
 	private static final String ADMIN_USER = ADMIN + "/user";
 	private static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
+	private static final String ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES = ADMIN+"/messages/createOrUpdate";
 
 	public SynapseAdminClientImpl() {
 		super();
@@ -352,6 +352,16 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			URIBuilder uri = new URIBuilder(ADMIN_WAIT).setParameter("release", Boolean.toString(release));
 			getSharedClientConnection().getJson(repoEndpoint, uri.build().toString(), getUserAgent());
 		} catch (URISyntaxException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch)
+			throws SynapseException {
+		try {
+			return doCreateJSONEntity(ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch);
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
 	}

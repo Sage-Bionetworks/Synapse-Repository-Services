@@ -124,6 +124,15 @@ public class IT101Administration {
 	}
 	
 	@Test
+	public void testCreateOrUpdateChangeMessages() throws SynapseException, JSONObjectAdapterException {
+		ChangeMessages expected = adminSynapse.listMessages(0l, ObjectType.ENTITY, 1l);
+		ChangeMessages actual = adminSynapse.createOrUpdateChangeMessages(expected);
+		assertEquals(expected.getList().size(), actual.getList().size());
+		assertEquals(expected.getList().get(0).getObjectId(), actual.getList().get(0).getObjectId());
+		assertEquals(expected.getList().get(0).getObjectType(), actual.getList().get(0).getObjectType());
+	}
+	
+	@Test
 	public void testPublishMessages() throws SynapseException, JSONObjectAdapterException{
 		StackConfiguration config = new StackConfiguration();
 		PublishResults results = adminSynapse.publishChangeMessages(config.getRdsUpdateQueueName(), 0L,  ObjectType.ENTITY, 1l);
