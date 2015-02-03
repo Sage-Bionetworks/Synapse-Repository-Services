@@ -1,11 +1,12 @@
 {
-    "description":"Paginated results of a ColumnModel",
+    "description":"Paginated results of Challenge objects",
     "properties":{
 		"results": {
-		    "description":"The list of Object Ids for this page",
+		    "description":"The list of results for this page",
 			"type": "array",
 			"items": {
-				"type": "string"
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.Challenge"
 			}
 		},
 		"totalNumberOfResults":{

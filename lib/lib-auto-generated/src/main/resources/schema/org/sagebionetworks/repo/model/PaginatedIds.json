@@ -1,0 +1,16 @@
+{
+    "description":"Paginated results of strings",
+    "properties":{
+		"results": {
+		    "description":"The list of Object Ids for this page",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"totalNumberOfResults":{
+			"description":"The total number of results",
+			"type": "integer"
+		}
+    }
+}

@@ -7,8 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
 
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,7 +15,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
-import org.sagebionetworks.repo.model.ChallengeTeamSummary;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -47,29 +44,17 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	// name of the sub-query giving the team and admin member IDs in the system
-	private static final String SUB_QUERY_NAME = "admin";
-	
 	private static final String SELECT_FOR_CHALLENGE_SQL_CORE = 
-			" FROM "+TABLE_CHALLENGE_TEAM+" ct LEFT JOIN (SELECT t."+
-			COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+" FROM "+
-			TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
-			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?) as "+SUB_QUERY_NAME+
-			" ON ct."+COL_CHALLENGE_TEAM_TEAM_ID+"="+SUB_QUERY_NAME+"."+COL_TEAM_ID+
-			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
+			" FROM "+TABLE_CHALLENGE_TEAM+" WHERE "+
+					COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
 
-	private static final String SPECIFIED_USER = "SPECIFIED_USER";
-	
 	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ?";
 	
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
-			"SELECT ? as "+SPECIFIED_USER+", ct.*, "+
-					SUB_QUERY_NAME+"."+COL_GROUP_MEMBERS_MEMBER_ID+
-			SELECT_FOR_CHALLENGE_SQL_CORE+LIMIT_OFFSET;
+			"SELECT * "+SELECT_FOR_CHALLENGE_SQL_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
-			"SELECT count(*) "+" FROM "+TABLE_CHALLENGE_TEAM+
-			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
+			"SELECT count(*) "+SELECT_FOR_CHALLENGE_SQL_CORE;
 	
 	private static final String SELECT_REGISTRATABLE_TEAMS_CORE = 
 			TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
@@ -89,27 +74,12 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static TableMapping<DBOChallengeTeam> DBO_CHALLENGE_TEAM_TABLE_MAPPING =
 			(new DBOChallengeTeam()).getTableMapping();
 	
-	private static RowMapper<ChallengeTeamSummary> CHALLENGE_TEAM_SUMMARY_MAPPING = new RowMapper<ChallengeTeamSummary>() {
-		@Override
-		public ChallengeTeamSummary mapRow(ResultSet rs, int rowNum)
-				throws SQLException {
-			ChallengeTeam dto = copyDBOtoDTO(DBO_CHALLENGE_TEAM_TABLE_MAPPING.mapRow(rs, rowNum));
-			ChallengeTeamSummary result = new ChallengeTeamSummary();
-			result.setId(dto.getId());
-			result.setChallengeId(dto.getChallengeId());			
-			result.setMessage(dto.getMessage());
-			result.setTeamId(dto.getTeamId());
-			result.setUserId(rs.getString(SPECIFIED_USER));
-			result.setUserIsAdmin(null!=rs.getString(COL_GROUP_MEMBERS_MEMBER_ID));
-			return result;
-		}};
-	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
 		validateChallengeTeam(dto);
 		DBOChallengeTeam dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
+		dbo.setId(idGenerator.generateNewId(TYPE.CHALLENGE_TEAM_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		try {
 			DBOChallengeTeam created = basicDao.createNew(dbo);
@@ -201,11 +171,14 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 	
 	@Override
-	public List<ChallengeTeamSummary> listForChallenge(long userId, long challengeId, long limit,
+	public List<ChallengeTeam> listForChallenge(long challengeId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		return jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, CHALLENGE_TEAM_SUMMARY_MAPPING, 
-				userId, userId, challengeId, limit, offset);
+		List<DBOChallengeTeam> dbos = jdbcTemplate.query(SELECT_FOR_CHALLENGE_PAGINATED, DBO_CHALLENGE_TEAM_TABLE_MAPPING, 
+				challengeId, limit, offset);
+		List<ChallengeTeam> dtos = new ArrayList<ChallengeTeam>();
+		for (DBOChallengeTeam dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
+		return dtos;
 	}
 
 	@Override

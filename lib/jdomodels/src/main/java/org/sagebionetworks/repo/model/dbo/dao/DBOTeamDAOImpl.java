@@ -3,30 +3,19 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
@@ -35,21 +24,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
@@ -58,6 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,8 +64,13 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
+	private static final String SELECT_MULTIPLE_CORE = 
+			"SELECT * FROM "+TABLE_TEAM;
+	
+	private static final String SELECT_MULTIPLE_ORDER_BY = " order by "+COL_TEAM_ID+" asc ";
+			
 	private static final String SELECT_PAGINATED = 
-			"SELECT * FROM "+TABLE_TEAM+" order by "+COL_TEAM_ID+" asc "+
+			SELECT_MULTIPLE_CORE+SELECT_MULTIPLE_ORDER_BY+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_COUNT = 
@@ -179,7 +172,23 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		Team dto = TeamUtils.copyDboToDto(dbo);
 		return dto;
 	}
-
+	
+	@Override
+	public List<Team> list(List<String> ids) throws DatastoreException, NotFoundException {
+		if (ids.size()<1) return Collections.emptyList();
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		for (int i=0; i<ids.size(); i++) {
+			param.addValue(ListQueryUtils.bindVariable(i), ids.get(i));
+		}
+		String sql = SELECT_MULTIPLE_CORE+" WHERE "+COL_TEAM_ID+
+				ListQueryUtils.selectListInClause(ids.size())+
+				SELECT_MULTIPLE_ORDER_BY;
+		List<DBOTeam> dbos = simpleJdbcTemplate.query(sql, TEAM_ROW_MAPPER, param);
+		List<Team> dtos = new ArrayList<Team>();
+		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
+		return dtos;
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#getInRange(long, long)
 	 */
@@ -391,7 +400,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return results;
 	}
 
-	private static final RowMapper<TeamMember> teamMemberRowMapper = new RowMapper<TeamMember>(){
+	private static final RowMapper<TeamMember> TEAM_MEMBER_ROW_MAPPER = new RowMapper<TeamMember>(){
 		@Override
 		public TeamMember mapRow(ResultSet rs, int rowNum) throws SQLException {
 			UserGroupHeader ugh = new UserGroupHeader();
@@ -421,7 +430,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, teamMemberRowMapper, param);
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, TEAM_MEMBER_ROW_MAPPER, param);
 		Map<Long, TeamMember> teamMemberMap = new HashMap<Long, TeamMember>();
 		for (TeamMember tm : teamMembers) teamMemberMap.put(Long.parseLong(tm.getMember().getOwnerId()), tm);
 
@@ -437,6 +446,18 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return teamMembers;
 	}
 	
+	@Override
+	public List<TeamMember> listMembers(String teamId, List<String> principalIds) throws NotFoundException, DatastoreException {
+		if (principalIds.size()<1) return Collections.emptyList();
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(ListQueryUtils.bindVariable(i), principalIds.get(i));
+		}
+		String sql = SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
+			ListQueryUtils.selectListInClause(principalIds.size());
+		return simpleJdbcTemplate.query(sql, TEAM_MEMBER_ROW_MAPPER, param);
+	}
 	
 	@Override
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
@@ -444,7 +465,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
-		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, teamMemberRowMapper, param);
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, TEAM_MEMBER_ROW_MAPPER, param);
 		if (teamMembers.size()==0) throw new NotFoundException("Could not find member "+principalId+" in team "+teamId);
 		if (teamMembers.size()>1) throw new DatastoreException("Expected one result but found "+teamMembers.size());
 		TeamMember theMember = teamMembers.get(0);

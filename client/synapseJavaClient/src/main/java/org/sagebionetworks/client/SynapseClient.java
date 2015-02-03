@@ -1954,5 +1954,5 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ChallengeTeamSummary> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
+	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
 }

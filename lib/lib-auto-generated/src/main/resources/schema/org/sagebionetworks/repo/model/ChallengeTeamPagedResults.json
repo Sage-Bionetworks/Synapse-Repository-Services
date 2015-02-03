@@ -1,0 +1,17 @@
+{
+    "description":"Paginated results of ChallengeTeam objects",
+    "properties":{
+		"results": {
+		    "description":"The list of results for this page",
+			"type": "array",
+			"items": {
+				"type": "object",
+				"$ref":"org.sagebionetworks.repo.model.ChallengeTeam"
+			}
+		},
+		"totalNumberOfResults":{
+			"description":"The total number of results",
+			"type": "integer"
+		}
+    }
+}
