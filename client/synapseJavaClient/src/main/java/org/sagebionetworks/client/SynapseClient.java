@@ -25,8 +25,44 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.ChallengeTeamSummary;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -78,7 +114,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -1252,6 +1287,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param sql
 	 * @param isConsistent
 	 * @param partMask
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
@@ -1261,55 +1297,60 @@ public interface SynapseClient extends BaseClient {
 	public static final int COLUMNS_PARTMASK = 0x4;
 	public static final int MAXROWS_PARTMASK = 0x8;
 
-	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask)
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask, String tableId)
 			throws SynapseException;
 
 	/**
 	 * Get the result of an asynchronous queryTableEntityBundle
 	 * 
 	 * @param asyncJobToken
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
 	 * Query for data in a table entity. Start an asynchronous version of queryTableEntityNextPage
 	 * 
 	 * @param nextPageToken
+	 * @param tableId the id of the TableEntity.
 	 * @return a token to get the result with
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException, SynapseResultNotReadyException;
+	public String queryTableEntityNextPageAsyncStart(String nextPageToken, String tableId) throws SynapseException, SynapseResultNotReadyException;
 	
 	/**
 	 * Start an Asynchronous job of the given type.
 	 * @param type The type of job.
 	 * @param request The request body.
+	 * @param tableId the id of the TableEntity.
 	 * @return The jobId is used to get the job results.
 	 */
-	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException;
+	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request, String tableId) throws SynapseException;
 	
 	/**
 	 * Get the results of an Asynchronous job.
 	 * @param type The type of job.
 	 * @param jobId The JobId.
+	 * @param tableId the id of the TableEntity.
 	 * @throws SynapseResultNotReadyException if the job is not ready.
 	 * @return
 	 */
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId) throws SynapseException, SynapseResultNotReadyException;
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String tableId) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
 	 * Get the result of an asynchronous queryTableEntityNextPage
 	 * 
 	 * @param asyncJobToken
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException;
+	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken, String tableId) throws SynapseException;
 
 	/**
 	 * upload a csv into an existing table
@@ -1331,11 +1372,12 @@ public interface SynapseClient extends BaseClient {
 	 * get the result of a csv upload
 	 * 
 	 * @param asyncJobToken
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
 	 * download the result of a query into a csv
@@ -1345,48 +1387,53 @@ public interface SynapseClient extends BaseClient {
 	 * @param includeRowIdAndRowVersion should the row id and row version be included as the first 2 columns
 	 * @param csvDescriptor the optional descriptor of the csv (default comma separators, double quotes for quoting, new
 	 *        lines and backslashes for escaping)
+	 * @param tableId the id of the TableEntity.
 	 * @return a token to get the result with
 	 * @throws SynapseException
 	 */
 	public String downloadCsvFromTableAsyncStart(String sql, boolean writeHeader, boolean includeRowIdAndRowVersion,
-			CsvTableDescriptor csvDescriptor) throws SynapseException;
+			CsvTableDescriptor csvDescriptor, String tableId) throws SynapseException;
 
 	/**
 	 * get the results of the csv download
 	 * 
 	 * @param asyncJobToken
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
-	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException;
 	
 	/**
 	 * Start an asynchronous job to append data to a table.
 	 * @param rowSet Data to append.
+	 * @param tableId the id of the TableEntity.
 	 * @return JobId token that can be used get the results of the append.
 	 */
-	public String appendRowSetToTableStart(AppendableRowSet rowSet) throws SynapseException;
+	public String appendRowSetToTableStart(AppendableRowSet rowSet, String tableId) throws SynapseException;
 	
 	/**
 	 * Get the results of a table append RowSet job using the jobId token returned when the job was started.
 	 * @param token
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
-	public RowReferenceSet appendRowSetToTableGet(String token) throws SynapseException, SynapseResultNotReadyException;
+	public RowReferenceSet appendRowSetToTableGet(String token, String tableId) throws SynapseException, SynapseResultNotReadyException;
 	
 	/**
 	 * Run an asynchronous to append data to a table.
 	 * Note: This is a convenience function that wraps the start job and get loop of an asynchronous job.
 	 * @param rowSet
 	 * @param timeout
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException 
 	 * @throws InterruptedException 
 	 */
-	public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet, long timeout) throws SynapseException, InterruptedException;
+	public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet, long timeout, String tableId) throws SynapseException, InterruptedException;
 
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
@@ -1851,21 +1898,23 @@ public interface SynapseClient extends BaseClient {
 	 * Start a job to generate a preivew for an upload CSV to Table.
 	 * Get the results using {@link #uploadCsvToTablePreviewAsyncGet(String)}
 	 * @param request
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 */
-	String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request)
+	String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request, String tableId)
 			throws SynapseException;
 
 	/**
 	 * Get the resulting preview from the job started with {@link #uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest)}
 	 * @param asyncJobToken
+	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
 	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(
-			String asyncJobToken) throws SynapseException,
+			String asyncJobToken, String tableId) throws SynapseException,
 			SynapseResultNotReadyException;
 	
 	/**

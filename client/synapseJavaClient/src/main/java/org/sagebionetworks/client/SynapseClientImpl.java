@@ -35,12 +35,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
-import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -55,11 +52,53 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AutoGenFactory;
+import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.ChallengeTeamSummary;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -121,7 +160,6 @@ import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -3708,16 +3746,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public String startAsynchJob(AsynchJobType type,
-			AsynchronousRequestBody request) throws SynapseException {
-		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), type.getStartUrl(), request, AsyncJobId.class, null);
+			AsynchronousRequestBody request, String tableId) throws SynapseException {
+		String url = "/entity/" + tableId + type.getStartUrl();
+		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url , request, AsyncJobId.class, null);
 		return jobId.getToken();
 	}
 	
 	@Override
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type,	String jobId) throws SynapseException,
-			SynapseClientException, SynapseResultNotReadyException {
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId,
+			String tableId) throws SynapseException, SynapseClientException,
+			SynapseResultNotReadyException {
 		try {
-			JSONObject responseBody = getSharedClientConnection().getJson(getRepoEndpoint(), type.getResultUrl(jobId), getUserAgent(),
+			String url = "/entity/" + tableId + type.getResultUrl(jobId);
+			JSONObject responseBody = getSharedClientConnection().getJson(getRepoEndpoint(), url, getUserAgent(),
 					new SharedClientConnection.ErrorHandler() {
 						@Override
 						public void handleError(int code, String responseBody) throws SynapseException {
@@ -5404,29 +5445,29 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public String appendRowSetToTableStart(AppendableRowSet rowSet)
+	public String appendRowSetToTableStart(AppendableRowSet rowSet, String tableId)
 			throws SynapseException {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(rowSet);
-		return startAsynchJob(AsynchJobType.TableAppendRowSet, request);
+		return startAsynchJob(AsynchJobType.TableAppendRowSet, request, tableId);
 	}
 
 	@Override
-	public RowReferenceSet appendRowSetToTableGet(String token)
+	public RowReferenceSet appendRowSetToTableGet(String token, String tableId)
 			throws SynapseException, SynapseResultNotReadyException {
-		RowReferenceSetResults rrs = (RowReferenceSetResults) getAsyncResult(AsynchJobType.TableAppendRowSet, token);
+		RowReferenceSetResults rrs = (RowReferenceSetResults) getAsyncResult(AsynchJobType.TableAppendRowSet, token, tableId);
 		return rrs.getRowReferenceSet();
 	}
 
 	@Override
 	public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet,
-			long timeout) throws SynapseException, InterruptedException {
+			long timeout, String tableId) throws SynapseException, InterruptedException {
 		long start = System.currentTimeMillis();
 		// Start the job
-		String jobId = appendRowSetToTableStart(rowSet);
+		String jobId = appendRowSetToTableStart(rowSet, tableId);
 		do{
 			try{
-				return appendRowSetToTableGet(jobId);
+				return appendRowSetToTableGet(jobId, tableId);
 			}catch(SynapseResultNotReadyException e){
 				Thread.sleep(1000);
 			}
@@ -5515,7 +5556,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partsMask, String tableId)
 			throws SynapseException {
 		Query query = new Query();
 		query.setSql(sql);
@@ -5525,40 +5566,40 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		QueryBundleRequest bundleRequest = new QueryBundleRequest();
 		bundleRequest.setQuery(query);
 		bundleRequest.setPartMask((long) partsMask);
-		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
+		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest, tableId);
 	}
 
 	@Override
-	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (QueryResultBundle) getAsyncResult(AsynchJobType.TableQuery, asyncJobToken);
+	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException {
+		return (QueryResultBundle) getAsyncResult(AsynchJobType.TableQuery, asyncJobToken, tableId);
 	}
 
 	@Override
-	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException {
+	public String queryTableEntityNextPageAsyncStart(String nextPageToken, String tableId) throws SynapseException {
 		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
 		queryNextPageToken.setToken(nextPageToken);
-		return startAsynchJob(AsynchJobType.TableQueryNextPage, queryNextPageToken);
+		return startAsynchJob(AsynchJobType.TableQueryNextPage, queryNextPageToken, tableId);
 	}
 
 	@Override
-	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (QueryResult) getAsyncResult(AsynchJobType.TableQueryNextPage, asyncJobToken);
+	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException {
+		return (QueryResult) getAsyncResult(AsynchJobType.TableQueryNextPage, asyncJobToken, tableId);
 	}
 
 	@Override
 	public String downloadCsvFromTableAsyncStart(String sql, boolean writeHeader, boolean includeRowIdAndRowVersion,
-			CsvTableDescriptor csvDescriptor) throws SynapseException {
+			CsvTableDescriptor csvDescriptor, String tableId) throws SynapseException {
 		DownloadFromTableRequest downloadRequest = new DownloadFromTableRequest();
 		downloadRequest.setSql(sql);
 		downloadRequest.setWriteHeader(writeHeader);
 		downloadRequest.setIncludeRowIdAndRowVersion(includeRowIdAndRowVersion);
 		downloadRequest.setCsvTableDescriptor(csvDescriptor);
-		return startAsynchJob(AsynchJobType.TableCSVDownload, downloadRequest);
+		return startAsynchJob(AsynchJobType.TableCSVDownload, downloadRequest, tableId);
 	}
 
 	@Override
-	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (DownloadFromTableResult) getAsyncResult(AsynchJobType.TableCSVDownload, asyncJobToken);
+	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException {
+		return (DownloadFromTableResult) getAsyncResult(AsynchJobType.TableCSVDownload, asyncJobToken, tableId);
 	}
 
 	@Override
@@ -5570,22 +5611,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		uploadRequest.setUpdateEtag(etag);
 		uploadRequest.setLinesToSkip(linesToSkip);
 		uploadRequest.setCsvTableDescriptor(csvDescriptor);
-		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest);
+		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest, tableId);
 	}
 
 	@Override
-	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (UploadToTableResult) getAsyncResult(AsynchJobType.TableCSVUpload, asyncJobToken);
+	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException {
+		return (UploadToTableResult) getAsyncResult(AsynchJobType.TableCSVUpload, asyncJobToken, tableId);
 	}
 
 	@Override
-	public String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request) throws SynapseException {
-		return startAsynchJob(AsynchJobType.TableCSVUploadPreview, request);
+	public String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request, String tableId) throws SynapseException {
+		return startAsynchJob(AsynchJobType.TableCSVUploadPreview, request, tableId);
 	}
 
 	@Override
-	public UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (UploadToTablePreviewResult) getAsyncResult(AsynchJobType.TableCSVUploadPreview, asyncJobToken);
+	public UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException {
+		return (UploadToTablePreviewResult) getAsyncResult(AsynchJobType.TableCSVUploadPreview, asyncJobToken, tableId);
 	}
 	
 	@Override
