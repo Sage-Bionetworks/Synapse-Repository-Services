@@ -11,7 +11,9 @@ import org.sagebionetworks.util.ProgressCallback;
  */
 public interface TableRowCache {
 	
-	public boolean isEnabled();
+	public boolean isCurrentVersionCacheEnabled();
+
+	public boolean isRowCacheEnabled();
 
 	public long getLatestCurrentVersionNumber(Long tableId);
 
