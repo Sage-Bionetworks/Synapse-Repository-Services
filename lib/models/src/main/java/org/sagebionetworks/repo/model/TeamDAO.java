@@ -26,6 +26,15 @@ public interface TeamDAO {
 	public Team get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<Team> list(List<String> ids) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Get the Teams in the system
 	 * 
 	 * @param offset
@@ -51,6 +60,15 @@ public interface TeamDAO {
 	 */
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
 	
+	/**
+	 * 
+	 * @param teamId
+	 * @param principalIds
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public List<TeamMember> listMembers(String teamId, List<String> principalIds) throws NotFoundException, DatastoreException;
 	/**
 	 * 
 	 * @param teamId

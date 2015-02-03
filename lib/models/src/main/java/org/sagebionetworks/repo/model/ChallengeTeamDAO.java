@@ -10,10 +10,9 @@ public interface ChallengeTeamDAO {
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException;
 	
 	/*
-	 * List the Teams registered for the given challenge along with whether the specified
-	 * user is an admin/captain in the Team
+	 * List the Teams registered for the given challenge 
 	 */
-	public List<ChallengeTeamSummary> listForChallenge(long userId, long challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
+	public List<ChallengeTeam> listForChallenge(long challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
 	
 	public long listForChallengeCount(long challengeId) throws NotFoundException, DatastoreException;
 	

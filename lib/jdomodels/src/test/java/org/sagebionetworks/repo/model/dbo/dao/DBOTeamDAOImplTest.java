@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -141,6 +142,10 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
 		
+		List<Team> listed = teamDAO.list(Collections.singletonList(""+id));
+		assertEquals(1, listed.size());
+		assertEquals(updated, listed.get(0));
+		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 
 		// need an arbitrary user to add to the group
@@ -160,9 +165,20 @@ public class DBOTeamDAOImplTest {
 		userProfileDAO.create(profile);
 
 		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{user.getId()}));
-		assertEquals(1, teamDAO.getForMemberInRange(user.getId(), 1, 0).size());
+		List<Team> membersTeams = teamDAO.getForMemberInRange(user.getId(), 1, 0);
+		assertEquals(1, membersTeams.size());
+		assertEquals(retrieved, membersTeams.get(0));
 		assertEquals(0, teamDAO.getForMemberInRange(user.getId(), 3, 1).size());
 		assertEquals(1, teamDAO.getCountForMember(user.getId()));
+		
+		List<TeamMember> listedMembers = 
+				teamDAO.listMembers(team.getId(), Collections.singletonList(user.getId()));
+		assertEquals(1, listedMembers.size());
+		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
+		assertEquals(member, listedMembers.get(0));
+		// check that nothing is returned for other team IDs and principal IDs
+		assertEquals(0, teamDAO.listMembers("0", Collections.singletonList(user.getId())).size());
+		assertEquals(0, teamDAO.listMembers(team.getId(), Collections.singletonList("0")).size());
 		
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
@@ -205,7 +221,6 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
 		
 		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
-		TeamMember member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());
 		assertFalse(member.getIsAdmin());
 		ugh = member.getMember();

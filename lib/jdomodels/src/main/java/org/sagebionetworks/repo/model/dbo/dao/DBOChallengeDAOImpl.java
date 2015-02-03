@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_JOIN;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
@@ -14,29 +15,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -45,7 +37,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
-import org.sagebionetworks.repo.model.ChallengeSummary;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -56,7 +47,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -80,19 +70,6 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static TableMapping<DBOChallenge> DBO_CHALLENGE_TABLE_MAPPING =
 			(new DBOChallenge()).getTableMapping();
 	
-	private static RowMapper<ChallengeSummary> CHALLENGE_SUMMARY_MAPPING = new RowMapper<ChallengeSummary>() {
-		@Override
-		public ChallengeSummary mapRow(ResultSet rs, int rowNum)
-				throws SQLException {
-			DBOChallenge dbo = DBO_CHALLENGE_TABLE_MAPPING.mapRow(rs, rowNum);
-			ChallengeSummary result = new ChallengeSummary();
-			result.setChallengeId(dbo.getId().toString());
-			result.setName(rs.getString(COL_NODE_NAME));
-			result.setProjectId(KeyFactory.keyToString(rs.getLong(NODE_ID_LABEL)));
-			result.setParticipantTeamId(dbo.getParticipantTeamId().toString());
-			return result;
-		}};
-	
 	private static final String SELECT_FOR_PROJECT = "SELECT * FROM "+TABLE_CHALLENGE+
 			" WHERE "+COL_CHALLENGE_PROJECT_ID+"=?";
 	
@@ -115,7 +92,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static final String NODE_ID_LABEL = "NODE_ID";
 	
 	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_PAGINATED = 
-			"SELECT n."+COL_NODE_NAME+", n."+COL_NODE_ID+" AS "+NODE_ID_LABEL+", c.* "+
+			"SELECT c.* "+
 			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_COUNT = 
@@ -123,17 +100,13 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 
 	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE = 
 			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_FROM_CORE+","+
-			TABLE_ACCESS_CONTROL_LIST+" acl, "+
-			TABLE_RESOURCE_ACCESS+" ra, "+
-			TABLE_RESOURCE_ACCESS_TYPE+" at "+
+			AUTHORIZATION_SQL_TABLES+
 			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_WHERE_CORE+
 			" and acl."+COL_ACL_OWNER_ID+"=n."+COL_NODE_ID+
 			" and acl."+COL_ACL_OWNER_TYPE+"='ENTITY'"+
-			" and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
-			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
+			" and "+AUTHORIZATION_SQL_JOIN+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='READ'"+
 			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (";
-
 
 	/*
 	 * Adds 'requesterGroupCount' number of bind variables, for a total of requesterGroupCount+3
@@ -178,11 +151,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			" AND gm1."+COL_GROUP_MEMBERS_MEMBER_ID+"=gm2."+COL_GROUP_MEMBERS_MEMBER_ID;
 
 	private static final String SELECT_PARTICIPANTS_CORE =
-			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_GROUP_MEMBERS+" gm LEFT OUTER JOIN "+
-			TABLE_USER_PROFILE+" up ON (gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+") "+
-			"LEFT OUTER JOIN "+TABLE_PRINCIPAL_ALIAS+" pa ON (gm."+
-			COL_GROUP_MEMBERS_MEMBER_ID+"=pa."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" AND pa."+
-					COL_PRINCIPAL_ALIAS_TYPE+"='"+AliasEnum.USER_NAME.name()+"'"+") "+
+			" FROM "+TABLE_CHALLENGE+" c, "+TABLE_GROUP_MEMBERS+" gm "+
 			" WHERE c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" AND c."+COL_CHALLENGE_ID+"=?";
 	
@@ -197,9 +166,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			" IN ("+SELECT_MEMBERS_IN_REGISTERED_TEAM+")";
 	
 	private static final String SELECT_PARTICIPANTS_PREFIX = 
-			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+
-			", up."+COL_USER_PROFILE_ID+
-			", pa."+COL_BOUND_ALIAS_DISPLAY;
+			"SELECT gm."+COL_GROUP_MEMBERS_MEMBER_ID;
 	
 	private static final String SELECT_PARTICIPANTS =
 			SELECT_PARTICIPANTS_PREFIX+SELECT_PARTICIPANTS_CORE+LIMIT_OFFSET;
@@ -224,7 +191,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	public Challenge create(Challenge dto) throws DatastoreException {
 		validateChallenge(dto);
 		DBOChallenge dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
+		dbo.setId(idGenerator.generateNewId(TYPE.CHALLENGE_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		try {
 			DBOChallenge created = basicDao.createNew(dbo);
@@ -287,11 +254,13 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	}
 
 	@Override
-	public List<ChallengeSummary> listForUser(long principalId, long limit,
+	public List<Challenge> listForUser(long principalId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		List<ChallengeSummary> summaries = jdbcTemplate.query(SELECT_SUMMARIES_FOR_PARTICIPANT_PAGINATED, CHALLENGE_SUMMARY_MAPPING, principalId, limit, offset);
-		return summaries;
+		List<DBOChallenge> dbos = jdbcTemplate.query(SELECT_SUMMARIES_FOR_PARTICIPANT_PAGINATED, DBO_CHALLENGE_TABLE_MAPPING, principalId, limit, offset);
+		List<Challenge> dtos = new ArrayList<Challenge>();
+		for (DBOChallenge dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
+		return dtos;
 	}
 
 	@Override
@@ -301,7 +270,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	}
 
 	@Override
-	public List<ChallengeSummary> listForUser(final long principalId, final List<Long> requesterPrincipals,
+	public List<Challenge> listForUser(final long principalId, final List<Long> requesterPrincipals,
 			final long limit,final long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		int n = requesterPrincipals.size();
@@ -311,9 +280,12 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		System.arraycopy(requesterPrincipals.toArray(), 0, args, 1, n);
 		args[n+1]=limit;
 		args[n+2]=offset;
-		return jdbcTemplate.query(
+		List<DBOChallenge> dbos = jdbcTemplate.query(
 				selectSummariesForParticipantAndRequesterPaginated(n), 
-				args, CHALLENGE_SUMMARY_MAPPING);
+				args, DBO_CHALLENGE_TABLE_MAPPING);
+		List<Challenge> dtos = new ArrayList<Challenge>();
+		for (DBOChallenge dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
+		return dtos;
 	}
 
 	@Override
@@ -374,16 +346,16 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	 * all participants.
 	 */
 	@Override
-	public List<UserGroupHeader> listParticipants(long challengeId,
+	public List<Long> listParticipants(long challengeId,
 			Boolean affiliated, long limit, long offset)
 			throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		if (affiliated==null) {
-			return jdbcTemplate.query(SELECT_PARTICIPANTS, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, limit, offset);
+			return jdbcTemplate.queryForList(SELECT_PARTICIPANTS, Long.class, challengeId, limit, offset);
 		} else if (affiliated) {
-			return jdbcTemplate.query(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, challengeId, limit, offset);
+			return jdbcTemplate.queryForList(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, Long.class, challengeId, challengeId, limit, offset);
 		} else {
-			return jdbcTemplate.query(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, CHALLENGE_PARTICIPANT_ROW_MAPPER, challengeId, challengeId, limit, offset);
+			return jdbcTemplate.queryForList(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, Long.class, challengeId, challengeId, limit, offset);
 		}
 	}
 	

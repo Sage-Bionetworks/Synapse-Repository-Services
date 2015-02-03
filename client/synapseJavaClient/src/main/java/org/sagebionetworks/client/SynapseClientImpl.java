@@ -6303,7 +6303,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ChallengeTeamSummary> listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException {
+	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException {
 		throw new RuntimeException("Not Yet Implemented");
 	}
 

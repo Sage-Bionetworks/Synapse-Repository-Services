@@ -22,10 +22,15 @@ public class AuthorizationSqlUtil {
 
 	private static final String AUTHORIZATION_SQL_SELECT = "select acl." + COL_ACL_OWNER_ID + " " + COL_ACL_ID;
 
-	public static final String AUTHORIZATION_SQL_FROM = " from "+
+	public static final String AUTHORIZATION_SQL_TABLES =
 			TABLE_ACCESS_CONTROL_LIST+" acl, "+
 			TABLE_RESOURCE_ACCESS+" ra, "+
 			TABLE_RESOURCE_ACCESS_TYPE+" at ";
+	
+	public static final String AUTHORIZATION_SQL_JOIN =
+		    " acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+		    " and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID;
+			
 	
 	private static final String AUTHORIZATION_SQL_WHERE_1 = 
 		"where (ra."+COL_RESOURCE_ACCESS_GROUP_ID+
@@ -39,22 +44,16 @@ public class AuthorizationSqlUtil {
 	public static final String RESOURCE_TYPE_BIND_VAR = COL_ACL_OWNER_TYPE;
 	
 	private static final String AUTHORIZATION_SQL_WHERE_2 = 
-		"))"+
-	    " and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+		")) AND "+AUTHORIZATION_SQL_JOIN+
 	    " and acl."+COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+
-		" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
 		" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
 	
 	private static final String CAN_ACCESS_SQL_1 =
 			"SELECT COUNT(acl." + COL_ACL_ID + ") " +
-			"FROM " +
-					TABLE_ACCESS_CONTROL_LIST + " acl, " +
-					TABLE_RESOURCE_ACCESS + " ra, " +
-					TABLE_RESOURCE_ACCESS_TYPE + " at " +
+			"FROM " +AUTHORIZATION_SQL_TABLES +
 			"WHERE " +
-					"ra." + COL_RESOURCE_ACCESS_OWNER + "=acl." + COL_ACL_ID +
-					" AND at." + COL_RESOURCE_ACCESS_TYPE_ID + "=ra." + COL_RESOURCE_ACCESS_ID +
-					" AND (ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (";
+			AUTHORIZATION_SQL_JOIN +
+			" AND (ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (";
 
 	private static final String CAN_ACCESS_SQL_2 = "))" +
 					" AND at." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
@@ -75,7 +74,8 @@ public class AuthorizationSqlUtil {
 	 */
 	public static String authorizationSQL(int n, int offset) {
 		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_SELECT);
-		sb.append(AUTHORIZATION_SQL_FROM);
+		sb.append(" FROM ");
+		sb.append(AUTHORIZATION_SQL_TABLES);
 		sb.append(authorizationSQLWhere(n, offset));
 		return sb.toString();
 	}
