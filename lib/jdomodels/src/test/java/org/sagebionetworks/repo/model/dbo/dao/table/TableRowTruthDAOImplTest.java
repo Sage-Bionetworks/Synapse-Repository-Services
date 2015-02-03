@@ -20,6 +20,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
+import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
@@ -41,6 +44,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -62,20 +66,37 @@ public class TableRowTruthDAOImplTest {
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
 		
+	@Autowired
+	RowCacheDao rowCacheDao;
+
 	protected String creatorUserGroupId;
+
+	Object oldStackConfiguration;
 
 	@SuppressWarnings("unchecked")
 	@Before
-	public void before(){
+	public void before() throws Exception {
 		ALL_SET = mock(Set.class);
 		when(ALL_SET.contains(any())).thenReturn(true);
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
+		oldStackConfiguration = ReflectionStaticTestUtils.getField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"),
+				"stackConfiguration");
+		StackConfiguration mockStackConfiguration = mock(StackConfiguration.class);
+		when(mockStackConfiguration.getTableEnabled()).thenReturn(false);
+		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
+				mockStackConfiguration);
+		((RowCacheDaoStub) rowCacheDao).isEnabled = false;
+		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
 	}
 	
 	@After
-	public void after(){
+	public void after() throws Exception {
 		if(tableRowTruthDao != null) tableRowTruthDao.truncateAllRowData();
+		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
+				oldStackConfiguration);
+		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
+		((RowCacheDaoStub) rowCacheDao).isEnabled = false;
 	}
 
 	@Test
