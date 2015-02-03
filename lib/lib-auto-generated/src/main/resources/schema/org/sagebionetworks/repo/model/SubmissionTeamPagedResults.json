@@ -1,12 +1,12 @@
 {
-    "description":"A paginated list of Challenge objects",
+    "description":"A paginated list of SubmissionTeam objects",
     "properties":{
 		"results": {
 		    "description":"The list of results for this page",
 			"type": "array",
 			"items": {
-				"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.Challenge"
+				"type": "object",
+				"$ref":"org.sagebionetworks.repo.model.SubmissionTeam"
 			}
 		},
 		"totalNumberOfResults":{

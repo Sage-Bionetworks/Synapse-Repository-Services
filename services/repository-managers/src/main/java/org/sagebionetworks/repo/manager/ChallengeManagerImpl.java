@@ -4,10 +4,13 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
+import org.sagebionetworks.repo.model.ChallengeTeam;
+import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.SubmissionTeamPagedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +41,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	}
 
 	@Override
-	public Challenge getByProjectId(UserInfo userInfo, String projectId)
+	public Challenge getChallengeByProjectId(UserInfo userInfo, String projectId)
 			throws DatastoreException, NotFoundException {
 		if(projectId==null) throw new IllegalArgumentException("Project ID is required.");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -48,29 +51,75 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	}
 
 	@Override
-	public ChallengePagedResults listForParticipant(UserInfo userInfo,
-			String participantId) throws DatastoreException {
+	public ChallengePagedResults listChallengesForParticipant(
+			UserInfo userInfo, String participantId) throws DatastoreException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Challenge update(UserInfo userInfo, Challenge challenge)
+	public Challenge updateChallenge(UserInfo userInfo, Challenge challenge)
 			throws DatastoreException, NotFoundException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void delete(UserInfo userInfo, Long challengeId)
+	public void deleteChallenge(UserInfo userInfo, long challengeId)
 			throws DatastoreException {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public PaginatedIds listParticipants(UserInfo userInfo, long challengeId,
-			Boolean affiliated, long limit, long offset)
+	public PaginatedIds listParticipantsInChallenge(UserInfo userInfo,
+			long challengeId, Boolean affiliated, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ChallengeTeam createChallengeTeam(UserInfo userInfo,
+			ChallengeTeam challengeTeam) throws DatastoreException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ChallengeTeamPagedResults listChallengeTeams(UserInfo userInfo,
+			long challengeId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public PaginatedIds listRegistratableTeams(UserInfo userInfo,
+			long challengeId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ChallengeTeam updateChallengeTeam(UserInfo userInfo,
+			ChallengeTeam challengeTeam) throws DatastoreException,
+			NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void deleteChallengeTeam(UserInfo userInfo, long challengeTeamId)
+			throws DatastoreException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public SubmissionTeamPagedResults listSubmissionTeams(UserInfo userInfo,
+			long challengeId, long submitterPrincipalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		// TODO Auto-generated method stub
 		return null;

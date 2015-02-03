@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -45,7 +46,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,11 +174,13 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	public List<Team> list(List<String> ids) throws DatastoreException, NotFoundException {
+	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException {
 		if (ids.size()<1) return Collections.emptyList();
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		for (int i=0; i<ids.size(); i++) {
-			param.addValue(ListQueryUtils.bindVariable(i), ids.get(i));
+		int i=0;
+		for (String id : ids) {
+			param.addValue(ListQueryUtils.bindVariable(i++), id);
+			
 		}
 		String sql = SELECT_MULTIPLE_CORE+" WHERE "+COL_TEAM_ID+
 				ListQueryUtils.selectListInClause(ids.size())+
@@ -447,12 +449,13 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	public List<TeamMember> listMembers(String teamId, List<String> principalIds) throws NotFoundException, DatastoreException {
+	public List<TeamMember> listMembers(String teamId, Set<String> principalIds) throws NotFoundException, DatastoreException {
 		if (principalIds.size()<1) return Collections.emptyList();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		for (int i=0; i<principalIds.size(); i++) {
-			param.addValue(ListQueryUtils.bindVariable(i), principalIds.get(i));
+		int i=0;
+		for (String id : principalIds) {
+			param.addValue(ListQueryUtils.bindVariable(i++), id);
 		}
 		String sql = SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 			ListQueryUtils.selectListInClause(principalIds.size());

@@ -91,7 +91,7 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> get(long limit, long offset)
 			throws DatastoreException {
-		return teamManager.get(limit, offset);
+		return teamManager.list(limit, offset);
 	}
 
 	private static Comparator<Team> teamComparator = new Comparator<Team>() {
@@ -109,7 +109,7 @@ public class TeamServiceImpl implements TeamService {
 			throws DatastoreException, NotFoundException  {
 		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
 		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
-		if (fragment==null || fragment.trim().length()==0) return teamManager.get(limit, offset);
+		if (fragment==null || fragment.trim().length()==0) return teamManager.list(limit, offset);
 
 		if (teamNamePrefixCache == null || teamNamePrefixCache.size() == 0 )
 			refreshCache();
@@ -135,7 +135,7 @@ public class TeamServiceImpl implements TeamService {
 		// singleton member variable caches.
 		Trie<String, Collection<Team>> tempPrefixCache = new PatriciaTrie<String, Collection<Team>>(StringKeyAnalyzer.CHAR);
 		Map<String, Trie<String, Collection<TeamMember>>> tempTeamMemberPrefixCacheSet = new HashMap<String, Trie<String, Collection<TeamMember>>>();
-		Map<Team, Collection<TeamMember>> allTeams = teamManager.getAllTeamsAndMembers();
+		Map<Team, Collection<TeamMember>> allTeams = teamManager.listAllTeamsAndMembers();
 		for (Team team : allTeams.keySet()) {
 			addToTeamPrefixCache(tempPrefixCache, team);
 			Trie<String, Collection<TeamMember>>tempTeamMemberPrefixCache = tempTeamMemberPrefixCacheSet.get(team.getId());
@@ -225,7 +225,7 @@ public class TeamServiceImpl implements TeamService {
 		// if there is no prefix provided, we just to a regular paginated query
 		// against the database and return the result.  We also clear out the private fields.
 		if (fragment==null || fragment.trim().length()==0) {
-			PaginatedResults<TeamMember>results = teamManager.getMembers(teamId, limit, offset);
+			PaginatedResults<TeamMember>results = teamManager.listMembers(teamId, limit, offset);
 			for (TeamMember teamMember : results.getResults()) {
 				UserProfileManagerUtils.clearPrivateFields(null, teamMember.getMember());
 			}
@@ -250,7 +250,7 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> getByMember(String principalId, long limit,
 			long offset) throws DatastoreException {
-		return teamManager.getByMember(principalId, limit, offset);
+		return teamManager.listByMember(principalId, limit, offset);
 	}
 
 	/* (non-Javadoc)

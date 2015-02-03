@@ -361,7 +361,7 @@ public class TeamManagerImplTest {
 		List<Team> teamList = Arrays.asList(new Team[]{team});
 		when(mockTeamDAO.getInRange(10, 0)).thenReturn(teamList);
 		when(mockTeamDAO.getCount()).thenReturn(1L);
-		PaginatedResults<Team> result = teamManagerImpl.get(10,0);
+		PaginatedResults<Team> result = teamManagerImpl.list(10,0);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 	}
@@ -372,7 +372,7 @@ public class TeamManagerImplTest {
 		List<Team> teamList = Arrays.asList(new Team[]{team});
 		when(mockTeamDAO.getForMemberInRange(MEMBER_PRINCIPAL_ID, 10, 0)).thenReturn(teamList);
 		when(mockTeamDAO.getCountForMember(MEMBER_PRINCIPAL_ID)).thenReturn(1L);
-		PaginatedResults<Team> result = teamManagerImpl.getByMember(MEMBER_PRINCIPAL_ID,10,0);
+		PaginatedResults<Team> result = teamManagerImpl.listByMember(MEMBER_PRINCIPAL_ID,10,0);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 
@@ -684,7 +684,7 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testGetAllTeamsAndMembers() throws Exception {
-		teamManagerImpl.getAllTeamsAndMembers();
+		teamManagerImpl.listAllTeamsAndMembers();
 		verify(mockTeamDAO).getAllTeamsAndMembers();
 	}
 	
@@ -699,7 +699,7 @@ public class TeamManagerImplTest {
 		List<TeamMember> tms = Arrays.asList(new TeamMember[]{tm});
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, 10, 0)).thenReturn(tms);
 		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(1L);
-		PaginatedResults<TeamMember> pg = teamManagerImpl.getMembers(TEAM_ID, 10, 0);
+		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
 	}
