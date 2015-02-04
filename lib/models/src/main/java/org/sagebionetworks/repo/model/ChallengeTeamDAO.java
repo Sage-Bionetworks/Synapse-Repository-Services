@@ -38,7 +38,7 @@ public interface ChallengeTeamDAO {
 	public List<SubmissionTeam> listSubmissionTeams(long challengeId,
 			long submitterPrincipalId, long limit, long offset);
 
-	public Long listSubmissionTeamsCount(long challengeId,
+	public long listSubmissionTeamsCount(long challengeId,
 			long submitterPrincipalId);
 	
 	

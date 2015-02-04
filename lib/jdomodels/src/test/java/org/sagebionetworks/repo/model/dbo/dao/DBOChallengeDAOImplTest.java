@@ -261,8 +261,6 @@ public class DBOChallengeDAOImplTest {
 		challenge = challengeDAO.create(challenge);
 		
 		checkListForUser(Collections.singletonList(challenge),participantId);
-		
-		// other user is
 		checkListForUser(null, 0L);
 		
 		checkListForUser(null, participantId, requester);
@@ -338,12 +336,12 @@ public class DBOChallengeDAOImplTest {
 	}
 		
 	@Test
-	public void testRoundTrip() throws Exception {
+	public void testUniquenessConstraint() throws Exception {
 		Team participantTeam = createTeam(participantId.toString());
 		Node node = createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
 		
-		// lastly, let's make sure a project can't have two challenges
+		// let's make sure a project can't have two challenges
 		Challenge secondChallenge = new Challenge();
 		secondChallenge.setProjectId(node.getId());
 		secondChallenge.setParticipantTeamId(participantTeam.getId());
