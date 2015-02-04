@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -133,6 +135,11 @@ public interface AdministrationService {
 	 *	Return the last change message number
 	 */
 	FireMessagesResult getCurrentChangeNumber(Long userId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Create or update a list of ChangeMessage
+	 */
+	ChangeMessages createOrUpdateChangeMessages(Long userId, ChangeMessages batch) throws UnauthorizedException, NotFoundException ;
 
 	/**
 	 * Clears the Synapse DOI table.

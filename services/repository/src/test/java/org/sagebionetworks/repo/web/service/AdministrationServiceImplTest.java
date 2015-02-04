@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -20,6 +21,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 
@@ -38,6 +43,7 @@ public class AdministrationServiceImplTest {
 	StackStatusManager mockStackStatusManager;	
 	MessageSyndication mockMessageSyndication;
 	AdministrationServiceImpl adminService;
+	DBOChangeDAO mockChangeDAO;
 	
 	Long nonAdminUserId = 98345L;
 	UserInfo nonAdmin;
@@ -51,7 +57,8 @@ public class AdministrationServiceImplTest {
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockStackStatusManager = Mockito.mock(StackStatusManager.class);
 		mockMessageSyndication = Mockito.mock(MessageSyndication.class);
-		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockMessageSyndication);
+		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
+		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockMessageSyndication, mockChangeDAO);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);
@@ -98,7 +105,25 @@ public class AdministrationServiceImplTest {
 	public void testGetCurrentChangeNumberAuthorized() throws DatastoreException, NotFoundException{
 		adminService.getCurrentChangeNumber(adminUserId);
 	}
-	
+
+	@Test (expected=UnauthorizedException.class)
+	public void testCreateOrUpdateChangeMessagesUnauthorized() throws UnauthorizedException, NotFoundException {
+		adminService.createOrUpdateChangeMessages(nonAdminUserId, new ChangeMessages());
+	}
+
+	@Test
+	public void testCreateOrUpdateChangeMessagesAuthorized() throws UnauthorizedException, NotFoundException {
+		ChangeMessages batch =  new ChangeMessages();
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectEtag("etag");
+		message.setObjectId("12345");
+		message.setObjectType(ObjectType.ENTITY);
+		batch.setList(Arrays.asList(message));
+		when(mockChangeDAO.replaceChange(batch.getList())).thenReturn(batch.getList());
+		adminService.createOrUpdateChangeMessages(adminUserId, batch);
+	}
+
 	@Test
 	public void testWaiter() throws Exception {
 		final int count = 3;
@@ -118,7 +143,7 @@ public class AdministrationServiceImplTest {
 		}
 		assertTrue(arrivalCounter.await(20, TimeUnit.SECONDS));
 		// an extra bit of sleep to make sure all service calls have been made and are waiting
-		Thread.sleep(500);
+		Thread.sleep(1000);
 		assertEquals(count, returnCounter.getCount());
 		adminService.waitForTesting(adminUserId, true);
 		assertTrue(returnCounter.await(1, TimeUnit.SECONDS));

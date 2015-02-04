@@ -220,6 +220,19 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAdministrationService().getCurrentChangeNumber(userId);
 	}
 	
+	/**
+	 * Create or update change messages
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.CREATE_OR_UPDATE }, method = RequestMethod.POST)
+	public @ResponseBody
+	ChangeMessages createOrUpdateChangeMessages(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ChangeMessages batch) throws UnauthorizedException, NotFoundException {
+				return serviceProvider.getAdministrationService().createOrUpdateChangeMessages(userId, batch);
+	}
 	
 	/**
 	 * Clears the Synapse DOI table.

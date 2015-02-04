@@ -517,7 +517,8 @@ public class UrlHelpers {
 	 */
 	public static final String REBROADCAST_MESSAGES 		= CHANGE_MESSAGES+"/rebroadcast";
 	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
-	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
+	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber";
+	public static final String CREATE_OR_UPDATE				= CHANGE_MESSAGES+"/createOrUpdate";
 	
 	// Messaging URLs
 	public static final String MESSAGE                    = "/message";
