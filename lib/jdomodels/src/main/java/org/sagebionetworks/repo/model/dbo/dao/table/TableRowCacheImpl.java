@@ -124,9 +124,11 @@ public class TableRowCacheImpl implements TableRowCache {
 
 	@Override
 	public void truncateAllData() {
-		for (CurrentRowCacheDao currentRowCacheDao : connectionFactory.getCurrentRowCacheConnections()) {
-			if (currentRowCacheDao.isEnabled()) {
-				currentRowCacheDao.truncateAllData();
+		if (isCurrentVersionCacheEnabled()) {
+			for (CurrentRowCacheDao currentRowCacheDao : connectionFactory.getCurrentRowCacheConnections()) {
+				if (currentRowCacheDao.isEnabled()) {
+					currentRowCacheDao.truncateAllData();
+				}
 			}
 		}
 		if (rowCacheDao.isEnabled()) {
