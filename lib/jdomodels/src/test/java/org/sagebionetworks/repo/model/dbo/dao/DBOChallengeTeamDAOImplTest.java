@@ -169,7 +169,7 @@ public class DBOChallengeTeamDAOImplTest {
 	/*
 	 * check 'listRegistratable' and 'listRegistratableCount'
 	 */
-	private void checkRegistratable(long challengeId, long principalId, List<Team> expected) throws Exception {
+	private void checkRegistratable(long challengeId, long principalId, List<String> expected) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
 		assertEquals(expected,
 				challengeTeamDAO.listRegistratable(challengeId, principalId, 1L+expected.size(), 0L));
@@ -213,6 +213,14 @@ public class DBOChallengeTeamDAOImplTest {
 	}
 	
 	@Test
+	public void testGet() throws Exception {
+		challengeTeam = newChallengeTeam();
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
+		ChallengeTeam retrieved = challengeTeamDAO.get(Long.parseLong(challengeTeam.getId()));
+		assertEquals(challengeTeam, retrieved);
+	}
+	
+	@Test
 	public void testUpdate() throws Exception {
 		challengeTeam = newChallengeTeam();
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
@@ -225,7 +233,7 @@ public class DBOChallengeTeamDAOImplTest {
 	@Test
 	public void testRegistratable() throws Exception {
 		// check that the team _can_ be registered (by an admin of the team)
-		checkRegistratable(challengeId, principalId, Collections.singletonList(registeredTeam));
+		checkRegistratable(challengeId, principalId, Collections.singletonList(registeredTeam.getId()));
 		// not registratable by another user
 		checkRegistratable(challengeId, 0L, null);
 		

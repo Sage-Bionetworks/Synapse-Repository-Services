@@ -211,4 +211,23 @@ public class ChallengeManagerImplTest {
 		assertEquals(expected, challengeManager.listParticipantsInChallenge(USER_INFO,
 				challengeId, affiliated, limit, offset));
 	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testListParticipantsInChallengeUnauthorized() throws Exception {
+		Long challengeId = 111L;
+		Challenge challenge = newChallenge(); 
+		challenge.setId(challengeId.toString());
+		Boolean affiliated=null;
+		long limit = 10L;
+		long offset = 0L;
+		
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
+						AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
+		
+		challengeManager.listParticipantsInChallenge(USER_INFO,
+				challengeId, affiliated, limit, offset);
+	}
 }

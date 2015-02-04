@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.SubmissionTeam;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -31,6 +31,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,7 +64,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?)";
 	
 	private static final String SELECT_REGISTRATABLE_TEAMS_PAGINATED = 
-			"SELECT t.* FROM "+SELECT_REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
+			"SELECT t."+COL_TEAM_ID+" FROM "+SELECT_REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_REGISTRATABLE_TEAMS_COUNT = 
 			"SELECT count(*) FROM "+SELECT_REGISTRATABLE_TEAMS_CORE;
@@ -91,6 +92,13 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 				throw e;
 			}
 		}
+	}
+	
+	@Override
+	public ChallengeTeam get(long id) throws NotFoundException, DatastoreException {
+		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(id);
+		DBOChallengeTeam dbo = basicDao.getObjectByPrimaryKey(DBOChallengeTeam.class, param);
+		return copyDBOtoDTO(dbo);
 	}
 
 	public static void validateChallengeTeam(ChallengeTeam dto) {
@@ -197,19 +205,30 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	 * Returns the Teams which are NOT registered for the challenge and on which is current user is an ADMIN.
 	 */
 	@Override
-	public List<Team> listRegistratable(long challengeId, long userId,
+	public List<String> listRegistratable(long challengeId, long userId,
 			long limit, long offset) throws NotFoundException,
 			DatastoreException {
-		List<DBOTeam> dbos = jdbcTemplate.query(SELECT_REGISTRATABLE_TEAMS_PAGINATED, 
-				TEAM_ROW_MAPPER, userId, challengeId, limit, offset);
-		List<Team> result = new ArrayList<Team>();
-		for (DBOTeam dbo : dbos) result.add(TeamUtils.copyDboToDto(dbo));
-		return result;
+		return jdbcTemplate.queryForList(SELECT_REGISTRATABLE_TEAMS_PAGINATED, 
+				String.class, userId, challengeId, limit, offset);
 	}
 
 	@Override
 	public long listRegistratableCount(long challengeId, long userId)
 			throws NotFoundException, DatastoreException {
 		return jdbcTemplate.queryForObject(SELECT_REGISTRATABLE_TEAMS_COUNT, Long.class, userId, challengeId);
+	}
+
+	@Override
+	public List<SubmissionTeam> listSubmissionTeams(long challengeId,
+			long submitterPrincipalId, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Long listSubmissionTeamsCount(long challengeId,
+			long submitterPrincipalId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

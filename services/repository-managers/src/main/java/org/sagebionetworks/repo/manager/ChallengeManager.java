@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.SubmissionTeamPagedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -83,8 +84,10 @@ public interface ChallengeManager {
 	 * @param challengeTeam
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
 	 */
-	public ChallengeTeam createChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws DatastoreException;
+	public ChallengeTeam createChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 
@@ -125,8 +128,9 @@ public interface ChallengeManager {
 	 * @param userInfo
 	 * @param challengeTeamId
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public void deleteChallengeTeam(UserInfo userInfo, long challengeTeamId) throws DatastoreException;
+	public void deleteChallengeTeam(UserInfo userInfo, long challengeTeamId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Returns a list of Teams either (1) on whose behalf the user is eligible to submit or (2) on 
