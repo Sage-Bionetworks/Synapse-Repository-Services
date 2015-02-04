@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
@@ -45,30 +45,51 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String SELECT_FOR_CHALLENGE_SQL_CORE = 
+	private static final String CHALLENGE_SQL_CORE = 
 			" FROM "+TABLE_CHALLENGE_TEAM+" WHERE "+
 					COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?";
 
 	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ?";
 	
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
-			"SELECT * "+SELECT_FOR_CHALLENGE_SQL_CORE+LIMIT_OFFSET;
+			"SELECT * "+CHALLENGE_SQL_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
-			"SELECT count(*) "+SELECT_FOR_CHALLENGE_SQL_CORE;
+			"SELECT count(*) "+CHALLENGE_SQL_CORE;
 	
-	private static final String SELECT_REGISTRATABLE_TEAMS_CORE = 
-			TeamUtils.SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
-			" AND "+ "gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?"+
+	private static final String ADMIN_TEAMS_CORE = 
+			TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
+			" AND "+ "gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?";
+			
+	private static final String REGISTRATABLE_TEAMS_CORE = 
+			ADMIN_TEAMS_CORE+
 			" AND t."+COL_TEAM_ID+" NOT IN (SELECT "+COL_CHALLENGE_TEAM_TEAM_ID+" FROM "+TABLE_CHALLENGE_TEAM+
 			" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?)";
 	
 	private static final String SELECT_REGISTRATABLE_TEAMS_PAGINATED = 
-			"SELECT t."+COL_TEAM_ID+" FROM "+SELECT_REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
+			"SELECT t."+COL_TEAM_ID+" FROM "+REGISTRATABLE_TEAMS_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_REGISTRATABLE_TEAMS_COUNT = 
-			"SELECT count(*) FROM "+SELECT_REGISTRATABLE_TEAMS_CORE;
+			"SELECT count(*) FROM "+REGISTRATABLE_TEAMS_CORE;
 	
+	// find the teams in which 
+	// (1) the user is an admin, OR
+	// (2) the team is registered for the challenge and the user is a member
+	// In the following the parameters are:
+	// 1 - member ID of interest
+	// 2 - challenge ID of interest
+	// 3 - memer ID of interest
+	private static final String CAN_SUBMIT_OR_REGISTER_CORE = 
+			"SELECT t."+COL_TEAM_ID+" FROM "+ADMIN_TEAMS_CORE+" UNION "+
+			"SELECT "+COL_CHALLENGE_TEAM_TEAM_ID+" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_CHALLENGE_TEAM+" ct."+" WHERE gm."+
+			COL_GROUP_MEMBERS_GROUP_ID+"=ct."+COL_CHALLENGE_TEAM_TEAM_ID+" AND ct."+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?"+
+			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"?";
+
+	private static final String SELECT_CAN_SUBMIT_OR_REGISTER_PAGINATED = 
+			""
+			;
+
+	private static final String SELECT_CAN_SUBMIT_OR_REGISTER_COUNT = "";
 
 	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
@@ -218,6 +239,11 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		return jdbcTemplate.queryForObject(SELECT_REGISTRATABLE_TEAMS_COUNT, Long.class, userId, challengeId);
 	}
 
+	/*
+	 * Returns a list of Teams which the user is a member and  
+	 * (1) is registered for the challenge  OR
+	 * (2) the user is an admin
+	 */
 	@Override
 	public List<SubmissionTeam> listSubmissionTeams(long challengeId,
 			long submitterPrincipalId, long limit, long offset) {

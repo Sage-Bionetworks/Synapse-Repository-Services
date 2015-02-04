@@ -31,9 +31,9 @@ public interface ChallengeTeamDAO {
 	public void delete(long id) throws DatastoreException;
 
 	/*
-	 * Returns a list of Teams either (1) on whose behalf the user is eligible to submit or 
-	 * (2) on whose behalf the user WOULD be eligible to submit if the Team has been registered 
-	 * for the Challenge, and which the User CAN register for the Challenge.
+	 * Returns a list of Teams which either 
+	 * (1) are registered for the challenge with the given user as a member, OR
+	 * (2) the user is an admin
 	 */
 	public List<SubmissionTeam> listSubmissionTeams(long challengeId,
 			long submitterPrincipalId, long limit, long offset);
