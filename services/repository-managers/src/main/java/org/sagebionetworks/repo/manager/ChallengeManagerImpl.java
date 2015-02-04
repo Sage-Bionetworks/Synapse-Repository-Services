@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
@@ -96,8 +99,17 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public PaginatedIds listParticipantsInChallenge(UserInfo userInfo,
 			long challengeId, Boolean affiliated, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		// TODO Auto-generated method stub
-		return null;
+		Challenge challenge = challengeDAO.get(challengeId);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, 
+						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		PaginatedIds result = new PaginatedIds();
+		List<Long> longIds = challengeDAO.listParticipants(challengeId, affiliated, limit, offset);
+		List<String> stringIds = new ArrayList<String>(longIds.size());
+		for (Long id : longIds) stringIds.add(id.toString());
+		result.setResults(stringIds);
+		result.setTotalNumberOfResults(challengeDAO.listParticipantsCount(challengeId, affiliated));
+		return result;
 	}
 
 	@Override

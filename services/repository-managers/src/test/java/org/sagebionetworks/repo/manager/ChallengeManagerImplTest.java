@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -179,5 +181,34 @@ public class ChallengeManagerImplTest {
 				ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 						AuthorizationManagerUtil.ACCESS_DENIED);
 		challengeManager.deleteChallenge(USER_INFO, challengeId);
+	}
+	
+	@Test
+	public void testListParticipantsInChallenge() throws Exception {
+		Long challengeId = 111L;
+		Challenge challenge = newChallenge(); 
+		challenge.setId(challengeId.toString());
+		Boolean affiliated=null; // return all participants
+		long limit = 10L;
+		long offset = 0L;
+		List<Long> participants = Arrays.asList(new Long[]{111L, 222L, 333L});
+		PaginatedIds expected = new PaginatedIds();
+		List<String> stringIds = new ArrayList<String>();
+		for (Long id : participants) stringIds.add(id.toString());
+		expected.setResults(stringIds);
+		expected.setTotalNumberOfResults((long)participants.size());
+		
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
+						AuthorizationManagerUtil.AUTHORIZED);
+		
+		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
+		when(mockChallengeDAO.listParticipants(challengeId, affiliated, limit, offset)).
+			thenReturn(participants);
+		when(mockChallengeDAO.listParticipantsCount(challengeId, affiliated)).
+			thenReturn((long)participants.size());
+		
+		assertEquals(expected, challengeManager.listParticipantsInChallenge(USER_INFO,
+				challengeId, affiliated, limit, offset));
 	}
 }
