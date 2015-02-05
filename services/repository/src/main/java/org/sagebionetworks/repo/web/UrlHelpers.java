@@ -770,7 +770,24 @@ public class UrlHelpers {
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-
+	
+	/**
+	 * Challenge URIs
+	 */
+	public static final String CHALLENGE = "/challenge";
+	public static final String ENTITY_ID_CHALLENGE = ENTITY_ID+CHALLENGE;
+	public static final String CHALLENGE_ID_PATH_VARIABLE = "challengeId";
+	public static final String CHALLENGE_ID = "/{"+CHALLENGE_ID_PATH_VARIABLE+"}";
+	public static final String CHALLENGE_CHALLENGE_ID = CHALLENGE+CHALLENGE_ID;
+	public static final String CHALLENGE_CHAL_ID_PARTICIPANT = CHALLENGE+CHALLENGE_ID+"/participant";
+	public static final String CHALLENGE_CHAL_ID_SUBMISSION_TEAMS = CHALLENGE+CHALLENGE_ID+"/submissionTeams";
+	public static final String CHALLENGE_TEAM = "/challengeTeam";
+	public static final String CHALLENGE_CHAL_ID_CHAL_TEAM = CHALLENGE+CHALLENGE_ID+CHALLENGE_TEAM;
+	public static final String CHALLENGE_TEAM_ID_PATH_VARIABLE = "challengeTeamId";
+	public static final String CHALLENGE_TEAM_ID = "/{"+CHALLENGE_TEAM_ID_PATH_VARIABLE+"}";
+	public static final String CHALLENGE_CHAL_ID_CHAL_TEAM_CHAL_TEAM_ID = 
+			CHALLENGE+CHALLENGE_ID+CHALLENGE_TEAM+CHALLENGE_TEAM_ID;
+	public static final String CHALLENGE_CHAL_ID_REGISTRATABLE_TEAM = CHALLENGE+CHALLENGE_ID+"/registratableTeam";
 	/*
 	 * Project URLs
 	 */
