@@ -2099,6 +2099,9 @@ public class NodeDAOImplTest {
 	public void testGetProjectHeadersReturnInfo() throws Exception {
 		UserInfo user1Info = createUserInfo(user1);
 
+		Date before = new Date();
+		Thread.sleep(2);
+
 		String owned = createProject("testGetProjectHeaders.name1", user1);
 		toDelete.add(owned);
 		Node ownedProject = nodeDao.getNode(owned);
@@ -2110,11 +2113,15 @@ public class NodeDAOImplTest {
 		ProjectHeader header = projectHeaders.getResults().get(0);
 		assertEquals(ownedProject.getName(), header.getName());
 		assertEquals(owned, header.getId());
-		assertNull(header.getLastActivity());
-		Date before = new Date();
+
+		Thread.sleep(2);
+		Date between = new Date();
+		Thread.sleep(2);
+
+		assertTrue(header.getLastActivity().after(before));
+		assertTrue(header.getLastActivity().before(between));
 
 		// touching project stats
-		Thread.sleep(2);
 		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
 		projectStatsDAO.update(projectStat);
 
@@ -2128,7 +2135,7 @@ public class NodeDAOImplTest {
 		Thread.sleep(2);
 		Date after = new Date();
 
-		assertTrue(headerAfter.getLastActivity().after(before));
+		assertTrue(headerAfter.getLastActivity().after(between));
 		assertTrue(headerAfter.getLastActivity().before(after));
 	}
 
