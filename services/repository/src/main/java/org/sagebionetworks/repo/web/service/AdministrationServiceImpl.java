@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -120,13 +121,15 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public AdministrationServiceImpl(BackupDaemonLauncher backupDaemonLauncher,
 			ObjectTypeSerializer objectTypeSerializer, UserManager userManager,
 			StackStatusManager stackStatusManager,
-			MessageSyndication messageSyndication) {
+			MessageSyndication messageSyndication,
+			DBOChangeDAO changeDAO) {
 		super();
 		this.backupDaemonLauncher = backupDaemonLauncher;
 		this.objectTypeSerializer = objectTypeSerializer;
 		this.userManager = userManager;
 		this.stackStatusManager = stackStatusManager;
 		this.messageSyndication = messageSyndication;
+		this.changeDAO = changeDAO;
 	}
 	
 	/* (non-Javadoc)
@@ -344,5 +347,17 @@ public class AdministrationServiceImpl implements AdministrationService  {
 				waitObject.wait(30000);
 			}
 		}
+	}
+
+	@Override
+	public ChangeMessages createOrUpdateChangeMessages(Long userId,
+			ChangeMessages batch) throws UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		}
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(changeDAO.replaceChange(batch.getList()));
+		return messages;
 	}
 }

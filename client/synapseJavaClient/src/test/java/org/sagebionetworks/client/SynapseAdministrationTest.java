@@ -113,5 +113,4 @@ public class SynapseAdministrationTest {
 		String url = SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, null);
 		assertEquals(expected, url);
 	}
-	
 }
