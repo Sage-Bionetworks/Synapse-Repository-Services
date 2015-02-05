@@ -23,8 +23,6 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.SubmissionTeam;
-import org.sagebionetworks.repo.model.SubmissionTeamPagedResults;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -453,14 +451,10 @@ public class ChallengeManagerImplTest {
 	@Test
 	public void testListSubmissionTeams() throws Exception {
 		Long challengeId = 111L;
-		SubmissionTeam submissionTeam = new SubmissionTeam();
-		submissionTeam.setChallengeId(challengeId.toString());
-		submissionTeam.setIsRegistered(false);
-		submissionTeam.setTeamId(CHALLENGE_TEAM_ID);
-		List<SubmissionTeam> submissionTeams = Collections.singletonList(submissionTeam);
+		List<String> submissionTeams = Collections.singletonList(CHALLENGE_TEAM_ID);
 		when(mockChallengeTeamDAO.listSubmissionTeams(challengeId, USER_PRINCIPAL_ID, 10L, 0L)).thenReturn(submissionTeams);
 		when(mockChallengeTeamDAO.listSubmissionTeamsCount(challengeId, USER_PRINCIPAL_ID)).thenReturn((long)submissionTeams.size());
-		SubmissionTeamPagedResults expected = new SubmissionTeamPagedResults();
+		PaginatedIds expected = new PaginatedIds();
 		expected.setResults(submissionTeams);
 		expected.setTotalNumberOfResults((long)submissionTeams.size());
 		assertEquals(expected,

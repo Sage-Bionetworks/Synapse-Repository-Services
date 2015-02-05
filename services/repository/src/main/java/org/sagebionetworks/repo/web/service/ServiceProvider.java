@@ -68,4 +68,6 @@ public interface ServiceProvider {
 
 	public ProjectSettingsService getProjectSettingsService();
 	
+	public ChallengeService getChallengeService();
+	
 }
