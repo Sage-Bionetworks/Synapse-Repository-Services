@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -188,6 +190,19 @@ public class EntityManagerImplUnitTest {
 		entityManager.updateEntity(mockUser, entity, true, activityId);		
 		verify(node).setActivityId(activityId);
 		reset(node);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateOldTypeNotAllowed() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		entityManager.setAllowCreationOfOldEntities(false);
+		entityManager.createEntity(mockUser, new Study(), null);
+	}
+	
+	@Test
+	public void testCreateOldTypeAllowed() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		entityManager.setAllowCreationOfOldEntities(true);
+		entityManager.createEntity(mockUser, new Study(), null);
+		verify(mockNodeManager).createNewNode(any(Node.class), any(NamedAnnotations.class), any(UserInfo.class));
 	}
 		
 }

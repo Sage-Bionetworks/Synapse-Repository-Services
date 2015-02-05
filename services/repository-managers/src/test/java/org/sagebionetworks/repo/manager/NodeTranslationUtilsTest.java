@@ -341,12 +341,12 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testVersionableRoundTrip() throws InstantiationException, IllegalAccessException{
-		Code code = new Code();
+		FileEntity code = new FileEntity();
 		code.setVersionComment("version comment");
 		code.setVersionNumber(new Long(134));
 		code.setVersionLabel("1.133.0");
 		code.setName("mame");
-		Code clone = cloneUsingNodeTranslation(code);
+		FileEntity clone = cloneUsingNodeTranslation(code);
 		assertEquals(code, clone);
 	}
 	
