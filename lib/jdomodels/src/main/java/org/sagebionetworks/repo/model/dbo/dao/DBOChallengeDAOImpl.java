@@ -202,7 +202,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			if (e.getCause() instanceof DuplicateKeyException) {
 				throw new IllegalArgumentException("The specified project may already have a challenge.", e);
 			} else if (e.getCause() instanceof DataIntegrityViolationException) {
-				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.");
+				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.", e);
 			} else {
 				throw e;
 			}
@@ -321,7 +321,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class, 
 					new SinglePrimaryKeySqlParameterSource(dto.getId()));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.");
+			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
 		}
 		if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()))) {
 			throw new IllegalArgumentException(
@@ -343,7 +343,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 				throw new DatastoreException("Unsuccessful updating Challenge in database.");
 		} catch (IllegalArgumentException e) {
 			if (e.getCause() instanceof DataIntegrityViolationException) {
-				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.");
+				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.", e);
 			} else {
 				throw e;
 			}

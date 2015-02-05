@@ -206,7 +206,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 					new SinglePrimaryKeySqlParameterSource(dto.getId()));
 			
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.");
+			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
 		}
 		if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
 			throw new IllegalArgumentException(
