@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.SubmissionTeam;
+import org.sagebionetworks.repo.model.SubmissionTeamPagedResults;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -43,7 +45,10 @@ public class ChallengeManagerImplTest {
 	private static final String CHALLENGE_TEAM_ID="66666";
 	
 	private static final UserInfo USER_INFO = new UserInfo(false);
+	private static final long USER_PRINCIPAL_ID = 1L;
 	private static final UserInfo ADMIN_USER = new UserInfo(true);
+	private static final long ADMIN_PRINCIPAL_ID = 2L;
+
 	private static Challenge newChallenge() {
 		Challenge challenge = new Challenge();
 		challenge.setId(CHALLENGE_ID);
@@ -54,8 +59,8 @@ public class ChallengeManagerImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		USER_INFO.setId(1L);
-		ADMIN_USER.setId(2L);
+		USER_INFO.setId(USER_PRINCIPAL_ID);
+		ADMIN_USER.setId(ADMIN_PRINCIPAL_ID);
 		mockChallengeDAO = Mockito.mock(ChallengeDAO.class);
 		mockChallengeTeamDAO = Mockito.mock(ChallengeTeamDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
@@ -359,6 +364,7 @@ public class ChallengeManagerImplTest {
 		assertEquals(expected,
 		challengeManager.listChallengeTeams(USER_INFO, challengeId, 10L, 0L));
 	}
+	
 	@Test(expected=UnauthorizedException.class)
 	public void testListChallengeTeamsUnauthorized() throws Exception {
 		Challenge challenge = newChallenge();
@@ -370,4 +376,102 @@ public class ChallengeManagerImplTest {
 						AuthorizationManagerUtil.ACCESS_DENIED);
 		challengeManager.listChallengeTeams(USER_INFO, challengeId, 10L, 0L);
 	}
+	
+	@Test
+	public void testListRegistratableTeams() throws Exception {
+		Challenge challenge = newChallenge();
+		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
+		
+		long challengeId = Long.parseLong(challenge.getId());
+		List<String> teamIds = Arrays.asList(new String[]{"123", "456"});
+		when(mockChallengeTeamDAO.listRegistratable(challengeId, USER_PRINCIPAL_ID, 10L, 0L)).thenReturn(teamIds);
+		when(mockChallengeTeamDAO.listRegistratableCount(challengeId, USER_PRINCIPAL_ID)).thenReturn((long)teamIds.size());
+		PaginatedIds expected = new PaginatedIds();
+		expected.setResults(teamIds);
+		expected.setTotalNumberOfResults((long)teamIds.size());
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
+						AuthorizationManagerUtil.AUTHORIZED);
+		assertEquals(expected,
+		challengeManager.listRegistratableTeams(USER_INFO, challengeId, 10L, 0L));
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testListRegistratableTeamsUnauthorized() throws Exception {
+		Challenge challenge = newChallenge();
+		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
+		
+		long challengeId = Long.parseLong(challenge.getId());
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
+						AuthorizationManagerUtil.ACCESS_DENIED);
+		challengeManager.listRegistratableTeams(USER_INFO, challengeId, 10L, 0L);
+	}
+
+	@Test
+	public void testUpdateChallengeTeam() throws Exception {
+		Challenge challenge = newChallenge();
+		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
+		ChallengeTeam updated = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
+		updated.setId("222");
+		when(mockChallengeTeamDAO.update(challengeTeam)).thenReturn(updated);
+		// by using an admin user we cause the authorization check to return 'true'
+		assertEquals(updated, challengeManager.updateChallengeTeam(ADMIN_USER, challengeTeam));
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testUpdateChallengeTeamUnAuthorized() throws Exception {
+		Challenge challenge = newChallenge();
+		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
+		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
+		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		challengeManager.updateChallengeTeam(USER_INFO, challengeTeam);
+	}
+
+	@Test
+	public void testDeleteChallengeTeam() throws Exception {
+		Challenge challenge = newChallenge();
+		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
+		challengeTeam.setId("222");
+		// by using an admin user we cause the authorization check to return 'true'
+		challengeManager.deleteChallengeTeam(ADMIN_USER, Long.parseLong(challengeTeam.getId()));
+		verify(mockChallengeTeamDAO).delete(Long.parseLong(challengeTeam.getId()));
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testDeleteChallengeTeamUnAuthorized() throws Exception {
+		Challenge challenge = newChallenge();
+		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
+		Long challengeTeamId = 222L;
+		challengeTeam.setId(challengeTeamId.toString());
+		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
+		when(mockChallengeTeamDAO.get(challengeTeamId)).thenReturn(challengeTeam);
+		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		challengeManager.deleteChallengeTeam(USER_INFO, challengeTeamId);
+	}
+
+	@Test
+	public void testListSubmissionTeams() throws Exception {
+		Long challengeId = 111L;
+		SubmissionTeam submissionTeam = new SubmissionTeam();
+		submissionTeam.setChallengeId(challengeId.toString());
+		submissionTeam.setIsRegistered(false);
+		submissionTeam.setTeamId(CHALLENGE_TEAM_ID);
+		List<SubmissionTeam> submissionTeams = Collections.singletonList(submissionTeam);
+		when(mockChallengeTeamDAO.listSubmissionTeams(challengeId, USER_PRINCIPAL_ID, 10L, 0L)).thenReturn(submissionTeams);
+		when(mockChallengeTeamDAO.listSubmissionTeamsCount(challengeId, USER_PRINCIPAL_ID)).thenReturn((long)submissionTeams.size());
+		SubmissionTeamPagedResults expected = new SubmissionTeamPagedResults();
+		expected.setResults(submissionTeams);
+		expected.setTotalNumberOfResults((long)submissionTeams.size());
+		assertEquals(expected,
+		challengeManager.listSubmissionTeams(USER_INFO, challengeId, USER_PRINCIPAL_ID, 10L, 0L));
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testListSubmissionTeamsUnauthorized() throws Exception {
+		Long challengeId = 111L;
+		challengeManager.listSubmissionTeams(USER_INFO, challengeId, ADMIN_PRINCIPAL_ID, 10L, 0L);
+	}
+	
+	
 }
