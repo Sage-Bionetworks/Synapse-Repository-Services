@@ -126,7 +126,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		try {
 			testTeam = teamManager.create(testUser, team);
 		} catch (NameConflictException e) {
-			Map<Team, Collection<TeamMember>> allTeamsAndMembers = teamManager.getAllTeamsAndMembers();
+			Map<Team, Collection<TeamMember>> allTeamsAndMembers = teamManager.listAllTeamsAndMembers();
 			for (Team t : allTeamsAndMembers.keySet()) {
 				if (t.getName().equals(team.getName())) {
 					testTeam = t;

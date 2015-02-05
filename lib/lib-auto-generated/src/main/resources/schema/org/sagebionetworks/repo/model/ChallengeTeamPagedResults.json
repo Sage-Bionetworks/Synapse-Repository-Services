@@ -1,5 +1,5 @@
 {
-    "description":"Paginated results of ChallengeTeam objects",
+    "description":"A paginated list of ChallengeTeam objects",
     "properties":{
 		"results": {
 		    "description":"The list of results for this page",

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -135,7 +136,7 @@ public class DBOChallengeDAOImplTest {
 		for (Node node : nodesToDelete) {
 			nodeDAO.delete(node.getId());
 		}
-		if (challenge!=null) {
+		if (challenge!=null && challenge.getId()!=null) {
 			challengeDAO.delete(Long.parseLong(challenge.getId()));
 			challenge = null;
 		}
@@ -165,9 +166,35 @@ public class DBOChallengeDAOImplTest {
 		assertEquals(participantTeam.getId(), challenge.getParticipantTeamId());
 		assertEquals(node.getId(), challenge.getProjectId());		
 	}
-		
+	
+	@Test(expected=InvalidModelException.class)
+	public void testCreateWithIllegalProject() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		challenge = new Challenge();
+		challenge.setProjectId("syn00000");
+		challenge.setParticipantTeamId(participantTeam.getId());
+		challenge = challengeDAO.create(challenge);
+	}
+	
+	@Test(expected=InvalidModelException.class)
+	public void testCreateWithIllegalTeam() throws Exception {
+		Team participantTeam = new Team();
+		participantTeam.setId("000");
+		createNodeAndChallenge(participantTeam);
+		challengeDAO.create(challenge);
+	}
+	
 	@Test
 	public void testGet() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		createNodeAndChallenge(participantTeam);
+		challenge = challengeDAO.create(challenge);
+		Challenge retrieved = challengeDAO.get(Long.parseLong(challenge.getId()));
+		assertEquals(challenge, retrieved);	
+	}
+		
+	@Test
+	public void testGetFromProjectId() throws Exception {
 		Team participantTeam = createTeam(participantId.toString());
 		Node node = createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
@@ -188,13 +215,25 @@ public class DBOChallengeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetNonExistent() throws Exception {
+	public void testUpdateWithIllegalTeam() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		createNodeAndChallenge(participantTeam);
+		challenge = challengeDAO.create(challenge);
+		
+		Team participantTeam2 = new Team();
+		participantTeam2.setId("000");
+		challenge.setParticipantTeamId(participantTeam2.getId());
 		try {
-			challengeDAO.getForProject("syn987654321");
-			fail("Expected NotFoundException");
-		} catch (NotFoundException e) {
-			//as expected
-		}		
+			challengeDAO.update(challenge);
+			fail("expected InvalidModelException");
+		} catch (InvalidModelException e) {
+			// as expected
+		}
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testGetNonExistent() throws Exception {
+		challengeDAO.getForProject("syn987654321");		
 	}
 	
 	private void checkListForUser(List<Challenge> expected, long participantId) throws Exception {
@@ -209,10 +248,10 @@ public class DBOChallengeDAOImplTest {
 	private void checkListForUser(List<Challenge> expected, long participantId, long requesterId) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
 		assertEquals(expected,
-				challengeDAO.listForUser(participantId, Collections.singletonList(requesterId), expected.size()+1, 0));
-		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, Collections.singletonList(requesterId)));
+				challengeDAO.listForUser(participantId, Collections.singleton(requesterId), expected.size()+1, 0));
+		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, Collections.singleton(requesterId)));
 		// test pagination
-		assertTrue(challengeDAO.listForUser(participantId, Collections.singletonList(requesterId), 10L, expected.size()).isEmpty());		
+		assertTrue(challengeDAO.listForUser(participantId, Collections.singleton(requesterId), 10L, expected.size()).isEmpty());		
 	}
 
 	@Test
@@ -222,8 +261,6 @@ public class DBOChallengeDAOImplTest {
 		challenge = challengeDAO.create(challenge);
 		
 		checkListForUser(Collections.singletonList(challenge),participantId);
-		
-		// other user is
 		checkListForUser(null, 0L);
 		
 		checkListForUser(null, participantId, requester);
@@ -299,12 +336,12 @@ public class DBOChallengeDAOImplTest {
 	}
 		
 	@Test
-	public void testRoundTrip() throws Exception {
+	public void testUniquenessConstraint() throws Exception {
 		Team participantTeam = createTeam(participantId.toString());
 		Node node = createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
 		
-		// lastly, let's make sure a project can't have two challenges
+		// let's make sure a project can't have two challenges
 		Challenge secondChallenge = new Challenge();
 		secondChallenge.setProjectId(node.getId());
 		secondChallenge.setParticipantTeamId(participantTeam.getId());

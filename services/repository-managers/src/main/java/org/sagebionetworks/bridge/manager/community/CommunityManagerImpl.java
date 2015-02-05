@@ -364,7 +364,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		}
 
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
-		PaginatedResults<TeamMember> teamMembers = teamManager.getMembers(community.getTeamId(), limit, offset);
+		PaginatedResults<TeamMember> teamMembers = teamManager.listMembers(community.getTeamId(), limit, offset);
 		List<UserGroupHeader> communityMembers = Lists.transform(teamMembers.getResults(), new Function<TeamMember, UserGroupHeader>() {
 			@Override
 			public UserGroupHeader apply(TeamMember input) {

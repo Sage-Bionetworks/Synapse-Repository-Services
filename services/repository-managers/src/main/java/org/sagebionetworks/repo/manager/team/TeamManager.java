@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager.team;
 
-import java.net.URL;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -36,7 +37,16 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<Team> get(long limit, long offset) throws DatastoreException;
+	public PaginatedResults<Team> list(long limit, long offset) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 */
+	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -46,8 +56,17 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<TeamMember> getMembers(String teamId, long limit, long offset) throws DatastoreException;
+	public PaginatedResults<TeamMember> listMembers(String teamId, long limit, long offset) throws DatastoreException;
 	
+	/**
+	 * 
+	 * @param teamId
+	 * @param memberIds
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 */
+	public List<TeamMember> listMembers(String teamId, Set<String> memberIds) throws DatastoreException, NotFoundException;
 	/**
 	 * 
 	 * @param teamId
@@ -63,7 +82,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException;
+	public Map<Team, Collection<TeamMember>> listAllTeamsAndMembers() throws DatastoreException;
 	
 	/**
 	 * Retrieve the Teams to which the given user belongs, paginated
@@ -73,7 +92,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<Team> getByMember(String principalId, long limit, long offset) throws DatastoreException;
+	public PaginatedResults<Team> listByMember(String principalId, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * Get a Team by its ID

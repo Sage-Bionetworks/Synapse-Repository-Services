@@ -45,10 +45,10 @@ public class TeamServiceTest {
 
 		Map<Team, Collection<TeamMember>> universe = new HashMap<Team, Collection<TeamMember>>();
 		universe.put(team, Arrays.asList(new TeamMember[]{member}));
-		when(mockTeamManager.getAllTeamsAndMembers()).thenReturn(universe);
+		when(mockTeamManager.listAllTeamsAndMembers()).thenReturn(universe);
 		
 		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
-		when(mockTeamManager.getMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
+		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
 		teamService.setTeamManager(mockTeamManager);
 	}
 	
@@ -86,16 +86,16 @@ public class TeamServiceTest {
 	@Test
 	public void testGetTeamNoFragment() throws Exception {
 		teamService.get(null, 1, 0);
-		verify(mockTeamManager).get(1, 0);
+		verify(mockTeamManager).list(1, 0);
 	}
 	
 	@Test
 	public void testGetTeamMemberNoFragment() throws Exception {
 		PaginatedResults<TeamMember>results = new PaginatedResults<TeamMember>();
 		results.setResults(new ArrayList<TeamMember>());
-		when(mockTeamManager.getMembers("101", 1, 0)).thenReturn(results);
+		when(mockTeamManager.listMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
-		verify(mockTeamManager).getMembers("101", 1, 0);
+		verify(mockTeamManager).listMembers("101", 1, 0);
 	}
 	
 

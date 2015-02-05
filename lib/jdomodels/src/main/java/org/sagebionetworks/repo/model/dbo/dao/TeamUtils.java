@@ -66,7 +66,8 @@ public class TeamUtils {
 	}
 	
 	// SQL building block to select admin Team members and the Teams on which they are admin's
-	public static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
+	// Note: In this SQL fragment gm is a member of the Team 't' having UPDATE access to the Team
+	public static final String ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
 				TABLE_TEAM+" t, "+
 				TABLE_ACCESS_CONTROL_LIST+" acl, "+
 				TABLE_RESOURCE_ACCESS+" ra, "+
@@ -80,5 +81,4 @@ public class TeamUtils {
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='"+ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE+"'";
 			
-
 }

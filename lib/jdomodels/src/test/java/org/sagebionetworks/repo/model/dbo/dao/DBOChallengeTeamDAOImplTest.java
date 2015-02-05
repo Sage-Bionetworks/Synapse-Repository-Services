@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.SubmissionTeam;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -65,7 +66,7 @@ public class DBOChallengeTeamDAOImplTest {
 	@Autowired
 	AccessControlListDAO aclDAO;
 	
-	long principalId;
+	Long principalId;
 	private List<Node> nodesToDelete;
 	private List<AccessControlList> teamACLsToDelete;
 	private Challenge challenge;
@@ -79,11 +80,10 @@ public class DBOChallengeTeamDAOImplTest {
 		principalId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		nodesToDelete = new ArrayList<Node>();
 		teamACLsToDelete = new ArrayList<AccessControlList>();
-		Long adminPrincipalId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		participantTeam = createTeam(adminPrincipalId.toString(), false);
+		participantTeam = createTeam(principalId.toString(), false);
 		
 		challenge = new Challenge();
-		Node node = NodeTestUtils.createNew("challengeProject", adminPrincipalId);
+		Node node = NodeTestUtils.createNew("challengeProject", principalId);
 		node.setId(nodeDAO.createNew(node));
 		nodesToDelete.add(node);
 		challenge.setProjectId(node.getId());
@@ -91,7 +91,7 @@ public class DBOChallengeTeamDAOImplTest {
 		challenge = challengeDAO.create(challenge);
 		challengeId = Long.parseLong(challenge.getId());
 		
-		registeredTeam = createTeam(adminPrincipalId.toString(), true);
+		registeredTeam = createTeam(principalId.toString(), true);
 	}
 	
 	private Team createTeam(String ownerId, boolean admin) throws NotFoundException {
@@ -169,7 +169,7 @@ public class DBOChallengeTeamDAOImplTest {
 	/*
 	 * check 'listRegistratable' and 'listRegistratableCount'
 	 */
-	private void checkRegistratable(long challengeId, long principalId, List<Team> expected) throws Exception {
+	private void checkRegistratable(long challengeId, long principalId, List<String> expected) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
 		assertEquals(expected,
 				challengeTeamDAO.listRegistratable(challengeId, principalId, 1L+expected.size(), 0L));
@@ -213,6 +213,14 @@ public class DBOChallengeTeamDAOImplTest {
 	}
 	
 	@Test
+	public void testGet() throws Exception {
+		challengeTeam = newChallengeTeam();
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
+		ChallengeTeam retrieved = challengeTeamDAO.get(Long.parseLong(challengeTeam.getId()));
+		assertEquals(challengeTeam, retrieved);
+	}
+	
+	@Test
 	public void testUpdate() throws Exception {
 		challengeTeam = newChallengeTeam();
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
@@ -225,7 +233,7 @@ public class DBOChallengeTeamDAOImplTest {
 	@Test
 	public void testRegistratable() throws Exception {
 		// check that the team _can_ be registered (by an admin of the team)
-		checkRegistratable(challengeId, principalId, Collections.singletonList(registeredTeam));
+		checkRegistratable(challengeId, principalId, Collections.singletonList(registeredTeam.getId()));
 		// not registratable by another user
 		checkRegistratable(challengeId, 0L, null);
 		
@@ -249,6 +257,59 @@ public class DBOChallengeTeamDAOImplTest {
 		checkListForChallenge(challengeId, Collections.singletonList(challengeTeam));
 		// but not for other challenges
 		checkListForChallenge(0L, null);
+	}
+	
+	private void checkSubmissionTeams(long challengeId, 
+			long principalId, Set<SubmissionTeam> expected) throws Exception {
+		if (expected==null) expected = Collections.emptySet();
+		assertEquals(expected,
+				new HashSet<SubmissionTeam>(challengeTeamDAO.listSubmissionTeams(
+						challengeId, principalId, 10L, 0L)));
+		
+		assertEquals((long)expected.size(), 
+				challengeTeamDAO.listSubmissionTeamsCount(challengeId, principalId));
+		
+		// check pagination
+		assertTrue(challengeTeamDAO.listSubmissionTeams(
+						challengeId, principalId, 10L, expected.size()).isEmpty());
+	}
+	
+	@Test
+	public void testSubmissionTeams() throws Exception {
+		// initially 'registeredTeam' is not registered for the
+		// challenge.  But it should be in the list since 'principalId'
+		// is an admin of the Team. The other team, 'participantTeam'
+		// does not show up because neither is it registered nor is 'principalId'
+		// an admin of the Team
+		SubmissionTeam expected = new SubmissionTeam();
+		expected.setTeamId(registeredTeam.getId());
+		expected.setChallengeId(challenge.getId());
+		expected.setIsRegistered(false);
+		checkSubmissionTeams(challengeId, principalId, Collections.singleton(expected));
+		
+		challengeTeam = newChallengeTeam();
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
+		
+		// now the team is registered
+		expected.setIsRegistered(true);
+		checkSubmissionTeams(challengeId, principalId, Collections.singleton(expected));
+		
+		// now de-register the team and register the team
+		// in which the principal is NOT an administrator
+		// show that it's included even though the principal is not an admin
+		challengeTeamDAO.delete(Long.parseLong(challengeTeam.getId()));
+		challengeTeam = newChallengeTeam();
+		challengeTeam.setTeamId(participantTeam.getId());
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
+		expected.setIsRegistered(false);
+		SubmissionTeam expected2 = new SubmissionTeam();
+		expected2.setTeamId(participantTeam.getId());
+		expected2.setChallengeId(challenge.getId());
+		expected2.setIsRegistered(true);
+		Set<SubmissionTeam> expectedSet = new HashSet<SubmissionTeam>();
+		expectedSet.add(expected);
+		expectedSet.add(expected2);
+		checkSubmissionTeams(challengeId, principalId, expectedSet);
 	}
 
 

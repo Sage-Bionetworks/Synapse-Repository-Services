@@ -325,7 +325,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#get(long, long)
 	 */
 	@Override
-	public PaginatedResults<Team> get(long limit, long offset)
+	public PaginatedResults<Team> list(long limit, long offset)
 			throws DatastoreException {
 		List<Team> results = teamDAO.getInRange(limit, offset);
 		long count = teamDAO.getCount();
@@ -335,13 +335,16 @@ public class TeamManagerImpl implements TeamManager {
 		return queryResults;
 	}
 
-	
+	@Override
+	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException {
+		return teamDAO.list(ids);
+	}
 
 	/**
 	 * 
 	 */
 	@Override
-	public PaginatedResults<TeamMember> getMembers(String teamId, long limit,
+	public PaginatedResults<TeamMember> listMembers(String teamId, long limit,
 			long offset) throws DatastoreException {
 		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
 		long count = teamDAO.getMembersCount(teamId);
@@ -352,6 +355,13 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
+	public List<TeamMember> listMembers(String teamId, Set<String> memberIds)
+			throws DatastoreException, NotFoundException {
+		return teamDAO.listMembers(teamId, memberIds);
+	}
+	
+
+	@Override
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
 		return teamDAO.getMember(teamId, principalId);
 	}
@@ -361,7 +371,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<Team> getByMember(String principalId,
+	public PaginatedResults<Team> listByMember(String principalId,
 			long limit, long offset) throws DatastoreException {
 		List<Team> results = teamDAO.getForMemberInRange(principalId, limit, offset);
 		long count = teamDAO.getCountForMember(principalId);
@@ -555,7 +565,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers()
+	public Map<Team, Collection<TeamMember>> listAllTeamsAndMembers()
 			throws DatastoreException {
 		return teamDAO.getAllTeamsAndMembers();
 	}
@@ -643,4 +653,5 @@ public class TeamManagerImpl implements TeamManager {
 			}
 		}
 	}
+
 }

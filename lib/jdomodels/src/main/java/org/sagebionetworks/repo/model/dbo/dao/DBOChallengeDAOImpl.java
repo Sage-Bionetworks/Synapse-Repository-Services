@@ -13,7 +13,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENG
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
@@ -31,6 +30,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -49,10 +49,12 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,35 +75,35 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static final String SELECT_FOR_PROJECT = "SELECT * FROM "+TABLE_CHALLENGE+
 			" WHERE "+COL_CHALLENGE_PROJECT_ID+"=?";
 	
-	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_FROM_CORE = 
+	private static final String SELECT_FOR_PARTICIPANT_SQL_FROM_CORE = 
 			" FROM "+TABLE_NODE+" n, "+
 					TABLE_CHALLENGE+" c, "+
 					TABLE_GROUP_MEMBERS+" gm ";
 	
-	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_WHERE_CORE = 
+	private static final String SELECT_FOR_PARTICIPANT_SQL_WHERE_CORE = 
 			" WHERE n."+COL_NODE_PROJECT_ID+"=c."+COL_CHALLENGE_PROJECT_ID+
 			" AND c."+COL_CHALLENGE_PARTICIPANT_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?";
 	
-	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_CORE = 
-			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_FROM_CORE+
-			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_WHERE_CORE;
+	private static final String SELECT_FOR_PARTICIPANT_SQL_CORE = 
+			SELECT_FOR_PARTICIPANT_SQL_FROM_CORE+
+			SELECT_FOR_PARTICIPANT_SQL_WHERE_CORE;
 
 	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ? ";
 	
 	private static final String NODE_ID_LABEL = "NODE_ID";
 	
-	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_PAGINATED = 
+	private static final String SELECT_FOR_PARTICIPANT_PAGINATED = 
 			"SELECT c.* "+
-			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_CORE+LIMIT_OFFSET;
+			SELECT_FOR_PARTICIPANT_SQL_CORE+LIMIT_OFFSET;
 	
-	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_COUNT = 
-			"SELECT count(c."+COL_CHALLENGE_ID+") "+SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_CORE;
+	private static final String SELECT_FOR_PARTICIPANT_COUNT = 
+			"SELECT count(c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_SQL_CORE;
 
-	private static final String SELECT_SUMMARIES_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE = 
-			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_FROM_CORE+","+
+	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE = 
+			SELECT_FOR_PARTICIPANT_SQL_FROM_CORE+","+
 			AUTHORIZATION_SQL_TABLES+
-			SELECT_SUMMARIES_FOR_PARTICIPANT_SQL_WHERE_CORE+
+			SELECT_FOR_PARTICIPANT_SQL_WHERE_CORE+
 			" and acl."+COL_ACL_OWNER_ID+"=n."+COL_NODE_ID+
 			" and acl."+COL_ACL_OWNER_TYPE+"='ENTITY'"+
 			" and "+AUTHORIZATION_SQL_JOIN+
@@ -111,9 +113,9 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	/*
 	 * Adds 'requesterGroupCount' number of bind variables, for a total of requesterGroupCount+3
 	 */
-	private static String selectSummariesForParticipantAndRequesterPaginated(int requesterGroupCount) {
-		StringBuilder sb = new StringBuilder("SELECT n."+COL_NODE_NAME+", n."+COL_NODE_ID+" AS "+NODE_ID_LABEL+", c.* "+
-				SELECT_SUMMARIES_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE);
+	private static String selectForParticipantAndRequesterPaginated(int requesterGroupCount) {
+		StringBuilder sb = new StringBuilder("SELECT c.* "+
+				SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE);
 		boolean firstTime = true;
 		for (int i=0; i<requesterGroupCount; i++) {
 			if (firstTime) firstTime=false; else sb.append(",");
@@ -126,7 +128,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static String selectSummariesForParticipantAndRequesterCount(int requesterGroupCount) {
 		StringBuilder sb = new StringBuilder(
 				"SELECT count(c."+COL_CHALLENGE_ID+") "+
-				SELECT_SUMMARIES_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE);
+				SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE);
 		boolean firstTime = true;
 		for (int i=0; i<requesterGroupCount; i++) {
 			if (firstTime) firstTime=false; else sb.append(",");
@@ -199,6 +201,8 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		} catch (IllegalArgumentException e) {
 			if (e.getCause() instanceof DuplicateKeyException) {
 				throw new IllegalArgumentException("The specified project may already have a challenge.", e);
+			} else if (e.getCause() instanceof DataIntegrityViolationException) {
+				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.");
 			} else {
 				throw e;
 			}
@@ -252,12 +256,19 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			throw new NotFoundException("Cannot find the Challenge for project "+projectId);
 		}
 	}
+	
+	@Override
+	public Challenge get(long challengeId) throws NotFoundException, DatastoreException {
+		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(challengeId);
+		DBOChallenge dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, param);
+		return copyDBOtoDTO(dbo);
+	}
 
 	@Override
 	public List<Challenge> listForUser(long principalId, long limit,
 			long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		List<DBOChallenge> dbos = jdbcTemplate.query(SELECT_SUMMARIES_FOR_PARTICIPANT_PAGINATED, DBO_CHALLENGE_TABLE_MAPPING, principalId, limit, offset);
+		List<DBOChallenge> dbos = jdbcTemplate.query(SELECT_FOR_PARTICIPANT_PAGINATED, DBO_CHALLENGE_TABLE_MAPPING, principalId, limit, offset);
 		List<Challenge> dtos = new ArrayList<Challenge>();
 		for (DBOChallenge dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
 		return dtos;
@@ -266,11 +277,11 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	@Override
 	public long listForUserCount(long principalId) throws NotFoundException,
 			DatastoreException {
-		return jdbcTemplate.queryForObject(SELECT_SUMMARIES_FOR_PARTICIPANT_COUNT, Long.class, principalId);
+		return jdbcTemplate.queryForObject(SELECT_FOR_PARTICIPANT_COUNT, Long.class, principalId);
 	}
 
 	@Override
-	public List<Challenge> listForUser(final long principalId, final List<Long> requesterPrincipals,
+	public List<Challenge> listForUser(final long principalId, final Set<Long> requesterPrincipals,
 			final long limit,final long offset) throws NotFoundException, DatastoreException {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		int n = requesterPrincipals.size();
@@ -281,7 +292,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		args[n+1]=limit;
 		args[n+2]=offset;
 		List<DBOChallenge> dbos = jdbcTemplate.query(
-				selectSummariesForParticipantAndRequesterPaginated(n), 
+				selectForParticipantAndRequesterPaginated(n), 
 				args, DBO_CHALLENGE_TABLE_MAPPING);
 		List<Challenge> dtos = new ArrayList<Challenge>();
 		for (DBOChallenge dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
@@ -289,7 +300,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	}
 
 	@Override
-	public long listForUserCount(long principalId, List<Long> requesterPrincipals) throws NotFoundException,
+	public long listForUserCount(long principalId, Set<Long> requesterPrincipals) throws NotFoundException,
 			DatastoreException {
 		int n = requesterPrincipals.size();
 		if (n==0) return 0L;
@@ -325,10 +336,19 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		copyDTOtoDBO(dto, dbo);
 		// Update with a new e-tag
 		dbo.setEtag(UUID.randomUUID().toString());
-
-		boolean success = basicDao.update(dbo);
-		if (!success)
-			throw new DatastoreException("Unsuccessful updating Challenge in database.");
+		
+		try {
+			boolean success = basicDao.update(dbo);
+			if (!success)
+				throw new DatastoreException("Unsuccessful updating Challenge in database.");
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DataIntegrityViolationException) {
+				throw new InvalidModelException("The submitted data is invalid.  Please ensure the given project and team IDs are correct.");
+			} else {
+				throw e;
+			}
+		}
+			
 
 		dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
 		return copyDBOtoDTO(dbo);
