@@ -85,13 +85,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	// selecting and counting the projects a user owns
 
+	private static final String LAST_ACCESSED_OR_CREATED =
+		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
+
 	private static final String COUNT_PROJECTS_SQL1 = 
 		"select count(*) from (" + 
 			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
 	private static final String SELECT_PROJECTS_SQL1 =
 		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE;
 	private static final String SELECT_PROJECTS_STATS_FIELD =
-		", ps." + COL_PROJECT_STAT_LAST_ACCESSED;
+		", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED;
 	private static final String SELECT_PROJECTS_SQL2 =
 		" from (" +
 			" select distinct n." + COL_NODE_PROJECT_ID +
@@ -106,7 +109,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
 
 	private static final String SELECT_PROJECTS_ORDER =
-		" order by coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ") DESC ";
+		" order by " + LAST_ACCESSED_OR_CREATED + " DESC ";
 
 	private static final String SELECT_TEAMS_ORDER = 
 			" order by n." + COL_NODE_NAME + " ASC ";
