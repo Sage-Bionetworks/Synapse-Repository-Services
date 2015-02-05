@@ -47,11 +47,17 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	private static final AuthorizationStatus NOT_SELF = 
 			new AuthorizationStatus(false, "You may not make this request on another user's behalf.");
 
+	/*
+	 * for testing
+	 */
 	public ChallengeManagerImpl(ChallengeDAO challengeDAO, 
 			ChallengeTeamDAO challengeTeamDAO, 
-			AuthorizationManager authorizationManager) {
+			AuthorizationManager authorizationManager,
+			TeamDAO teamDAO) {
 		this.challengeDAO=challengeDAO;
+		this.challengeTeamDAO=challengeTeamDAO;
 		this.authorizationManager=authorizationManager;
+		this.teamDAO=teamDAO;
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -141,7 +147,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		}
 		try {
 			TeamMember member = teamDAO.getMember(challengeTeam.getTeamId(), userInfo.getId().toString());
-			if (!member.getIsAdmin()) return NOT_TEAM_ADMIN;
+			if (member.getIsAdmin()==null || !member.getIsAdmin()) return NOT_TEAM_ADMIN;
 		} catch  (NotFoundException e) {
 			return NOT_TEAM_ADMIN;
 		}
