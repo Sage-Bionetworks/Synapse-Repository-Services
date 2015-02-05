@@ -280,22 +280,20 @@ public class DBOChallengeTeamDAOImplTest {
 		// an admin of the Team
 		
 		Long otherTeamMember = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		groupMembersDAO.addMembers(registeredTeam.getId(), Arrays.asList(new String[]{otherTeamMember.toString()}));
-
-		// user is registered, but has no registered teams
-		checkSubmissionTeams(challengeId, principalId, null);
-		
-		// user is NOT registered, and has no registered teams
+		// user is NOT registered, and no team is registered
 		checkSubmissionTeams(challengeId, otherTeamMember, null);
+		
+		// user is in team, but no team is registered
+		checkSubmissionTeams(challengeId, principalId, null);
 		
 		// this registers 'registered team'
 		challengeTeam = newChallengeTeam();
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
 		
-		// not registered, but IS in a registered Team
+		// not in Team, but Team is registered
 		checkSubmissionTeams(challengeId, otherTeamMember, null);
 
-		// is registered and IS in a registered Team
+		// Team is registered and user is in Team
 		checkSubmissionTeams(challengeId, principalId, Collections.singleton(registeredTeam.getId()));
 		
 	}

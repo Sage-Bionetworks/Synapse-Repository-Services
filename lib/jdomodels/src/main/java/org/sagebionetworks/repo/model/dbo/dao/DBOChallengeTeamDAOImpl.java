@@ -78,10 +78,10 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	// 1 - challenge ID of interest
 	// 2 - member ID of interest
 	private static final String CAN_SUBMIT_OR_REGISTER_CORE = 
-		"SELECT gm."+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_CHALLENGE_TEAM+" ct "+
+		TABLE_GROUP_MEMBERS+" gm, "+TABLE_CHALLENGE_TEAM+" ct "+
 		" WHERE gm."+COL_GROUP_MEMBERS_GROUP_ID+"=ct."+COL_CHALLENGE_TEAM_TEAM_ID+
 		" AND ct."+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?"+
-		" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?)";
+		" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?";
 
 	private static final String SPECIFIED_CHALLENGE_COL_LABEL = "SPECIFIED_CHALLENGE";
 	
@@ -93,7 +93,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	// 3 - limit
 	// 4 - offset
 	private static final String SELECT_CAN_SUBMIT_OR_REGISTER_PAGINATED = 
-			CAN_SUBMIT_OR_REGISTER_CORE+LIMIT_OFFSET;
+			"SELECT gm."+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+CAN_SUBMIT_OR_REGISTER_CORE+LIMIT_OFFSET;
 	
 	// This is the 'count' SQL query that goes with the 'paginated' query, above
 	private static final String SELECT_CAN_SUBMIT_OR_REGISTER_COUNT = 
@@ -263,6 +263,6 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	public long listSubmissionTeamsCount(long challengeId,
 			long submitterPrincipalId) {
 		return jdbcTemplate.queryForObject(SELECT_CAN_SUBMIT_OR_REGISTER_COUNT, Long.class, 
-				submitterPrincipalId, challengeId, submitterPrincipalId);
+				challengeId, submitterPrincipalId);
 	}
 }
