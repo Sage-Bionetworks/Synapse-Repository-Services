@@ -335,7 +335,10 @@ public class TeamManagerImpl implements TeamManager {
 		return queryResults;
 	}
 
-	
+	@Override
+	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException {
+		return teamDAO.list(ids);
+	}
 
 	/**
 	 * 
@@ -351,6 +354,13 @@ public class TeamManagerImpl implements TeamManager {
 		return queryResults;
 	}
 	
+	@Override
+	public List<TeamMember> listMembers(String teamId, Set<String> memberIds)
+			throws DatastoreException, NotFoundException {
+		return teamDAO.listMembers(teamId, memberIds);
+	}
+	
+
 	@Override
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
 		return teamDAO.getMember(teamId, principalId);
@@ -644,16 +654,4 @@ public class TeamManagerImpl implements TeamManager {
 		}
 	}
 
-	@Override
-	public List<Team> list(Set<String> ids) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<TeamMember> listMembers(String teamId, Set<String> memberIds)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

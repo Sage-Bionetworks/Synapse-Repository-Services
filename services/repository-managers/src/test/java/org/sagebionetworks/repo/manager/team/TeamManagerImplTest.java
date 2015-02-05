@@ -364,6 +364,9 @@ public class TeamManagerImplTest {
 		PaginatedResults<Team> result = teamManagerImpl.list(10,0);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
+		
+		when(mockTeamDAO.list(Collections.singleton("101"))).thenReturn(teamList);
+		assertEquals(teamList, teamManagerImpl.list(Collections.singleton("101")));
 	}
 	
 	@Test
@@ -702,6 +705,9 @@ public class TeamManagerImplTest {
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
+		
+		when(mockTeamDAO.listMembers(TEAM_ID, Collections.singleton("101"))).thenReturn(tms);
+		assertEquals(tms, teamManagerImpl.listMembers(TEAM_ID, Collections.singleton("101")));
 	}
 	
 	@Test

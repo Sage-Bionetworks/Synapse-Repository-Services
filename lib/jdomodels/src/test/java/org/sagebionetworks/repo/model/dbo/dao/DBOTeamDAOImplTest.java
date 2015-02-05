@@ -146,7 +146,10 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, listed.size());
 		assertEquals(updated, listed.get(0));
 		
+		Set<String> emptyIds = Collections.emptySet();
+		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
+		assertTrue(teamDAO.list(emptyIds).isEmpty());
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
@@ -179,6 +182,8 @@ public class DBOTeamDAOImplTest {
 		// check that nothing is returned for other team IDs and principal IDs
 		assertEquals(0, teamDAO.listMembers("0", Collections.singleton(user.getId())).size());
 		assertEquals(0, teamDAO.listMembers(team.getId(), Collections.singleton("0")).size());
+
+		assertTrue(teamDAO.listMembers(team.getId(), emptyIds).isEmpty());
 		
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));

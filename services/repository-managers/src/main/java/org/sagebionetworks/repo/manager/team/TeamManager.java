@@ -44,8 +44,9 @@ public interface TeamManager {
 	 * @param ids
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public List<Team> list(Set<String> ids) throws DatastoreException;
+	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -63,8 +64,9 @@ public interface TeamManager {
 	 * @param memberIds
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public List<TeamMember> listMembers(String teamId, Set<String> memberIds) throws DatastoreException;
+	public List<TeamMember> listMembers(String teamId, Set<String> memberIds) throws DatastoreException, NotFoundException;
 	/**
 	 * 
 	 * @param teamId
