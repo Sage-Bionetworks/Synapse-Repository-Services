@@ -276,8 +276,7 @@ public class DBOChallengeTeamDAOImplTest {
 	@Test
 	public void testSubmissionTeams() throws Exception {
 		// initially 'registeredTeam' is unregistered
-		// 'principalId' is a member of registered and 'principalId'
-		// an admin of the Team
+		// 'principalId' is a member of registered 
 		
 		Long otherTeamMember = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		// user is NOT registered, and no team is registered
