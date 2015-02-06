@@ -40,10 +40,6 @@ public class EntityBundleTest {
 		testAddEntity(new Project(), Project.class);
 	}
 	
-	@Test
-	public void testAddStudy() {
-		testAddEntity(new Study(), Study.class);
-	}
 	
 	@Test
 	public void testAddFolder() {

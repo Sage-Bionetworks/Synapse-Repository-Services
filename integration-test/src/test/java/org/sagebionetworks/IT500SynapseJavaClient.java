@@ -56,13 +56,13 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
@@ -80,7 +80,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
@@ -137,7 +136,7 @@ public class IT500SynapseJavaClient {
 	private List<String> handlesToDelete;
 	private List<String> teamsToDelete;
 	private Project project;
-	private Study dataset;
+	private Folder dataset;
 	
 	private static Set<String> bootstrappedTeams = Sets.newHashSet();
 	static {
@@ -193,7 +192,7 @@ public class IT500SynapseJavaClient {
 		teamsToDelete = new ArrayList<String>();
 		
 		project = synapseOne.createEntity(new Project());
-		dataset = new Study();
+		dataset = new Folder();
 		dataset.setParentId(project.getId());
 		dataset = synapseOne.createEntity(dataset);
 		
@@ -264,7 +263,7 @@ public class IT500SynapseJavaClient {
 		if (0 < datasets.length()) {
 			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
 
-			Data aStoredDataset = synapseOne.getEntity(datasetId, Data.class);
+			Folder aStoredDataset = synapseOne.getEntity(datasetId, Folder.class);
 			assertNotNull(aStoredDataset.getAnnotations());
 
 			Annotations annos = synapseOne.getAnnotations(datasetId);
@@ -329,10 +328,12 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientCRUD() throws Exception {
-		Study aNewDataset = new Study();
-		aNewDataset.setParentId(project.getId());
+		String fileHandleId = synapseOne.uploadToFileHandle("File contents".getBytes("UTF-8"), ContentType.TEXT_PLAIN, project.getId());
+		FileEntity file = new FileEntity();
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandleId);
 
-		aNewDataset = synapseOne.createEntity(aNewDataset);
+		file = synapseOne.createEntity(file);
 		
 		// Get the project using just using its ID. This is useful for cases where you
 		//  do not know what you are getting until it arrives.
@@ -342,31 +343,31 @@ public class IT500SynapseJavaClient {
 		assertEquals(project.getId(), clone.getId());
 		
 		// Get the entity annotations
-		Annotations annos = synapseOne.getAnnotations(aNewDataset.getId());
+		Annotations annos = synapseOne.getAnnotations(file.getId());
 		assertNotNull(annos);
-		assertEquals(aNewDataset.getId(), annos.getId());
+		assertEquals(file.getId(), annos.getId());
 		assertNotNull(annos.getEtag());
 		// Add some values
 		annos.addAnnotation("longKey", new Long(999999));
 		annos.addAnnotation("blob", "This will be converted to a blob!".getBytes("UTF-8"));
-		Annotations updatedAnnos = synapseOne.updateAnnotations(aNewDataset.getId(), annos);
+		Annotations updatedAnnos = synapseOne.updateAnnotations(file.getId(), annos);
 		assertNotNull(updatedAnnos);
-		assertEquals(aNewDataset.getId(), annos.getId());
+		assertEquals(file.getId(), annos.getId());
 		assertNotNull(updatedAnnos.getEtag());
 		// The Etag should have changed
 		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
 
 		// Get the "zero" e-tag for specific versions. See PLFM-1420.
-		Entity datasetEntity = synapseOne.getEntityByIdForVersion(aNewDataset.getId(), aNewDataset.getVersionNumber());
+		Entity datasetEntity = synapseOne.getEntityByIdForVersion(file.getId(), file.getVersionNumber());
 		assertTrue(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
 
 		// Get the Users permission for this entity
-		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(aNewDataset.getId());
+		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(file.getId());
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(true, synapseOne.canAccess(aNewDataset.getId(), ACCESS_TYPE.UPDATE));
-		assertEquals(true, synapseOne.canAccess(aNewDataset.getId(), ACCESS_TYPE.READ));
+		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
+		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.READ));
 		assertTrue(uep.getCanChangePermissions());
 		assertTrue(uep.getCanEnableInheritance());
 		
@@ -376,13 +377,13 @@ public class IT500SynapseJavaClient {
 		assertEquals(profile.getOwnerId(), uep.getOwnerPrincipalId().toString());
 		
 		// should be able to download
-		assertTrue(synapseOne.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// now add a ToU restriction
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(aNewDataset.getId());
+		rod.setId(file.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
@@ -395,11 +396,11 @@ public class IT500SynapseJavaClient {
 		assertNotNull(otherProfile);
 		
 		// should not be able to download
-		assertFalse(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertFalse(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		subjectId.setId(aNewDataset.getId());
+		subjectId.setId(file.getId());
 		VariableContentPaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(1, vcpr.getResults().size());
 		
@@ -414,7 +415,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
-		assertTrue(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		ar.setTermsOfUse("play nicer");
 		ar = adminSynapse.updateAccessRequirement(ar);
@@ -438,19 +439,19 @@ public class IT500SynapseJavaClient {
 		assertTrue("didn't find "+profile.getUserName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
 		
 		// Get the path
-		EntityPath path = synapseOne.getEntityPath(aNewDataset.getId());
+		EntityPath path = synapseOne.getEntityPath(file.getId());
 		assertNotNull(path);
 		assertNotNull(path.getPath());
 		assertEquals(3, path.getPath().size());
 		EntityHeader header = path.getPath().get(2);
 		assertNotNull(header);
-		assertEquals(aNewDataset.getId(), header.getId());
+		assertEquals(file.getId(), header.getId());
 		
 		// Get the entity headers
 		List<String> entityIds = new ArrayList<String>();
 		entityIds.add(project.getId());
 		entityIds.add(dataset.getId());
-		entityIds.add(aNewDataset.getId());
+		entityIds.add(file.getId());
 		BatchResults<EntityHeader> entityHeaders = synapseOne.getEntityTypeBatch(entityIds);
 		assertNotNull(entityHeaders);
 		assertEquals(3, entityHeaders.getTotalNumberOfResults());
@@ -465,18 +466,18 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientCreateEntity() throws Exception {
-		Study study = new Study();
+		Folder study = new Folder();
 		study.setParentId(project.getId());
-		Study createdStudy = synapseOne.createEntity(study);
+		Folder createdStudy = synapseOne.createEntity(study);
 		assertNotNull(createdStudy);
 		assertNotNull(createdStudy.getId());
 		assertNotNull(createdStudy.getUri());
 
 		String createdProjectId = createdStudy.getId();
-		Study fromGet = synapseOne.getEntity(createdProjectId, Study.class);
+		Folder fromGet = synapseOne.getEntity(createdProjectId, Folder.class);
 		assertEquals(createdStudy, fromGet);
 
-		Study fromGetById = (Study) synapseOne.getEntityById(createdProjectId);
+		Folder fromGetById = (Folder) synapseOne.getEntityById(createdProjectId);
 		assertEquals(createdStudy, fromGetById);
 
 	}
@@ -552,7 +553,7 @@ public class IT500SynapseJavaClient {
 		ra.setAccessType(accessTypes);
 		
 		// Create an entity		
-		Study s1 = new Study();
+		Folder s1 = new Folder();
 		s1.setName("Dummy Study 1");
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(project.getId());
@@ -576,7 +577,7 @@ public class IT500SynapseJavaClient {
 				
 		EntityBundle response = synapseOne.createEntityBundle(ebc);
 		
-		Study s2 = (Study) response.getEntity();
+		Folder s2 = (Folder) response.getEntity();
 		toDelete.add(s2.getId());
 		assertNotNull(s2);
 		assertNotNull("Etag should have been generated, but was not", s2.getEtag());
@@ -605,7 +606,7 @@ public class IT500SynapseJavaClient {
 				
 		EntityBundle response2 = synapseOne.updateEntityBundle(s2.getId(), ebc2);
 		
-		Study s3 = (Study) response2.getEntity();
+		Folder s3 = (Folder) response2.getEntity();
 		assertNotNull(s3);
 		assertFalse("Etag should have been updated, but was not", s2.getEtag().equals(s3.getEtag()));
 		assertEquals(s2.getName(), s3.getName());
@@ -621,112 +622,6 @@ public class IT500SynapseJavaClient {
 		assertFalse("Etag should have been updated, but was not", acl2.getEtag().equals(acl3.getEtag()));
 		assertEquals("Retrieved ACL in bundle does not match original one", acl2.getResourceAccess(), acl3.getResourceAccess());
 
-	}
-
-	@Test
-	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
-		
-		File dataSourceFile = File.createTempFile("integrationTest", ".txt");
-		dataSourceFile.deleteOnExit();
-		FileWriter writer = new FileWriter(dataSourceFile);
-		writer.write("Hello world!");
-		writer.close();
-
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.E);
-		layer.setParentId(dataset.getId());
-		layer = synapseOne.createEntity(layer);
-
-		layer = (Data) synapseOne.uploadLocationableToSynapse(layer,
-				dataSourceFile);
-		
-		// TODO!!!!!!!!!!!! test upload more than once, do we clutter LocationData?
-
-		assertEquals("text/plain", layer.getContentType());
-		assertNotNull(layer.getMd5());
-
-		List<LocationData> locations = layer.getLocations();
-		assertEquals(1, locations.size());
-		LocationData location = locations.get(0);
-		assertEquals(LocationTypeNames.awss3, location.getType());
-		assertNotNull(location.getPath());
-		assertTrue(location.getPath().startsWith("http"));
-		
-		File dataDestinationFile = File.createTempFile("integrationTest",
-				".download");
-		dataDestinationFile.deleteOnExit();
-		HttpClientHelper.getContent(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile);
-		assertTrue(dataDestinationFile.isFile());
-		assertTrue(dataDestinationFile.canRead());
-		assertTrue(0 < dataDestinationFile.length());
-		
-		// TODO test auto versioning
-		
-	}
-	/**
-	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 */
-	@Test
-	public void testJavaClientUpdateExternalLocationWithoutDownload() throws Exception {
-			// Use a url that we expect to be available and whose contents we don't
-		// expect to change
-		String externalUrl = "http://www.sagebase.org/favicon";
-		String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
-		//int externalUrlFileSizeBytes = 1150;
-
-		List<LocationData> locations = new ArrayList<LocationData>();
-		
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.M);
-		layer.setLocations(locations);
-		layer.setParentId(dataset.getId());
-		layer = synapseOne.createEntity(layer);
-
-		//update the locations
-		layer = (Data)synapseOne.updateExternalLocationableToSynapse(layer, externalUrl, externalUrlMD5);
-		locations = layer.getLocations();
-		
-		assertEquals(1, locations.size());
-		LocationData location = locations.get(0);
-		assertEquals(LocationTypeNames.external, location.getType());
-		assertNotNull(location.getPath());
-		//test location url
-		assertEquals(location.getPath(), externalUrl);
-		assertEquals(layer.getMd5(), externalUrlMD5);
-
-		//also verify all is well when we don't set the md5 for external
-		layer = (Data)synapseOne.updateExternalLocationableToSynapse(layer, externalUrl);
-		locations = layer.getLocations();
-		
-		assertEquals(1, locations.size());
-		location = locations.get(0);
-		assertEquals(LocationTypeNames.external, location.getType());
-		assertNotNull(location.getPath());
-		//test location url
-		assertEquals(location.getPath(), externalUrl);
-		assertNull(layer.getMd5());
-		
-	}
-	
-	/**
-	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 */
-	@Test(expected=SynapseBadRequestException.class)
-	public void testJavaClientUpdateMissingMd5() throws Exception {
-		List<LocationData> locations = new ArrayList<LocationData>();
-		
-		LocationData fakeAwsLocation = new LocationData();
-		fakeAwsLocation.setPath("fakeawslocation");
-		fakeAwsLocation.setType(LocationTypeNames.awss3);
-		locations.add(fakeAwsLocation);
-
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.M);
-		//md5 not set
-		layer.setParentId(dataset.getId());
-		layer.setLocations(locations);
-		//should fail (due to missing md5)
-		layer = synapseOne.createEntity(layer);
 	}
 
 	@Test
@@ -797,8 +692,7 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testAccessRequirement() throws Exception {
 		// create a node
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.E);
+		Folder layer = new Folder();
 		layer.setParentId(dataset.getId());
 		layer = synapseOne.createEntity(layer);
 
@@ -1026,7 +920,7 @@ public class IT500SynapseJavaClient {
 		Long count = synapseOne.getChildCount(child.getId());
 		assertEquals(new Long(0), count);
 		// Now add a child
-		Study grandChild = new Study();
+		Folder grandChild = new Folder();
 		grandChild.setName("childFolder");
 		grandChild.setParentId(child.getId());
 		grandChild = synapseOne.createEntity(grandChild);
@@ -1082,7 +976,7 @@ public class IT500SynapseJavaClient {
 		Reference ref = new Reference();
 		ref.setTargetId(dataset.getId());
 		link.setLinksTo(ref);
-		link.setLinksToClassName(Study.class.getName());
+		link.setLinksToClassName(Folder.class.getName());
 		link.setParentId(project.getId());
 		// Create the link
 		link = synapseOne.createEntity(link);
@@ -1147,42 +1041,6 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
-	/**
-	 * Test for PLFM-1214
-	 */
-	@Test 
-	public void testPLFM_1214() throws SynapseException, JSONException{
-		// The dataset should start with no references
-		dataset.setNumSamples(123l);
-		dataset = synapseOne.putEntity(dataset);
-		assertEquals(new Long(123), dataset.getNumSamples());
-		// Now clear out the value
-		dataset.setNumSamples(null);
-		dataset = synapseOne.putEntity(dataset);
-		assertEquals(null, dataset.getNumSamples());
-	}
-
-	@Test
-	public void testPLFM_1272() throws Exception{
-		// Now add a data object 
-		Data data = new Data();
-		data.setParentId(project.getId());
-		data = synapseOne.createEntity(data);
-
-		// Now query for the data object
-		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+project.getId()+"\"";
-		JSONObject results = synapseOne.query(queryString);
-		assertNotNull(results);
-		assertTrue(results.has("totalNumberOfResults"));
-		assertEquals(1l, results.getLong("totalNumberOfResults"));
-		
-		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+project.getId()+"\"";
-		results = synapseOne.query(queryString);
-		assertNotNull(results);
-		assertTrue(results.has("totalNumberOfResults"));
-		assertEquals(1l, results.getLong("totalNumberOfResults"));
-	}
-
 	@Test
 	public void testGetAllUserAndGroupIds() throws SynapseException{
 		HashSet<String> expected = new HashSet<String>();

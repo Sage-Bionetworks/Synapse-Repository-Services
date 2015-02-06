@@ -14,10 +14,10 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -63,10 +63,10 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		parent.setName("TrashControllerAutowiredTest.parent");
 		parent = servletTestHelper.createEntity(dispatchServlet, parent, testUserId);
 		Assert.assertNotNull(parent);
-		child = new Study();
+		child = new Folder();
 		child.setName("TrashControllerAutowiredTest.child");
 		child.setParentId(parent.getId());
-		child.setEntityType(Study.class.getName());
+		child.setEntityType(Folder.class.getName());
 		child = servletTestHelper.createEntity(dispatchServlet, child, testUserId);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());
@@ -106,7 +106,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		} catch (NotFoundException e) { }
 		
 		try {
-			servletTestHelper.getEntity(dispatchServlet, Study.class, child.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
 		} catch (NotFoundException e) { }
 
 		// The trash can should be empty
@@ -139,7 +139,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		} catch (NotFoundException e) { }
 		
 		try {
-			servletTestHelper.getEntity(dispatchServlet, Study.class, child.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
 		} catch (NotFoundException e) { }
 
 		// The trash can should be empty
@@ -175,7 +175,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		} catch (NotFoundException e) { }
 		
 		try {
-			servletTestHelper.getEntity(dispatchServlet, Study.class, child.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
 		} catch (NotFoundException e) { }
 
 		// The parent and the child should be in the trash can
@@ -194,7 +194,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 
 		// Now the parent and the child should be visible again
 		servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
-		servletTestHelper.getEntity(dispatchServlet, Study.class, child.getId(), testUserId);
+		servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
 
 		// The parent and the child should not be in the trash can any more
 		results = servletTestHelper.getTrashCan(testUserId);
@@ -232,7 +232,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		} catch (NotFoundException e) { }
 		
 		try {
-			servletTestHelper.getEntity(dispatchServlet, Study.class, child.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), adminUserId);
 		} catch (NotFoundException e) { }
 
 		// The trash can should be empty

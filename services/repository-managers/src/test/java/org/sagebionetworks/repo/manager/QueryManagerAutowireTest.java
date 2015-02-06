@@ -23,16 +23,14 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -85,7 +83,7 @@ public class QueryManagerAutowireTest {
 		toUpdate.add(project.getId());
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
-			Study ds = createForTest(i);
+			Folder ds = createForTest(i);
 			ds.setParentId(project.getId());
 			String dsId = entityManager.createEntity(adminUserInfo, ds, null);
 			ds.setId(dsId);
@@ -105,7 +103,7 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("doubleKey", new Double(42*i));
 			entityManager.updateAnnotations(adminUserInfo, ds.getId(), annos);
 			// Add a layer to each dataset
-			Data inLayer = createLayerForTest(i);
+			Folder inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
 			String lid = entityManager.createEntity(adminUserInfo, inLayer, null);
 			inLayer.setId(id);
@@ -118,8 +116,8 @@ public class QueryManagerAutowireTest {
 		}
 	}
 	
-	private Study createForTest(int i){
-		Study ds = new Study();
+	private Folder createForTest(int i){
+		Folder ds = new Folder();
 		ds.setName("someName"+i);
 		ds.setDescription("someDesc"+i);
 		ds.setCreatedBy("magic"+i);
@@ -129,12 +127,11 @@ public class QueryManagerAutowireTest {
 		return ds;
 	}
 	
-	private Data createLayerForTest(int i) throws InvalidModelException{
-		Data layer = new Data();
+	private Folder createLayerForTest(int i) throws InvalidModelException{
+		Folder layer = new Folder();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreatedOn(new Date(1001));
-		layer.setType(LayerTypeNames.G);
 		return layer;
 	}
 	
@@ -153,7 +150,7 @@ public class QueryManagerAutowireTest {
 	public void testExecuteQuery() throws DatastoreException, NotFoundException, UnauthorizedException {
 		// Build up the query.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset.name());
+		query.setFrom(EntityType.folder.name());
 		query.setOffset(0);
 		query.setLimit(totalEntities-2);
 		query.setSort("longKey");
@@ -197,12 +194,12 @@ public class QueryManagerAutowireTest {
 		query.setSelect(new ArrayList<String>());
 		query.getSelect().add("id");
 		query.getSelect().add("stringListKey");
-		query.setFrom(EntityType.dataset.name());
+		query.setFrom(EntityType.folder.name());
 		query.setOffset(0);
 		query.setLimit(totalEntities-2);
 		query.setSort("longKey");
 		query.setAscending(false);
-		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
+		query.addExpression(new Expression(new CompoundId("folder", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
 		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, adminUserInfo);
