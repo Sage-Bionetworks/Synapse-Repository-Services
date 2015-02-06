@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.Reference;
@@ -1494,6 +1495,15 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<Team> getTeams(String fragment, long limit, long offset) throws SynapseException;
 	
 	/**
+	 * Return a list of Teams given a list of Team IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws SynapseException
+	 */
+	public ListWrapper<Team> listTeams(List<Long> ids) throws SynapseException;
+	
+	/**
 	 * 
 	 * @param memberId
 	 * @param limit
@@ -1564,6 +1574,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	TeamMember getTeamMember(String teamId, String memberId) throws SynapseException;
+
+	/**
+	 * Return a TeamMember list for a given Team and list of member IDs.
+	 * 
+	 * @param teamId
+	 * @param ids
+	 * @return
+	 * @throws SynapseException
+	 */
+	public ListWrapper<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException;
 
 	/**
 	 * 
@@ -1940,6 +1960,18 @@ public interface SynapseClient extends BaseClient {
 	public ChallengeTeam addTeamToChallenge(ChallengeTeam challengeTeam) throws SynapseException;
 	
 	/**
+	 * Update the ChallengeTeam.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * 
+	 * @param challengeTeam
+	 * @return
+	 * @throws SynapseException
+	 */
+	ChallengeTeam updateChallengeTeam(ChallengeTeam challengeTeam)
+			throws SynapseException;
+
+	/**
 	 * Remove a registered Team from a Challenge.
 	 * The user making this request must be registered for the Challenge and
 	 * be an administrator of the Team.
@@ -1948,17 +1980,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void removeTeamFromChallenge(String challengeTeamId) throws SynapseException;
 	
-	/**
-	 * Returns a paginated list of Teams registered for the given Challenge.
-	 * The user making the request must have READ access to the Challenge Project.
-	 * @param challengeId
-	 * @param limit optional
-	 * @param offset optional
-	 * @return
-	 * @throws SynapseException
-	 */
-	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
-
 	/**
 	 * Creates and returns a new Challenge.  Caller must have CREATE
 	 * permission on the associated Project.
@@ -2011,4 +2032,31 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void deleteChallenge(String id) throws SynapseException;
+
+	/**
+	 * List the Teams registered for the Challenge.  Caller must have READ permission in 
+	 * the Challenge Project.
+	 * 
+	 * @param challengeId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	ChallengeTeamPagedResults listChallengeTeams(long challengeId, Long limit,
+			Long offset) throws SynapseException;
+
+	/**
+	 * List the Teams the caller may register for the Challenge, i.e. the Teams which are 
+	 * currently not registered for the challenge and on which is current user is an administrator.
+	 * 
+	 * @param challengeId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedIds listRegistratableTeams(long challengeId, Long limit,
+			Long offset) throws SynapseException;
+
 }
