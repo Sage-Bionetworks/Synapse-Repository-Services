@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -148,7 +149,7 @@ public class DBOTeamDAOImplTest {
 		Set<Long> emptyIds = Collections.emptySet();
 		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
-		assertTrue(teamDAO.list(emptyIds).getList().isEmpty());
+		assertNull(teamDAO.list(emptyIds).getList());
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
@@ -182,7 +183,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.listMembers("0", Collections.singleton(Long.parseLong(user.getId()))).getList().size());
 		assertEquals(0, teamDAO.listMembers(team.getId(), Collections.singleton(0L)).getList().size());
 
-		assertTrue(teamDAO.listMembers(team.getId(), emptyIds).getList().isEmpty());
+		assertNull(teamDAO.listMembers(team.getId(), emptyIds).getList());
 		
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
