@@ -1950,38 +1950,6 @@ public interface SynapseClient extends BaseClient {
 	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
 	
 	/**
-	 * Register a Team for a Challenge.
-	 * The user making this request must be registered for the Challenge and
-	 * be an administrator of the Team.
-	 * 
-	 * @param challengeTeam
-	 * @return
-	 * @throws SynapseException
-	 */
-	public ChallengeTeam addTeamToChallenge(ChallengeTeam challengeTeam) throws SynapseException;
-	
-	/**
-	 * Update the ChallengeTeam.
-	 * The user making this request must be registered for the Challenge and
-	 * be an administrator of the Team.
-	 * 
-	 * @param challengeTeam
-	 * @return
-	 * @throws SynapseException
-	 */
-	ChallengeTeam updateChallengeTeam(ChallengeTeam challengeTeam)
-			throws SynapseException;
-
-	/**
-	 * Remove a registered Team from a Challenge.
-	 * The user making this request must be registered for the Challenge and
-	 * be an administrator of the Team.
-	 * @param challengeTeamId
-	 * @throws SynapseException
-	 */
-	public void removeTeamFromChallenge(String challengeTeamId) throws SynapseException;
-	
-	/**
 	 * Creates and returns a new Challenge.  Caller must have CREATE
 	 * permission on the associated Project.
 	 * 
@@ -1999,7 +1967,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	Challenge getChallegeForProject(String projectId) throws SynapseException;
+	Challenge getChallengeForProject(String projectId) throws SynapseException;
 
 	/**
 	 * List the Challenges for which a participant is registered.   
@@ -2060,4 +2028,36 @@ public interface SynapseClient extends BaseClient {
 	PaginatedIds listRegistratableTeams(long challengeId, Long limit,
 			Long offset) throws SynapseException;
 
+	
+	/**
+	 * Register a Team for a Challenge.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * 
+	 * @param challengeTeam
+	 * @return
+	 * @throws SynapseException
+	 */
+	public ChallengeTeam addTeamToChallenge(ChallengeTeam challengeTeam) throws SynapseException;
+	
+	/**
+	 * Update the ChallengeTeam.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * 
+	 * @param challengeTeam
+	 * @return
+	 * @throws SynapseException
+	 */
+	ChallengeTeam updateChallengeTeam(ChallengeTeam challengeTeam)
+			throws SynapseException;
+
+	/**
+	 * Remove a registered Team from a Challenge.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * @param challengeTeamId
+	 * @throws SynapseException
+	 */
+	public void removeTeamFromChallenge(String challengeTeamId) throws SynapseException;
 }

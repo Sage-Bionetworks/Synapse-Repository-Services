@@ -20,7 +20,7 @@
 	<bean id="deadlockWatcher" class="org.sagebionetworks.repo.web.DeadlockWatcher" />
 
 	<!-- The Service Provider -->
-	<bean id="serviceProider" class="org.sagebionetworks.repo.web.service.ServiceProviderImpl" />
+	<bean id="serviceProvider" class="org.sagebionetworks.repo.web.service.ServiceProviderImpl" />
 	
 	<!-- Search Service -->
 	<bean id="searchService"

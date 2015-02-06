@@ -5927,8 +5927,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			boolean isAdmin) throws SynapseException {
 		getSharedClientConnection().putJson(repoEndpoint,
 				TEAM + "/" + teamId + MEMBER + "/" + memberId + PERMISSION + "?"
-				+ TEAM_MEMBERSHIP_PERMISSION + "="
- + isAdmin, "",
+				+ TEAM_MEMBERSHIP_PERMISSION + "=" + isAdmin, "",
 				getUserAgent());
 	}
 
@@ -6301,7 +6300,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public Challenge getChallegeForProject(String projectId) throws SynapseException {
+	public Challenge getChallengeForProject(String projectId) throws SynapseException {
 		if (projectId==null) throw new IllegalArgumentException("projectId may not be null.");
 		JSONObject jsonObj = getEntity(ENTITY+"/"+projectId+CHALLENGE);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
