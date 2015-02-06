@@ -1561,7 +1561,13 @@ public class StackConfiguration {
 	}
 
 
-
+	/**
+	 * Are users allowed to create entities of the old types?
+	 */
+	public boolean getAllowCreationOfOldEntities() {
+		return Boolean.parseBoolean(configuration
+						.getProperty("org.sagebionetworks.allow.create.old.entities"));
+	}
 
 	private static StackConfiguration singleton = new StackConfiguration();
 	/**
@@ -1572,4 +1578,5 @@ public class StackConfiguration {
 	public static StackConfiguration singleton(){
 		return singleton;
 	}
+
 }

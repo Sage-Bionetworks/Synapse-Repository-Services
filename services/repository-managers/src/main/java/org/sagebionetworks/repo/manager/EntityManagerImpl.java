@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DeprecatedEntities;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -45,6 +46,16 @@ public class EntityManagerImpl implements EntityManager {
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
+	
+	boolean allowCreationOfOldEntities = true;
+	
+	/**
+	 * Injected via spring.
+	 * @param allowOldEntityTypes
+	 */
+	public void setAllowCreationOfOldEntities(boolean allowCreationOfOldEntities) {
+		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
+	}
 
 	public EntityManagerImpl() {
 	}
@@ -66,6 +77,9 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException, NotFoundException {
 		if (newEntity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
+		if(!allowCreationOfOldEntities && !userInfo.isAdmin() && DeprecatedEntities.isDeprecated(newEntity)){
+			throw new IllegalArgumentException("Entities of type: "+newEntity.getClass().getName()+" are deprecated and can no longer be created.");
+		}
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object

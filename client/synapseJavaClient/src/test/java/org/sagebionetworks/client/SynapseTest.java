@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +38,6 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
@@ -52,7 +50,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -158,12 +155,12 @@ public class SynapseTest {
 	
 	@Test
 	public void testCreateStudyEntity() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 		configureMockHttpResponse(201, jsonString);
 		// Now create an entity
-		Study clone = synapse.createEntity(ds);
+		Folder clone = synapse.createEntity(ds);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -186,7 +183,7 @@ public class SynapseTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetEntityNullId() throws Exception{
-		synapse.getEntity(null, Study.class);
+		synapse.getEntity(null, Folder.class);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -196,12 +193,12 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetEntity() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 
 		configureMockHttpResponse(200, jsonString);
-		Study clone = synapse.getEntity(ds.getId(), Study.class);
+		Folder clone = synapse.getEntity(ds.getId(), Folder.class);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -224,7 +221,7 @@ public class SynapseTest {
 	
 	@Test
 	public void testCanAccess() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		String jsonString = "{\"result\":true}";
 		configureMockHttpResponse(201, jsonString);
 		assertTrue(synapse.canAccess(ds.getId(), ACCESS_TYPE.READ));
@@ -237,11 +234,11 @@ public class SynapseTest {
 	
 	@Test
 	public void testPutEntity() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 		configureMockHttpResponse(201, jsonString);
-		Study clone = synapse.putEntity(ds);
+		Folder clone = synapse.putEntity(ds);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -255,13 +252,13 @@ public class SynapseTest {
 
 	@Test
 	public void testGetEntityPath() throws Exception {
-		Data layer = new Data();
+		Folder folder = new Folder();
 		// create test hierarchy
 		
 		EntityHeader layerHeader = new EntityHeader();
 		layerHeader.setId("layerid");
 		layerHeader.setName("layer name");
-		layerHeader.setType("/layer");	
+		layerHeader.setType("/folder");	
 		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
 		entityHeaders.add(layerHeader);
 		EntityPath entityPath = new EntityPath();
@@ -273,7 +270,7 @@ public class SynapseTest {
 		configureMockHttpResponse(200, adapter.toJSONString());
 		
 		// execute and verify
-		EntityPath returnedEntityPath = synapse.getEntityPath(layer);
+		EntityPath returnedEntityPath = synapse.getEntityPath(folder);
 		List<EntityHeader> returnedHeaders = returnedEntityPath.getPath();
 		
 		assertEquals(1, returnedHeaders.size());
@@ -363,7 +360,7 @@ public class SynapseTest {
 	@Test
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, IOException, NotFoundException, DatastoreException, SynapseException {
 		// Create an entity
-		Study s = EntityCreator.createNewDataset();
+		Folder s = EntityCreator.createNewFolder();
 		
 		// Get/add/update annotations for this entity
 		Annotations a = new Annotations();
@@ -391,7 +388,7 @@ public class SynapseTest {
 		int mask =  EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
 		EntityBundle eb2 = synapse.getEntityBundle(s.getId(), mask);
 		
-		Study s2 = (Study) eb2.getEntity();
+		Folder s2 = (Folder) eb2.getEntity();
 		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);
 		
 		Annotations a2 = eb2.getAnnotations();

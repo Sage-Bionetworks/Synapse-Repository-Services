@@ -24,7 +24,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.search.Hit;
@@ -51,7 +51,7 @@ public class IT510SynapseJavaClientSearchTest {
 	 * All objects are added to this project.
 	 */
 	private static Project project;
-	private static List<Data> dataList;
+	private static List<Folder> dataList;
 	private static long entitesWithDistictValue = 5;
 	private static String distictValue1;
 	private static String distictValue2;
@@ -84,18 +84,13 @@ public class IT510SynapseJavaClientSearchTest {
 		// We use the project's etag as a distict string
 		distictValue1 = project.getEtag();
 		distictValue2 = project.getId();
-		dataList = new LinkedList<Data>();
+		dataList = new LinkedList<Folder>();
 		// Add some data with unique Strings
 		for(int i=0; i<entitesWithDistictValue; i++){
-			Data data = new Data();
+			Folder data = new Folder();
 			data.setParentId(project.getId());
 			// Use the etag as a description.
 			data.setDescription(distictValue1+" "+distictValue2);
-			data.setDisease("disease"+i);
-			data.setNumSamples(new Long(i));
-			data.setPlatform("platform"+i);
-			data.setTissueType("tissue"+i);
-			data.setSpecies("species"+i);
 			data = synapse.createEntity(data);
 			idsToWaitFor.add(data.getId());
 			dataList.add(data);
@@ -201,12 +196,9 @@ public class IT510SynapseJavaClientSearchTest {
 		returnFields.add("etag");
 		returnFields.add("modified_on");
 		returnFields.add("created_on");
-		returnFields.add("num_samples");
 		returnFields.add("created_by_r");
 		returnFields.add("modified_by_r");
 		returnFields.add("node_type_r");
-		returnFields.add("disease_r");
-		returnFields.add("tissue_r");
 		searchQuery.setReturnFields(returnFields);
 
 		SearchResults results = synapse.search(searchQuery);
@@ -221,12 +213,9 @@ public class IT510SynapseJavaClientSearchTest {
 		assertNotNull(hit.getEtag());
 		assertNotNull(hit.getModified_on());
 		assertNotNull(hit.getCreated_on());
-		assertNotNull(hit.getNum_samples());
 		assertNotNull(hit.getCreated_by());
 		assertNotNull(hit.getModified_by());
 		assertNotNull(hit.getNode_type());
-		assertNotNull(hit.getDisease());
-		assertNotNull(hit.getTissue());
 	}
 
 	/**
