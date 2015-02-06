@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -186,5 +187,24 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public TeamMembershipStatus getTeamMembershipStatus(Long userId, String teamId, String principalId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 */
+	ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param memberIds
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ListWrapper<TeamMember> listTeamMembers(Long teamId, Set<Long> memberIds) throws DatastoreException, NotFoundException;
 	
 }

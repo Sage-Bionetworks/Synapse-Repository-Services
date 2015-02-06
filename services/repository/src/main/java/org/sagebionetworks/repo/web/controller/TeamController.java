@@ -4,12 +4,14 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
+import java.util.HashSet;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
@@ -132,6 +134,23 @@ public class TeamController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
 			) {
 		return serviceProvider.getTeamService().getByMember(id, limit, offset);
+	}
+	
+	/**
+	 * Retrieve a list of Teams given their IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<Team> getTeams(
+			@RequestBody IdList ids
+			) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTeamService().list(new HashSet<Long>(ids.getList()));
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -298,6 +317,24 @@ public class TeamController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().getMembers(id, fragment, limit, offset);
+	}
+	
+	/**
+	 * Returns the TeamMember info for a team and a given list of members' principal IDs
+	 * @param teamId
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_MEMBER_LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<TeamMember> listTeamMembers(
+			@PathVariable Long id,
+			@RequestBody IdList ids
+			) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTeamService().listTeamMembers(id, new HashSet<Long>(ids.getList()));
 	}
 	
 	/**

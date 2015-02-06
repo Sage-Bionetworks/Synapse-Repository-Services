@@ -24,7 +24,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +33,7 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -174,11 +174,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException {
-		if (ids.size()<1) return Collections.emptyList();
+	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
+		ListWrapper<Team> result = new ListWrapper<Team>();
+		if (ids.size()<1) return result;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		int i=0;
-		for (String id : ids) {
+		for (Long id : ids) {
 			param.addValue(ListQueryUtils.bindVariable(i++), id);
 			
 		}
@@ -188,7 +189,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(sql, TEAM_ROW_MAPPER, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
-		return dtos;
+		result.setList(dtos);
+		return result;
 	}
 	
 	/* (non-Javadoc)
@@ -449,17 +451,20 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	public List<TeamMember> listMembers(String teamId, Set<String> principalIds) throws NotFoundException, DatastoreException {
-		if (principalIds.size()<1) return Collections.emptyList();
+	public ListWrapper<TeamMember> listMembers(String teamId, Set<Long> principalIds) throws NotFoundException, DatastoreException {
+		ListWrapper<TeamMember> result = new ListWrapper<TeamMember>();
+		if (principalIds.size()<1) return result;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
 		int i=0;
-		for (String id : principalIds) {
+		for (Long id : principalIds) {
 			param.addValue(ListQueryUtils.bindVariable(i++), id);
 		}
 		String sql = SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 			ListQueryUtils.selectListInClause(principalIds.size());
-		return simpleJdbcTemplate.query(sql, TEAM_MEMBER_ROW_MAPPER, param);
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(sql, TEAM_MEMBER_ROW_MAPPER, param);
+		result.setList(teamMembers);
+		return result;
 	}
 	
 	@Override

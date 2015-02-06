@@ -736,6 +736,7 @@ public class UrlHelpers {
 
 	// Team
 	public static final String TEAM = "/team";
+	public static final String TEAM_LIST = "/teamList";
 	public static final String TEAM_ID = TEAM+ID;
 	public static final String USER_TEAM = USER+ID+TEAM;
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
@@ -744,6 +745,7 @@ public class UrlHelpers {
 	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
 	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";
 	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
+	public static final String TEAM_MEMBER_LIST = TEAM_ID_MEMBER+"List";
 	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
 	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
 	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";
