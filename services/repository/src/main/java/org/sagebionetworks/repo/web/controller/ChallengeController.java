@@ -99,7 +99,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE, method = RequestMethod.GET)
 	public @ResponseBody ChallengePagedResults listChallengesForParticipant(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam long participantId, 
+			@RequestParam(required=true) long participantId, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
 			) throws DatastoreException, NotFoundException {
