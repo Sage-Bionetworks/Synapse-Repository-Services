@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
@@ -6269,6 +6270,35 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public EntityQueryResults entityQuery(EntityQuery query) throws SynapseException {
 		return asymmetricalPost(getRepoEndpoint(), QUERY, query, EntityQueryResults.class, null);
 	}
+	
+	private static final String CHALLENGE = "/challenge";
+
+	@Override
+	public Challenge createChallenge(Challenge challenge) throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(challenge);
+			jsonObj = createJSONObject(CHALLENGE, jsonObj);
+			return initializeFromJSONObject(jsonObj, Challenge.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
+	public Challenge getChallegeForProject(String projectId) throws SynapseException {
+		if (projectId==null) throw new IllegalArgumentException("projectId may not be null.");
+		JSONObject jsonObj = getEntity(ENTITY+"/"+projectId+CHALLENGE);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		Challenge results = new Challenge();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	
 	
 	/**
 	 * Register a Team for a Challenge.

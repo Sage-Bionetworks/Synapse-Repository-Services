@@ -451,7 +451,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	public ListWrapper<TeamMember> listMembers(String teamId, Set<Long> principalIds) throws NotFoundException, DatastoreException {
+	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> principalIds) throws NotFoundException, DatastoreException {
 		ListWrapper<TeamMember> result = new ListWrapper<TeamMember>();
 		if (principalIds.size()<1) return result;
 		MapSqlParameterSource param = new MapSqlParameterSource();

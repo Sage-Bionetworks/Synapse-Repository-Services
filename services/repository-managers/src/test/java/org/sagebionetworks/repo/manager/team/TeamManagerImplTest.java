@@ -364,7 +364,7 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.getInRange(10, 0)).thenReturn(teamList.getList());
 		when(mockTeamDAO.getCount()).thenReturn(1L);
 		PaginatedResults<Team> result = teamManagerImpl.list(10,0);
-		assertEquals(teamList, result.getResults());
+		assertEquals(teamList.getList(), result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 		
 		when(mockTeamDAO.list(Collections.singleton(101L))).thenReturn(teamList);
@@ -710,8 +710,9 @@ public class TeamManagerImplTest {
 		
 		ListWrapper<TeamMember> lw = new ListWrapper<TeamMember>();
 		lw.setList(tms);
-		when(mockTeamDAO.listMembers(TEAM_ID, Collections.singleton(101L))).thenReturn(lw);
-		assertEquals(tms, teamManagerImpl.listMembers(TEAM_ID, Collections.singleton(101L)).getList());
+		Long teamId = Long.parseLong(TEAM_ID);
+		when(mockTeamDAO.listMembers(teamId, Collections.singleton(101L))).thenReturn(lw);
+		assertEquals(tms, teamManagerImpl.listMembers(teamId, Collections.singleton(101L)).getList());
 	}
 	
 	@Test

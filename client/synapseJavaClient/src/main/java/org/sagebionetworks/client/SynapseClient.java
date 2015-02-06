@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
@@ -1955,4 +1956,20 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
+
+	/**
+	 * Creates and returns a new Challenge
+	 * @param challenge
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge createChallenge(Challenge challenge) throws SynapseException;
+
+	/**
+	 * Returns the Challenge for a given project
+	 * @param projectId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge getChallegeForProject(String projectId) throws SynapseException;
 }
