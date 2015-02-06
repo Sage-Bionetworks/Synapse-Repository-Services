@@ -71,6 +71,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -5798,16 +5799,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ListWrapper<Team> listTeams(List<Long> ids) throws SynapseException {
-		JSONObject jsonObj = getEntity(TEAM_LIST);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		ListWrapper<Team> results = new ListWrapper<Team>();
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+	public ListWrapper<Team> listTeams(IdList ids) throws SynapseException {
+		return asymmetricalPost(getRepoEndpoint(), TEAM_LIST, ids, ListWrapper.class, null);
 	}
 
 	@Override
@@ -5904,16 +5897,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ListWrapper<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException {
-		JSONObject jsonObj = getEntity(TEAM+"/"+teamId+MEMBER_LIST);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		ListWrapper<TeamMember> results = new ListWrapper<TeamMember>();
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+	public ListWrapper<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException {
+		return asymmetricalPost(getRepoEndpoint(), TEAM+"/"+teamId+MEMBER_LIST, ids, ListWrapper.class, null);
 	}
 
 	@Override
