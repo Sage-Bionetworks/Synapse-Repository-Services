@@ -568,7 +568,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		// Check the e-tags
 		if(!currentTag.equals(eTag)){
-			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
+			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and re-apply the update");
 		}
 		// Get a new e-tag
 		DBONode node = getNodeById(longId);
@@ -647,6 +647,40 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return list;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId)
+			throws NotFoundException, DatastoreException {
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		DBORevision rev = getNodeRevisionById(nodeIdLong, versionNumber);
+		// now update the annotations from the passed values.
+		try {
+			// Compress the annotations.
+			byte[] newAnnos = JDOSecondaryPropertyUtils.compressAnnotations(updatedAnnos);
+			rev.setAnnotations(newAnnos);
+			if(fileHandleId != null){
+				rev.setFileHandleId(Long.parseLong(fileHandleId));
+			}else{
+				rev.setFileHandleId(null);
+			}
+			// Save the change
+			dboBasicDao.update(rev);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		} 
+		
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void changeNodeType(String nodeId, String newEtag, String newType) throws DatastoreException, NotFoundException {
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		DBONode jdo =  getNodeById(nodeIdLong);
+		jdo.seteTag(newEtag);
+		jdo.setNodeType(EntityType.valueOf(newType).getId());
+		dboBasicDao.update(jdo);
+	}
+	
 	@Override
 	public long getVersionCount(String entityId) throws NotFoundException,
 			DatastoreException {
@@ -1425,4 +1459,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		queryResults.setTotalNumberOfResults(totalCount);
 		return queryResults;
 	}
+
+
 }
