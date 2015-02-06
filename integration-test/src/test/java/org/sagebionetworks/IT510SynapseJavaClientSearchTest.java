@@ -335,7 +335,7 @@ public class IT510SynapseJavaClientSearchTest {
 		searchQuery.setReturnFields(returnFields);
 		KeyValue booleanQueryClause = new KeyValue();
 		booleanQueryClause.setKey("node_type");
-		booleanQueryClause.setValue("data");
+		booleanQueryClause.setValue("folder");
 		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
 		booleanQuery.add(booleanQueryClause);
 		searchQuery.setBooleanQuery(booleanQuery);
