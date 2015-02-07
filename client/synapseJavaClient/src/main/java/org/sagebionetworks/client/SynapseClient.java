@@ -1955,4 +1955,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
+	
+	/**
+	 * Convert a locationable entity to its corresponding new type.
+	 * @param toConvert
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public Entity convertLocationableEntity(Entity toConvert) throws SynapseException;
 }
