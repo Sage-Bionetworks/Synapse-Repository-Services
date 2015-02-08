@@ -175,6 +175,28 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Replace the annotations and fileHandle ID of a specific version of a node.
+	 * This is used to convert one entity type to another.
+	 * @param nodeId
+	 * @param versionNumber
+	 * @param updatedAnnos
+	 * @param fileHandleId
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Change the type of a node.
+	 * @param nodeId
+	 * @param newEtag
+	 * @param newType
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public void changeNodeType(String nodeId, String newEtag, String newType) throws DatastoreException, NotFoundException;
 
 	
 	/**

@@ -2093,4 +2093,12 @@ public interface SynapseClient extends BaseClient {
 	PaginatedIds listSubmissionTeams(long challengeId,
 			long submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
+	
+	/**
+	 * Convert a locationable entity to its corresponding new type.
+	 * @param toConvert
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public Entity convertLocationableEntity(Entity toConvert) throws SynapseException;
 }

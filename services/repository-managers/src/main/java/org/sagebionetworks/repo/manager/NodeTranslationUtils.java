@@ -500,20 +500,6 @@ public class NodeTranslationUtils {
 					// First handle references
 					if (TYPE.ARRAY == propSchema.getType()) {
 						
-//						if(TYPE.STRING.equals(propSchema.getItems().getType())){
-//							List<String> list = (List<String>) field.get(base);
-//							if(list == null){
-//								list = new LinkedList<String>();
-//								field.set(base, list);
-//							}
-//							if(value instanceof Collection){
-//								list.addAll((Collection) value);
-//							}else{
-//								list.add((String) value);
-//							}
-//							continue;
-//						}
-						
 						// Is this a reference
 						if (Reference.class.getName().equals(
 								propSchema.getItems().getId())) {

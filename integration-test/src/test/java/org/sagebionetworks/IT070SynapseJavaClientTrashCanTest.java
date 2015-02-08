@@ -17,9 +17,9 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TrashedEntity;
 
 public class IT070SynapseJavaClientTrashCanTest {
@@ -50,7 +50,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		parent = synapse.createEntity(parent);
 		assertNotNull(parent);
 
-		child = new Study();
+		child = new Folder();
 		child.setName("IT070SynapseJavaClientTrashCanTest.child");
 		child.setParentId(parent.getId());
 		child = synapse.createEntity(child);

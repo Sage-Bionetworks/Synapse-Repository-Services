@@ -13,12 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Project;
@@ -30,8 +28,6 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class QueryControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 	
@@ -89,34 +85,6 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 		QueryResults results = controller.query(adminUserId, query, mockRequest);
 		assertNotNull(results);
 		assertTrue(results.getTotalNumberOfResults() > 0);
-	}
-	
-	@Test
-	public void testPLFM_1272() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
-		// Create a project
-		Project p = new Project();
-		p.setEntityType(Project.class.getName());
-		p.setName("name");
-		String id = entityManager.createEntity(testUserInfo, p, null);
-		p.setId(id);
-		toDelete.add(p.getId());
-		// Now add a data object 
-		Data data = new Data();
-		data.setParentId(p.getId());
-		data.setName("data");
-		data.setEntityType(Data.class.getName());
-		id = entityManager.createEntity(testUserInfo, data, null);
-		data.setId(id);
-		// Now query for the data object
-		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+p.getId()+"\"";
-		QueryResults results = controller.query(testUserId, queryString, mockRequest);
-		assertNotNull(results);
-		assertEquals(1l, results.getTotalNumberOfResults());
-		
-		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+p.getId()+"\"";
-		results = controller.query(testUserId, queryString, mockRequest);
-		assertNotNull(results);
-		assertEquals(1l, results.getTotalNumberOfResults());
 	}
 	
 	@Test

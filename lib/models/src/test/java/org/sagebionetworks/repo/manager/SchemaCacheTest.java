@@ -4,8 +4,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -24,7 +24,7 @@ public class SchemaCacheTest {
 	
 	@Test
 	public void testGetSchema() throws JSONObjectAdapterException{
-		Study ds = new Study();
+		Folder ds = new Folder();
 		ObjectSchema schema = SchemaCache.getSchema(ds);
 		assertNotNull(schema);
 		assertNotNull(schema.getProperties());

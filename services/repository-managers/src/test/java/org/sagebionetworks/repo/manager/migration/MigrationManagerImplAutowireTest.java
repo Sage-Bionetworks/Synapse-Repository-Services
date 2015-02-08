@@ -254,7 +254,7 @@ public class MigrationManagerImplAutowireTest {
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 			CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-			if (stackConfig.getDynamoTableRowCacheEnabled()) {
+			if (stackConfig.getDynamoTableRowCacheEnabled() && stackConfig.getDynamoTableRowCacheEnabled()) {
 				assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
 			}
 

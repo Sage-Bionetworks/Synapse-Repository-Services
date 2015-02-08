@@ -45,6 +45,8 @@
 	<bean id="stackConfiguration.databaseConnectionPoolMaxNumberConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.controllerLoggingEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<bean id="stackConfiguration.allowCreationOfOldEntities" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean id="stackConfiguration.cloudWatchOnOff" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.cloudWatchTriggerTime" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

@@ -49,13 +49,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -86,7 +86,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static Long user2ToDelete;
 	
 	private static Project project = null;
-	private static Study dataset = null;
+	private static Folder dataset = null;
 	private static Project projectTwo = null;
 	private static S3FileHandle fileHandle = null;
 	
@@ -131,7 +131,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// create Entities
 		project = synapseOne.createEntity(new Project());
-		dataset = new Study();
+		dataset = new Folder();
 		dataset.setParentId(project.getId());
 		dataset = synapseOne.createEntity(dataset);
 		projectTwo = synapseTwo.createEntity(new Project());
