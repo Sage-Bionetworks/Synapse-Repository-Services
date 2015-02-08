@@ -116,6 +116,8 @@
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
 	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
 		
+	<bean id="challengeService" class="org.sagebionetworks.repo.web.service.ChallengeServiceImpl" />
+		
 		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 

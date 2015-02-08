@@ -149,7 +149,7 @@ public class DBOTeamDAOImplTest {
 		Set<Long> emptyIds = Collections.emptySet();
 		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
-		assertNull(teamDAO.list(emptyIds).getList());
+		assertTrue(teamDAO.list(emptyIds).getList().isEmpty());
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
@@ -184,7 +184,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.listMembers(0L, Collections.singleton(Long.parseLong(user.getId()))).getList().size());
 		assertEquals(0, teamDAO.listMembers(teamId, Collections.singleton(0L)).getList().size());
 
-		assertNull(teamDAO.listMembers(teamId, emptyIds).getList());
+		assertTrue(teamDAO.listMembers(teamId, emptyIds).getList().isEmpty());
 		
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
@@ -242,6 +242,13 @@ public class DBOTeamDAOImplTest {
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
 		assertEquals(user.getId(), ugh.getOwnerId());
+		
+		members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
+		assertEquals(1, members.size());
+		assertEquals(member, members.get(0));
+		
+		listedMembers = teamDAO.listMembers(teamId, Collections.singleton(Long.parseLong(user.getId())));
+		assertEquals(member, listedMembers.getList().get(0));
 	}
 	
 	public static AccessControlList createAdminAcl(

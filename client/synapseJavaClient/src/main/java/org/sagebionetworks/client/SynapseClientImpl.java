@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DomainType;
@@ -355,7 +356,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String TRASHCAN_PURGE = "/trashcan/purge";
 
 	private static final String CHALLENGE = "/challenge";
+	private static final String REGISTRATABLE_TEAM = "/registratableTeam";
 	private static final String CHALLENGE_TEAM = "/challengeTeam";
+	private static final String SUBMISSION_TEAMS = "/submissionTeams";
 
 	private static final String LOG = "/log";
 
@@ -382,8 +385,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	// Team
 	protected static final String TEAM = "/team";
 	protected static final String TEAMS = "/teams";
-	private static final String TEAM_LIST = "teamList";
-	private static final String MEMBER_LIST = "memberList";
+	private static final String TEAM_LIST = "/teamList";
+	private static final String MEMBER_LIST = "/memberList";
 	protected static final String USER = "/user";
 	protected static final String NAME_FRAGMENT_FILTER = "fragment";
 	protected static final String ICON = "/icon";
@@ -6314,13 +6317,40 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ListWrapper<Challenge> listChallengesForParticipant(long participantPrincipalId, Long limit, Long offset) throws SynapseException {
-		String uri = CHALLENGE+"&participantId="+participantPrincipalId;
+	public PaginatedIds listChallengeParticipants(long challengeId, Boolean affiliated, Long limit, Long offset)  throws SynapseException {
+		String uri = CHALLENGE+"/"+challengeId+"/participant";
+		boolean anyParameters = false;
+		if (affiliated!=null) {
+			uri += "?affiliated="+affiliated;
+			anyParameters = true;
+		}
+		if  (limit!=null) {
+			uri+=(anyParameters ?"&":"?")+LIMIT+"="+limit;
+			anyParameters = true;
+		}
+		if  (offset!=null) {
+			uri+=(anyParameters ?"&":"?")+OFFSET+"="+offset;
+			anyParameters = true;
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedIds results = new PaginatedIds();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
+	public ChallengePagedResults listChallengesForParticipant(long participantPrincipalId, Long limit, Long offset) throws SynapseException {
+		String uri = CHALLENGE+"?participantId="+participantPrincipalId;
 		if  (limit!=null) uri+=	"&"+LIMIT+"="+limit;
 		if  (offset!=null) uri+="&"+OFFSET+"="+offset;
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		ListWrapper<Challenge> results = new ListWrapper<Challenge>();
+		ChallengePagedResults results = new ChallengePagedResults();
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
@@ -6348,7 +6378,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	
 	@Override
-	public void deleteChallenge(String id) throws SynapseException {
+	public void deleteChallenge(long id) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, CHALLENGE + "/" + id, getUserAgent());
 	}
 
@@ -6362,7 +6392,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public ChallengeTeam addTeamToChallenge(ChallengeTeam challengeTeam) throws SynapseException {
+	public ChallengeTeam createChallengeTeam(ChallengeTeam challengeTeam) throws SynapseException {
 		try {
 			if (challengeTeam.getChallengeId()==null) throw new IllegalArgumentException("challenge ID is required.");
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(challengeTeam);
@@ -6375,9 +6405,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public ChallengeTeamPagedResults listChallengeTeams(long challengeId, Long limit, Long offset) throws SynapseException {
-		String uri = CHALLENGE+challengeId+CHALLENGE_TEAM;
-		if  (limit!=null) uri+=	"&"+LIMIT+"="+limit;
-		if  (offset!=null) uri+="&"+OFFSET+"="+offset;
+		String uri = CHALLENGE+"/"+challengeId+CHALLENGE_TEAM;
+		boolean anyParameters = false;
+		if  (limit!=null) {
+			uri+= (anyParameters?"&":"?")+LIMIT+"="+limit;
+			anyParameters = true;
+		}
+		if  (offset!=null) {
+			uri+=(anyParameters?"&":"?")+OFFSET+"="+offset;
+			anyParameters = true;
+		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		ChallengeTeamPagedResults results = new ChallengeTeamPagedResults();
@@ -6391,7 +6428,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public PaginatedIds listRegistratableTeams(long challengeId, Long limit, Long offset) throws SynapseException {
-		String uri = CHALLENGE+challengeId+CHALLENGE_TEAM;
+		String uri = CHALLENGE+"/"+challengeId+REGISTRATABLE_TEAM;
+		boolean anyParameters = false;
+		if  (limit!=null) {
+			uri+=(anyParameters ?"&":"?")+LIMIT+"="+limit;
+			anyParameters = true;
+		}
+		if  (offset!=null) {
+			uri+=(anyParameters ?"&":"?")+OFFSET+"="+offset;
+			anyParameters = true;
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedIds results = new PaginatedIds();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
+	public PaginatedIds listSubmissionTeams(long challengeId, long submitterPrincipalId, Long limit, Long offset) throws SynapseException {
+		String uri = CHALLENGE+"/"+challengeId+SUBMISSION_TEAMS+"?submitterPrincipalId="+submitterPrincipalId;
 		if  (limit!=null) uri+=	"&"+LIMIT+"="+limit;
 		if  (offset!=null) uri+="&"+OFFSET+"="+offset;
 		JSONObject jsonObj = getEntity(uri);
@@ -6436,8 +6496,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public void removeTeamFromChallenge(String challengeTeamId) throws SynapseException {
-		getSharedClientConnection().deleteUri(repoEndpoint, CHALLENGE_TEAM + "/" + challengeTeamId, getUserAgent());
+	public void deleteChallengeTeam(long challengeId, long challengeTeamId) throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, 
+				
+				CHALLENGE+"/"+challengeId+CHALLENGE_TEAM + "/" + challengeTeamId, 
+				getUserAgent());
 	}
 	
 }

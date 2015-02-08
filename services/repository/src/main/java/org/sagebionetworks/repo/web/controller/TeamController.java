@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -147,10 +148,13 @@ public class TeamController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_LIST, method = RequestMethod.POST)
 	public @ResponseBody
-	ListWrapper<Team> getTeams(
+	ListWrapper<Team> listTeams(
 			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().list(new HashSet<Long>(ids.getList()));
+		Set<Long> idSet = new HashSet<Long>();
+		if (ids!=null && ids.getList()!=null) idSet.addAll(ids.getList());
+		ListWrapper<Team> result = serviceProvider.getTeamService().list(idSet);
+		return result;
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -334,7 +338,9 @@ public class TeamController extends BaseController {
 			@PathVariable Long id,
 			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().listTeamMembers(id, new HashSet<Long>(ids.getList()));
+		Set<Long> idSet = new HashSet<Long>();
+		if (ids!=null && ids.getList()!=null) idSet.addAll(ids.getList());
+		return serviceProvider.getTeamService().listTeamMembers(id, idSet);
 	}
 	
 	/**

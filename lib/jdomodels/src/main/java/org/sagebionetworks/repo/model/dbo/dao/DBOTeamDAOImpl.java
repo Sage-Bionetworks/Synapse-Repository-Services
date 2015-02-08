@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -175,8 +176,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	
 	@Override
 	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
-		ListWrapper<Team> result = new ListWrapper<Team>();
-		if (ids.size()<1) return result;
+		if (ids==null || ids.size()<1) {
+			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
+		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		int i=0;
 		for (Long id : ids) {
@@ -189,8 +191,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(sql, TEAM_ROW_MAPPER, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
-		result.setList(dtos);
-		return result;
+		return ListWrapper.wrap(dtos, Team.class);
 	}
 	
 	/* (non-Javadoc)
@@ -435,25 +436,31 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, TEAM_MEMBER_ROW_MAPPER, param);
+		setAdminStatus(teamId, teamMembers);
+		return teamMembers;
+	}
+	
+	// update the 'isAdmin' field for those members that are admins on the team
+	private void setAdminStatus(String teamId, List<TeamMember> teamMembers) {
 		Map<Long, TeamMember> teamMemberMap = new HashMap<Long, TeamMember>();
-		for (TeamMember tm : teamMembers) teamMemberMap.put(Long.parseLong(tm.getMember().getOwnerId()), tm);
-
-		// now update the 'isAdmin' field for those members that are admins on the team
-		param = new MapSqlParameterSource();
+		for (TeamMember tm : teamMembers) {
+			teamMemberMap.put(Long.parseLong(tm.getMember().getOwnerId()), tm);
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAM, teamMemberIdRowMapper, param);
+		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAM, 
+				teamMemberIdRowMapper, param);
 		for (TeamMemberId id : adminTeamMembers) {
 			TeamMember tm = teamMemberMap.get(id.getMemberId());
 			if (tm!=null) tm.setIsAdmin(true);
-		}
-		
-		return teamMembers;
+		}	
 	}
 	
 	@Override
 	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> principalIds) throws NotFoundException, DatastoreException {
-		ListWrapper<TeamMember> result = new ListWrapper<TeamMember>();
-		if (principalIds.size()<1) return result;
+		if (principalIds==null || principalIds.size()<1) {
+			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
+		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
 		int i=0;
@@ -463,8 +470,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		String sql = SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 			ListQueryUtils.selectListInClause(principalIds.size());
 		List<TeamMember> teamMembers = simpleJdbcTemplate.query(sql, TEAM_MEMBER_ROW_MAPPER, param);
-		result.setList(teamMembers);
-		return result;
+		
+		setAdminStatus(teamId.toString(), teamMembers);
+
+		return ListWrapper.wrap(teamMembers, TeamMember.class);
 	}
 	
 	@Override

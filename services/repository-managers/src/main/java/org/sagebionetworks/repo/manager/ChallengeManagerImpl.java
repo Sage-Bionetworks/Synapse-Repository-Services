@@ -46,6 +46,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	private static final AuthorizationStatus NOT_SELF = 
 			new AuthorizationStatus(false, "You may not make this request on another user's behalf.");
 
+	public ChallengeManagerImpl() {}
+	
 	/*
 	 * for testing
 	 */
@@ -62,14 +64,13 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	private static void validateChallenge(Challenge challenge) {
 		if (challenge.getProjectId()==null) 
 			throw new InvalidModelException("Project ID is required.");
-		if (challenge.getProjectId()==null) 
+		if (challenge.getParticipantTeamId()==null) 
 			throw new InvalidModelException("Participant Team ID is required.");
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Challenge createChallenge(UserInfo userInfo, Challenge challenge) throws DatastoreException, NotFoundException {
-		if (challenge.getProjectId()==null) throw new InvalidModelException("Project ID is required.");
 		validateChallenge(challenge);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, 

@@ -123,9 +123,9 @@ public class ChallengeController extends BaseController {
 	public @ResponseBody Challenge updateChallenge(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Challenge challenge,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) String challengeId
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId
 			) throws DatastoreException, NotFoundException {
-		if (challenge.getId()!=null && !challengeId.equals(challenge.getId()))
+		if (challenge.getId()!=null && challengeId!=Long.parseLong(challenge.getId()))
 			throw new InvalidModelException("Challenge ID in URI in path must match that in request body.");
 		return serviceProvider.getChallengeService().updateChallenge(userId, challenge);
 	}
@@ -142,7 +142,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHALLENGE_ID, method = RequestMethod.DELETE)
 	public void deleteChallenge(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) Long challengeId
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId
 			) throws DatastoreException, NotFoundException {
 		serviceProvider.getChallengeService().deleteChallenge(userId, challengeId);
 	}
@@ -153,7 +153,8 @@ public class ChallengeController extends BaseController {
 	 * project associated with the Challenge.
 	 * @param userId
 	 * @param challengeId
-	 * @param affiliated If affiliated=true, return just participants affiliated with some registered Team.  If false, return those affiliated with no Team.  
+	 * @param affiliated If affiliated=true, return just participants affiliated with some 
+	 * registered Team.  If false, return those not affiliated with any registered Team.  
 	 * If omitted return all participants.
 	 * @param limit
 	 * @param offset
@@ -165,7 +166,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds listParticipantsInChallenge(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) Long challengeId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(required=false) Boolean affiliated, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
@@ -188,10 +189,10 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM, method = RequestMethod.POST)
 	public @ResponseBody ChallengeTeam createChallengeTeam(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) Long challengeId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestBody ChallengeTeam challengeTeam
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (challengeTeam.getChallengeId()!=null && !challengeId.equals(challengeTeam.getChallengeId()))
+		if (challengeTeam.getChallengeId()!=null && challengeId!=Long.parseLong(challengeTeam.getChallengeId()))
 			throw new InvalidModelException("Challenge ID in URI in path must match that in request body.");
 		return serviceProvider.getChallengeService().createChallengeTeam(userId, challengeTeam);
 	}
@@ -212,7 +213,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM, method = RequestMethod.GET)
 	public @ResponseBody ChallengeTeamPagedResults listChallengeTeams(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) Long challengeId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
 			) throws DatastoreException,
@@ -238,7 +239,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_REGISTRATABLE_TEAM, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds listRegistratableTeams(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) Long challengeId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
 			) throws DatastoreException,
@@ -261,13 +262,13 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM_CHAL_TEAM_ID, method = RequestMethod.PUT)
 	public @ResponseBody ChallengeTeam updateChallengeTeam(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) String challengeId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_TEAM_ID_PATH_VARIABLE) String challengeTeamId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_TEAM_ID_PATH_VARIABLE) long challengeTeamId,
 			@RequestBody ChallengeTeam challengeTeam
 			) throws DatastoreException, NotFoundException {
-		if (challengeTeam.getChallengeId()!=null && !challengeId.equals(challengeTeam.getChallengeId()))
+		if (challengeTeam.getChallengeId()!=null && challengeId!=Long.parseLong(challengeTeam.getChallengeId()))
 			throw new InvalidModelException("Challenge ID in URI in path must match that in request body.");
-		if (challengeTeam.getId()!=null && !challengeTeamId.equals(challengeTeam.getId()))
+		if (challengeTeam.getId()!=null && challengeTeamId!=Long.parseLong(challengeTeam.getId()))
 			throw new InvalidModelException("ChallengeTeam ID in URI in path must match that in request body.");
 		return serviceProvider.getChallengeService().updateChallengeTeam(userId, challengeTeam);
 	}
@@ -286,7 +287,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM_CHAL_TEAM_ID, method = RequestMethod.DELETE)
 	public void deleteChallengeTeam(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_TEAM_ID_PATH_VARIABLE) Long challengeTeamId
+			@PathVariable(value = UrlHelpers.CHALLENGE_TEAM_ID_PATH_VARIABLE) long challengeTeamId
 			) throws DatastoreException, NotFoundException {
 		serviceProvider.getChallengeService().deleteChallengeTeam(userId, challengeTeamId);
 	}
@@ -308,8 +309,8 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_SUBMISSION_TEAMS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds listSubmissionTeams(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) Long challengeId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long submitterPrincipalId,
+			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) long submitterPrincipalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
 			) throws DatastoreException, NotFoundException {

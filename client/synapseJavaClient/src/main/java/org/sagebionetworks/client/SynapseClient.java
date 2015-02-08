@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DomainType;
@@ -1980,7 +1981,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ListWrapper<Challenge> listChallengesForParticipant(
+	ChallengePagedResults listChallengesForParticipant(
 			long participantPrincipalId, Long limit, Long offset)
 			throws SynapseException;
 
@@ -2000,7 +2001,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param id
 	 * @throws SynapseException
 	 */
-	void deleteChallenge(String id) throws SynapseException;
+	void deleteChallenge(long id) throws SynapseException;
 
 	/**
 	 * List the Teams registered for the Challenge.  Caller must have READ permission in 
@@ -2038,7 +2039,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ChallengeTeam addTeamToChallenge(ChallengeTeam challengeTeam) throws SynapseException;
+	public ChallengeTeam createChallengeTeam(ChallengeTeam challengeTeam) throws SynapseException;
 	
 	/**
 	 * Update the ChallengeTeam.
@@ -2059,5 +2060,37 @@ public interface SynapseClient extends BaseClient {
 	 * @param challengeTeamId
 	 * @throws SynapseException
 	 */
-	public void removeTeamFromChallenge(String challengeTeamId) throws SynapseException;
+	public void deleteChallengeTeam(long challengeId, long challengeTeamId) throws SynapseException;
+
+	/**
+	 * Return challenge participants.  If affiliated=true, return just participants 
+	 * affiliated with some registered Team.  If false, return those not affiliated with 
+	 * any registered Team.  If missing return all participants. 
+	 * 
+	 * @param challengeId
+	 * @param affiliated
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedIds listChallengeParticipants(long challengeId,
+			Boolean affiliated, Long limit, Long offset)
+			throws SynapseException;
+
+	/**
+	 * List the Teams for which the given submitter may submit in the given challenge,
+	 * i.e. those teams in which the submitter is a member and which are registered for
+	 * the challenge.
+	 * 
+	 * @param challengeId
+	 * @param submitterPrincipalId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedIds listSubmissionTeams(long challengeId,
+			long submitterPrincipalId, Long limit, Long offset)
+			throws SynapseException;
 }
