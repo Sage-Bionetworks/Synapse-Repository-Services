@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -23,8 +24,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -142,14 +142,14 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
 		
-		List<Team> listed = teamDAO.list(Collections.singleton(""+id));
-		assertEquals(1, listed.size());
-		assertEquals(updated, listed.get(0));
+		ListWrapper<Team> listed = teamDAO.list(Collections.singleton(id));
+		assertEquals(1, listed.getList().size());
+		assertEquals(updated, listed.getList().get(0));
 		
-		Set<String> emptyIds = Collections.emptySet();
+		Set<Long> emptyIds = Collections.emptySet();
 		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
-		assertTrue(teamDAO.list(emptyIds).isEmpty());
+		assertTrue(teamDAO.list(emptyIds).getList().isEmpty());
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
@@ -174,16 +174,17 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.getForMemberInRange(user.getId(), 3, 1).size());
 		assertEquals(1, teamDAO.getCountForMember(user.getId()));
 		
-		List<TeamMember> listedMembers = 
-				teamDAO.listMembers(team.getId(), Collections.singleton(user.getId()));
-		assertEquals(1, listedMembers.size());
+		Long teamId = Long.parseLong(team.getId());
+		ListWrapper<TeamMember> listedMembers = 
+				teamDAO.listMembers(teamId, Collections.singleton(Long.parseLong(user.getId())));
+		assertEquals(1, listedMembers.getList().size());
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
-		assertEquals(member, listedMembers.get(0));
+		assertEquals(member, listedMembers.getList().get(0));
 		// check that nothing is returned for other team IDs and principal IDs
-		assertEquals(0, teamDAO.listMembers("0", Collections.singleton(user.getId())).size());
-		assertEquals(0, teamDAO.listMembers(team.getId(), Collections.singleton("0")).size());
+		assertEquals(0, teamDAO.listMembers(0L, Collections.singleton(Long.parseLong(user.getId()))).getList().size());
+		assertEquals(0, teamDAO.listMembers(teamId, Collections.singleton(0L)).getList().size());
 
-		assertTrue(teamDAO.listMembers(team.getId(), emptyIds).isEmpty());
+		assertTrue(teamDAO.listMembers(teamId, emptyIds).getList().isEmpty());
 		
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
@@ -241,6 +242,13 @@ public class DBOTeamDAOImplTest {
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
 		assertEquals(user.getId(), ugh.getOwnerId());
+		
+		members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
+		assertEquals(1, members.size());
+		assertEquals(member, members.get(0));
+		
+		listedMembers = teamDAO.listMembers(teamId, Collections.singleton(Long.parseLong(user.getId())));
+		assertEquals(member, listedMembers.getList().get(0));
 	}
 	
 	public static AccessControlList createAdminAcl(

@@ -19,6 +19,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,8 +65,10 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -1156,6 +1159,12 @@ public class IT500SynapseJavaClient {
 		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		
+		IdList idList = new IdList();
+		idList.setList(Collections.singletonList(Long.parseLong(updatedTeam.getId())));
+		ListWrapper<Team> teamList = synapseOne.listTeams(idList);
+		assertEquals(1L, teamList.getList().size());
+		assertEquals(updatedTeam, teamList.getList().get(0));
+		
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
@@ -1207,6 +1216,11 @@ public class IT500SynapseJavaClient {
 		assertEquals(1L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
+		
+		IdList memberIds = new IdList();
+		memberIds.setList(Collections.singletonList(Long.parseLong(myPrincipalId)));
+		ListWrapper<TeamMember> teamMembersLW = synapseOne.listTeamMembers(updatedTeam.getId(), memberIds);
+		assertEquals(members.getResults(), teamMembersLW.getList());
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
 		// update the prefix cache

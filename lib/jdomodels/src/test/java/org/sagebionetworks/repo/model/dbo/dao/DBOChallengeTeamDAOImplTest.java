@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.SubmissionTeam;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -260,10 +259,10 @@ public class DBOChallengeTeamDAOImplTest {
 	}
 	
 	private void checkSubmissionTeams(long challengeId, 
-			long principalId, Set<SubmissionTeam> expected) throws Exception {
+			long principalId, Set<String> expected) throws Exception {
 		if (expected==null) expected = Collections.emptySet();
 		assertEquals(expected,
-				new HashSet<SubmissionTeam>(challengeTeamDAO.listSubmissionTeams(
+				new HashSet<String>(challengeTeamDAO.listSubmissionTeams(
 						challengeId, principalId, 10L, 0L)));
 		
 		assertEquals((long)expected.size(), 
@@ -276,40 +275,26 @@ public class DBOChallengeTeamDAOImplTest {
 	
 	@Test
 	public void testSubmissionTeams() throws Exception {
-		// initially 'registeredTeam' is not registered for the
-		// challenge.  But it should be in the list since 'principalId'
-		// is an admin of the Team. The other team, 'participantTeam'
-		// does not show up because neither is it registered nor is 'principalId'
-		// an admin of the Team
-		SubmissionTeam expected = new SubmissionTeam();
-		expected.setTeamId(registeredTeam.getId());
-		expected.setChallengeId(challenge.getId());
-		expected.setIsRegistered(false);
-		checkSubmissionTeams(challengeId, principalId, Collections.singleton(expected));
+		// initially 'registeredTeam' is unregistered
+		// 'principalId' is a member of registered 
 		
+		Long otherTeamMember = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		// user is NOT registered, and no team is registered
+		checkSubmissionTeams(challengeId, otherTeamMember, null);
+		
+		// user is in team, but no team is registered
+		checkSubmissionTeams(challengeId, principalId, null);
+		
+		// this registers 'registered team'
 		challengeTeam = newChallengeTeam();
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
 		
-		// now the team is registered
-		expected.setIsRegistered(true);
-		checkSubmissionTeams(challengeId, principalId, Collections.singleton(expected));
+		// not in Team, but Team is registered
+		checkSubmissionTeams(challengeId, otherTeamMember, null);
+
+		// Team is registered and user is in Team
+		checkSubmissionTeams(challengeId, principalId, Collections.singleton(registeredTeam.getId()));
 		
-		// now de-register the team and register the team
-		// in which the principal is NOT an administrator
-		// show that it's included even though the principal is not an admin
-		challengeTeamDAO.delete(Long.parseLong(challengeTeam.getId()));
-		challengeTeam = newChallengeTeam();
-		challengeTeam.setTeamId(participantTeam.getId());
-		challengeTeam = challengeTeamDAO.create(challengeTeam);
-		expected.setIsRegistered(false);
-		SubmissionTeam expected2 = new SubmissionTeam();
-		expected2.setTeamId(participantTeam.getId());
-		expected2.setChallengeId(challenge.getId());
-		expected2.setIsRegistered(true);
-		Set<SubmissionTeam> expectedSet = new HashSet<SubmissionTeam>();
-		expectedSet.add(expected);
-		expectedSet.add(expected2);
-		checkSubmissionTeams(challengeId, principalId, expectedSet);
 	}
 
 

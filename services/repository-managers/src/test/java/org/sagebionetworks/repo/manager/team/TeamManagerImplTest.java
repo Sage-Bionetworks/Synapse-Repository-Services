@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -358,15 +359,16 @@ public class TeamManagerImplTest {
 	@Test
 	public void testGetBatch() throws Exception {
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
-		List<Team> teamList = Arrays.asList(new Team[]{team});
-		when(mockTeamDAO.getInRange(10, 0)).thenReturn(teamList);
+		ListWrapper<Team> teamList = new ListWrapper();
+		teamList.setList(Arrays.asList(new Team[]{team}));
+		when(mockTeamDAO.getInRange(10, 0)).thenReturn(teamList.getList());
 		when(mockTeamDAO.getCount()).thenReturn(1L);
 		PaginatedResults<Team> result = teamManagerImpl.list(10,0);
-		assertEquals(teamList, result.getResults());
+		assertEquals(teamList.getList(), result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 		
-		when(mockTeamDAO.list(Collections.singleton("101"))).thenReturn(teamList);
-		assertEquals(teamList, teamManagerImpl.list(Collections.singleton("101")));
+		when(mockTeamDAO.list(Collections.singleton(101L))).thenReturn(teamList);
+		assertEquals(teamList, teamManagerImpl.list(Collections.singleton(101L)));
 	}
 	
 	@Test
@@ -706,8 +708,11 @@ public class TeamManagerImplTest {
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
 		
-		when(mockTeamDAO.listMembers(TEAM_ID, Collections.singleton("101"))).thenReturn(tms);
-		assertEquals(tms, teamManagerImpl.listMembers(TEAM_ID, Collections.singleton("101")));
+		ListWrapper<TeamMember> lw = new ListWrapper<TeamMember>();
+		lw.setList(tms);
+		Long teamId = Long.parseLong(TEAM_ID);
+		when(mockTeamDAO.listMembers(teamId, Collections.singleton(101L))).thenReturn(lw);
+		assertEquals(tms, teamManagerImpl.listMembers(teamId, Collections.singleton(101L)).getList());
 	}
 	
 	@Test

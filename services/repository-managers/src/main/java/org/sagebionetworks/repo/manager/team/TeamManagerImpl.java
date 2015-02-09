@@ -3,7 +3,6 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -336,7 +336,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException {
+	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
 		return teamDAO.list(ids);
 	}
 
@@ -355,7 +355,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public List<TeamMember> listMembers(String teamId, Set<String> memberIds)
+	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> memberIds)
 			throws DatastoreException, NotFoundException {
 		return teamDAO.listMembers(teamId, memberIds);
 	}
