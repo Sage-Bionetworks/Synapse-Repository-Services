@@ -1,0 +1,15 @@
+{
+	"description": "Describes the eligibility of a Challenge Team to submit to an Evalution queue, reflecting the queue's submission quotas and current submissions.",
+	"name": "MemberSubmissionEligibility",
+	"properties": {
+		"principalId": {
+			"type": "integer",
+			"description": ""
+		},
+		"eligibility": {
+			"type":"object",
+			"$ref":"org.sagebionetworks.evaluation.model.SubmissionEligibility",
+			"description": ""
+		}
+	}
+}

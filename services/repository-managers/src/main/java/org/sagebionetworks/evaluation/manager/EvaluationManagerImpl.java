@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -252,4 +253,25 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		return acl;
 	}
+	
+	public static int computeTeamSubmissionEligibilityHash(TeamSubmissionEligibility tse) {
+		return tse.getTeamEligibility().hashCode() * 17 + tse.getMembersEligibility().hashCode();
+	}
+	
+	/**
+	 * Authorization:  user making the request must have SUBMIT permission in the Evaluation 
+	 * and must be a member of the specified Team.
+	 * 
+	 */
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) {
+		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
+		tse.setEvaluationId(evalId);
+		tse.setTeamId(teamId);
+		tse.setMembersEligibility(null/*membersEligibility*/);
+		tse.setTeamEligibility(null/*membersEligibility*/);
+		tse.setEligibilityStateHash((long)computeTeamSubmissionEligibilityHash(tse));
+		return tse;
+	}
+	
+
 }

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +17,10 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -577,6 +576,19 @@ public class EvaluationController extends BaseController {
 			throws DatastoreException, NotFoundException
 	{
 		return serviceProvider.getEvaluationService().getParticipantCount(userId, evalId);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_SUBMISSION_ELIGIBILITY, method = RequestMethod.GET)
+	public @ResponseBody
+	TeamSubmissionEligibility getTeamSubmissionEligibility(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@PathVariable String teamId,
+			HttpServletRequest request) 
+			throws DatastoreException, NotFoundException
+	{
+		return serviceProvider.getEvaluationService().getTeamSubmissionEligibility(userId, evalId, teamId);
 	}
 	
 	/**

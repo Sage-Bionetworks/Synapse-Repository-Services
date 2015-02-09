@@ -1,0 +1,23 @@
+{
+	"name":"EvaluationQuotas",
+	"description":"Maximum submissions per team/participant per submission round",
+	"properties":{
+		"firstRoundStart": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time at which the first round begins."
+		},
+		"submissionLimit": {
+			"type": "integer",
+			"description":"the maximum number of submissions per team/participant per round.  Can be overridden in a specific round to give a different limit."
+		},
+		"rounds":{
+			"type":"array",
+			"description":"The array of end-dates (and optional round-specific quotas) for the rounds of the Evaluation.",
+			"items":{
+				"type":"object",
+				"$ref":"org.sagebionetworks.evaluation.model.SubmissionRound"
+			}
+		}
+	}
+}

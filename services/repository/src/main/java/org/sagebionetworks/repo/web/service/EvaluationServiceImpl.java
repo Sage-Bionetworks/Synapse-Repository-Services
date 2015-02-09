@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,6 +16,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -442,4 +442,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private String makeEvalIdUrl(String evalId, String url) {
 		return url.replace(UrlHelpers.EVALUATION_ID_PATH_VAR, evalId);
 	}
+	
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.getTeamSubmissionEligibility(userInfo, evalId, teamId);
+		
+	}
+	
+
 }
