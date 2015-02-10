@@ -1982,7 +1982,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	ChallengePagedResults listChallengesForParticipant(
-			long participantPrincipalId, Long limit, Long offset)
+			String participantPrincipalId, Long limit, Long offset)
 			throws SynapseException;
 
 	/**
@@ -2001,7 +2001,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param id
 	 * @throws SynapseException
 	 */
-	void deleteChallenge(long id) throws SynapseException;
+	void deleteChallenge(String id) throws SynapseException;
 
 	/**
 	 * List the Teams registered for the Challenge.  Caller must have READ permission in 
@@ -2013,7 +2013,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ChallengeTeamPagedResults listChallengeTeams(long challengeId, Long limit,
+	ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit,
 			Long offset) throws SynapseException;
 
 	/**
@@ -2026,7 +2026,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedIds listRegistratableTeams(long challengeId, Long limit,
+	PaginatedIds listRegistratableTeams(String challengeId, Long limit,
 			Long offset) throws SynapseException;
 
 	
@@ -2060,7 +2060,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param challengeTeamId
 	 * @throws SynapseException
 	 */
-	public void deleteChallengeTeam(long challengeId, long challengeTeamId) throws SynapseException;
+	public void deleteChallengeTeam(String challengeId, String challengeTeamId) throws SynapseException;
 
 	/**
 	 * Return challenge participants.  If affiliated=true, return just participants 
@@ -2074,7 +2074,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedIds listChallengeParticipants(long challengeId,
+	PaginatedIds listChallengeParticipants(String challengeId,
 			Boolean affiliated, Long limit, Long offset)
 			throws SynapseException;
 
@@ -2090,8 +2090,8 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedIds listSubmissionTeams(long challengeId,
-			long submitterPrincipalId, Long limit, Long offset)
+	PaginatedIds listSubmissionTeams(String challengeId,
+			String submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
 	
 	/**

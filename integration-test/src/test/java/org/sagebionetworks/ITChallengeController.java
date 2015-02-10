@@ -97,11 +97,11 @@ public class ITChallengeController {
 	public void after() throws Exception {
 		if (challengeTeam!=null) {
 			adminSynapse.deleteChallengeTeam(
-					Long.parseLong(challenge.getId()), Long.parseLong(challengeTeam.getId()));
+					challenge.getId(), challengeTeam.getId());
 			challengeTeam=null;
 		}
 		if (challenge!=null) {
-			adminSynapse.deleteChallenge(Long.parseLong(challenge.getId()));
+			adminSynapse.deleteChallenge(challenge.getId());
 			challenge=null;
 		}
 		if (participantTeam!=null) {
@@ -125,18 +125,18 @@ public class ITChallengeController {
 		adminSynapse.deleteUser(userToDelete);
 	}
 	
-	private void checkChallengeParticipants(long challengeId, Set<String> affiliated, 
+	private void checkChallengeParticipants(String challengeId, Set<String> affiliated, 
 			Set<String> unaffiliated) throws SynapseException {
 		PaginatedIds actual;
-		actual=synapse.listChallengeParticipants(challengeId, /*affiliated*/true, 10L, 0L);
+		actual=synapse.listChallengeParticipants(""+challengeId, /*affiliated*/true, 10L, 0L);
 		assertEquals((long)affiliated.size(), actual.getTotalNumberOfResults().longValue());
 		assertEquals(affiliated, new HashSet<String>(actual.getResults()));
 		
-		actual=synapse.listChallengeParticipants(challengeId, /*affiliated*/false, null, 0L);
+		actual=synapse.listChallengeParticipants(""+challengeId, /*affiliated*/false, null, 0L);
 		assertEquals((long)unaffiliated.size(), actual.getTotalNumberOfResults().longValue());
 		assertEquals(unaffiliated, new HashSet<String>(actual.getResults()));
 		
-		actual=synapse.listChallengeParticipants(challengeId, /*affiliated*/null, null, null);
+		actual=synapse.listChallengeParticipants(""+challengeId, /*affiliated*/null, null, null);
 		
 		Set<String> all = new HashSet<String>();
 		all.addAll(affiliated);
@@ -158,7 +158,7 @@ public class ITChallengeController {
 		
 		challenge = synapse.createChallenge(challenge);
 		assertNotNull(challenge.getId());
-		long challengeId = Long.parseLong(challenge.getId());
+		String challengeId = challenge.getId();
 				
 		HashSet<String> affiliatedParticipants = new HashSet<String>();
 		HashSet<String> unaffiliatedParticipants = new HashSet<String>();
@@ -170,7 +170,7 @@ public class ITChallengeController {
 		assertEquals(challenge, retrieved);
 		
 		List<Challenge> challenges = 
-				synapse.listChallengesForParticipant(userToDelete, 10L, 0L).getResults();
+				synapse.listChallengesForParticipant(""+userToDelete, 10L, 0L).getResults();
 		assertTrue(challenges.isEmpty());
 		
 		synapse.listChallengeParticipants(challengeId, /*affiliated*/false, 10L, 0L);
@@ -178,7 +178,7 @@ public class ITChallengeController {
 		// Now join the challenge and see it appear in the query results
 		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString());
 		assertEquals(Collections.singletonList(challenge),
-				synapse.listChallengesForParticipant(userToDelete, null, null).getResults()
+				synapse.listChallengesForParticipant(""+userToDelete, null, null).getResults()
 				);
 		
 		unaffiliatedParticipants.add(userToDelete.toString());
@@ -226,14 +226,14 @@ public class ITChallengeController {
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
 		
-		PaginatedIds submissionTeams = synapse.listSubmissionTeams(challengeId, userToDelete, null, null);
+		PaginatedIds submissionTeams = synapse.listSubmissionTeams(challengeId, ""+userToDelete, null, null);
 		assertEquals(new Long(1L), submissionTeams.getTotalNumberOfResults());
 		assertEquals(Collections.singletonList(registeredTeam.getId()), submissionTeams.getResults());
 		
 		ChallengeTeam updatedCT = synapse.updateChallengeTeam(challengeTeam);
 		assertFalse(updatedCT.getEtag().equals(challengeTeam.getEtag()));
 		
-		synapse.deleteChallengeTeam(challengeId, Long.parseLong(challengeTeam.getId()));
+		synapse.deleteChallengeTeam(challengeId, challengeTeam.getId());
 		assertTrue(
 				synapse.listChallengeTeams(challengeId, null, null).
 					getResults().isEmpty());

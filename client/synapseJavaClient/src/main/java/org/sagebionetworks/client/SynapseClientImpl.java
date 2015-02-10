@@ -7385,8 +7385,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	private static final void validateStringAsLong(String s) throws SynapseClientException {
+		if (s==null) throw new NullPointerException();
+		try {
+			Long.parseLong(s);
+		} catch (NumberFormatException e) {
+			throw new SynapseClientException("Expected integer but found "+s, e);
+		}
+	}
+	
 	@Override
-	public PaginatedIds listChallengeParticipants(long challengeId, Boolean affiliated, Long limit, Long offset)  throws SynapseException {
+	public PaginatedIds listChallengeParticipants(String challengeId, Boolean affiliated, Long limit, Long offset)  throws SynapseException {
+		validateStringAsLong(challengeId);
 		String uri = CHALLENGE+"/"+challengeId+"/participant";
 		boolean anyParameters = false;
 		if (affiliated!=null) {
@@ -7413,7 +7423,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ChallengePagedResults listChallengesForParticipant(long participantPrincipalId, Long limit, Long offset) throws SynapseException {
+	public ChallengePagedResults listChallengesForParticipant(String participantPrincipalId, Long limit, Long offset) throws SynapseException {
+		validateStringAsLong(participantPrincipalId);
 		String uri = CHALLENGE+"?participantId="+participantPrincipalId;
 		if  (limit!=null) uri+=	"&"+LIMIT+"="+limit;
 		if  (offset!=null) uri+="&"+OFFSET+"="+offset;
@@ -7447,7 +7458,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	
 	@Override
-	public void deleteChallenge(long id) throws SynapseException {
+	public void deleteChallenge(String id) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, CHALLENGE + "/" + id, getUserAgent());
 	}
 
@@ -7473,7 +7484,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ChallengeTeamPagedResults listChallengeTeams(long challengeId, Long limit, Long offset) throws SynapseException {
+	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException {
+		validateStringAsLong(challengeId);
 		String uri = CHALLENGE+"/"+challengeId+CHALLENGE_TEAM;
 		boolean anyParameters = false;
 		if  (limit!=null) {
@@ -7496,7 +7508,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public PaginatedIds listRegistratableTeams(long challengeId, Long limit, Long offset) throws SynapseException {
+	public PaginatedIds listRegistratableTeams(String challengeId, Long limit, Long offset) throws SynapseException {
+		validateStringAsLong(challengeId);
 		String uri = CHALLENGE+"/"+challengeId+REGISTRATABLE_TEAM;
 		boolean anyParameters = false;
 		if  (limit!=null) {
@@ -7519,7 +7532,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public PaginatedIds listSubmissionTeams(long challengeId, long submitterPrincipalId, Long limit, Long offset) throws SynapseException {
+	public PaginatedIds listSubmissionTeams(String challengeId, String submitterPrincipalId, Long limit, Long offset) throws SynapseException {
+		validateStringAsLong(challengeId);
+		validateStringAsLong(submitterPrincipalId);
 		String uri = CHALLENGE+"/"+challengeId+SUBMISSION_TEAMS+"?submitterPrincipalId="+submitterPrincipalId;
 		if  (limit!=null) uri+=	"&"+LIMIT+"="+limit;
 		if  (offset!=null) uri+="&"+OFFSET+"="+offset;
@@ -7565,48 +7580,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public void deleteChallengeTeam(long challengeId, long challengeTeamId) throws SynapseException {
+	public void deleteChallengeTeam(String challengeId, String challengeTeamId) throws SynapseException {
+		validateStringAsLong(challengeId);
+		validateStringAsLong(challengeTeamId);
 		getSharedClientConnection().deleteUri(repoEndpoint, 
-				
 				CHALLENGE+"/"+challengeId+CHALLENGE_TEAM + "/" + challengeTeamId, 
 				getUserAgent());
 	}
 	
-	public void addTeamToChallenge(String challengeId, String teamId)
-			throws SynapseException {
-		throw new RuntimeException("Not Yet Implemented");
-	}
-
-	/**
-	 * Remove a registered Team from a Challenge. The user making this request
-	 * must be registered for the Challenge and be an administrator of the Team.
-	 * 
-	 * @param challengeId
-	 * @param teamId
-	 * @throws SynapseException
-	 */
-	public void removeTeamFromChallenge(String challengeId, String teamId)
-			throws SynapseException {
-		throw new RuntimeException("Not Yet Implemented");
-	}
-
-	/**
-	 * Returns a paginated list of Teams registered for the given Challenge. The
-	 * user making the request must have READ access to the Challenge Project.
-	 * 
-	 * @param challengeId
-	 * @param limit
-	 *            optional
-	 * @param offset
-	 *            optional
-	 * @return
-	 * @throws SynapseException
-	 */
-	public ChallengeTeamPagedResults listChallengeTeams(String challengeId,
-			Long limit, Long offset) throws SynapseException {
-		throw new RuntimeException("Not Yet Implemented");
-	}
-
 	@Override
 	public Entity convertLocationableEntity(Entity toConvert)
 			throws SynapseException {
