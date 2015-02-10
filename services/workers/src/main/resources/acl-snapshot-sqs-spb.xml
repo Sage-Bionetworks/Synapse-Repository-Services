@@ -34,7 +34,7 @@
 	<bean id="aclWorkerSemaphore"
 			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
 			scope="singleton">
-		<property name="lockTimeoutMS" value="10000" />
+		<property name="lockTimeoutMS" value="60000" />
 		<property name="maxCount" value="1" />
 	</bean>
 
