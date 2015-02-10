@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_C
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION_CONTRIBUTOR;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
@@ -23,7 +24,9 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_SUBMISSION_CONTRIBUTOR)
+@Table(name = TABLE_SUBMISSION_CONTRIBUTOR,
+ constraints="UNIQUE KEY (`"+COL_SUBMISSION_CONTRIBUTOR_SUB_ID+"`, `"+
+		 COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+"`)")
 public class SubmissionContributorDBO implements MigratableDatabaseObject<SubmissionContributorDBO, SubmissionContributorDBO> {
 	@Field(name = COL_SUBMISSION_CONTRIBUTOR_ID, backupId = true, primary = true, nullable = false)
 	private Long id;

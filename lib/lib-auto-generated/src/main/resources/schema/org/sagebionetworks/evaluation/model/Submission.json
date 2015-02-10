@@ -52,6 +52,7 @@
 		},
 		"contributors": {
 			"type":"array",
+			"uniqueItems":true,
 			"items":{
 				"type":"object",
 				"$ref":"org.sagebionetworks.evaluation.model.SubmissionContributor"
