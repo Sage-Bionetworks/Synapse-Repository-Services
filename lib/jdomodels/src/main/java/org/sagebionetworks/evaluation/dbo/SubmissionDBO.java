@@ -72,7 +72,10 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				if(blob != null){
 					sub.setEntityBundle(blob.getBytes(1, (int) blob.length()));
 				}
-				sub.setTeamId(rs.getLong(COL_SUBMISSION_TEAM_ID));
+				{
+					sub.setTeamId(rs.getLong(COL_SUBMISSION_TEAM_ID));
+					if (rs.wasNull()) sub.setTeamId(null);
+				}
 				return sub;
 			}
 

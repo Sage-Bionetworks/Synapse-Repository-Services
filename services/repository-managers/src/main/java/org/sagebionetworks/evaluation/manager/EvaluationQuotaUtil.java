@@ -6,6 +6,7 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationQuotas;
 import org.sagebionetworks.evaluation.model.SubmissionRound;
+import org.sagebionetworks.util.Pair;
 
 public class EvaluationQuotaUtil {
 
@@ -57,5 +58,26 @@ public class EvaluationQuotaUtil {
 		// return the global quota
 		if (submissionLimit==null) throw new IllegalArgumentException("Submission limit is required.");
 		return submissionLimit.intValue();
+	}
+	
+	/*
+	 * Given an Evaluation and a Date (time stamp), return the interval containing the date.
+	 * Our convention is the the start of the interval is 'exclusive' of the returned
+	 * date but the end of the interval is 'inclusive' of the returned date.  If the
+	 * interval lacks a start or end date (i.e. is open ended on either or boths ends
+	 * of the interval), then null is returned for the unbounded end.
+	 * 
+	 */
+	public static Pair<Date, Date> getRoundInterval(Evaluation evaluation, Date now) {
+		if (evaluation==null) throw new IllegalArgumentException("evaluation is required.");
+		if (now==null) throw new IllegalArgumentException("current date is required.");
+		Date start = null;
+		Date end = null;
+		Pair<Date,Date> result = new Pair<Date,Date>(start, end);
+		EvaluationQuotas evaluationQuotas = evaluation.getQuotas();
+		if (evaluationQuotas==null) return result;
+		List<SubmissionRound> rounds = evaluationQuotas.getRounds();
+		end = evaluationQuotas.getFirstRoundStart();
+		return result; // TODO
 	}
 }
