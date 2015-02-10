@@ -1,83 +1,75 @@
 package org.sagebionetworks.evaluation.manager;
 
 import java.util.Date;
-import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationQuotas;
-import org.sagebionetworks.evaluation.model.SubmissionRound;
+import org.sagebionetworks.evaluation.model.EvaluationQuota;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.util.Pair;
 
 public class EvaluationQuotaUtil {
+	
+	public void validateEvaluationQuota(Evaluation evaluation) {
+		if (evaluation==null) throw new IllegalArgumentException("Evaluation is required.");
+		EvaluationQuota evaluationQuota = evaluation.getQuota();
+		if (evaluationQuota==null) return;
+		if (evaluationQuota.getSubmissionLimit()==null)
+			throw new InvalidModelException("SubmissionLimit is required.");
+		if (evaluationQuota.getFirstRoundStart()==null) {
+			if (evaluationQuota.getRoundDurationMillis()!=null)
+				throw new InvalidModelException("Round duration is specified but first round start is missing.");
+			if (evaluationQuota.getNumberOfRounds()!=null)
+				throw new InvalidModelException("Number of rounds is specified but first round start is missing.");
+		} else {
+			if (evaluationQuota.getRoundDurationMillis()==null)
+				throw new InvalidModelException("First round start is specified but round duration is missing.");
+			// of for number-of-rounds to be null.  that means there's no end
+		}
+	}
 
-	/** 
-	 * Returns the quota for the given time.
-	 * If no quota is defined, then returns null.
-	 * If a global quota is defined but no rounds are defined, then returns the global quota.
-	 * If rounds are defined and if there is a specific quota defined for the
-	 * round, then the value for that round is returned, else the global quota is returned.
-	 * If rounds are defined and if the given date is outside the rounds, then
-	 * returns zero.
-	 * 
-	 * @param evaluation
-	 * @param now
-	 * @return
-	 */
-	public static Integer getSubmissionQuota(Evaluation evaluation, Date now) {
+	public static Integer getSubmissionQuota(Evaluation evaluation) {
+		if (evaluation==null) throw new IllegalArgumentException("Evaluation is required.");
+		EvaluationQuota evaluationQuota = evaluation.getQuota();
+		if (evaluationQuota==null) return null;
+		return evaluationQuota.getSubmissionLimit().intValue();
+	}
+	
+	public static boolean isSubmissionAllowed(Evaluation evaluation, Date now) {
 		if (evaluation==null) throw new IllegalArgumentException("evaluation is required.");
-		if (now==null) throw new IllegalArgumentException("current date is required.");
-		EvaluationQuotas evaluationQuotas = evaluation.getQuotas();
-		if (evaluationQuotas==null) return null;
-		List<SubmissionRound> rounds = evaluationQuotas.getRounds();
-		Long submissionLimit = evaluationQuotas.getSubmissionLimit();
-		Date submissionStart = evaluationQuotas.getFirstRoundStart();
-		if (submissionStart!=null && submissionStart.compareTo(now)>0) {
-			// we are before the start date
-			return 0;
-		}
-		if (rounds!=null) {
-			// find the round whose end date is the soonest, but not prior to 'now'.
-			// this is the current round
-			SubmissionRound soonestEndDateAfterNow = null;
-			for (SubmissionRound sr : rounds) {
-				Date srEndDate = sr.getEndOfRound();
-				if (submissionStart!=null && submissionStart.compareTo(srEndDate)>0)
-					throw new IllegalStateException("Round end date cannot precede beginning of rounds.");
-				if (srEndDate.compareTo(now)>=0 && 
-						(soonestEndDateAfterNow==null || 
-						srEndDate.compareTo(soonestEndDateAfterNow.getEndOfRound())<0)) {
-					soonestEndDateAfterNow = sr;
-				}
-			}
-			if (soonestEndDateAfterNow==null) return 0; // we are beyond the end of the challenge
-			// if there's a round-specific limit, return it
-			if (soonestEndDateAfterNow.getSubmissionLimit()!=null) {
-				return soonestEndDateAfterNow.getSubmissionLimit().intValue();
-			}
-		}
-		// return the global quota
-		if (submissionLimit==null) throw new IllegalArgumentException("Submission limit is required.");
-		return submissionLimit.intValue();
+		EvaluationQuota evaluationQuota = evaluation.getQuota();
+		if (evaluationQuota==null || 
+				(evaluationQuota.getFirstRoundStart()==null || 
+				evaluationQuota.getRoundDurationMillis()==null))
+			return true; // there is no start or end
+		Date frs = evaluationQuota.getFirstRoundStart();
+		if (frs.compareTo(now)>0) return false; // 'now' is before the start of the rounds
+		if (evaluationQuota.getNumberOfRounds()==null) return true; // there's no end
+		Date end = new Date(frs.getTime()+
+				evaluationQuota.getNumberOfRounds()*
+				evaluationQuota.getRoundDurationMillis());
+		return (end.compareTo(now)>0); // 'now' is before -or equal to- the end of the rounds
 	}
 	
 	/*
 	 * Given an Evaluation and a Date (time stamp), return the interval containing the date.
-	 * Our convention is the the start of the interval is 'exclusive' of the returned
-	 * date but the end of the interval is 'inclusive' of the returned date.  If the
-	 * interval lacks a start or end date (i.e. is open ended on either or boths ends
-	 * of the interval), then null is returned for the unbounded end.
+	 * Before calling this, call isSubmissionAllowed to determine whether the date of
+	 * interest is within the time range allowed for submissions.
 	 * 
 	 */
 	public static Pair<Date, Date> getRoundInterval(Evaluation evaluation, Date now) {
 		if (evaluation==null) throw new IllegalArgumentException("evaluation is required.");
 		if (now==null) throw new IllegalArgumentException("current date is required.");
-		Date start = null;
-		Date end = null;
-		Pair<Date,Date> result = new Pair<Date,Date>(start, end);
-		EvaluationQuotas evaluationQuotas = evaluation.getQuotas();
-		if (evaluationQuotas==null) return result;
-		List<SubmissionRound> rounds = evaluationQuotas.getRounds();
-		end = evaluationQuotas.getFirstRoundStart();
-		return result; // TODO
+		EvaluationQuota evaluationQuota = evaluation.getQuota();
+		if (evaluationQuota==null || 
+				(evaluationQuota.getFirstRoundStart()==null || 
+				evaluationQuota.getRoundDurationMillis()==null))
+			return  new Pair<Date,Date>(null,null); // there is no start or end
+		if (!isSubmissionAllowed(evaluation, now)) 
+			throw new IllegalArgumentException("The given date is outside the time range allowed for submissions.");
+		long frs = evaluationQuota.getFirstRoundStart().getTime();
+		long roundLen = evaluationQuota.getRoundDurationMillis();
+		long start=frs+((now.getTime()-frs)/roundLen)*roundLen;
+		long end=start+roundLen;
+		return new Pair<Date,Date>(new Date(start),new Date(end));
 	}
 }
