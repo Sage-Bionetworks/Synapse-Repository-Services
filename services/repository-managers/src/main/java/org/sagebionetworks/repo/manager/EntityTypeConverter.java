@@ -36,5 +36,5 @@ public interface EntityTypeConverter {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException, NotFoundException;
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity, boolean atLeastOneLocationRequired) throws DatastoreException, NotFoundException;
 }
