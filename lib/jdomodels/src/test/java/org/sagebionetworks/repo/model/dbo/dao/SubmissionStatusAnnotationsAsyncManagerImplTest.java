@@ -173,6 +173,14 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		statusAnno.setKey(DBOConstants.PARAM_SUBSTATUS_STATUS);
 		statusAnno.setValue(subStatus.getStatus().toString());
 		annos.getStringAnnos().add(statusAnno);
+		
+		// submitterAlias
+		LongAnnotation teamAnno = new LongAnnotation();
+		teamAnno.setIsPrivate(true);
+		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
+		teamAnno.setValue(Long.parseLong(submission.getTeamId()));
+		annos.getLongAnnos().add(teamAnno);
+		
 	}
 	
 	@Test
