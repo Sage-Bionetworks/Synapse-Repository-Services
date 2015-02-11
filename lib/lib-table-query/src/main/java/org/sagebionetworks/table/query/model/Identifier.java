@@ -20,4 +20,5 @@ public class Identifier extends SQLElement {
 	public void visit(Visitor visitor) {
 		visit(actualIdentifier, visitor);
 	}
+	
 }
