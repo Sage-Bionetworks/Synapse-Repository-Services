@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +14,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -26,7 +23,6 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -34,10 +30,12 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Maps;
-import com.mysql.jdbc.SQLError;
 
 public class CurrentRowCacheSqlDaoImpl implements CurrentRowCacheDao {
 	private static Logger log = LogManager.getLogger(CurrentRowCacheSqlDaoImpl.class);
+
+	// Copied from com.mysql.jdbc.SQLError
+	public static final String SQL_STATE_COLUMN_NOT_FOUND = "S0022"; //$NON-NLS-1$
 
 	private final TransactionTemplate transactionReadTemplate;
 	private final JdbcTemplate template;
@@ -111,7 +109,7 @@ public class CurrentRowCacheSqlDaoImpl implements CurrentRowCacheDao {
 							} catch (SQLException e) {
 								// we expect there to be columns that don't exist because they've been added but the
 								// table is not yet updated
-								if (!e.getSQLState().equals(SQLError.SQL_STATE_COLUMN_NOT_FOUND)) {
+								if (!e.getSQLState().equals(SQL_STATE_COLUMN_NOT_FOUND)) {
 									throw e;
 								}
 							}
