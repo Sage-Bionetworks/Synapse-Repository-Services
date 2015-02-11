@@ -5,11 +5,13 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO;
@@ -18,6 +20,8 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.ListQueryUtils;
@@ -38,6 +42,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
@@ -120,31 +127,36 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		try {
 			dbo = basicDao.createNew(dbo);
 			List<SubmissionContributorDBO> contributors = new ArrayList<SubmissionContributorDBO>();
-			Set<String> uniqueContributors = new HashSet<String>();
-			uniqueContributors.add(dto.getUserId());
-			contributors.add(SubmissionUtils.createContributorDbo(
-					dto.getUserId(), dto.getCreatedOn(), dto.getId()));
 			if (dto.getContributors()!=null) {
 				for (SubmissionContributor sc : dto.getContributors()) {
-					if (!uniqueContributors.contains(sc.getPrincipalId())) {
-						uniqueContributors.add(sc.getPrincipalId());
-						contributors.add(SubmissionUtils.createContributorDbo(
-								sc.getPrincipalId(), dto.getCreatedOn(), dto.getId()));						
-					}
+					contributors.add(createContributorDbo(
+							sc.getPrincipalId(), dto.getCreatedOn(), dto.getId()));						
 				}
+				if (!contributors.isEmpty()) basicDao.createBatch(contributors);
 			}
-			basicDao.createBatch(contributors);
 			return dbo.getId().toString();
 		} catch (Exception e) {
 			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() +
 					" userId=" + dto.getUserId() + " entityId=" + dto.getEntityId());
 		}
 	}
+	
+	private SubmissionContributorDBO createContributorDbo(String principalId, Date createdOn, String submissionid) {
+		SubmissionContributorDBO dbo = new SubmissionContributorDBO();
+		dbo.setId(idGenerator.generateNewId(TYPE.SUBMISSION_CONTRIBUTOR_ID));
+		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.setCreatedOn(createdOn);
+		dbo.setPrincipalId(Long.parseLong(principalId));
+		dbo.setSubmissionId(Long.parseLong(submissionid));
+		return dbo;
+	}
+	
+
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void addSubmissionContributor(String submissionId, SubmissionContributor dto) {
-		SubmissionContributorDBO dbo = SubmissionUtils.createContributorDbo(
+		SubmissionContributorDBO dbo = createContributorDbo(
 				dto.getPrincipalId(), dto.getCreatedOn(), submissionId);
 		try {
 			basicDao.createNew(dbo);
@@ -156,9 +168,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	/*
 	 * Given a list of submissions, retrieves the contributors and adds them
-	 * in to the DTOs
+	 * in to the DTOs.  Used in the various query methods of this DAO.
 	 */
 	private void insertContributors(List<Submission> submissions) {
+		if (submissions.isEmpty()) return;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		Map<String, Submission> submissionMap = new HashMap<String, Submission>();
 		for (int i=0; i<submissions.size(); i++) {

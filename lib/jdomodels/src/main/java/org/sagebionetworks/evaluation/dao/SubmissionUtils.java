@@ -148,12 +148,4 @@ public class SubmissionUtils {
 		}
 	}
 	
-	public static SubmissionContributorDBO createContributorDbo(String principalId, Date createdOn, String submissionid) {
-		SubmissionContributorDBO result = new SubmissionContributorDBO();
-		result.setCreatedOn(createdOn);
-		result.setPrincipalId(Long.parseLong(principalId));
-		result.setSubmissionId(Long.parseLong(submissionid));
-		return result;
-	}
-	
 }
