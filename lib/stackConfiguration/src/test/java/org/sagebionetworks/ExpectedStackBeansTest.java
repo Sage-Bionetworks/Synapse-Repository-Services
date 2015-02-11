@@ -46,6 +46,8 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.semaphoreGatedMaxRunnersTableCluster",
 			"stackConfiguration.tableMaxBytesPerChangeSet",
 			
+			"stackConfiguration.allowCreationOfOldEntities",
+			
 			// Semaphore gated runner configuration.
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersRds",

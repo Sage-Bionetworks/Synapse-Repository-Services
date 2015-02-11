@@ -32,6 +32,9 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
+import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
@@ -40,6 +43,8 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -48,6 +53,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.Reference;
@@ -1491,6 +1497,15 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<Team> getTeams(String fragment, long limit, long offset) throws SynapseException;
 	
 	/**
+	 * Return a list of Teams given a list of Team IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws SynapseException
+	 */
+	public ListWrapper<Team> listTeams(IdList ids) throws SynapseException;
+	
+	/**
 	 * 
 	 * @param memberId
 	 * @param limit
@@ -1561,6 +1576,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	TeamMember getTeamMember(String teamId, String memberId) throws SynapseException;
+
+	/**
+	 * Return a TeamMember list for a given Team and list of member IDs.
+	 * 
+	 * @param teamId
+	 * @param ids
+	 * @return
+	 * @throws SynapseException
+	 */
+	public ListWrapper<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException;
 
 	/**
 	 * 
@@ -1926,33 +1951,154 @@ public interface SynapseClient extends BaseClient {
 	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
 	
 	/**
+	 * Creates and returns a new Challenge.  Caller must have CREATE
+	 * permission on the associated Project.
+	 * 
+	 * @param challenge
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge createChallenge(Challenge challenge) throws SynapseException;
+
+	/**
+	 * Returns the Challenge for a given project.  Caller must
+	 * have READ permission on the Project.
+	 * 
+	 * @param projectId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge getChallengeForProject(String projectId) throws SynapseException;
+
+	/**
+	 * List the Challenges for which a participant is registered.   
+	 * To be in the returned list the caller must have READ permission 
+	 * on the project 'owning' the Challenge.
+	 * 
+	 * @param participantPrincipalId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	ChallengePagedResults listChallengesForParticipant(
+			long participantPrincipalId, Long limit, Long offset)
+			throws SynapseException;
+
+	/**
+	 * Update an existing challenge.  Caller must have UPDATE permission
+	 * on the associated Project.
+	 * 
+	 * @param challenge
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge updateChallenge(Challenge challenge) throws SynapseException;
+
+	/**
+	 * Delete a Challenge object.  Caller must have DELETE permission on
+	 * the associated Project.
+	 * @param id
+	 * @throws SynapseException
+	 */
+	void deleteChallenge(long id) throws SynapseException;
+
+	/**
+	 * List the Teams registered for the Challenge.  Caller must have READ permission in 
+	 * the Challenge Project.
+	 * 
+	 * @param challengeId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	ChallengeTeamPagedResults listChallengeTeams(long challengeId, Long limit,
+			Long offset) throws SynapseException;
+
+	/**
+	 * List the Teams the caller may register for the Challenge, i.e. the Teams which are 
+	 * currently not registered for the challenge and on which is current user is an administrator.
+	 * 
+	 * @param challengeId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedIds listRegistratableTeams(long challengeId, Long limit,
+			Long offset) throws SynapseException;
+
+	
+	/**
 	 * Register a Team for a Challenge.
 	 * The user making this request must be registered for the Challenge and
 	 * be an administrator of the Team.
-	 * @param challengeId
-	 * @param teamId
+	 * 
+	 * @param challengeTeam
+	 * @return
 	 * @throws SynapseException
 	 */
-	public void addTeamToChallenge(String challengeId, String teamId) throws SynapseException;
+	public ChallengeTeam createChallengeTeam(ChallengeTeam challengeTeam) throws SynapseException;
 	
+	/**
+	 * Update the ChallengeTeam.
+	 * The user making this request must be registered for the Challenge and
+	 * be an administrator of the Team.
+	 * 
+	 * @param challengeTeam
+	 * @return
+	 * @throws SynapseException
+	 */
+	ChallengeTeam updateChallengeTeam(ChallengeTeam challengeTeam)
+			throws SynapseException;
+
 	/**
 	 * Remove a registered Team from a Challenge.
 	 * The user making this request must be registered for the Challenge and
 	 * be an administrator of the Team.
-	 * @param challengeId
-	 * @param teamId
+	 * @param challengeTeamId
 	 * @throws SynapseException
 	 */
-	public void removeTeamFromChallenge(String challengeId, String teamId) throws SynapseException;
-	
+	public void deleteChallengeTeam(long challengeId, long challengeTeamId) throws SynapseException;
+
 	/**
-	 * Returns a paginated list of Teams registered for the given Challenge.
-	 * The user making the request must have READ access to the Challenge Project.
+	 * Return challenge participants.  If affiliated=true, return just participants 
+	 * affiliated with some registered Team.  If false, return those not affiliated with 
+	 * any registered Team.  If missing return all participants. 
+	 * 
 	 * @param challengeId
-	 * @param limit optional
-	 * @param offset optional
+	 * @param affiliated
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
+	PaginatedIds listChallengeParticipants(long challengeId,
+			Boolean affiliated, Long limit, Long offset)
+			throws SynapseException;
+
+	/**
+	 * List the Teams for which the given submitter may submit in the given challenge,
+	 * i.e. those teams in which the submitter is a member and which are registered for
+	 * the challenge.
+	 * 
+	 * @param challengeId
+	 * @param submitterPrincipalId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedIds listSubmissionTeams(long challengeId,
+			long submitterPrincipalId, Long limit, Long offset)
+			throws SynapseException;
+	
+	/**
+	 * Convert a locationable entity to its corresponding new type.
+	 * @param toConvert
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public Entity convertLocationableEntity(Entity toConvert) throws SynapseException;
 }

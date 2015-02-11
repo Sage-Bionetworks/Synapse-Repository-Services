@@ -3,7 +3,6 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -90,6 +90,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private DBOBasicDao basicDao;
 
+	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
 	
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
@@ -336,7 +337,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException {
+	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
 		return teamDAO.list(ids);
 	}
 
@@ -355,7 +356,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public List<TeamMember> listMembers(String teamId, Set<String> memberIds)
+	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> memberIds)
 			throws DatastoreException, NotFoundException {
 		return teamDAO.listMembers(teamId, memberIds);
 	}
@@ -528,7 +529,7 @@ public class TeamManagerImpl implements TeamManager {
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);
-			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
+			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			aclDAO.update(acl, ObjectType.TEAM);
 		}
@@ -585,7 +586,7 @@ public class TeamManagerImpl implements TeamManager {
 			// if isAdmin is true, then we add the specified admin permissions
 			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
 		}
-		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
+		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 		// finally, update the ACL
 		aclDAO.update(acl, ObjectType.TEAM);
 	}

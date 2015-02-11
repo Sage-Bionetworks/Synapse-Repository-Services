@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
  * Service interface for all operations common to entities.
@@ -749,5 +747,13 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 */
 	public FileHandleResults getEntityFileHandlesForVersion(Long userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Convert a locationable entity to its matching new type.
+	 * @param toConvert
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public Entity convertLocationable(Long userId, Entity toConvert) throws NotFoundException;
 
 }

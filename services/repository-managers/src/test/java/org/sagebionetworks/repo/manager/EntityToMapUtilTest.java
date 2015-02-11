@@ -11,7 +11,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
-import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Folder;
 
 @SuppressWarnings("rawtypes")
 public class EntityToMapUtilTest {
@@ -19,7 +19,7 @@ public class EntityToMapUtilTest {
 	@Test
 	public void testDatasetRoundTrip() throws InstantiationException, IllegalAccessException{
 		// First we create a dataset with all fields filled in.
-		Study ds = new Study();
+		Folder ds = new Folder();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");
@@ -39,7 +39,7 @@ public class EntityToMapUtilTest {
 		annos.addAnnotation("someDouble", new Double(1.2));
 		
 		// Combine them
-		EntityWithAnnotations<Study> ewa = new EntityWithAnnotations<Study>();
+		EntityWithAnnotations<Folder> ewa = new EntityWithAnnotations<Folder>();
 		ewa.setAnnotations(annos);
 		ewa.setEntity(ds);
 		// Now convert this to a map

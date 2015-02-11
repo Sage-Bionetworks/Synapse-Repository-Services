@@ -10,7 +10,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -25,13 +24,10 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.GenotypeData;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -39,12 +35,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -175,16 +171,16 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		// Create a datset		
-		Study ds = createDataset();
+		Folder ds = createDataset();
 		String id = entityManager.createEntity(adminUserInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Study> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Study.class);
+		EntityWithAnnotations<Folder> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
 		assertNotNull(ewa);
 		assertNotNull(ewa.getAnnotations());
 		assertNotNull(ewa.getEntity());
-		Study fetched = entityManager.getEntity(adminUserInfo, id, Study.class);
+		Folder fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
 		assertEquals(ewa.getEntity(), fetched);
 		System.out.println("Original: "+ds.toString());
@@ -202,136 +198,86 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(annos);
 		assertEquals("someStringValue", annos.getSingleValue("someNewTestAnnotation"));
 		// Now update the dataset
-		fetched = entityManager.getEntity(adminUserInfo, id, Study.class);
+		fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		fetched.setName("myNewName");
 		entityManager.updateEntity(adminUserInfo, fetched, false, null);
-		fetched = entityManager.getEntity(adminUserInfo, id, Study.class);
+		fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
 	
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		Study ds = createDataset();
+		Folder ds = createDataset();
 		String parentId = entityManager.createEntity(adminUserInfo, ds, null);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
-		List<Data> layerList = new ArrayList<Data>();
+		List<Folder> layerList = new ArrayList<Folder>();
 		int layers = 3;
 		for(int i=0; i<layers; i++){
-			Data layer = createLayerForTest(i);
+			Folder layer = createLayerForTest(i);
 			layerList.add(layer);
 		}
 		List<String> childrenIds = entityManager.aggregateEntityUpdate(adminUserInfo, parentId, layerList);
 		assertNotNull(childrenIds);
 		assertEquals(layers, childrenIds.size());
 		
-		List<Data> children = entityManager.getEntityChildren(adminUserInfo, parentId, Data.class);
+		List<Folder> children = entityManager.getEntityChildren(adminUserInfo, parentId, Folder.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
-		Data toUpdate = children.get(0);
+		Folder toUpdate = children.get(0);
 		String udpatedId = toUpdate.getId();
 		assertNotNull(udpatedId);
 		toUpdate.setName("updatedName");
 		// Do it again
 		entityManager.aggregateEntityUpdate(adminUserInfo, parentId, children);
-		children = entityManager.getEntityChildren(adminUserInfo, parentId, Data.class);
+		children = entityManager.getEntityChildren(adminUserInfo, parentId, Folder.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		// find the one with the updated name
-		Data updatedLayer = entityManager.getEntity(adminUserInfo, udpatedId, Data.class);
+		Folder updatedLayer = entityManager.getEntity(adminUserInfo, udpatedId, Folder.class);
 		assertNotNull(updatedLayer);
 		assertEquals("updatedName", updatedLayer.getName());
 	}
 	
-	/**
-	 * To resolve issue PLFM-203 we added a support for annotation name-spaces.  
-	 * The primary field of a entity get their own name space.  Now when the annotations
-	 * of an entity are fetched, we return entities from the "additional" name-spaces.
-	 * @throws NotFoundException 
-	 * @throws UnauthorizedException 
-	 * @throws InvalidModelException 
-	 * @throws DatastoreException 
-	 * @throws ConflictingUpdateException 
-	 */
-	@Test
-	public void testPLFM_203() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException{
-		Study ds = createDataset();
-		// This primary field is stored as an annotation.
-		ds.setDisease("disease");
-		String id = entityManager.createEntity(adminUserInfo, ds, null);
-		assertNotNull(id);
-		toDelete.add(id);
-		// Ge the annotations of the datasets
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
-		assertNotNull(annos);
-		// None of the primary field annotations should be in this set, in fact it should be emtpy
-		assertEquals(0, annos.getStringAnnotations().size());
-		assertEquals(0, annos.getDateAnnotations().size());
-		Study clone = entityManager.getEntity(adminUserInfo, id, Study.class);
-		assertNotNull(clone);
-		assertEquals(ds.getDisease(), clone.getDisease());
-		// Now add an annotation
-		annos.addAnnotation("stringKey", "some string value");
-		entityManager.updateAnnotations(adminUserInfo, id, annos);
-		annos = entityManager.getAnnotations(adminUserInfo, id);
-		assertNotNull(annos);
-		assertEquals("some string value", annos.getSingleValue("stringKey"));
-		// Make sure we did not lose any primary annotations.
-		clone = entityManager.getEntity(adminUserInfo, id, Study.class);
-		assertNotNull(clone);
-		assertEquals(ds.getDisease(), clone.getDisease());
-		// Now change the primary field
-		clone.setDisease("disease2");
-		entityManager.updateEntity(adminUserInfo, clone, false, null);
-		clone = entityManager.getEntity(adminUserInfo, id, Study.class);
-		assertNotNull(clone);
-		assertEquals("disease2", clone.getDisease());
-		// We should not have lost any of the additional annotations
-		annos = entityManager.getAnnotations(adminUserInfo, id);
-		assertNotNull(annos);
-		assertEquals("some string value", annos.getSingleValue("stringKey"));
-		
-	}
-	
 	@Test
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
-		Data study = new Data();
+		Folder study = new Folder();
 		study.setName("test PLFM-1283");
 		String id = entityManager.createEntity(adminUserInfo, study, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		try{
-			entityManager.getEntityWithAnnotations(adminUserInfo, id, GenotypeData.class);
+			entityManager.getEntityWithAnnotations(adminUserInfo, id, Project.class);
 			fail("The requested entity type does not match the actaul entity type so this should fail.");
 		}catch(IllegalArgumentException e){
 			// This is expected.
 			System.out.println(e.getMessage());
 			assertTrue(e.getMessage().indexOf(id) > 0);
-			assertTrue(e.getMessage().indexOf(Data.class.getName()) > 0);
-			assertTrue(e.getMessage().indexOf(GenotypeData.class.getName()) > 0);
+			assertTrue(e.getMessage().indexOf(Folder.class.getName()) > 0);
+			assertTrue(e.getMessage().indexOf(Project.class.getName()) > 0);
 		}
 		
 	}
 
 	@Test
 	public void testGetEntityForVersionNoEtag() throws Exception {
-		Data data = new Data();
+		TableEntity data = new TableEntity();
 		data.setName("testGetEntityForVersion");
 		String id = entityManager.createEntity(adminUserInfo, data, null);
 		assertNotNull(id);
 		toDelete.add(id);
-		data = entityManager.getEntity(adminUserInfo, id, Data.class);
+		data = entityManager.getEntity(adminUserInfo, id, TableEntity.class);
 		assertNotNull(data);
 		assertNotNull(data.getEtag());
 		assertFalse(data.getEtag().equals(NodeConstants.ZERO_E_TAG));
-		data = entityManager.getEntityForVersion(adminUserInfo, id, data.getVersionNumber(), Data.class);
+		data = entityManager.getEntityForVersion(adminUserInfo, id, data.getVersionNumber(), TableEntity.class);
 		assertNotNull(data.getEtag());
 		assertTrue(data.getEtag().equals(NodeConstants.ZERO_E_TAG)); // PLFM-1420
 	}
 
-	private Data createLayerForTest(int i){
-		Data layer = new Data();
+	private Folder createLayerForTest(int i){
+		Folder layer = new Folder();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreatedOn(new Date(1001));
@@ -380,18 +326,14 @@ public class EntityManagerImplAutowireTest {
 		}
 	}
 	
-	@Test
-	public void testCreateTableEntity(){
-		
-	}
 	
 	/**
 	 * Create a dataset with all of its fields filled in.
 	 * @return
 	 */
-	public Study createDataset(){
+	public Folder createDataset(){
 		// First we create a dataset with all fields filled in.
-		Study ds = new Study();
+		Folder ds = new Folder();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");

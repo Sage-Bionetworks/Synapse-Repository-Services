@@ -1558,6 +1558,17 @@ public class ServletTestHelper {
 		return objectMapper
 				.readValue(response.getContentAsString(), Team.class);
 	}
+	
+	public ListWrapper<Team> listTeams(HttpServlet dispatchServlet, IdList idList) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idList);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper
+				.readValue(response.getContentAsString(), ListWrapper.class);
+	}
 
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,
 			Team team) throws Exception {

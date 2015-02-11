@@ -8,6 +8,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -46,7 +47,7 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public List<Team> list(Set<String> ids) throws DatastoreException, NotFoundException;
+	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -66,7 +67,7 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public List<TeamMember> listMembers(String teamId, Set<String> memberIds) throws DatastoreException, NotFoundException;
+	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> memberIds) throws DatastoreException, NotFoundException;
 	/**
 	 * 
 	 * @param teamId

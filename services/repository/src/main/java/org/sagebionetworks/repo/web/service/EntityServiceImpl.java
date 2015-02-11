@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityTypeConverter;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -87,6 +88,8 @@ public class EntityServiceImpl implements EntityService {
 	private AllTypesValidator allTypesValidator;
 	@Autowired
 	FileHandleManager fileHandleManager;
+	@Autowired
+	EntityTypeConverter entityTypeConverter;
 	
 	public EntityServiceImpl(){}
 
@@ -729,6 +732,14 @@ public class EntityServiceImpl implements EntityService {
 		List<String> idsList = new LinkedList<String>();
 		idsList.add(fileHandleId);
 		return fileHandleManager.getAllFileHandles(idsList, true);
+	}
+
+	@Override
+	public Entity convertLocationable(Long userId, Entity toConvert) throws NotFoundException {
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(toConvert == null) throw new IllegalArgumentException("Entity cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityTypeConverter.convertOldTypeToNew(userInfo, toConvert);
 	}
 
 }

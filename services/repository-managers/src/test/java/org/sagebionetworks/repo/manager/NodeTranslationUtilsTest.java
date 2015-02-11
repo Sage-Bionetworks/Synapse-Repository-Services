@@ -7,34 +7,25 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.Step;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -42,23 +33,6 @@ import org.sagebionetworks.schema.TYPE;
 
 public class NodeTranslationUtilsTest {
 	
-	@Test
-	public void testGetNameFromEnum(){
-		LocationTypeNames names =LocationTypeNames.awsebs;
-		// Get the string value
-		String name = NodeTranslationUtils.getNameFromEnum(names);
-		assertNotNull(name);
-		assertEquals(names.name(), name);;
-	}
-	
-	@Test
-	public void testGetEnumValueFromString(){
-		LocationTypeNames names =LocationTypeNames.sage;
-		// Get the string value
-		LocationTypeNames enumValue = (LocationTypeNames) NodeTranslationUtils.getValueOfFromEnum(names.name(), LocationTypeNames.class);
-		assertNotNull(enumValue);
-		assertEquals(names, enumValue);;
-	}
 	
 	@Test
 	public void testBinaryRoundTripString(){
@@ -143,94 +117,7 @@ public class NodeTranslationUtilsTest {
 		assertEquals(set, back);
 	}
 
-	@Test
-	public void testDatasetRoundTrip1() throws InstantiationException, IllegalAccessException{
-		// First we create a dataset with all fields filled in.
-		Study ds = new Study();
-		ds.setName("someName");
-		ds.setDescription("someDesc");
-		ds.setCreatedBy("magic");
-		ds.setCreatedOn(new Date(System.currentTimeMillis()));
-		ds.setAnnotations("someAnnoUrl");
-		ds.setEtag("110");
-		ds.setId("12");
-		ds.setUri("someUri");
-		ds.setContentType("text/xml");
-		ds.setMd5("8b12c8b413504cf19889efca5605a6c9");
-		// Add some location data
-		List<LocationData> locations = new ArrayList<LocationData>();
-		ds.setLocations(locations);
-		LocationData ldata = new LocationData();
-		ldata.setPath("http://my.home.com:8990/wow");
-		ldata.setType(LocationTypeNames.sage);
-		locations.add(ldata);
-		
-//		List<String> diseases = new ArrayList<String>();
-//		diseases.add("disease1");
-//		diseases.add("disease2");
-//		ds.setDiseases(diseases);
-		
-//		List<String> sampleTypes = new ArrayList<String>();
-//		sampleTypes.add("normalTissue");
-//		sampleTypes.add("tumorTissue");
-//		ds.setSampleType(sampleTypes);
-		
-		// Create a clone using node translation
-		Study clone = cloneUsingNodeTranslation(ds);
-		
-		// Now our clone should match the original dataset.
-		System.out.println("Original: "+ds.toString());
-		System.out.println("Clone: "+clone.toString());
-		assertEqualsNonTransient(ds, clone, SchemaCache.getSchema(ds));
-	}
-	
-//	@Test
-//	public void testDatasetRoundTrip2() throws InstantiationException, IllegalAccessException{
-//		// First we create a dataset with all fields filled in.
-//		Dataset ds = new Dataset();
-//		ds.setName("someName");
-//		ds.setDescription("someDesc");
-//		ds.setCreatedBy("magic");
-//		ds.setCreatedOn(new Date(System.currentTimeMillis()));
-//		ds.setAnnotations("someAnnoUrl");
-//		ds.setEtag("110");
-//		ds.setId("12");
-//		ds.setHasClinicalData(false);
-//		ds.setHasExpressionData(true);
-//		ds.setHasGeneticData(true);
-//		ds.setLayers("someLayerUrl");
-//		ds.setReleaseDate(new Date(System.currentTimeMillis()));
-//		ds.setStatus("someStatus");
-////		ds.setVersion("someVersion");
-//		ds.setUri("someUri");
-//		ds.setContentType("text/xml");
-//		ds.setMd5("8b12c8b413504cf19889efca5605a6c9");
-//		// Add some location data
-//		List<LocationData> locations = new ArrayList<LocationData>();
-//		ds.setLocations(locations);
-//		LocationData ldata = new LocationData();
-//		ldata.setPath("http://my.home.com:8990/wow");
-//		ldata.setType(LocationTypeNames.sage);
-//		locations.add(ldata);
-//		
-//		List<String> diseases = new ArrayList<String>();
-//		diseases.add("disease1");
-//		ds.setDiseases(diseases);
-//		
-////		List<String> sampleTypes = new ArrayList<String>();
-////		sampleTypes.add("normalTissue");
-////		sampleTypes.add("tumorTissue");
-////		ds.setSampleType(sampleTypes);
-//		
-//		// Create a clone using node translation
-//		Dataset clone = cloneUsingNodeTranslation(ds);
-//		
-//		// Now our clone should match the original dataset.
-//		System.out.println("Original: "+ds.toString());
-//		System.out.println("Clone: "+clone.toString());
-//		assertEqualsNonTransient(ds, clone, SchemaCache.getSchema(ds));
-//	}
-//	
+
 	/**
 	 * Assert two Entity objects are equal while ignoring transient fields.
 	 * @param <T>
@@ -259,44 +146,6 @@ public class NodeTranslationUtilsTest {
 		}
 	}
 	
-	@Test
-	public void testLayerRoundTrip() throws InstantiationException, IllegalAccessException, InvalidModelException{
-		// First we create a layer with all fields filled in.
-		Data layer = new Data();
-		layer.setAnnotations("someAnnoUrl");
-		layer.setCreatedOn(new Date(System.currentTimeMillis()));
-		layer.setDescription("someDescr");
-		layer.setEtag("12");
-		layer.setId("44");
-		layer.setName("someName");
-		layer.setNumSamples(new Long(12));
-		layer.setPlatform("somePlate");
-		layer.setTissueType("type");
-		layer.setType(LayerTypeNames.C);
-		layer.setUri("someUri");
-		
-		// Create a clone using node translation
-		Data clone = cloneUsingNodeTranslation(layer);
-		
-		// Now our clone should match the original layer.
-		System.out.println("Original: "+layer.toString());
-		System.out.println("Clone: "+clone.toString());
-		assertEqualsNonTransient(layer, clone, SchemaCache.getSchema(layer));
-	}
-	
-	@Test
-	public void testStepRoundTrip() throws InstantiationException, IllegalAccessException, InvalidModelException {
-		Step step = SerializationUseCases.createStepWithReferences();
-
-		// Create a clone using node translation
-		Step clone = cloneUsingNodeTranslation(step);
-		clone.setCode(null);
-		
-		// Now our clone should match the original step.
-		System.out.println("Original: "+step.toString());
-		System.out.println("Clone: "+clone.toString());
-		assertEqualsNonTransient(step, clone, SchemaCache.getSchema(step));
-	}
 
 	@Test
 	public void testLayerPreviewRoundTrip() throws Exception{
@@ -309,21 +158,6 @@ public class NodeTranslationUtilsTest {
 		System.out.println("Clone: "+clone.toString());
 		assertEquals(preview, clone);
 	}
-	
-	@Test
-	public void testDoubleAdd() throws InvalidModelException{
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.C);
-		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
-		layer.setType(LayerTypeNames.E);
-		// update again
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
-		// The E should replace the C
-		Object result = annos.getSingleValue("type");
-		assertEquals("E", result);
-	}
-	
 	
 	@Test
 	public void testSetNullOnNode(){
@@ -341,12 +175,12 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testVersionableRoundTrip() throws InstantiationException, IllegalAccessException{
-		Code code = new Code();
+		FileEntity code = new FileEntity();
 		code.setVersionComment("version comment");
 		code.setVersionNumber(new Long(134));
 		code.setVersionLabel("1.133.0");
 		code.setName("mame");
-		Code clone = cloneUsingNodeTranslation(code);
+		FileEntity clone = cloneUsingNodeTranslation(code);
 		assertEquals(code, clone);
 	}
 	
@@ -395,7 +229,7 @@ public class NodeTranslationUtilsTest {
 		Reference ref = new Reference();
 		ref.setTargetId("123");
 		link.setLinksTo(ref);
-		link.setLinksToClassName(Study.class.getName());
+		link.setLinksToClassName(Folder.class.getName());
 		Node node = NodeTranslationUtils.createFromEntity(link);
 		// Set the type for this object
 		node.setNodeType(EntityType.getNodeTypeForClass(link.getClass()).name());
