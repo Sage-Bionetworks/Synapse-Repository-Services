@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,33 +17,47 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityTypeConverterImplAutowireTest {
 
+	@Autowired
+	AmazonS3Client s3Client;
+	@Autowired
+	LocationHelper locationHelper;
 	@Autowired
 	private S3TokenManager s3TokenManager;
 	@Autowired
@@ -109,7 +126,7 @@ public class EntityTypeConverterImplAutowireTest {
 	public void testCreateFileHandleForForEachVersion() throws Exception {
 		Data data = createDataWithMultipleVersions();
 		// Create the files handles for all versions of this study
-		List<VersionData> pairs = entityTypeConverter.createFileHandleForForEachVersion(userInfo, data);
+		List<VersionData> pairs = entityTypeConverter.createFileHandleForForEachVersion(userInfo, data, true);
 		assertNotNull(pairs);
 		assertEquals(2, pairs.size());
 		// First version is external
@@ -132,6 +149,7 @@ public class EntityTypeConverterImplAutowireTest {
 		assertEquals("CreatedBy should match the modifiedBy of the original version, not the caller.",data.getModifiedBy(), v2FileHandle.getCreatedBy());
 		assertEquals(data.getMd5(), v2FileHandle.getContentMd5());
 		assertEquals(data.getContentType(), v2FileHandle.getContentType());
+		assertEquals("See PLFM-3223", new Long(9), v2FileHandle.getContentSize());
 		assertNotNull(v2FileHandle.getId());
 	}
 	
@@ -231,7 +249,6 @@ public class EntityTypeConverterImplAutowireTest {
 		assertNotNull(handle);
 		assertTrue("The current version should be an S3 file handle",handle instanceof S3FileHandle);
 		fileHandlesToDelete.add(handle.getId());
-//		assertEquals(study.getVersionComment(), file.getVersionComment());
 		assertEquals(study.getVersionLabel(), file.getVersionLabel());
 		assertEquals(study.getModifiedBy(), file.getModifiedBy());
 		
@@ -244,13 +261,38 @@ public class EntityTypeConverterImplAutowireTest {
 		assertTrue("The second version should be an external file handle",handle instanceof ExternalFileHandle);
 		fileHandlesToDelete.add(handle.getId());
 	}
+	
+	/**
+	 * See PLFM-3224. Studies with no location is okay.
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws InvalidModelException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_3223() throws Exception {
+		Study noLocations = new Study();
+		noLocations.setParentId(project.getParentId());
+		noLocations.setName("no locations");
+		String id = entityManager.createEntity(adminUserInfo, noLocations, null);
+		toDelete.add(id);
+		noLocations = entityManager.getEntity(adminUserInfo, id, Study.class);
+		// should convert to a simple folder
+		Entity changed = entityTypeConverter.convertOldTypeToNew(adminUserInfo, noLocations);
+		assertTrue(changed instanceof Folder);
+	}
 
 	/**
 	 * Helper to create a data object with multiple versions.
 	 * @return
 	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
 	 */
-	public Data createDataWithMultipleVersions() throws NotFoundException {
+	public Data createDataWithMultipleVersions() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException, UnsupportedEncodingException, IOException {
 		Data data = new Data();
 		data.setName("DataFile");
 		data.setParentId(project.getId());
@@ -277,16 +319,7 @@ public class EntityTypeConverterImplAutowireTest {
 		data = entityManager.getEntity(adminUserInfo, id, Data.class);
 		
 		// now create an S3 location
-		S3Token token = new S3Token();
-		token.setPath("foo.txt");
-		token.setMd5(sampleMD5);
-		token = s3TokenManager.createS3Token(adminUserInfo.getId(), data.getId(), token, EntityType.layer);
-		
-		LocationData s3data = new LocationData();
-		s3data.setPath(token.getPath());
-		s3data.setType(LocationTypeNames.awss3);
-		data.setMd5(token.getMd5());
-		data.setLocations(Arrays.asList(s3data));
+		createS3Location(data, EntityType.layer, "data data".getBytes("UTF-8"));
 		
 		// add a new version
 		data.setVersionLabel("v2");
@@ -298,8 +331,13 @@ public class EntityTypeConverterImplAutowireTest {
 	 * Helper to create a study object with multiple versions.
 	 * @return
 	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
 	 */
-	public Study createStudyWithMultipleVersions() throws NotFoundException {
+	public Study createStudyWithMultipleVersions() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException, UnsupportedEncodingException, IOException {
 		Study data = new Study();
 		data.setName("DataFile");
 		data.setParentId(project.getId());
@@ -328,21 +366,43 @@ public class EntityTypeConverterImplAutowireTest {
 		data = entityManager.getEntity(adminUserInfo, id, Study.class);
 		
 		// now create an S3 location
-		S3Token token = new S3Token();
-		token.setPath("foo.txt");
-		token.setMd5(sampleMD5);
-		token = s3TokenManager.createS3Token(adminUserInfo.getId(), data.getId(), token, EntityType.dataset);
-		
-		LocationData s3data = new LocationData();
-		s3data.setPath(token.getPath());
-		s3data.setType(LocationTypeNames.awss3);
-		data.setMd5(token.getMd5());
-		data.setLocations(Arrays.asList(s3data));
+		createS3Location(data, EntityType.dataset, "small file contents".getBytes("UTF-8"));
 		
 		// add a new version
 		data.setVersionLabel("v2");
 		data.setVersionComment("v2 Comments");
 		entityManager.updateEntity(adminUserInfo, data, true, null);
 		return entityManager.getEntity(adminUserInfo, id, Study.class);
+	}
+	
+	/**
+	 * Create an S3 location.
+	 * @param locationable
+	 * @param type
+	 * @param data
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	private void createS3Location(Locationable locationable, EntityType type, byte[] data) throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException, IOException{
+		// now create an S3 location
+		S3Token token = new S3Token();
+		token.setPath("foo.txt");
+		token.setMd5(MD5ChecksumHelper.getMD5ChecksumForByteArray(data));
+		token = s3TokenManager.createS3Token(adminUserInfo.getId(), locationable.getId(), token, type);
+		
+		LocationData s3data = new LocationData();
+		s3data.setPath(token.getPath());
+		s3data.setType(LocationTypeNames.awss3);
+		locationable.setMd5(token.getMd5());
+		locationable.setLocations(Arrays.asList(s3data));
+		if(data != null){
+			String key = locationHelper.getS3KeyFromS3Url(s3data.getPath());
+			ObjectMetadata meta = new ObjectMetadata();
+			// upload the data to S3
+			s3Client.putObject(StackConfiguration.getS3Bucket(), key, new ByteArrayInputStream(data), meta);
+		}
 	}
 }

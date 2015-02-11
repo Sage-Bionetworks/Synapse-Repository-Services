@@ -3,13 +3,12 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.FILES_CANNOT_HAVE_CHILDREN;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIONABLE_HAS_MORE_THAN_ONE_LOCATION;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIONABLE_HAS_NO_LOCATIONS;
+import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATION_DATA_NOT_IN_S3;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.NOT_LOCATIONABLE;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
-import javax.annotation.Untainted;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -33,15 +32,17 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.hp.hpl.jena.sparql.function.library.e;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class EntityTypeConverterImpl implements EntityTypeConverter {
 
+	@Autowired
+	AmazonS3Client s3Client;
 	@Autowired
 	NodeDAO nodeDao;	
 	@Autowired
@@ -115,7 +116,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			FILES_CANNOT_HAVE_CHILDREN.throwException();
 		}
 		// Create a file handle for each version.
-		List<VersionData> pairs = createFileHandleForForEachVersion(user, entity);
+		List<VersionData> pairs = createFileHandleForForEachVersion(user, entity, true);
 		for(VersionData pair: pairs){
 			Long verionNumber = pair.getVersionNumber();
 			String fileHandleId = pair.getFileHandle().getId();
@@ -140,7 +141,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 */
 	private Folder convertToFolder(UserInfo user, Locationable entity, String newEtag) throws DatastoreException, UnauthorizedException, NotFoundException {
 		// Create a file handle for each version.
-		List<VersionData> pairs = createFileHandleForForEachVersion(user, entity);
+		List<VersionData> pairs = createFileHandleForForEachVersion(user, entity, false);
 		// The latest version is fist but we need to process these in the original order.
 		FileEntity child = new FileEntity();
 		child.setParentId(entity.getId());
@@ -194,7 +195,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException,
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity, boolean atLeastOneLocationRequired) throws DatastoreException,
 			NotFoundException {
 		// We need to create file handle for each version.
 		List<VersionData> pairs = new LinkedList<VersionData>();
@@ -203,7 +204,11 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			for(Long versionNumber: versions){
 				Locationable location = (Locationable) entityManager.getEntityForVersion(user, entity.getId(), versionNumber, entity.getClass());
 				if(location.getLocations() == null || location.getLocations().isEmpty()){
-					LOCATIONABLE_HAS_NO_LOCATIONS.throwException();
+					if(atLeastOneLocationRequired){
+						LOCATIONABLE_HAS_NO_LOCATIONS.throwException();
+					}else{
+						return new LinkedList<VersionData>();
+					}
 				}
 				if(location.getLocations().size() > 1){
 					LOCATIONABLE_HAS_MORE_THAN_ONE_LOCATION.throwException();
@@ -215,6 +220,13 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 					S3FileHandle s3Handle = new S3FileHandle();
 					s3Handle.setKey(locationHelper.getS3KeyFromS3Url(data.getPath()));
 					s3Handle.setBucketName(StackConfiguration.getS3Bucket());
+					// Lookup the file size in s3
+					try {
+						ObjectMetadata meta = s3Client.getObjectMetadata(s3Handle.getBucketName(), s3Handle.getKey());
+						s3Handle.setContentSize(meta.getContentLength());
+					} catch (Exception e) {
+						LOCATION_DATA_NOT_IN_S3.throwException();
+					}
 					s3Handle.setContentType(location.getContentType());
 					setCreatedOnAndBy(location, s3Handle);
 					s3Handle.setFileName(location.getName());

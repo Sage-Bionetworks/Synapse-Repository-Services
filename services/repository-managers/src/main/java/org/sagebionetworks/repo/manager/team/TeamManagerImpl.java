@@ -90,6 +90,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private DBOBasicDao basicDao;
 
+	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
 	
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
@@ -528,7 +529,7 @@ public class TeamManagerImpl implements TeamManager {
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);
-			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
+			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			aclDAO.update(acl, ObjectType.TEAM);
 		}
@@ -585,7 +586,7 @@ public class TeamManagerImpl implements TeamManager {
 			// if isAdmin is true, then we add the specified admin permissions
 			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
 		}
-		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
+		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 		// finally, update the ACL
 		aclDAO.update(acl, ObjectType.TEAM);
 	}
