@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.evaluation;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -16,6 +17,9 @@ public interface SubmissionDAO {
 	 * @return ID of the created Submission
 	 */
 	public String create(Submission dto);
+
+
+	void addSubmissionContributor(String submissionId, SubmissionContributor dto);
 
 	/**
 	 * Get a Submission by ID

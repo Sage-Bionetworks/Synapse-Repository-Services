@@ -63,7 +63,7 @@ public class SQLConstants {
 	public static final String TABLE_SUBMISSION_CONTRIBUTOR		= "SUBMISSION_CONTRIBUTOR";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_ID	= "ID";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_ETAG	= "ETAG";
-	public static final String COL_SUBMISSION_CONTRIBUTOR_SUB_ID	= "SUBMISSION_ID";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID	= "SUBMISSION_ID";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID	= "PRINCIPAL_ID";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_CREATED_ON	= "CREATED_ON";
 	
