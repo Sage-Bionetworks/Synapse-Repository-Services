@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.evaluation;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -124,5 +127,39 @@ public interface SubmissionDAO {
 
 	public long getCountByEvaluationAndUser(String evalId, String userId)
 			throws DatastoreException, NotFoundException;
+
+
+	/**
+	 * Find the number of Team submissions in the given evaluation queue and time interval
+	 * optionally filtering by submission status.  Caller may also omit start or end
+	 * dates to create open ended time segments.
+	 * 
+	 * @param evaluationId
+	 * @param teamId
+	 * @param startDateIncl
+	 * @param endDateExcl
+	 * @param statuses
+	 * @return
+	 */
+	long countSubmissionsByTeam(long evaluationId, long teamId,
+			Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
+
+	/**
+	 * Find the number of submissions for each of a set of contributers in a given evaluation queue
+	 * and time interval, optionally filtering by submission status.  Caller may also omit start or end
+	 * dates to create open ended time segments.
+	 * 
+	 * @param evaluationId
+	 * @param contributorIds
+	 * @param startDateIncl
+	 * @param endDateExcl
+	 * @param statuses
+	 * @return Map whose keys are principal IDs and values are the number of submissions for
+	 * which the principal was a contributor.
+	 */
+	Map<Long, Long> countSubmissionsByContributor(long evaluationId,
+			Set<Long> contributorIds, Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
 
 }

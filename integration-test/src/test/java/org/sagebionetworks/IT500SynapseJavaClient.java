@@ -1161,9 +1161,9 @@ public class IT500SynapseJavaClient {
 		
 		IdList idList = new IdList();
 		idList.setList(Collections.singletonList(Long.parseLong(updatedTeam.getId())));
-		ListWrapper<Team> teamList = synapseOne.listTeams(idList);
-		assertEquals(1L, teamList.getList().size());
-		assertEquals(updatedTeam, teamList.getList().get(0));
+		List<Team> teamList = synapseOne.listTeams(idList);
+		assertEquals(1L, teamList.size());
+		assertEquals(updatedTeam, teamList.get(0));
 		
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 1, 0);
@@ -1219,8 +1219,8 @@ public class IT500SynapseJavaClient {
 		
 		IdList memberIds = new IdList();
 		memberIds.setList(Collections.singletonList(Long.parseLong(myPrincipalId)));
-		ListWrapper<TeamMember> teamMembersLW = synapseOne.listTeamMembers(updatedTeam.getId(), memberIds);
-		assertEquals(members.getResults(), teamMembersLW.getList());
+		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), memberIds);
+		assertEquals(members.getResults(), teamMembers);
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
 		// update the prefix cache

@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -1503,7 +1502,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ListWrapper<Team> listTeams(IdList ids) throws SynapseException;
+	public List<Team> listTeams(IdList ids) throws SynapseException;
 	
 	/**
 	 * 
@@ -1585,7 +1584,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ListWrapper<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException;
+	public List<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException;
 
 	/**
 	 * 

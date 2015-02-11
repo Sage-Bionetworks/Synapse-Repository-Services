@@ -2283,10 +2283,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = ENTITY + "/" + parentEntityId + "/uploadDestinations";
 		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
 		try {
-			@SuppressWarnings("unchecked")
-			ListWrapper<UploadDestination> result = EntityFactory
-					.createEntityFromJSONObject(json, ListWrapper.class);
-			return result.getList();
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(json), UploadDestination.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
@@ -6801,8 +6798,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public ListWrapper<Team> listTeams(IdList ids) throws SynapseException {
-		return asymmetricalPost(getRepoEndpoint(), TEAM_LIST, ids, ListWrapper.class, null);
+	public List<Team> listTeams(IdList ids) throws SynapseException {
+		try {
+			String jsonString = EntityFactory.createJSONStringForEntity(ids);
+			JSONObject responseBody = getSharedClientConnection().postJson(
+					getRepoEndpoint(), TEAM_LIST, jsonString, getUserAgent(), null, null);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), Team.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	@Override
@@ -6908,8 +6912,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ListWrapper<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException {
-		return asymmetricalPost(getRepoEndpoint(), TEAM+"/"+teamId+MEMBER_LIST, ids, ListWrapper.class, null);
+	public List<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException {
+		try {
+			String jsonString = EntityFactory.createJSONStringForEntity(ids);
+			JSONObject responseBody = getSharedClientConnection().postJson(
+					getRepoEndpoint(), TEAM+"/"+teamId+MEMBER_LIST, jsonString, getUserAgent(), null, null);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), TeamMember.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+
 	}
 
 	public TeamMember getTeamMember(String teamId, String memberId)
