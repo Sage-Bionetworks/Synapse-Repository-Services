@@ -98,6 +98,15 @@ public class TableSqlProcessorTest {
 	}
 	
 	@Test
+	public void testToggleSortAlreadySortingMultipleWithQuotes() throws ParseException{
+		String sql = "select * from syn123 order by bar desc, \"foo\" ASC";
+		String expected = "SELECT * FROM syn123 ORDER BY \"foo\" DESC, bar DESC";
+		// call under test.
+		String results = TableSqlProcessor.toggleSort(sql, "foo");
+		assertEquals(expected, results);
+	}
+	
+	@Test
 	public void testToggleSortAlreadySortingMultipleAddNew() throws ParseException{
 		String sql = "select * from syn123 order by bar desc, foofoo ASC";
 		String expected = "SELECT * FROM syn123 ORDER BY \"foo not\" ASC, bar DESC, foofoo ASC";
