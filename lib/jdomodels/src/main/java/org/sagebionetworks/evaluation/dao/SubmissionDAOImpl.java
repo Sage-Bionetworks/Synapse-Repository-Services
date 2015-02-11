@@ -332,4 +332,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}	
+	
+	// query for evaluation, list of allowed sub-statuses (optional), start ts (optional), end ts (optional), teamId
+	// SELECT COUNT(*) FROM JDOSUBMISSION sb, JDOSUBMISSION_STATUS ss 
+	// WHERE  sb.ID=ss.ID AND ss.EVALUATION_ID= ? AND TEAM_ID = ?
+	// AND ss.STATUS in (?, ?, ?)
+	// AND CREATED_ON >= startTime (long)
+	// AND CREATED_ON < endTime (long)
+	
+	public long countSubmissionsByTeam() {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("foo", null);
+		return simpleJdbcTemplate.queryForLong("sql", param);
+	}
 }
