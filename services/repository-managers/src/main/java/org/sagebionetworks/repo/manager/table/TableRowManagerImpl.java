@@ -55,7 +55,6 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlDirective;
-import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
@@ -222,7 +221,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	private void resolveUpdateValues(String tableId, Map<Long, Pair<PartialRow, Row>> rowsToUpdate, ColumnMapper columnMapper)
 			throws IOException, NotFoundException {
-		RowSetAccessor currentRowData = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowsToUpdate.keySet(), 0L);
+		RowSetAccessor currentRowData = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowsToUpdate.keySet(), 0L, columnMapper);
 		for (Map.Entry<Long, Pair<PartialRow, Row>> rowToUpdate : rowsToUpdate.entrySet()) {
 			Long rowId = rowToUpdate.getKey();
 			PartialRow partialRow = rowToUpdate.getValue().getFirst();
@@ -236,7 +235,7 @@ public class TableRowManagerImpl implements TableRowManager {
 					if (partialRow.getValues().containsKey(model.getColumnModel().getId())) {
 						value = partialRow.getValues().get(model.getColumnModel().getId());
 					} else {
-						value = currentRow.getCell(model.getColumnModel().getId());
+						value = currentRow.getCellById(Long.parseLong(model.getColumnModel().getId()));
 					}
 					if (value == null) {
 						value = model.getColumnModel().getDefaultValue();
@@ -271,7 +270,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			}
 		});
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(getColumnModelsForTable(tableId), false);
-		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getHeaders(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
+		RawRowSet rowSetToDelete = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), rowsToDelete.getEtag(), tableId, rows);
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
@@ -301,13 +300,13 @@ public class TableRowManagerImpl implements TableRowManager {
 		// serially by locking on the table's Id.
 		columnModelDAO.lockOnOwner(tableId);
 		
-		List<String> headers = Transform.toList(columnMapper.getColumnModels(), TableModelUtils.COLUMN_MODEL_TO_ID);
+		List<Long> ids = Transform.toList(columnMapper.getColumnModels(), TableModelUtils.COLUMN_MODEL_TO_ID);
 		// Calculate the size per row
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(columnMapper.getColumnModels());
 		List<Row> batch = new LinkedList<Row>();
 		int batchSizeBytes = 0;
 		int count = 0;
-		RawRowSet delta = new RawRowSet(headers, etag, tableId, batch);
+		RawRowSet delta = new RawRowSet(ids, etag, tableId, batch);
 		while(rowStream.hasNext()){
 			batch.add(rowStream.next());
 			batchSizeBytes += maxBytesPerRow;
@@ -1033,14 +1032,14 @@ public class TableRowManagerImpl implements TableRowManager {
 			throws IOException,
 			NotFoundException {
 
-		List<String> fileHandleColumns = Lists.newArrayList();
+		List<Long> fileHandleColumnIds = Lists.newArrayList();
 		for (ColumnModel cm : columnMapper.getColumnModels()) {
 			if (cm.getColumnType() == ColumnType.FILEHANDLEID) {
-				fileHandleColumns.add(cm.getId());
+				fileHandleColumnIds.add(Long.parseLong(cm.getId()));
 			}
 		}
 
-		if (fileHandleColumns.isEmpty()) {
+		if (fileHandleColumnIds.isEmpty()) {
 			// no filehandles: success!
 			return;
 		}
@@ -1055,8 +1054,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		List<String> fileHandles = Lists.newLinkedList();
 		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
 			RowAccessor row = rowIter.next();
-			if (TableModelUtils.isNullOrInvalid(row.getRow().getRowId())) {
-				getFileHandles(row, fileHandleColumns, user, fileHandles);
+			if (TableModelUtils.isNullOrInvalid(row.getRowId())) {
+				getFileHandles(row, fileHandleColumnIds, user, fileHandles);
 				rowIter.remove();
 			}
 		}
@@ -1081,14 +1080,14 @@ public class TableRowManagerImpl implements TableRowManager {
 		// collect all file handles
 		fileHandles.clear();
 		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
-			getFileHandles(row, fileHandleColumns, user, fileHandles);
+			getFileHandles(row, fileHandleColumnIds, user, fileHandles);
 		}
 		// check all file handles for access
 		authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
 
 		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
 			RowAccessor row = rowIter.next();
-			String unownedFileHandle = checkRowForUnownedFileHandle(user, row, fileHandleColumns, ownedFileHandles, unownedFileHandles);
+			String unownedFileHandle = checkRowForUnownedFileHandle(user, row, fileHandleColumnIds, ownedFileHandles, unownedFileHandles);
 			if (unownedFileHandle == null) {
 				// No unowned file handles, so no need to check previous values
 				rowIter.remove();
@@ -1100,13 +1099,14 @@ public class TableRowManagerImpl implements TableRowManager {
 			return;
 		}
 
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, fileHandlesToCheckAccessor.getRowIds(), 0);
+		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, fileHandlesToCheckAccessor.getRowIds(), 0,
+				columnMapper);
 
 		// now we need to check if any of the unowned filehandles are changing with this request
 		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
-			RowAccessor lastRowVersion = latestVersions.getRow(row.getRow().getRowId());
-			for (String fileHandleColumn : fileHandleColumns) {
-				String newFileHandleId = row.getCell(fileHandleColumn);
+			RowAccessor lastRowVersion = latestVersions.getRow(row.getRowId());
+			for (Long fileHandleColumn : fileHandleColumnIds) {
+				String newFileHandleId = row.getCellById(fileHandleColumn);
 				if (newFileHandleId == null) {
 					// erasing a file handle id is always allowed
 					continue;
@@ -1115,28 +1115,28 @@ public class TableRowManagerImpl implements TableRowManager {
 					// we already checked. We own this one
 					continue;
 				}
-				String oldFileHandleId = lastRowVersion.getCell(fileHandleColumn);
+				String oldFileHandleId = lastRowVersion.getCellById(fileHandleColumn);
 				if (!oldFileHandleId.equals(newFileHandleId) && !ownedFileHandles.contains(newFileHandleId)) {
 					throw new IllegalArgumentException("You cannot change a file id to a new file id that you do not own: rowId="
-							+ row.getRow().getRowId() + ", old file handle=" + oldFileHandleId + ", new file handle=" + newFileHandleId);
+							+ row.getRowId() + ", old file handle=" + oldFileHandleId + ", new file handle=" + newFileHandleId);
 				}
 			}
 		}
 	}
 
-	private void getFileHandles(RowAccessor row, List<String> fileHandleColumns, UserInfo user, List<String> fileHandles) {
-		for (String fileHandleColumn : fileHandleColumns) {
-			String fileHandleId = row.getCell(fileHandleColumn);
+	private void getFileHandles(RowAccessor row, List<Long> fileHandleColumnIds, UserInfo user, List<String> fileHandles) {
+		for (Long fileHandleColumn : fileHandleColumnIds) {
+			String fileHandleId = row.getCellById(fileHandleColumn);
 			if (fileHandleId != null) {
 				fileHandles.add(fileHandleId);
 			}
 		}
 	}
 
-	private String checkRowForUnownedFileHandle(UserInfo userInfo, RowAccessor row, List<String> fileHandleColumns,
+	private String checkRowForUnownedFileHandle(UserInfo userInfo, RowAccessor row, List<Long> fileHandleColumns,
 			Set<String> ownedFileHandles, Set<String> unownedFileHandles) throws NotFoundException {
-		for (String fileHandleColumn : fileHandleColumns) {
-			String fileHandleId = row.getCell(fileHandleColumn);
+		for (Long fileHandleColumn : fileHandleColumns) {
+			String fileHandleId = row.getCellById(fileHandleColumn);
 			if (fileHandleId == null) {
 				// erasing a file handle id is always allowed
 				continue;

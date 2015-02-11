@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.model.dao.table;
 
-import java.io.IOException;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.util.ProgressCallback;
 
 /**
@@ -13,7 +12,7 @@ public interface TableRowCache {
 	
 	public boolean isCurrentVersionCacheEnabled();
 
-	public boolean isRowCacheEnabled();
+	public boolean isCurrentRowCacheEnabled();
 
 	public long getLatestCurrentVersionNumber(Long tableId);
 
@@ -25,15 +24,9 @@ public interface TableRowCache {
 
 	public void removeFromCache(Long tableId);
 
-	public Row getRowFromCache(Long tableId, Long rowId, Long versionNumber) throws IOException;
+	public long getLatestCurrentRowVersionNumber(Long tableId);
 
-	public Map<Long, Row> getRowsFromCache(Long tableId, Map<Long, Long> rowIdVersionNumbers) throws IOException;
-
-	public Map<Long, Row> getRowsFromCache(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException;
-
-	public void putRowInCache(Long tableId, Row row) throws IOException;
-
-	public void putRowsInCache(Long tableId, Iterable<Row> rows) throws IOException;
+	public Map<Long, RowAccessor> getCurrentRowsFromCache(Long tableId, Iterable<Long> rowsToGet, ColumnMapper mapper);
 
 	public void truncateAllData();
 }

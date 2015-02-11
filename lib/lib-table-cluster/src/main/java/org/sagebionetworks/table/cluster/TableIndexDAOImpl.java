@@ -355,7 +355,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					} else {
 						SelectColumn selectColumn = selectColumns.get(selectModelIndex++);
 						String value = rs.getString(i);
-						value = TableModelUtils.translateRowValueFromQuery(value, selectColumn);
+						value = TableModelUtils.translateRowValueFromQuery(value, selectColumn.getColumnType());
 						values.add(value);
 					}
 				}

@@ -10,46 +10,23 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 public abstract class AbstractColumnMapper implements ColumnMapper {
-	private LinkedHashMap<String, SelectColumnAndModel> idToModelMap = null;
+	private LinkedHashMap<String, SelectColumnAndModel> nameToModelMap = null;
+	private Map<Long, SelectColumnAndModel> idToModelMap = null;
 	private List<SelectColumn> selectColumns = null;
 	private List<ColumnModel> columnModels = null;
-	private Map<String, SelectColumnAndModel> nameToModelMap = null;
 	private List<SelectColumnAndModel> selectAndColumnModels;
 
-	protected abstract LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap();
+	protected abstract LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap();
+
+	protected abstract Map<Long, SelectColumnAndModel> createIdToModelMap();
 
 	protected abstract List<SelectColumnAndModel> createSelectColumnAndModelList();
 
 	@Override
-	public SelectColumnAndModel getSelectColumnAndModelById(String columnId) {
-		return getIdToModelMap().get(columnId);
-	}
-
-	@Override
-	public SelectColumn getSelectColumnById(String columnId) {
-		SelectColumnAndModel selectColumnAndModel = getSelectColumnAndModelById(columnId);
-		if (selectColumnAndModel == null) {
-			return null;
-		} else {
-			return selectColumnAndModel.getSelectColumn();
-		}
-	}
-
-	@Override
-	public ColumnModel getColumnModelById(String columnId) {
-		SelectColumnAndModel selectColumnAndModel = getSelectColumnAndModelById(columnId);
-		if (selectColumnAndModel == null) {
-			return null;
-		} else {
-			return selectColumnAndModel.getColumnModel();
-		}
-	}
-
-	@Override
 	public List<ColumnModel> getColumnModels() {
 		if (columnModels == null) {
-			columnModels = Lists.newArrayListWithCapacity(getIdToModelMap().size());
-			for (SelectColumnAndModel scm : getIdToModelMap().values()) {
+			columnModels = Lists.newArrayListWithCapacity(getNameToModelMap().size());
+			for (SelectColumnAndModel scm : getNameToModelMap().values()) {
 				columnModels.add(scm.getColumnModel());
 			}
 		}
@@ -58,7 +35,7 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 
 	@Override
 	public int columnModelCount() {
-		return getIdToModelMap().size();
+		return getNameToModelMap().size();
 	}
 
 	@Override
@@ -84,24 +61,29 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 
 	@Override
 	public SelectColumn getSelectColumnByName(String name) {
-		if (nameToModelMap == null) {
-			nameToModelMap = Transform.toIdMap(getSelectColumnAndModels(), new Function<SelectColumnAndModel, String>() {
-				@Override
-				public String apply(SelectColumnAndModel input) {
-					return input.getName();
-				}
-			});
-		}
-		SelectColumnAndModel selectColumnAndModel = nameToModelMap.get(name);
+		SelectColumnAndModel selectColumnAndModel = getNameToModelMap().get(name);
 		return selectColumnAndModel == null ? null : selectColumnAndModel.getSelectColumn();
 	}
 
 	@Override
-	public int selectColumnCount(){
+	public SelectColumn getSelectColumnById(Long id) {
+		SelectColumnAndModel selectColumnAndModel = getIdToModelMap().get(id);
+		return selectColumnAndModel == null ? null : selectColumnAndModel.getSelectColumn();
+	}
+
+	@Override
+	public int selectColumnCount() {
 		return getSelectColumnAndModels().size();
 	}
 
-	private Map<String, SelectColumnAndModel> getIdToModelMap() {
+	private Map<String, SelectColumnAndModel> getNameToModelMap() {
+		if (nameToModelMap == null) {
+			nameToModelMap = createNameToModelMap();
+		}
+		return nameToModelMap;
+	}
+
+	private Map<Long, SelectColumnAndModel> getIdToModelMap() {
 		if (idToModelMap == null) {
 			idToModelMap = createIdToModelMap();
 		}
@@ -110,6 +92,6 @@ public abstract class AbstractColumnMapper implements ColumnMapper {
 
 	@Override
 	public String toString() {
-		return "AbstractColumnMapper [idToModelMap=" + idToModelMap + ", selectAndColumnModels=" + selectAndColumnModels + "]";
+		return "AbstractColumnMapper [nameToModelMap=" + nameToModelMap + ", selectAndColumnModels=" + selectAndColumnModels + "]";
 	}
 }

@@ -5,11 +5,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,6 +62,13 @@ import com.google.common.collect.Sets;
  */
 public class TableModelUtils {
 
+	public static final Function<Long, String> LONG_TO_STRING = new Function<Long, String>() {
+		@Override
+		public String apply(Long input) {
+			return input.toString();
+		}
+	};
+
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
 
@@ -89,24 +94,31 @@ public class TableModelUtils {
 		}
 	}
 
-	public static final Function<ColumnModel, String> COLUMN_MODEL_TO_ID = new Function<ColumnModel, String>() {
+	public static final Function<ColumnModel, Long> COLUMN_MODEL_TO_ID = new Function<ColumnModel, Long>() {
 		@Override
-		public String apply(ColumnModel cm) {
-			return cm.getId();
+		public Long apply(ColumnModel cm) {
+			return Long.parseLong(cm.getId());
 		}
 	};
 
-	public static final Function<SelectColumn, String> SELECT_COLUMN_TO_ID = new Function<SelectColumn, String>() {
+	public static final Function<SelectColumn, Long> SELECT_COLUMN_TO_ID = new Function<SelectColumn, Long>() {
 		@Override
-		public String apply(SelectColumn sc) {
-			return sc.getId();
+		public Long apply(SelectColumn sc) {
+			return Long.parseLong(sc.getId());
 		}
 	};
 
-	public static final Function<SelectColumnAndModel, String> SELECT_COLUMN_AND_MODEL_TO_ID = new Function<SelectColumnAndModel, String>() {
+	public static final Function<SelectColumnAndModel, String> SELECT_COLUMN_AND_MODEL_TO_NAME = new Function<SelectColumnAndModel, String>() {
 		@Override
 		public String apply(SelectColumnAndModel sc) {
-			return sc.getSelectColumn().getId();
+			return sc.getSelectColumn().getName();
+		}
+	};
+
+	public static final Function<SelectColumnAndModel, Long> SELECT_COLUMN_AND_MODEL_TO_ID = new Function<SelectColumnAndModel, Long>() {
+		@Override
+		public Long apply(SelectColumnAndModel sc) {
+			return Long.parseLong(sc.getSelectColumn().getId());
 		}
 	};
 
@@ -154,14 +166,14 @@ public class TableModelUtils {
 		validateRowSet(set);
 		if (out == null)
 			throw new IllegalArgumentException("CSVWriter cannot be null");
-		if (models.size() != set.getHeaders().size())
+		if (models.size() != set.getIds().size())
 			throw new IllegalArgumentException(
 					"RowSet.headers size must be equal to the number of columns in the table.  The table has :"
 							+ models.size()
 							+ " columns and the passed RowSet.headers has: "
-							+ set.getHeaders().size());
+ + set.getIds().size());
 		// Now map the index of each column
-		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(set);
+		Map<Long, Integer> columnIndexMap = createColumnIdToIndexMap(set);
 		// Process each row
 		int count = 0;
 		for (Row row : set.getRows()) {
@@ -196,7 +208,7 @@ public class TableModelUtils {
 				// Now process all of the columns as defined by the schema
 				for (int i = 0; i < models.size(); i++) {
 					ColumnModel cm = models.get(i);
-					Integer valueIndex = columnIndexMap.get(cm.getId());
+					Integer valueIndex = columnIndexMap.get(Long.parseLong(cm.getId()));
 					if (valueIndex == null)
 						throw new IllegalArgumentException(
 								"The Table's ColumnModels includes: name="
@@ -229,8 +241,8 @@ public class TableModelUtils {
 		if (set == null)
 			throw new IllegalArgumentException("RowSet cannot be null");
 		;
-		if (set.getHeaders() == null)
-			throw new IllegalArgumentException("RowSet.headers cannot be null");
+		if (set.getIds() == null)
+			throw new IllegalArgumentException("RowSet.ids cannot be null");
 		if (set.getRows() == null)
 			throw new IllegalArgumentException("RowSet.rows cannot be null");
 		if (set.getRows().size() < 1)
@@ -375,8 +387,8 @@ public class TableModelUtils {
 	 * @param columnModel
 	 * @return
 	 */
-	public static String translateRowValueFromQuery(String value, SelectColumn selectColumn) {
-		if (selectColumn.getColumnType() == ColumnType.BOOLEAN) {
+	public static String translateRowValueFromQuery(String value, ColumnType columnType) {
+		if (columnType == ColumnType.BOOLEAN) {
 			if ("0".equals(value)) {
 				value = "false";
 			} else if ("1".equals(value)) {
@@ -555,18 +567,37 @@ public class TableModelUtils {
 	}
 	
 	/**
-	 * Extract the headers from a list of column Models.s
+	 * Extract the ids from a list of column Models.s
+	 * 
 	 * @param models
 	 * @return
 	 */
-	public static List<String> getHeaders(List<ColumnModel> models){
+	public static List<Long> getIds(List<ColumnModel> models) {
 		if(models == null) throw new IllegalArgumentException("ColumnModels cannot be null");
-		List<String> headers = new LinkedList<String>();
+		List<Long> ids = Lists.newArrayListWithCapacity(models.size());
 		for(ColumnModel model: models){
 			if(model.getId() == null) throw new IllegalArgumentException("ColumnModel ID cannot be null");
-			headers.add(model.getId());
+			ids.add(Long.parseLong(model.getId()));
 		}
-		return headers;
+		return ids;
+	}
+
+	/**
+	 * Extract the headers from a list of column Models.s
+	 * 
+	 * @param models
+	 * @return
+	 */
+	public static List<String> getNames(List<ColumnModel> models) {
+		if (models == null)
+			throw new IllegalArgumentException("ColumnModels cannot be null");
+		List<String> names = Lists.newArrayListWithCapacity(models.size());
+		for (ColumnModel model : models) {
+			if (model.getId() == null)
+				throw new IllegalArgumentException("ColumnModel ID cannot be null");
+			names.add(model.getName());
+		}
+		return names;
 	}
 
 	/**
@@ -590,9 +621,9 @@ public class TableModelUtils {
 	 * @param models
 	 * @return
 	 */
-	public static String createDelimitedColumnModelIdString(List<String> headers) {
-		ValidateArgument.required(headers, "headers");
-		return StringUtils.join(headers, COLUMN_MODEL_ID_STRING_DELIMITER);
+	public static String createDelimitedColumnModelIdString(List<Long> ids) {
+		ValidateArgument.required(ids, "headers");
+		return StringUtils.join(ids, COLUMN_MODEL_ID_STRING_DELIMITER);
 	}
 	
 	/**
@@ -600,10 +631,14 @@ public class TableModelUtils {
 	 * @param in
 	 * @return
 	 */
-	public static List<String> readColumnModelIdsFromDelimitedString(String in){
+	public static List<Long> readColumnModelIdsFromDelimitedString(String in) {
 		ValidateArgument.required(in, "String");
 		String[] split = in.split(COLUMN_MODEL_ID_STRING_DELIMITER);
-		return Arrays.asList(split);
+		List<Long> ids = Lists.newArrayListWithCapacity(split.length);
+		for (String idString : split) {
+			ids.add(Long.parseLong(idString));
+		}
+		return ids;
 	}
 
 	/**
@@ -675,7 +710,7 @@ public class TableModelUtils {
 	 * @param sets
 	 */
 	public static void convertToSchemaAndMerge(RawRowSet in, ColumnModelMapper resultSchema, RowSet out) {
-		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(in);
+		Map<Long, Integer> columnIndexMap = createColumnIdToIndexMap(in);
 		// Now convert each row into the requested format.
 		// Process each row
 		for (Row row : in.getRows()) {
@@ -695,7 +730,7 @@ public class TableModelUtils {
 	 * @param resultSchema
 	 * @param sets
 	 */
-	public static Row convertToSchemaAndMerge(Row row, Map<String, Integer> columnIndexMap, ColumnModelMapper resultSchema) {
+	public static Row convertToSchemaAndMerge(Row row, Map<Long, Integer> columnIndexMap, ColumnModelMapper resultSchema) {
 		// Create the new row
 		Row newRow = new Row();
 		newRow.setRowId(row.getRowId());
@@ -706,7 +741,7 @@ public class TableModelUtils {
 		// Now process all of the columns as defined by the schema
 		for (ColumnModel model : resultSchema.getColumnModels()) {
 			String value = null;
-			Integer valueIndex = columnIndexMap.get(model.getId());
+			Integer valueIndex = columnIndexMap.get(Long.parseLong(model.getId()));
 			if (valueIndex == null) {
 				// this means this column did not exist when this row as created, so set the value to the default
 				// value
@@ -845,14 +880,8 @@ public class TableModelUtils {
 	 * @param rowset
 	 * @return
 	 */
-	public static Map<String, Integer> createColumnIdToIndexMap(TableRowChange rowChange) {
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
-		int index = 0;
-		for (String header : rowChange.getHeaders()) {
-			columnIndexMap.put(header, index);
-			index++;
-		}
-		return columnIndexMap;
+	public static Map<Long, Integer> createColumnIdToIndexMap(TableRowChange rowChange) {
+		return createColumnIdToIndexMap(rowChange.getIds());
 	}
 
 	/**
@@ -861,8 +890,8 @@ public class TableModelUtils {
 	 * @param rowset
 	 * @return
 	 */
-	public static Map<String, Integer> createColumnIdToIndexMap(RawRowSet rowset) {
-		return createColumnIdToIndexMap(rowset.getHeaders());
+	public static Map<Long, Integer> createColumnIdToIndexMap(RawRowSet rowset) {
+		return createColumnIdToIndexMap(rowset.getIds());
 	}
 
 	/**
@@ -871,10 +900,10 @@ public class TableModelUtils {
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Integer> createColumnIdToIndexMap(List<String> columnIds) {
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+	public static Map<Long, Integer> createColumnIdToIndexMap(List<Long> columnIds) {
+		Map<Long, Integer> columnIndexMap = Maps.newHashMap();
 		int index = 0;
-		for (String columnId : columnIds) {
+		for (Long columnId : columnIds) {
 			columnIndexMap.put(columnId, index);
 			index++;
 		}
@@ -958,10 +987,10 @@ public class TableModelUtils {
 	 * @param columns
 	 * @return
 	 */
-	public static Map<String, String> createNameToIDMap(List<ColumnModel> columns){
-		HashMap<String, String>  map = new HashMap<String, String> ();
+	public static Map<String, Long> createNameToIDMap(List<ColumnModel> columns) {
+		HashMap<String, Long> map = Maps.newHashMap();
 		for(ColumnModel cm: columns){
-			map.put(cm.getName(), cm.getId());
+			map.put(cm.getName(), Long.parseLong(cm.getId()));
 		}
 		return map;
 	}
@@ -973,8 +1002,8 @@ public class TableModelUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static Map<String, Integer> createColumnIdToIndexMapFromFirstRow(String[] rowValues, List<ColumnModel> schema){
-		Map<String, String> nameMap = createNameToIDMap(schema);
+	public static Map<Long, Integer> createColumnIdToIndexMapFromFirstRow(String[] rowValues, List<ColumnModel> schema) {
+		Map<String, Long> nameMap = createNameToIDMap(schema);
 		// Are all of the values names?
 		for(String value: rowValues){
 			// skip reserved column names
@@ -987,16 +1016,14 @@ public class TableModelUtils {
 			}
 		}
 		// Build the map from the names
-		Map<String, Integer> columnIdToIndex = new HashMap<String, Integer>(rowValues.length);
+		Map<Long, Integer> columnIdToIndex = Maps.newHashMap();
 		for(int i=0; i<rowValues.length; i++){
 			String name = rowValues[i];
-			if(TableConstants.isReservedColumnName(name)){
-				// Use the name of a reserved column for its name.
-				columnIdToIndex.put(name, i);
-			}else{
-				String columnId = nameMap.get(name);
-				columnIdToIndex.put(columnId, i);
+			Long id = TableConstants.getReservedColumnId(name);
+			if (id == null) {
+				id = nameMap.get(name);
 			}
+			columnIdToIndex.put(id, i);
 		}
 		return columnIdToIndex;
 	}
@@ -1004,7 +1031,7 @@ public class TableModelUtils {
 	public static RowSetAccessor getRowSetAccessor(final List<Row> rows, final ColumnMapper columnMapper) {
 		return new RowSetAccessor() {
 
-			private Map<String, Integer> columnIdToIndexMap = null;
+			private Map<Long, Integer> columnIdToIndexMap = null;
 			private Map<Long, RowAccessor> rowIdToRowMap = null;
 			private List<RowAccessor> newRows = null;
 
@@ -1020,7 +1047,8 @@ public class TableModelUtils {
 					newRows = Lists.newLinkedList();
 					for (final Row row : rows) {
 						RowAccessor rowAccessor = new RowAccessor() {
-							public String getCell(String columnId) {
+							@Override
+							public String getCellById(Long columnId) {
 								Integer index = getColumnIdToIndexMap().get(columnId);
 								if (index == null || row.getValues() == null || index >= row.getValues().size()) {
 									return null;
@@ -1029,21 +1057,26 @@ public class TableModelUtils {
 							}
 
 							@Override
-							public Row getRow() {
-								return row;
+							public Long getRowId() {
+								return row.getRowId();
+							}
+
+							@Override
+							public Long getVersionNumber() {
+								return row.getVersionNumber();
 							}
 						};
-						if (rowAccessor.getRow().getRowId() == null) {
+						if (rowAccessor.getRowId() == null) {
 							newRows.add(rowAccessor);
 						} else {
-							rowIdToRowMap.put(rowAccessor.getRow().getRowId(), rowAccessor);
+							rowIdToRowMap.put(rowAccessor.getRowId(), rowAccessor);
 						}
 					}
 				}
 				return rowIdToRowMap;
 			}
 
-			private Map<String, Integer> getColumnIdToIndexMap() {
+			private Map<Long, Integer> getColumnIdToIndexMap() {
 				if (columnIdToIndexMap == null) {
 					columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(Lists.transform(columnMapper.getSelectColumns(),
 							SELECT_COLUMN_TO_ID));
@@ -1054,7 +1087,7 @@ public class TableModelUtils {
 	}
 
 
-	public static SetMultimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
+	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Map<Long, Long> currentVersionNumbers) {
 		// create a map from version to set of row ids map
 		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
@@ -1063,8 +1096,16 @@ public class TableModelUtils {
 		return versions;
 	}
 
+	public static SetMultimap<Long, RowAccessor> createVersionToRowsMap(Iterable<RowAccessor> currentRows) {
+		// create a map from version to set of row ids map
+		SetMultimap<Long, RowAccessor> versions = HashMultimap.create();
+		for (RowAccessor row : currentRows) {
+			versions.put(row.getVersionNumber(), row);
+		}
+		return versions;
+	}
 
-	public static SetMultimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
+	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Iterable<RowReference> refs) {
 		// create a map from version to set of row ids map
 		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (RowReference ref : refs) {
@@ -1093,10 +1134,10 @@ public class TableModelUtils {
 		return new NodeIdAndVersion(id, version);
 	}
 
-	public static List<SelectColumn> getSelectColumnsFromColumnIds(List<String> columnIds, final SelectColumnMapper schema) {
-		return Transform.toList(columnIds, new Function<String, SelectColumn>() {
+	public static List<SelectColumn> getSelectColumnsFromColumnIds(List<Long> columnIds, final SelectColumnMapper schema) {
+		return Transform.toList(columnIds, new Function<Long, SelectColumn>() {
 			@Override
-			public SelectColumn apply(String columnId) {
+			public SelectColumn apply(Long columnId) {
 				return schema.getSelectColumnById(columnId);
 			}
 		});
@@ -1236,24 +1277,33 @@ public class TableModelUtils {
 	}
 
 	public static ColumnMapper createColumnModelColumnMapper(final List<ColumnModel> columnModels, boolean isAggregate) {
-		LinkedHashMap<String, SelectColumnAndModel> columnIdMap = Maps.newLinkedHashMap();
+		LinkedHashMap<String, SelectColumnAndModel> columnNameMap = Maps.newLinkedHashMap();
+		Map<Long, SelectColumnAndModel> columnIdMap = Maps.newHashMap();
 		for (ColumnModel columnModel : columnModels) {
-			columnIdMap.put(columnModel.getId(), createSelectColumnAndModel(columnModel,isAggregate));
+			SelectColumnAndModel selectColumnAndModel = createSelectColumnAndModel(columnModel, isAggregate);
+			columnNameMap.put(columnModel.getName(), selectColumnAndModel);
+			columnIdMap.put(Long.parseLong(columnModel.getId()), selectColumnAndModel);
 		}
-		return createColumnMapper(columnIdMap);
+		return createColumnMapper(columnNameMap, columnIdMap);
 	}
 
-	public static ColumnMapper createColumnMapper(final LinkedHashMap<String, SelectColumnAndModel> columnIdMap) {
+	public static ColumnMapper createColumnMapper(final LinkedHashMap<String, SelectColumnAndModel> columnNameMap,
+			final Map<Long, SelectColumnAndModel> columnIdMap) {
 		AbstractColumnMapper columnMapper = new AbstractColumnMapper() {
 
 			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
+			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
+				return columnNameMap;
+			}
+
+			@Override
+			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
 				return columnIdMap;
 			}
 
 			@Override
 			protected List<SelectColumnAndModel> createSelectColumnAndModelList() {
-				return Lists.newArrayList(columnIdMap.values());
+				return Lists.newArrayList(columnNameMap.values());
 			}
 		};
 		return columnMapper;
@@ -1262,8 +1312,13 @@ public class TableModelUtils {
 	public static ColumnMapper createColumnMapper(final List<SelectColumnAndModel> columnList) {
 		ColumnMapper columnMapper = new AbstractColumnMapper() {
 			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
-				return Transform.toOrderedIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_ID);
+			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
+				return Transform.toOrderedIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_NAME);
+			}
+
+			@Override
+			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
+				return Transform.toIdMap(columnList, SELECT_COLUMN_AND_MODEL_TO_ID);
 			}
 
 			@Override

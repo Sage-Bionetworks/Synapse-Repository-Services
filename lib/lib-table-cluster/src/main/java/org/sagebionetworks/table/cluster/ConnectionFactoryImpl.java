@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
+import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -56,14 +57,20 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	}
 	
 	@Override
+	public CurrentVersionCacheDao getCurrentVersionCacheConnection(Long tableId) {
+		// Create a new DAO for this call.
+		return new CurrentVersionCacheSqlDaoImpl(singleConnectionPool);
+	}
+
+	@Override
 	public CurrentRowCacheDao getCurrentRowCacheConnection(Long tableId) {
 		// Create a new DAO for this call.
 		return new CurrentRowCacheSqlDaoImpl(singleConnectionPool);
 	}
 
 	@Override
-	public Iterable<CurrentRowCacheDao> getCurrentRowCacheConnections() {
-		return Collections.<CurrentRowCacheDao> singletonList(new CurrentRowCacheSqlDaoImpl(singleConnectionPool));
+	public Iterable<CurrentVersionCacheDao> getCurrentVersionCacheConnections() {
+		return Collections.<CurrentVersionCacheDao> singletonList(new CurrentVersionCacheSqlDaoImpl(singleConnectionPool));
 	}
 	/**
 	 * This is called when the Spring bean is initialized.

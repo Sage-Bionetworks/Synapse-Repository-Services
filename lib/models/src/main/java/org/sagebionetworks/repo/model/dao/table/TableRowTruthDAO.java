@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -134,12 +135,13 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @param rowIdsInOut the set of row ids to find
 	 * @param minVersion only check with versions equal or greater than the minVersion
+	 * @param columnMapper
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException,
-			NotFoundException;
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, ColumnMapper columnMapper)
+			throws IOException, NotFoundException;
 
 	/**
 	 * Get all the latest versions of the rows specified by the rowIds
