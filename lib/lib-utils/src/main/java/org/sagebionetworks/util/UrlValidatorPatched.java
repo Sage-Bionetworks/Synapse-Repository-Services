@@ -362,6 +362,11 @@ public class UrlValidatorPatched implements Serializable {
         if (authority == null) {
             return false;
         }
+        // If the authority includes user info exclude it
+        int atIndex = authority.indexOf('@');
+        if(atIndex > 0){
+        	authority = authority.substring(atIndex+1, authority.length());
+        }
 
         // check manual authority validation if specified
         if (authorityValidator != null) {
