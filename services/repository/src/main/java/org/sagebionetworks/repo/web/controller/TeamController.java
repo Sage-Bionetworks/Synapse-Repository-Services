@@ -4,14 +4,12 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -138,7 +136,10 @@ public class TeamController extends BaseController {
 	}
 	
 	/**
-	 * Retrieve a list of Teams given their IDs.
+	 * Retrieve a list of Teams given their IDs. 
+	 *  
+	 * Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the list of IDs passed in.
 	 * 
 	 * @param ids
 	 * @return
@@ -149,11 +150,9 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.TEAM_LIST, method = RequestMethod.POST)
 	public @ResponseBody
 	ListWrapper<Team> listTeams(
-			@RequestBody IdList ids
+			@RequestBody IdSet ids
 			) throws DatastoreException, NotFoundException {
-		Set<Long> idSet = new HashSet<Long>();
-		if (ids!=null && ids.getList()!=null) idSet.addAll(ids.getList());
-		ListWrapper<Team> result = serviceProvider.getTeamService().list(idSet);
+		ListWrapper<Team> result = serviceProvider.getTeamService().list(ids.getSet());
 		return result;
 	}
 	
@@ -324,7 +323,11 @@ public class TeamController extends BaseController {
 	}
 	
 	/**
-	 * Returns the TeamMember info for a team and a given list of members' principal IDs
+	 * Returns the TeamMember info for a team and a given list of members' principal IDs.
+	 * 
+	 * Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the list of IDs passed in.
+	 *
 	 * @param teamId
 	 * @param ids
 	 * @return
@@ -336,11 +339,9 @@ public class TeamController extends BaseController {
 	public @ResponseBody
 	ListWrapper<TeamMember> listTeamMembers(
 			@PathVariable Long id,
-			@RequestBody IdList ids
+			@RequestBody IdSet ids
 			) throws DatastoreException, NotFoundException {
-		Set<Long> idSet = new HashSet<Long>();
-		if (ids!=null && ids.getList()!=null) idSet.addAll(ids.getList());
-		return serviceProvider.getTeamService().listTeamMembers(id, idSet);
+		return serviceProvider.getTeamService().listTeamMembers(id, ids.getSet());
 	}
 	
 	/**

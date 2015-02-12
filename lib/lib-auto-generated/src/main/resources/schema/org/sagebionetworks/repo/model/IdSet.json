@@ -1,9 +1,9 @@
 {
-	"description": "List of IDs",
+	"description": "Set of IDs",
 	"properties": {
-		"list": {
+		"set": {
 			"type": "array",
-			"uniqueItems":false,
+			"uniqueItems":true,
 			"items": {
 				"type":"integer"
 			}

@@ -46,17 +46,17 @@ public class ListWrapper<T extends JSONEntity> implements JSONEntity {
 		return results.getList();
 	}
 
-	public ListWrapper() {
+	private ListWrapper() {
 	}
 
 	/**
 	 * Default constructor
 	 */
-	public ListWrapper(Class<? extends T> clazz) {
+	private ListWrapper(Class<? extends T> clazz) {
 		this.clazz = clazz;
 	}
 
-	public ListWrapper(List<T> list, Class<? extends T> clazz) {
+	private ListWrapper(List<T> list, Class<? extends T> clazz) {
 		this.list = list;
 		this.clazz = clazz;
 	}

@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -1559,15 +1560,14 @@ public class ServletTestHelper {
 				.readValue(response.getContentAsString(), Team.class);
 	}
 	
-	public ListWrapper<Team> listTeams(HttpServlet dispatchServlet, IdList idList) throws Exception {
+	public List<Team> listTeams(HttpServlet dispatchServlet, IdSet idSet) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idList);
+				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idSet);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return objectMapper
-				.readValue(response.getContentAsString(), ListWrapper.class);
+		
+		return ListWrapper.unwrap(new JSONObjectAdapterImpl(response.getContentAsString()), Team.class);
 	}
 
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,

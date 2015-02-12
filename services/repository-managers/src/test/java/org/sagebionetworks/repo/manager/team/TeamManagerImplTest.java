@@ -359,8 +359,7 @@ public class TeamManagerImplTest {
 	@Test
 	public void testGetBatch() throws Exception {
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
-		ListWrapper<Team> teamList = new ListWrapper();
-		teamList.setList(Arrays.asList(new Team[]{team}));
+		ListWrapper<Team> teamList = ListWrapper.wrap(Arrays.asList(new Team[]{team}), Team.class);
 		when(mockTeamDAO.getInRange(10, 0)).thenReturn(teamList.getList());
 		when(mockTeamDAO.getCount()).thenReturn(1L);
 		PaginatedResults<Team> result = teamManagerImpl.list(10,0);
@@ -708,8 +707,7 @@ public class TeamManagerImplTest {
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
 		
-		ListWrapper<TeamMember> lw = new ListWrapper<TeamMember>();
-		lw.setList(tms);
+		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
 		Long teamId = Long.parseLong(TEAM_ID);
 		when(mockTeamDAO.listMembers(teamId, Collections.singleton(101L))).thenReturn(lw);
 		assertEquals(tms, teamManagerImpl.listMembers(teamId, Collections.singleton(101L)).getList());
