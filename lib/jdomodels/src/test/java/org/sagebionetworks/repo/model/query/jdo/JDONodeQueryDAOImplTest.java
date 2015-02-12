@@ -197,14 +197,12 @@ public class JDONodeQueryDAOImplTest {
 			// Update the child annoations.
 			nodeDao.updateAnnotations(childId, childNamed);
 
-//			Thread.sleep(1000);
 		}
 		// since we have moved the annotation updates to an asynchronous process we need to manually
 		// update the annotations of all nodes for this test. See PLFM-1548
 		for(String id: idsToUpdate){
 			asynchronousDAO.createEntity(id);
 		}
-		// create one acl
 	}
 	
 	// this was formerly defined in the (now defunct) Layer class
@@ -216,11 +214,6 @@ public class JDONodeQueryDAOImplTest {
 		ans.setDescription("description"+i);
 		ans.setCreatedOn(date);
 		ans.setNodeType(EntityType.layer.name());
-//		ans.setTissueType("cell line"+i);
-//		ans.setPlatform("Affymetrix");
-//		ans.setProcessingFacility("Broad Institute");
-//		ans.setQcBy("Fred");
-//		ans.setQcDate(date);
 		return ans;
 	}
 

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_DESCRIPTION;
@@ -40,7 +40,8 @@ public enum NodeField {
 	VERSION_NUMBER	(PRIMARY_FIELDS[10],	COL_REVISION_NUMBER,		TABLE_REVISION,		REVISION_ALIAS),
 	VERSION_COMMENT	(PRIMARY_FIELDS[11],	COL_REVISION_COMMENT,		TABLE_REVISION,		REVISION_ALIAS),
 	VERSION_LABEL	(PRIMARY_FIELDS[12],	COL_REVISION_LABEL,			TABLE_REVISION,		REVISION_ALIAS),
-	BENEFACTOR_ID	(PRIMARY_FIELDS[13],	COL_NODE_BENEFACTOR_ID,		TABLE_NODE,			NODE_ALIAS);
+	BENEFACTOR_ID	(PRIMARY_FIELDS[13],	COL_NODE_BENEFACTOR_ID,		TABLE_NODE,			NODE_ALIAS),
+	PROJECT_ID		(PRIMARY_FIELDS[14],	COL_NODE_PROJECT_ID,		TABLE_NODE,			NODE_ALIAS);
 	
 	private String fieldName;
 	private String columnName;
