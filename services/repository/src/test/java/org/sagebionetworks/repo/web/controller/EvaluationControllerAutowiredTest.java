@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
@@ -363,6 +365,16 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		Thread.sleep(1L);
 		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
+		DoubleAnnotation da = new DoubleAnnotation();
+		// make sure NaNs can make the round trip
+		da.setKey("foo");
+		da.setValue(Double.NaN);
+		da.setIsPrivate(true);
+		Annotations annots = new Annotations();
+		annots.setDoubleAnnos(Collections.singletonList(da));
+		annots.setObjectId(status.getId());
+		annots.setScopeId(eval1.getId());
+		status.setAnnotations(annots);
 		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
@@ -370,6 +382,8 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
 		assertEquals(status, statusClone);
+		// make sure NaNs can make the round trip
+		assertTrue(Double.isNaN(statusClone.getAnnotations().getDoubleAnnos().get(0).getValue()));
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		
 		// delete
