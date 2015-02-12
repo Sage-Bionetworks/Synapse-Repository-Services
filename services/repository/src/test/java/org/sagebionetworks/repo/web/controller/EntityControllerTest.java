@@ -191,6 +191,31 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	@Test
+	public void testNaNAnnotationsCRUD() throws Exception {
+		Project p = new Project();
+		p.setName("AnnotCrud");
+		p.setEntityType(p.getClass().getName());
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		String id = clone.getId();
+		toDelete.add(id);
+		// Get the annotaions for this entity
+		Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
+		assertNotNull(annos);
+		// Change the values
+		annos.addAnnotation("doubleAnno", new Double(Double.NaN));
+		annos.addAnnotation("string", "A string");
+		// Update them
+		Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
+		assertNotNull(annosClone);
+		assertEquals(id, annosClone.getId());
+		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
+		String value = (String) annosClone.getSingleValue("string");
+		assertEquals("A string", value);
+		assertEquals(new Double(Double.NaN), annosClone.getSingleValue("doubleAnno"));
+		
+	}
+	
+	@Test
 	public void testGetUserEntityPermissions() throws Exception{
 		Project p = new Project();
 		p.setName("UserEntityPermissions");
