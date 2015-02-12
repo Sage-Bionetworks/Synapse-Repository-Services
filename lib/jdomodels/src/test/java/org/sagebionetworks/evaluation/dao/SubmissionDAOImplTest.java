@@ -5,8 +5,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -15,18 +19,25 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -48,9 +59,6 @@ public class SubmissionDAOImplTest {
     private SubmissionStatusDAO submissionStatusDAO;
     
     @Autowired
-    private ParticipantDAO participantDAO;
-    
-    @Autowired
     private EvaluationDAO evaluationDAO;
 	
     @Autowired
@@ -59,8 +67,18 @@ public class SubmissionDAOImplTest {
     @Autowired
 	private FileHandleDao fileHandleDAO;
  
+	@Autowired
+	UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	GroupMembersDAO groupMembersDAO;
+	
+	@Autowired
+	TeamDAO teamDAO;
+	
 	private String nodeId;
 	private String userId;
+	private String userId2;
 	
     private String submissionId = "206";
     private String userId_does_not_exist = "2";
@@ -70,10 +88,54 @@ public class SubmissionDAOImplTest {
     private String fileHandleId;
     private Long versionNumber = 1L;
     private Submission submission;
+    private Submission submission2;
     
+    // create a team and add the given ID as a member
+	private Team createTeam(String ownerId) throws NotFoundException {
+		Team team = new Team();
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(false);
+		Long id = userGroupDAO.create(ug);
+		
+		team.setId(id.toString());
+		team.setCreatedOn(new Date());
+		team.setCreatedBy(ownerId);
+		team.setModifiedOn(new Date());
+		team.setModifiedBy(ownerId);
+		Team created = teamDAO.create(team);
+		try {
+			groupMembersDAO.addMembers(id.toString(), Arrays.asList(new String[]{ownerId}));
+		} catch (NotFoundException e) {
+			throw new RuntimeException(e);
+		}
+			
+		return created;
+	}
+	
+	private void deleteTeam(Team team) throws NotFoundException {
+		teamDAO.delete(team.getId());
+		userGroupDAO.delete(team.getId());
+	}
+	
+	private Submission createSubmission(Date createdDate) {
+        // Initialize a Submission
+        submission = new Submission();
+        submission.setCreatedOn(createdDate);
+        submission.setId(submissionId);
+        submission.setName(name);
+        submission.setEvaluationId(evalId);
+        submission.setEntityId(nodeId);
+        submission.setVersionNumber(versionNumber);
+        submission.setUserId(userId);
+        submission.setSubmitterAlias("Team Awesome");
+        submission.setEntityBundleJSON("some bundle");
+        return submission;
+	}
+
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+    	userId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
     	
     	// create a file handle
 		PreviewFileHandle meta = new PreviewFileHandle();
@@ -93,7 +155,7 @@ public class SubmissionDAOImplTest {
     	toCreate.setFileHandleId(fileHandleId);
     	nodeId = nodeDAO.createNew(toCreate);
     	
-    	// create a Evaluation
+    	// create an Evaluation
         Evaluation evaluation = new Evaluation();
         evaluation.setId("1234");
         evaluation.setEtag("etag");
@@ -103,13 +165,6 @@ public class SubmissionDAOImplTest {
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
-        
-        // create a Participant
-        Participant participant = new Participant();
-        participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
-        participant.setEvaluationId(evalId);
-        participantDAO.create(participant);
         
         // Initialize a Submission
         submission = new Submission();
@@ -129,9 +184,6 @@ public class SubmissionDAOImplTest {
 		try {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
-		try {
-			participantDAO.delete(userId, evalId);
-		} catch (NotFoundException e) {};
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};

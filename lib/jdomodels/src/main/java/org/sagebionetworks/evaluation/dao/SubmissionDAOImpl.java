@@ -119,6 +119,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			"SELECT * FROM "+TABLE_SUBMISSION_CONTRIBUTOR+
 			" WHERE "+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
 
+	//------    Submission eligibility related query strings -----
+	
+	// Quota Query:  Count Team's submissions.
 	private static final String COUNT_SUBMISSIONS_FROM_TEAM = 
 			"SELECT COUNT(*) FROM "+TABLE_SUBMISSION+" sb, "+TABLE_SUBSTATUS+" ss "+
 					" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
@@ -143,6 +146,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			" AND sb."+COL_SUBMISSION_ID+"=sc."+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+
 			" AND sb."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID;
 
+	// Quota Query:  For each team member, count the submissions they contributed to.
 	private static final String COUNT_SUBMISSIONS_FROM_TEAM_MEMBERS = 
 			"SELECT sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+
 			", COUNT("+COL_SUBMISSION_ID+")"+
@@ -152,6 +156,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			" AND sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+"=gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 			" AND gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 
+	// Quota Query: Count the submissions by a single contributor
 	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR = 
 			"SELECT COUNT("+COL_SUBMISSION_ID+")"+
 					COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM+
@@ -168,6 +173,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String IS_TEAM_SUBMISSION_CLAUSE = 
 			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NOT NULL";
+
+	//------    end Submission eligibility related query strings -----
 
 	private static final RowMapper<SubmissionDBO> SUBMISSION_ROW_MAPPER = 
 			((new SubmissionDBO()).getTableMapping());
