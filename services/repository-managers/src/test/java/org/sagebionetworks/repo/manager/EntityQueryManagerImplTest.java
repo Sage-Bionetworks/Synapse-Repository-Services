@@ -54,6 +54,8 @@ public class EntityQueryManagerImplTest {
 		result.setParentId("syn99");
 		result.setVersionNumber(0L);
 		result.setId("syn456");
+		result.setProjectId(888L);
+		result.setBenefactorId(111L);
 	}
 	
 	@Test
@@ -136,6 +138,9 @@ public class EntityQueryManagerImplTest {
 		map.put(EntityFieldName.modifiedByPrincipalId.name(), results.getModifiedByPrincipalId());
 		map.put(EntityFieldName.activityId.name(), results.getActivityId());
 		map.put(EntityFieldName.versionNumber.name(), results.getVersionNumber());
+		map.put(EntityFieldName.benefactorId.name(), results.getBenefactorId());
+		map.put(EntityFieldName.projectId.name(), results.getProjectId());
+		
 		EntityType type = EntityType.getEntityType(results.getEntityType());
 		map.put("nodeType", new Integer( type.getId()));
 		return map;
