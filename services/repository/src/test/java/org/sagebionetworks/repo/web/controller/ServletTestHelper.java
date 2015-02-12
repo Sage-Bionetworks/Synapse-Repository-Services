@@ -1560,9 +1560,9 @@ public class ServletTestHelper {
 				.readValue(response.getContentAsString(), Team.class);
 	}
 	
-	public List<Team> listTeams(HttpServlet dispatchServlet, IdList idList) throws Exception {
+	public List<Team> listTeams(HttpServlet dispatchServlet, IdSet idSet) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idList);
+				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idSet);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
