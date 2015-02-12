@@ -6,10 +6,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import org.junit.After;
@@ -20,18 +20,15 @@ import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -76,19 +73,23 @@ public class SubmissionDAOImplTest {
 	@Autowired
 	TeamDAO teamDAO;
 	
-	private String nodeId;
+    private static final String SUBMISSION_ID = "206";
+    private static final String SUBMISSION_2_ID = "307";
+    private static final String USERID_DOES_NOT_EXIST = "2";
+    private static final String EVALID_DOES_NOT_EXIST = "456";
+    private static final String SUBMISSION_NAME = "test submission";
+    private static final Long VERSION_NUMBER = 1L;
+    private static final long CREATION_TIME_STAMP = System.currentTimeMillis();
+
+    private String nodeId;
 	private String userId;
 	private String userId2;
 	
-    private String submissionId = "206";
-    private String userId_does_not_exist = "2";
     private String evalId;
-    private String evalId_does_not_exist = "456";
-    private String name = "test submission";
     private String fileHandleId;
-    private Long versionNumber = 1L;
     private Submission submission;
     private Submission submission2;
+    private Team submissionTeam;
     
     // create a team and add the given ID as a member
 	private Team createTeam(String ownerId) throws NotFoundException {
@@ -117,18 +118,19 @@ public class SubmissionDAOImplTest {
 		userGroupDAO.delete(team.getId());
 	}
 	
-	private Submission createSubmission(Date createdDate) {
-        // Initialize a Submission
-        submission = new Submission();
+	private static Random random = new Random();
+	
+	private Submission newSubmission(String submissionId, String userId, Date createdDate) {
+		Submission submission = new Submission();
         submission.setCreatedOn(createdDate);
         submission.setId(submissionId);
-        submission.setName(name);
+        submission.setName(SUBMISSION_NAME+"_"+random.nextInt());
         submission.setEvaluationId(evalId);
         submission.setEntityId(nodeId);
-        submission.setVersionNumber(versionNumber);
+        submission.setVersionNumber(VERSION_NUMBER);
         submission.setUserId(userId);
-        submission.setSubmitterAlias("Team Awesome");
-        submission.setEntityBundleJSON("some bundle");
+        submission.setSubmitterAlias("Team Awesome_"+random.nextInt());
+        submission.setEntityBundleJSON("some bundle"+random.nextInt());
         return submission;
 	}
 
@@ -149,7 +151,7 @@ public class SubmissionDAOImplTest {
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node
-  		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
+  		Node toCreate = NodeTestUtils.createNew(SUBMISSION_NAME, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
     	toCreate.setFileHandleId(fileHandleId);
@@ -166,24 +168,35 @@ public class SubmissionDAOImplTest {
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
-        // Initialize a Submission
-        submission = new Submission();
-        submission.setCreatedOn(new Date());
-        submission.setId(submissionId);
-        submission.setName(name);
-        submission.setEvaluationId(evalId);
-        submission.setEntityId(nodeId);
-        submission.setVersionNumber(versionNumber);
-        submission.setUserId(userId);
-        submission.setSubmitterAlias("Team Awesome");
-        submission.setEntityBundleJSON("some bundle");
+        // Initialize Submissions
+        submission = newSubmission(SUBMISSION_ID, userId, new Date(CREATION_TIME_STAMP));
+        
+        submission2 = newSubmission(SUBMISSION_2_ID, userId2, new Date(CREATION_TIME_STAMP));
+        submissionTeam = createTeam(userId2);
+        submission2.setTeamId(submissionTeam.getId());
+        SubmissionContributor submissionContributor = new SubmissionContributor();
+        submissionContributor.setPrincipalId(userId2);
+        Set<SubmissionContributor> scs = new HashSet<SubmissionContributor>();
+        submission2.setContributors(scs);
+        scs.add(submissionContributor);
+		groupMembersDAO.addMembers(submissionTeam.getId(), Arrays.asList(new String[]{userId}));
+		submissionContributor = new SubmissionContributor();
+        submissionContributor.setPrincipalId(userId);
+        scs.add(submissionContributor);
     }
     
     @After
-    public void tearDown() throws DatastoreException {
+    public void tearDown() throws DatastoreException, NotFoundException  {
 		try {
-			submissionDAO.delete(submissionId);
+			submissionDAO.delete(SUBMISSION_ID);
 		} catch (NotFoundException e)  {};
+		try {
+			submissionDAO.delete(SUBMISSION_2_ID);
+		} catch (NotFoundException e)  {};
+			
+		deleteTeam(submissionTeam);
+		submissionTeam=null;
+		
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
@@ -198,87 +211,186 @@ public class SubmissionDAOImplTest {
         long initialCount = submissionDAO.getCount();
  
         // create Submission
-        submissionId = submissionDAO.create(submission);
-        assertNotNull(submissionId);   
+        String returnedId = submissionDAO.create(submission);
+        assertEquals(SUBMISSION_ID, returnedId); 
+        
+        // we create a second submission with contributors to test
+        // that retrieval of the first submission doesn't accidentally
+        // pick up the contributors to some other submission
+        String returnedId2 = submissionDAO.create(submission2);
+        assertEquals(SUBMISSION_2_ID, returnedId2);   
         
         // fetch it
-        Submission clone = submissionDAO.get(submissionId);
+        Submission clone = submissionDAO.get(SUBMISSION_ID);
         assertNotNull(clone);
-        submission.setId(submissionId);
-        submission.setCreatedOn(clone.getCreatedOn());
-        assertEquals(initialCount + 1, submissionDAO.getCount());
+        assertEquals(initialCount + 2, submissionDAO.getCount());
         assertEquals(submission, clone);
         
         // delete it
-        submissionDAO.delete(submissionId);
+        submissionDAO.delete(SUBMISSION_ID);
         try {
-        	clone = submissionDAO.get(submissionId);
-        } catch (NotFoundException e) {
+        	clone = submissionDAO.get(SUBMISSION_ID);
+            fail("Failed to delete Submission");
+       } catch (NotFoundException e) {
         	// expected
-        	assertEquals(initialCount, submissionDAO.getCount());
-        	return;
         }
-        fail("Failed to delete Participant");
+    	assertEquals(initialCount+1, submissionDAO.getCount());
+    }
+    
+    @Test
+    public void testCRDWithContributors() throws Exception{
+        long initialCount = submissionDAO.getCount();
+ 
+        // create Submission
+        String returnedId = submissionDAO.create(submission2);
+        assertEquals(SUBMISSION_2_ID, returnedId);   
+        
+        // fetch it
+        Submission clone = submissionDAO.get(SUBMISSION_2_ID);
+        assertNotNull(clone);
+        // need to nullify the contributor createdOn dates to be able to compare to 'submission2'
+        Set<SubmissionContributor> nullifiedDates = new HashSet<SubmissionContributor>();
+        for (SubmissionContributor sc : clone.getContributors()) {
+        	assertNotNull(sc.getCreatedOn());
+        	sc.setCreatedOn(null);
+        	nullifiedDates.add(sc);
+        }
+        clone.setContributors(nullifiedDates);
+        assertEquals(initialCount + 1, submissionDAO.getCount());
+        assertEquals(submission2, clone);
+        
+        // delete it
+        submissionDAO.delete(SUBMISSION_2_ID);
+        try {
+        	clone = submissionDAO.get(SUBMISSION_2_ID);
+            fail("Failed to delete Submission");
+       } catch (NotFoundException e) {
+        	// expected
+        }
+    	assertEquals(initialCount, submissionDAO.getCount());
+    }
+    
+    @Test
+    public void testAddContributor() throws Exception{
+        // create Submission
+        String returnedId = submissionDAO.create(submission);
+        assertEquals(SUBMISSION_ID, returnedId); 
+        
+        SubmissionContributor sc = new SubmissionContributor();
+        sc.setPrincipalId(userId);
+        sc.setCreatedOn(new Date());
+        submissionDAO.addSubmissionContributor(SUBMISSION_ID, sc);
+                
+        // fetch it
+        Submission clone = submissionDAO.get(SUBMISSION_ID);
+        assertNotNull(clone);
+        assertEquals(1, clone.getContributors().size());
+        assertEquals(sc, clone.getContributors().iterator().next());
     }
     
     @Test
     public void testGetAllByUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionDAO.create(submission);
     	
     	// userId should have submissions
     	List<Submission> subs = submissionDAO.getAllByUser(userId, 10, 0);
     	assertEquals(1, subs.size());
     	assertEquals(subs.size(), submissionDAO.getCountByUser(userId));
-    	submission.setCreatedOn(subs.get(0).getCreatedOn());
-    	submission.setId(subs.get(0).getId());
-    	assertEquals(subs.get(0), submission);
+       	Submission retrieved = subs.get(0);
+       	submission.setCreatedOn(retrieved.getCreatedOn());
+    	assertEquals(retrieved, submission);
     	
     	// userId_does_not_exist should not have any submissions
-    	subs = submissionDAO.getAllByUser(userId_does_not_exist, 10, 0);
+    	subs = submissionDAO.getAllByUser(USERID_DOES_NOT_EXIST, 10, 0);
     	assertEquals(0, subs.size());
     }
     
     @Test
+    public void testGetAllByUserWithContributors() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission2);
+    	
+    	// userId should have submissions
+    	List<Submission> subs = submissionDAO.getAllByUser(userId2, 10, 0);
+    	assertEquals(1, subs.size());
+    	Submission retrieved = subs.get(0);
+    	submission2.setCreatedOn(retrieved.getCreatedOn());
+        // need to nullify the contributor createdOn dates to be able to compare to 'submission2'
+    	nullifyContributorCreatedOn(retrieved);
+    	assertEquals(retrieved, submission2);
+    }
+    
+    private void nullifyContributorCreatedOn(Submission retrieved) {
+        Set<SubmissionContributor> nullifiedDates = new HashSet<SubmissionContributor>();
+        for (SubmissionContributor sc : retrieved.getContributors()) {
+        	assertNotNull(sc.getCreatedOn());
+        	sc.setCreatedOn(null);
+        	nullifiedDates.add(sc);
+        }
+        // the hash set returned by .getContributors() is invalid 
+        // since we've messed with the set's contents.  So we use
+        // the new one instead
+        retrieved.setContributors(nullifiedDates);
+    }
+    
+    @Test
     public void testGetAllByEvaluation() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionDAO.create(submission);
     	
     	// evalId should have submissions
     	List<Submission> subs = submissionDAO.getAllByEvaluation(evalId, 10, 0);
     	assertEquals(1, subs.size());
     	assertEquals(subs.size(), submissionDAO.getCountByEvaluation(evalId));
-    	submission.setCreatedOn(subs.get(0).getCreatedOn());
-    	submission.setId(subs.get(0).getId());
-    	assertEquals(subs.get(0), submission);
+    	Submission retrieved = subs.get(0);
+    	submission.setCreatedOn(retrieved.getCreatedOn());
+    	assertEquals(retrieved, submission);
     	
     	// evalId_does_not_exist should not have any submissions
-    	subs = submissionDAO.getAllByEvaluation(evalId_does_not_exist, 10, 0);
+    	subs = submissionDAO.getAllByEvaluation(EVALID_DOES_NOT_EXIST, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(0, submissionDAO.getCountByEvaluation(evalId_does_not_exist));
+    	assertEquals(0, submissionDAO.getCountByEvaluation(EVALID_DOES_NOT_EXIST));
     }
     
     @Test
-    public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission);
+    public void testGetAllByEvaluationWithContributors() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission2);
     	
+    	// evalId should have submissions
+    	List<Submission> subs = submissionDAO.getAllByEvaluation(evalId, 10, 0);
+    	assertEquals(1, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluation(evalId));
+    	Submission retrieved = subs.get(0);
+    	submission2.setCreatedOn(retrieved.getCreatedOn());
+        // need to nullify the contributor createdOn dates to be able to compare to 'submission2'
+     	nullifyContributorCreatedOn(retrieved);
+    	assertEquals(retrieved, submission2);
+    }
+    
+    private void createSubmissionStatus(String id, SubmissionStatusEnum status) {
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
-    	subStatus.setId(submissionId);
-    	subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
+    	subStatus.setId(id);
+    	subStatus.setStatus(status);
     	subStatus.setModifiedOn(new Date());
     	submissionStatusDAO.create(subStatus);
+    }
+    
+   @Test
+    public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission);
+    	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
     	
     	// hit evalId and hit status => should find 1 submission
     	List<Submission> subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED, 10, 0);
     	assertEquals(1, subs.size());
     	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED));
-    	submission.setCreatedOn(subs.get(0).getCreatedOn());
-    	submission.setId(subs.get(0).getId());
-    	assertEquals(subs.get(0), submission);
+       	Submission retrieved = subs.get(0);
+       	submission.setCreatedOn(retrieved.getCreatedOn());
+    	assertEquals(retrieved, submission);
     	
     	// miss evalId and hit status => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.RECEIVED, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndStatus(EVALID_DOES_NOT_EXIST, SubmissionStatusEnum.RECEIVED, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.RECEIVED));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(EVALID_DOES_NOT_EXIST, SubmissionStatusEnum.RECEIVED));
     	
     	// hit evalId and miss status => should find 0 submissions
     	subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED, 10, 0);
@@ -286,27 +398,61 @@ public class SubmissionDAOImplTest {
     	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED));
     }
     
+   @Test
+   public void testGetAllByEvaluationAndStatusWithContributors() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+   	submissionDAO.create(submission2);
+   	
+   	// create a SubmissionStatus object
+   	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.RECEIVED);
+       	
+   	// hit evalId and hit status => should find 1 submission
+   	List<Submission> subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED, 10, 0);
+   	assertEquals(1, subs.size());
+   	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED));
+    Submission retrieved = subs.get(0);
+    submission2.setCreatedOn(retrieved.getCreatedOn());
+    // need to nullify the contributor createdOn dates to be able to compare to 'submission2'
+ 	nullifyContributorCreatedOn(retrieved);
+   	assertEquals(retrieved, submission2);
+   	
+   }
+   
     @Test
     public void testGetAllByEvaluationAndUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionDAO.create(submission);
     	
     	// hit evalId and hit user => should find 1 submission
     	List<Submission> subs = submissionDAO.getAllByEvaluationAndUser(evalId, userId, 10, 0);
     	assertEquals(1, subs.size());
     	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndUser(evalId, userId));
-    	submission.setCreatedOn(subs.get(0).getCreatedOn());
-    	submission.setId(subs.get(0).getId());
-    	assertEquals(subs.get(0), submission);
+      	Submission retrieved = subs.get(0);
+      	submission.setCreatedOn(retrieved.getCreatedOn());
+    	assertEquals(retrieved, submission);
     	
     	// miss evalId and hit user => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndUser(evalId_does_not_exist, userId, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndUser(EVALID_DOES_NOT_EXIST, userId, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndUser(evalId_does_not_exist, userId));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndUser(EVALID_DOES_NOT_EXIST, userId));
     	
     	// hit evalId and miss user => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndUser(evalId, userId_does_not_exist, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndUser(evalId, USERID_DOES_NOT_EXIST, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndUser(evalId, userId_does_not_exist));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndUser(evalId, USERID_DOES_NOT_EXIST));
+    }
+    
+    @Test
+    public void testGetAllByEvaluationAndUserWithContributors() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission2);
+    	
+    	// hit evalId and hit user => should find 1 submission
+    	List<Submission> subs = submissionDAO.getAllByEvaluationAndUser(evalId, userId2, 10, 0);
+    	assertEquals(1, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndUser(evalId, userId2));
+      	Submission retrieved = subs.get(0);
+      	submission2.setCreatedOn(retrieved.getCreatedOn());
+        // need to nullify the contributor createdOn dates to be able to compare to 'submission2'
+     	nullifyContributorCreatedOn(retrieved);
+   	assertEquals(retrieved, submission2);
     }
     
     @Test
@@ -373,5 +519,18 @@ public class SubmissionDAOImplTest {
     	submission.setEntityBundleJSON(null);
     	String id = submissionDAO.create(submission);
     	assertNotNull(id);
+    }
+    
+    @Test
+    public void testQueryTeamSubmissions() throws Exception {
+    	submissionDAO.create(submission);
+    	submissionDAO.create(submission2);
+      	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.RECEIVED);
+      	     	
+     	Date startDateIncl = new Date(CREATION_TIME_STAMP-1000L);
+     	Date endDateExcl = new Date(CREATION_TIME_STAMP+1000L);
+     	Set<SubmissionStatusEnum> statuses = new HashSet<SubmissionStatusEnum>();
+      	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
+      			Long.parseLong(submissionTeam.getId()), startDateIncl, endDateExcl, statuses));
     }
 }

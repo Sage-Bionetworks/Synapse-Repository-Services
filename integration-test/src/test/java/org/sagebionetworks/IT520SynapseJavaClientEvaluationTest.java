@@ -358,7 +358,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -448,7 +448,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -529,14 +529,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = synapseOne.createSubmission(sub1, entityEtag1);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(entityId2);
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = synapseOne.createSubmission(sub2, entityEtag2);
+		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 
@@ -654,7 +654,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = synapseOne.createSubmission(sub1, entityEtag1);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 
@@ -662,7 +662,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub2.setEntityId(projectTwo.getId());
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = synapseTwo.createSubmission(sub2, entityEtag2);
+		sub2 = synapseTwo.createIndividualSubmission(sub2, entityEtag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
@@ -689,7 +689,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String entityEtag = file.getEtag();
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
 		submissionsToDelete.add(sub1.getId());
 
 		// get file URL
@@ -847,11 +847,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
 		submissionsToDelete.add(sub1.getId());
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(entityId);
-		sub2 = synapseOne.createSubmission(sub2, entityEtag);
+		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag);
 		submissionsToDelete.add(sub2.getId());
 		
 		// add annotations

@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -1076,7 +1075,10 @@ public interface SynapseClient extends BaseClient {
 
 	public Long getParticipantCount(String evalId) throws SynapseException;
 
-	public Submission createSubmission(Submission sub, String etag)
+	public Submission createIndividualSubmission(Submission sub, String etag)
+			throws SynapseException;
+
+	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash)
 			throws SynapseException;
 
 	public Submission getSubmission(String subId) throws SynapseException;
@@ -1506,7 +1508,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<Team> listTeams(IdSet ids) throws SynapseException;
+	public List<Team> listTeams(Set<Long> ids) throws SynapseException;
 	
 	/**
 	 * 
@@ -1591,7 +1593,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<TeamMember> listTeamMembers(String teamId, IdSet ids) throws SynapseException;
+	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException;
 
 	/**
 	 * 

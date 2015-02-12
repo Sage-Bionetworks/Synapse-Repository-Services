@@ -302,6 +302,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH
 			+ "/" + SUBMISSION + QUERY_URI;
 	private static final String EVALUATION_IDS_FILTER_PARAM = "evaluationIds";
+	private static final String SUBMISSION_ELIGIBILITY_HASH = "submissionEligibilityHash";
 
 	private static final String MESSAGE = "/message";
 	private static final String FORWARD = "/forward";
@@ -5507,10 +5508,38 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public Submission createSubmission(Submission sub, String etag)
+	public Submission createIndividualSubmission(Submission sub, String etag)
 			throws SynapseException {
+		if (etag==null)
+			throw new IllegalArgumentException("etag is required.");
+		if (sub.getTeamId()!=null) 
+			throw new IllegalArgumentException("For an individual submission Team ID must be null.");
+		if (sub.getContributors()!=null && !sub.getContributors().isEmpty())
+			throw new IllegalArgumentException("For an individual submission, contributors may not be specified.");
+			
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "="
 				+ etag;
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
+			jsonObj = createJSONObject(uri, jsonObj);
+			return initializeFromJSONObject(jsonObj, Submission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash)
+			throws SynapseException {
+		if (etag==null)
+			throw new IllegalArgumentException("etag is required.");
+		if (submissionEligibilityHash==null)
+			throw new IllegalArgumentException("For a Team submission 'submissionEligibilityHash' is required.");
+		if (sub.getTeamId()==null) 
+			throw new IllegalArgumentException("For a Team submission Team ID is required.");
+			
+		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "="
+				+ etag + "&" + SUBMISSION_ELIGIBILITY_HASH;
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
 			jsonObj = createJSONObject(uri, jsonObj);
@@ -6798,9 +6827,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<Team> listTeams(IdSet ids) throws SynapseException {
+	public List<Team> listTeams(Set<Long> ids) throws SynapseException {
 		try {
-			String jsonString = EntityFactory.createJSONStringForEntity(ids);
+			IdSet idSet = new IdSet();
+			idSet.setSet(ids);
+			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					getRepoEndpoint(), TEAM_LIST, jsonString, getUserAgent(), null, null);
 			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), Team.class);
@@ -6912,9 +6943,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public List<TeamMember> listTeamMembers(String teamId, IdSet ids) throws SynapseException {
+	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException {
 		try {
-			String jsonString = EntityFactory.createJSONStringForEntity(ids);
+			IdSet idSet = new IdSet();
+			idSet.setSet(ids);
+			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					getRepoEndpoint(), TEAM+"/"+teamId+MEMBER_LIST, jsonString, getUserAgent(), null, null);
 			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), TeamMember.class);
