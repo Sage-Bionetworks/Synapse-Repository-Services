@@ -43,7 +43,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -1498,11 +1498,15 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Return a list of Teams given a list of Team IDs.
 	 * 
+	 * Note: Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the set of IDs passed in.
+	 *
+	 * 
 	 * @param ids
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<Team> listTeams(IdList ids) throws SynapseException;
+	public List<Team> listTeams(IdSet ids) throws SynapseException;
 	
 	/**
 	 * 
@@ -1579,12 +1583,15 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Return a TeamMember list for a given Team and list of member IDs.
 	 * 
+	 * Note: Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the set of IDs passed in.
+	 * 
 	 * @param teamId
 	 * @param ids
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException;
+	public List<TeamMember> listTeamMembers(String teamId, IdSet ids) throws SynapseException;
 
 	/**
 	 * 

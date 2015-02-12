@@ -1,6 +1,6 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.*;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
@@ -11,6 +11,9 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SU
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION_CONTRIBUTOR;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +42,6 @@ import org.sagebionetworks.repo.model.dbo.dao.ListQueryUtils;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -48,27 +50,27 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class SubmissionDAOImpl implements SubmissionDAO {
-	
+
 	@Autowired
 	private DBOBasicDao basicDao;
-	
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
+
 	@Autowired
 	private IdGenerator idGenerator;
-	
+
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
 	private static final String EVAL_ID = DBOConstants.PARAM_SUBMISSION_EVAL_ID;
 	private static final String STATUS = DBOConstants.PARAM_SUBSTATUS_STATUS;
-	
+
 	private static final String SELECT_ALL = "SELECT *";
 	private static final String SELECT_COUNT = "SELECT COUNT(*)";
 	private static final String LIMIT_OFFSET = 			
 			" LIMIT :"+ SQLConstants.LIMIT_PARAM_NAME +
 			" OFFSET :" + SQLConstants.OFFSET_PARAM_NAME;
-	
+
 	private static final String BY_USER_SQL = 
 			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID;
@@ -76,53 +78,103 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String BY_EVALUATION_SQL = 
 			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID;
-	
+
 	private static final String BY_EVAL_AND_USER_SQL = 
 			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID +
 			" AND " + SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID;
-	
+
 	private static final String BY_EVAL_AND_STATUS_SQL = 
 			" FROM "+ SQLConstants.TABLE_SUBMISSION + " n" +
-			" INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r" +
-			" ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
-			" WHERE n."+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID +
-			" AND r." + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
-	
+					" INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r" +
+					" ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
+					" WHERE n."+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID +
+					" AND r." + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
+
 	private static final String SELECT_BY_USER_SQL = 
 			SELECT_ALL + BY_USER_SQL + LIMIT_OFFSET;
-	
+
 	private static final String SELECT_BY_EVALUATION_SQL = 
 			SELECT_ALL + BY_EVALUATION_SQL + LIMIT_OFFSET;
-	
+
 	private static final String SELECT_BY_EVAL_AND_USER_SQL = 
 			SELECT_ALL + BY_EVAL_AND_USER_SQL + LIMIT_OFFSET;
-	
+
 	private static final String SELECT_BY_EVAL_AND_STATUS_SQL = 
 			SELECT_ALL + BY_EVAL_AND_STATUS_SQL + LIMIT_OFFSET;
-	
+
 	private static final String COUNT_BY_USER_SQL = 
 			SELECT_COUNT + BY_USER_SQL;
-	
+
 	private static final String COUNT_BY_EVAL_SQL = 
 			SELECT_COUNT + BY_EVALUATION_SQL;
-	
+
 	private static final String COUNT_BY_EVAL_AND_USER_SQL = 
 			SELECT_COUNT + BY_EVAL_AND_USER_SQL;
-	
+
 	private static final String COUNT_BY_EVAL_AND_STATUS_SQL = 
 			SELECT_COUNT + BY_EVAL_AND_STATUS_SQL;
-	
+
 	private static final String SELECT_CONTRIBUTORS_FOR_SUBMISSION_PREFIX = 
 			"SELECT * FROM "+TABLE_SUBMISSION_CONTRIBUTOR+
 			" WHERE "+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
-	
+
+	private static final String COUNT_SUBMISSIONS_FROM_TEAM = 
+			"SELECT COUNT(*) FROM "+TABLE_SUBMISSION+" sb, "+TABLE_SUBSTATUS+" ss "+
+					" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
+					" AND sb."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID+
+					" AND ss."+COL_SUBMISSION_TEAM_ID+"=:"+COL_SUBMISSION_TEAM_ID;
+
+	private static final String CREATED_ON_BEFORE_PARAM = COL_SUBMISSION_CREATED_ON+"_BEFORE";
+
+	private static final String SUBMISSION_CREATED_BEFORE = 
+			" AND ss."+COL_SUBMISSION_CREATED_ON+"<:"+CREATED_ON_BEFORE_PARAM;
+
+	private static final String CREATED_ON_AFTER_PARAM = COL_SUBMISSION_CREATED_ON+"_AFTER";
+
+	private static final String SUBMISSION_CREATED_ON_OR_AFTER = 
+			" AND ss."+COL_SUBMISSION_CREATED_ON+">=:"+CREATED_ON_AFTER_PARAM;
+
+	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM = 
+			" FROM "+TABLE_SUBMISSION+" sb, "+TABLE_SUBSTATUS+" ss, "+TABLE_SUBMISSION_CONTRIBUTOR+" sc ";
+
+	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_WHERE = 
+			" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
+			" AND sb."+COL_SUBMISSION_ID+"=sc."+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+
+			" AND sb."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID;
+
+	private static final String COUNT_SUBMISSIONS_FROM_TEAM_MEMBERS = 
+			"SELECT sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+
+			", COUNT("+COL_SUBMISSION_ID+")"+
+			COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM+
+			", "+TABLE_GROUP_MEMBERS+" gm "+
+			COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_WHERE+
+			" AND sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+"=gm."+COL_GROUP_MEMBERS_MEMBER_ID+
+			" AND gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+
+	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR = 
+			"SELECT COUNT("+COL_SUBMISSION_ID+")"+
+					COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM+
+					COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_WHERE+
+					" AND sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+"=:"+
+					COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
+
+	private static final String GROUP_BY_CONTRIBUTOR =
+			"GROUP BY "+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
+
+	private static final String SUBMIT_ELSEWHERE_CLAUSE = 
+			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NULL OR sb."+COL_SUBMISSION_TEAM_ID+
+			"<> gm."+COL_GROUP_MEMBERS_GROUP_ID;
+
+	private static final String IS_TEAM_SUBMISSION_CLAUSE = 
+			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NOT NULL";
+
 	private static final RowMapper<SubmissionDBO> SUBMISSION_ROW_MAPPER = 
 			((new SubmissionDBO()).getTableMapping());
-	
+
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
-	
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(Submission dto) {
@@ -131,10 +183,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		SubmissionUtils.copyDtoToDbo(dto, dbo);
-		
+
 		// Ensure DBO has required information
 		verifySubmissionDBO(dbo);
-		
+
 		// Create DBO
 		try {
 			dbo = basicDao.createNew(dbo);
@@ -152,7 +204,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 					" userId=" + dto.getUserId() + " entityId=" + dto.getEntityId());
 		}
 	}
-	
+
 	private SubmissionContributorDBO createContributorDbo(String principalId, Date createdOn, String submissionid) {
 		SubmissionContributorDBO dbo = new SubmissionContributorDBO();
 		dbo.setId(idGenerator.generateNewId(TYPE.SUBMISSION_CONTRIBUTOR_ID));
@@ -162,7 +214,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setSubmissionId(Long.parseLong(submissionid));
 		return dbo;
 	}
-	
+
 
 
 	@Override
@@ -177,7 +229,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 					" to submission " + submissionId, e);
 		}
 	}
-	
+
 	/*
 	 * Given a list of submissions, retrieves the contributors and adds them
 	 * in to the DTOs.  Used in the various query methods of this DAO.
@@ -206,7 +258,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			contributorDtos.add(SubmissionUtils.convertDboToDto(dbo));
 		}
 	}
-	
+
 	@Override
 	public Submission get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -239,14 +291,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		insertContributors(dtos);
 		return dtos;
 	}
-	
+
 	@Override
 	public long getCountByUser(String userId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(USER_ID, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_USER_SQL, parameters);
 	}
-	
+
 	@Override
 	public List<Submission> getAllByEvaluation(String evalId, long limit, long offset) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -263,7 +315,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		insertContributors(dtos);
 		return dtos;
 	}
-	
+
 	@Override
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -288,7 +340,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		insertContributors(dtos);
 		return dtos;
 	}
-	
+
 	@Override
 	public long getCountByEvaluationAndUser(String evalId, String userId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -296,7 +348,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		parameters.put(USER_ID, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_EVAL_AND_USER_SQL, parameters);
 	}
-	
+
 	@Override
 	public List<Submission> getAllByEvaluationAndStatus(String evalId, SubmissionStatusEnum status, long limit, long offset) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -314,7 +366,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		insertContributors(dtos);
 		return dtos;
 	}
-	
+
 	@Override
 	public long getCountByEvaluationAndStatus(String evalId, SubmissionStatusEnum status) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -322,7 +374,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		parameters.put(STATUS, status.ordinal());
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_EVAL_AND_STATUS_SQL, parameters);
 	}
-	
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException {
@@ -344,51 +396,33 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}	
-	
-	private static final String COUNT_SUBMISSIONS_FROM_TEAM = 
-		"SELECT COUNT(*) FROM "+TABLE_SUBMISSION+" sb, "+TABLE_SUBSTATUS+" ss "+
-		" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
-		" AND sb."+COL_EVALUATION_ID+"=:"+COL_EVALUATION_ID+
-		" AND ss."+COL_SUBMISSION_TEAM_ID+"=:"+COL_SUBMISSION_TEAM_ID;
-	
-	private static final String CREATED_ON_BEFORE_PARAM = COL_SUBMISSION_CREATED_ON+"_BEFORE";
 
-	private static final String SUBMISSION_CREATED_BEFORE = 
-			" AND ss."+COL_SUBMISSION_CREATED_ON+"<:"+CREATED_ON_BEFORE_PARAM;
-	
-	private static final String CREATED_ON_AFTER_PARAM = COL_SUBMISSION_CREATED_ON+"_AFTER";
-
-	private static final String SUBMISSION_CREATED_ON_OR_AFTER = 
-			" AND ss."+COL_SUBMISSION_CREATED_ON+">=:"+CREATED_ON_AFTER_PARAM;
-	
 	private static String subStatusInClause(int n) {
 		return " AND sb."+COL_SUBSTATUS_STATUS+ListQueryUtils.selectListInClause(n);	
 	}
-	
-	// query for evaluation, teamId, list of allowed sub-statuses (optional), start ts (optional), end ts (optional)
-	// SELECT COUNT(*) FROM JDOSUBMISSION sb, JDOSUBMISSION_STATUS ss 
-	// WHERE  sb.ID=ss.ID AND sb.EVALUATION_ID= ? AND TEAM_ID = ?
-	// AND CREATED_ON >= startTime (long)
-	// AND CREATED_ON < endTime (long)
-	// AND ss.STATUS in (?, ?, ?)
-	
+
+	/*
+	 * count the submissions for the given team in the given evaluation queue,
+	 * optionally filtered by time segment and/or statuses
+	 */
 	@Override
-	public long countSubmissionsByTeam(long evaluationId, long teamId, Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
+	public long countSubmissionsByTeam(long evaluationId, long teamId, Date startDateIncl, Date endDateExcl, 
+			Set<SubmissionStatusEnum> statuses) {
 		StringBuilder sql = new StringBuilder(COUNT_SUBMISSIONS_FROM_TEAM);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_EVALUATION_ID, evaluationId);
+		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
 		param.addValue(COL_SUBMISSION_TEAM_ID, teamId);
-		
+
 		if (startDateIncl!=null) {
 			sql.append(SUBMISSION_CREATED_ON_OR_AFTER);
 			param.addValue(CREATED_ON_AFTER_PARAM, startDateIncl.getTime());
 		}
-		
+
 		if (endDateExcl!=null) {
 			sql.append(SUBMISSION_CREATED_BEFORE);
 			param.addValue(CREATED_ON_BEFORE_PARAM, startDateIncl.getTime());
 		}
-		
+
 		if (statuses!=null && !statuses.isEmpty()) {
 			int i=0;
 			for (SubmissionStatusEnum status : statuses) {
@@ -398,48 +432,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		}
 		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
 	}
-	
-	// query for evaluation, list of contributors,
-	// list of allowed sub-statuses (optional), start ts (optional), end ts (optional)
-	// SELECT sc.CONTRIBUTOR_ID, COUNT(sb.ID) FROM JDOSUBMISSION sb, JDOSUBMISSION_STATUS ss, SUBMISSION_CONTRIBUTOR sc
-	// WHERE  sb.ID=ss.ID sc.SUBMISSION_ID=sb.ID AND sb.EVALUATION_ID= ? AND sc.CONTRIBUTOR_ID in (?, ?)
-	// AND CREATED_ON >= startTime (long)
-	// AND CREATED_ON < endTime (long)
-	// AND ss.STATUS in (?, ?, ?)
-	// GROUP BY sc.CONTRIBUTOR_ID
-	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR = 
-			"SELECT sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+
-				" COUNT("+COL_SUBMISSION_ID+") FROM "+TABLE_SUBMISSION+" sb, "+
-				TABLE_SUBSTATUS+" ss "+TABLE_SUBMISSION_CONTRIBUTOR+" sc "+
-			" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
-			" AND sb."+COL_SUBMISSION_ID+"=sc."+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+
-			" AND sb."+COL_EVALUATION_ID+"=:"+COL_EVALUATION_ID+
-			" AND ss."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
-		
 
-	@Override
-	public Map<Long,Long> countSubmissionsByContributor(long evaluationId, Set<Long> contributorIds, Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
-		StringBuilder sql = new StringBuilder(COUNT_SUBMISSIONS_FROM_CONTRIBUTOR);
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_EVALUATION_ID, evaluationId);
-		if (contributorIds!=null && !contributorIds.isEmpty()) {
-			int i=0;
-			for (Long contributorId : contributorIds) {
-				param.addValue(ListQueryUtils.bindVariable(i++), contributorId);
-			}
-			sql.append(subStatusInClause(contributorIds.size()));
-		}
-		
+	private static void addStartEndAndStatusClauses(StringBuilder sql, MapSqlParameterSource param,
+			Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
 		if (startDateIncl!=null) {
 			sql.append(SUBMISSION_CREATED_ON_OR_AFTER);
 			param.addValue(CREATED_ON_AFTER_PARAM, startDateIncl.getTime());
 		}
-		
 		if (endDateExcl!=null) {
 			sql.append(SUBMISSION_CREATED_BEFORE);
 			param.addValue(CREATED_ON_BEFORE_PARAM, startDateIncl.getTime());
 		}
-		
 		if (statuses!=null && !statuses.isEmpty()) {
 			int i=0;
 			for (SubmissionStatusEnum status : statuses) {
@@ -447,27 +450,102 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			}
 			sql.append(subStatusInClause(statuses.size()));
 		}
+	}
+
+	/*
+	 * count the submissions by the members of the given team in the given evaluation queue
+	 * optionally filtered by time segment and/or statuses
+	 */
+	@Override
+	public Map<Long,Long> countSubmissionsByTeamMembers(long evaluationId, long teamId, 
+			Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
+		StringBuilder sql = new StringBuilder(COUNT_SUBMISSIONS_FROM_TEAM_MEMBERS);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
+		sql.append(GROUP_BY_CONTRIBUTOR);
 		final Map<Long,Long> result = new HashMap<Long,Long>();
 		// note: rather than get the result from the returned values of 'query()', we
 		// insert directly into the desired Map data structure, 'result'.
 		simpleJdbcTemplate.query(sql.toString(), 
 				new RowMapper<Void>() {
-					@Override
-					public Void mapRow(ResultSet rs, int rowNum)
-							throws SQLException {
-						result.put(
-								rs.getLong(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID), 
-								rs.getLong(COL_SUBMISSION_ID));
-						return null;
-					}
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				result.put(
+						rs.getLong(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID), 
+						rs.getLong(COL_SUBMISSION_ID));
+				return null;
+			}
 
-				}, 
+		}, 
 		param);
-
 		return result;
 	}
-	
-	// TODO need a query to say if a contributor was involved in a Team submission in a given round!
-	
-	
+
+	/*
+	 * return the number of submissions involving the given contributor in the given evaluation queue,
+	 * optionally filtered by time segment and/or sub-statuses
+	 */
+	@Override
+	public long countSubmissionsByContributor(long evaluationId, long contributorId, Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
+		StringBuilder sql = new StringBuilder(COUNT_SUBMISSIONS_FROM_CONTRIBUTOR);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
+		param.addValue(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID, contributorId);
+		addStartEndAndStatusClauses(sql, param, startDateIncl, endDateExcl, statuses);
+		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
+	}
+
+	/*
+	 * list the team members in the given team who have submitted individually or on another team
+	 * in the specified time interval (optional), filtered by the given sub-statuses (optional)
+	 * 
+	 */
+	@Override
+	public List<Long> getTeamMembersSubmittingElsewhere(long evaluationId, long teamId, 
+			Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
+		StringBuilder sql = new StringBuilder(COUNT_SUBMISSIONS_FROM_TEAM_MEMBERS);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		sql.append(SUBMIT_ELSEWHERE_CLAUSE);
+		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
+		sql.append(GROUP_BY_CONTRIBUTOR);
+		final List<Long> result = new ArrayList<Long>();
+		// note: rather than get the result from the returned values of 'query()', we
+		// insert directly into the desired list data structure, 'result'.
+		simpleJdbcTemplate.query(sql.toString(), 
+				new RowMapper<Void>() {
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				if (rs.getLong(COL_SUBMISSION_ID)>0) {
+					result.add(rs.getLong(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID));
+				}
+				return null;
+			}
+
+		}, 
+		param);
+		return result;
+	}
+
+	/*
+	 * Determine whether the given user has contributed to any team submission in the given
+	 * evaluation, in the specified time interval (optional), filtered by the given sub-statues (optional)
+	 * 
+	 */
+	@Override
+	public boolean hasContributedToTeamSubmission(long evaluationId, long contributorId,
+			Date startDateIncl, Date endDateExcl, Set<SubmissionStatusEnum> statuses) {
+		StringBuilder sql = new StringBuilder(COUNT_SUBMISSIONS_FROM_CONTRIBUTOR);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
+		param.addValue(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID, contributorId);
+		sql.append(IS_TEAM_SUBMISSION_CLAUSE);
+		addStartEndAndStatusClauses(sql, param, startDateIncl, endDateExcl, statuses);
+		return simpleJdbcTemplate.queryForLong(sql.toString(), param) > 0;
+	}
 }

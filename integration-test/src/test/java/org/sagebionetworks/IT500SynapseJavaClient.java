@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -66,11 +65,8 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -110,8 +106,6 @@ import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
-import org.sagebionetworks.utils.HttpClientHelper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1159,9 +1153,9 @@ public class IT500SynapseJavaClient {
 		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		
-		IdList idList = new IdList();
-		idList.setList(Collections.singletonList(Long.parseLong(updatedTeam.getId())));
-		List<Team> teamList = synapseOne.listTeams(idList);
+		IdSet idSet = new IdSet();
+		idSet.setSet(Collections.singleton(Long.parseLong(updatedTeam.getId())));
+		List<Team> teamList = synapseOne.listTeams(idSet);
 		assertEquals(1L, teamList.size());
 		assertEquals(updatedTeam, teamList.get(0));
 		
@@ -1217,8 +1211,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
-		IdList memberIds = new IdList();
-		memberIds.setList(Collections.singletonList(Long.parseLong(myPrincipalId)));
+		IdSet memberIds = new IdSet();
+		memberIds.setSet(Collections.singleton(Long.parseLong(myPrincipalId)));
 		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), memberIds);
 		assertEquals(members.getResults(), teamMembers);
 

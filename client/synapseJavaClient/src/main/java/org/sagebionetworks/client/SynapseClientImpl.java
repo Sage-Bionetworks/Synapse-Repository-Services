@@ -74,7 +74,7 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -6798,7 +6798,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<Team> listTeams(IdList ids) throws SynapseException {
+	public List<Team> listTeams(IdSet ids) throws SynapseException {
 		try {
 			String jsonString = EntityFactory.createJSONStringForEntity(ids);
 			JSONObject responseBody = getSharedClientConnection().postJson(
@@ -6912,7 +6912,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public List<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException {
+	public List<TeamMember> listTeamMembers(String teamId, IdSet ids) throws SynapseException {
 		try {
 			String jsonString = EntityFactory.createJSONStringForEntity(ids);
 			JSONObject responseBody = getSharedClientConnection().postJson(

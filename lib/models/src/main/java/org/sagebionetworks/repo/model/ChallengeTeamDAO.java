@@ -16,6 +16,8 @@ public interface ChallengeTeamDAO {
 	 */
 	public List<ChallengeTeam> listForChallenge(long challengeId, long limit, long offset) throws NotFoundException, DatastoreException;
 	
+	public boolean isTeamRegistered(long challengeId, long teamId) throws DatastoreException;
+	
 	public long listForChallengeCount(long challengeId) throws NotFoundException, DatastoreException;
 	
 	/*
