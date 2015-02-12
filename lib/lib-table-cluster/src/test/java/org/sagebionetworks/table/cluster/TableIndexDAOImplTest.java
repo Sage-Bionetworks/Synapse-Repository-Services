@@ -1,6 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.stub;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -23,7 +27,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -53,8 +59,9 @@ public class TableIndexDAOImplTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	StackConfiguration config;
-	// This is not a bean
+	// These are not a bean
 	TableIndexDAO tableIndexDAO;
+	CurrentRowCacheDao currentRowCacheDao;
 	
 	String tableId;
 	
@@ -65,6 +72,7 @@ public class TableIndexDAOImplTest {
 		tableId = "syn" + new Random().nextInt(Integer.MAX_VALUE);
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
+		currentRowCacheDao = tableConnectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
 	}
 	
 	@After

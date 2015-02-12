@@ -13,22 +13,6 @@
 	<import resource="classpath:jdomodels-import.xml" />
 	<import resource="stack-configuration.spb.xml" />
 	<import resource="id-generator.spb.xml" />
-
-	<!-- Used to test node locking -->
-	<bean id="nodeLockerA"
-		class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl"
-		scope="prototype" />
-
-	<!-- Used to test node locking -->
-	<bean id="nodeLockerB"
-		class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl"
-		scope="prototype" />
-
-	<bean id="ConnectionFactory" class="org.sagebionetworks.repo.model.dbo.dao.table.ConnectionFactoryStub"/>
-
-	<bean id="testCountingSemaphore" class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
-		<property name="lockTimeoutMS" value="1000"/>
-		<property name="maxCount" value="10"/>
-	</bean>
+	<import resource="table-cluster-spb.xml"/>
 
 </beans>

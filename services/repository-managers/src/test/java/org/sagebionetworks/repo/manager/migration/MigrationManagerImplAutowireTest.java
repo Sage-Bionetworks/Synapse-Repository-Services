@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -27,7 +26,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
+import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -81,9 +80,6 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	ConnectionFactory connectionFactory;
 
-	@Autowired
-	RowCacheDao rowCacheDao;
-
 	private List<String> toDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
@@ -126,13 +122,13 @@ public class MigrationManagerImplAutowireTest {
 				cm = columnManager.createColumnModel(adminUser, cm);
 				schema.add(cm);
 			}
-			List<String> headers = TableModelUtils.getHeaders(schema);
+			List<Long> headers = TableModelUtils.getIds(schema);
 			// Create the table.
 			TableEntity table = new TableEntity();
 			table.setName(UUID.randomUUID().toString());
-			table.setColumnIds(headers);
+			table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 			tableId = entityManager.createEntity(adminUser, table, null);
-			columnManager.bindColumnToObject(adminUser, headers, tableId, true);
+			columnManager.bindColumnToObject(adminUser, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
 
 			// Now add some data
 			RowSet rowSet = new RowSet();
@@ -252,19 +248,14 @@ public class MigrationManagerImplAutowireTest {
 			tableRowManager.getCellValues(adminUser, tableId, rowRefs, TableModelUtils.createColumnModelColumnMapper(models, false));
 
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
-			CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
+			CurrentVersionCacheDao currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-			if (stackConfig.getDynamoTableRowCacheEnabled() && stackConfig.getDynamoTableRowCacheEnabled()) {
-				assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
-			}
-
 
 			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
 
 			assertNull(indexDao.getRowCountForTable(tableId));
-			currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
+			currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-			assertNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
 		}
 	}
 	

@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
+import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 
 
 /**
@@ -19,6 +20,14 @@ public interface ConnectionFactory {
 	TableIndexDAO getConnection(String tableId);
 	
 	/**
+	 * Get a connection used for interacting with a given tables current version cache.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	CurrentVersionCacheDao getCurrentVersionCacheConnection(Long tableId);
+
+	/**
 	 * Get a connection used for interacting with a given tables current row cache.
 	 * 
 	 * @param tableId
@@ -32,7 +41,7 @@ public interface ConnectionFactory {
 	 * @param tableId
 	 * @return
 	 */
-	Iterable<CurrentRowCacheDao> getCurrentRowCacheConnections();
+	Iterable<CurrentVersionCacheDao> getCurrentVersionCacheConnections();
 
 	/**
 	 * Drop all tables in every database connectoin.

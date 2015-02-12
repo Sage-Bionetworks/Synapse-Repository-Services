@@ -292,7 +292,7 @@ public class TableWorker implements Worker {
 					BATCH_SIZE);
 
 			// gather rows by version
-			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
+			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowIdsMap(currentRowVersions);
 			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap.asMap().entrySet()) {
 				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
 				Long version = versionWithRows.getKey();

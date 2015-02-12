@@ -861,7 +861,7 @@ public class SQLUtils {
 	}
 
 	/**
-	 * Create the SQL used to get the max version number from a table.
+	 * Create the SQL used to get the number of rows in an index table.
 	 * 
 	 * @return
 	 */
@@ -900,5 +900,9 @@ public class SQLUtils {
 
 	public static String selectCurrentRowMaxVersion(Long tableId) {
 		return "SELECT MAX(" + ROW_VERSION + ") FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW);
+	}
+
+	public static String selectRowValuesForRowId(Long tableId) {
+		return "SELECT * FROM " + getTableNameForId(tableId, TableType.INDEX) + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
 	}
 }
