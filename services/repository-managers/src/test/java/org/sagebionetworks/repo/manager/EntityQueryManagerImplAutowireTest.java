@@ -71,7 +71,7 @@ public class EntityQueryManagerImplAutowireTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserInfo.validateUserInfo(adminUserInfo);
 		// project
-		Project project = new Project();
+		project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		String id = entityManager.createEntity(adminUserInfo, project, null);
 		nodesToDelete.add(id);
@@ -151,6 +151,8 @@ public class EntityQueryManagerImplAutowireTest {
 		assertEquals(userId, tableResult.getModifiedByPrincipalId());
 		assertEquals(table.getModifiedOn(), tableResult.getModifiedOn());
 		assertEquals(table.getParentId(), tableResult.getParentId());
+		assertEquals(table.getParentId(), tableResult.getParentId());
+		assertEquals(KeyFactory.stringToKey(project.getId()), tableResult.getProjectId());
 		
 		EntityQueryResult folderResult = results.getEntities().get(1);
 		assertEquals(folder.getId(), folderResult.getId());
@@ -248,5 +250,21 @@ public class EntityQueryManagerImplAutowireTest {
 		assertEquals(table.getId(), tableResult.getId());
 		EntityQueryResult folderResult = results.getEntities().get(1);
 		assertEquals(folder.getId(), folderResult.getId());
+	}
+	
+	@Test
+	public void testQueryProjectId(){
+		// Find everything in the project.
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.projectId, Operator.EQUALS, project.getId());
+		// add this condition
+		query.getConditions().clear();
+		query.getConditions().add(condition);
+		System.out.println(query.toString());
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(3, results.getEntities().size());
+		// there should be only two.
+		assertTrue(results.getTotalEntityCount() == 3);
 	}
 }

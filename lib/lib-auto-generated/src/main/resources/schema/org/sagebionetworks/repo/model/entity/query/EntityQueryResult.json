@@ -44,6 +44,10 @@
 			"type": "integer",
 			"description": "The ID of the entity that has the ACL controlling access to this Entity."
 		},
+		"projectId": {
+			"type": "integer",
+			"description": "The ID of the project that contains this entity."
+		},
 		"activityId": {
 			"type": "string",
 			"description": "The ID of the activity associated with this Entity.  Can be null."

@@ -349,6 +349,18 @@ public class QueryParserTest {
 		assertEquals("123", expression.getValue());
 	}
 
+	@Test
+	public void testFilterByProjectId() throws Exception {
+		QueryStatement stmt = new QueryStatement("select * from entity where projectId == 'syn123'");
+		assertEquals("entity", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("projectId", expression.getId().getFieldName());
+		assertEquals("syn123", expression.getValue());
+	}
+	
 	/************************************************************************
 	 * Error cases, make sure the messages we return are useful to humans.
 	 */

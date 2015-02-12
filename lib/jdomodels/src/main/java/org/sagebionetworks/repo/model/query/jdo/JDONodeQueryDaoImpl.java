@@ -38,6 +38,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 	static private Logger log = LogManager.getLogger(JDONodeQueryDaoImpl.class);
 	
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
+	
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -165,6 +167,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			List<Short> ids = aliasCache.getAllNodeTypesForAlias(in.getFrom());
 			in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, ids));
 		}
+		// Filter out nodes in the trash can
+		in.addExpression(new Expression(new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName()), Comparator.NOT_EQUALS, TRASH_FOLDER_ID));
 		
 		// A count query is composed of the following parts
 		// <select> + <from> + <authorization_filter> + <where>
@@ -555,7 +559,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 						String bindKey = "expKey" + i;
 						whereBuilder.append(bindKey);
 						// Bind the value to the parameters
-						if((NodeField.PARENT_ID == nodeField) || (NodeField.ID == nodeField) || (NodeField.BENEFACTOR_ID == nodeField)) {
+						if((NodeField.PARENT_ID == nodeField) || (NodeField.ID == nodeField) || (NodeField.BENEFACTOR_ID == nodeField) || (NodeField.PROJECT_ID == nodeField)) {
 							parameters.put(bindKey, KeyFactory.stringToKey(exp.getValue().toString()));
 						}
 						else {
