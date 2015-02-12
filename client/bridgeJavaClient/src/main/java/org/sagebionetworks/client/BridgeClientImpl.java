@@ -387,10 +387,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		try {
 			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-
-			ListWrapper<T> results = new ListWrapper<T>(klass);
-			results.initializeFromJSONObject(adapter);
-			return results.getList();
+			return ListWrapper.unwrap(adapter);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
