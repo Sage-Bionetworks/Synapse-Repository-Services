@@ -2,7 +2,11 @@ package org.sagebionetworks.repo.model.table;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 public class TableConstants {
 
@@ -11,9 +15,17 @@ public class TableConstants {
 	 */
 	public static final String ROW_ID = "ROW_ID";
 	/**
+	 * The reserved column id for row id.
+	 */
+	public static final Long ROW_ID_ID = -1L;
+	/**
 	 * The reserved column name for row version.
 	 */
 	public static final String ROW_VERSION = "ROW_VERSION";
+	/**
+	 * The reserved column name for row version.
+	 */
+	public static final Long ROW_VERSION_ID = -2L;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and
@@ -22,6 +34,13 @@ public class TableConstants {
 	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
 			Arrays.asList(ROW_ID, ROW_VERSION));
 
+	/**
+	 * The Map of reserved column names like ROW_ID and
+	 * ROW_VERSION to pseudo ids
+	 */
+	private static final Map<String, Long> RESERVED_COLUMNS_IDS = ImmutableMap.<String, Long> builder().put(ROW_ID, ROW_ID_ID)
+			.put(ROW_VERSION, ROW_VERSION_ID).build();
+	
 	/**
 	 * The column name prefix for extra doubles column.
 	 */
@@ -49,6 +68,19 @@ public class TableConstants {
 			return false;
 		// Make it case insensitive.
 		return RESERVED_COLUMNS_NAMES.contains(columnName.toUpperCase().trim());
+	}
+
+	/**
+	 * Return the pseudo id if the passed column name is a reserved column name like ROW_ID or
+	 * ROW_VERSION?
+	 * 
+	 * @return
+	 */
+	public static Long getReservedColumnId(String columnName) {
+		if (columnName == null)
+			return null;
+		// Make it case insensitive.s
+		return RESERVED_COLUMNS_IDS.get(columnName.toUpperCase().trim());
 	}
 
 	/**

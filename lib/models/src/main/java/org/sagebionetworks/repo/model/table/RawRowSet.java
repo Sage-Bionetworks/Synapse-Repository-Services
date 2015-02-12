@@ -7,20 +7,20 @@ import java.util.List;
  * 
  */
 public class RawRowSet {
-	private final List<String> headers;
+	private final List<Long> ids;
 	private final String etag;
 	private final String tableId;
 	private final List<Row> rows;
 
-	public RawRowSet(List<String> headers, String etag, String tableId, List<Row> rows) {
-		this.headers = headers;
+	public RawRowSet(List<Long> ids, String etag, String tableId, List<Row> rows) {
+		this.ids = ids;
 		this.etag = etag;
 		this.tableId = tableId;
 		this.rows = rows;
 	}
 
-	public List<String> getHeaders() {
-		return headers;
+	public List<Long> getIds() {
+		return ids;
 	}
 
 	public String getEtag() {
@@ -40,7 +40,7 @@ public class RawRowSet {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((headers == null) ? 0 : headers.hashCode());
+		result = prime * result + ((ids == null) ? 0 : ids.hashCode());
 		result = prime * result + ((rows == null) ? 0 : rows.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
 		return result;
@@ -60,10 +60,10 @@ public class RawRowSet {
 				return false;
 		} else if (!etag.equals(other.etag))
 			return false;
-		if (headers == null) {
-			if (other.headers != null)
+		if (ids == null) {
+			if (other.ids != null)
 				return false;
-		} else if (!headers.equals(other.headers))
+		} else if (!ids.equals(other.ids))
 			return false;
 		if (rows == null) {
 			if (other.rows != null)
@@ -80,7 +80,7 @@ public class RawRowSet {
 
 	@Override
 	public String toString() {
-		return "RawRowSet [headers=" + headers + ", etag=" + etag + ", tableId=" + tableId + ", rows=" + rows + "]";
+		return "RawRowSet [ids=" + ids + ", etag=" + etag + ", tableId=" + tableId + ", rows=" + rows + "]";
 }
 
 }

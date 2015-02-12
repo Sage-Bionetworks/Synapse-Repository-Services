@@ -15,10 +15,10 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.AbstractColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -57,12 +58,23 @@ public class TableModelTestUtils {
 	public static ColumnMapper createMapperForOneOfEachType() {
 		return new AbstractColumnMapper() {
 			@Override
-			protected LinkedHashMap<String, SelectColumnAndModel> createIdToModelMap() {
+			protected LinkedHashMap<String, SelectColumnAndModel> createNameToModelMap() {
 				List<SelectColumnAndModel> selectColumnAndModels = createSelectColumnAndModelList();
 				return Transform.toOrderedIdMap(selectColumnAndModels, new Function<SelectColumnAndModel, String>() {
 					@Override
 					public String apply(SelectColumnAndModel input) {
-						return input.getColumnModel().getId();
+						return input.getColumnModel().getName();
+					}
+				});
+			}
+
+			@Override
+			protected Map<Long, SelectColumnAndModel> createIdToModelMap() {
+				List<SelectColumnAndModel> selectColumnAndModels = createSelectColumnAndModelList();
+				return Transform.toIdMap(selectColumnAndModels, new Function<SelectColumnAndModel, Long>() {
+					@Override
+					public Long apply(SelectColumnAndModel input) {
+						return Long.parseLong(input.getColumnModel().getId());
 					}
 				});
 			}
@@ -522,13 +534,13 @@ public class TableModelTestUtils {
 	 * @param models
 	 * @return
 	 */
-	public static List<String> getHeadersFromSelectColumns(List<SelectColumn> columns) {
+	public static List<Long> getIdsFromSelectColumns(List<SelectColumn> columns) {
 		if (columns == null)
 			throw new IllegalArgumentException("ColumnModels cannot be null");
-		List<String> headers = new LinkedList<String>();
+		List<Long> ids = Lists.newArrayList();
 		for (SelectColumn column : columns) {
-			headers.add(column.getId());
+			ids.add(Long.parseLong(column.getId()));
 		}
-		return headers;
+		return ids;
 	}
 }

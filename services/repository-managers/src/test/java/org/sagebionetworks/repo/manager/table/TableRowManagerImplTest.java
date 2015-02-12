@@ -30,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
-import org.aspectj.weaver.internal.tools.PointcutExpressionImpl.Handler;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -138,7 +137,7 @@ public class TableRowManagerImplTest {
 		set.setTableId(tableId);
 		set.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
 		set.setRows(rows);
-		rawSet = new RawRowSet(TableModelUtils.getHeaders(models), null, tableId, Lists.newArrayList(rows));
+		rawSet = new RawRowSet(TableModelUtils.getIds(models), null, tableId, Lists.newArrayList(rows));
 
 		List<PartialRow> partialRows = TableModelTestUtils.createPartialRows(models, 10);
 		partialSet = new PartialRowSet();
@@ -146,7 +145,7 @@ public class TableRowManagerImplTest {
 		partialSet.setRows(partialRows);
 		
 		rows = TableModelTestUtils.createExpectedFullRows(models, 10);
-		expectedRawRows = new RawRowSet(TableModelUtils.getHeaders(models), null, tableId, rows);
+		expectedRawRows = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		
 		refSet = new RowReferenceSet();
 		refSet.setTableId(tableId);
@@ -354,7 +353,7 @@ public class TableRowManagerImplTest {
 		Row emptyValueRow = new Row();
 		emptyValueRow.setValues(null);
 		set.setRows(Collections.singletonList(emptyValueRow));
-		rawSet = new RawRowSet(rawSet.getHeaders(), rawSet.getEtag(), tableId, Collections.singletonList(emptyValueRow));
+		rawSet = new RawRowSet(rawSet.getIds(), rawSet.getEtag(), tableId, Collections.singletonList(emptyValueRow));
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		reset(mockTruthDao);
@@ -367,7 +366,7 @@ public class TableRowManagerImplTest {
 		Row emptyValueRow = new Row();
 		emptyValueRow.setValues(Lists.<String> newArrayList());
 		set.setRows(Collections.singletonList(emptyValueRow));
-		rawSet = new RawRowSet(rawSet.getHeaders(), rawSet.getEtag(), tableId, Collections.singletonList(emptyValueRow));
+		rawSet = new RawRowSet(rawSet.getIds(), rawSet.getEtag(), tableId, Collections.singletonList(emptyValueRow));
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenThrow(new IllegalArgumentException());
@@ -378,7 +377,7 @@ public class TableRowManagerImplTest {
 	public void testDeleteRowsHappy() throws DatastoreException, NotFoundException, IOException{
 		Row row1 = TableModelTestUtils.createDeletionRow(1L, null);
 		Row row2 = TableModelTestUtils.createDeletionRow(2L, null);
-		rawSet = new RawRowSet(rawSet.getHeaders(), "aa", tableId, Lists.newArrayList(row1, row2));
+		rawSet = new RawRowSet(rawSet.getIds(), "aa", tableId, Lists.newArrayList(row1, row2));
 		set.setRows(Lists.newArrayList(row1, row2));
 
 		RowSelection rowSelection = new RowSelection();
@@ -405,7 +404,8 @@ public class TableRowManagerImplTest {
 
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
-		replace.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
+		replace.setHeaders(mapper.getSelectColumns());
 		replace.setEtag("etag");
 
 		List<Row> replaceRows = TableModelTestUtils.createRows(models, 3);
@@ -423,7 +423,7 @@ public class TableRowManagerImplTest {
 		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
 		RowAccessor row2Accessor = mock(RowAccessor.class);
 		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
-		when(row2Accessor.getCell(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("505002");
+		when(row2Accessor.getCellById(Long.parseLong(models.get(ColumnType.FILEHANDLEID.ordinal()).getId()))).thenReturn("505002");
 
 		doAnswer(new Answer<Void>() {
 			@SuppressWarnings("unchecked")
@@ -435,11 +435,11 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L)).thenReturn(originalAccessor);
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace);
+		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper)).thenReturn(originalAccessor);
+		manager.appendRows(user, tableId, mapper, replace);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
-		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L);
+		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet("3333"),
@@ -495,7 +495,8 @@ public class TableRowManagerImplTest {
 
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
-		replace.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
+		replace.setHeaders(mapper.getSelectColumns());
 		replace.setEtag("etag");
 
 		Row row = new Row();
@@ -507,7 +508,7 @@ public class TableRowManagerImplTest {
 		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
 		RowAccessor row0Accessor = mock(RowAccessor.class);
 		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
-		when(row0Accessor.getCell(models.get(0).getId())).thenReturn("5002");
+		when(row0Accessor.getCellById(Long.parseLong(models.get(0).getId()))).thenReturn("5002");
 
 		doAnswer(new Answer<Void>() {
 			@SuppressWarnings("unchecked")
@@ -518,7 +519,8 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L)).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersionsWithRowData(eq(tableId), eq(Sets.newHashSet(0L)), eq(0L), any(ColumnMapper.class))).thenReturn(
+				originalAccessor);
 		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace);
 	}
 
@@ -533,7 +535,8 @@ public class TableRowManagerImplTest {
 
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
-		replace.setHeaders(TableModelUtils.createColumnModelColumnMapper(models, false).getSelectColumns());
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
+		replace.setHeaders(mapper.getSelectColumns());
 		replace.setEtag("etag");
 
 		Row row = new Row();
@@ -545,7 +548,7 @@ public class TableRowManagerImplTest {
 		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
 		RowAccessor row0Accessor = mock(RowAccessor.class);
 		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
-		when(row0Accessor.getCell(models.get(0).getId())).thenReturn("5002");
+		when(row0Accessor.getCellById(Long.parseLong(models.get(0).getId()))).thenReturn("5002");
 
 		doAnswer(new Answer<Void>() {
 			@SuppressWarnings("unchecked")
@@ -556,8 +559,8 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L)).thenReturn(originalAccessor);
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace);
+		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L, mapper)).thenReturn(originalAccessor);
+		manager.appendRows(user, tableId, mapper, replace);
 	}
 
 	@Test

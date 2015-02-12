@@ -10,6 +10,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
+import com.google.common.collect.Lists;
+
 /**
  * 
  * @author jmhill
@@ -23,9 +25,7 @@ public class TableRowChangeUtilsTest {
 		dto.setRowVersion(12l);
 		dto.setCreatedBy("456");
 		dto.setCreatedOn(new Date(101));
-		dto.setHeaders(new LinkedList<String>());
-		dto.getHeaders().add("111");
-		dto.getHeaders().add("222");
+		dto.setIds(Lists.newArrayList(111L, 222L));
 		dto.setBucket("bucket");
 		dto.setKey("key");
 		dto.setEtag("someEtag");

@@ -20,6 +20,5 @@
 		init-method="initialize" />
 
 	<bean id="ConnectionFactory" class="org.sagebionetworks.repo.model.dbo.dao.table.ConnectionFactoryStub"/>
-	<bean id="RowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub"/>
 
 </beans>

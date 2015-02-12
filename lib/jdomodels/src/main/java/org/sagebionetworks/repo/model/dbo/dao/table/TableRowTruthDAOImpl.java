@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -464,7 +465,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			RowSet set = new RowSet();
 			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent(), rowsToGet);
 			set.setTableId(tableId);
-			set.setHeaders(TableModelUtils.getSelectColumnsFromColumnIds(dto.getHeaders(), schema));
+			set.setHeaders(TableModelUtils.getSelectColumnsFromColumnIds(dto.getIds(), schema));
 			set.setRows(rows);
 			set.setEtag(dto.getEtag());
 			return set;
@@ -596,7 +597,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				}
 			});
 			// fill in the rest of the values
-			results.add(new RawRowSet(trc.getHeaders(), trc.getEtag(), ref.getTableId(), rows));
+			results.add(new RawRowSet(trc.getIds(), trc.getEtag(), ref.getTableId(), rows));
 		}
 		return results;
 	}
@@ -626,12 +627,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (results.size() == 0) {
 			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
 		}
-		Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
+		Map<Long, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
 		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, resultSchema);
 	}
 
 	@Override
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, ColumnMapper columnMapper)
+			throws IOException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
@@ -645,7 +647,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				break;
 			}
 
-			final List<String> rowChangeColumnIds = rowChange.getHeaders();
+			final List<Long> rowChangeColumnIds = rowChange.getIds();
 			// Scan over the delta
 			scanChange(new RowHandler() {
 				@Override
@@ -719,15 +721,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return rowVersions;
 	}
 
-	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeColumnIds, final Row row) {
+	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<Long> rowChangeColumnIds, final Row row) {
 		if (TableModelUtils.isDeletedRow(row)) {
 			rowIdToRowMap.remove(row.getRowId());
 		} else {
 			rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-				Map<String, Integer> columnIdToIndexMap = null;
+				Map<Long, Integer> columnIdToIndexMap = null;
 
 				@Override
-				public String getCell(String columnId) {
+				public String getCellById(Long columnId) {
 					if (columnIdToIndexMap == null) {
 						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeColumnIds);
 					}
@@ -739,8 +741,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				}
 
 				@Override
-				public Row getRow() {
-					return row;
+				public Long getRowId() {
+					return row.getRowId();
+				}
+
+				@Override
+				public Long getVersionNumber() {
+					return row.getVersionNumber();
 				}
 			});
 		}

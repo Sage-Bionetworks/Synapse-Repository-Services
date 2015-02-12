@@ -3,10 +3,8 @@ package org.sagebionetworks.table.cluster;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.sql.DataSource;
 
@@ -14,9 +12,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -29,14 +29,14 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class CurrentRowCacheSqlDaoImpl implements CurrentRowCacheDao {
 	private static Logger log = LogManager.getLogger(CurrentRowCacheSqlDaoImpl.class);
 
-	private final TransactionTemplate transactionWriteTemplate;
+	// Copied from com.mysql.jdbc.SQLError
+	public static final String SQL_STATE_COLUMN_NOT_FOUND = "S0022"; //$NON-NLS-1$
+
 	private final TransactionTemplate transactionReadTemplate;
 	private final JdbcTemplate template;
 	private final NamedParameterJdbcTemplate namedTemplate;
@@ -49,8 +49,6 @@ public class CurrentRowCacheSqlDaoImpl implements CurrentRowCacheDao {
 	 */
 	public CurrentRowCacheSqlDaoImpl(DataSource dataSource) {
 		DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSource);
-		// This will manage transactions for calls that need write transactions
-		this.transactionWriteTemplate = createTransactionTemplate(transactionManager, false);
 		// This will manage transactions for calls that need read transactions
 		this.transactionReadTemplate = createTransactionTemplate(transactionManager, true);
 
@@ -74,11 +72,11 @@ public class CurrentRowCacheSqlDaoImpl implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public long getLatestCurrentVersionNumber(final Long tableId) {
+	public long getLatestCurrentRowVersionNumber(final Long tableId) {
 		return tryInReadTransaction(new TransactionCallback<Long>() {
 			@Override
 			public Long doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.selectCurrentRowMaxVersion(tableId);
+				String sql = SQLUtils.getStatusMaxVersionSQL(tableId.toString());
 				List<Long> version = template.queryForList(sql, Long.class);
 				if (version.size() == 1 && version.get(0) != null) {
 					return version.get(0);
@@ -90,156 +88,53 @@ public class CurrentRowCacheSqlDaoImpl implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public void putCurrentVersion(final Long tableId, final Long rowId, final Long versionNumber) {
-		putCurrentVersions(tableId, Collections.singletonMap(rowId, versionNumber), null);
-	}
-
-	@Override
-	public void putCurrentVersions(final Long tableId, final Map<Long, Long> rowsAndVersions, ProgressCallback<Long> progressCallback) {
-		TransactionCallback<Void> action = new TransactionCallback<Void>() {
+	public Map<Long, RowAccessor> getCurrentRows(final Long tableId, final Iterable<Long> rowIds, final ColumnMapper mapper) {
+		final Map<Long, RowAccessor> result = Maps.newHashMap();
+		return tryInReadTransaction(new TransactionCallback<Map<Long, RowAccessor>>() {
 			@Override
-			public Void doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.updateCurrentRowSQL(tableId);
-				List<Object[]> batchArgs = Lists.newArrayListWithCapacity(rowsAndVersions.size());
-				for (Entry<Long, Long> entry : rowsAndVersions.entrySet()) {
-					batchArgs.add(new Object[] { entry.getKey(), entry.getValue() });
-				}
-				template.batchUpdate(sql, batchArgs);
-				return null;
-			}
-		};
-		tryAndCreateInWriteTransaction(tableId, action);
-	}
-
-	@Override
-	public Long getCurrentVersion(final Long tableId, final Long rowId) {
-		return tryInReadTransaction(new TransactionCallback<Long>() {
-			@Override
-			public Long doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.selectCurrentRowVersionOfRow(tableId);
-				List<Long> version = template.queryForList(sql, Long.class, rowId);
-				if (version.size() == 1) {
-					return version.get(0);
-				} else if (version.size() > 1) {
-					throw new IllegalStateException("More than one version returned for this row, should not be possible");
-				} else {
-					return null;
-				}
-			}
-		}, null);
-	}
-
-	@Override
-	public Map<Long, Long> getCurrentVersions(final Long tableId, final Iterable<Long> rowIds) {
-		final Map<Long, Long> result = Maps.newHashMap();
-		return tryInReadTransaction(new TransactionCallback<Map<Long, Long>>() {
-			@Override
-			public Map<Long, Long> doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.selectCurrentRowVersionsForInRows(tableId);
+			public Map<Long, RowAccessor> doInTransaction(TransactionStatus status) {
+				String sql = SQLUtils.selectRowValuesForRowId(tableId);
 				namedTemplate.query(sql, new MapSqlParameterSource(SQLUtils.ROW_ID_BIND, rowIds), new RowCallbackHandler() {
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
-						Long rowId = rs.getLong(TableConstants.ROW_ID);
-						Long version = rs.getLong(TableConstants.ROW_VERSION);
-						result.put(rowId, version);
+						final Long rowId = rs.getLong(TableConstants.ROW_ID);
+						final Long version = rs.getLong(TableConstants.ROW_VERSION);
+						final Map<Long, String> columnIdToValueMap = Maps.newHashMap();
+						for (SelectColumnAndModel selectAndColumnModel : mapper.getSelectColumnAndModels()) {
+							String value = null;
+							try {
+								value = rs.getString(SQLUtils.getColumnNameForId(selectAndColumnModel.getColumnModel().getId()));
+								value = TableModelUtils.translateRowValueFromQuery(value, selectAndColumnModel.getColumnType());
+								columnIdToValueMap.put(Long.parseLong(selectAndColumnModel.getColumnModel().getId()), value);
+							} catch (SQLException e) {
+								// we expect there to be columns that don't exist because they've been added but the
+								// table is not yet updated
+								if (!e.getSQLState().equals(SQL_STATE_COLUMN_NOT_FOUND)) {
+									throw e;
+								}
+							}
+						}
+						result.put(rowId, new RowAccessor() {
+							@Override
+							public String getCellById(Long columnId) {
+								return columnIdToValueMap.get(columnId);
+							}
+
+							@Override
+							public Long getRowId() {
+								return rowId;
+							}
+
+							@Override
+							public Long getVersionNumber() {
+								return version;
+							}
+						});
 					}
 				});
 				return result;
 			}
 		}, result);
-	}
-
-	@Override
-	public Map<Long, Long> getCurrentVersions(final Long tableId, final long rowIdOffset, final long limit) {
-		final Map<Long, Long> result = Maps.newHashMap();
-		return tryInReadTransaction(new TransactionCallback<Map<Long, Long>>() {
-			@Override
-			public Map<Long, Long> doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.selectCurrentRowVersionsForRowRange(tableId);
-				template.query(sql, new RowCallbackHandler() {
-					@Override
-					public void processRow(ResultSet rs) throws SQLException {
-						Long rowId = rs.getLong(TableConstants.ROW_ID);
-						Long version = rs.getLong(TableConstants.ROW_VERSION);
-						result.put(rowId, version);
-					}
-				}, rowIdOffset, rowIdOffset + limit);
-				return result;
-			}
-		}, result);
-	}
-
-	@Override
-	public void deleteCurrentVersion(final Long tableId, final Long rowId) {
-		tryAndIgnoreInWriteTransaction(new TransactionCallback<Void>() {
-			@Override
-			public Void doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.deleteFromTableSQL(tableId, TableType.CURRENT_ROW);
-				template.update(sql, rowId);
-				return null;
-			}
-		});
-	}
-
-	@Override
-	public void deleteCurrentVersions(final Long tableId, final Iterable<Long> rowIds) {
-		tryAndIgnoreInWriteTransaction(new TransactionCallback<Void>() {
-			@Override
-			public Void doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.deleteBatchFromTableSQL(tableId, TableType.CURRENT_ROW);
-				for (List<Long> batch : Iterables.partition(rowIds, 300)) {
-					namedTemplate.update(sql, new MapSqlParameterSource(SQLUtils.ROW_ID_BIND, batch));
-				}
-				return null;
-			}
-		});
-	}
-
-	@Override
-	public void deleteCurrentTable(final Long tableId) {
-		tryAndIgnoreInWriteTransaction(new TransactionCallback<Void>() {
-			@Override
-			public Void doInTransaction(TransactionStatus status) {
-				String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.CURRENT_ROW);
-				template.update(dropTableDML);
-				return null;
-			}
-		});
-	}
-
-	@Override
-	public void truncateAllData() {
-		tryAndIgnoreInWriteTransaction(new TransactionCallback<Void>() {
-			@Override
-			public Void doInTransaction(TransactionStatus status) {
-				List<String> tables = template.queryForList("show tables", String.class);
-				for (String table : tables) {
-					if (SQLUtils.isTableName(table, TableType.CURRENT_ROW)) {
-						template.update("drop table " + table);
-					}
-				}
-				return null;
-			}
-		});
-	}
-
-	private void tryAndCreateInWriteTransaction(Long tableId, TransactionCallback<Void> action) {
-		try {
-			this.transactionWriteTemplate.execute(action);
-		} catch (BadSqlGrammarException e) {
-			// this usually means the table does not exist, so create and try again
-			String sql = SQLUtils.createTableSQL(tableId, TableType.CURRENT_ROW);
-			template.execute(sql);
-			this.transactionWriteTemplate.execute(action);
-		}
-	}
-
-	private void tryAndIgnoreInWriteTransaction(TransactionCallback<Void> action) {
-		try {
-			this.transactionWriteTemplate.execute(action);
-		} catch (BadSqlGrammarException e) {
-			// this usually means the table does not exist, so ignore
-		}
 	}
 
 	private <T> T tryInReadTransaction(TransactionCallback<T> action, T defaultValueIfTableDoesntExist) {
