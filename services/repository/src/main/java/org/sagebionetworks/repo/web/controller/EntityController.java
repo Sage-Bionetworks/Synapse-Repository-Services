@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -1671,11 +1672,10 @@ public class EntityController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_CONVERT_LOCATIONABLE }, method = RequestMethod.PUT)
 	public @ResponseBody
-	Entity convertLocationableEntity(
+	LocationableTypeConversionResult convertLocationableEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Entity toConvert) throws NotFoundException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException,
 			DatastoreException {
-		return serviceProvider.getEntityService().convertLocationable(userId, toConvert);
+		return serviceProvider.getEntityService().convertLocationable(userId, id);
 	}
 }

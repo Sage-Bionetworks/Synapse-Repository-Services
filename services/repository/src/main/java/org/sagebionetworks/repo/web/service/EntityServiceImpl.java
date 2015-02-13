@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -735,11 +736,11 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public Entity convertLocationable(Long userId, Entity toConvert) throws NotFoundException {
+	public LocationableTypeConversionResult convertLocationable(Long userId, String entityId) throws NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		if(toConvert == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entityId == null) throw new IllegalArgumentException("Entity cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityTypeConverter.convertOldTypeToNew(userInfo, toConvert);
+		return entityTypeConverter.convertOldTypeToNew(userInfo, entityId);
 	}
 
 }

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -754,6 +755,6 @@ public interface EntityService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public Entity convertLocationable(Long userId, Entity toConvert) throws NotFoundException;
+	public LocationableTypeConversionResult convertLocationable(Long userId, String entityId) throws NotFoundException;
 
 }
