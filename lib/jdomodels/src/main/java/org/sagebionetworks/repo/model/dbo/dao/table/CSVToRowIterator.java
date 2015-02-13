@@ -22,15 +22,13 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 public class CSVToRowIterator implements Iterator<Row> {
 
 	List<ColumnModel> resultSchema;
-	List<String> headers;
+	List<Long> ids;
 	CsvNullReader reader;
 	String[] lastRow;
-	Map<String, Integer> idToIndexMap;
 	int rowsProcessed;
 	Integer rowIdIndex;
 	Integer rowVersionIndex;
 	int[] indexMapping;
-	boolean isFirstLineHeader;
 
 	/**
 	 * Create a new object for each use.
@@ -46,17 +44,15 @@ public class CSVToRowIterator implements Iterator<Row> {
 	 */
 	public CSVToRowIterator(List<ColumnModel> resultSchema, CsvNullReader reader, boolean isFirstLineHeader)
 			throws IOException {
-		super();
-		this.isFirstLineHeader = isFirstLineHeader;
 		this.resultSchema = resultSchema;
 		this.reader = reader;
-		this.headers = TableModelUtils.getHeaders(resultSchema);
+		this.ids = TableModelUtils.getIds(resultSchema);
 		this.rowsProcessed = 0;
 		// We need to read the first row to determine if it a header
 		lastRow = reader.readNext();
 		// We need a map of column ID to index.
-		idToIndexMap = null;
-		if (this.isFirstLineHeader) {
+		Map<Long, Integer> idToIndexMap;
+		if (isFirstLineHeader) {
 			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(lastRow, resultSchema);
 			if (idToIndexMap == null) {
 				throw new IllegalArgumentException(
@@ -67,17 +63,17 @@ public class CSVToRowIterator implements Iterator<Row> {
 			lastRow = reader.readNext();
 		} else {
 			// This means the row is not a header. So just map from the schema
-			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(this.headers);
+			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(this.ids);
 		}
 		// Does contain RowId?
-		rowIdIndex = idToIndexMap.get(TableConstants.ROW_ID);
-		rowVersionIndex = idToIndexMap.get(TableConstants.ROW_VERSION);
+		rowIdIndex = idToIndexMap.get(TableConstants.ROW_ID_ID);
+		rowVersionIndex = idToIndexMap.get(TableConstants.ROW_VERSION_ID);
 		// build the index mapping
 		this.indexMapping = new int[resultSchema.size()];
 		int index = 0;
 		for(ColumnModel cm: this.resultSchema){
 			// Lookup the mapping for this column
-			Integer valueIndex = idToIndexMap.get(cm.getId());
+			Integer valueIndex = idToIndexMap.get(Long.parseLong(cm.getId()));
 			if(valueIndex == null){
 				throw new IllegalArgumentException("Expected a column with the name: "+cm.getName()+" but did not find it");
 			}

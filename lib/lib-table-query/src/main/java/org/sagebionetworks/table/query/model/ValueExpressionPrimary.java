@@ -43,4 +43,6 @@ public class ValueExpressionPrimary extends SQLElement {
 			visit(setFunctionSpecification, visitor);
 		}
 	}
+	
+	
 }

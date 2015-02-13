@@ -28,6 +28,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -325,10 +326,10 @@ public class DBOColumnModelImplTest {
 		}
 		// Shuffle the results so the order they are bound to does not match the natural order
 		Collections.shuffle(models);
-		List<String> headers = TableModelUtils.getHeaders(models);
+		List<Long> ids = TableModelUtils.getIds(models);
 		// Now bind them to the table in this shuffled order
 		String tableId = "syn123";
-		columnModelDao.bindColumnToObject(headers, tableId);
+		columnModelDao.bindColumnToObject(Lists.transform(ids, TableModelUtils.LONG_TO_STRING), tableId);
 		// Now make sure we can fetch this back in the same order that we bound the columns
 		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
@@ -336,9 +337,9 @@ public class DBOColumnModelImplTest {
 		// Now if we update the columns bound to the object the order should change
 		models.remove(0);
 		Collections.shuffle(models);
-		headers = TableModelUtils.getHeaders(models);
+		ids = TableModelUtils.getIds(models);
 		// Bind the new columns in a new order
-		columnModelDao.bindColumnToObject(headers, tableId);
+		columnModelDao.bindColumnToObject(Lists.transform(ids, TableModelUtils.LONG_TO_STRING), tableId);
 		// Get them back in the same order with the same columns
 		fetched = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(fetched);
@@ -357,13 +358,13 @@ public class DBOColumnModelImplTest {
 		for(ColumnModel cm: raw){
 			models.add(columnModelDao.createColumnModel(cm));
 		}
-		List<String> headers = TableModelUtils.getHeaders(models);
-		count = columnModelDao.bindColumnToObject(headers, tableId);
-		assertEquals(headers.size(), count);
+		List<Long> ids = TableModelUtils.getIds(models);
+		count = columnModelDao.bindColumnToObject(Lists.transform(ids, TableModelUtils.LONG_TO_STRING), tableId);
+		assertEquals(ids.size(), count);
 		// Now if we set it back to empty the update should include 5 rows
 		List<String> empty = new LinkedList<String>();
 		count = columnModelDao.bindColumnToObject(empty, tableId);
-		assertEquals(headers.size(), count);
+		assertEquals(ids.size(), count);
 		
 		// The bound list should not be null
 		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);

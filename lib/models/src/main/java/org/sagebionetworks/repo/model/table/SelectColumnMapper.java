@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface SelectColumnMapper {
 
-	public SelectColumn getSelectColumnById(String columnId);
+	public SelectColumn getSelectColumnById(Long id);
 
 	public SelectColumn getSelectColumnByName(String name);
 

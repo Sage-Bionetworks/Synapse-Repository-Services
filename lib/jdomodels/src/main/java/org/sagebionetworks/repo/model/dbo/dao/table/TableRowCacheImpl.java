@@ -1,26 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
+import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
-import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Maps;
-
 public class TableRowCacheImpl implements TableRowCache {
 	@Autowired
 	ConnectionFactory connectionFactory;
-
-	@Autowired
-	RowCacheDao rowCacheDao;
 
 	@Autowired
 	StackConfiguration stackConfiguration;
@@ -31,14 +25,14 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public boolean isRowCacheEnabled() {
-		return stackConfiguration.getTableEnabled() && rowCacheDao.isEnabled();
+	public boolean isCurrentRowCacheEnabled() {
+		return stackConfiguration.getTableEnabled();
 	}
 
 	@Override
 	public long getLatestCurrentVersionNumber(Long tableId) {
-		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
-		if (!currentRowCacheDao.isEnabled()) {
+		CurrentVersionCacheDao currentRowCacheDao = connectionFactory.getCurrentVersionCacheConnection(tableId);
+		if (!isCurrentVersionCacheEnabled() || !currentRowCacheDao.isEnabled()) {
 			return -1L;
 		}
 		return currentRowCacheDao.getLatestCurrentVersionNumber(tableId);
@@ -46,93 +40,66 @@ public class TableRowCacheImpl implements TableRowCache {
 
 	@Override
 	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers, ProgressCallback<Long> progressCallback) {
-		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
-		if (!currentRowCacheDao.isEnabled()) {
-			throw new IllegalStateException("the current row cache was asked to update versions, but it is disabled");
-		}
+		CurrentVersionCacheDao currentRowCacheDao = getCurrentVersionCacheConnection(tableId);
 		currentRowCacheDao.putCurrentVersions(tableId, rowIdVersionNumbers, progressCallback);
 	}
 
 	@Override
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds) {
-		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
-		if (!currentRowCacheDao.isEnabled()) {
-			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
-		}
+		CurrentVersionCacheDao currentRowCacheDao = getCurrentVersionCacheConnection(tableId);
 		return currentRowCacheDao.getCurrentVersions(tableId, rowIds);
 	}
 
 	@Override
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, long rowIdOffset, long limit) {
-		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
-		if (!currentRowCacheDao.isEnabled()) {
-			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
-		}
+		CurrentVersionCacheDao currentRowCacheDao = getCurrentVersionCacheConnection(tableId);
 		return currentRowCacheDao.getCurrentVersions(tableId, rowIdOffset, limit);
 	}
 
 	@Override
 	public void removeFromCache(Long tableId) {
-		if (rowCacheDao.isEnabled()) {
-			rowCacheDao.deleteEntriesForTable(tableId);
-		}
-		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
-		if (currentRowCacheDao.isEnabled()) {
-			currentRowCacheDao.deleteCurrentTable(tableId);
+		CurrentVersionCacheDao currentVersionCacheDao = connectionFactory.getCurrentVersionCacheConnection(tableId);
+		if (isCurrentVersionCacheEnabled() && currentVersionCacheDao.isEnabled()) {
+			currentVersionCacheDao.deleteCurrentVersionTable(tableId);
 		}
 	}
 
 	@Override
-	public Row getRowFromCache(Long tableId, Long rowId, Long versionNumber) throws IOException {
-		if (!rowCacheDao.isEnabled()) {
-			return null;
-		}
-		return rowCacheDao.getRow(tableId, rowId, versionNumber);
+	public long getLatestCurrentRowVersionNumber(Long tableId) {
+		CurrentRowCacheDao currentRowCacheDao = getCurrentRowCacheConnection(tableId);
+		return currentRowCacheDao.getLatestCurrentRowVersionNumber(tableId);
 	}
 
 	@Override
-	public Map<Long, Row> getRowsFromCache(Long tableId, Map<Long, Long> rowIdVersionNumbers) throws IOException {
-		if (!rowCacheDao.isEnabled()) {
-			return Collections.emptyMap();
-		}
-		return rowCacheDao.getRows(tableId, rowIdVersionNumbers);
-	}
-
-	@Override
-	public Map<Long, Row> getRowsFromCache(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
-		if (!rowCacheDao.isEnabled()) {
-			return Maps.newHashMap();
-		}
-		return rowCacheDao.getRows(tableId, version, rowsToGet);
-	}
-
-	@Override
-	public void putRowInCache(Long tableId, Row row) throws IOException {
-		if (!rowCacheDao.isEnabled()) {
-			return;
-		}
-		rowCacheDao.putRow(tableId, row);
-	}
-
-	@Override
-	public void putRowsInCache(Long tableId, Iterable<Row> rows) throws IOException {
-		if (!rowCacheDao.isEnabled()) {
-			return;
-		}
-		rowCacheDao.putRows(tableId, rows);
+	public Map<Long, RowAccessor> getCurrentRowsFromCache(Long tableId, Iterable<Long> rowsToGet, ColumnMapper mapper) {
+		CurrentRowCacheDao currentRowCacheDao = getCurrentRowCacheConnection(tableId);
+		return currentRowCacheDao.getCurrentRows(tableId, rowsToGet, mapper);
 	}
 
 	@Override
 	public void truncateAllData() {
 		if (isCurrentVersionCacheEnabled()) {
-			for (CurrentRowCacheDao currentRowCacheDao : connectionFactory.getCurrentRowCacheConnections()) {
+			for (CurrentVersionCacheDao currentRowCacheDao : connectionFactory.getCurrentVersionCacheConnections()) {
 				if (currentRowCacheDao.isEnabled()) {
 					currentRowCacheDao.truncateAllData();
 				}
 			}
 		}
-		if (rowCacheDao.isEnabled()) {
-			rowCacheDao.truncateAllData();
+	}
+
+	private CurrentVersionCacheDao getCurrentVersionCacheConnection(Long tableId) {
+		CurrentVersionCacheDao currentVersionCacheDao = connectionFactory.getCurrentVersionCacheConnection(tableId);
+		if (!isCurrentVersionCacheEnabled() || !currentVersionCacheDao.isEnabled()) {
+			throw new IllegalStateException("the current version cache was asked for versions, but it is disabled");
 		}
+		return currentVersionCacheDao;
+	}
+
+	private CurrentRowCacheDao getCurrentRowCacheConnection(Long tableId) {
+		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
+		if (!isCurrentRowCacheEnabled() || !currentRowCacheDao.isEnabled()) {
+			throw new IllegalStateException("the current row cache was asked for rows, but it is disabled");
+		}
+		return currentRowCacheDao;
 	}
 }

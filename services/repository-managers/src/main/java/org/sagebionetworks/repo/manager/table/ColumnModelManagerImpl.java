@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +184,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public ColumnMapper getCurrentColumns(UserInfo user, String tableId,
 			List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException {
-		LinkedHashMap<String, SelectColumnAndModel> columnMap = Maps.newLinkedHashMap();
+		LinkedHashMap<String, SelectColumnAndModel> nameToColumnMap = Maps.newLinkedHashMap();
+		Map<Long, SelectColumnAndModel> idToColumnMap = Maps.newHashMap();
 		List<ColumnModel> columns = getColumnModelsForTable(user, tableId);
 		Map<String, ColumnModel> columnIdToModelMap = TableModelUtils.createStringIDtoColumnModelMap(columns);
 		for (SelectColumn selectColumn : selectColumns) {
@@ -194,9 +196,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			if (columnModel == null) {
 				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
 			}
-			columnMap.put(selectColumn.getId(), TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel));
+			SelectColumnAndModel selectColumnAndModel = TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel);
+			nameToColumnMap.put(selectColumn.getName(), selectColumnAndModel);
+			idToColumnMap.put(Long.parseLong(selectColumn.getId()), selectColumnAndModel);
 		}
-		return TableModelUtils.createColumnMapper(columnMap);
+		return TableModelUtils.createColumnMapper(nameToColumnMap, idToColumnMap);
 	}
 	
 	

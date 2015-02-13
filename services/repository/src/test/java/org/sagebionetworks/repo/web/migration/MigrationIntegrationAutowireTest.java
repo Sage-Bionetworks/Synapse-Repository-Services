@@ -349,18 +349,18 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		}
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 
-		List<String> header = TableModelUtils.getHeaders(models);
+		List<Long> headers = TableModelUtils.getIds(models);
 		// bind the columns to the entity
-		columnModelDao.bindColumnToObject(header, tableId);
+		columnModelDao.bindColumnToObject(Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
-		RawRowSet set = new RawRowSet(TableModelUtils.getHeaders(models), null, tableId, rows);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		// Append the rows to the table
 		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
-		set = new RawRowSet(TableModelUtils.getHeaders(models), null, tableId, rows);
+		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
 	}
 

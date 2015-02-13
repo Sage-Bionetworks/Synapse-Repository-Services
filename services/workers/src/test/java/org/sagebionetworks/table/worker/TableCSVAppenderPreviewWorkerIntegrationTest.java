@@ -73,7 +73,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
-	List<String> headers;
+	List<Long> headers;
 	private File tempFile;
 	S3FileHandle fileHandle;
 	
@@ -117,7 +117,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 		cm.setName("someinteger");
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
-		headers = TableModelUtils.getHeaders(schema);
+		headers = TableModelUtils.getIds(schema);
 		
 		// Create a CSV file to upload
 		this.tempFile = File.createTempFile("TableCSVAppenderPreviewWorkerIntegrationTest", ".csv");

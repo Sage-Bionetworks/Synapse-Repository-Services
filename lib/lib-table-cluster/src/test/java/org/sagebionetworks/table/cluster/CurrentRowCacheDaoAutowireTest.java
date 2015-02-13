@@ -22,7 +22,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
+import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,7 +39,7 @@ public class CurrentRowCacheDaoAutowireTest {
 	@Autowired
 	private ConnectionFactory tableConnectionFactory;
 
-	private CurrentRowCacheDao currentRowCacheDao;
+	private CurrentVersionCacheDao currentRowCacheDao;
 
 	private Long tableId = (long) new Random().nextInt(10000000);
 
@@ -51,14 +51,14 @@ public class CurrentRowCacheDaoAutowireTest {
 	@Before
 	public void setup() throws Exception {
 		// First get a connection for this table
-		currentRowCacheDao = tableConnectionFactory.getCurrentRowCacheConnection(tableId);
+		currentRowCacheDao = tableConnectionFactory.getCurrentVersionCacheConnection(tableId);
 
-		currentRowCacheDao.deleteCurrentTable(tableId);
+		currentRowCacheDao.deleteCurrentVersionTable(tableId);
 	}
 
 	@After
 	public void destroy() throws Exception {
-		currentRowCacheDao.deleteCurrentTable(tableId);
+		currentRowCacheDao.deleteCurrentVersionTable(tableId);
 	}
 
 	@Test
@@ -177,7 +177,7 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.remove(14L);
 		map.remove(15L);
 		assertEquals(map, currentRowCacheDao.getCurrentVersions(tableId, allRowIdsAndMore));
-		currentRowCacheDao.deleteCurrentTable(tableId);
+		currentRowCacheDao.deleteCurrentVersionTable(tableId);
 		assertEquals(0, currentRowCacheDao.getCurrentVersions(tableId, allRowIdsAndMore).size());
 	}
 

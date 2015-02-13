@@ -45,8 +45,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -1501,11 +1500,15 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Return a list of Teams given a list of Team IDs.
 	 * 
+	 * Note: Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the set of IDs passed in.
+	 *
+	 * 
 	 * @param ids
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ListWrapper<Team> listTeams(IdList ids) throws SynapseException;
+	public List<Team> listTeams(IdSet ids) throws SynapseException;
 	
 	/**
 	 * 
@@ -1582,12 +1585,15 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Return a TeamMember list for a given Team and list of member IDs.
 	 * 
+	 * Note: Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the set of IDs passed in.
+	 * 
 	 * @param teamId
 	 * @param ids
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ListWrapper<TeamMember> listTeamMembers(String teamId, IdList ids) throws SynapseException;
+	public List<TeamMember> listTeamMembers(String teamId, IdSet ids) throws SynapseException;
 
 	/**
 	 * 
@@ -1984,7 +1990,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	ChallengePagedResults listChallengesForParticipant(
-			long participantPrincipalId, Long limit, Long offset)
+			String participantPrincipalId, Long limit, Long offset)
 			throws SynapseException;
 
 	/**
@@ -2003,7 +2009,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param id
 	 * @throws SynapseException
 	 */
-	void deleteChallenge(long id) throws SynapseException;
+	void deleteChallenge(String id) throws SynapseException;
 
 	/**
 	 * List the Teams registered for the Challenge.  Caller must have READ permission in 
@@ -2015,7 +2021,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ChallengeTeamPagedResults listChallengeTeams(long challengeId, Long limit,
+	ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit,
 			Long offset) throws SynapseException;
 
 	/**
@@ -2028,7 +2034,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedIds listRegistratableTeams(long challengeId, Long limit,
+	PaginatedIds listRegistratableTeams(String challengeId, Long limit,
 			Long offset) throws SynapseException;
 
 	
@@ -2062,7 +2068,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param challengeTeamId
 	 * @throws SynapseException
 	 */
-	public void deleteChallengeTeam(long challengeId, long challengeTeamId) throws SynapseException;
+	public void deleteChallengeTeam(String challengeId, String challengeTeamId) throws SynapseException;
 
 	/**
 	 * Return challenge participants.  If affiliated=true, return just participants 
@@ -2076,7 +2082,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedIds listChallengeParticipants(long challengeId,
+	PaginatedIds listChallengeParticipants(String challengeId,
 			Boolean affiliated, Long limit, Long offset)
 			throws SynapseException;
 
@@ -2092,8 +2098,8 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	PaginatedIds listSubmissionTeams(long challengeId,
-			long submitterPrincipalId, Long limit, Long offset)
+	PaginatedIds listSubmissionTeams(String challengeId,
+			String submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
 	
 
