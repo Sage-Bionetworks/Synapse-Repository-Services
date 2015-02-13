@@ -30,7 +30,7 @@ public class SubmissionContributorDBO implements MigratableDatabaseObject<Submis
 	@Field(name = COL_SUBMISSION_CONTRIBUTOR_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 	
-	@Field(name = COL_SUBMISSION_CONTRIBUTOR_ETAG, backupId = true, primary = false, nullable = false, etag=true)
+	@Field(name = COL_SUBMISSION_CONTRIBUTOR_ETAG, primary = false, nullable = false, etag=true)
 	private String etag;
 	
 	@Field(name = COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID, nullable = false)
