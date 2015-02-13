@@ -998,6 +998,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	
+	@SuppressWarnings("unchecked")
+	public <T extends JSONEntity> List<T> createJSONEntityFromListWrapper(String uri, ListWrapper<T> entity, Class<T> elementType)
+			throws SynapseException {
+		if (entity == null)
+			throw new IllegalArgumentException("Entity cannot be null");
+		try {
+			String jsonString = EntityFactory.createJSONStringForEntity(entity);
+			JSONObject responseBody = getSharedClientConnection().postJson(
+					getRepoEndpoint(), uri, jsonString, getUserAgent(), null, null);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), elementType);
+
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 
 	/**
 	 * Create an Entity, Annotations, and ACL with a single call.
@@ -6663,9 +6680,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("ColumnModel cannot be null");
 		}
 		String url = COLUMN_BATCH;
-		ListWrapper<ColumnModel> results = createJSONEntity(url,
-				ListWrapper.wrap(models, ColumnModel.class));
-		return results.getList();
+		List<ColumnModel> results = createJSONEntityFromListWrapper(url,
+				ListWrapper.wrap(models, ColumnModel.class), ColumnModel.class);
+		return results;
 	}
 
 	@Override

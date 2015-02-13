@@ -1618,6 +1618,14 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
+	public void testQueryProjectId() throws SynapseException, JSONException{
+		String query = "select id from entity where projectId == '"+project.getId()+"'";
+		JSONObject total = synapseOne.query(query);
+		Long count = total.getLong("totalNumberOfResults");
+		assertEquals(new Long(2), count);
+	}
+	
+	@Test
 	public void testStructuredQuery() throws SynapseException{
 		// setup a query to find the project by ID.
 		EntityQuery query = new EntityQuery();
