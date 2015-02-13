@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.FILES_CANNOT_HAVE_CHILDREN;
+import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.*;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIONABLE_HAS_MORE_THAN_ONE_LOCATION;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.NOT_LOCATIONABLE;
 
@@ -162,11 +162,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		child.setName(entity.getName());
 		Collections.reverse(pairs);
 		for(VersionData pair: pairs){
-			Long verionNumber = pair.getVersionNumber();
 			String fileHandleId = pair.getFileHandle().getId();
-			NamedAnnotations newAnnos = convertAnnotations(entity, verionNumber);
-			// replace this version
-			nodeDao.replaceVersion(entity.getId(), verionNumber, newAnnos, null);
 			// Get the user that modified this version.
 			UserInfo modifiedUser = userManager.getUserInfo(Long.parseLong(pair.getModifiedBy()));
 			//  create the child
@@ -181,6 +177,15 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 				// update the child
 				entityManager.updateEntity(modifiedUser, child, true, null);
 				child = entityManager.getEntity(user,child.getId(), FileEntity.class);
+			}
+		}
+		// Replace the annotations for each version
+		List<Long> versions = nodeDao.getVersionNumbers(entity.getId());
+		if(versions != null){
+			for(Long versionNumber: versions){
+				NamedAnnotations newAnnos = convertAnnotations(entity, versionNumber);
+				// replace this version
+				nodeDao.replaceVersion(entity.getId(), versionNumber, newAnnos, null);
 			}
 		}
 		// the last step is to change the type
@@ -215,6 +220,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		List<VersionData> pairs = new LinkedList<VersionData>();
 		List<Long> versions = nodeDao.getVersionNumbers(entity.getId());
 		if(versions != null){
+			// Gather file handles for each version
 			for(Long versionNumber: versions){
 				Locationable location = (Locationable) entityManager.getEntityForVersion(user, entity.getId(), versionNumber, entity.getClass());
 				if(location.getLocations() == null || location.getLocations().isEmpty()){
@@ -235,6 +241,9 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 					if(location.getMd5() != null){
 						s3Handle.setContentMd5(location.getMd5());
 					}
+					if(s3Handle.getFileName() == null){
+						s3Handle.setFileName(location.getName());
+					}
 					setCreatedOnAndBy(location, s3Handle);
 					fileHandle = fileHandleDao.createFile(s3Handle);
 				}else{
@@ -247,6 +256,10 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 					fileHandle = fileHandleDao.createFile(efh);
 				}
 				pairs.add(new VersionData(versionNumber, fileHandle, location.getModifiedBy(), location.getVersionLabel(), location.getVersionComment()));
+			}
+			// The number of pairs must match the number of versions
+			if(pairs.size() > 0 && pairs.size() != versions.size()){
+				SOME_VERSIONS_HAVE_FILES_OTHERS_DO_NOT.throwException();
 			}
 		}
 		return pairs;
