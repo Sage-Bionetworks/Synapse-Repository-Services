@@ -30,6 +30,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_ENTITY_VERSION 		= "versionNumber";
 	public static final String PARAM_SUBMISSION_NAME 				= "name";
 	public static final String PARAM_SUBMISSION_CREATED_ON 			= "createdOn";
+	public static final String PARAM_SUBMISSION_TEAM_ID 			= "teamId";
 		
 	// SubmissionStatus
 	public static final String PARAM_SUBSTATUS_ID 					= "id";

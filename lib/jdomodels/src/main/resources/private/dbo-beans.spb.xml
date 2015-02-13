@@ -64,11 +64,16 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
+				<!-- Team-related beans -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 				<!-- Evaluation beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO" />
 				<!-- Annotation beans -->
@@ -77,10 +82,6 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.LongAnnotationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO" />
-				<!-- Team-related beans -->
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 				<!-- Challenge -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam" />
@@ -131,18 +132,19 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
-				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
-				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO" />
-				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
-				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
-				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat" />
-				
 				<!-- Team-related beans -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+				
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
