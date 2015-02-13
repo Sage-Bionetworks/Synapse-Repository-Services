@@ -244,7 +244,7 @@ public class SubmissionManagerTest {
 	public void testCRUDAsAdmin() throws Exception {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
 		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
@@ -266,14 +266,14 @@ public class SubmissionManagerTest {
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
 				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
 	}
 	
 	@Test
 	public void testCRUDAsUser() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
 		try {
 			submissionManager.getSubmission(userInfo, SUB_ID);
 			fail();
@@ -312,12 +312,12 @@ public class SubmissionManagerTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {		
 		// user should not have access to sub2
-		submissionManager.createSubmission(userInfo, sub2, ETAG, bundle);		
+		submissionManager.createSubmission(userInfo, sub2, ETAG, null, bundle);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
-		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
 		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		subStatus.setScore(1.1);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
@@ -325,7 +325,7 @@ public class SubmissionManagerTest {
 		
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidEtag() throws Exception {
-		submissionManager.createSubmission(userInfo, sub, ETAG + "modified", bundle);
+		submissionManager.createSubmission(userInfo, sub, ETAG + "modified", null, bundle);
 	}
 	
 	@Test

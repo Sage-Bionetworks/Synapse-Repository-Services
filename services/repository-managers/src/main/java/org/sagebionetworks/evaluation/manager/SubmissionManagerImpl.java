@@ -1,6 +1,5 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -94,7 +93,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
