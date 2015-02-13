@@ -34,6 +34,10 @@ public class EvaluationQuotaUtil {
 		return evaluationQuota.getSubmissionLimit().intValue();
 	}
 	
+	/*
+	 * Returns false if time segment(s) is/are defined and the given time is outside
+	 * of the allowed time range.
+	 */
 	public static boolean isSubmissionAllowed(Evaluation evaluation, Date now) {
 		if (evaluation==null) throw new IllegalArgumentException("evaluation is required.");
 		EvaluationQuota evaluationQuota = evaluation.getQuota();

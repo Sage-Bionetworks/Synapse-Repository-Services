@@ -4,21 +4,24 @@
 	"properties": {
 		"teamId": {
 			"type": "string",
-			"description": ""
+			"description": "The ID of the Team of interest"
 		},
 		"evaluationId": {
 			"type": "string",
-			"description": ""
+			"description": "The ID of the Evaluation of interest"
 		},
 		"teamEligibility": {
 			"type":"object",
 			"$ref":"org.sagebionetworks.evaluation.model.SubmissionEligibility",
-			"description": ""
+			"description": "Describes the  submission eligibility for the team of interest."
 		},
 		"membersEligibility": {
 			"type": "array",
-			"$ref":"org.sagebionetworks.evaluation.model.MemberSubmissionEligibility",
-			"description": ""
+			"items":{
+				"type":"object",
+				"$ref":"org.sagebionetworks.evaluation.model.MemberSubmissionEligibility"
+			},
+			"description": "Describes the submission eligibility of the contributors to the Submission."
 		},
 		"eligibilityStateHash": {
 			"type": "integer",

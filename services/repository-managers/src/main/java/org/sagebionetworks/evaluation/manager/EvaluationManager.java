@@ -82,7 +82,7 @@ public interface EvaluationManager {
 	 */
 	void updateEvaluationEtag(String evalId) throws NotFoundException;
 	
-	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId);
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException;
 	
 
 }

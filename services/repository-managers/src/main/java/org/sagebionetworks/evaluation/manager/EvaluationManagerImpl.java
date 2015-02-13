@@ -52,6 +52,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Autowired
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
+	@Autowired
+	private SubmissionEligibilityManager submissionEligibilityManager;
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Evaluation createEvaluation(UserInfo userInfo, Evaluation eval) 
@@ -254,24 +257,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		return acl;
 	}
 	
-	public static int computeTeamSubmissionEligibilityHash(TeamSubmissionEligibility tse) {
-		return tse.getTeamEligibility().hashCode() * 17 + tse.getMembersEligibility().hashCode();
+	@Override
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException {
+		// TODO authorization check
+		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId);
 	}
 	
-	/**
-	 * Authorization:  user making the request must have SUBMIT permission in the Evaluation 
-	 * and must be a member of the specified Team.
-	 * 
-	 */
-	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) {
-		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
-		tse.setEvaluationId(evalId);
-		tse.setTeamId(teamId);
-		tse.setMembersEligibility(null/*membersEligibility*/);
-		tse.setTeamEligibility(null/*membersEligibility*/);
-		tse.setEligibilityStateHash((long)computeTeamSubmissionEligibilityHash(tse));
-		return tse;
-	}
-	
+
 
 }
