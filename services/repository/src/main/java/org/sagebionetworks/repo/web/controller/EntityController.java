@@ -1709,11 +1709,8 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_CONVERT_LOCATIONABLE_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId startTypeConversionJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @RequestBody AsyncLocationableTypeConversionRequest request)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody AsyncLocationableTypeConversionRequest request)
 			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
