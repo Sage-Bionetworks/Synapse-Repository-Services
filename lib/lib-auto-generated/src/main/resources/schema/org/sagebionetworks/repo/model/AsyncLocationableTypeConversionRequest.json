@@ -1,0 +1,17 @@
+{
+	"description": "Batch type convertion.",
+	"implements": [
+		{
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"locationableIdsToConvert": {
+			"type": "array",
+			"description": "List of locationable ids to convert.",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

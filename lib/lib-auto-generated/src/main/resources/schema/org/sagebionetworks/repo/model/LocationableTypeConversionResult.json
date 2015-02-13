@@ -1,0 +1,29 @@
+{
+    "description": "Results for a single locationable type conversions",
+    "properties": {
+        "entityId": {
+            "type": "string",
+            "description": "The id of an entity converted."            
+        },
+        "success": {
+            "type": "boolean",
+            "description": "Was the conversion a success?"            
+        },
+        "originalType": {
+            "type": "string",
+            "description": "The full class name of the original type."            
+        },
+        "newType": {
+            "type": "string",
+            "description": "The full class name of the new type."            
+        },
+        "createdBy": {
+            "type": "string",
+            "description": "The user that created this entity."            
+        },
+        "errorMessage": {
+            "type": "string",
+            "description": "There error message for type conversion failures. "            
+        }
+    }
+}

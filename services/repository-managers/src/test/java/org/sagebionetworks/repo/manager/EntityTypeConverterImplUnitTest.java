@@ -1,32 +1,44 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.FILES_CANNOT_HAVE_CHILDREN;
+import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.NOT_LOCATIONABLE;
+
 import java.util.Arrays;
 import java.util.HashSet;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.*;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 /**
  * Unit test for as much as possible.
@@ -38,6 +50,8 @@ public class EntityTypeConverterImplUnitTest {
 	NodeDAO mockNodeDao;	
 	AuthorizationManager mockAuthorizationManager;
 	EntityManager mockEntityManager;
+	AmazonS3Client mockS3Client;
+	LocationHelper mockLocationHelper;
 	EntityTypeConverterImpl typeConverter;
 	Entity entity;
 	UserInfo nonAdmin;
@@ -48,19 +62,23 @@ public class EntityTypeConverterImplUnitTest {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockEntityManager = Mockito.mock(EntityManager.class);
-		typeConverter = new EntityTypeConverterImpl(mockNodeDao, mockAuthorizationManager, mockEntityManager);
+		mockS3Client = Mockito.mock(AmazonS3Client.class);
+		mockLocationHelper = Mockito.mock(LocationHelper.class);
+		typeConverter = new EntityTypeConverterImpl(mockNodeDao, mockAuthorizationManager, mockEntityManager, mockS3Client, mockLocationHelper);
 		entity = new Study();
 		entity.setId("syn123");
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);
+		when(mockEntityManager.getEntity(nonAdmin, entity.getId())).thenReturn(entity);
 		when(mockAuthorizationManager.canAccess(nonAdmin, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, null));
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testUnauthorized() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.canAccess(nonAdmin, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(false, "because I said so"));
 		// should fail
-		typeConverter.convertOldTypeToNew(nonAdmin, entity);
+		LocationableTypeConversionResult result = typeConverter.convertOldTypeToNew(nonAdmin, entity.getId());
+		assertFalse(result.getSuccess());
 		verify(mockNodeDao, never()).lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class));
 	}
 	
@@ -68,7 +86,8 @@ public class EntityTypeConverterImplUnitTest {
 	public void testAuthorized() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.canAccess(nonAdmin, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, null));
 		// should fail
-		typeConverter.convertOldTypeToNew(nonAdmin, entity);
+		LocationableTypeConversionResult result = typeConverter.convertOldTypeToNew(nonAdmin, entity.getId());
+		assertTrue(result.getSuccess());
 		// entity must be locked, etag checked and a change message setup.
 		verify(mockNodeDao).lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class));
 	}
@@ -78,18 +97,15 @@ public class EntityTypeConverterImplUnitTest {
 	 */
 	@Test
 	public void testNotLocationable() throws UnauthorizedException, DatastoreException, NotFoundException{
-		Entity[] notLocationable = new Entity[]{
-				new Project(),
-				new TableEntity(),
-				new Folder(),
-				new FileEntity(),
-		};
-		for(Entity entity: notLocationable){
-			try {
-				typeConverter.convertOldTypeToNew(nonAdmin, entity);
-			} catch (IllegalArgumentException e) {
-				assertEquals(NOT_LOCATIONABLE.name(), e.getMessage());
-			}
+		when(mockEntityManager.getEntity(nonAdmin, "1")).thenReturn(new Project());
+		when(mockEntityManager.getEntity(nonAdmin, "2")).thenReturn(new TableEntity());
+		when(mockEntityManager.getEntity(nonAdmin, "3")).thenReturn(new Folder());
+		when(mockEntityManager.getEntity(nonAdmin, "4")).thenReturn(new FileEntity());
+		String[] ids = new String[]{"1","2","3","4"};
+		for(String id: ids){
+			LocationableTypeConversionResult result = typeConverter.convertOldTypeToNew(nonAdmin, id);
+			assertFalse(result.getSuccess());
+			assertEquals(NOT_LOCATIONABLE.name(), result.getErrorMessage());
 		}
 	}
 	
@@ -101,36 +117,105 @@ public class EntityTypeConverterImplUnitTest {
 	@Test
 	public void testStudyHasChildren() throws DatastoreException, NotFoundException{
 		// A study can have children.
-		when(mockNodeDao.getChildrenIds(entity.getId())).thenReturn(new HashSet<String>(Arrays.asList("456","789")));
-		when(mockEntityManager.getEntity(nonAdmin, entity.getId(), Folder.class)).thenReturn(new Folder());
-		Entity result = typeConverter.convertOldTypeToNew(nonAdmin, entity);
+		Study study = new Study();
+		study.setId("syn123");
+		when(mockEntityManager.getEntity(nonAdmin, study.getId())).thenReturn(study);
+		when(mockNodeDao.getChildrenIds(study.getId())).thenReturn(new HashSet<String>(Arrays.asList("456","789")));
+		LocationableTypeConversionResult result = typeConverter.convertOldTypeToNew(nonAdmin, study.getId());
 		assertNotNull(result);
-		assertTrue("Study should have been converted to a folder",result instanceof Folder);
+		assertEquals("Study should have been converted to a folder",Folder.class.getName(), result.getNewType());
+	}
+	
+	@Ignore
+	@Test
+	public void testDataHasChildren() throws DatastoreException, NotFoundException{
+		Data data = new Data();
+		data.setId("syn123");
+		when(mockEntityManager.getEntity(nonAdmin, data.getId())).thenReturn(data);
+		// Only studies are allowed to have children.
+		when(mockNodeDao.getChildrenIds(data.getId())).thenReturn(new HashSet<String>(Arrays.asList("456","789")));
+		LocationableTypeConversionResult result = typeConverter.convertOldTypeToNew(nonAdmin, data.getId());
+		assertFalse(result.getSuccess());
+		assertEquals(FILES_CANNOT_HAVE_CHILDREN.name(), result.getErrorMessage());
 	}
 	
 	@Test
-	public void testDataHasChildren() throws DatastoreException, NotFoundException{
-		entity = new Data();
-		entity.setId("syn123");
-		// Only studies are allowed to have children.
-		when(mockNodeDao.getChildrenIds(entity.getId())).thenReturn(new HashSet<String>(Arrays.asList("456","789")));
+	public void testCreateFileHandleFromPathNotFound(){
+		when(mockS3Client.getObjectMetadata(anyString(), anyString())).thenThrow(new AmazonServiceException("Not found"));
+		String path = "/some/path/fileName.txt";
+		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(path);
 		try {
-			typeConverter.convertOldTypeToNew(nonAdmin, entity);
+			typeConverter.createFileHandleFromPath(path);
+			fail("Should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals(FILES_CANNOT_HAVE_CHILDREN.name(), e.getMessage());
+			assertTrue(e.getMessage().contains(path));
 		}
 	}
 	
 	@Test
-	public void testDataNoChildren() throws DatastoreException, NotFoundException{
-		entity = new Data();
-		entity.setId("syn123");
-		// no children this time.
-		when(mockNodeDao.getChildrenIds(entity.getId())).thenReturn(new HashSet<String>(0));
-		when(mockEntityManager.getEntity(nonAdmin, entity.getId(), FileEntity.class)).thenReturn(new FileEntity());
-		Entity file = typeConverter.convertOldTypeToNew(nonAdmin, entity);
-		assertNotNull(file);
-		assertTrue("Data should have been converted to a file.",file instanceof FileEntity);
+	public void testExtractFileNameFromContentDisposition(){
+		assertEquals(null, EntityTypeConverterImpl.extractFileNameFromContentDisposition(null));
+		assertEquals(null, EntityTypeConverterImpl.extractFileNameFromContentDisposition("attachment"));
+		assertEquals(null, EntityTypeConverterImpl.extractFileNameFromContentDisposition("attachment;"));
+		assertEquals(null, EntityTypeConverterImpl.extractFileNameFromContentDisposition("attachment; inline;"));
+		assertEquals("genome.jpeg", EntityTypeConverterImpl.extractFileNameFromContentDisposition("attachment; filename=genome.jpeg; inline;"));
+		assertEquals("genome.jpeg", EntityTypeConverterImpl.extractFileNameFromContentDisposition("attachment; filename=genome.jpeg "));
+		assertEquals("genome.jpeg", EntityTypeConverterImpl.extractFileNameFromContentDisposition("attachment; filename= genome.jpeg ;"));
+	}
+	
+	@Test
+	public void testExtractFileNameFromKey(){
+		assertEquals(null, EntityTypeConverterImpl.extractFileNameFromKey(null));
+		assertEquals("foo.bar", EntityTypeConverterImpl.extractFileNameFromKey("/123/456/foo.bar"));
+		assertEquals("foo.bar", EntityTypeConverterImpl.extractFileNameFromKey("123/456/foo.bar"));
+	}
+	
+	/**
+	 * See: PLFM-3228
+	 */
+	@Test
+	public void testCreateFileHandleFromRelativePath(){
+		String key = "some/path/fileName.txt";
+		// Add a slash at the front for the path.
+		String path = "/"+key;
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(10101);
+		metadata.setContentMD5("md5");
+		metadata.setContentType("text/plain");
+		metadata.setContentDisposition("attachment; filename=foo.txt");
+		// Can be found without the slash
+		when(mockS3Client.getObjectMetadata(StackConfiguration.getS3Bucket(), key)).thenReturn(metadata);
+		// cannot be found with the slash.
+		when(mockS3Client.getObjectMetadata(StackConfiguration.getS3Bucket(), path)).thenThrow(new AmazonServiceException("Not found"));
+		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(path);
+		// The call
+		S3FileHandle handle = typeConverter.createFileHandleFromPath(path);
+		assertNotNull(handle);
+		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
+		assertEquals(key, handle.getKey());
+		assertEquals(metadata.getContentMD5(), handle.getContentMd5());
+		assertEquals(""+metadata.getContentLength(), ""+handle.getContentSize());
+		assertEquals(metadata.getContentType(), handle.getContentType());
+		assertEquals("fileName.txt", handle.getFileName());
+	}
+	
+	/**
+	 * See: PLFM-3228
+	 */
+	@Test
+	public void testCreateFileHandleFromFullPath(){
+		String key = "some/path/fileName.txt";
+		String path = "https://s3.amazonaws.com/proddata.sagebase.org/"+key+"?Expires=AWS_SIGNATURE";
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(10101);
+		// Can be found without the slash
+		when(mockS3Client.getObjectMetadata(StackConfiguration.getS3Bucket(), key)).thenReturn(metadata);
+		// cannot be found with the slash.
+		when(mockS3Client.getObjectMetadata(StackConfiguration.getS3Bucket(), path)).thenThrow(new AmazonServiceException("Not found"));
+		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(key);
+		// The call
+		S3FileHandle handle = typeConverter.createFileHandleFromPath(path);
+		assertNotNull(handle);
 	}
 
 }

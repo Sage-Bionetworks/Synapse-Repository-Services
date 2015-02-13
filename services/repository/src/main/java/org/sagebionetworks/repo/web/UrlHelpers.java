@@ -198,7 +198,10 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_FILE_PREVIEW = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_PREVIEW;
 	public static final String ENTITY_VERSION_FILE_HANDLES = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_HANDLE;
 	
-	public static final String ENTITY_CONVERT_LOCATIONABLE = ENTITY_ID+"/convertLocationable";
+	public static final String ENTITY_CONVERT_LOCATIONABLE = ENTITY+"/convertLocationable";
+	public static final String ENTITY_CONVERT_LOCATIONABLE_START = ENTITY_CONVERT_LOCATIONABLE+"/start";
+	public static final String ENTITY_CONVERT_LOCATIONABLE_GET = ENTITY_CONVERT_LOCATIONABLE+"/{jobId}";
+	
 	/**
 	 * Activity URLs
 	 */

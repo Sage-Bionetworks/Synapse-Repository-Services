@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
@@ -24,6 +27,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class DynamoRdsSynchronizerTest {
 
+	@Before
+	public void before(){
+		Assume.assumeTrue(StackConfiguration.singleton().getDynamoEnabled());
+	}
 	@Test
 	public void testTheSame() {
 
