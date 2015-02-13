@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.DomainType;
@@ -1956,11 +1958,23 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public ChallengeTeamPagedResults listChallengeTeams(String challengeId, Long limit, Long offset) throws SynapseException;
 	
+
 	/**
-	 * Convert a locationable entity to its corresponding new type.
-	 * @param toConvert
+	 * Start a job to convert a list of locationable entities.
+	 * @param request
 	 * @return
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
-	public Entity convertLocationableEntity(Entity toConvert) throws SynapseException;
+	String startLocationableTypeConvertJob(
+			AsyncLocationableTypeConversionRequest request)
+			throws SynapseException;
+
+	/**
+	 * Get the results of a job to convert locationable entities.
+	 * @param jobId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(
+			String jobId) throws SynapseException;
 }

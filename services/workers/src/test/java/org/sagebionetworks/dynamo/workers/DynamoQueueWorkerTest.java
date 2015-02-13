@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -22,6 +23,7 @@ import com.amazonaws.services.sqs.model.Message;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.verify;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -35,6 +37,7 @@ public class DynamoQueueWorkerTest {
 	
 	@Before
 	public void before() {
+		Assume.assumeTrue(StackConfiguration.singleton().getDynamoEnabled());
 		mockUpdateManager = Mockito.mock(NodeTreeUpdateManager.class);
 		mockConsumer = Mockito.mock(Consumer.class);
 		mockWorkerLogger = Mockito.mock(WorkerLogger.class);

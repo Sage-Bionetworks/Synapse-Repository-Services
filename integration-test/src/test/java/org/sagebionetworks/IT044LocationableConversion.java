@@ -3,6 +3,8 @@ package org.sagebionetworks;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -14,14 +16,21 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.manager.EntityTypeConvertionError;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
 /**
  * Test for the service to convert locationables.
@@ -34,6 +43,8 @@ public class IT044LocationableConversion {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
+	
+	private static long MAX_WAIT_MS = 1000*60*5;
 	
 	private Project project;
 
@@ -71,7 +82,7 @@ public class IT044LocationableConversion {
 	}
 	
 	@Test
-	public void testConvertStudy() throws SynapseException{
+	public void testConvertStudy() throws Exception{
 		Study study = new Study();
 		study.setParentId(project.getId());
 		study.setDisease("cancer");
@@ -82,14 +93,17 @@ public class IT044LocationableConversion {
 		study.setLocations(Arrays.asList(ld));
 		study = adminSynapse.createEntity(study);
 		// Convert it to a folder
-		Folder folder = (Folder) adminSynapse.convertLocationableEntity(study);
-		assertEquals(study.getId(), folder.getId());
+		List<LocationableTypeConversionResult> results = waitForResulst(Arrays.asList(study.getId()));
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		LocationableTypeConversionResult r = results.get(0);
+		assertEquals(study.getId(), r.getEntityId());
 		// It should have a child
-		assertEquals(new Long(1), adminSynapse.getChildCount(folder.getId()));
+		assertEquals(new Long(1), adminSynapse.getChildCount(r.getEntityId()));
 	}
 	
 	@Test
-	public void testConvertNonStudyLocationable() throws SynapseException{
+	public void testConvertNonStudyLocationable() throws Exception{
 		Data data = new Data();
 		data.setParentId(project.getId());
 		data.setDisease("cancer");
@@ -100,26 +114,37 @@ public class IT044LocationableConversion {
 		data.setLocations(Arrays.asList(ld));
 		data = adminSynapse.createEntity(data);
 		// Convert it to a file
-		FileEntity file = (FileEntity) adminSynapse.convertLocationableEntity(data);
-		assertEquals(data.getId(), file.getId());
+		List<LocationableTypeConversionResult> results = waitForResulst(Arrays.asList(data.getId()));
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		LocationableTypeConversionResult r = results.get(0);
+		assertEquals(data.getId(), r.getEntityId());
 		// It should not have children
-		assertEquals(new Long(0), adminSynapse.getChildCount(file.getId()));
+		assertEquals(new Long(0), adminSynapse.getChildCount(r.getEntityId()));
 	}
 	
-	@Test
-	public void testConvertNoLocatoins() throws SynapseException{
-		Data data = new Data();
-		data.setParentId(project.getId());
-		data.setDisease("cancer");
-		data = adminSynapse.createEntity(data);
-		
-		try {
-			adminSynapse.convertLocationableEntity(data);
-			fail("should have failed");
-		} catch (SynapseException e) {
-			// The message should tell use what went wrong.
-			assertEquals(EntityTypeConvertionError.LOCATIONABLE_HAS_NO_LOCATIONS.name(), e.getMessage());
-		}
-
+	
+	/**
+	 * Wait for the results
+	 * @param locationableId
+	 * @return
+	 * @throws Exception
+	 */
+	public List<LocationableTypeConversionResult> waitForResulst(List<String> locationableId) throws Exception {
+		AsyncLocationableTypeConversionRequest request = new AsyncLocationableTypeConversionRequest();
+		request.setLocationableIdsToConvert(locationableId);
+		final String asyncToken = synapse.startLocationableTypeConvertJob(request);
+		return TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, List<LocationableTypeConversionResult>>>() {
+			@Override
+			public Pair<Boolean, List<LocationableTypeConversionResult>> call()
+					throws Exception {
+				try {
+					AsyncLocationableTypeConversionResults result = synapse.getLocationableTypeConverJobResults(asyncToken);
+					return Pair.create(true, result.getResults());
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.create(false, null);
+				}
+			}
+		});
 	}
 }

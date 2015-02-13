@@ -395,5 +395,16 @@ public interface EntityManager {
 	 * @return list of References with the current version filled in
 	 */
 	public List<Reference> getCurrentRevisionNumbers(List<String> entityIds);
+
+	/**
+	 * Get an entity with just the ID.
+	 * @param user
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 */
+	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 }

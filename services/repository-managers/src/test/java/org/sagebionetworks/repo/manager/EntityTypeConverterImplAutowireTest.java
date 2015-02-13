@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Study;
@@ -126,7 +127,7 @@ public class EntityTypeConverterImplAutowireTest {
 	public void testCreateFileHandleForForEachVersion() throws Exception {
 		Data data = createDataWithMultipleVersions();
 		// Create the files handles for all versions of this study
-		List<VersionData> pairs = entityTypeConverter.createFileHandleForForEachVersion(userInfo, data, true);
+		List<VersionData> pairs = entityTypeConverter.createFileHandleForForEachVersion(userInfo, data);
 		assertNotNull(pairs);
 		assertEquals(2, pairs.size());
 		// First version is external
@@ -156,9 +157,10 @@ public class EntityTypeConverterImplAutowireTest {
 	@Test
 	public void testConvertDataToFile() throws Exception{
 		Data data = createDataWithMultipleVersions();
-		Entity changed = entityTypeConverter.convertOldTypeToNew(userInfo, data);
-		assertTrue(changed instanceof FileEntity);
-		FileEntity file = (FileEntity) changed;
+		LocationableTypeConversionResult result = entityTypeConverter.convertOldTypeToNew(userInfo, data.getId());
+		assertTrue(result.getSuccess());
+		assertEquals(FileEntity.class.getName(), result.getNewType());
+		FileEntity file = entityManager.getEntity(userInfo, data.getId(), FileEntity.class);
 		assertEquals(data.getId(), file.getId());
 		assertFalse("The etag should have changed",data.getEtag().equals(file.getEtag()));
 		assertEquals(data.getCreatedBy(), file.getCreatedBy());
@@ -207,9 +209,10 @@ public class EntityTypeConverterImplAutowireTest {
 	@Test
 	public void testConvertStudyToFolder() throws Exception{
 		Study study = createStudyWithMultipleVersions();
-		Entity changed = entityTypeConverter.convertOldTypeToNew(userInfo, study);
-		assertTrue(changed instanceof Folder);
-		Folder folder = (Folder) changed;
+		LocationableTypeConversionResult result = entityTypeConverter.convertOldTypeToNew(userInfo, study.getId());
+		assertTrue(result.getSuccess());
+		assertEquals(Folder.class.getName(), result.getNewType());
+		Folder folder = entityManager.getEntity(userInfo, study.getId(), Folder.class);
 		assertEquals(study.getId(), folder.getId());
 		assertFalse("The etag should have changed",study.getEtag().equals(folder.getEtag()));
 		assertEquals(study.getCreatedBy(), folder.getCreatedBy());
@@ -278,8 +281,33 @@ public class EntityTypeConverterImplAutowireTest {
 		toDelete.add(id);
 		noLocations = entityManager.getEntity(adminUserInfo, id, Study.class);
 		// should convert to a simple folder
-		Entity changed = entityTypeConverter.convertOldTypeToNew(adminUserInfo, noLocations);
-		assertTrue(changed instanceof Folder);
+		LocationableTypeConversionResult result = entityTypeConverter.convertOldTypeToNew(adminUserInfo, noLocations.getId());
+		assertTrue(result.getSuccess());
+		assertEquals(Folder.class.getName(), result.getNewType());
+	}
+	
+	
+	@Test
+	public void testPLFM_3229() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		Data data = new Data();
+		data.setName("DataFile");
+		data.setParentId(project.getId());
+		data.setDisease("cancer");
+		data.setNumSamples(99L);
+		data.setTissueType("skin");
+		data.setPlatform("xbox");
+		data.setSpecies("people");
+		// Create a data with no locations.
+		String id = entityManager.createEntity(adminUserInfo, data, null);
+		data = entityManager.getEntity(adminUserInfo, id, Data.class);
+		
+		List<VersionData> pairs = entityTypeConverter.createFileHandleForForEachVersion(userInfo, data);
+		assertNotNull(pairs);
+		assertTrue(pairs.isEmpty());
+		// should be converted to a folder.
+		LocationableTypeConversionResult result = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertTrue(result.getSuccess());
+		assertEquals(Folder.class.getName(), result.getNewType());
 	}
 
 	/**
@@ -400,6 +428,8 @@ public class EntityTypeConverterImplAutowireTest {
 		locationable.setLocations(Arrays.asList(s3data));
 		if(data != null){
 			String key = locationHelper.getS3KeyFromS3Url(s3data.getPath());
+			// Remove the forward slash
+			key = key.substring(1);
 			ObjectMetadata meta = new ObjectMetadata();
 			// upload the data to S3
 			s3Client.putObject(StackConfiguration.getS3Bucket(), key, new ByteArrayInputStream(data), meta);

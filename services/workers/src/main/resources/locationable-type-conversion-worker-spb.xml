@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<!-- provides table message queue workers -->
+	<bean id="locationablTypeConversionWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.locationable.worker.LocationablTypeConversionWorker" />
+	</bean>
+	
+	<bean id="locationablTypeConversionQueue"
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
+			depends-on="stackConfiguration">
+		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[LOCATIONABLE_CONVERT_TYPE]" />
+	</bean>
+
+	<!-- Pull messages off the search queue, create works, deletes successfully 
+		processed messages -->
+	<bean id="locationablTypeConversionMessageReveiver"
+		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
+		scope="singleton">
+		<property name="messageQueue" ref="locationablTypeConversionQueue" />
+		<property name="workerFactory" ref="locationablTypeConversionWorkerFactory" />
+		<property name="maxNumberOfWorkerThreads" value="10" />
+		<property name="maxMessagePerWorker" value="1" />
+		<property name="visibilityTimeoutSec" value="60" />
+	</bean>
+
+	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+	<bean id="locationablTypeConversionSemaphoreGatedRunner"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
+		<property name="timeoutMS" value="600000" />
+		<property name="maxNumberRunners" value="20" />
+		<property name="semaphoreKey" value="locationablTypeConversion" />		
+		<property name="runner" ref="locationablTypeConversionMessageReveiver" />
+	</bean>
+
+	<!-- This trigger is used to process messages from the search queue. -->
+	<bean id="locationablTypeConversionMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="locationablTypeConversionSemaphoreGatedRunner" />
+				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="57" />
+		<property name="repeatInterval" value="1163" />
+	</bean>
+
+</beans>

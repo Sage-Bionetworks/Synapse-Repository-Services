@@ -1,0 +1,17 @@
+{
+	"description": "Response of an asynchronous that returns RowReferenceSet.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"results": {
+			"description":"The list of results",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.LocationableTypeConversionResult"
+			}
+		}
+	}
+}
