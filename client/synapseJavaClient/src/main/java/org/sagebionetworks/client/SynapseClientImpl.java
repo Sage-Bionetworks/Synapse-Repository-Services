@@ -50,6 +50,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -302,6 +303,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH
 			+ "/" + SUBMISSION + QUERY_URI;
 	private static final String EVALUATION_IDS_FILTER_PARAM = "evaluationIds";
+	private static final String TEAM_SUBMISSION_ELIGIBILITY = "/teamSubmissionEligibility";
 	private static final String SUBMISSION_ELIGIBILITY_HASH = "submissionEligibilityHash";
 
 	private static final String MESSAGE = "/message";
@@ -5544,6 +5546,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	@Override
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(String evaluationId, String teamId) 
+			throws SynapseException {
+		if (evaluationId==null)
+			throw new IllegalArgumentException("evaluationId is required.");
+		if (teamId==null)
+			throw new IllegalArgumentException("teamId is required.");
+		String url = EVALUATION_URI_PATH+"/"+evaluationId+
+				TEAM_SUBMISSION_ELIGIBILITY+"/"+teamId;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new TeamSubmissionEligibility(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		
+	}
 
 	@Override
 	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash)
@@ -5565,7 +5586,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
+	
 	@Override
 	public Submission getSubmission(String subId) throws SynapseException {
 		if (subId == null)

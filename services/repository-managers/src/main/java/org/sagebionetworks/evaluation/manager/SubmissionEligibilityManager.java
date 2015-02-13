@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -20,12 +21,12 @@ public interface SubmissionEligibilityManager {
 	 * the given evaluation.
 	 */
 	AuthorizationStatus isTeamEligible(String evalId, String teamId,
-			List<String> contributors, String submissionEligibilityHashString)
+			List<String> contributors, String submissionEligibilityHashString, Date now)
 			throws DatastoreException, NotFoundException;
 	/*
 	 * Determine whether an individual is authorized to submit to the given evaluation
 	 */
-	public AuthorizationStatus isIndividualEligible(String evalId, String principalId) throws DatastoreException, NotFoundException;
+	public AuthorizationStatus isIndividualEligible(String evalId, String principalId, Date now) throws DatastoreException, NotFoundException;
 
 	
 }

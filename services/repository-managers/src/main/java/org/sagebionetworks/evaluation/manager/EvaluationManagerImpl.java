@@ -258,8 +258,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException {
-		// TODO authorization check
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException
+	{
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canCheckTeamSubmissionEligibility(userInfo,  evalId,  teamId));
 		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId);
 	}
 	

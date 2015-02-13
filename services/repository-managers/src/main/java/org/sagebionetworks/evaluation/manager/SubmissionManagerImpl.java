@@ -3,18 +3,22 @@ package org.sagebionetworks.evaluation.manager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -68,10 +72,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
+	@Autowired
+	private SubmissionEligibilityManager submissionEligibilityManager;
 	
 	private static final int MAX_BATCH_SIZE = 500;
 	
-
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
@@ -89,6 +94,32 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
 				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionToSubmissionStatus(sub, includePrivateAnnos);
+	}
+	
+	static boolean isTeamSubmission(Submission submission, String submissionEligibilityHash) {
+		return (submission.getTeamId()!=null && submissionEligibilityHash!=null);
+	}
+	
+	static boolean isIndividualSubmission(Submission submission, String submissionEligibilityHash) {
+		return submission.getTeamId()==null && submissionEligibilityHash==null && 
+				submission.getContributors().size()==1 &&
+				submission.getContributors().iterator().next().getPrincipalId().equals(submission.getUserId());
+	}
+	
+	AuthorizationStatus checkSubmissionEligibility(UserInfo userInfo, Submission submission, String submissionEligibilityHash, Date now) throws DatastoreException, NotFoundException {
+		String evalId = submission.getEvaluationId();
+		if (isTeamSubmission(submission, submissionEligibilityHash)) {
+			List<String> contributors = new ArrayList<String>();
+			for (SubmissionContributor sc : submission.getContributors()) {
+				contributors.add(sc.getPrincipalId());
+			}
+			return submissionEligibilityManager.isTeamEligible(
+					evalId, submission.getTeamId(), contributors, submissionEligibilityHash, now);
+		} else if (isIndividualSubmission(submission, submissionEligibilityHash)) {
+			return submissionEligibilityManager.isIndividualEligible(evalId, submission.getUserId(), now);
+		} else {
+			return new AuthorizationStatus(false, "Submission is neither a valid Team or Individual Submission.");
+		}
 	}
 
 	@Override
@@ -116,6 +147,33 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					"Please fetch Entity " + entityId + " again.");
 		} 
 		
+		// let's use a single time stamp for everything we do in this transaction
+		Date now = new Date();
+		
+		// set created on date in contributors list and make sure creator is a contributor
+		Set<SubmissionContributor> scs = new HashSet<SubmissionContributor>();
+		boolean creatorIsIncluded = false;
+		if (submission.getContributors()!=null) {
+			for (SubmissionContributor sc : submission.getContributors()) {
+				// don't want to mutate an object in a hashset, so let's make a new one
+				SubmissionContributor scWithDate = new SubmissionContributor();
+				scWithDate.setPrincipalId(sc.getPrincipalId());
+				scWithDate.setCreatedOn(now);
+				scs.add(scWithDate);
+				if (scWithDate.getPrincipalId().equals(principalId)) creatorIsIncluded=true;
+			}
+		}
+		if (!creatorIsIncluded) {
+			SubmissionContributor scWithDate = new SubmissionContributor();
+			scWithDate.setPrincipalId(principalId);
+			scWithDate.setCreatedOn(now);
+			scs.add(scWithDate);
+		}
+		submission.setContributors(scs);
+		
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now));
+		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
 			submission.setName(node.getName());
@@ -130,7 +188,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setId(idGenerator.generateNewId().toString());
 				
 		// set creation date
-		submission.setCreatedOn(new Date());
+		submission.setCreatedOn(now);
 		
 		// create the Submission	
 		String submissionId = submissionDAO.create(submission);
@@ -139,7 +197,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(submissionId);
 		status.setStatus(SubmissionStatusEnum.RECEIVED);
-		status.setModifiedOn(new Date());
+		status.setModifiedOn(now);
 		
 		submissionStatusDAO.create(status);
 		

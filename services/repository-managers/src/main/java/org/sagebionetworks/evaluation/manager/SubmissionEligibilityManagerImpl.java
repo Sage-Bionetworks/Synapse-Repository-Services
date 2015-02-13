@@ -201,12 +201,11 @@ public class SubmissionEligibilityManagerImpl implements
 	 */
 	@Override
 	public AuthorizationStatus isTeamEligible(String evalId, String teamId, 
-			List<String> contributors, String submissionEligibilityHashString) throws DatastoreException, NotFoundException {
+			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
 		EvaluationQuota quota = evaluation.getQuota();
 		// if there are no quotas, then no need to check further
 		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
-		Date now = new Date();
 		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");
@@ -250,11 +249,10 @@ public class SubmissionEligibilityManagerImpl implements
 	 * - is a given user a contributor to some team submission?
 	 */
 	@Override
-	public AuthorizationStatus isIndividualEligible(String evalId, String principalId) throws DatastoreException, NotFoundException {
+	public AuthorizationStatus isIndividualEligible(String evalId, String principalId, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
 		EvaluationQuota quota = evaluation.getQuota();
 		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
-		Date now = new Date();
 		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");

@@ -23,6 +23,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -1076,6 +1077,9 @@ public interface SynapseClient extends BaseClient {
 	public Long getParticipantCount(String evalId) throws SynapseException;
 
 	public Submission createIndividualSubmission(Submission sub, String etag)
+			throws SynapseException;
+	
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(String evaluationId, String teamId) 
 			throws SynapseException;
 
 	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash)
