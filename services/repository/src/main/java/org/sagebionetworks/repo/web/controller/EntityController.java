@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
 import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeRequest;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;

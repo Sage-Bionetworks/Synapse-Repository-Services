@@ -10,7 +10,7 @@
 			"type": "array",
 			"description": "List of locationable ids to convert.",
 			"items": {
-				"type": "string",
+				"type": "string"
 			}
 		}
 	}
