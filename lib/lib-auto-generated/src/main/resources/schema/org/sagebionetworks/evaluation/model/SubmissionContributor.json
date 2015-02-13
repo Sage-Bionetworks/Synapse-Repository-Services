@@ -1,0 +1,15 @@
+{
+	"name":"SubmissionContributor",
+	"description":"A contributor to an evaluation Submission",
+	"properties":{
+		"principalId":{
+			"type":"string",
+			"description":"ID of the contributor"
+		},
+		"createdOn":{
+			"type":"string",
+			"format": "date-time",
+			"description":"date when contributor was added to Submission.  Normally this will match the creation date of the Submission, but administrative override is allowed."
+		}
+	}
+}

@@ -235,6 +235,13 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			statusAnno.setValue(subStatus.getStatus().toString());
 		}
 		insertAnnotation(statusAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+		
+		// teamId
+		LongAnnotation teamAnno = new LongAnnotation();
+		teamAnno.setIsPrivate(true);
+		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
+		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
+		insertAnnotation(teamAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 	}
 	
 	private static void insertAnnotation(AnnotationBase anno, Map<String, LongAnnotation> longAnnoMap, 

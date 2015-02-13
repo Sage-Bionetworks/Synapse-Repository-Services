@@ -44,6 +44,7 @@ import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -425,6 +426,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setEntityId(fileEntity.getId());
 		submission.setUserId(adminUserIdString);
 		submission.setEvaluationId(evaluation.getId());
+		SubmissionContributor contributor = new SubmissionContributor();
+		contributor.setPrincipalId(adminUserIdString);
+		submission.setContributors(Collections.singleton(contributor));
 		submission = entityServletHelper.createSubmission(submission, adminUserId, fileEntity.getEtag());
 	}
 

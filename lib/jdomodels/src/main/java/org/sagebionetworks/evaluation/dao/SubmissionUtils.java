@@ -3,9 +3,11 @@ package org.sagebionetworks.evaluation.dao;
 import java.io.IOException;
 import java.util.Date;
 
+import org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -41,6 +43,11 @@ public class SubmissionUtils {
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setEntityBundle(dto.getEntityBundleJSON() == null ? null : dto.getEntityBundleJSON().getBytes());
+		try {
+			dbo.setTeamId(dto.getTeamId() == null ? null : Long.parseLong(dto.getTeamId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Team ID: " + dto.getId());
+		}
 	}
 	
 	/**
@@ -59,6 +66,7 @@ public class SubmissionUtils {
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setEntityBundleJSON(dbo.getEntityBundle() == null ? null : new String(dbo.getEntityBundle()));
+		dto.setTeamId(dbo.getTeamId() == null ? null : dbo.getTeamId().toString());
 	}
 
 	/**
@@ -107,6 +115,20 @@ public class SubmissionUtils {
 		if (dto.getStatus() == null)
 			dto.setStatus(dbo.getStatusEnum());
 		dto.setStatusVersion(dbo.getVersion());
+		return dto;
+	}	
+	
+	/**
+	 * Convert a SubmissionStatus data transfer object to a SubmissionDBO database object
+	 * 
+	 * @param dbo
+	 * @param dto
+	 * @throws DatastoreException
+	 */
+	public static SubmissionContributor convertDboToDto(SubmissionContributorDBO dbo) throws DatastoreException {		
+		SubmissionContributor dto = new SubmissionContributor();
+		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setPrincipalId(dbo.getPrincipalId()==null?null:dbo.getPrincipalId().toString());
 		return dto;
 	}	
 	

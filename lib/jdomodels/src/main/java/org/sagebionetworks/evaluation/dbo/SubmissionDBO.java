@@ -8,6 +8,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_E
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
@@ -17,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
@@ -49,7 +51,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
 			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON),
-			new FieldColumn(PARAM_SUBMISSION_SUBMITTER_ALIAS, COL_SUBMISSION_SUBMITTER_ALIAS)
+			new FieldColumn(PARAM_SUBMISSION_SUBMITTER_ALIAS, COL_SUBMISSION_SUBMITTER_ALIAS),
+			new FieldColumn(PARAM_SUBMISSION_TEAM_ID, COL_SUBMISSION_TEAM_ID)
 			};
 
 	public TableMapping<SubmissionDBO> getTableMapping() {
@@ -68,6 +71,10 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_ENTITY_BUNDLE);
 				if(blob != null){
 					sub.setEntityBundle(blob.getBytes(1, (int) blob.length()));
+				}
+				{
+					sub.setTeamId(rs.getLong(COL_SUBMISSION_TEAM_ID));
+					if (rs.wasNull()) sub.setTeamId(null);
 				}
 				return sub;
 			}
@@ -99,6 +106,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	private Long versionNumber;
 	private Long createdOn;
 	private String name;
+	private Long teamId;
+	
 	public Long getId() {
 		return id;
 	}
@@ -158,6 +167,14 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	public void setName(String name) {
 		this.name = name;
 	}
+	
+	
+	public Long getTeamId() {
+		return teamId;
+	}
+	public void setTeamId(Long teamId) {
+		this.teamId = teamId;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -172,6 +189,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((submitterAlias == null) ? 0 : submitterAlias.hashCode());
+		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		result = prime * result
 				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
@@ -217,6 +235,11 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			if (other.submitterAlias != null)
 				return false;
 		} else if (!submitterAlias.equals(other.submitterAlias))
+			return false;
+		if (teamId == null) {
+			if (other.teamId != null)
+				return false;
+		} else if (!teamId.equals(other.teamId))
 			return false;
 		if (userId == null) {
 			if (other.userId != null)

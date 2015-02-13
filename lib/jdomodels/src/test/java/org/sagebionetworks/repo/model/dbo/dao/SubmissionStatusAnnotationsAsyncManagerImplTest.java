@@ -47,6 +47,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	private static final Long EVAL_ID_AS_LONG = Long.parseLong(EVAL_ID);
 	private static final String EVAL_SUB_ETAG = "someEvalSubEtag-00000";
 	private static final Long STATUS_VERSION = 7L;
+	private static final String TEAM_ID = "1010101";
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException, JSONObjectAdapterException{
@@ -63,6 +64,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		submission.setName("my submission");
 		submission.setSubmitterAlias("team awesome");
 		submission.setUserId("000");
+		submission.setTeamId(TEAM_ID);
 		submission.setVersionNumber(1L);
 		
 		// SubmissionStatus
@@ -173,6 +175,14 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		statusAnno.setKey(DBOConstants.PARAM_SUBSTATUS_STATUS);
 		statusAnno.setValue(subStatus.getStatus().toString());
 		annos.getStringAnnos().add(statusAnno);
+		
+		// submission Team ID
+		LongAnnotation teamAnno = new LongAnnotation();
+		teamAnno.setIsPrivate(true);
+		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
+		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
+		annos.getLongAnnos().add(teamAnno);
+		
 	}
 	
 	@Test
