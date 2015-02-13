@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -310,6 +309,44 @@ public class EntityTypeConverterImplAutowireTest {
 		assertEquals(Folder.class.getName(), result.getNewType());
 	}
 
+	/**
+	 * PLFM-3232 Locationable conversion does not change the annotations when there are no files
+	 */
+	@Test
+	public void testPLFM_3232() throws Exception{
+		Study noLocations = new Study();
+		noLocations.setParentId(project.getParentId());
+		noLocations.setName("no locations");
+		// This should get converted to an annotation.
+		noLocations.setPlatform("xbox");
+		String id = entityManager.createEntity(adminUserInfo, noLocations, null);
+		toDelete.add(id);
+		noLocations = entityManager.getEntity(adminUserInfo, id, Study.class);
+		// should convert to a simple folder
+		LocationableTypeConversionResult result = entityTypeConverter.convertOldTypeToNew(adminUserInfo, noLocations.getId());
+		assertTrue(result.getSuccess());
+		assertEquals(Folder.class.getName(), result.getNewType());
+		
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, noLocations.getId());
+		assertEquals(noLocations.getPlatform(), annos.getSingleValue("platform"));
+	}
+	
+	/**
+	 * PLFM-3231 Locationable migration needs to fail for the case where only some versions have a file
+	 */
+	@Test
+	public void testPLFM_3231() throws Exception{
+		Data data = createDataWithMultipleVersions();
+		// Add a new version that does not have any file data
+		data.getLocations().clear();
+		data.setVersionLabel("v3");
+		entityManager.updateEntity(adminUserInfo, data, true, null);
+		data = entityManager.getEntity(adminUserInfo, data.getId(), Data.class);
+		// convert should fail
+		LocationableTypeConversionResult result = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertFalse(result.getSuccess());
+		assertEquals(EntityTypeConvertionError.SOME_VERSIONS_HAVE_FILES_OTHERS_DO_NOT.name(), result.getErrorMessage());
+	}
 	/**
 	 * Helper to create a data object with multiple versions.
 	 * @return

@@ -64,8 +64,6 @@ public class LocationablTypeConversionWorkerIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		toConvert = Lists.newArrayList();
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
