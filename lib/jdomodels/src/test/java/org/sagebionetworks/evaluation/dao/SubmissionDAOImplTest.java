@@ -3,6 +3,7 @@ package org.sagebionetworks.evaluation.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.REJECTED;
 
@@ -80,6 +81,7 @@ public class SubmissionDAOImplTest {
     private static final String SUBMISSION_ID = "206";
     private static final String SUBMISSION_2_ID = "307";
     private static final String SUBMISSION_3_ID = "408";
+    private static final String SUBMISSION_4_ID = "509";
     private static final String USERID_DOES_NOT_EXIST = "2";
     private static final String EVALID_DOES_NOT_EXIST = "456";
     private static final String SUBMISSION_NAME = "test submission";
@@ -96,6 +98,7 @@ public class SubmissionDAOImplTest {
     private Submission submission2;
     private Submission submission3;
     private Team submissionTeam;
+    private Team submissionTeam2;
     
     // create a team and add the given ID as a member
 	private Team createTeam(String ownerId) throws NotFoundException {
@@ -207,18 +210,26 @@ public class SubmissionDAOImplTest {
     
     @After
     public void tearDown() throws DatastoreException, NotFoundException  {
-    	for (String id : new String[]{SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID}) {
+    	for (String id : new String[]{SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID, SUBMISSION_4_ID}) {
     		try {
     			submissionDAO.delete(id);
     		} catch (NotFoundException e)  {};
     	}
 			
-		deleteTeam(submissionTeam);
-		submissionTeam=null;
+    	if (submissionTeam!=null) {
+    		deleteTeam(submissionTeam);
+    		submissionTeam=null;
+    	}
+		
+    	if (submissionTeam2!=null) {
+    		deleteTeam(submissionTeam2);
+    		submissionTeam2=null;
+    	}
 		
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
+		
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
@@ -642,9 +653,56 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
-    public void testGetTeamMembersSubmittingElsewhere() throws Exception {
-    	
-    }
+    public void testGetTeamMembersSubmittingElsewhereNoTraitors() throws Exception {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
+     	submissionDAO.create(submission2);
+     	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
+    	submissionDAO.create(submission3);
+     	createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
+      	     	
+     	Date startDateIncl = new Date(CREATION_TIME_STAMP-1000L);
+     	Date endDateExcl = new Date(CREATION_TIME_STAMP+1000L);
+     	Set<SubmissionStatusEnum> statuses = new HashSet<SubmissionStatusEnum>();
+     	statuses.add(SubmissionStatusEnum.SCORED);
+
+     	assertTrue(submissionDAO.getTeamMembersSubmittingElsewhere(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), startDateIncl, endDateExcl, statuses).isEmpty());
+     }
+    
+    @Test
+    public void testGetTeamMembersSubmittingElsewhereOtherIndividSub() throws Exception {
+     	// have userId2 make an individual submission
+        Submission individSub = newSubmission(SUBMISSION_4_ID, userId2, new Date(CREATION_TIME_STAMP));
+        SubmissionContributor submissionContributor = new SubmissionContributor();
+        submissionContributor.setPrincipalId(userId2);
+        individSub.setContributors(Collections.singleton(submissionContributor));
+    	submissionDAO.create(individSub);
+     	createSubmissionStatus(SUBMISSION_4_ID, SubmissionStatusEnum.SCORED);
+       
+     	assertEquals(
+     			Collections.singletonList(Long.parseLong(userId2)),
+     			submissionDAO.getTeamMembersSubmittingElsewhere(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), null, null, null));
+     }
+    
+    @Test
+    public void testGetTeamMembersSubmittingElsewhereOtherTeamSub() throws Exception {
+     	// have userId2 make a Team submission
+        Submission individSub = newSubmission(SUBMISSION_4_ID, userId2, new Date(CREATION_TIME_STAMP));
+        submissionTeam2 = createTeam(userId2);
+        individSub.setTeamId(submissionTeam2.getId());
+        SubmissionContributor submissionContributor = new SubmissionContributor();
+        submissionContributor.setPrincipalId(userId2);
+        individSub.setContributors(Collections.singleton(submissionContributor));
+    	submissionDAO.create(individSub);
+     	createSubmissionStatus(SUBMISSION_4_ID, SubmissionStatusEnum.SCORED);
+       
+     	assertEquals(
+     			Collections.singletonList(Long.parseLong(userId2)),
+     			submissionDAO.getTeamMembersSubmittingElsewhere(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), null, null, null));
+     }
     
     @Test
     public void testHasContributedToTeamSubmission() throws Exception {

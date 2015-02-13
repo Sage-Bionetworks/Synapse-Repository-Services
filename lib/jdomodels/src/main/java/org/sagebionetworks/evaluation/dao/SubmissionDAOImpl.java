@@ -509,9 +509,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
 		sql.append(GROUP_BY_CONTRIBUTOR);
 		final List<Long> result = new ArrayList<Long>();
+		String sqlString = sql.toString();
 		// note: rather than get the result from the returned values of 'query()', we
 		// insert directly into the desired list data structure, 'result'.
-		simpleJdbcTemplate.query(sql.toString(), 
+		simpleJdbcTemplate.query(sqlString, 
 				new RowMapper<Void>() {
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum)
