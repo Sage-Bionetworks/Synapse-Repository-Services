@@ -4,12 +4,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.REJECTED;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -24,7 +27,6 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import static org.sagebionetworks.evaluation.model.SubmissionStatusEnum.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -77,6 +79,7 @@ public class SubmissionDAOImplTest {
 	
     private static final String SUBMISSION_ID = "206";
     private static final String SUBMISSION_2_ID = "307";
+    private static final String SUBMISSION_3_ID = "408";
     private static final String USERID_DOES_NOT_EXIST = "2";
     private static final String EVALID_DOES_NOT_EXIST = "456";
     private static final String SUBMISSION_NAME = "test submission";
@@ -91,6 +94,7 @@ public class SubmissionDAOImplTest {
     private String fileHandleId;
     private Submission submission;
     private Submission submission2;
+    private Submission submission3;
     private Team submissionTeam;
     
     // create a team and add the given ID as a member
@@ -171,8 +175,10 @@ public class SubmissionDAOImplTest {
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
         // Initialize Submissions
+        // submission has no team and no contributors
         submission = newSubmission(SUBMISSION_ID, userId, new Date(CREATION_TIME_STAMP));
         
+        // submission2 is a Team submission with two contributors, userId and userId2
         submission2 = newSubmission(SUBMISSION_2_ID, userId2, new Date(CREATION_TIME_STAMP));
         submissionTeam = createTeam(userId2);
         submission2.setTeamId(submissionTeam.getId());
@@ -185,16 +191,27 @@ public class SubmissionDAOImplTest {
 		submissionContributor = new SubmissionContributor();
         submissionContributor.setPrincipalId(userId);
         scs.add(submissionContributor);
+        
+        // submission3 is a Team submission with one contributor, userId2
+        submission3 = newSubmission(SUBMISSION_3_ID, userId2, new Date(CREATION_TIME_STAMP));
+        submission3.setTeamId(submissionTeam.getId());
+        submissionContributor = new SubmissionContributor();
+        submissionContributor.setPrincipalId(userId2);
+        scs = new HashSet<SubmissionContributor>();
+        submission3.setContributors(scs);
+        scs.add(submissionContributor);
+        
+        
+        
     }
     
     @After
     public void tearDown() throws DatastoreException, NotFoundException  {
-		try {
-			submissionDAO.delete(SUBMISSION_ID);
-		} catch (NotFoundException e)  {};
-		try {
-			submissionDAO.delete(SUBMISSION_2_ID);
-		} catch (NotFoundException e)  {};
+    	for (String id : new String[]{SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID}) {
+    		try {
+    			submissionDAO.delete(id);
+    		} catch (NotFoundException e)  {};
+    	}
 			
 		deleteTeam(submissionTeam);
 		submissionTeam=null;
@@ -527,7 +544,7 @@ public class SubmissionDAOImplTest {
     public void testQueryTeamSubmissions() throws Exception {
     	submissionDAO.create(submission);
      	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
-     	    	submissionDAO.create(submission2);
+     	submissionDAO.create(submission2);
       	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
       	     	
      	Date startDateIncl = new Date(CREATION_TIME_STAMP-1000L);
@@ -535,11 +552,11 @@ public class SubmissionDAOImplTest {
      	Set<SubmissionStatusEnum> statuses = new HashSet<SubmissionStatusEnum>();
      	statuses.add(SubmissionStatusEnum.SCORED);
      	
-     	// happy case
+      	// happy case
      	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
       			Long.parseLong(submissionTeam.getId()), startDateIncl, endDateExcl, statuses));
       	// also works if start, end or status filters are omitted
-     	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
+       	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
       			Long.parseLong(submissionTeam.getId()), null, null, null));
     	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
       			Long.parseLong(submissionTeam.getId()), startDateIncl, null, null));
@@ -554,11 +571,102 @@ public class SubmissionDAOImplTest {
     	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
       			Long.parseLong(submissionTeam.getId()), new Date(CREATION_TIME_STAMP), endDateExcl, statuses));
       	// fails if outside time range
-     	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
+     	assertEquals(0L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
+      			Long.parseLong(submissionTeam.getId()), new Date(CREATION_TIME_STAMP+10L), endDateExcl, statuses));
+     	assertEquals(0L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
       			Long.parseLong(submissionTeam.getId()), startDateIncl, new Date(CREATION_TIME_STAMP), statuses));
      	// fails if we look for a different status
-    	assertEquals(1L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
-      			Long.parseLong(submissionTeam.getId()), startDateIncl, endDateExcl, Collections.singleton(REJECTED)));
+    	assertEquals(0L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
+      			Long.parseLong(submissionTeam.getId()), null, null, Collections.singleton(REJECTED)));
+    	// fails if we look for a different Team
+       	assertEquals(0L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId), 
+      			Long.parseLong(submissionTeam.getId())-100L, null, null, null));
+       	// fails if we look for a different evaluation
+       	assertEquals(0L, submissionDAO.countSubmissionsByTeam(Long.parseLong(evalId)-100L, 
+      			Long.parseLong(submissionTeam.getId()), null, null, null));
     	
+    }
+    
+    @Test
+    public void testCountSubmissionsByTeamMembers() throws Exception {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
+     	submissionDAO.create(submission2);
+     	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
+    	submissionDAO.create(submission3);
+     	createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
+      	     	
+     	Date startDateIncl = new Date(CREATION_TIME_STAMP-1000L);
+     	Date endDateExcl = new Date(CREATION_TIME_STAMP+1000L);
+     	Set<SubmissionStatusEnum> statuses = new HashSet<SubmissionStatusEnum>();
+     	statuses.add(SubmissionStatusEnum.SCORED);
+     	
+     	// happy case
+     	Map<Long,Long> expected = new HashMap<Long,Long>();
+    	expected.put(Long.parseLong(userId), 1L); // userId contributed to submission2
+    	expected.put(Long.parseLong(userId2), 2L); // userId2 contributed to submission2, submission3
+     	assertEquals(expected, submissionDAO.countSubmissionsByTeamMembers(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), null, null, null));
+     	assertEquals(expected, submissionDAO.countSubmissionsByTeamMembers(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), startDateIncl, endDateExcl, statuses));
+     	
+     	// what if one submission doesn't match our criteria?
+     	SubmissionStatus sub3Status = submissionStatusDAO.get(SUBMISSION_3_ID);
+     	sub3Status.setStatus(REJECTED);
+     	submissionStatusDAO.update(Collections.singletonList(sub3Status));
+     	assertEquals(expected, submissionDAO.countSubmissionsByTeamMembers(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), null, null, null));
+       	expected.put(Long.parseLong(userId2), 1L);
+    	assertEquals(expected, submissionDAO.countSubmissionsByTeamMembers(Long.parseLong(evalId), 
+			Long.parseLong(submissionTeam.getId()), startDateIncl, endDateExcl, statuses));
+     }
+    
+    @Test
+    public void testCountSubmissionsByContributor() throws Exception {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
+     	submissionDAO.create(submission2);
+     	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
+    	submissionDAO.create(submission3);
+     	createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
+      	     	
+     	Date startDateIncl = new Date(CREATION_TIME_STAMP-1000L);
+     	Date endDateExcl = new Date(CREATION_TIME_STAMP+1000L);
+     	Set<SubmissionStatusEnum> statuses = new HashSet<SubmissionStatusEnum>();
+     	statuses.add(SubmissionStatusEnum.SCORED);
+
+    	assertEquals(1L, submissionDAO.countSubmissionsByContributor(Long.parseLong(evalId), 
+			Long.parseLong(userId), startDateIncl, endDateExcl, statuses));
+    	assertEquals(2L, submissionDAO.countSubmissionsByContributor(Long.parseLong(evalId), 
+			Long.parseLong(userId2), startDateIncl, endDateExcl, statuses));
+    }
+    
+    @Test
+    public void testGetTeamMembersSubmittingElsewhere() throws Exception {
+    	
+    }
+    
+    @Test
+    public void testHasContributedToTeamSubmission() throws Exception {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
+     	submissionDAO.create(submission2);
+     	createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
+    	submissionDAO.create(submission3);
+     	createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
+      	     	
+     	Date startDateIncl = new Date(CREATION_TIME_STAMP-1000L);
+     	Date endDateExcl = new Date(CREATION_TIME_STAMP+1000L);
+     	Set<SubmissionStatusEnum> statuses = new HashSet<SubmissionStatusEnum>();
+     	statuses.add(SubmissionStatusEnum.SCORED);
+
+    	assertEquals(true, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
+			Long.parseLong(userId), startDateIncl, endDateExcl, statuses));
+    	assertEquals(true, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
+			Long.parseLong(userId2), startDateIncl, endDateExcl, statuses));
+    	
+    	submissionDAO.delete(SUBMISSION_2_ID);
+       	assertEquals(false, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
+    			Long.parseLong(userId), startDateIncl, endDateExcl, statuses));
     }
 }

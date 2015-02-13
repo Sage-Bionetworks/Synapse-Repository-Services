@@ -145,11 +145,13 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
 			" AND sb."+COL_SUBMISSION_ID+"=sc."+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+
 			" AND sb."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID;
+	
+	private static final String SUBMISSION_COUNT_LABEL = "SUBMISSION_COUNT";
 
 	// Quota Query:  For each team member, count the submissions they contributed to.
 	private static final String COUNT_SUBMISSIONS_FROM_TEAM_MEMBERS = 
 			"SELECT sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+
-			", COUNT("+COL_SUBMISSION_ID+")"+
+			", COUNT(sb."+COL_SUBMISSION_ID+") AS "+SUBMISSION_COUNT_LABEL+
 			COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM+
 			", "+TABLE_GROUP_MEMBERS+" gm "+
 			COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_WHERE+
@@ -158,21 +160,21 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	// Quota Query: Count the submissions by a single contributor
 	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR = 
-			"SELECT COUNT("+COL_SUBMISSION_ID+")"+
+					"SELECT COUNT(sb."+COL_SUBMISSION_ID+") AS "+SUBMISSION_COUNT_LABEL+
 					COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM+
 					COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_WHERE+
 					" AND sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID+"=:"+
 					COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
 
 	private static final String GROUP_BY_CONTRIBUTOR =
-			"GROUP BY "+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
+			" GROUP BY sc."+COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
 
 	private static final String SUBMIT_ELSEWHERE_CLAUSE = 
 			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NULL OR sb."+COL_SUBMISSION_TEAM_ID+
-			"<> gm."+COL_GROUP_MEMBERS_GROUP_ID;
+			"<> gm."+COL_GROUP_MEMBERS_GROUP_ID+") ";
 
 	private static final String IS_TEAM_SUBMISSION_CLAUSE = 
-			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NOT NULL";
+			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NOT NULL)";
 
 	//------    end Submission eligibility related query strings -----
 
@@ -458,16 +460,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
 		sql.append(GROUP_BY_CONTRIBUTOR);
 		final Map<Long,Long> result = new HashMap<Long,Long>();
+		String sqlString = sql.toString();
 		// note: rather than get the result from the returned values of 'query()', we
 		// insert directly into the desired Map data structure, 'result'.
-		simpleJdbcTemplate.query(sql.toString(), 
+		simpleJdbcTemplate.query(sqlString, 
 				new RowMapper<Void>() {
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				result.put(
 						rs.getLong(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID), 
-						rs.getLong(COL_SUBMISSION_ID));
+						rs.getLong(SUBMISSION_COUNT_LABEL));
 				return null;
 			}
 
@@ -513,7 +516,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
-				if (rs.getLong(COL_SUBMISSION_ID)>0) {
+				if (rs.getLong(SUBMISSION_COUNT_LABEL)>0) {
 					result.add(rs.getLong(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID));
 				}
 				return null;
