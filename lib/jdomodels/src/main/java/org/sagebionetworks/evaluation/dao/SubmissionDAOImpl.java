@@ -1,9 +1,9 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
@@ -126,17 +126,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			"SELECT COUNT(*) FROM "+TABLE_SUBMISSION+" sb, "+TABLE_SUBSTATUS+" ss "+
 					" WHERE sb."+COL_SUBMISSION_ID+"=ss."+COL_SUBSTATUS_SUBMISSION_ID+
 					" AND sb."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID+
-					" AND ss."+COL_SUBMISSION_TEAM_ID+"=:"+COL_SUBMISSION_TEAM_ID;
+					" AND sb."+COL_SUBMISSION_TEAM_ID+"=:"+COL_SUBMISSION_TEAM_ID;
 
 	private static final String CREATED_ON_BEFORE_PARAM = COL_SUBMISSION_CREATED_ON+"_BEFORE";
 
 	private static final String SUBMISSION_CREATED_BEFORE = 
-			" AND ss."+COL_SUBMISSION_CREATED_ON+"<:"+CREATED_ON_BEFORE_PARAM;
+			" AND sb."+COL_SUBMISSION_CREATED_ON+"<:"+CREATED_ON_BEFORE_PARAM;
 
 	private static final String CREATED_ON_AFTER_PARAM = COL_SUBMISSION_CREATED_ON+"_AFTER";
 
 	private static final String SUBMISSION_CREATED_ON_OR_AFTER = 
-			" AND ss."+COL_SUBMISSION_CREATED_ON+">=:"+CREATED_ON_AFTER_PARAM;
+			" AND sb."+COL_SUBMISSION_CREATED_ON+">=:"+CREATED_ON_AFTER_PARAM;
 
 	private static final String COUNT_SUBMISSIONS_FROM_CONTRIBUTOR_FROM = 
 			" FROM "+TABLE_SUBMISSION+" sb, "+TABLE_SUBSTATUS+" ss, "+TABLE_SUBMISSION_CONTRIBUTOR+" sc ";
@@ -405,7 +405,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}	
 
 	private static String subStatusInClause(int n) {
-		return " AND sb."+COL_SUBSTATUS_STATUS+ListQueryUtils.selectListInClause(n);	
+		return " AND ss."+COL_SUBSTATUS_STATUS+ListQueryUtils.selectListInClause(n);	
 	}
 
 	/*
@@ -420,24 +420,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
 		param.addValue(COL_SUBMISSION_TEAM_ID, teamId);
 
-		if (startDateIncl!=null) {
-			sql.append(SUBMISSION_CREATED_ON_OR_AFTER);
-			param.addValue(CREATED_ON_AFTER_PARAM, startDateIncl.getTime());
-		}
-
-		if (endDateExcl!=null) {
-			sql.append(SUBMISSION_CREATED_BEFORE);
-			param.addValue(CREATED_ON_BEFORE_PARAM, startDateIncl.getTime());
-		}
-
-		if (statuses!=null && !statuses.isEmpty()) {
-			int i=0;
-			for (SubmissionStatusEnum status : statuses) {
-				param.addValue(ListQueryUtils.bindVariable(i++), status);
-			}
-			sql.append(subStatusInClause(statuses.size()));
-		}
-		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
+		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
+		String sqlString = sql.toString();
+		return simpleJdbcTemplate.queryForLong(sqlString, param);
 	}
 
 	private static void addStartEndAndStatusClauses(StringBuilder sql, MapSqlParameterSource param,
@@ -448,12 +433,12 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		}
 		if (endDateExcl!=null) {
 			sql.append(SUBMISSION_CREATED_BEFORE);
-			param.addValue(CREATED_ON_BEFORE_PARAM, startDateIncl.getTime());
+			param.addValue(CREATED_ON_BEFORE_PARAM, endDateExcl.getTime());
 		}
 		if (statuses!=null && !statuses.isEmpty()) {
 			int i=0;
 			for (SubmissionStatusEnum status : statuses) {
-				param.addValue(ListQueryUtils.bindVariable(i++), status);
+				param.addValue(ListQueryUtils.bindVariable(i++), status.ordinal());
 			}
 			sql.append(subStatusInClause(statuses.size()));
 		}
