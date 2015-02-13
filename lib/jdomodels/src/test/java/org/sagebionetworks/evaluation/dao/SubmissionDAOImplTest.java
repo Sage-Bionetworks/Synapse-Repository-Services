@@ -310,6 +310,14 @@ public class SubmissionDAOImplTest {
         sc.setPrincipalId(userId);
         sc.setCreatedOn(new Date());
         submissionDAO.addSubmissionContributor(SUBMISSION_ID, sc);
+        
+        // test that you can't add it twice
+        try {
+        	submissionDAO.addSubmissionContributor(SUBMISSION_ID, sc);
+        	fail("IllegalArgumentException expected");
+        } catch (IllegalArgumentException e) {
+        	// as expected
+        }
                 
         // fetch it
         Submission clone = submissionDAO.get(SUBMISSION_ID);

@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -233,6 +234,12 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 				dto.getPrincipalId(), dto.getCreatedOn(), submissionId);
 		try {
 			basicDao.createNew(dbo);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new IllegalArgumentException("The specified user may already be a contributor to this submission.", e);
+			} else {
+				throw e;
+			}
 		} catch (Exception e) {
 			throw new DatastoreException("Failed to add contributor " + dbo.getPrincipalId() +
 					" to submission " + submissionId, e);
