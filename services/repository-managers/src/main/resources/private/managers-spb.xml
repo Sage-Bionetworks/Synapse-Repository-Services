@@ -343,4 +343,5 @@
 		
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
     
+	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
 </beans>

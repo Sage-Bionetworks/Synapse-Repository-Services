@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +20,6 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.SubmissionTeam;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -70,63 +73,29 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static final String SELECT_REGISTRATABLE_TEAMS_COUNT = 
 		"SELECT count(*) FROM "+REGISTRATABLE_TEAMS_CORE;
 	
-	// find the teams in which 
-	// (1) the user is an admin, OR
-	// (2) the team is registered for the challenge and the user is a member
-	/// Note the use of "UNION" to combine the lists
+	// find the teams in which the team is registered for the challenge and the user is a member
 	// In the following the parameters are:
-	// 1 - member ID of interest
-	// 2 - challenge ID of interest
-	// 3 - member ID of interest
-	private static final String CAN_SUBMIT_OR_REGISTER_CORE = 
-		"((SELECT t."+COL_TEAM_ID+" as "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+ADMIN_TEAMS_CORE+
-		") UNION ("+
-		"SELECT gm."+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_CHALLENGE_TEAM+" ct "+
+	// 1 - challenge ID of interest
+	// 2 - member ID of interest
+	private static final String CAN_SUBMIT_CORE = 
+		TABLE_GROUP_MEMBERS+" gm, "+TABLE_CHALLENGE_TEAM+" ct "+
 		" WHERE gm."+COL_GROUP_MEMBERS_GROUP_ID+"=ct."+COL_CHALLENGE_TEAM_TEAM_ID+
 		" AND ct."+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?"+
-		" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?))";
+		" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=?";
 
-	private static final String SPECIFIED_CHALLENGE_COL_LABEL = "SPECIFIED_CHALLENGE";
-	
 	// This SQL query selects submission teams, annotated by whether the
 	// teams are already registered for the challenge
 	// In the following the parameters are:
 	// 1 - challenge ID
-	// 2 - challenge ID
-	// 3 - member ID
-	// 4 - challenge ID
-	// 5 - member ID	
-	// 6 - limit
-	// 7 - offset
-	private static final String SELECT_CAN_SUBMIT_OR_REGISTER_PAGINATED = 
-		"SELECT ? AS "+SPECIFIED_CHALLENGE_COL_LABEL+", gm."+
-		COL_GROUP_MEMBERS_GROUP_ID+", is_registered."+COL_CHALLENGE_TEAM_TEAM_ID+
-		" FROM "+
-		TABLE_GROUP_MEMBERS+" gm LEFT JOIN "+TABLE_CHALLENGE_TEAM+" is_registered ON "+
-		" is_registered."+COL_CHALLENGE_TEAM_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
-		" AND is_registered."+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?"+
-		" WHERE "+
-		" gm.group_id IN (SELECT u."+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
-		CAN_SUBMIT_OR_REGISTER_CORE+" u) "+
-		LIMIT_OFFSET;
+	// 2 - member ID	
+	// 3 - limit
+	// 4 - offset
+	private static final String SELECT_CAN_SUBMIT_PAGINATED = 
+			"SELECT gm."+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+CAN_SUBMIT_CORE+LIMIT_OFFSET;
 	
 	// This is the 'count' SQL query that goes with the 'paginated' query, above
-	private static final String SELECT_CAN_SUBMIT_OR_REGISTER_COUNT = 
-			"SELECT COUNT(*) FROM "+CAN_SUBMIT_OR_REGISTER_CORE+" u";
-	
-	private static RowMapper<SubmissionTeam> SUBMISSION_TEAM_MAPPER = new RowMapper<SubmissionTeam>(){
-		@Override
-		public SubmissionTeam mapRow(ResultSet rs, int rowNum)
-				throws SQLException {
-			SubmissionTeam row = new SubmissionTeam();
-			row.setChallengeId(rs.getString(SPECIFIED_CHALLENGE_COL_LABEL));
-			row.setTeamId(rs.getString(COL_GROUP_MEMBERS_GROUP_ID));
-			row.setIsRegistered(rs.getString(COL_CHALLENGE_TEAM_TEAM_ID)!=null);
-			return row;
-		}
-	};
-
-	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
+	private static final String SELECT_CAN_SUBMIT_COUNT = 
+			"SELECT COUNT(*) FROM "+CAN_SUBMIT_CORE;
 	
 	private static TableMapping<DBOChallengeTeam> DBO_CHALLENGE_TEAM_TABLE_MAPPING =
 			(new DBOChallengeTeam()).getTableMapping();
@@ -206,7 +175,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 					new SinglePrimaryKeySqlParameterSource(dto.getId()));
 			
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.");
+			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
 		}
 		if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
 			throw new IllegalArgumentException(
@@ -275,24 +244,19 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 
 	/*
-	 * Returns a list of Teams which the user is a member and  
-	 * (1) is registered for the challenge  OR
-	 * (2) the user is an admin
+	 * Returns a list of Teams which the user is a member and are registered for the challenge 
 	 */
 	@Override
-	public List<SubmissionTeam> listSubmissionTeams(long challengeId,
+	public List<String> listSubmissionTeams(long challengeId,
 			long submitterPrincipalId, long limit, long offset) {
-		String sql = SELECT_CAN_SUBMIT_OR_REGISTER_PAGINATED;
-		return jdbcTemplate.query(SELECT_CAN_SUBMIT_OR_REGISTER_PAGINATED, SUBMISSION_TEAM_MAPPER,
-				challengeId, challengeId, submitterPrincipalId,
-				challengeId, submitterPrincipalId,
-				limit, offset);
+		return jdbcTemplate.queryForList(SELECT_CAN_SUBMIT_PAGINATED, String.class,
+				challengeId, submitterPrincipalId, limit, offset);
 	}
 
 	@Override
 	public long listSubmissionTeamsCount(long challengeId,
 			long submitterPrincipalId) {
-		return jdbcTemplate.queryForObject(SELECT_CAN_SUBMIT_OR_REGISTER_COUNT, Long.class, 
-				submitterPrincipalId, challengeId, submitterPrincipalId);
+		return jdbcTemplate.queryForObject(SELECT_CAN_SUBMIT_COUNT, Long.class, 
+				challengeId, submitterPrincipalId);
 	}
 }

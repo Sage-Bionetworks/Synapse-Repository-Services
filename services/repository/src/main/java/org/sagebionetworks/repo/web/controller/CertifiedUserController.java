@@ -27,8 +27,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * To become a Synapse Certified User you must pass a test.  The Synapse APIs include
  * a service to provide the test and a service to submit a test result.  There are also
  * administrative services to retrieve the history of test submissions.
- * 
- * @author brucehoff
  *
  */
 @ControllerInfo(displayName="Certified User Services", path="repo/v1")

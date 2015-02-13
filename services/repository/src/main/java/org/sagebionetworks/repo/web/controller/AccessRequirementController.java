@@ -82,7 +82,16 @@ public class AccessRequirementController extends BaseController {
 			@RequestBody AccessRequirement accessRequirement) throws Exception {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}	
-	
+	/**
+	 * Get an Access Requirement to an Entity, Evaluation queue, or Team based on its ID.  
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.GET)
 	public @ResponseBody

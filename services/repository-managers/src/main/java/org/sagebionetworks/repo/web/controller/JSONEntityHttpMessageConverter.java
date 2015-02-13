@@ -225,7 +225,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 				headers.setContentLength(length);
 			}
 		} catch (JSONObjectAdapterException e) {
-			throw new HttpMessageNotWritableException(e.getMessage());
+			throw new HttpMessageNotWritableException(e.getMessage(), e);
 		}
 
 	}

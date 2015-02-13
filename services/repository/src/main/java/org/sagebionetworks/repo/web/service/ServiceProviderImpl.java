@@ -71,6 +71,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private LogService logService;
 	@Autowired
 	private ProjectSettingsService projectSettingsService;
+	@Autowired
+	private ChallengeService challengeService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -183,4 +185,11 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public ProjectSettingsService getProjectSettingsService() {
 		return projectSettingsService;
 	}
+	
+	
+	@Override
+	public ChallengeService getChallengeService() {
+		return challengeService;
+	}
+	
 }

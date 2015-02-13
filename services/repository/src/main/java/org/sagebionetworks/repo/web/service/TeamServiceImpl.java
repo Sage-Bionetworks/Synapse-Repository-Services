@@ -3,13 +3,13 @@
  */
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.logging.log4j.LogManager;
@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.Team;
@@ -92,6 +93,11 @@ public class TeamServiceImpl implements TeamService {
 	public PaginatedResults<Team> get(long limit, long offset)
 			throws DatastoreException {
 		return teamManager.list(limit, offset);
+	}
+
+	@Override
+	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
+		return teamManager.list(ids);
 	}
 
 	private static Comparator<Team> teamComparator = new Comparator<Team>() {
@@ -242,6 +248,11 @@ public class TeamServiceImpl implements TeamService {
 		SortedMap<String, Collection<TeamMember>> matched = teamSpecificMemberPrefixCache.prefixMap(fragment.toLowerCase());
 		List<TeamMember> fullList = PrefixCacheHelper.flatten(matched, teamMemberComparator);
 		return PaginatedResultsUtil.createPaginatedResults(fullList, limit, offset);
+	}
+	
+	@Override
+	public ListWrapper<TeamMember> listTeamMembers(Long teamId, Set<Long> memberIds) throws DatastoreException, NotFoundException {
+		return teamManager.listMembers(teamId, memberIds);
 	}
 
 	/* (non-Javadoc)

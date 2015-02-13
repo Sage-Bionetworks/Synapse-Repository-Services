@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.SubmissionTeamPagedResults;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -47,6 +46,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	private static final AuthorizationStatus NOT_SELF = 
 			new AuthorizationStatus(false, "You may not make this request on another user's behalf.");
 
+	public ChallengeManagerImpl() {}
+	
 	/*
 	 * for testing
 	 */
@@ -60,10 +61,17 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		this.teamDAO=teamDAO;
 	}
 	
+	private static void validateChallenge(Challenge challenge) {
+		if (challenge.getProjectId()==null) 
+			throw new InvalidModelException("Project ID is required.");
+		if (challenge.getParticipantTeamId()==null) 
+			throw new InvalidModelException("Participant Team ID is required.");
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Challenge createChallenge(UserInfo userInfo, Challenge challenge) throws DatastoreException, NotFoundException {
-		if (challenge.getProjectId()==null) throw new InvalidModelException("Project ID is required.");
+		validateChallenge(challenge);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, 
 						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
@@ -98,7 +106,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	@Override
 	public Challenge updateChallenge(UserInfo userInfo, Challenge challenge)
 			throws DatastoreException, NotFoundException {
-		if (challenge.getProjectId()==null) throw new InvalidModelException("Project ID is required.");
+		validateChallenge(challenge);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, 
 						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
@@ -154,11 +162,24 @@ public class ChallengeManagerImpl implements ChallengeManager {
 
 		return AuthorizationManagerUtil.AUTHORIZED;
 	}
+	
+	private static final int MAX_CHALLENGE_TEAM_MESSAGE_LENGTH = 500;
+	
+	private static void validateChallengeTeam(ChallengeTeam challengeTeam) {
+		if (challengeTeam.getChallengeId()==null) 
+			throw new InvalidModelException("Challenge ID is required.");
+		if (challengeTeam.getTeamId()==null) 
+			throw new InvalidModelException("Team ID is required.");
+		if (challengeTeam.getMessage().length()>MAX_CHALLENGE_TEAM_MESSAGE_LENGTH) {
+			throw new InvalidModelException("Message may not exceed "+MAX_CHALLENGE_TEAM_MESSAGE_LENGTH+" characters in length.");
+		}
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ChallengeTeam createChallengeTeam(UserInfo userInfo,
 			ChallengeTeam challengeTeam) throws DatastoreException, UnauthorizedException, NotFoundException {
+		validateChallengeTeam(challengeTeam);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
 		return challengeTeamDAO.create(challengeTeam);
@@ -198,6 +219,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public ChallengeTeam updateChallengeTeam(UserInfo userInfo,
 			ChallengeTeam challengeTeam) throws DatastoreException,
 			NotFoundException {
+		validateChallengeTeam(challengeTeam);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
 		return challengeTeamDAO.update(challengeTeam);
@@ -223,12 +245,12 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	}
 
 	@Override
-	public SubmissionTeamPagedResults listSubmissionTeams(UserInfo userInfo,
+	public PaginatedIds listSubmissionTeams(UserInfo userInfo,
 			long challengeId, long submitterPrincipalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				canListSubmissionTeams(userInfo, submitterPrincipalId));
-		SubmissionTeamPagedResults result = new SubmissionTeamPagedResults();
+		PaginatedIds result = new PaginatedIds();
 		result.setResults(challengeTeamDAO.listSubmissionTeams(challengeId, submitterPrincipalId, limit, offset));
 		result.setTotalNumberOfResults(challengeTeamDAO.listSubmissionTeamsCount(challengeId, submitterPrincipalId));
 		return result;

@@ -20,7 +20,7 @@
 	<bean id="deadlockWatcher" class="org.sagebionetworks.repo.web.DeadlockWatcher" />
 
 	<!-- The Service Provider -->
-	<bean id="serviceProider" class="org.sagebionetworks.repo.web.service.ServiceProviderImpl" />
+	<bean id="serviceProvider" class="org.sagebionetworks.repo.web.service.ServiceProviderImpl" />
 	
 	<!-- Search Service -->
 	<bean id="searchService"
@@ -115,6 +115,8 @@
 		<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
 	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
+		
+	<bean id="challengeService" class="org.sagebionetworks.repo.web.service.ChallengeServiceImpl" />
 		
 		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

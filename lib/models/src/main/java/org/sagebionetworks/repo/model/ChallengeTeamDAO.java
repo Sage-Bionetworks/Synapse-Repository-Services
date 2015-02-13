@@ -35,7 +35,7 @@ public interface ChallengeTeamDAO {
 	 * (1) are registered for the challenge with the given user as a member, OR
 	 * (2) the user is an admin
 	 */
-	public List<SubmissionTeam> listSubmissionTeams(long challengeId,
+	public List<String> listSubmissionTeams(long challengeId,
 			long submitterPrincipalId, long limit, long offset);
 
 	public long listSubmissionTeamsCount(long challengeId,

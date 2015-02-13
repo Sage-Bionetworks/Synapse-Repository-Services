@@ -33,4 +33,8 @@ public class InvalidModelException extends RuntimeException {
 		super(t);
 	}
 
+	public InvalidModelException(String message, Throwable t) {
+		super(message, t);
+	}
+
 }
