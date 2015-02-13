@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.FILES_CANNOT_HAVE_CHILDREN;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIONABLE_HAS_MORE_THAN_ONE_LOCATION;
-import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIONABLE_HAS_NO_LOCATIONS;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.NOT_LOCATIONABLE;
 
 import java.util.Collections;
@@ -11,7 +10,6 @@ import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -26,8 +24,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserNotFoundException;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;

@@ -14,6 +14,7 @@
 	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfiguration"/>
 	
 	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[LOCATIONABLE_CONVERT_TYPE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[APPEND_ROW_SET_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE_PREVIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

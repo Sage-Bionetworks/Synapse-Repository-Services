@@ -11,6 +11,10 @@ import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeRequest;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.BooleanResult;
@@ -21,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -28,6 +33,8 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -35,6 +42,8 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -1669,6 +1678,14 @@ public class EntityController extends BaseController {
 		return results;
 	}
 	
+	/**
+	 * Convert a single locationable entity to a new type.
+	 * @param id
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_CONVERT_LOCATIONABLE }, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -1677,5 +1694,62 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException,
 			DatastoreException {
 		return serviceProvider.getEntityService().convertLocationable(userId, id);
+	}
+	
+	/**
+	 * Start an asynchronous job to convert a batch of locationables to a new type.
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_CONVERT_LOCATIONABLE_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId startTypeConversionJob(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody AsyncLocationableTypeConversionRequest request)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	/**
+	 * Asynchronously get the results of a AsyncLocationableTypeConversionRequest request.
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws NotReadyException
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_CONVERT_LOCATIONABLE_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	AsyncLocationableTypeConversionResults getTypeConversionResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String jobId) throws NotReadyException,
+			NotFoundException, AsynchJobFailedException {
+		if (jobId == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						jobId);
+		return (AsyncLocationableTypeConversionResults) jobStatus.getResponseBody();
 	}
 }

@@ -52,6 +52,8 @@
     <import resource="classpath:change-synch-worker-spb.xml" />
     <import resource="classpath:project-stats-sqs-spb.xml" />
     <import resource="classpath:acl-snapshot-sqs-spb.xml"/>
+    
+    <import resource="classpath:locationable-type-conversion-worker-spb.xml"/>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -86,6 +88,7 @@
 				<ref bean="tableQueryNextPageQueueMessageReveiverTrigger" />
 				<ref bean="projectStatsQueueMessageReveiverTrigger" />
 				<ref bean="aclQueueMessageReveiverTrigger"/>
+				<ref bean="locationablTypeConversionMessageReveiverTrigger"/>
 				<!-- initializers -->
 				<ref bean="cloudSearchInitializerTrigger" />
 				<!-- others -->

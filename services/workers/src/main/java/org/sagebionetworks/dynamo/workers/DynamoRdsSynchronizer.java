@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
@@ -54,7 +55,9 @@ public class DynamoRdsSynchronizer implements Runnable {
 
 	@Override
 	public void run() {
-
+		if(!StackConfiguration.singleton().getDynamoEnabled()){
+			return;
+		}
 		final long start1 = System.currentTimeMillis();
 
 		// Get a random node and its parent from RDS
