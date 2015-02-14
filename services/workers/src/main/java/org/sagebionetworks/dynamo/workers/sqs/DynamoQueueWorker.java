@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -52,7 +53,9 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 
 	@Override
 	public List<Message> call() throws Exception {
-
+		if(!StackConfiguration.singleton().getDynamoEnabled()){
+			return messages;
+		}
 		final long start = System.nanoTime();
 		final List<Message> processedMessages = new ArrayList<Message>();
 		for (Message message : messages) {

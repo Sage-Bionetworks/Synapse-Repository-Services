@@ -59,6 +59,8 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
@@ -80,6 +82,7 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -4391,6 +4394,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().getJson(endpoint, uri,
 				getUserAgent());
 	}
+	
+	@Override
+	public String startLocationableTypeConvertJob(AsyncLocationableTypeConversionRequest request) throws SynapseException{
+		String url = "/entity/convertLocationable/start";
+		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, request,
+				AsyncJobId.class, null);
+		return jobId.getToken();
+	}
+	
+	@Override
+	public AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(String jobId) throws SynapseException{
+		String url = "/entity/convertLocationable/"+jobId;
+		return (AsyncLocationableTypeConversionResults) getAsynchJobResponse(url, AsyncLocationableTypeConversionResults.class);
+	}
 
 	@Override
 	public String startAsynchJob(AsynchJobType type,
@@ -4406,31 +4423,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public AsynchronousResponseBody getAsyncResult(AsynchJobType type,
 			String jobId, String tableId) throws SynapseException,
 			SynapseClientException, SynapseResultNotReadyException {
-		try {
-			String url = "/entity/" + tableId + type.getResultUrl(jobId);
-			JSONObject responseBody = getSharedClientConnection().getJson(
-					getRepoEndpoint(), url, getUserAgent(),
-					new SharedClientConnection.ErrorHandler() {
-						@Override
-						public void handleError(int code, String responseBody)
-								throws SynapseException {
-							if (code == HttpStatus.SC_ACCEPTED) {
-								try {
-									AsynchronousJobStatus status = EntityFactory
-											.createEntityFromJSONString(
-													responseBody,
-													AsynchronousJobStatus.class);
-									throw new SynapseResultNotReadyException(
-											status);
-								} catch (JSONObjectAdapterException e) {
-									throw new SynapseClientException(e
-											.getMessage(), e);
-								}
+		String url = "/entity/" + tableId + type.getResultUrl(jobId);
+		return getAsynchJobResponse(url, type.getReponseClass());
+	}
+
+	/**
+	 * Get a job response body for a url.
+	 * @param url
+	 * @param clazz
+	 * @return
+	 * @throws SynapseException
+	 */
+	public AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz) throws SynapseException {
+		JSONObject responseBody = getSharedClientConnection().getJson(
+				getRepoEndpoint(), url, getUserAgent(),
+				new SharedClientConnection.ErrorHandler() {
+					@Override
+					public void handleError(int code, String responseBody)
+							throws SynapseException {
+						if (code == HttpStatus.SC_ACCEPTED) {
+							try {
+								AsynchronousJobStatus status = EntityFactory
+										.createEntityFromJSONString(
+												responseBody,
+												AsynchronousJobStatus.class);
+								throw new SynapseResultNotReadyException(
+										status);
+							} catch (JSONObjectAdapterException e) {
+								throw new SynapseClientException(e
+										.getMessage(), e);
 							}
 						}
-					});
-			return EntityFactory.createEntityFromJSONObject(responseBody,
-					type.getReponseClass());
+					}
+				});
+		try {
+			return EntityFactory.createEntityFromJSONObject(responseBody, clazz);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -7671,26 +7698,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				getUserAgent());
 	}
 	
-	@Override
-	public Entity convertLocationableEntity(Entity toConvert)
+	public void addTeamToChallenge(String challengeId, String teamId)
 			throws SynapseException {
-		try {
-			String url = ENTITY + "/" + toConvert.getId() + "/convertLocationable";
-			String json =  EntityFactory.createJSONStringForEntity(toConvert);
-			JSONObject jsonObject = getSharedClientConnection().putJson(
-					repoEndpoint, url, json, getUserAgent());
-			if (toConvert instanceof Study) {
-				// Studys become folders
-				return EntityFactory.createEntityFromJSONObject(jsonObject,
-						Folder.class);
-			} else {
-				// All other locationables become files.
-				return EntityFactory.createEntityFromJSONObject(jsonObject,
-						FileEntity.class);
-			}
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+		throw new RuntimeException("Not Yet Implemented");
+	}
+
+	/**
+	 * Remove a registered Team from a Challenge. The user making this request
+	 * must be registered for the Challenge and be an administrator of the Team.
+	 * 
+	 * @param challengeId
+	 * @param teamId
+	 * @throws SynapseException
+	 */
+	public void removeTeamFromChallenge(String challengeId, String teamId)
+			throws SynapseException {
+		throw new RuntimeException("Not Yet Implemented");
 	}
 
 }

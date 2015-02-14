@@ -5,8 +5,10 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -26,7 +28,7 @@ public interface EntityTypeConverter {
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
 	 */
-	public Entity convertOldTypeToNew(UserInfo user, Entity entity) throws UnauthorizedException, DatastoreException, NotFoundException;
+	public LocationableTypeConversionResult convertOldTypeToNew(UserInfo user, String entityId) throws UnauthorizedException, DatastoreException, NotFoundException;
 	
 	/**
 	 * Create a file handle for each version of the passed locationable.
@@ -36,5 +38,14 @@ public interface EntityTypeConverter {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity, boolean atLeastOneLocationRequired) throws DatastoreException, NotFoundException;
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Attempt to create a FileHandle given a locationable path.
+	 * @param path
+	 * @return
+	 */
+	public S3FileHandle createFileHandleFromPath(String path);
+	
+	
 }

@@ -109,6 +109,16 @@ public class EntityManagerImpl implements EntityManager {
 				EntityType.valueOf(node.getNodeType()), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
+	
+	@Override
+	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		// Get the annotations for this entity
+		NamedAnnotations annos = nodeManager.getAnnotations(user, entityId);
+		// Fetch the current node from the server
+		Node node = nodeManager.get(user, entityId);
+		EntityWithAnnotations ewa = populateEntityWithNodeAndAnnotations(EntityType.valueOf(node.getNodeType()).getClassForType(), annos, node);
+		return ewa.getEntity();
+	}
 
 	/**
 	 * Validate that the requested entity type matches the actual entity type.

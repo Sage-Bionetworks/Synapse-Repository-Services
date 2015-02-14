@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -23,6 +25,8 @@ import org.sagebionetworks.repo.model.table.UploadToTableResult;
  *
  */
 public enum AsynchJobType {
+	
+	LOCATIONABLE_CONVERT_TYPE(AsyncLocationableTypeConversionRequest.class, AsyncLocationableTypeConversionResults.class),
 	
 	APPEND_ROW_SET_TO_TABLE(AppendableRowSetRequest.class, RowReferenceSetResults.class),
 
