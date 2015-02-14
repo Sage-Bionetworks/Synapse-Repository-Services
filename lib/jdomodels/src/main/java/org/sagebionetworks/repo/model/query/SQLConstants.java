@@ -31,6 +31,7 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_STATUS 			= "STATUS";
 	public static final String COL_EVALUATION_SUB_INSTRUCT_MSG	= "SUBMISSION_INSTRUCTIONS_MESSAGE";
 	public static final String COL_EVALUATION_SUB_RECEIPT_MSG	= "SUBMISSION_RECEIPT_MESSAGE";
+	public static final String COL_EVALUATION_QUOTA				= "QUOTA";
 	
 	public static final String TABLE_EVALUATION_SUBMISSIONS = "EVALUATION_SUBMISSIONS";
 	public static final String COL_EVALUATION_SUBMISSIONS_ID = "ID";

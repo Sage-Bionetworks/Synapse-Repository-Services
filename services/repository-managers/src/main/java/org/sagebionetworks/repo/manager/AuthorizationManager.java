@@ -144,16 +144,4 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 */
 	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
-
-
-	/**
-	 * User must have submit permission and be a member of the given team
-	 * 
-	 * @param userInfo
-	 * @param evaluationId
-	 * @param teamId
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public AuthorizationStatus canCheckTeamSubmissionEligibility(UserInfo userInfo, String evaluationId, String teamId) throws DatastoreException, NotFoundException;
 }

@@ -211,8 +211,6 @@ public class SubmissionEligibilityManagerImpl implements
 				"It is currently outside of the time range allowed for submissions.");
 		}
 		
-		
-
 		if (submissionEligibilityHashString==null) 
 			return new AuthorizationStatus(false, "Submission Eligibilty Hash is required.");
 		int seHash;
@@ -228,11 +226,17 @@ public class SubmissionEligibilityManagerImpl implements
 		if (!tse.getTeamEligibility().getIsEligible()) {
 			return new AuthorizationStatus(false, "The specified Team is ineligible to submit to the specified Evaluation at this time.");			
 		}
-		List<String> ineligibleContributors = new ArrayList<String>();
+		// this will be the list of all team members who CAN contribute
+		Set<String> eligibleContributors = new HashSet<String>();
 		for (MemberSubmissionEligibility memberEligibility : tse.getMembersEligibility()) {
-			if (!memberEligibility.getIsEligible()) {
-				ineligibleContributors.add(memberEligibility.getPrincipalId().toString());
+			if (memberEligibility.getIsEligible()) {
+				eligibleContributors.add(memberEligibility.getPrincipalId().toString());
 			}
+		}
+		// now go through the list of would-be contributors and find those who are ineligible
+		List<String> ineligibleContributors = new ArrayList<String>();
+		for (String contributor : contributors) {
+			if (!eligibleContributors.contains(contributor)) ineligibleContributors.add(contributor);
 		}
 		if (!ineligibleContributors.isEmpty()) {
 			return new AuthorizationStatus(false, 

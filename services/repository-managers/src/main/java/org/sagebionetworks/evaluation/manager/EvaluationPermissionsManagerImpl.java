@@ -240,4 +240,22 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new NotFoundException("Evaluation of ID " + evalId + " does not exist yet.");
 		}
 	}
+	
+	/**
+	 * User must have submit permission and be a member of the given team
+	 * 
+	 * @param userInfo
+	 * @param evaluationId
+	 * @param teamId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	@Override
+	public AuthorizationStatus canCheckTeamSubmissionEligibility(UserInfo userInfo, String evaluationId, String teamId) throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (!userInfo.getGroups().contains(Long.parseLong(teamId))) {
+			return new AuthorizationStatus(false, "Requester is not a member of the Submission Team.");
+		}
+		return hasAccess(userInfo, evaluationId, ACCESS_TYPE.SUBMIT);
+	}
 }

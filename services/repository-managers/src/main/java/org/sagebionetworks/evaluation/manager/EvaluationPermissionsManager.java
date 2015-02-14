@@ -54,4 +54,16 @@ public interface EvaluationPermissionsManager {
 	 */
 	public UserEvaluationPermissions getUserPermissionsForEvaluation(UserInfo userInfo, String evalId)
 			throws NotFoundException, DatastoreException;
+
+	/**
+	 * User must have submit permission and be a member of the given team
+	 * 
+	 * @param userInfo
+	 * @param evaluationId
+	 * @param teamId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AuthorizationStatus canCheckTeamSubmissionEligibility(UserInfo userInfo, String evaluationId, String teamId) throws DatastoreException, NotFoundException;
+
 }

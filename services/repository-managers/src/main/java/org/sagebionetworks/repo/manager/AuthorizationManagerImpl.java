@@ -324,23 +324,4 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 	
-	/**
-	 * User must have submit permission and be a member of the given team
-	 * 
-	 * @param userInfo
-	 * @param evaluationId
-	 * @param teamId
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	@Override
-	public AuthorizationStatus canCheckTeamSubmissionEligibility(UserInfo userInfo, String evaluationId, String teamId) throws DatastoreException, NotFoundException {
-		Long teamIdLong = Long.parseLong(teamId);
-		if (!userInfo.getGroups().contains(teamIdLong)) {
-			return new AuthorizationStatus(false, "Requester is not a member of the Submission Team.");
-		}
-		return canAccess(userInfo, evaluationId, ObjectType.EVALUATION, ACCESS_TYPE.SUBMIT);
-	}
-
-
 }
