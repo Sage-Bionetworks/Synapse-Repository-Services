@@ -71,7 +71,14 @@ public class LocationablTypeConversionWorker implements Worker {
 				// keep this worker alive.
 				workerProgress.progressMadeForMessage(message);
 				// This is the call that converts a type.
-				results.add(entityTypeConverter.convertOldTypeToNew(user, entityId));
+				try {
+					results.add(entityTypeConverter.convertOldTypeToNew(user, entityId));
+				} catch (Exception e) {
+					LocationableTypeConversionResult failedResult = new LocationableTypeConversionResult();
+					failedResult.setEntityId(entityId);
+					failedResult.setErrorMessage(e.getMessage());
+					results.add(failedResult);
+				}
 				progressCurrent++;
 				if(progressCurrent % 10 == 0){
 					asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "update: "+entityId);
@@ -83,6 +90,7 @@ public class LocationablTypeConversionWorker implements Worker {
 			asynchJobStatusManager.setComplete(status.getJobId(), resultBody);
 			return message;
 		}catch(Throwable e){
+			log.error("Worker failed:",e);
 			// Record the error
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
 			throw e;
