@@ -9,7 +9,6 @@ import java.util.Date;
 
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationQuota;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.util.Pair;
 

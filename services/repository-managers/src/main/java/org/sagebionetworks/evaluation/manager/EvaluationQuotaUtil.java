@@ -3,7 +3,6 @@ package org.sagebionetworks.evaluation.manager;
 import java.util.Date;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationQuota;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.util.Pair;

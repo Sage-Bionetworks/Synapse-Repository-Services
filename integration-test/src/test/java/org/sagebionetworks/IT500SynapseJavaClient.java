@@ -64,8 +64,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
