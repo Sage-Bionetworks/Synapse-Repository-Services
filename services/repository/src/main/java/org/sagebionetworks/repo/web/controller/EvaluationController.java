@@ -578,14 +578,26 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getParticipantCount(userId, evalId);
 	}
 	
+	/**
+	 * Find out whether a Team and its members are eligible to submit to a given Evaluation queue (at the 
+	 * current time).  The request must include an Evaluation ID and a Team ID.   The 'eligibilityStateHash' 
+	 * field of the returned object is a required parameter of the subsequent Team Submission request made
+	 * for the given Evaluation and Team.  (See: <a href="${POST.evaluation.submission}">POST
+	 * /evaluation/submission</a>)
+	 * @param userId
+	 * @param evalId
+	 * @param teamId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_SUBMISSION_ELIGIBILITY, method = RequestMethod.GET)
 	public @ResponseBody
 	TeamSubmissionEligibility getTeamSubmissionEligibility(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
-			@PathVariable String teamId,
-			HttpServletRequest request) 
+			@PathVariable String teamId) 
 			throws DatastoreException, NotFoundException
 	{
 		return serviceProvider.getEvaluationService().getTeamSubmissionEligibility(userId, evalId, teamId);
