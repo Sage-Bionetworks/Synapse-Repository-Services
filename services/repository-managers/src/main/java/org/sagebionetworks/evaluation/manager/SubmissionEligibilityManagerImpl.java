@@ -201,9 +201,6 @@ public class SubmissionEligibilityManagerImpl implements
 	public AuthorizationStatus isTeamEligible(String evalId, String teamId, 
 			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
-		SubmissionQuota quota = evaluation.getQuota();
-		// if there are no quotas, then no need to check further
-		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");

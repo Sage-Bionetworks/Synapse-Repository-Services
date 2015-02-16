@@ -117,6 +117,17 @@ public class SubmissionEligibilityManagerTest {
 	}
 
 	@Test
+	public void testIsIndividualEligibleNotRegistered() throws Exception {
+		// starts out as a happy case
+		assertTrue(submissionEligibilityManager.
+				isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+		// but if you're not registered for the challenge you're ineligible to submit
+		userInfo.setGroups(Collections.EMPTY_SET);
+		assertFalse(submissionEligibilityManager.
+				isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+	}
+
+	@Test
 	public void testIsIndividualEligibleNoQuota() throws Exception {
 		evaluation.setQuota(null);
 		assertTrue(submissionEligibilityManager.
@@ -167,8 +178,7 @@ public class SubmissionEligibilityManagerTest {
 			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
 	}
 
-	@Test
-	public void testGetTeamSubmissionEligibilityHappyCase() throws Exception {
+	private void createValidTeamSubmissionState() throws Exception {
 		// team is registered
 		when(mockChallengeTeamDAO.isTeamRegistered(
 				Long.parseLong(CHALLENGE_ID), 
@@ -178,6 +188,11 @@ public class SubmissionEligibilityManagerTest {
 		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
 		// user is registered for challenge
 		challengeParticipants.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
+		
+	}
+	@Test
+	public void testGetTeamSubmissionEligibilityHappyCase() throws Exception {
+		createValidTeamSubmissionState();
 		
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
@@ -328,24 +343,134 @@ public class SubmissionEligibilityManagerTest {
 	}
 	
 	
+	@Test
+	public void testIsTeamEligibleHappyCase() throws Exception {
+		createValidTeamSubmissionState();
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		int tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		
+		assertTrue(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
+	}
+
+	@Test
+	public void testIsTeamEligibleOutsideSubmissionRange() throws Exception {
+		createValidTeamSubmissionState();
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		int tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		// start with happy case
+		assertTrue(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
+		// ... but if we're outside the allowed submission interval then submission isn't allowed
+		long longTimeAgo = System.currentTimeMillis()-1000000L;
+		assertFalse(submissionEligibilityManager.
+						isTeamEligible(EVAL_ID, 
+								SUBMITTING_TEAM_ID, 
+								Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+								""+tseHash, 
+								new Date(longTimeAgo)).getAuthorized());
+	}
+
 	
 	@Test
-	public void testIsTeamEligibleNoChallenge() throws Exception {
-		// no challenge for evaluation
-		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+	public void testIsTeamEligibleIncorrectHash() throws Exception {
+		createValidTeamSubmissionState();
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		int tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		// start with happy case
 		assertTrue(submissionEligibilityManager.
-				isTeamEligible(EVAL_ID, SUBMITTING_TEAM_ID, null, ""+123, new Date()).getAuthorized());
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
+		// but if the hash is missing then submission isn't allowed
+		assertFalse(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						null, 
+						new Date()).getAuthorized());
+		// ditto for an incorrect hash
+		assertFalse(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						"gobbldygook", 
+						new Date()).getAuthorized());
 		
+		assertFalse(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+(tseHash+1), 
+						new Date()).getAuthorized());
 	}
 
 	@Test
-	public void testIsTeamEligible1() throws Exception {
-		
+	public void testIsTeamEligibleTeamIsIneligible() throws Exception {
+		createValidTeamSubmissionState();
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		int tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		// start with happy case
+		assertTrue(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
+		// ... but if the team is unregistered it is no longer eligible
+		when(mockChallengeTeamDAO.isTeamRegistered(
+				Long.parseLong(CHALLENGE_ID), 
+				Long.parseLong(SUBMITTING_TEAM_ID))).
+			thenReturn(false);
+		tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		assertFalse(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
 	}
 
 	@Test
-	public void testIsTeamEligible2() throws Exception {
-		
+	public void testIsTeamEligibleMemberIsIneligible() throws Exception {
+		createValidTeamSubmissionState();
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		int tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		// start with happy case
+		assertTrue(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
+		// ... but if the contributor is unregistered she is no longer eligible
+		challengeParticipants.clear();
+		tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		tseHash = SubmissionEligibilityManagerImpl.computeTeamSubmissionEligibilityHash(tse);
+		assertFalse(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, 
+						SUBMITTING_TEAM_ID, 
+						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
+						""+tseHash, 
+						new Date()).getAuthorized());
 	}
 
 }
