@@ -22,8 +22,8 @@ import java.util.UUID;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationQuota;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -322,7 +322,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		if (dbo.getQuota() != null) {
 			try {
-				dto.setQuota((EvaluationQuota)JDOSecondaryPropertyUtils.decompressedObject(dbo.getQuota()));
+				dto.setQuota((SubmissionQuota)JDOSecondaryPropertyUtils.decompressedObject(dbo.getQuota()));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

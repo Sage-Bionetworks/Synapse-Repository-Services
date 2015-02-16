@@ -18,9 +18,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationQuota;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.SubmissionEligibility;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -52,9 +51,6 @@ public class SubmissionEligibilityManagerImpl implements
 	
 	@Autowired
 	private ChallengeTeamDAO challengeTeamDAO;
-
-	@Autowired
-	private TeamDAO teamDAO;
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -152,6 +148,7 @@ public class SubmissionEligibilityManagerImpl implements
 		for (UserGroup member : teamMembers) {
 			Long memberId = Long.parseLong(member.getId());
 			MemberSubmissionEligibility se = new MemberSubmissionEligibility();
+			se.setPrincipalId(memberId);
 			if (challenge==null) {
 				// don't check challenge registration if there's no challenge object
 				se.setIsRegistered(true);
@@ -203,7 +200,7 @@ public class SubmissionEligibilityManagerImpl implements
 	public AuthorizationStatus isTeamEligible(String evalId, String teamId, 
 			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
-		EvaluationQuota quota = evaluation.getQuota();
+		SubmissionQuota quota = evaluation.getQuota();
 		// if there are no quotas, then no need to check further
 		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
@@ -255,7 +252,7 @@ public class SubmissionEligibilityManagerImpl implements
 	@Override
 	public AuthorizationStatus isIndividualEligible(String evalId, String principalId, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
-		EvaluationQuota quota = evaluation.getQuota();
+		SubmissionQuota quota = evaluation.getQuota();
 		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 

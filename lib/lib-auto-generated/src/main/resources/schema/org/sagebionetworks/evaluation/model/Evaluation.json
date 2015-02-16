@@ -51,7 +51,7 @@
 		"quota": {
 			"type":"object",
 			"description":"Maximum submissions per team/participant per submission round",
-			"$ref":"org.sagebionetworks.evaluation.model.EvaluationQuota"
+			"$ref":"org.sagebionetworks.evaluation.model.SubmissionQuota"
 		}
 	}
 }

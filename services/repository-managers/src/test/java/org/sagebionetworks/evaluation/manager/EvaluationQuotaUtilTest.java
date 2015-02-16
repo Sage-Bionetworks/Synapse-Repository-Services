@@ -1,12 +1,16 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationQuota;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.util.Pair;
 
 public class EvaluationQuotaUtilTest {
@@ -19,7 +23,7 @@ public class EvaluationQuotaUtilTest {
 	@Test
 	public void testWithRounds() {
 		Evaluation eval = new Evaluation();
-		EvaluationQuota quota = new EvaluationQuota();
+		SubmissionQuota quota = new SubmissionQuota();
 		eval.setQuota(quota);
 		Date firstRoundStart = new Date();
 		quota.setFirstRoundStart(firstRoundStart);
@@ -86,7 +90,7 @@ public class EvaluationQuotaUtilTest {
 	@Test
 	public void testWithoutRounds() {
 		Evaluation eval = new Evaluation();
-		EvaluationQuota quota = new EvaluationQuota();
+		SubmissionQuota quota = new SubmissionQuota();
 		eval.setQuota(quota);
 		quota.setSubmissionLimit(10L);
 
