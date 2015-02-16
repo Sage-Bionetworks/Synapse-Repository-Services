@@ -29,7 +29,7 @@
 		scope="singleton">
 		<property name="messageQueue" ref="locationablTypeConversionQueue" />
 		<property name="workerFactory" ref="locationablTypeConversionWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="10" />
+		<property name="maxNumberOfWorkerThreads" value="1" />
 		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
@@ -38,7 +38,7 @@
 	<bean id="locationablTypeConversionSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" value="600000" />
-		<property name="maxNumberRunners" value="20" />
+		<property name="maxNumberRunners" value="1" />
 		<property name="semaphoreKey" value="locationablTypeConversion" />		
 		<property name="runner" ref="locationablTypeConversionMessageReveiver" />
 	</bean>

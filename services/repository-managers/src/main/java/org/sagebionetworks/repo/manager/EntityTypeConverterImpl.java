@@ -1,13 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.*;
+import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.FILES_CANNOT_HAVE_CHILDREN;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIONABLE_HAS_MORE_THAN_ONE_LOCATION;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.NOT_LOCATIONABLE;
+import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.SOME_VERSIONS_HAVE_FILES_OTHERS_DO_NOT;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,6 +42,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class EntityTypeConverterImpl implements EntityTypeConverter {
+	
+	static private Logger log = LogManager.getLogger(EntityTypeConverterImpl.class);
 
 	private static final String FILENAME = "filename=";
 	@Autowired
@@ -113,6 +118,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			results.setSuccess(true);
 			return results;
 		} catch (Exception e) {
+			log.error("Failed on: "+entityId, e.getMessage());
 			results.setSuccess(false);
 			results.setErrorMessage(e.getMessage());
 			return results;
