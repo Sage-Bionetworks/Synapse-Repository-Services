@@ -76,6 +76,7 @@ public class LocationablTypeConversionWorker implements Worker {
 				} catch (Exception e) {
 					LocationableTypeConversionResult failedResult = new LocationableTypeConversionResult();
 					failedResult.setEntityId(entityId);
+					failedResult.setSuccess(false);
 					failedResult.setErrorMessage(e.getMessage());
 					results.add(failedResult);
 				}
