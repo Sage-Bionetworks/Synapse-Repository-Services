@@ -116,7 +116,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			return submissionEligibilityManager.isTeamEligible(
 					evalId, submission.getTeamId(), contributors, submissionEligibilityHash, now);
 		} else if (isIndividualSubmission(submission, submissionEligibilityHash)) {
-			return submissionEligibilityManager.isIndividualEligible(evalId, submission.getUserId(), now);
+			return submissionEligibilityManager.isIndividualEligible(evalId, userInfo, now);
 		} else {
 			return new AuthorizationStatus(false, "Submission is neither a valid Team or Individual Submission.");
 		}

@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -112,9 +113,9 @@ public class SubmissionEligibilityManagerImpl implements
 		} catch (NotFoundException e) {
 			// if there's no Challenge, the skip the registration requirement
 			challenge=null;
-			teamEligibility.setIsRegistered(true);
+			teamEligibility.setIsRegistered(null);
 		}
-		isTeamEligible &= teamEligibility.getIsRegistered();
+		isTeamEligible &= (teamEligibility.getIsRegistered()==null || teamEligibility.getIsRegistered());
 		
 		// now check whether the Team's quota is filled
 		Date now = new Date();
@@ -151,7 +152,7 @@ public class SubmissionEligibilityManagerImpl implements
 			se.setPrincipalId(memberId);
 			if (challenge==null) {
 				// don't check challenge registration if there's no challenge object
-				se.setIsRegistered(true);
+				se.setIsRegistered(null);
 			} else {
 				se.setIsRegistered(challengeRegistrants.contains(memberId));
 			}
@@ -183,7 +184,7 @@ public class SubmissionEligibilityManagerImpl implements
 			MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
 			se.setIsEligible(!se.getHasConflictingSubmission() &&
 					!se.getIsQuotaFilled() &&
-					se.getIsRegistered());
+					(se.getIsRegistered()==null || se.getIsRegistered()));
 			memberSubmissionEligibility.add(se);
 		}
 		
@@ -250,9 +251,24 @@ public class SubmissionEligibilityManagerImpl implements
 	 * - is a given user a contributor to some team submission?
 	 */
 	@Override
-	public AuthorizationStatus isIndividualEligible(String evalId, String principalId, Date now) throws DatastoreException, NotFoundException {
+	public AuthorizationStatus isIndividualEligible(String evalId, UserInfo userInfo, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
 		SubmissionQuota quota = evaluation.getQuota();
+		String principalId = userInfo.getId().toString();
+		// check whether registered
+		{
+			Challenge challenge=null;
+			try {
+				challenge = challengeDAO.getForProject(evaluation.getContentSource());
+				Long participantTeamId = Long.parseLong(challenge.getParticipantTeamId());
+				if (!userInfo.getGroups().contains(participantTeamId)) {
+					return new AuthorizationStatus(false, 
+							"Submitter is not registered for the challenge.");
+				}
+			} catch (NotFoundException e) {
+				// skip this check
+			}
+		}
 		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 

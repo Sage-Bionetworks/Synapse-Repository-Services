@@ -3,6 +3,7 @@ package org.sagebionetworks.evaluation.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -10,8 +11,11 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl.STATUSES_COUNTED_TOWARD_QUOTA;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -26,8 +30,10 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionEligibilityManagerTest {
@@ -42,10 +48,11 @@ public class SubmissionEligibilityManagerTest {
 	private Challenge challenge;
 	private List<UserGroup> challengeParticipants;
 	private List<UserGroup> submittingTeamMembers;
+	private UserInfo userInfo;
 	private static final String EVAL_ID = "100";
 	private static final String CHALLENGE_ID = "200";
 	private static final String SUBMITTER_PRINCIPAL_ID = "300";
-	private static final String CHALLENGE_PROJECT_ID = "400";
+	private static final String CHALLENGE_PROJECT_ID = "syn400";
 	private static final String CHALLENGE_PARTICIPANT_TEAM_ID = "500";
 	private static final String SUBMITTING_TEAM_ID = "600";
 	private static final long MAX_SUBMISSIONS_PER_ROUND = 5L;
@@ -87,9 +94,12 @@ public class SubmissionEligibilityManagerTest {
 		challengeParticipants = new ArrayList<UserGroup>();
 		when(mockGroupMembersDAO.getMembers(CHALLENGE_PARTICIPANT_TEAM_ID)).thenReturn(challengeParticipants);
 		
-		
 		submittingTeamMembers = new ArrayList<UserGroup>();
 		when(mockGroupMembersDAO.getMembers(SUBMITTING_TEAM_ID)).thenReturn(submittingTeamMembers);
+		
+		userInfo = new UserInfo(false);
+		userInfo.setId(Long.parseLong(SUBMITTER_PRINCIPAL_ID));
+		userInfo.setGroups(Collections.singleton(Long.parseLong(CHALLENGE_PARTICIPANT_TEAM_ID)));
 	}
 	
 	private static UserGroup createUserGroup(String principalId) {
@@ -99,17 +109,25 @@ public class SubmissionEligibilityManagerTest {
 	}
 
 	@Test
+	public void testIsIndividualEligibleNoChallenge() throws Exception {
+		// no challenge for evaluation
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		assertTrue(submissionEligibilityManager.
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+	}
+
+	@Test
 	public void testIsIndividualEligibleNoQuota() throws Exception {
 		evaluation.setQuota(null);
 		assertTrue(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, SUBMITTER_PRINCIPAL_ID, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
 	}
 
 	@Test
 	public void testIsIndividualEligibleSubmissionNotAllowed() throws Exception {
 		long longTimeAgo = System.currentTimeMillis()-1000000L;
 		assertFalse(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, SUBMITTER_PRINCIPAL_ID, new Date(longTimeAgo)).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date(longTimeAgo)).getAuthorized());
 	}
 
 	@Test
@@ -120,7 +138,7 @@ public class SubmissionEligibilityManagerTest {
 						any(Date.class), any(Date.class), 
 						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(MAX_SUBMISSIONS_PER_ROUND+1L);
 		assertFalse(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, SUBMITTER_PRINCIPAL_ID, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
 	}
 
 	@Test
@@ -135,7 +153,7 @@ public class SubmissionEligibilityManagerTest {
 				any(Date.class), any(Date.class), 
 				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(true);
 		assertFalse(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, SUBMITTER_PRINCIPAL_ID, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
 	}
 
 	@Test
@@ -146,7 +164,7 @@ public class SubmissionEligibilityManagerTest {
 						any(Date.class), any(Date.class), 
 						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(MAX_SUBMISSIONS_PER_ROUND-1L);
 		assertTrue(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, SUBMITTER_PRINCIPAL_ID, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
 	}
 
 	@Test
@@ -174,7 +192,7 @@ public class SubmissionEligibilityManagerTest {
 		assertFalse(teamEligibility.getIsQuotaFilled());
 		
 		List<MemberSubmissionEligibility> membersEligibility = tse.getMembersEligibility();
-		assertEquals(1, membersEligibility.size()); // same as the number added to submittingTeamMembers
+		assertEquals(1, membersEligibility.size());
 		MemberSubmissionEligibility mse = membersEligibility.get(0);
 		assertEquals(new Long(SUBMITTER_PRINCIPAL_ID), mse.getPrincipalId());
 		assertTrue(mse.getIsRegistered());
@@ -183,9 +201,65 @@ public class SubmissionEligibilityManagerTest {
 		assertTrue(mse.getIsEligible());
 	}
 	
-	
+	// here we test both that the team and the member are unregistered
+	@Test
+	public void testGetTeamSubmissionEligibilityUnregistered() throws Exception {
+		// add a user to submitting team
+		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
+		
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		
+		assertEquals(EVAL_ID, tse.getEvaluationId());
+		assertEquals(SUBMITTING_TEAM_ID, tse.getTeamId());
+		assertNotNull(tse.getEligibilityStateHash());
+		
+		SubmissionEligibility teamEligibility = tse.getTeamEligibility();
+		assertFalse(teamEligibility.getIsRegistered());
+		assertFalse(teamEligibility.getIsEligible());
+		assertFalse(teamEligibility.getIsQuotaFilled());
+		
+		List<MemberSubmissionEligibility> membersEligibility = tse.getMembersEligibility();
+		assertEquals(1, membersEligibility.size());
+		MemberSubmissionEligibility mse = membersEligibility.get(0);
+		assertEquals(new Long(SUBMITTER_PRINCIPAL_ID), mse.getPrincipalId());
+		assertFalse(mse.getIsRegistered());
+		assertFalse(mse.getIsQuotaFilled());
+		assertFalse(mse.getHasConflictingSubmission());
+		assertFalse(mse.getIsEligible());
+	}
+		
 	@Test
 	public void testGetTeamSubmissionEligibilityNoChallenge() throws Exception {
+		// no challenge for evaluation
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		// add a user to submitting team
+		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
+		
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		
+		assertEquals(EVAL_ID, tse.getEvaluationId());
+		assertEquals(SUBMITTING_TEAM_ID, tse.getTeamId());
+		assertNotNull(tse.getEligibilityStateHash());
+		
+		SubmissionEligibility teamEligibility = tse.getTeamEligibility();
+		assertNull(teamEligibility.getIsRegistered());
+		assertTrue(teamEligibility.getIsEligible());
+		assertFalse(teamEligibility.getIsQuotaFilled());
+		
+		List<MemberSubmissionEligibility> membersEligibility = tse.getMembersEligibility();
+		assertEquals(1, membersEligibility.size());
+		MemberSubmissionEligibility mse = membersEligibility.get(0);
+		assertEquals(new Long(SUBMITTER_PRINCIPAL_ID), mse.getPrincipalId());
+		assertNull(mse.getIsRegistered());
+		assertFalse(mse.getIsQuotaFilled());
+		assertFalse(mse.getHasConflictingSubmission());
+		assertTrue(mse.getIsEligible());
+	}
+	
+	@Test
+	public void testGetTeamSubmissionEligibilityQuotaFilled() throws Exception {
 		// team is registered
 		when(mockChallengeTeamDAO.isTeamRegistered(
 				Long.parseLong(CHALLENGE_ID), 
@@ -195,6 +269,15 @@ public class SubmissionEligibilityManagerTest {
 		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
 		// user is registered for challenge
 		challengeParticipants.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
+		when(mockSubmissionDAO.countSubmissionsByTeam(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)), 
+				any(Date.class), any(Date.class), 
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(MAX_SUBMISSIONS_PER_ROUND+1L);
+		
+		Map<Long,Long> memberSubmissionCounts = new HashMap<Long,Long>();
+		memberSubmissionCounts.put(new Long(SUBMITTER_PRINCIPAL_ID), MAX_SUBMISSIONS_PER_ROUND+1L);
+		when(mockSubmissionDAO.countSubmissionsByTeamMembers(eq(Long.parseLong(EVAL_ID)),eq(Long.parseLong(SUBMITTING_TEAM_ID)), 
+				any(Date.class), any(Date.class), 
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(memberSubmissionCounts);
 		
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
@@ -205,22 +288,63 @@ public class SubmissionEligibilityManagerTest {
 		
 		SubmissionEligibility teamEligibility = tse.getTeamEligibility();
 		assertTrue(teamEligibility.getIsRegistered());
-		assertTrue(teamEligibility.getIsEligible());
-		assertFalse(teamEligibility.getIsQuotaFilled());
+		assertFalse(teamEligibility.getIsEligible());
+		assertTrue(teamEligibility.getIsQuotaFilled());
 		
 		List<MemberSubmissionEligibility> membersEligibility = tse.getMembersEligibility();
-		assertEquals(1, membersEligibility.size()); // same as the number added to submittingTeamMembers
+		assertEquals(1, membersEligibility.size());
 		MemberSubmissionEligibility mse = membersEligibility.get(0);
 		assertEquals(new Long(SUBMITTER_PRINCIPAL_ID), mse.getPrincipalId());
 		assertTrue(mse.getIsRegistered());
-		assertFalse(mse.getIsQuotaFilled());
+		assertTrue(mse.getIsQuotaFilled());
 		assertFalse(mse.getHasConflictingSubmission());
-		assertTrue(mse.getIsEligible());
+		assertFalse(mse.getIsEligible());
+	}
+	
+	@Test
+	public void testGetTeamSubmissionEligibilityConflictingSubmission() throws Exception {
+		// no challenge for evaluation
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		// add a user to submitting team
+		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
+		
+		when(mockSubmissionDAO.getTeamMembersSubmittingElsewhere(eq(Long.parseLong(EVAL_ID)),
+				eq(Long.parseLong(SUBMITTING_TEAM_ID)), 
+				any(Date.class), any(Date.class), 
+				eq(STATUSES_COUNTED_TOWARD_QUOTA))).
+				thenReturn(Collections.singletonList(Long.parseLong(SUBMITTER_PRINCIPAL_ID)));
+		
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+				
+		List<MemberSubmissionEligibility> membersEligibility = tse.getMembersEligibility();
+		assertEquals(1, membersEligibility.size());
+		MemberSubmissionEligibility mse = membersEligibility.get(0);
+		assertEquals(new Long(SUBMITTER_PRINCIPAL_ID), mse.getPrincipalId());
+		assertNull(mse.getIsRegistered());
+		assertFalse(mse.getIsQuotaFilled());
+		assertTrue(mse.getHasConflictingSubmission());
+		assertFalse(mse.getIsEligible());
 	}
 	
 	
+	
 	@Test
-	public void testIsTeamEligible() throws Exception {
+	public void testIsTeamEligibleNoChallenge() throws Exception {
+		// no challenge for evaluation
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		assertTrue(submissionEligibilityManager.
+				isTeamEligible(EVAL_ID, SUBMITTING_TEAM_ID, null, ""+123, new Date()).getAuthorized());
+		
+	}
+
+	@Test
+	public void testIsTeamEligible1() throws Exception {
+		
+	}
+
+	@Test
+	public void testIsTeamEligible2() throws Exception {
 		
 	}
 

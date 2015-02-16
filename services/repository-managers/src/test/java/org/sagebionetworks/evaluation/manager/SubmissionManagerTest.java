@@ -234,7 +234,7 @@ public class SubmissionManagerTest {
 
     	// by default we say that individual submissions are within quota
     	// (specific tests will change this)
-    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), eq(USER_ID), any(Date.class))).
+    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
     		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	
     	// Submission Manager
@@ -324,7 +324,7 @@ public class SubmissionManagerTest {
 		assertNotNull(sc.getCreatedOn());
 		assertEquals(USER_ID, sc.getPrincipalId());
 		verify(mockSubmissionEligibilityManager).
-			isIndividualEligible(eq(EVAL_ID), eq(USER_ID), any(Date.class));
+			isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class));
 		verify(mockSubmissionEligibilityManager, never()).
 			isTeamEligible(anyString(), anyString(),any(List.class), anyString(), any(Date.class));
 	}
@@ -342,7 +342,7 @@ public class SubmissionManagerTest {
 		assertNotNull(sc.getCreatedOn());
 		assertEquals(USER_ID, sc.getPrincipalId());
 		verify(mockSubmissionEligibilityManager).
-			isIndividualEligible(eq(EVAL_ID), eq(USER_ID), any(Date.class));
+			isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class));
 		verify(mockSubmissionEligibilityManager, never()).
 			isTeamEligible(anyString(), anyString(),any(List.class), anyString(), any(Date.class));
 	}
@@ -374,7 +374,7 @@ public class SubmissionManagerTest {
 		assertTrue(foundUser);
 		assertTrue(foundOwner);
 		verify(mockSubmissionEligibilityManager, never()).
-				isIndividualEligible(eq(EVAL_ID), any(String.class), any(Date.class));
+				isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class));
 		verify(mockSubmissionEligibilityManager).
 			isTeamEligible(eq(EVAL_ID), eq(TEAM_ID),
 					any(List.class), eq(""+submissionEligibilityHash), any(Date.class));
