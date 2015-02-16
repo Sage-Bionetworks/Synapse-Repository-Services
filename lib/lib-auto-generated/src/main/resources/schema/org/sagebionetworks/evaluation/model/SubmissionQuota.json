@@ -1,0 +1,23 @@
+{
+	"name":"SubmissionQuota",
+	"description":"Maximum submissions per team/participant per submission round.  If round information is omitted, then this indicates the overall submission limit per team/participant.",
+	"properties":{
+		"firstRoundStart": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time at which the first round begins."
+		},
+		"roundDurationMillis":{
+			"type": "integer",
+			"description":"The duration of each round."
+		},
+		"numberOfRounds":{
+			"type": "integer",
+			"description":"The number of rounds, or null if there is no end."
+		},
+		"submissionLimit": {
+			"type": "integer",
+			"description":"the maximum number of submissions per team/participant per round."
+		}
+	}
+}
