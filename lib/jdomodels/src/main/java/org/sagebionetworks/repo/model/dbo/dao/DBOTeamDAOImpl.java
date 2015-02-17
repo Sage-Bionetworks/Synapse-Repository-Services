@@ -424,6 +424,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	
 	// update the 'isAdmin' field for those members that are admins on their teams
 	private void setAdminStatus(List<TeamMember> teamMembers) {
+		if (teamMembers.isEmpty()) return;
 		Set<String> teamIds = new HashSet<String>();
 		Map<TeamMemberId, TeamMember> teamMemberMap = new HashMap<TeamMemberId, TeamMember>();
 		for (TeamMember tm : teamMembers) {
