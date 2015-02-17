@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUBMISSIONS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
@@ -13,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,6 +23,7 @@ import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -271,6 +273,13 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		if (dto.getSubmissionReceiptMessage() != null) {
 			dbo.setSubmissionReceiptMessage(dto.getSubmissionReceiptMessage().getBytes());
 		}
+		if (dto.getQuota() != null) {
+			try {
+				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(dto.getQuota()));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 	
 	/**
@@ -309,6 +318,13 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 				dto.setSubmissionReceiptMessage(new String(dbo.getSubmissionReceiptMessage(), "UTF-8"));
 			} catch (UnsupportedEncodingException e) {
 				throw new DatastoreException(e);
+			}
+		}
+		if (dbo.getQuota() != null) {
+			try {
+				dto.setQuota((SubmissionQuota)JDOSecondaryPropertyUtils.decompressedObject(dbo.getQuota()));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}

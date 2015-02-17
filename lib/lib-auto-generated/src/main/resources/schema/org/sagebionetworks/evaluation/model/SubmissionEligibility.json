@@ -1,0 +1,9 @@
+{
+	"description": "Describes the eligibility of a to submit to an Evaluation queue, reflecting the queue's submission quotas and current submissions.",
+	"name": "SubmissionEligibility",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.evaluation.model.SubmissionEligibilityInterface"
+        }
+    ]
+}

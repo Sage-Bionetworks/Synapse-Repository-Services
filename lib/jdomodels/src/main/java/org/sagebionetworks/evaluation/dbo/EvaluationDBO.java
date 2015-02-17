@@ -7,6 +7,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_E
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_QUOTA;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEIPT_MSG;
@@ -17,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_QUOTA;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_RECEIPT_MSG;
@@ -55,7 +57,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
 			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
 			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
-			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG)
+			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG),
+			new FieldColumn(PARAM_EVALUATION_QUOTA, COL_EVALUATION_QUOTA)
 	};
 
 	public TableMapping<EvaluationDBO> getTableMapping() {
@@ -81,6 +84,10 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				blob = rs.getBlob(COL_EVALUATION_SUB_RECEIPT_MSG);
 				if (blob != null) {
 					eval.setSubmissionReceiptMessage(blob.getBytes(1, (int) blob.length()));
+				}
+				blob = rs.getBlob(COL_EVALUATION_QUOTA);
+				if (blob != null) {
+					eval.setQuota(blob.getBytes(1, (int) blob.length()));
 				}
 				return eval;
 			}
@@ -113,6 +120,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private int status;
 	private byte[] submissionInstructionsMessage;
 	private byte[] submissionReceiptMessage;
+	private byte[] quota;
 	
 	public Long getId() {
 		return id;
@@ -190,6 +198,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		this.submissionReceiptMessage = submissionReceiptMessage;
 	}
 		
+	public byte[] getQuota() {
+		return quota;
+	}
+	public void setQuota(byte[] quota) {
+		this.quota = quota;
+	}
 	@Override
 	public String getIdString() {
 		return id.toString();
@@ -234,7 +248,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				+ ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage)
 				+ ", submissionReceiptMessage="
-				+ Arrays.toString(submissionReceiptMessage) + "]";
+				+ Arrays.toString(submissionReceiptMessage) + ", quota="
+				+ Arrays.toString(quota) + "]";
 	}
 	@Override
 	public int hashCode() {
@@ -249,6 +264,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
+		result = prime * result + Arrays.hashCode(quota);
 		result = prime * result + status;
 		result = prime * result
 				+ Arrays.hashCode(submissionInstructionsMessage);
@@ -295,6 +311,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			if (other.ownerId != null)
 				return false;
 		} else if (!ownerId.equals(other.ownerId))
+			return false;
+		if (!Arrays.equals(quota, other.quota))
 			return false;
 		if (status != other.status)
 			return false;

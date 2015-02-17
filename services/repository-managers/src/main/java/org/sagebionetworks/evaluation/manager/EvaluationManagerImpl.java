@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -50,6 +51,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	
 	@Autowired
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
+
+	@Autowired
+	private SubmissionEligibilityManager submissionEligibilityManager;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -252,4 +256,15 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		return acl;
 	}
+	
+	@Override
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException
+	{
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				evaluationPermissionsManager.canCheckTeamSubmissionEligibility(userInfo,  evalId,  teamId));
+		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId);
+	}
+	
+
+
 }

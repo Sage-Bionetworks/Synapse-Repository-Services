@@ -55,6 +55,11 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static final String SELECT_FOR_CHALLENGE_PAGINATED = 
 		"SELECT * "+CHALLENGE_SQL_CORE+LIMIT_OFFSET;
 	
+	private static final String SELECT_FOR_CHALLENGE_AND_TEAM =
+		"SELECT COUNT(*) FROM "+TABLE_CHALLENGE_TEAM+
+		" WHERE "+COL_CHALLENGE_TEAM_CHALLENGE_ID+"=?"+
+		" AND "+COL_CHALLENGE_TEAM_TEAM_ID+"=?";
+	
 	private static final String SELECT_FOR_CHALLENGE_COUNT = 
 		"SELECT count(*) "+CHALLENGE_SQL_CORE;
 	
@@ -212,6 +217,12 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		List<ChallengeTeam> dtos = new ArrayList<ChallengeTeam>();
 		for (DBOChallengeTeam dbo : dbos) dtos.add(copyDBOtoDTO(dbo));
 		return dtos;
+	}
+	
+	@Override
+	public boolean isTeamRegistered(long challengeId, long teamId) throws DatastoreException {
+		long count = jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_AND_TEAM, Long.class, challengeId, teamId);
+		return count>0;
 	}
 
 	@Override

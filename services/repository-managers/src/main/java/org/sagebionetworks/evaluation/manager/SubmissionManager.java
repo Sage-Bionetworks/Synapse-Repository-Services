@@ -53,7 +53,7 @@ public interface SubmissionManager {
 	 * @throws JSONObjectAdapterException 
 	 * @throws DatastoreException 
 	 */
-	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
