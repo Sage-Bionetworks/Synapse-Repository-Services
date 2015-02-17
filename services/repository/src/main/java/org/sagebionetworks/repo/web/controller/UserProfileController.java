@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
@@ -185,6 +187,21 @@ public class UserProfileController extends BaseController {
 		}
 		// convert to a list of longs
 		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, longList);
+	}
+
+	/**
+	 * Batch get UserGroupHeaders.
+	 * This fetches information about a collection of users or groups, specified by Synapse IDs.
+	 * 
+	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas.  <p>For example: <pre class="prettyprint">ids=1001,819</pre></p>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<UserProfile> listUserProfiles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody IdSet ids) throws DatastoreException, NotFoundException {
+		return serviceProvider.getUserProfileService().listUserProfiles(userId, ids);
 	}
 
 	/**
