@@ -7021,6 +7021,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 
 	}
+	
+	@Override
+	public List<TeamMember> listTeamMembers(Set<Long> teamIds, String userId) throws SynapseException {
+		try {
+			IdSet idSet = new IdSet();
+			idSet.setSet(teamIds);
+			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
+			JSONObject responseBody = getSharedClientConnection().postJson(
+					getRepoEndpoint(), USER+"/"+userId+MEMBER_LIST, jsonString, getUserAgent(), null, null);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), TeamMember.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 
 	public TeamMember getTeamMember(String teamId, String memberId)
 			throws SynapseException {

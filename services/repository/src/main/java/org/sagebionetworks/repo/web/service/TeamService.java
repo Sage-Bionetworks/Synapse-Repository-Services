@@ -199,12 +199,12 @@ public interface TeamService {
 	
 	/**
 	 * 
-	 * @param teamId
+	 * @param teamIds
 	 * @param memberIds
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ListWrapper<TeamMember> listTeamMembers(Long teamId, Set<Long> memberIds) throws DatastoreException, NotFoundException;
+	public ListWrapper<TeamMember> listTeamMembers(Set<Long> teamIds, Set<Long> memberIds) throws DatastoreException, NotFoundException;
 	
 }

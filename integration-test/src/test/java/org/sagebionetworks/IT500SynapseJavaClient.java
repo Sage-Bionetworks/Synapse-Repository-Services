@@ -1210,6 +1210,9 @@ public class IT500SynapseJavaClient {
 		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singleton(Long.parseLong(myPrincipalId)));
 		assertEquals(members.getResults(), teamMembers);
 
+		teamMembers = synapseOne.listTeamMembers(Collections.singleton(Long.parseLong(updatedTeam.getId())), myPrincipalId);
+		assertEquals(members.getResults(), teamMembers);
+
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
 		// update the prefix cache
 		adminSynapse.updateTeamSearchCache();
