@@ -236,6 +236,19 @@ public class MigratableTableDAOImplAutowireTest {
 				return true;
 			}});
 		assertTrue(result);
+		
+		// This should fail if constraints are back on.
+		final S3FileHandle fh2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		fh2.setFileName("withPreview2.txt");
+		// This does not exists but we should be able to set while foreign keys are ignored.
+		fh2.setPreviewId("-123");
+		// This should fail
+		try{
+			fileHandleDao.createFile(fh2);
+			fail("A foreign key should have prevented this change.");
+		}catch(Exception e){
+			// expected
+		}
 	}
 	
 
