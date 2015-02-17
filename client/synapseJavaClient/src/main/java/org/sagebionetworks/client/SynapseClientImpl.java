@@ -53,62 +53,8 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AutoGenFactory;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Challenge;
-import org.sagebionetworks.repo.model.ChallengePagedResults;
-import org.sagebionetworks.repo.model.ChallengeTeam;
-import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.IdSet;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -129,6 +75,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -255,6 +202,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
 	private static final String PROJECT_URI_PATH = "/project";
+	private static final String PROJECTS_URI_PATH = "/projects";
 
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL + "/available";
@@ -1004,8 +952,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
-	
-	@SuppressWarnings("unchecked")
 	public <T extends JSONEntity> List<T> createJSONEntityFromListWrapper(String uri, ListWrapper<T> entity, Class<T> elementType)
 			throws SynapseException {
 		if (entity == null)
@@ -6244,6 +6190,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit,
 			Integer offset) throws SynapseException {
 		return getProjects(null, null, limit, offset);
@@ -6258,6 +6205,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId,
 			Integer limit, Integer offset) throws SynapseException {
 		return getProjects(userId, null, limit, offset);
@@ -6272,11 +6220,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId,
 			Integer limit, Integer offset) throws SynapseException {
 		return getProjects(null, teamId, limit, offset);
 	}
 
+	@Deprecated
 	private PaginatedResults<ProjectHeader> getProjects(Long userId,
 			Long teamId, Integer limit, Integer offset)
 			throws SynapseException, SynapseClientException {
@@ -6291,6 +6241,88 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<ProjectHeader> results = new PaginatedResults<ProjectHeader>(
 				ProjectHeader.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Retrieve this user's Projects list
+	 * 
+	 * @param type the type of list to get
+	 * @param sortColumn the optional sort column (default by last activity)
+	 * @param sortDirection the optional sort direction (default descending)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjects(type, null, null, sortColumn, sortDirection, limit, offset);
+	}
+
+	/**
+	 * Retrieve a user's Projects list
+	 * 
+	 * @param userId the user for which to get the project list
+	 * @param sortColumn the optional sort column (default by last activity)
+	 * @param sortDirection the optional sort direction (default descending)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjects(ProjectListType.OTHER_USER_PROJECTS, userId, null, sortColumn, sortDirection, limit, offset);
+	}
+
+	/**
+	 * Retrieve a teams's Projects list
+	 * 
+	 * @param teamId the team for which to get the project list
+	 * @param sortColumn the optional sort column (default by last activity)
+	 * @param sortDirection the optional sort direction (default descending)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjects(ProjectListType.TEAM_PROJECTS, null, teamId, sortColumn, sortDirection, limit, offset);
+	}
+
+	private PaginatedResults<ProjectHeader> getProjects(ProjectListType type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
+			SortDirection sortDirection, Integer limit, Integer offset) throws SynapseException, SynapseClientException {
+		String url = PROJECTS_URI_PATH + '/' + type.name();
+		if (userId != null) {
+			url += USER + '/' + userId;
+		}
+		if (teamId != null) {
+			url += TEAM + '/' + teamId;
+		}
+
+		if (sortColumn == null) {
+			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		}
+		if (sortDirection == null) {
+			sortDirection = SortDirection.DESC;
+		}
+
+		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit + "&sort=" + sortColumn.name() + "&sortDirection="
+				+ sortDirection.name();
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<ProjectHeader> results = new PaginatedResults<ProjectHeader>(ProjectHeader.class);
 
 		try {
 			results.initializeFromJSONObject(adapter);

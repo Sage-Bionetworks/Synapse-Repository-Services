@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -419,6 +420,7 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset);
 
 	/**
@@ -430,6 +432,7 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset);
 
 	/**
@@ -441,7 +444,24 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(Team teamToLookup, UserInfo currentUser, int limit, int offset);
+
+	/**
+	 * get a list of projects
+	 * 
+	 * @param userInfo
+	 * @param userToGetInfoFor user to get listing for
+	 * @param teamToFetch optional team to get the listing for
+	 * @param type type of list
+	 * @param sortColumn sort column
+	 * @param sortDirection sort direction
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch,
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset);
 
 	long getCount();
 }

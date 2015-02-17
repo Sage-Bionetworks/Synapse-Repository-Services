@@ -1,0 +1,8 @@
+{
+    "description":"Enum for the different types of project lists",
+    "type":"string",
+    "enum":[
+    	"LAST_ACTIVITY",
+    	"PROJECT_NAME"
+    ]
+}
