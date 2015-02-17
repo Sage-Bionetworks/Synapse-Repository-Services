@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +17,10 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -580,6 +579,31 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
+	 * Find out whether a Team and its members are eligible to submit to a given Evaluation queue (at the 
+	 * current time).  The request must include an Evaluation ID and a Team ID.   The 'eligibilityStateHash' 
+	 * field of the returned object is a required parameter of the subsequent Team Submission request made
+	 * for the given Evaluation and Team.  (See: <a href="${POST.evaluation.submission}">POST
+	 * /evaluation/submission</a>)
+	 * @param userId
+	 * @param evalId
+	 * @param teamId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_SUBMISSION_ELIGIBILITY, method = RequestMethod.GET)
+	public @ResponseBody
+	TeamSubmissionEligibility getTeamSubmissionEligibility(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@PathVariable String id) 
+			throws DatastoreException, NotFoundException
+	{
+		return serviceProvider.getEvaluationService().getTeamSubmissionEligibility(userId, evalId, id);
+	}
+	
+	/**
 	 * Creates a Submission. 
 	 * 
 	 * The passed request body should contain the following fields:
@@ -588,6 +612,13 @@ public class EvaluationController extends BaseController {
 	 * <li>entityId - The ID of the Entity being submitted.</li>
 	 * <li>versionNumber - The specific version of the Entity being submitted.</li>
 	 * </ul>
+	 * <p>
+	 * A Submission must be either a Team or an Individual submission.  A Team submission must 
+	 * include a Team ID in the teamId field and the request must include a submissionEligibilityHash
+	 * request parameter.  A Team submission may also include a list of submission contributors.
+	 * (The submitter is taken to be a contributor and need not be included in the list.)
+	 * An individual submission must have a null teamId, a null or empty contributor list, and no
+	 * submissionEligibilityHash parameter.
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -600,6 +631,9 @@ public class EvaluationController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param entityEtag - the current eTag of the Entity being submitted
+	 * @param submissionEligibilityHash - the hash provided by the 
+	 * <a href="${org.sagebionetworks.evaluation.model.TeamSubmissionEligibility}">TeamSubmissionEligibility</a>
+	 * object.
 	 * @param header
 	 * @param request
 	 * @return
@@ -617,13 +651,14 @@ public class EvaluationController extends BaseController {
 	Submission createSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
+			@RequestParam(value = AuthorizationConstants.SUBMISSION_ELIGIBILITY_HASH_PARAM, required = false) String submissionEligibilityHash,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
-		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, request);
+		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, submissionEligibilityHash, request);
 	}
 	
 	/**

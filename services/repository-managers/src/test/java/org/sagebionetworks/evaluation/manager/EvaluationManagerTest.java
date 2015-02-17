@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -51,6 +52,7 @@ public class EvaluationManagerTest {
 	private IdGenerator mockIdGenerator;
 	private EvaluationDAO mockEvaluationDAO;
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
+	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
@@ -78,6 +80,8 @@ public class EvaluationManagerTest {
     	mockAuthorizationManager = mock(AuthorizationManager.class);
     	
     	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
+
+    	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -109,6 +113,7 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
+    	ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
 
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
@@ -202,6 +207,22 @@ public class EvaluationManagerTest {
 			assertTrue(e.getMessage().toLowerCase().contains("name"));			
 		}
 		verify(mockEvaluationDAO, times(0)).update(eq(eval));
+	}
+	
+	private static final String TEAM_ID = "101";
+	
+	@Test
+	public void testGetTeamSubmissionEligibility() throws Exception {
+		when(mockEvaluationDAO.get(eval.getId())).thenReturn(eval);
+		when(mockPermissionsManager.canCheckTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID)).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
+		tse.setEvaluationId(eval.getId());
+		tse.setTeamId(TEAM_ID);
+		when(mockSubmissionEligibilityManager.getTeamSubmissionEligibility(eval, TEAM_ID)).
+			thenReturn(tse);
+		assertEquals(tse,
+				evaluationManager.getTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID));
 	}
 
 }

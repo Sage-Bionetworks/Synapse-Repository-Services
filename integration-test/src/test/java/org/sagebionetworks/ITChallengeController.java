@@ -96,8 +96,7 @@ public class ITChallengeController {
 	@After
 	public void after() throws Exception {
 		if (challengeTeam!=null) {
-			adminSynapse.deleteChallengeTeam(
-					challenge.getId(), challengeTeam.getId());
+			adminSynapse.deleteChallengeTeam(challengeTeam.getId());
 			challengeTeam=null;
 		}
 		if (challenge!=null) {
@@ -233,7 +232,7 @@ public class ITChallengeController {
 		ChallengeTeam updatedCT = synapse.updateChallengeTeam(challengeTeam);
 		assertFalse(updatedCT.getEtag().equals(challengeTeam.getEtag()));
 		
-		synapse.deleteChallengeTeam(challengeId, challengeTeam.getId());
+		synapse.deleteChallengeTeam(challengeTeam.getId());
 		assertTrue(
 				synapse.listChallengeTeams(challengeId, null, null).
 					getResults().isEmpty());

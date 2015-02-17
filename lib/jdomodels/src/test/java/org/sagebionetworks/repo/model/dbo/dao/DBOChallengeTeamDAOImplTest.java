@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -258,6 +259,19 @@ public class DBOChallengeTeamDAOImplTest {
 		checkListForChallenge(0L, null);
 	}
 	
+	@Test
+	public void testIsTeamRegistered() throws Exception {
+		// check that no Teams are currently registered for the challenge
+		checkListForChallenge(challengeId, null);
+		checkListForChallenge(0L, null);
+		assertFalse(challengeTeamDAO.isTeamRegistered(challengeId, Long.parseLong(registeredTeam.getId())));
+			
+		challengeTeam = newChallengeTeam();
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
+		
+		assertTrue(challengeTeamDAO.isTeamRegistered(challengeId, Long.parseLong(registeredTeam.getId())));
+	}
+	 
 	private void checkSubmissionTeams(long challengeId, 
 			long principalId, Set<String> expected) throws Exception {
 		if (expected==null) expected = Collections.emptySet();
