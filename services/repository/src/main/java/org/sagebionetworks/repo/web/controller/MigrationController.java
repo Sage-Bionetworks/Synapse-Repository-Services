@@ -169,20 +169,14 @@ public class MigrationController extends BaseController {
 	 * @param header
 	 * @param request
 	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
+	 * @throws Exception 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_DELETE	}, method = RequestMethod.PUT)
 	public @ResponseBody MigrationTypeCount deleteMigratableObject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
-			@RequestBody IdList request) throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+			@RequestBody IdList request) throws Exception {
 		if (request == null)
 			throw new IllegalArgumentException("Request cannot be null");
 		return serviceProvider.getMigrationService().delete(userId,  MigrationType.valueOf(type), request.getList());

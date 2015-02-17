@@ -80,8 +80,9 @@ public interface MigrationService {
 	 * @param list
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws Exception 
 	 */
-	MigrationTypeCount delete(Long userId, MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
+	MigrationTypeCount delete(Long userId, MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException, Exception;
 
 	/**
 	 * Get the status of either a restore or backup deamon

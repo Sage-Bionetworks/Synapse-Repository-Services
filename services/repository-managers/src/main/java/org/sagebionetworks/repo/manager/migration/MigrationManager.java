@@ -61,15 +61,17 @@ public interface MigrationManager {
 	/**
 	 * Create or update a batch.
 	 * @param batch - batch of objects to create or update.
+	 * @throws Exception 
 	 */
-	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in);
+	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in) throws Exception;
 	
 	/**
 	 * Delete objects by their IDs
 	 * @param type
 	 * @param idList
+	 * @throws Exception 
 	 */
-	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList);
+	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) throws Exception;
 	
 	/**
 	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.

@@ -6,6 +6,7 @@ import java.io.Writer;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -113,51 +114,61 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in) {
+	public List<Long> createOrUpdateBatch(UserInfo user, final MigrationType type, final InputStream in) throws Exception {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		// Get the database object from the dao
-		MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
-		return createOrUpdateBatch(mdo, type, in);
+		return migratableTableDao.runWithForeignKeyIgnored(new Callable<List<Long>>(){
+			@Override
+			public List<Long> call() throws Exception {
+				// Get the database object from the dao
+				MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
+				return createOrUpdateBatch(mdo, type, in);
+			}});
+
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) {
+	public int deleteObjectsById(final UserInfo user, final MigrationType type, final List<Long> idList) throws Exception {
 		validateUser(user);
-		// If this type has secondary types then delete them first
-		List<MigratableDatabaseObject> secondary = this.migratableTableDao.getObjectForType(type).getSecondaryTypes();
-		if(secondary != null){
-			for(int i=secondary.size()-1; i >= 0; i--){
-				MigrationType secondaryType = secondary.get(i).getMigratableTableType();
-				// Fire the event before deleting the objects
-				fireDeleteBatchEvent(secondaryType, idList);
-				deleteObjectsById(user, secondaryType, idList);
-			}
-		}
-		
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
-		// Delete must be done in reverse dependency order, so we must get the row metadata for 
-		// the input list
-		int count = 0;
-		List<RowMetadata> list =  migratableTableDao.listDeltaRowMetadata(type, idList);
-		if(list.size() > 0){
-			// Bucket all data by the level in the tree
-			ListBucketProvider provider = new ListBucketProvider();
-			MigrationUtils.bucketByTreeLevel(list.iterator(), provider);
-			// Now delete the buckets in reverse order
-			// This will ensure children are deleted before their parents
-			List<List<Long>> buckets = provider.getListOfBuckets();
-			if(buckets.size() > 0){
-				for(int i=buckets.size()-1; i>=0; i--){
-					List<Long> bucket = buckets.get(i);
-					// Fire the event before deleting the objects
-					fireDeleteBatchEvent(type, bucket);
-					count += migratableTableDao.deleteObjectsById(type, bucket);
+		// Do deletes with the foreign key checks off.
+		return migratableTableDao.runWithForeignKeyIgnored(new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				// If this type has secondary types then delete them first
+				List<MigratableDatabaseObject> secondary = migratableTableDao.getObjectForType(type).getSecondaryTypes();
+				if(secondary != null){
+					for(int i=secondary.size()-1; i >= 0; i--){
+						MigrationType secondaryType = secondary.get(i).getMigratableTableType();
+						// Fire the event before deleting the objects
+						fireDeleteBatchEvent(secondaryType, idList);
+						deleteObjectsById(user, secondaryType, idList);
+					}
 				}
-			}
-		}
-		return count;
+				
+				if(type == null) throw new IllegalArgumentException("Type cannot be null");
+				// Delete must be done in reverse dependency order, so we must get the row metadata for 
+				// the input list
+				int count = 0;
+				List<RowMetadata> list =  migratableTableDao.listDeltaRowMetadata(type, idList);
+				if(list.size() > 0){
+					// Bucket all data by the level in the tree
+					ListBucketProvider provider = new ListBucketProvider();
+					MigrationUtils.bucketByTreeLevel(list.iterator(), provider);
+					// Now delete the buckets in reverse order
+					// This will ensure children are deleted before their parents
+					List<List<Long>> buckets = provider.getListOfBuckets();
+					if(buckets.size() > 0){
+						for(int i=buckets.size()-1; i>=0; i--){
+							List<Long> bucket = buckets.get(i);
+							// Fire the event before deleting the objects
+							fireDeleteBatchEvent(type, bucket);
+							count += migratableTableDao.deleteObjectsById(type, bucket);
+						}
+					}
+				}
+				return count;
+			}});
 	}
 	
 	/**
@@ -311,7 +322,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 	}
 
-	private void deleteAllForType(UserInfo user, MigrationType type){
+	private void deleteAllForType(UserInfo user, MigrationType type) throws Exception{
 		// First get all data for this type.
 		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, Long.MAX_VALUE, 0);
 		List<RowMetadata> list =result.getList();
@@ -356,5 +367,6 @@ public class MigrationManagerImpl implements MigrationManager {
 	public void setMigrationListeners(List<MigrationTypeListener> migrationListeners) {
 		this.migrationListeners = migrationListeners;
 	}
+
 
 }
