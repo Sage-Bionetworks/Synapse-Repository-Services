@@ -107,6 +107,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private Submission sub2;
 	private File dataSourceFile;
 	private FileEntity fileEntity;
+	private Team participantTeam;
 	
 	private List<String> evaluationsToDelete;
 	private List<String> submissionsToDelete;
@@ -192,7 +193,8 @@ public class IT520SynapseJavaClientEvaluationTest {
         
 		teamsToDelete = new ArrayList<String>();
 		// create a Team
-		Team participantTeam = new Team();
+		participantTeam = new Team();
+		participantTeam.setCanPublicJoin(true);
 		participantTeam.setName("challenge participant team");
 		participantTeam = synapseOne.createTeam(participantTeam);
 		teamsToDelete.add(participantTeam.getId());
@@ -208,17 +210,17 @@ public class IT520SynapseJavaClientEvaluationTest {
 		if (challenge!=null) {
 			adminSynapse.deleteChallenge(challenge.getId());
 		}
-		for (String id : teamsToDelete) {
-			try {
-				adminSynapse.deleteTeam(id);
-			} catch (SynapseNotFoundException e) {}
-		}
 		// clean up submissions
 		for (String id : submissionsToDelete) {
 			try {
 				adminSynapse.deleteSubmission(id);
 			} catch (SynapseNotFoundException e) {}
-		};
+		}
+		for (String id : teamsToDelete) {
+			try {
+				adminSynapse.deleteTeam(id);
+			} catch (SynapseNotFoundException e) {}
+		}
 		
 		// clean up Access Requirements
 		for (Long id : accessRequirementsToDelete) {
@@ -487,6 +489,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// let's register for the challenge!
 		Team myTeam = new Team();
+		myTeam.setName("registered Team");
 		myTeam = synapseOne.createTeam(myTeam);
 		this.teamsToDelete.add(myTeam.getId());
 		ChallengeTeam challengeTeam = new ChallengeTeam();
@@ -510,7 +513,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(mse.getIsEligible());
 		assertFalse(mse.getIsQuotaFilled());
 		assertTrue(mse.getIsRegistered());
-		assertEquals(""+user1ToDelete, mse.getPrincipalId());
+		assertEquals(user1ToDelete, mse.getPrincipalId());
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
@@ -756,6 +759,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 
+		// synapseTwo must join the challenge
+		synapseTwo.addTeamMember(participantTeam.getId(), ""+user2ToDelete);
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(projectTwo.getId());
 		sub2.setVersionNumber(1L);

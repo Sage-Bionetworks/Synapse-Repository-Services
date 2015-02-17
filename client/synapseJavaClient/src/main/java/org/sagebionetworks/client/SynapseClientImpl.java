@@ -306,7 +306,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH
 			+ "/" + SUBMISSION + QUERY_URI;
 	private static final String EVALUATION_IDS_FILTER_PARAM = "evaluationIds";
-	private static final String TEAM_SUBMISSION_ELIGIBILITY = "/teamSubmissionEligibility";
+	private static final String SUBMISSION_ELIGIBILITY = "/submissionEligibility";
 	private static final String SUBMISSION_ELIGIBILITY_HASH = "submissionEligibilityHash";
 
 	private static final String MESSAGE = "/message";
@@ -5581,8 +5581,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("evaluationId is required.");
 		if (teamId==null)
 			throw new IllegalArgumentException("teamId is required.");
-		String url = EVALUATION_URI_PATH+"/"+evaluationId+
-				TEAM_SUBMISSION_ELIGIBILITY+"/"+teamId;
+		String url = EVALUATION_URI_PATH+"/"+evaluationId+TEAM+"/"+teamId+
+				SUBMISSION_ELIGIBILITY;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		try {
@@ -5604,7 +5604,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("For a Team submission Team ID is required.");
 			
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "="
-				+ etag + "&" + SUBMISSION_ELIGIBILITY_HASH;
+				+ etag + "&" + SUBMISSION_ELIGIBILITY_HASH+"="+submissionEligibilityHash;
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
 			jsonObj = createJSONObject(uri, jsonObj);
@@ -7690,12 +7690,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public void deleteChallengeTeam(String challengeId, String challengeTeamId) throws SynapseException {
-		validateStringAsLong(challengeId);
+	public void deleteChallengeTeam(String challengeTeamId) throws SynapseException {
 		validateStringAsLong(challengeTeamId);
 		getSharedClientConnection().deleteUri(repoEndpoint, 
-				CHALLENGE+"/"+challengeId+CHALLENGE_TEAM + "/" + challengeTeamId, 
-				getUserAgent());
+				CHALLENGE_TEAM + "/" + challengeTeamId, getUserAgent());
 	}
 	
 	public void addTeamToChallenge(String challengeId, String teamId)

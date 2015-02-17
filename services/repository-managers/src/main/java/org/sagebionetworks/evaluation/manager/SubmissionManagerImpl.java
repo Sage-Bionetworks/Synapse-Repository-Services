@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -118,7 +119,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		} else if (isIndividualSubmission(submission, submissionEligibilityHash)) {
 			return submissionEligibilityManager.isIndividualEligible(evalId, userInfo, now);
 		} else {
-			return new AuthorizationStatus(false, "Submission is neither a valid Team or Individual Submission.");
+			throw new InvalidModelException("Submission is neither a valid Team or Individual Submission.");
 		}
 	}
 

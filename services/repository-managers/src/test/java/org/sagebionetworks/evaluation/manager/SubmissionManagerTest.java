@@ -380,7 +380,7 @@ public class SubmissionManagerTest {
 					any(List.class), eq(""+submissionEligibilityHash), any(Date.class));
 	}
 	
-	@Test(expected = UnauthorizedException.class)
+	@Test(expected = InvalidModelException.class)
 	public void testContributorListButNoTeamId() throws Exception {
 		assertNull(sub.getContributors());
 		Set<SubmissionContributor> contributors = new HashSet<SubmissionContributor>();
@@ -391,7 +391,7 @@ public class SubmissionManagerTest {
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
 	}
 	
-	@Test(expected = UnauthorizedException.class)
+	@Test(expected = InvalidModelException.class)
 	public void testIndividualSubmissionWithHash() throws Exception {
 		assertNull(sub.getContributors());
 		submissionManager.createSubmission(userInfo, sub, ETAG, "123456", bundle);

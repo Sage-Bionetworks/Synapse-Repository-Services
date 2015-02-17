@@ -2074,7 +2074,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param challengeTeamId
 	 * @throws SynapseException
 	 */
-	public void deleteChallengeTeam(String challengeId, String challengeTeamId) throws SynapseException;
+	public void deleteChallengeTeam(String challengeTeamId) throws SynapseException;
 
 	/**
 	 * Return challenge participants.  If affiliated=true, return just participants 

@@ -597,10 +597,10 @@ public class EvaluationController extends BaseController {
 	TeamSubmissionEligibility getTeamSubmissionEligibility(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
-			@PathVariable String teamId) 
+			@PathVariable String id) 
 			throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getTeamSubmissionEligibility(userId, evalId, teamId);
+		return serviceProvider.getEvaluationService().getTeamSubmissionEligibility(userId, evalId, id);
 	}
 	
 	/**

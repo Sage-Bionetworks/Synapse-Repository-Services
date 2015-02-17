@@ -119,11 +119,11 @@ public class SubmissionEligibilityManagerImpl implements
 		
 		// now check whether the Team's quota is filled
 		Date now = new Date();
-		Pair<Date,Date> roundInterval = EvaluationQuotaUtil.getRoundInterval(evaluation, now);
+		Pair<Date,Date> roundInterval = SubmissionQuotaUtil.getRoundInterval(evaluation, now);
 		int submissionCount = (int)submissionDAO.countSubmissionsByTeam(Long.parseLong(evaluation.getId()), 
 				Long.parseLong(teamId), roundInterval.getFirst(), 
 				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		int submissionLimit = EvaluationQuotaUtil.getSubmissionQuota(evaluation);
+		int submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
 		teamEligibility.setIsQuotaFilled(submissionCount>=submissionLimit);
 		isTeamEligible &= !teamEligibility.getIsQuotaFilled();
 		
@@ -201,7 +201,7 @@ public class SubmissionEligibilityManagerImpl implements
 	public AuthorizationStatus isTeamEligible(String evalId, String teamId, 
 			List<String> contributors, String submissionEligibilityHashString, Date now) throws DatastoreException, NotFoundException {
 		Evaluation evaluation = evaluationDAO.get(evalId);
-		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
+		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");
 		}
@@ -267,15 +267,15 @@ public class SubmissionEligibilityManagerImpl implements
 			}
 		}
 		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
-		if (!EvaluationQuotaUtil.isSubmissionAllowed(evaluation, now)) {
+		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");
 		}
-		Pair<Date,Date> roundInterval = EvaluationQuotaUtil.getRoundInterval(evaluation, now);
+		Pair<Date,Date> roundInterval = SubmissionQuotaUtil.getRoundInterval(evaluation, now);
 		int submissionCount = (int)submissionDAO.countSubmissionsByContributor(Long.parseLong(evalId), 
 				Long.parseLong(principalId), roundInterval.getFirst(), 
 				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		int submissionLimit = EvaluationQuotaUtil.getSubmissionQuota(evaluation);
+		int submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
 		String messageSuffix = ".";
 		if (!(roundInterval.getFirst()==null && roundInterval.getSecond()==null)) {
 			messageSuffix += " (for the current submission round).";
