@@ -442,6 +442,8 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
 			throws SynapseException;
+	
+	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException;
 
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException;

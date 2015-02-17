@@ -1421,7 +1421,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
+	
+	@Override
+	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException {
+		try {
+			IdSet idSet = new IdSet();
+			idSet.setSet(userIds);
+			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
+			JSONObject responseBody = getSharedClientConnection().postJson(
+					getRepoEndpoint(), USER_PROFILE_PATH, jsonString, getUserAgent(), null, null);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), UserProfile.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
 	@Override
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException {
