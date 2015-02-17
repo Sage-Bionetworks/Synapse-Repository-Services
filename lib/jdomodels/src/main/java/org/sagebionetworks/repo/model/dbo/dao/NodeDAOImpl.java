@@ -14,12 +14,15 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -30,6 +33,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -51,6 +55,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -66,6 +71,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
+	private static final String GROUP_IDS_PARAM_NAME = "project_ids_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -92,27 +98,33 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		"select count(*) from (" + 
 			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
 	private static final String SELECT_PROJECTS_SQL1 =
-		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE;
-	private static final String SELECT_PROJECTS_STATS_FIELD =
-		", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED;
-	private static final String SELECT_PROJECTS_SQL2 =
+		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE + ", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED +
 		" from (" +
 			" select distinct n." + COL_NODE_PROJECT_ID +
 				" from ( ";
 	private static final String SELECT_PROJECTS_SQL3 =
-			" ) acls" +
+		" ) acls" +
 			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
-			" where n." + COL_NODE_PROJECT_ID + " is not null" +
+			" where n." + COL_NODE_PROJECT_ID + " is not null";
+	private static final String SELECT_CREATED =
+		"   and n." + COL_NODE_CREATED_BY + " = ";
+	private static final String SELECT_NOT_CREATED =
+		"   and n." + COL_NODE_CREATED_BY + " <> ";
+
+	private static final String SELECT_PROJECTS_SQL4 =
 		" ) pids" +
 		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID;
 	private static final String SELECT_PROJECTS_SQL_JOIN_STATS =
 		" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
 
-	private static final String SELECT_PROJECTS_ORDER =
-		" order by " + LAST_ACCESSED_OR_CREATED + " DESC ";
+	private static final String SELECT_ONLY_PROJECTS_GROUPS =
+		"   n." + COL_NODE_BENEFACTOR_ID + " in ( :" + GROUP_IDS_PARAM_NAME + ")";
 
-	private static final String SELECT_TEAMS_ORDER = 
-			" order by n." + COL_NODE_NAME + " ASC ";
+	private static final String SELECT_PROJECTS_ORDER =
+		" order by " + LAST_ACCESSED_OR_CREATED;
+
+	private static final String SELECT_NAME_ORDER =
+		" order by n." + COL_NODE_NAME;
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -1342,106 +1354,115 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return refs;
 	}
 
+	private static final Predicate<Long> PUBLIC_GROUPS = new Predicate<Long>() {
+		@Override
+		public boolean apply(Long input) {
+			return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue()
+					&& input.longValue() != BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue()
+					&& input.longValue() != BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue();
+		}
+	};
+
 	private Collection<Long> getGroupsMinusPublic(Set<Long> usersGroups){
-		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, new Predicate<Long>() {
+		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, PUBLIC_GROUPS));
+		return groups;
+	}
+
+	private Set<Long> getGroupsMinusPublicAndSelf(Set<Long> usersGroups, final long userId) {
+		Set<Long> groups = Sets.newHashSet(Sets.filter(usersGroups, Predicates.and(PUBLIC_GROUPS, new Predicate<Long>() {
 			@Override
 			public boolean apply(Long input) {
-				return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue()
-						&& input.longValue() != BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue()
-						&& input.longValue() != BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue();
+				return input.longValue() != userId;
 			}
-		}));
+		})));
 		return groups;
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset) {
+	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) {
+		ValidateArgument.required(userToGetInfoFor, "userToLookupId");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
 		// get one page of projects
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(USER_ID_PARAM_NAME, userInfo.getId().toString());
 
 		Map<String, Object> parameters = Maps.newHashMap();
+		parameters.put(USER_ID_PARAM_NAME, userToGetInfoFor.getId().toString());
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userInfo.getGroups()), parameters, 0);
 
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String auth2 = QueryUtils.buildAuthorizationFilter(userInfo.isAdmin(), userInfo.getGroups(), parameters, "n", userInfo.getGroups()
-				.size());
+		Collection<Long> groups;
+		Set<Long> auth2Groups = currentUser.getGroups();
+		boolean auth2IsAdmin = currentUser.isAdmin();
+		String whereClause;
+		switch (type) {
+		case MY_PROJECTS:
+		case OTHER_USER_PROJECTS:
+			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			whereClause = "";
+			break;
+		case MY_CREATED_PROJECTS:
+			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			whereClause = SELECT_CREATED + userToGetInfoFor.getId();
+			break;
+		case MY_PARTICIPATED_PROJECTS:
+			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			whereClause = SELECT_NOT_CREATED + userToGetInfoFor.getId();
+			break;
+		case MY_TEAM_PROJECTS:
+			groups = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
+			auth2IsAdmin = false;
+			auth2Groups = getGroupsMinusPublicAndSelf(currentUser.getGroups(), currentUser.getId());
+			whereClause = "";
+			break;
+		case TEAM_PROJECTS:
+			long teamId = Long.parseLong(teamToFetch.getId());
+			groups = Sets.newHashSet(teamId);
+			whereClause = "";
+			break;
+		default:
+			throw new NotImplementedException("project list type " + type + " not yet implemented");
+		}
+		String authForLookup = QueryUtils.buildAuthorizationSelect(groups, parameters, 0);
+		int groupCount = groups.size();
+
+		String sortOrder;
+		switch (sortColumn) {
+		case LAST_ACTIVITY:
+			sortOrder = SELECT_PROJECTS_ORDER;
+			break;
+		case PROJECT_NAME:
+			sortOrder = SELECT_NAME_ORDER;
+			break;
+		default:
+			throw new NotImplementedException("project list sort column " + sortColumn + " not yet implemented");
+		}
+
+		String auth2 = QueryUtils.buildAuthorizationFilter(auth2IsAdmin, auth2Groups, parameters, "n", groupCount);
 
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
-		params.addValues(parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + SELECT_PROJECTS_STATS_FIELD + SELECT_PROJECTS_SQL2 + authForLookup + SELECT_PROJECTS_SQL3
-				+ SELECT_PROJECTS_SQL_JOIN_STATS + (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + (auth2.isEmpty() ? "" : (" where " + auth2));
-		return getProjectHeaders(params, selectSql, countSql, true);
-	}
-			
+		String whereClause2 = "";
+		if (!auth2.isEmpty()) {
+			whereClause2 = " where " + auth2;
+		}
 
-	@Override
-	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset) {
-		ValidateArgument.required(userToLookup, "userToLookupId");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
-		// get one page of projects
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(USER_ID_PARAM_NAME, userToLookup.getId().toString());
+		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + SELECT_PROJECTS_SQL4 + whereClause
+				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + SELECT_PROJECTS_SQL4 + whereClause + whereClause2;
 
-		Map<String, Object> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationSelect(getGroupsMinusPublic(userToLookup.getGroups()), parameters, 0);
-
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", userToLookup
-				.getGroups().size());
-
-		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
-
-		params.addValues(parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + SELECT_PROJECTS_STATS_FIELD + SELECT_PROJECTS_SQL2 + authForLookup + SELECT_PROJECTS_SQL3
-				+ SELECT_PROJECTS_SQL_JOIN_STATS + (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_PROJECTS_ORDER + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + (auth2.isEmpty() ? "" : (" where " + auth2));
-		return getProjectHeaders(params, selectSql, countSql, true);
+		return getProjectHeaders(parameters, selectSql, countSql);
 	}
 
-	@Override
-	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(Team teamToLookup, UserInfo currentUser, int limit, int offset) {
-		ValidateArgument.required(teamToLookup, "teamToLookupId");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
-
-		long teamId = Long.parseLong(teamToLookup.getId());
-
-		// get one page of projects
-		MapSqlParameterSource params = new MapSqlParameterSource();
-
-		Map<String, Object> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationSelect(Sets.newHashSet(teamId), parameters, 0);
-
-		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", 1);
-
-		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
-
-		params.addValues(parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + SELECT_PROJECTS_SQL2 + authForLookup + SELECT_PROJECTS_SQL3
-				+ (auth2.isEmpty() ? "" : (" where " + auth2)) + SELECT_TEAMS_ORDER + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + (auth2.isEmpty() ? "" : (" where " + auth2));
-		return getProjectHeaders(params, selectSql, countSql, false);
-	}
-
-	private PaginatedResults<ProjectHeader> getProjectHeaders(MapSqlParameterSource params, String selectSql, String countSql,
-			final boolean hasLastActivity) {
+	private PaginatedResults<ProjectHeader> getProjectHeaders(Map<String, Object> parameters, String selectSql, String countSql) {
+		MapSqlParameterSource params = new MapSqlParameterSource(parameters);
 		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSql, params, new RowMapper<ProjectHeader>() {
 			@Override
 			public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ProjectHeader header = new ProjectHeader();
 				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 				header.setName(rs.getString(COL_NODE_NAME));
-				if (hasLastActivity) {
-					long lastActivity = rs.getLong(COL_PROJECT_STAT_LAST_ACCESSED);
-					if (!rs.wasNull()) {
-						header.setLastActivity(new Date(lastActivity));
-					}
+				long lastActivity = rs.getLong(COL_PROJECT_STAT_LAST_ACCESSED);
+				if (!rs.wasNull()) {
+					header.setLastActivity(new Date(lastActivity));
 				}
 				return header;
 			}

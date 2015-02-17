@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -411,37 +412,20 @@ public interface NodeDAO {
 	public String lockNode(Long longId);
 
 	/**
-	 * Get the list of projects the user has an interest in
+	 * get a list of projects
 	 * 
-	 * @param userToLookupId user to get listing for
-	 * @param userInfo optional current user that is doing the lookup for another user
+	 * @param userInfo
+	 * @param userToGetInfoFor user to get listing for
+	 * @param teamToFetch optional team to get the listing for
+	 * @param type type of list
+	 * @param sortColumn sort column
+	 * @param sortDirection sort direction
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset);
-
-	/**
-	 * Get the list of projects another user has an interest in
-	 * 
-	 * @param userToLookupId user to get listing for
-	 * @param currentUserId optional current user that is doing the lookup for another user
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset);
-
-	/**
-	 * Get the list of projects a team has an interest in
-	 * 
-	 * @param userToLookupId user to get listing for
-	 * @param currentUserId optional current user that is doing the lookup for another user
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(Team teamToLookup, UserInfo currentUser, int limit, int offset);
+	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch,
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset);
 
 	long getCount();
 }
