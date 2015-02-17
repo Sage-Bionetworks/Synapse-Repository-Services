@@ -284,7 +284,7 @@ public class ChallengeController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.CHALLENGE_CHAL_ID_CHAL_TEAM_CHAL_TEAM_ID, method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.CHALLENGE_TEAM_CHAL_TEAM_ID, method = RequestMethod.DELETE)
 	public void deleteChallengeTeam(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.CHALLENGE_TEAM_ID_PATH_VARIABLE) long challengeTeamId

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -13,6 +12,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -207,7 +207,7 @@ public interface EvaluationService {
 	 * @throws ParseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, HttpServletRequest request)
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
 	/**
@@ -454,4 +454,6 @@ public interface EvaluationService {
 	public QueryTableResults query(String userQuery, Long userId)
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, ParseException;
 
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException;
+	
 }

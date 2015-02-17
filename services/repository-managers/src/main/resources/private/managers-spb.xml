@@ -214,6 +214,9 @@
 	<bean id="evaluationManager" class="org.sagebionetworks.evaluation.manager.EvaluationManagerImpl" 
 		scope="singleton" />
 		
+	<bean id="submissionEligibilityManager" class="org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl" 
+		scope="singleton" />
+		
 	<bean id="participantManager" class="org.sagebionetworks.evaluation.manager.ParticipantManagerImpl" 
 		scope="singleton" />
 		

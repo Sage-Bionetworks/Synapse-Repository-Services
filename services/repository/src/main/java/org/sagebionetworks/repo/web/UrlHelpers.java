@@ -778,6 +778,9 @@ public class UrlHelpers {
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 	
+	public static final String TEAM_SUBMISSION_ELIGIBILITY = EVALUATION_WITH_ID +TEAM_ID+
+			"/submissionEligibility";
+	
 	/**
 	 * Challenge URIs
 	 */
@@ -794,6 +797,8 @@ public class UrlHelpers {
 	public static final String CHALLENGE_TEAM_ID = "/{"+CHALLENGE_TEAM_ID_PATH_VARIABLE+"}";
 	public static final String CHALLENGE_CHAL_ID_CHAL_TEAM_CHAL_TEAM_ID = 
 			CHALLENGE+CHALLENGE_ID+CHALLENGE_TEAM+CHALLENGE_TEAM_ID;
+	public static final String CHALLENGE_TEAM_CHAL_TEAM_ID = 
+			CHALLENGE_TEAM+CHALLENGE_TEAM_ID;
 	public static final String CHALLENGE_CHAL_ID_REGISTRATABLE_TEAM = CHALLENGE+CHALLENGE_ID+"/registratableTeam";
 	/*
 	 * Project URLs

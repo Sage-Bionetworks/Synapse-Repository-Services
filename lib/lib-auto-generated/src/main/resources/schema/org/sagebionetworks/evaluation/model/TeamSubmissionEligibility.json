@@ -1,0 +1,31 @@
+{
+	"description": "Describes the eligibility of a Challenge Team to submit to an Evalution queue, reflecting the queue's submission quotas and current submissions.",
+	"name": "TeamSubmissionEligibility",
+	"properties": {
+		"teamId": {
+			"type": "string",
+			"description": "The ID of the Team of interest"
+		},
+		"evaluationId": {
+			"type": "string",
+			"description": "The ID of the Evaluation of interest"
+		},
+		"teamEligibility": {
+			"type":"object",
+			"$ref":"org.sagebionetworks.evaluation.model.SubmissionEligibility",
+			"description": "Describes the  submission eligibility for the team of interest."
+		},
+		"membersEligibility": {
+			"type": "array",
+			"items":{
+				"type":"object",
+				"$ref":"org.sagebionetworks.evaluation.model.MemberSubmissionEligibility"
+			},
+			"description": "Describes the submission eligibility of the contributors to the Submission."
+		},
+		"eligibilityStateHash": {
+			"type": "integer",
+			"description": "A hash of this object, used for optimistic concurrency."
+		}
+	}
+}

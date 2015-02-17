@@ -128,7 +128,7 @@ public class AnnotationsWorkerIntegrationTest {
         Node created = nodeDAO.getNode(nodeId);
         EntityBundle bundle = new EntityBundle();
         bundle.setFileHandles(new ArrayList<FileHandle>());
-        Submission createdSub = submissionManager.createSubmission(userInfo, submission, created.getETag(), bundle);
+        Submission createdSub = submissionManager.createSubmission(userInfo, submission, created.getETag(), null, bundle);
         submissionId = createdSub.getId();
         
         // create a submissionstatus

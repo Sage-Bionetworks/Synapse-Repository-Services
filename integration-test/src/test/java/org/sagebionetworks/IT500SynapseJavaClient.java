@@ -64,8 +64,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -1153,9 +1151,7 @@ public class IT500SynapseJavaClient {
 		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		
-		IdSet idSet = new IdSet();
-		idSet.setSet(Collections.singleton(Long.parseLong(updatedTeam.getId())));
-		List<Team> teamList = synapseOne.listTeams(idSet);
+		List<Team> teamList = synapseOne.listTeams(Collections.singleton(Long.parseLong(updatedTeam.getId())));
 		assertEquals(1L, teamList.size());
 		assertEquals(updatedTeam, teamList.get(0));
 		
@@ -1211,9 +1207,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
-		IdSet memberIds = new IdSet();
-		memberIds.setSet(Collections.singleton(Long.parseLong(myPrincipalId)));
-		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), memberIds);
+		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singleton(Long.parseLong(myPrincipalId)));
 		assertEquals(members.getResults(), teamMembers);
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);

@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -536,6 +537,46 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", mockAccessRequirementDao);
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", original);
+	}
+	
+	@Test
+	public void testCanCheckSubmissionEligibility() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCanCheckSubmissionEligibility";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// userInfo includes this team
+		String teamId = BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
+		
+		// false if user is on team but lacks submit privilege
+		assertFalse(evaluationPermissionsManager.
+				canCheckTeamSubmissionEligibility(userInfo, evalId, teamId).getAuthorized());
+		
+		// add SUBMIT privilege to ACL
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		Long principalId = userInfo.getId();
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.SUBMIT);
+		ra.setAccessType(accessType);
+		raSet.add(ra);
+		acl.setResourceAccess(raSet);
+		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// true if user is on team and has submit privilege
+		assertTrue(evaluationPermissionsManager.
+				canCheckTeamSubmissionEligibility(userInfo, evalId, teamId).getAuthorized());
+		
+		// false if user is NOT on team and has submit privilege
+		assertFalse(evaluationPermissionsManager.
+				canCheckTeamSubmissionEligibility(userInfo, evalId, "999").getAuthorized());
+		
+		// true for admin
+		assertTrue(evaluationPermissionsManager.
+				canCheckTeamSubmissionEligibility(adminUserInfo, evalId, "999").getAuthorized());
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {

@@ -107,6 +107,12 @@ public class AuthorizationConstants {
 	public static final String ETAG_PARAM = "etag";
 	
 	/**
+	 * Request parameter giving the hash of the TeamSubmissionEligibility object which was
+	 * referenced by the client when crafting the associated Submission.
+	 */
+	public static final String SUBMISSION_ELIGIBILITY_HASH_PARAM = "submissionEligibilityHash";
+	
+	/**
 	 * A request parameter to the setUserCertification service, saying whether to set or clear certification.
 	 */
 	public static final String IS_CERTIFIED = "isCertified";

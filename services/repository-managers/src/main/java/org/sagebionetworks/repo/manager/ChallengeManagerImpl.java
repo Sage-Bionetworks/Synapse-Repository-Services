@@ -170,7 +170,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			throw new InvalidModelException("Challenge ID is required.");
 		if (challengeTeam.getTeamId()==null) 
 			throw new InvalidModelException("Team ID is required.");
-		if (challengeTeam.getMessage().length()>MAX_CHALLENGE_TEAM_MESSAGE_LENGTH) {
+		if (challengeTeam.getMessage()!=null && challengeTeam.getMessage().length()>MAX_CHALLENGE_TEAM_MESSAGE_LENGTH) {
 			throw new InvalidModelException("Message may not exceed "+MAX_CHALLENGE_TEAM_MESSAGE_LENGTH+" characters in length.");
 		}
 	}
