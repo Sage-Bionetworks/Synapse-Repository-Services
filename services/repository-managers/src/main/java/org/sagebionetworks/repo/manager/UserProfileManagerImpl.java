@@ -185,30 +185,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(final UserInfo userInfo, int limit, int offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(userInfo, limit, offset);
-		return projectHeaders;
-	}
-
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForUser(final UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException {
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForUser(userToFetch, userInfo, limit, offset);
-		return projectHeaders;
-	}
-
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(final UserInfo userInfo, Team teamToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException {
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForTeam(teamToFetch, userInfo, limit, offset);
-		return projectHeaders;
-	}
-
-	@Override
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {

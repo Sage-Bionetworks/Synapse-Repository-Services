@@ -1379,27 +1379,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset) {
-		return getProjectHeaders(userInfo, userInfo, null, ProjectListType.MY_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY,
-				SortDirection.DESC, limit, offset);
-	}
-
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset) {
-		return getProjectHeaders(currentUser, userToLookup, null, ProjectListType.OTHER_USER_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY,
-				SortDirection.DESC, limit, offset);
-	}
-
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(Team teamToLookup, UserInfo currentUser, int limit, int offset) {
-		return getProjectHeaders(currentUser, currentUser, teamToLookup, ProjectListType.TEAM_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY,
-				SortDirection.DESC, limit, offset);
-	}
-
-	@Override
 	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
 			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) {
 		ValidateArgument.required(userToGetInfoFor, "userToLookupId");

@@ -18,8 +18,10 @@ import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -285,7 +287,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getMyProjects(userId, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, null, null, ProjectListType.MY_PROJECTS,
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
 	}
 
 	/**
@@ -306,7 +309,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjectsForUser(userId, principalId, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, ProjectListType.OTHER_USER_PROJECTS,
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
 	}
 
 	/**
@@ -327,7 +331,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjectsForTeam(userId, teamId, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, null, teamId, ProjectListType.TEAM_PROJECTS,
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
 	}
 
 	/**

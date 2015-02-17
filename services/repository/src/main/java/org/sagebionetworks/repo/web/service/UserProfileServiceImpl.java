@@ -312,33 +312,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(Long userId, int limit, int offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getMyProjects(userInfo, limit, offset);
-	}
-
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForUser(Long userId, Long userIdToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserInfo userToFetch = userManager.getUserInfo(userIdToFetch);
-		return userProfileManager.getProjectsForUser(userInfo, userToFetch, limit, offset);
-	}
-
-	@Override
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long userId, Long teamIdToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.required(teamIdToFetch, "teamId");
-		Team teamToFetch = teamManager.get(teamIdToFetch.toString());
-		return userProfileManager.getProjectsForTeam(userInfo, teamToFetch, limit, offset);
-	}
-
-	@Override
 	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {

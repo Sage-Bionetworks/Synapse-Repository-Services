@@ -199,54 +199,6 @@ public interface UserProfileService {
 	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
-	 * Retrieve sorted list of the users projects, paginated
-	 * 
-	 * @param userId
-	 * @param userIdToFetch
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(Long userId, int limit, int offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve sorted list of another users projects, paginated
-	 * 
-	 * @param userId
-	 * @param userIdToFetch
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForUser(Long userId, Long userIdToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve sorted list of team projects, paginated
-	 * 
-	 * @param userId
-	 * @param userIdToFetch
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long userId, Long teamIdToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException;
-
-	/**
 	 * Retrieve sorted list of projects, paginated
 	 * 
 	 * @param userId

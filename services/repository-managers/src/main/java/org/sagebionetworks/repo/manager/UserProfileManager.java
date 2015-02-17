@@ -84,27 +84,6 @@ public interface UserProfileManager {
 			InvalidModelException, NotFoundException;
 
 	/**
-	 * Retrieve my list of projects, paginated
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjects(UserInfo userInfo, int limit, int offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve users list of projects, paginated
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForUser(UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve teams list of projects, paginated
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(UserInfo userInfo, Team teamToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException;
-
-	/**
 	 * Retrieve list of projects, paginated
 	 */
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,

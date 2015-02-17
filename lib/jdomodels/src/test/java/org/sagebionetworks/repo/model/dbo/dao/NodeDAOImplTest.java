@@ -2180,9 +2180,6 @@ public class NodeDAOImplTest {
 		List<String> projectIds = Lists.transform(projectHeaders.getResults(), transformToId);
 		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
 
-		// check deprecated
-		assertEquals(projectHeaders, nodeDao.getMyProjectHeaders(user1Info, 100, 0));
-
 		// sort opposite direction
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.ASC, 100, 0);
@@ -2246,16 +2243,10 @@ public class NodeDAOImplTest {
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
 		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
 
-		// check deprecated
-		assertEquals(projectHeaders, nodeDao.getProjectHeadersForUser(user1Info, user3Info, 100, 0));
-
 		// group only has access to group projects, and only user1 can access sub folder project
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
 		assertEquals(Lists.newArrayList(subFolderProject2, groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
-
-		// check deprecated
-		assertEquals(projectHeaders, nodeDao.getProjectHeadersForTeam(teamDAO.get(group), user1Info, 100, 0));
 
 		// group only has access to group project and user3 cannot access sub folder project
 		projectHeaders = nodeDao.getProjectHeaders(user3Info, user3Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,

@@ -412,42 +412,6 @@ public interface NodeDAO {
 	public String lockNode(Long longId);
 
 	/**
-	 * Get the list of projects the user has an interest in
-	 * 
-	 * @param userToLookupId user to get listing for
-	 * @param userInfo optional current user that is doing the lookup for another user
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getMyProjectHeaders(UserInfo userInfo, int limit, int offset);
-
-	/**
-	 * Get the list of projects another user has an interest in
-	 * 
-	 * @param userToLookupId user to get listing for
-	 * @param currentUserId optional current user that is doing the lookup for another user
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset);
-
-	/**
-	 * Get the list of projects a team has an interest in
-	 * 
-	 * @param userToLookupId user to get listing for
-	 * @param currentUserId optional current user that is doing the lookup for another user
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	@Deprecated
-	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(Team teamToLookup, UserInfo currentUser, int limit, int offset);
-
-	/**
 	 * get a list of projects
 	 * 
 	 * @param userInfo
