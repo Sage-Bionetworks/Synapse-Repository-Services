@@ -1449,12 +1449,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
 		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + SELECT_PROJECTS_SQL4 + whereClause + whereClause2;
 
-		String x = selectSql;
-		for (Entry<String, Object> entry : parameters.entrySet()) {
-			x = x.replace(':' + entry.getKey(), "'" + entry.getValue().toString() + "'");
-			x = x.replace(':' + entry.getKey(), "'" + entry.getValue().toString() + "'");
-			x = x.replace(':' + entry.getKey(), "'" + entry.getValue().toString() + "'");
-		}
 		return getProjectHeaders(parameters, selectSql, countSql);
 	}
 
