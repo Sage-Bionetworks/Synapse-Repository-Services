@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -85,5 +86,16 @@ public interface MigratableTableDAO {
 	 * @return
 	 */
 	public List<MigrationType> getPrimaryMigrationTypes();
+	
+	/**
+	 * Run a method with foreign key constraints off.
+	 * The global state of the database will be set to not check foreign key constraints
+	 * while the passed callable is running.
+	 * The foreign key constraint checking will unconditionally be re-enabled after the callable finishes.
+	 * @param call
+	 * @return
+	 * @throws Exception
+	 */
+	public <T> T runWithForeignKeyIgnored(Callable<T> call) throws Exception;
 
 }

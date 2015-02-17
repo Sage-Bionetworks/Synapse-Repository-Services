@@ -80,7 +80,7 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public MigrationTypeCount delete(Long userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
+	public MigrationTypeCount delete(Long userId, MigrationType type, List<Long> list) throws Exception {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		long count = migrationManager.deleteObjectsById(user, type, list);
