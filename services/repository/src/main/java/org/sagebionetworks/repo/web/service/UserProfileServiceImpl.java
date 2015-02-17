@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -42,6 +44,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.Sort;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -308,6 +312,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(Long userId, int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -315,6 +320,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForUser(Long userId, Long userIdToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -323,6 +329,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long userId, Long teamIdToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -330,7 +337,46 @@ public class UserProfileServiceImpl implements UserProfileService {
 		Team teamToFetch = teamManager.get(teamIdToFetch.toString());
 		return userProfileManager.getProjectsForTeam(userInfo, teamToFetch, limit, offset);
 	}
-	
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userToGetInfoFor = userInfo;
+
+		ValidateArgument.required(type, "type");
+
+		// validate for different types of lists
+		switch (type) {
+		case OTHER_USER_PROJECTS:
+			ValidateArgument.required(otherUserId, "user");
+			break;
+		case TEAM_PROJECTS:
+			ValidateArgument.required(teamId, "team");
+			break;
+		default:
+			break;
+		}
+
+		if(sortColumn ==null){
+			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		}
+		if (sortDirection == null) {
+			sortDirection = SortDirection.DESC;
+		}
+
+		if (otherUserId != null) {
+			userToGetInfoFor = userManager.getUserInfo(otherUserId);
+		}
+		Team teamToFetch = null;
+		if (teamId != null) {
+			teamToFetch = teamManager.get(teamId.toString());
+		}
+
+		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
+	}
+
 	/*
 	 * Private Methods
 	 */
