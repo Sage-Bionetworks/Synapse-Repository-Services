@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
@@ -212,6 +212,45 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
+	
+	@Test
+	public void testRunWithForeignKeyIgnored() throws Exception{
+		final S3FileHandle fh = TestUtils.createS3FileHandle(creatorUserGroupId);
+		fh.setFileName("withPreview.txt");
+		// This does not exists but we should be able to set while foreign keys are ignored.
+		fh.setPreviewId("-123");
+		// This should fail
+		try{
+			fileHandleDao.createFile(fh);
+			fail("A foreign key should have prevented this change.");
+		}catch(Exception e){
+			// expected
+		}
+		// While the check is off we can violate foreign keys.
+		Boolean result = migratableTableDAO.runWithForeignKeyIgnored(new Callable<Boolean>(){
+			@Override
+			public Boolean call() throws Exception {
+				// We should be able to do this now that foreign keys are disabled.
+				S3FileHandle updated = fileHandleDao.createFile(fh);
+				toDelete.add(updated.getId());
+				return true;
+			}});
+		assertTrue(result);
+		
+		// This should fail if constraints are back on.
+		final S3FileHandle fh2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		fh2.setFileName("withPreview2.txt");
+		// This does not exists but we should be able to set while foreign keys are ignored.
+		fh2.setPreviewId("-123");
+		// This should fail
+		try{
+			fileHandleDao.createFile(fh2);
+			fail("A foreign key should have prevented this change.");
+		}catch(Exception e){
+			// expected
+		}
+	}
+	
 
 	/**
 	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 

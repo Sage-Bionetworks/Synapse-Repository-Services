@@ -36,7 +36,6 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-
 	/**
 	 * This should always occur in its own transaction.
 	 */

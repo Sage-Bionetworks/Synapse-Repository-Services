@@ -104,7 +104,7 @@ public class BackupDriverImpl implements BackupDriver {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException {
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws Exception {
 		if (source == null)
 			throw new IllegalArgumentException("Source file cannot be null");
 		if (!source.exists())
