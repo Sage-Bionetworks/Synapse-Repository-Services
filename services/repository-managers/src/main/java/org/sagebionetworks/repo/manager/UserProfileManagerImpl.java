@@ -3,12 +3,10 @@ package org.sagebionetworks.repo.manager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -17,9 +15,7 @@ import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
@@ -30,6 +26,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -37,10 +34,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 	
@@ -223,6 +216,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(final UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(userInfo, limit, offset);
@@ -230,6 +224,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForUser(final UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForUser(userToFetch, userInfo, limit, offset);
@@ -237,9 +232,19 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(final UserInfo userInfo, Team teamToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForTeam(teamToFetch, userInfo, limit, offset);
+		return projectHeaders;
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn,
+				sortDirection, limit, offset);
 		return projectHeaders;
 	}
 

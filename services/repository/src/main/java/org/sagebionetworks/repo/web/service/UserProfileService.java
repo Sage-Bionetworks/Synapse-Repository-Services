@@ -17,11 +17,15 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.Sort;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -220,6 +224,7 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(Long userId, int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 
@@ -235,6 +240,7 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForUser(Long userId, Long userIdToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException;
 
@@ -250,8 +256,29 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long userId, Long teamIdToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve sorted list of projects, paginated
+	 * 
+	 * @param userId
+	 * @param otherUserId optional other user id required when retrieving projects of other user
+	 * @param teamId optional team id required when retrieving projects for a team
+	 * @param type type of project list
+	 * @param sortColumn optional sort column. default sort by last activity
+	 * @param sortDirection optional sort direction. default sort descending
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
 
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
