@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -61,6 +63,18 @@ public interface UserProfileService {
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(
 			HttpServletRequest request, Long userId, Integer offset,
 			Integer limit, String sort, Boolean ascending)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * Return UserProfiles for the given ids
+	 * @param userId
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdSet ids)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**

@@ -6,7 +6,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -52,10 +54,14 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String SELECT_PAGINATED = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_PROFILE+
+			"SELECT * FROM "+TABLE_USER_PROFILE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
+	private static final String LIST_FOR_IDS = 
+			"SELECT * FROM "+TABLE_USER_PROFILE+
+			" WHERE "+COL_USER_PROFILE_ID+" in (:"+COL_USER_PROFILE_ID+")";
+	
+	private static final RowMapper<DBOUserProfile> USER_PROFILE_ROW_MAPPER = (new DBOUserProfile()).getTableMapping();
 	
 
 	/* (non-Javadoc)
@@ -100,7 +106,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		long limit = toExcl - fromIncl;
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, userProfileRowMapper, param);
+		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, USER_PROFILE_ROW_MAPPER, param);
 		List<UserProfile> dtos = new ArrayList<UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
 			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
@@ -108,6 +114,20 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		}
 		return dtos;
 	}
+	
+	public List<UserProfile> list(Set<Long> ids) throws DatastoreException, NotFoundException {
+		if (ids==null || ids.size()<1) return Collections.emptyList();
+		MapSqlParameterSource param = new MapSqlParameterSource();		
+		param.addValue(COL_USER_PROFILE_ID, ids);
+		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(LIST_FOR_IDS, USER_PROFILE_ROW_MAPPER, param);
+		List<UserProfile> dtos = new ArrayList<UserProfile>();
+		for (DBOUserProfile dbo : dbos) {
+			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
+			dtos.add(dto);
+		}
+		return dtos;		
+	}
+
 
 	@Override
 	public long getCount() throws DatastoreException {

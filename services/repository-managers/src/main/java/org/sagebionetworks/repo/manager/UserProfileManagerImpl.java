@@ -13,7 +13,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -114,9 +116,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		}
 	}
 	
-	@Override
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
-		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+	private void addAliasesToProfiles(List<UserProfile> userProfiles) {
 		Set<Long> principalIds = new HashSet<Long>();
 		Map<Long,UserProfile> profileMap = new HashMap<Long,UserProfile>();
 		for (UserProfile profile : userProfiles) {
@@ -132,10 +132,32 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			UserProfile profile = profileMap.get(alias.getPrincipalId());
 			insertAliasIntoProfile(profile, alias);
 		}
+		
+	}
+	
+	@Override
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+		addAliasesToProfiles(userProfiles);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}
+	
+	/**
+	 * List the UserProfiles for the given IDs
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> list(IdSet ids)  throws DatastoreException, NotFoundException {
+		List<UserProfile> userProfiles = userProfileDAO.list(ids.getSet());
+		addAliasesToProfiles(userProfiles);
+		return ListWrapper.wrap(userProfiles, UserProfile.class);
+	}
+
+
 
 	/**
 	 * This method is only available to the object owner or an admin

@@ -3,7 +3,9 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -30,6 +32,15 @@ public interface UserProfileManager {
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo,
 			long startIncl, long endExcl) throws DatastoreException,
 			NotFoundException;
+	
+	/**
+	 * List the UserProfiles for the given IDs
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> list(IdSet ids)  throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a UserProfile.
