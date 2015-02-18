@@ -77,7 +77,7 @@ public class ChallengeController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CHALLENGE_CHALLENGE_ID, method = RequestMethod.GET)
 	public @ResponseBody Challenge getChallenge(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = ID_PATH_VARIABLE) long challengeId
+			@PathVariable long challengeId
 			) throws DatastoreException, NotFoundException {
 		return serviceProvider.getChallengeService().getChallenge(userId, challengeId);
 	}
