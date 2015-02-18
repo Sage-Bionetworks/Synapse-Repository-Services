@@ -67,7 +67,7 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> memberIds) throws DatastoreException, NotFoundException;
+	public ListWrapper<TeamMember> listMembers(Set<Long> teamIds, Set<Long> memberIds) throws DatastoreException, NotFoundException;
 	/**
 	 * 
 	 * @param teamId

@@ -751,6 +751,7 @@ public class UrlHelpers {
 	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";
 	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
 	public static final String TEAM_MEMBER_LIST = TEAM_ID_MEMBER+"List";
+	public static final String USER_TEAM_MEMBER_LIST = USER+ID+MEMBER+"List";
 	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
 	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
 	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";
@@ -800,12 +801,22 @@ public class UrlHelpers {
 	public static final String CHALLENGE_TEAM_CHAL_TEAM_ID = 
 			CHALLENGE_TEAM+CHALLENGE_TEAM_ID;
 	public static final String CHALLENGE_CHAL_ID_REGISTRATABLE_TEAM = CHALLENGE+CHALLENGE_ID+"/registratableTeam";
+
 	/*
 	 * Project URLs
 	 */
+	@Deprecated
 	public static final String MY_PROJECTS = PrefixConst.PROJECT;
+	@Deprecated
 	public static final String PROJECTS_FOR_USER = PrefixConst.PROJECT + USER + "/{principalId}";
+	@Deprecated
 	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
+
+	public static final String PROJECTS = "/projects/{type}";
+	public static final String PROJECTS_USER = PROJECTS + USER + "/{principalId}";
+	public static final String PROJECTS_TEAM = PROJECTS + TEAM + "/{teamId}";
+	public static final String PROJECTS_SORT_PARAM = "sort";
+	public static final String PROJECTS_SORT_DIRECTION_PARAM = "sortDirection";
 
 	// certified user services
 	public static final String CERTIFIED_USER_TEST = "/certifiedUserTest";

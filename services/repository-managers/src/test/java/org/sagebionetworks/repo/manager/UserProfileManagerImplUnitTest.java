@@ -21,6 +21,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -63,7 +64,6 @@ public class UserProfileManagerImplUnitTest {
 	private static final String USER_OPEN_ID = "http://myspace.com/foo";
 	
 	private Random rand = new Random();
-	private static final String TEST_USER_NAME = "TruncatableName@test.com";
 	
 	@Before
 	public void before() throws Exception {
@@ -206,7 +206,7 @@ public class UserProfileManagerImplUnitTest {
 	/* Tests moved and mocked from UserProfileManagerImplTest */
 	
 	@Test
-	public void testGetOwnUserProfle() throws Exception {
+	public void testGetOwnUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertEquals(userProfile, upClone);
@@ -225,16 +225,22 @@ public class UserProfileManagerImplUnitTest {
 		List<UserProfile> upList = Collections.singletonList(upForList);
 		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
 		when(mockProfileDAO.getCount()).thenReturn(1L);
+		when(mockProfileDAO.list(Collections.singleton(Long.parseLong(userProfile.getOwnerId())))).
+			thenReturn(upList);
 
 		QueryResults<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
 		assertFalse(upForList.getEmails().isEmpty());
 		assertFalse(upForList.getOpenIds().isEmpty());
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(upList, results.getResults());
+		
+		IdSet ids = new IdSet();
+		ids.setSet(Collections.singleton(Long.parseLong(userProfile.getOwnerId())));
+		assertEquals(results.getResults(), userProfileManager.list(ids).getList());
 	}
 		
 	@Test
-	public void testGetOthersUserProfleByAdmin() throws Exception {
+	public void testGetOthersUserProfileByAdmin() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(adminUserInfo, ownerId);
 		assertEquals(userProfile, upClone);
@@ -242,7 +248,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Ignore
 	@Test
-	public void testUpdateOwnUserProfle() throws Exception {
+	public void testUpdateOwnUserProfile() throws Exception {
 		// Get a copy of a UserProfile to update
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
@@ -256,7 +262,7 @@ public class UserProfileManagerImplUnitTest {
 	}
 	
 	@Test(expected=UnauthorizedException.class)
-	public void testUpdateOthersUserProfle() throws Exception {
+	public void testUpdateOthersUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		userInfo.setId(-100L);
 		

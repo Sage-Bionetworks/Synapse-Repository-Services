@@ -3,22 +3,22 @@ package org.sagebionetworks.repo.manager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -35,10 +36,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 	
@@ -114,9 +111,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		}
 	}
 	
-	@Override
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
-		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+	private void addAliasesToProfiles(List<UserProfile> userProfiles) {
 		Set<Long> principalIds = new HashSet<Long>();
 		Map<Long,UserProfile> profileMap = new HashMap<Long,UserProfile>();
 		for (UserProfile profile : userProfiles) {
@@ -132,10 +127,32 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			UserProfile profile = profileMap.get(alias.getPrincipalId());
 			insertAliasIntoProfile(profile, alias);
 		}
+		
+	}
+	
+	@Override
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+		addAliasesToProfiles(userProfiles);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}
+	
+	/**
+	 * List the UserProfiles for the given IDs
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> list(IdSet ids)  throws DatastoreException, NotFoundException {
+		List<UserProfile> userProfiles = userProfileDAO.list(ids.getSet());
+		addAliasesToProfiles(userProfiles);
+		return ListWrapper.wrap(userProfiles, UserProfile.class);
+	}
+
+
 
 	/**
 	 * This method is only available to the object owner or an admin
@@ -201,6 +218,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(final UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(userInfo, limit, offset);
@@ -208,6 +226,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForUser(final UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForUser(userToFetch, userInfo, limit, offset);
@@ -215,9 +234,19 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(final UserInfo userInfo, Team teamToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForTeam(teamToFetch, userInfo, limit, offset);
+		return projectHeaders;
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn,
+				sortDirection, limit, offset);
 		return projectHeaders;
 	}
 

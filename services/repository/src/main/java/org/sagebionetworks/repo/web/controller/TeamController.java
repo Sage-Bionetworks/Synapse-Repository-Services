@@ -4,6 +4,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -337,11 +338,33 @@ public class TeamController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_MEMBER_LIST, method = RequestMethod.POST)
 	public @ResponseBody
-	ListWrapper<TeamMember> listTeamMembers(
+	ListWrapper<TeamMember> listTeamMembersGivenTeamandUserList(
 			@PathVariable Long id,
 			@RequestBody IdSet ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().listTeamMembers(id, ids.getSet());
+		return serviceProvider.getTeamService().listTeamMembers(Collections.singleton(id), ids.getSet());
+	}
+	
+	/**
+	 * Returns the TeamMember info for a user and a given list of Team IDs.
+	 * 
+	 * Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the list of IDs passed in.
+	 *
+	 * @param id user's ID
+	 * @param ids Team IDs
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_TEAM_MEMBER_LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<TeamMember> listTeamMembersGivenUserandTeamList(
+			@PathVariable Long id,
+			@RequestBody IdSet ids
+			) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTeamService().listTeamMembers(ids.getSet(), Collections.singleton(id));
 	}
 	
 	/**

@@ -26,50 +26,8 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Challenge;
-import org.sagebionetworks.repo.model.ChallengePagedResults;
-import org.sagebionetworks.repo.model.ChallengeTeam;
-import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -83,6 +41,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -442,6 +401,8 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
 			throws SynapseException;
+	
+	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException;
 
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException;
@@ -1169,11 +1130,23 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
 			throws SynapseException;
 
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException;
 
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException;
 
+	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, Integer limit, Integer offset) throws SynapseException;
+
+	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException;
+
+	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException;
+
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException;
 
 	public void createEntityDoi(String entityId) throws SynapseException;
 
@@ -1600,6 +1573,20 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException;
+
+	
+	/**
+	 * Return a TeamMember list for a set of Team IDs and a given user
+	 * 
+	 * Note: Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the set of IDs passed in.
+	 * 
+	 * @param teamIds
+	 * @param userId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public List<TeamMember> listTeamMembers(Set<Long> teamIds, String userId) throws SynapseException;
 
 	/**
 	 * 
