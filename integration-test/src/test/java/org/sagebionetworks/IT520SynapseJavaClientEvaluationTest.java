@@ -31,6 +31,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
@@ -532,6 +533,20 @@ public class IT520SynapseJavaClientEvaluationTest {
 		SubmissionContributor sb = clone.getContributors().iterator().next();
 		assertEquals(""+user1ToDelete, sb.getPrincipalId());
 		assertNotNull(sb.getCreatedOn());
+		
+		// add my colleague as a contributor
+		SubmissionContributor added = new SubmissionContributor();
+		added.setPrincipalId(""+user2ToDelete);
+		try {
+			synapseOne.addSubmissionContributor(clone.getId(), added);
+			fail("UnauthorizedException expected");
+		} catch (SynapseForbiddenException e) {
+			// as expected
+		}
+		// can't do it myself, but an admin can do it
+		SubmissionContributor created = adminSynapse.addSubmissionContributor(clone.getId(), added);
+		assertEquals(""+user2ToDelete, created.getPrincipalId());
+		assertNotNull(created.getCreatedOn());
 	}
 	
 	@Test
