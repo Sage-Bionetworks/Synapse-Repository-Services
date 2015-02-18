@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -15,6 +17,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserProfileManager {
@@ -92,20 +95,9 @@ public interface UserProfileManager {
 			InvalidModelException, NotFoundException;
 
 	/**
-	 * Retrieve my list of projects, paginated
+	 * Retrieve list of projects, paginated
 	 */
-	public PaginatedResults<ProjectHeader> getMyProjects(UserInfo userInfo, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve users list of projects, paginated
-	 */
-	public PaginatedResults<ProjectHeader> getProjectsForUser(UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve teams list of projects, paginated
-	 */
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(UserInfo userInfo, Team teamToFetch, int limit, int offset)
-			throws DatastoreException, InvalidModelException, NotFoundException;
 }

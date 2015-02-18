@@ -27,9 +27,12 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.util.TimeUtils;
 
 import com.google.common.base.Function;
@@ -161,7 +164,7 @@ public class IT970UserProfileController {
 		synapse.updateACL(acl);
 
 		// retrieve my projects
-		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
+		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null, Integer.MAX_VALUE, 0);
 		assertEquals(2, projects.getTotalNumberOfResults());
 		assertEquals(2, projects.getResults().size());
 		List<ProjectHeader> alphabetical = Lists.newArrayList(projects.getResults());
@@ -172,9 +175,10 @@ public class IT970UserProfileController {
 			}
 		});
 
-		PaginatedResults<ProjectHeader> projects5 = adminSynapse.getProjectsForTeam(Long.parseLong(teamToDelete), 100, 0);
-		// alphabetical, but last activity not set
-		assertEquals(nullOutLastActivity(alphabetical), projects5.getResults());
+		PaginatedResults<ProjectHeader> projects5 = adminSynapse.getProjectsForTeam(Long.parseLong(teamToDelete),
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100, 0);
+		// alphabetical
+		assertEquals(nullOutLastActivity(alphabetical), nullOutLastActivity(projects5.getResults()));
 
 		// change order
 		folder.setName("folder1-renamed");
@@ -186,7 +190,8 @@ public class IT970UserProfileController {
 			@Override
 			public boolean apply(List<ProjectHeader> expected) {
 				try {
-					PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
+					PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null,
+							Integer.MAX_VALUE, 0);
 					return expected.equals(projects.getResults());
 				} catch (SynapseException e) {
 					throw new RuntimeException(e.getMessage(), e);
@@ -194,19 +199,20 @@ public class IT970UserProfileController {
 			}
 		});
 
-		PaginatedResults<ProjectHeader> projects3 = synapse.getMyProjects(Integer.MAX_VALUE, 0);
+		PaginatedResults<ProjectHeader> projects3 = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null, Integer.MAX_VALUE, 0);
 		assertEquals(nullOutLastActivity(Lists.reverse(projects.getResults())), nullOutLastActivity(projects3.getResults()));
 
-		PaginatedResults<ProjectHeader> projects4 = adminSynapse.getProjectsFromUser(userToDelete, 100, 0);
+		PaginatedResults<ProjectHeader> projects4 = adminSynapse.getProjectsFromUser(userToDelete, null, null, 100, 0);
 		assertEquals(nullOutLastActivity(Lists.reverse(projects.getResults())), nullOutLastActivity(projects4.getResults()));
 
-		projects5 = adminSynapse.getProjectsForTeam(Long.parseLong(teamToDelete), 100, 0);
+		projects5 = adminSynapse.getProjectsForTeam(Long.parseLong(teamToDelete), ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100,
+				0);
 		// still alphabetical
-		assertEquals(nullOutLastActivity(alphabetical), projects5.getResults());
+		assertEquals(nullOutLastActivity(alphabetical), nullOutLastActivity(projects5.getResults()));
 
 		// ignore trashed projects
 		synapse.deleteEntity(entity);
-		projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
+		projects = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null, Integer.MAX_VALUE, 0);
 		assertEquals(1, projects.getTotalNumberOfResults());
 		assertEquals(1, projects.getResults().size());
 		assertEquals(entity2.getId(), projects.getResults().get(0).getId());

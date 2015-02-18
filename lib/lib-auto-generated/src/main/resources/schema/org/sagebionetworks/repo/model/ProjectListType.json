@@ -1,0 +1,12 @@
+{
+    "description":"Enum for the different types of project lists",
+    "type":"string",
+    "enum":[
+    	"MY_PROJECTS",
+    	"MY_CREATED_PROJECTS",
+    	"MY_PARTICIPATED_PROJECTS",
+    	"MY_TEAM_PROJECTS",
+    	"OTHER_USER_PROJECTS",
+    	"TEAM_PROJECTS"
+    ]
+}
