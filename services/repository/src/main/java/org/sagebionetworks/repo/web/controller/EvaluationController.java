@@ -14,6 +14,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -659,6 +660,17 @@ public class EvaluationController extends BaseController {
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
 		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, submissionEligibilityHash, request);
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
+	public @ResponseBody
+	SubmissionContributor addSubmissionContributor(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String subId,
+			@RequestBody SubmissionContributor submissionContributor
+			) throws DatastoreException, InvalidModelException, NotFoundException {
+		return serviceProvider.getEvaluationService().addSubmissionContributor(userId, subId, submissionContributor);
 	}
 	
 	/**

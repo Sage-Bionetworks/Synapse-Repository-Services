@@ -259,6 +259,14 @@ public class SubmissionManagerTest {
 		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		
+		// add another contributor as an admin
+		SubmissionContributor submissionContributor = new SubmissionContributor();
+		submissionContributor.setPrincipalId("101");
+		SubmissionContributor scCreated = submissionManager.addSubmissionContributor(new UserInfo(true), SUB_ID, submissionContributor);
+		assertEquals("101", scCreated.getPrincipalId());
+		assertNotNull(scCreated.getCreatedOn());
+		
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
@@ -303,6 +311,17 @@ public class SubmissionManagerTest {
 		} catch (UnauthorizedException e) {
 			//expected
 		}
+		
+		// add another contributor
+		SubmissionContributor submissionContributor = new SubmissionContributor();
+		submissionContributor.setPrincipalId("101");
+		try {
+			submissionManager.addSubmissionContributor(userInfo, SUB_ID, submissionContributor);
+			fail();
+		} catch (UnauthorizedException e) {
+			//expected
+		}
+		
 		try {
 			submissionManager.deleteSubmission(userInfo, SUB_ID);
 			fail();

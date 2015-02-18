@@ -13,6 +13,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -227,6 +228,21 @@ public class EvaluationServiceImpl implements EvaluationService {
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
 		return submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
 	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public SubmissionContributor addSubmissionContributor(Long userId, String submissionId, SubmissionContributor submissionContributor) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return submissionManager.addSubmissionContributor(userInfo, submissionId, submissionContributor);
+	}
+	
+
 
 	@Override
 	public Submission getSubmission(Long userId, String submissionId)
