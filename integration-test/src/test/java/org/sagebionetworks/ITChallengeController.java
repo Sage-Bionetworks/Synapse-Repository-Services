@@ -168,6 +168,9 @@ public class ITChallengeController {
 		Challenge retrieved = synapse.getChallengeForProject(project.getId());
 		assertEquals(challenge, retrieved);
 		
+		retrieved = synapse.getChallenge(challenge.getId());
+		assertEquals(challenge, retrieved);
+		
 		List<Challenge> challenges = 
 				synapse.listChallengesForParticipant(""+userToDelete, 10L, 0L).getResults();
 		assertTrue(challenges.isEmpty());

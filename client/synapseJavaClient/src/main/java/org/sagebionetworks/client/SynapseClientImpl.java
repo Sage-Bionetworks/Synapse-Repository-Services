@@ -55,20 +55,6 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -1381,7 +1367,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
+	
 	@Override
 	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException {
 		try {
@@ -1395,7 +1381,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-	
 	@Override
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException {
@@ -7081,7 +7066,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 
 	}
-
+	
 	@Override
 	public List<TeamMember> listTeamMembers(Set<Long> teamIds, String userId) throws SynapseException {
 		try {
@@ -7555,6 +7540,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	/**
+	 * Returns the Challenge given its ID.  Caller must
+	 * have READ permission on the associated Project.
+	 * 
+	 * @param challengeId
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public Challenge getChallenge(String challengeId) throws SynapseException {
+		validateStringAsLong(challengeId);
+		JSONObject jsonObj = getEntity(CHALLENGE+"/"+challengeId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		Challenge results = new Challenge();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	@Override
 	public Challenge getChallengeForProject(String projectId) throws SynapseException {
 		if (projectId==null) throw new IllegalArgumentException("projectId may not be null.");

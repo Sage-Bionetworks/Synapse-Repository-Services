@@ -78,6 +78,17 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return challengeDAO.create(challenge);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Challenge getChallenge(UserInfo userInfo, long challengeId)
+			throws DatastoreException, NotFoundException {
+		Challenge challenge = challengeDAO.get(challengeId);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, 
+						challenge.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		return challenge;
+	}
+
 	@Override
 	public Challenge getChallengeByProjectId(UserInfo userInfo, String projectId)
 			throws DatastoreException, NotFoundException {
