@@ -17,8 +17,6 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -110,7 +107,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throw new IllegalStateException("Expected user name, email or open id but found "+alias.getType());
 		}
 	}
-	
+
+
 	private void addAliasesToProfiles(List<UserProfile> userProfiles) {
 		Set<Long> principalIds = new HashSet<Long>();
 		Map<Long,UserProfile> profileMap = new HashMap<Long,UserProfile>();
@@ -127,9 +125,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			UserProfile profile = profileMap.get(alias.getPrincipalId());
 			insertAliasIntoProfile(profile, alias);
 		}
-		
 	}
-	
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
@@ -138,7 +134,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}
-	
 	/**
 	 * List the UserProfiles for the given IDs
 	 * @param ids
@@ -146,14 +141,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> list(IdSet ids)  throws DatastoreException, NotFoundException {
+	public ListWrapper<UserProfile> list(IdSet ids) throws DatastoreException, NotFoundException {
 		List<UserProfile> userProfiles = userProfileDAO.list(ids.getSet());
 		addAliasesToProfiles(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);
 	}
-
-
-
 	/**
 	 * This method is only available to the object owner or an admin
 	 */
@@ -218,7 +210,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	@Deprecated
 	public PaginatedResults<ProjectHeader> getMyProjects(final UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(userInfo, limit, offset);
@@ -226,7 +217,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForUser(final UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForUser(userToFetch, userInfo, limit, offset);
@@ -234,19 +224,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	@Deprecated
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(final UserInfo userInfo, Team teamToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeadersForTeam(teamToFetch, userInfo, limit, offset);
-		return projectHeaders;
-	}
-
-	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn,
-				sortDirection, limit, offset);
 		return projectHeaders;
 	}
 
