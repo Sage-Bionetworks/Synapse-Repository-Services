@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -76,6 +77,10 @@ public class DBOUserProfileDAOImplTest {
 		UserProfile clone = userProfileDAO.get(id);
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
+		
+		List<UserProfile> listed = userProfileDAO.list(Collections.singleton(Long.parseLong(id)));
+		assertEquals(1, listed.size());
+		assertEquals(userProfile, listed.get(0));
 
 		// Update it
 		UserProfile updatedProfile = userProfileDAO.update(clone);

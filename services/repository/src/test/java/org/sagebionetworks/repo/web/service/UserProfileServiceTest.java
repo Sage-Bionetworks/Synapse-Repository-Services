@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +31,8 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -39,7 +43,6 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 /**
  * Most of the tests in this suite only worked when using illegal principal IDs, so @Ignore were added when it was refactored.
@@ -197,34 +200,62 @@ public class UserProfileServiceTest {
 		fail();
 	}
 	
+	private static IdSet singletonIdSet(String id) {
+		IdSet result = new IdSet();
+		result.setSet(Collections.singleton(Long.parseLong(id)));
+		return result;
+	}
+	
+	private static ListWrapper<UserProfile> wrap(UserProfile up) {
+		return ListWrapper.wrap(Collections.singletonList(up), UserProfile.class);
+	}
+	
 	@Test
 	public void testPrivateFieldCleaning() throws Exception {
 		String profileId = "someOtherProfileid";
-		String ownerId = "ownerId";
+		String ownerId = "9999";
 		String email = "test@example.com";
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(ownerId);
+		userProfile.setEmails(Collections.singletonList(email));
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.list(singletonIdSet(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertNull(someOtherUserProfile.getEtag());
+		assertNull(someOtherUserProfile.getEmails());
+		
+		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdSet(ownerId));
+		assertEquals(1, lwup.getList().size());
+		someOtherUserProfile = lwup.getList().get(0);
+		assertNull(someOtherUserProfile.getEtag());
+		assertNull(someOtherUserProfile.getEmails());
 	}
 
 	@Test
 	public void testPrivateFieldCleaningAdmin() throws Exception {
 		String profileId = "someOtherProfileid";
-		String ownerId = "ownerId";
+		String ownerId = "9999";
 		String email = "test@example.com";
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(ownerId);
+		userProfile.setEmails(Collections.singletonList(email));
 
 		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.list(singletonIdSet(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertNull(someOtherUserProfile.getEtag());
+		assertNotNull(someOtherUserProfile.getEmails());
+		
+		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdSet(ownerId));
+		assertEquals(1, lwup.getList().size());
+		someOtherUserProfile = lwup.getList().get(0);
+		assertNull(someOtherUserProfile.getEtag());
+		assertNotNull(someOtherUserProfile.getEmails());
 	}
 
 

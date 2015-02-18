@@ -63,13 +63,13 @@ public interface TeamDAO {
 	
 	/**
 	 * 
-	 * @param teamId
+	 * @param teamIds
 	 * @param principalIds
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> principalIds) throws NotFoundException, DatastoreException;
+	public ListWrapper<TeamMember> listMembers(Set<Long> teamIds, Set<Long> principalIds) throws NotFoundException, DatastoreException;
 	/**
 	 * 
 	 * @param teamId

@@ -30,7 +30,9 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.IdSet;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
@@ -133,6 +135,26 @@ public class UserProfileServiceImpl implements UserProfileService {
 				sort, 
 				ascending);
 	}
+	
+	/**
+	 * Return UserProfiles for the given ids
+	 * @param userId
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdSet ids)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		ListWrapper<UserProfile> results = userProfileManager.list(ids);
+		for (UserProfile profile : results.getList()) {
+			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
+		}
+		return results;
+	}
+
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override

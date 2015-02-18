@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Link;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -636,8 +637,22 @@ public class IT500SynapseJavaClient {
 			allDisplayNames.add(displayName);
 			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
-		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);
+		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);	
+	}
+	
+	@Test
+	public void testListUserProfiles() throws Exception {
+		UserProfile myProfile = synapseOne.getMyProfile();
+		assertNotNull(myProfile);
+		String myPrincipalId = myProfile.getOwnerId();
+		assertNotNull(myPrincipalId);
+
+		List<UserProfile> users = synapseOne.listUserProfiles(Collections.singleton(
+				Long.parseLong(myPrincipalId)));
 		
+		assertEquals(1, users.size());
+		UserProfile up = users.get(0);
+		assertEquals(myPrincipalId, up.getOwnerId());
 	}
 	
 	@Test
@@ -1208,6 +1223,9 @@ public class IT500SynapseJavaClient {
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
 		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singleton(Long.parseLong(myPrincipalId)));
+		assertEquals(members.getResults(), teamMembers);
+
+		teamMembers = synapseOne.listTeamMembers(Collections.singleton(Long.parseLong(updatedTeam.getId())), myPrincipalId);
 		assertEquals(members.getResults(), teamMembers);
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);

@@ -38,7 +38,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.ListQueryUtils;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -116,9 +115,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String COUNT_BY_EVAL_AND_STATUS_SQL = 
 			SELECT_COUNT + BY_EVAL_AND_STATUS_SQL;
 
-	private static final String SELECT_CONTRIBUTORS_FOR_SUBMISSION_PREFIX = 
+	private static final String SELECT_CONTRIBUTORS_FOR_SUBMISSIONS = 
 			"SELECT * FROM "+TABLE_SUBMISSION_CONTRIBUTOR+
-			" WHERE "+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
+			" WHERE "+COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+" in (:"+
+					COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID+")";
 
 	//------    Submission eligibility related query strings -----
 	
@@ -176,6 +176,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String IS_TEAM_SUBMISSION_CLAUSE = 
 			" AND (sb."+COL_SUBMISSION_TEAM_ID+" IS NOT NULL)";
+
+	private static final String SUBSTATUS_IN_CLAUSE = " AND ss."+COL_SUBSTATUS_STATUS+" IN (:"+COL_SUBSTATUS_STATUS+")";
 
 	//------    end Submission eligibility related query strings -----
 
@@ -254,15 +256,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		if (submissions.isEmpty()) return;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		Map<String, Submission> submissionMap = new HashMap<String, Submission>();
+		Set<String> submissionIds = new HashSet<String>();
 		for (int i=0; i<submissions.size(); i++) {
-			param.addValue(ListQueryUtils.bindVariable(i), submissions.get(i).getId());
+			submissionIds.add(submissions.get(i).getId());
 			submissionMap.put(submissions.get(i).getId(), submissions.get(i));
 		}
+		param.addValue(COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID, submissionIds);
 		// now select * from submission_contributor where submission_id in (...)
-		String sql = SELECT_CONTRIBUTORS_FOR_SUBMISSION_PREFIX+
-				ListQueryUtils.selectListInClause(submissions.size());
 		List<SubmissionContributorDBO> contributorDbos = 
-				simpleJdbcTemplate.query(sql, SUBMISSION_CONTRIBUTOR_ROW_MAPPER, param);
+				simpleJdbcTemplate.query(SELECT_CONTRIBUTORS_FOR_SUBMISSIONS, SUBMISSION_CONTRIBUTOR_ROW_MAPPER, param);
 		for (SubmissionContributorDBO dbo : contributorDbos) {
 			Submission sub = submissionMap.get(dbo.getSubmissionId().toString());
 			if (sub==null) throw new IllegalStateException("Unrecognized submission Id "+dbo.getSubmissionId());
@@ -413,10 +415,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}	
 
-	private static String subStatusInClause(int n) {
-		return " AND ss."+COL_SUBSTATUS_STATUS+ListQueryUtils.selectListInClause(n);	
-	}
-
 	/*
 	 * count the submissions for the given team in the given evaluation queue,
 	 * optionally filtered by time segment and/or statuses
@@ -445,11 +443,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			param.addValue(CREATED_ON_BEFORE_PARAM, endDateExcl.getTime());
 		}
 		if (statuses!=null && !statuses.isEmpty()) {
-			int i=0;
-			for (SubmissionStatusEnum status : statuses) {
-				param.addValue(ListQueryUtils.bindVariable(i++), status.ordinal());
-			}
-			sql.append(subStatusInClause(statuses.size()));
+			Set<Integer> statusOrdinals = new HashSet<Integer>();
+			for (SubmissionStatusEnum status : statuses) statusOrdinals.add(status.ordinal());
+			param.addValue(COL_SUBSTATUS_STATUS, statusOrdinals);
+			sql.append(SUBSTATUS_IN_CLAUSE);
 		}
 	}
 

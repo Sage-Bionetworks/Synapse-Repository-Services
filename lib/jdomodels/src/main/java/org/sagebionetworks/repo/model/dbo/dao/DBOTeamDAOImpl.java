@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,6 +75,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			SELECT_MULTIPLE_CORE+SELECT_MULTIPLE_ORDER_BY+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	private static final String SELECT_BY_IDS = SELECT_MULTIPLE_CORE+" WHERE "+
+			COL_TEAM_ID+" IN (:"+COL_TEAM_ID+")"+SELECT_MULTIPLE_ORDER_BY;
+	
 	private static final String SELECT_COUNT = 
 			"SELECT COUNT(*) FROM "+TABLE_TEAM;
 
@@ -117,23 +121,28 @@ public class DBOTeamDAOImpl implements TeamDAO {
 					COL_PRINCIPAL_ALIAS_TYPE+"='"+
 					AliasEnum.USER_NAME.name()+"'"+") "+
 			", "+TABLE_USER_PROFILE+" up "+
-			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+" "+
-			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID;
 	
 	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
 			SELECT_MEMBERS_OF_TEAM_CORE+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_SINGLE_MEMBER_OF_TEAM =
-			SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
+			SELECT_MEMBERS_OF_TEAM_CORE+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 			
+	private static final String SELECT_MEMBERS_OF_TEAMS_GIVEN_MEMBER_IDS = 
+			SELECT_MEMBERS_OF_TEAM_CORE+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+" IN (:"+COL_GROUP_MEMBERS_GROUP_ID+")"+
+			" and gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
 	
 	private static final String SELECT_MEMBERS_OF_TEAM_COUNT =
 			"SELECT COUNT(*) FROM "+TABLE_GROUP_MEMBERS+" gm "+
 			" WHERE gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
-	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM =
-			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+	private static final String SELECT_ADMIN_MEMBERS_OF_TEAMS =
+			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+" IN (:"+COL_GROUP_MEMBERS_GROUP_ID+")";
 	
 	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT = 
 			"SELECT COUNT(gm."+COL_GROUP_MEMBERS_MEMBER_ID+") FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
@@ -180,15 +189,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		int i=0;
-		for (Long id : ids) {
-			param.addValue(ListQueryUtils.bindVariable(i++), id);
-			
-		}
-		String sql = SELECT_MULTIPLE_CORE+" WHERE "+COL_TEAM_ID+
-				ListQueryUtils.selectListInClause(ids.size())+
-				SELECT_MULTIPLE_ORDER_BY;
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(sql, TEAM_ROW_MAPPER, param);
+		param.addValue(COL_TEAM_ID, ids);
+		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, TEAM_ROW_MAPPER, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return ListWrapper.wrap(dtos, Team.class);
@@ -339,30 +341,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 	};
 	
-	public static class TeamMemberId {
-		private Long teamId;
-		public Long getTeamId() {
-			return teamId;
-		}
-		public void setTeamId(Long teamId) {
-			this.teamId = teamId;
-		}
-		public Long getMemberId() {
-			return memberId;
-		}
-		public void setMemberId(Long memberId) {
-			this.memberId = memberId;
-		}
-		private Long memberId;
-	}
-	
-	private static final RowMapper<TeamMemberId> teamMemberIdRowMapper = new RowMapper<TeamMemberId>(){
+	private static final RowMapper<TeamMemberId> TEAM_MEMBER_ID_ROW_MAPPER = new RowMapper<TeamMemberId>(){
 		@Override
 		public TeamMemberId mapRow(ResultSet rs, int rowNum) throws SQLException {
-			TeamMemberId tmi = new TeamMemberId();
-			tmi.setTeamId(rs.getLong(COL_TEAM_ID));
-			tmi.setMemberId(rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
-			return tmi;
+			return new TeamMemberId(rs.getLong(COL_TEAM_ID), rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
 		}
 	};
 
@@ -384,7 +366,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			tms.put(Long.parseLong(tmp.getTeamMember().getMember().getOwnerId()), tmp.getTeamMember());
 		}
 		// second, get the team, member pairs for which the member is an administrator of the team
-		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS, teamMemberIdRowMapper);
+		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS, TEAM_MEMBER_ID_ROW_MAPPER);
 		for (TeamMemberId tmi : adminTeamMembers) {
 			// since the admin's are a subset of the entire <team,member> universe, we *must* find them in the map
 			Map<Long,TeamMember> members = teamMemberMap.get(tmi.getTeamId());
@@ -436,42 +418,43 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, TEAM_MEMBER_ROW_MAPPER, param);
-		setAdminStatus(teamId, teamMembers);
+		setAdminStatus(teamMembers);
 		return teamMembers;
 	}
 	
-	// update the 'isAdmin' field for those members that are admins on the team
-	private void setAdminStatus(String teamId, List<TeamMember> teamMembers) {
-		Map<Long, TeamMember> teamMemberMap = new HashMap<Long, TeamMember>();
+	// update the 'isAdmin' field for those members that are admins on their teams
+	private void setAdminStatus(List<TeamMember> teamMembers) {
+		if (teamMembers.isEmpty()) return;
+		Set<String> teamIds = new HashSet<String>();
+		Map<TeamMemberId, TeamMember> teamMemberMap = new HashMap<TeamMemberId, TeamMember>();
 		for (TeamMember tm : teamMembers) {
-			teamMemberMap.put(Long.parseLong(tm.getMember().getOwnerId()), tm);
+			teamIds.add(tm.getTeamId());
+			TeamMemberId tmi = new TeamMemberId(Long.parseLong(tm.getTeamId()), 
+					Long.parseLong(tm.getMember().getOwnerId()));
+			teamMemberMap.put(tmi, tm);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAM, 
-				teamMemberIdRowMapper, param);
-		for (TeamMemberId id : adminTeamMembers) {
-			TeamMember tm = teamMemberMap.get(id.getMemberId());
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamIds);
+		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAMS, 
+				TEAM_MEMBER_ID_ROW_MAPPER, param);
+		for (TeamMemberId tmi : adminTeamMembers) {
+			TeamMember tm = teamMemberMap.get(tmi);
 			if (tm!=null) tm.setIsAdmin(true);
 		}	
 	}
 	
 	@Override
-	public ListWrapper<TeamMember> listMembers(Long teamId, Set<Long> principalIds) throws NotFoundException, DatastoreException {
-		if (principalIds==null || principalIds.size()<1) {
-			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
+	public ListWrapper<TeamMember> listMembers(Set<Long> teamIds, Set<Long> principalIds) throws NotFoundException, DatastoreException {
+		if (teamIds==null || teamIds.size()<1 || principalIds==null || principalIds.size()<1) {
+			return ListWrapper.wrap(Collections.EMPTY_LIST, TeamMember.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		int i=0;
-		for (Long id : principalIds) {
-			param.addValue(ListQueryUtils.bindVariable(i++), id);
-		}
-		String sql = SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+
-			ListQueryUtils.selectListInClause(principalIds.size());
-		List<TeamMember> teamMembers = simpleJdbcTemplate.query(sql, TEAM_MEMBER_ROW_MAPPER, param);
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamIds);
+		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalIds);
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAMS_GIVEN_MEMBER_IDS, 
+				TEAM_MEMBER_ROW_MAPPER, param);
 		
-		setAdminStatus(teamId.toString(), teamMembers);
+		setAdminStatus(teamMembers);
 
 		return ListWrapper.wrap(teamMembers, TeamMember.class);
 	}
