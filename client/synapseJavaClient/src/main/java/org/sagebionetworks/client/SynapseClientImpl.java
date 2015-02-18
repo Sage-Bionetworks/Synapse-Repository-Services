@@ -7540,6 +7540,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	/**
+	 * Returns the Challenge given its ID.  Caller must
+	 * have READ permission on the associated Project.
+	 * 
+	 * @param challengeId
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public Challenge getChallenge(String challengeId) throws SynapseException {
+		validateStringAsLong(challengeId);
+		JSONObject jsonObj = getEntity(CHALLENGE+"/"+challengeId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		Challenge results = new Challenge();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	@Override
 	public Challenge getChallengeForProject(String projectId) throws SynapseException {
 		if (projectId==null) throw new IllegalArgumentException("projectId may not be null.");

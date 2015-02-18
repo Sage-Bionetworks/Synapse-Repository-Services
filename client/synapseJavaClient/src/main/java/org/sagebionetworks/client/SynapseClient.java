@@ -1962,6 +1962,16 @@ public interface SynapseClient extends BaseClient {
 	Challenge createChallenge(Challenge challenge) throws SynapseException;
 
 	/**
+	 * Returns the Challenge given its ID.  Caller must
+	 * have READ permission on the associated Project.
+	 * 
+	 * @param challengeId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge getChallenge(String challengeId) throws SynapseException;
+
+	/**
 	 * Returns the Challenge for a given project.  Caller must
 	 * have READ permission on the Project.
 	 * 

@@ -25,6 +25,18 @@ public interface ChallengeManager {
 
 	/**
 	 * READ permission is required in the specified project
+	 * 
+	 * @param userInfo
+	 * @param challengeId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	Challenge getChallenge(UserInfo userInfo, long challengeId)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * READ permission is required in the specified project
 	 * @param userInfo
 	 * @param projectId
 	 * @return
