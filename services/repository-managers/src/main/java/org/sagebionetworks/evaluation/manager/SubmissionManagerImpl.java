@@ -305,6 +305,25 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		return response;
 	}
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 */
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public SubmissionContributor addSubmissionContributor(UserInfo userInfo,
+			String submissionId, SubmissionContributor submissionContributor) {
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("This service is only available to Synapse administrators.");
+		SubmissionContributor created=new SubmissionContributor();
+		created.setPrincipalId(submissionContributor.getPrincipalId());
+		created.setCreatedOn(new Date());
+		submissionDAO.addSubmissionContributor(submissionId, created);
+		return created;
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

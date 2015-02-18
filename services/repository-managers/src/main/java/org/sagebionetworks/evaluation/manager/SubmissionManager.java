@@ -1,10 +1,9 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.net.URL;
-
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -14,7 +13,6 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -69,8 +67,26 @@ public interface SubmissionManager {
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo,
 			SubmissionStatus submissionStatus) throws NotFoundException, ConflictingUpdateException;
 	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param evalId
+	 * @param batch
+	 * @return
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 */
 	public BatchUploadResponse updateSubmissionStatusBatch(UserInfo userInfo, String evalId,
 			SubmissionStatusBatch batch) throws NotFoundException, ConflictingUpdateException;
+	/**
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 */
+	public SubmissionContributor addSubmissionContributor(UserInfo userInfo,
+			String submissionId, SubmissionContributor submissionContributor);
 
 	/**
 	 * Delete a Submission. Note that the requesting user must be an admin

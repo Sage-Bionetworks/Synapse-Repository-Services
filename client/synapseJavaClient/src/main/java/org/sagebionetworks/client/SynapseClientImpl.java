@@ -47,6 +47,7 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -5587,6 +5588,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	/**
+	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
+	 * @param submissionId
+	 * @param contributor
+	 * @return
+	 */
+	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor)
+			throws SynapseException {
+		if (submissionId==null)
+			throw new IllegalArgumentException("Submission ID is required.");
+			
+		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + submissionId + "/contributor";
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(contributor);
+			jsonObj = createJSONObject(uri, jsonObj);
+			return initializeFromJSONObject(jsonObj, SubmissionContributor.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	
 	@Override
 	public Submission getSubmission(String subId) throws SynapseException {

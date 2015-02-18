@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -210,6 +211,16 @@ public interface EvaluationService {
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
+	/**
+	 * 
+	 * @param userId
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public SubmissionContributor addSubmissionContributor(Long userId, String submissionId, SubmissionContributor submissionContributor) throws NotFoundException;
+	
 	/**
 	 * Get a Submission.
 	 * 
