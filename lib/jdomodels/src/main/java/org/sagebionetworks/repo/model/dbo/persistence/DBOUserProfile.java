@@ -3,11 +3,7 @@
  */
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_PROFILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -32,13 +28,15 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	private Long ownerId;
 	private byte[] properties;
 	private String eTag;
+	private Long pictureId;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn(OWNER_ID_FIELD_NAME, COL_USER_PROFILE_ID, true).withIsBackupId(true),
 		new FieldColumn("properties", COL_USER_PROFILE_PROPS_BLOB),
-		new FieldColumn("eTag", COL_USER_PROFILE_ETAG).withIsEtag(true)
+		new FieldColumn("eTag", COL_USER_PROFILE_ETAG).withIsEtag(true),
+		new FieldColumn("pictureId", COL_USER_PROFILE_PICTURE_ID)
 		};
 
 
@@ -55,6 +53,10 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 					up.setProperties(blob.getBytes(1, (int) blob.length()));
 				}
 				up.seteTag(rs.getString(COL_USER_PROFILE_ETAG));
+				up.setPictureId(rs.getLong(COL_USER_PROFILE_PICTURE_ID));
+				if(rs.wasNull()){
+					up.setPictureId(null);
+				}
 				return up;
 			}
 
@@ -128,23 +130,29 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 	}
 
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
+	public Long getPictureId() {
+		return pictureId;
+	}
+
+
+	public void setPictureId(Long pictureId) {
+		this.pictureId = pictureId;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
+		result = prime * result
+				+ ((pictureId == null) ? 0 : pictureId.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
 		return result;
 	}
 
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -163,6 +171,11 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 			if (other.ownerId != null)
 				return false;
 		} else if (!ownerId.equals(other.ownerId))
+			return false;
+		if (pictureId == null) {
+			if (other.pictureId != null)
+				return false;
+		} else if (!pictureId.equals(other.pictureId))
 			return false;
 		if (!Arrays.equals(properties, other.properties))
 			return false;
