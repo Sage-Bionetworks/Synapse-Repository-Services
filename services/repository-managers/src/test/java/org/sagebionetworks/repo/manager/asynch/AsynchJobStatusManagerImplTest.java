@@ -16,7 +16,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -220,9 +219,7 @@ public class AsynchJobStatusManagerImplTest {
 	public void testUpdateProgressHappy() throws DatastoreException, NotFoundException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		String jobId = "123";
-		when(mockAsynchJobStatusDao.updateJobProgress(anyString(), anyLong(), anyLong(), anyString())).thenReturn("etag");
-		String result = manager.updateJobProgress(jobId,  0L, 100L, "testing");
-		assertEquals("etag", result);
+		manager.updateJobProgress(jobId, 0L, 100L, "testing");
 	}
 
 	/**
