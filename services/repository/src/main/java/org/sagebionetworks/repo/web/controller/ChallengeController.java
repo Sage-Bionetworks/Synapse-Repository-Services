@@ -64,6 +64,25 @@ public class ChallengeController extends BaseController {
 	}
 
 	/**
+	 * Retrieve a Challenge given its ID.  To retrieve a
+	 * Challenge one must have READ permission on the associated Project.
+	 * 
+	 * @param userId
+	 * @param challengeId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.CHALLENGE_CHALLENGE_ID, method = RequestMethod.GET)
+	public @ResponseBody Challenge getChallenge(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable long challengeId
+			) throws DatastoreException, NotFoundException {
+		return serviceProvider.getChallengeService().getChallenge(userId, challengeId);
+	}
+
+	/**
 	 * Retrieve a Challenge given the ID of its associated Project.  To retrieve a
 	 * Challenge one must have READ permission on the Project.
 	 * 

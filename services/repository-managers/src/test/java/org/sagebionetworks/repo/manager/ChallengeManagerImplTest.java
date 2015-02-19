@@ -93,6 +93,31 @@ public class ChallengeManagerImplTest {
 	}
 	
 	@Test
+	public void testGetChallenge() throws Exception {
+		Challenge created = newChallenge();
+		created.setId("111");
+		when(mockChallengeDAO.get(111)).thenReturn(created);
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
+						AuthorizationManagerUtil.AUTHORIZED);
+		
+		assertEquals(created, challengeManager.getChallenge(USER_INFO, 111L));
+		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ);
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void getChallengeUnathorized() throws Exception {
+		Challenge created = newChallenge();
+		created.setId("111");
+		when(mockChallengeDAO.get(111)).thenReturn(created);
+		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
+						AuthorizationManagerUtil.ACCESS_DENIED);
+		challengeManager.getChallenge(USER_INFO, 111);
+	}
+	
+	@Test
 	public void testGetChallengeByProjectId() throws Exception {
 		Challenge created = newChallenge();
 		created.setId("111");

@@ -28,6 +28,14 @@ public class ChallengeServiceImpl implements ChallengeService {
 	}
 	
 	@Override
+	public Challenge getChallenge(Long userId, long challengeId)
+			throws DatastoreException, NotFoundException {
+		
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return challengeManager.getChallenge(userInfo, challengeId);
+	}
+	
+	@Override
 	public Challenge getChallengeByProjectId(Long userId, String projectId) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return challengeManager.getChallengeByProjectId(userInfo, projectId);

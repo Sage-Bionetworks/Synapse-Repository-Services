@@ -446,9 +446,9 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
 			throws SynapseException;
-
-	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException;
 	
+	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException;
+
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException;
 
@@ -1627,13 +1627,13 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException;
 
-
+	
 	/**
 	 * Return a TeamMember list for a set of Team IDs and a given user
-	 *
-	 * Note: Invalid IDs in the list are ignored: The results list is simply
+	 * 
+	 * Note: Invalid IDs in the list are ignored:  The results list is simply
 	 * smaller than the set of IDs passed in.
-	 *
+	 * 
 	 * @param teamIds
 	 * @param userId
 	 * @return
@@ -2013,6 +2013,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Challenge createChallenge(Challenge challenge) throws SynapseException;
+
+	/**
+	 * Returns the Challenge given its ID.  Caller must
+	 * have READ permission on the associated Project.
+	 * 
+	 * @param challengeId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Challenge getChallenge(String challengeId) throws SynapseException;
 
 	/**
 	 * Returns the Challenge for a given project.  Caller must

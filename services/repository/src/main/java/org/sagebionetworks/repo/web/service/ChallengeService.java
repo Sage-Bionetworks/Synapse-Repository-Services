@@ -12,6 +12,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface ChallengeService {
 	public Challenge createChallenge(Long userId, Challenge challenge) throws DatastoreException, NotFoundException;
 
+	Challenge getChallenge(Long userId, long challengeId)
+			throws DatastoreException, NotFoundException;
+
 	Challenge getChallengeByProjectId(Long userId, String projectId)
 			throws DatastoreException, NotFoundException;
 
