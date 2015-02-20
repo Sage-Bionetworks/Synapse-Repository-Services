@@ -236,6 +236,10 @@ public class ITChallengeController {
 		affiliatedParticipants.add(adminUserId);
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
+		// rejoin the challenge to finish things up
+		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString());
+		
+		
 		
 		PaginatedIds submissionTeams = synapse.listSubmissionTeams(challengeId, ""+userToDelete, null, null);
 		assertEquals(new Long(1L), submissionTeams.getTotalNumberOfResults());
