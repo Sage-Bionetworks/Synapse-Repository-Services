@@ -2,6 +2,7 @@ package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -17,6 +18,17 @@ public class SubmissionQuotaUtilTest {
 	private static void checkPairEquals(Pair<Date,Date> p1, Pair<Date,Date> p2) {
 		assertEquals(p1.getFirst(), p2.getFirst());
 		assertEquals(p1.getSecond(), p2.getSecond());
+	}
+	
+	@Test
+	public void testNullQuota() throws Exception {
+		Evaluation evaluation = new Evaluation();
+		assertNull(SubmissionQuotaUtil.getSubmissionQuota(evaluation));
+		SubmissionQuota submissionQuota = new SubmissionQuota();
+		evaluation.setQuota(submissionQuota);
+		assertNull(SubmissionQuotaUtil.getSubmissionQuota(evaluation));
+		submissionQuota.setSubmissionLimit(10L);
+		assertEquals(new Integer(10), SubmissionQuotaUtil.getSubmissionQuota(evaluation));
 	}
 	
 	@Test
