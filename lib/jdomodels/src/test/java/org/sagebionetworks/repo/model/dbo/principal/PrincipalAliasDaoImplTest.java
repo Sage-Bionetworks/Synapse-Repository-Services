@@ -254,7 +254,7 @@ public class PrincipalAliasDaoImplTest {
 	
 	@Test
 	public void testEmptyPrincipalIdList() throws Exception {
-		principalAliasDao.listPrincipalAliases(Collections.EMPTY_SET);
+		assertTrue(principalAliasDao.listPrincipalAliases(Collections.EMPTY_SET).isEmpty());
 	}
 	
 	@Test
