@@ -91,14 +91,12 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 
 	private static final String LIMIT_OFFSET = " LIMIT ? OFFSET ? ";
 	
-	private static final String NODE_ID_LABEL = "NODE_ID";
-	
 	private static final String SELECT_FOR_PARTICIPANT_PAGINATED = 
-			"SELECT c.* "+
+			"SELECT c.* "+// TODO: add DISTINCT
 			SELECT_FOR_PARTICIPANT_SQL_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_FOR_PARTICIPANT_COUNT = 
-			"SELECT count(c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_SQL_CORE;
+			"SELECT count(c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_SQL_CORE;// TODO: add DISTINCT
 
 	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE = 
 			SELECT_FOR_PARTICIPANT_SQL_FROM_CORE+","+
@@ -114,7 +112,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	 * Adds 'requesterGroupCount' number of bind variables, for a total of requesterGroupCount+3
 	 */
 	private static String selectForParticipantAndRequesterPaginated(int requesterGroupCount) {
-		StringBuilder sb = new StringBuilder("SELECT c.* "+
+		StringBuilder sb = new StringBuilder("SELECT c.* "+// TODO: add DISTINCT
 				SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE);
 		boolean firstTime = true;
 		for (int i=0; i<requesterGroupCount; i++) {
@@ -127,7 +125,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	
 	private static String selectSummariesForParticipantAndRequesterCount(int requesterGroupCount) {
 		StringBuilder sb = new StringBuilder(
-				"SELECT count(c."+COL_CHALLENGE_ID+") "+
+				"SELECT count(c."+COL_CHALLENGE_ID+") "+// TODO: add DISTINCT
 				SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE);
 		boolean firstTime = true;
 		for (int i=0; i<requesterGroupCount; i++) {
