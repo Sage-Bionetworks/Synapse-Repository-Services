@@ -123,7 +123,7 @@ public class MultipartManagerImpl implements MultipartManager {
 	 * @param fileName
 	 * @return
 	 */
-	private static String createNewKey(String userId, String fileName) {
+	public static String createNewKey(String userId, String fileName) {
 		return String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID().toString(), fileName);
 	}
 	

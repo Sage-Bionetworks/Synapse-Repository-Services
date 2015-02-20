@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Data;
@@ -31,15 +34,19 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -68,6 +75,8 @@ public class EntityTypeConverterImplAutowireTest {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private EntityTypeConverter entityTypeConverter;
+	@Autowired
+	V2WikiManager wikiManager;
 	
 	private List<String> toDelete;
 	private List<String> fileHandlesToDelete;
@@ -177,6 +186,14 @@ public class EntityTypeConverterImplAutowireTest {
 		// Plus the annotations
 		assertEquals("stringValue", annos.getSingleValue("stringKey"));
 		assertEquals(new Long(555), annos.getSingleValue("longKey"));
+		
+		// Annotations for entity fields should not be here PLFM-3248
+		assertEquals(null, annos.getAllValues("uri"));
+		assertEquals(null, annos.getAllValues("s3Token"));
+		assertEquals(null, annos.getAllValues("versions"));
+		assertEquals(null, annos.getAllValues("concreteType"));
+		assertEquals(null, annos.getAllValues("contentType"));
+		assertEquals(null, annos.getAllValues("locations"));
 		
 		// get the file handle
 		FileHandle handle = fileHandleManager.getRawFileHandle(adminUserInfo, file.getDataFileHandleId());
@@ -347,6 +364,114 @@ public class EntityTypeConverterImplAutowireTest {
 		assertFalse(result.getSuccess());
 		assertEquals(EntityTypeConvertionError.SOME_VERSIONS_HAVE_FILES_OTHERS_DO_NOT.name(), result.getErrorMessage());
 	}
+	
+	/**
+	 * Test for PLFM-3247 Locationable Migration: Descriptions need to be converted to wiki pages
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 * @throws UnsupportedEncodingException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_3247() throws Exception {
+		Data data = createDataWithMultipleVersions();
+		data.setDescription("This will get moved to a wiki.");
+		String userId = adminUserInfo.getId().toString();
+		Date createdOn = new Date(System.currentTimeMillis());
+		// Create an attachment for the wiki
+		AttachmentData ad = createAttachment("attachment data",userId, createdOn);
+		assertNotNull(ad);
+		data.setAttachments(new LinkedList<AttachmentData>());
+		data.getAttachments().add(ad);
+		data.setVersionLabel("v3");
+		// update the ojbect
+		entityManager.updateEntity(adminUserInfo, data, true, null);
+		data = entityManager.getEntity(adminUserInfo, data.getId(), Data.class);
+		// Now convert it with a wiki
+		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertTrue(resutls.getSuccess());
+		// The converted object should not have a description or attachments
+		FileEntity file = entityManager.getEntity(adminUserInfo, data.getId(), FileEntity.class);
+		assertNotNull(file);
+		assertEquals(data.getId(), file.getId());
+		assertEquals(null, file.getDescription());
+		assertEquals(null, file.getAttachments());
+		// Get the wiki page for the file
+		V2WikiPage page = wikiManager.getRootWikiPage(adminUserInfo, data.getId(), ObjectType.ENTITY);
+		assertNotNull(page);
+		assertNotNull(page.getMarkdownFileHandleId());
+		assertNotNull(page.getAttachmentFileHandleIds());
+		// There should be one attachment.
+		assertEquals(1, page.getAttachmentFileHandleIds().size());
+	}
+	
+	/**
+	 * Description with no attachments should be converted to a wiki with no attachments.
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_3247NoAttachments() throws Exception {
+		Data data = createDataWithMultipleVersions();
+		data.setDescription("This will get moved to a wiki.");
+		data.setVersionLabel("v3");
+		// update the ojbect
+		entityManager.updateEntity(adminUserInfo, data, true, null);
+		data = entityManager.getEntity(adminUserInfo, data.getId(), Data.class);
+		// Now convert it with a wiki
+		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertTrue(resutls.getSuccess());
+		// The converted object should not have a description or attachments
+		FileEntity file = entityManager.getEntity(adminUserInfo, data.getId(), FileEntity.class);
+		assertNotNull(file);
+		assertEquals(data.getId(), file.getId());
+		assertEquals(null, file.getDescription());
+		assertEquals(null, file.getAttachments());
+		// Get the wiki page for the file
+		V2WikiPage page = wikiManager.getRootWikiPage(adminUserInfo, data.getId(), ObjectType.ENTITY);
+		assertNotNull(page);
+		assertNotNull(page.getMarkdownFileHandleId());
+		assertTrue(page.getAttachmentFileHandleIds() == null || page.getAttachmentFileHandleIds().isEmpty());
+	}
+	
+	/**
+	 * With no description but one or more attachments should be conveted to a wiki with attachments.
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_3247NoDescription() throws Exception {
+		Data data = createDataWithMultipleVersions();
+		data.setDescription(null);
+		String userId = adminUserInfo.getId().toString();
+		Date createdOn = new Date(System.currentTimeMillis());
+		// Create an attachment for the wiki
+		AttachmentData ad = createAttachment("attachment data",userId, createdOn);
+		assertNotNull(ad);
+		data.setAttachments(new LinkedList<AttachmentData>());
+		data.getAttachments().add(ad);
+		data.setVersionLabel("v3");
+		// update the ojbect
+		entityManager.updateEntity(adminUserInfo, data, true, null);
+		data = entityManager.getEntity(adminUserInfo, data.getId(), Data.class);
+		// Now convert it with a wiki
+		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertTrue(resutls.getSuccess());
+		// The converted object should not have a description or attachments
+		FileEntity file = entityManager.getEntity(adminUserInfo, data.getId(), FileEntity.class);
+		assertNotNull(file);
+		assertEquals(data.getId(), file.getId());
+		assertEquals(null, file.getDescription());
+		assertEquals(null, file.getAttachments());
+		// Get the wiki page for the file
+		V2WikiPage page = wikiManager.getRootWikiPage(adminUserInfo, data.getId(), ObjectType.ENTITY);
+		assertNotNull(page);
+		assertNotNull(page.getMarkdownFileHandleId());
+		assertNotNull(page.getAttachmentFileHandleIds());
+		// There should be one attachment.
+		assertEquals(1, page.getAttachmentFileHandleIds().size());
+	}
+	
 	/**
 	 * Helper to create a data object with multiple versions.
 	 * @return
@@ -438,6 +563,28 @@ public class EntityTypeConverterImplAutowireTest {
 		data.setVersionComment("v2 Comments");
 		entityManager.updateEntity(adminUserInfo, data, true, null);
 		return entityManager.getEntity(adminUserInfo, id, Study.class);
+	}
+	
+	/**
+	 * Create an attachment data back by a file in S3.
+	 * @param fileContents
+	 * @param userId
+	 * @param createdOn
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws IOException
+	 */
+	private AttachmentData createAttachment(String fileContents, String userId, Date createdOn) throws UnsupportedEncodingException, IOException{
+		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(userId, createdOn, fileContents);
+		// Create an attachment from the filehandle
+		AttachmentData ad = new AttachmentData();
+		ad.setContentType(handle.getContentType());
+		ad.setMd5(handle.getContentMd5());
+		ad.setName(handle.getFileName());
+		ad.setPreviewId(handle.getKey());
+		ad.setTokenId(handle.getKey());
+		ad.setPreviewState(PreviewState.PREVIEW_EXISTS);
+		return ad;
 	}
 	
 	/**

@@ -690,6 +690,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode jdo =  getNodeById(nodeIdLong);
 		jdo.seteTag(newEtag);
 		jdo.setNodeType(EntityType.valueOf(newType).getId());
+		jdo.setDescription(null);
 		dboBasicDao.update(jdo);
 	}
 	
