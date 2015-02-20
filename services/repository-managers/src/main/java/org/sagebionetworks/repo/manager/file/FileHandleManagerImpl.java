@@ -914,6 +914,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setFileName(fileName);
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
-		return fileHandleDao.createFile(handle, false);
+		return fileHandleDao.createFile(handle, true);
 	}
 }
