@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -249,6 +250,11 @@ public class PrincipalAliasDaoImplTest {
 		assertEquals(2, list.size());
 		assertEquals(emailOne, list.get(0));
 		assertEquals(emailTwo, list.get(1));
+	}
+	
+	@Test
+	public void testEmptyPrincipalIdList() throws Exception {
+		assertTrue(principalAliasDao.listPrincipalAliases(Collections.EMPTY_SET).isEmpty());
 	}
 	
 	@Test
