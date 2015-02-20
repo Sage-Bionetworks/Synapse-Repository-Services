@@ -61,10 +61,10 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
+	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		// Progress can only be updated if the stack is in read-write mode.
 		checkStackReadWrite();
-		return asynchJobStatusDao.updateJobProgress(jobId, progressCurrent, progressTotal, progressMessage);
+		asynchJobStatusDao.updateJobProgress(jobId, progressCurrent, progressTotal, progressMessage);
 	}
 
 	/**
