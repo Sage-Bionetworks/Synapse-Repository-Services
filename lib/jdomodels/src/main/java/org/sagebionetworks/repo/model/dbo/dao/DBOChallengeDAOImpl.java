@@ -88,14 +88,14 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 
 	private static final String LIMIT = "limitp";
 	private static final String OFFSET = "offsetp";
-	private static final String LIMIT_OFFSET = " LIMIT "+LIMIT+" OFFSET "+OFFSET;
+	private static final String LIMIT_OFFSET = " LIMIT :"+LIMIT+" OFFSET :"+OFFSET;
 	
 	private static final String SELECT_FOR_PARTICIPANT_PAGINATED = 
-			"SELECT c.* "+// TODO: add DISTINCT
+			"SELECT DISTINCT c.* "+
 			SELECT_FOR_PARTICIPANT_SQL_CORE+LIMIT_OFFSET;
 	
 	private static final String SELECT_FOR_PARTICIPANT_COUNT = 
-			"SELECT count(c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_SQL_CORE;// TODO: add DISTINCT
+			"SELECT count(DISTINCT c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_SQL_CORE;
 
 	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE = 
 			SELECT_FOR_PARTICIPANT_SQL_FROM_CORE+","+
@@ -108,10 +108,10 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (:"+COL_RESOURCE_ACCESS_GROUP_ID+") ";
 	
 	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_PAGINATED = 
-			"SELECT c.* "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE+LIMIT_OFFSET;// TODO: add DISTINCT
+			"SELECT DISTINCT c.* "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE+LIMIT_OFFSET;// TODO: add DISTINCT
 
 	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_COUNT = 
-			"SELECT COUNT(c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE;// TODO: add DISTINCT
+			"SELECT COUNT(DISTINCT c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE;// TODO: add DISTINCT
 
 	private static final String SELECT_MEMBERS_IN_REGISTERED_TEAM = 
 			"SELECT gm1."+COL_GROUP_MEMBERS_MEMBER_ID+
@@ -356,12 +356,15 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_CHALLENGE_ID, challengeId);
+		param.addValue(LIMIT, limit);
+		param.addValue(OFFSET, offset);
 		if (affiliated==null) {
-			return jdbcTemplate.queryForList(SELECT_PARTICIPANTS, Long.class, challengeId, limit, offset);
+			return namedTemplate.queryForList(SELECT_PARTICIPANTS, param, Long.class);
 		} else if (affiliated) {
-			return jdbcTemplate.queryForList(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, Long.class, challengeId, challengeId, limit, offset);
+			return namedTemplate.queryForList(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM, param, Long.class);
 		} else {
-			return jdbcTemplate.queryForList(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, Long.class, challengeId, challengeId, limit, offset);
+			return namedTemplate.queryForList(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM, param, Long.class);
 		}
 	}
 	
@@ -370,12 +373,13 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			throws NotFoundException, DatastoreException {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_CHALLENGE_ID, challengeId);
 		if (affiliated==null) {
-			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_COUNT, Long.class, challengeId);
+			return namedTemplate.queryForObject(SELECT_PARTICIPANTS_COUNT, param, Long.class);
 		} else if (affiliated) {
-			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId, challengeId);
+			return namedTemplate.queryForObject(SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT, param, Long.class);
 		} else {
-			return jdbcTemplate.queryForObject(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT, Long.class, challengeId, challengeId);
+			return namedTemplate.queryForObject(SELECT_PARTICIPANTS_NOT_IN_REGISTERED_TEAM_COUNT, param, Long.class);
 		}
 	}
 
