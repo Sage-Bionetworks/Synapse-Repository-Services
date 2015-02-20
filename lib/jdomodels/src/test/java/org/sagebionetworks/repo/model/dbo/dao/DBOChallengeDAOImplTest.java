@@ -254,11 +254,15 @@ public class DBOChallengeDAOImplTest {
 
 	private void checkListForUser(List<Challenge> expected, long participantId, long requesterId) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
+		Set<Long> requesterUserGroupIds = new HashSet<Long>();
+		requesterUserGroupIds.add(requesterId);
+		requesterUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		requesterUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		assertEquals(expected,
-				challengeDAO.listForUser(participantId, Collections.singleton(requesterId), expected.size()+1, 0));
-		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, Collections.singleton(requesterId)));
+				challengeDAO.listForUser(participantId, requesterUserGroupIds, expected.size()+1, 0));
+		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, requesterUserGroupIds));
 		// test pagination
-		assertTrue(challengeDAO.listForUser(participantId, Collections.singleton(requesterId), 10L, expected.size()).isEmpty());		
+		assertTrue(challengeDAO.listForUser(participantId, requesterUserGroupIds, 10L, expected.size()).isEmpty());		
 	}
 
 	@Test
