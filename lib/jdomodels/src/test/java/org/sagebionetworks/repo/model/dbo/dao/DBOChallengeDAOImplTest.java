@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengeTeam;
@@ -106,12 +107,18 @@ public class DBOChallengeDAOImplTest {
 		return created;
 	}
 	
-	private void addACLtoNode(String nodeId, long principalId, ACCESS_TYPE accessType) throws Exception {
+	private void addACLtoNode(String nodeId, long principalId, Set<ACCESS_TYPE> accessTypes) throws Exception {
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(Collections.singleton(accessType));
-		ra.setPrincipalId(principalId);
-		raSet.add(ra);
+		List<Long> principalIdsToGrant = new ArrayList<Long>();
+		principalIdsToGrant.add(principalId);
+		principalIdsToGrant.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		principalIdsToGrant.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		for (Long pId: principalIdsToGrant) {
+			ResourceAccess ra = new ResourceAccess();
+			ra.setAccessType(accessTypes);
+			ra.setPrincipalId(pId);
+			raSet.add(ra);
+		}
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId(nodeId);
@@ -247,11 +254,15 @@ public class DBOChallengeDAOImplTest {
 
 	private void checkListForUser(List<Challenge> expected, long participantId, long requesterId) throws Exception {
 		if (expected==null) expected = Collections.emptyList();
+		Set<Long> requesterUserGroupIds = new HashSet<Long>();
+		requesterUserGroupIds.add(requesterId);
+		requesterUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		requesterUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		assertEquals(expected,
-				challengeDAO.listForUser(participantId, Collections.singleton(requesterId), expected.size()+1, 0));
-		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, Collections.singleton(requesterId)));
+				challengeDAO.listForUser(participantId, requesterUserGroupIds, expected.size()+1, 0));
+		assertEquals(expected.size(), challengeDAO.listForUserCount(participantId, requesterUserGroupIds));
 		// test pagination
-		assertTrue(challengeDAO.listForUser(participantId, Collections.singleton(requesterId), 10L, expected.size()).isEmpty());		
+		assertTrue(challengeDAO.listForUser(participantId, requesterUserGroupIds, 10L, expected.size()).isEmpty());		
 	}
 
 	@Test
@@ -265,7 +276,11 @@ public class DBOChallengeDAOImplTest {
 		
 		checkListForUser(null, participantId, requester);
 		// add requester to ACL
-		addACLtoNode(node.getId(), requester, ACCESS_TYPE.READ);
+		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		accessTypes.add(ACCESS_TYPE.READ);
+		accessTypes.add(ACCESS_TYPE.UPDATE);
+		accessTypes.add(ACCESS_TYPE.DELETE);
+		addACLtoNode(node.getId(), requester, accessTypes);
 		// the requester is not registered for the challenge ...
 		checkListForUser(null, requester, requester);
 		// ... but now he can see the 'participant' is registered
