@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -206,6 +207,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	@Override
 	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds) {
 		if(principalIds == null) throw new IllegalArgumentException("PrincipalIds cannot be null");
+		if(principalIds.isEmpty()) return Collections.emptyList();
 		Map<String,Object> parameters = new HashMap<String,Object>();
 		parameters.put(SET_BIND_VAR, principalIds);
 		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS, principalAliasMapper, parameters);
