@@ -1034,7 +1034,7 @@ public class IT500SynapseJavaClient {
 	/**
 	 * Helper 
 	 */
-	private void waitForQuery(String queryString) throws SynapseException, InterruptedException, JSONException{
+	private JSONObject waitForQuery(String queryString) throws SynapseException, InterruptedException, JSONException{
 		// Wait for the references to appear
 		JSONObject results = synapseOne.query(queryString);
 		assertNotNull(results);
@@ -1049,6 +1049,20 @@ public class IT500SynapseJavaClient {
 			results = synapseOne.query(queryString);
 			System.out.println(results);
 		}
+		return results;
+	}
+	
+	@Test
+	public void testEntityNaNAnnotations() throws SynapseException, InterruptedException, JSONException{
+		// Add a unique annotation and query for it
+		String key = "testEntityNaNAnnotations";
+		Double value = Double.NaN;
+		Annotations annos = synapseOne.getAnnotations(dataset.getId());
+		annos.addAnnotation(key, value);
+		synapseOne.updateAnnotations(dataset.getId(), annos);
+		String queryString = "select id, "+key+" from entity where entity."+key+" == '"+value+"'";
+		// Wait for the query
+		JSONObject result = waitForQuery(queryString);
 	}
 	
 	@Test
