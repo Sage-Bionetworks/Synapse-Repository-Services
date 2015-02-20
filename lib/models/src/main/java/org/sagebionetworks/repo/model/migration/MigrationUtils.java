@@ -80,6 +80,10 @@ public class MigrationUtils {
 			if(parentId == null){
 				parentId = NULL_ID;
 			}
+			// If an object is its own parent then treat it like a null parent.
+			if(parentId.equals(row.getId())){
+				parentId = NULL_ID;
+			}
 			// Add this to the map
 			List<RowMetadata> children = parentToChildren.get(parentId);
 			if(children == null){

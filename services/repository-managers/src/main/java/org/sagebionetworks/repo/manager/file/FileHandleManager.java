@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,6 +16,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -241,4 +244,24 @@ public interface FileHandleManager {
 	 */
 	List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException;
+
+	/**
+	 * Create a file handle from the an old style attachment data.
+	 * @param createdBy
+	 * @param attachment
+	 * @return
+	 */
+	S3FileHandle createFileHandleFromAttachment(String createdBy, Date createdOn, AttachmentData attachment);
+
+	/**
+	 * Create a file handle with the given contents gzipped.
+	 * @param createdBy
+	 * @param modifiedOn
+	 * @param markDown
+	 * @return
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
+	 */
+	S3FileHandle createCompressedFileFromString(String createdBy,
+			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException;
 }
