@@ -220,7 +220,7 @@ public class ITChallengeController {
 		assertTrue(registratableTeams.getResults().toString(), registratableTeams.getResults().isEmpty());
 		assertEquals(new Long(0L), registratableTeams.getTotalNumberOfResults());
 		
-		// having registered the Team, both users are now registered
+		// having registered the Team, both users are now affiliated
 		// now everyone is affiliated with a Team
 		affiliatedParticipants.add(adminUserId);
 		affiliatedParticipants.add(userToDelete.toString());
