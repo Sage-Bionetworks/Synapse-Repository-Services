@@ -175,17 +175,16 @@ public class ITChallengeController {
 				synapse.listChallengesForParticipant(""+userToDelete, 10L, 0L).getResults();
 		assertTrue(challenges.isEmpty());
 		
-		synapse.listChallengeParticipants(challengeId, /*affiliated*/false, 10L, 0L);
-		
 		// Now join the challenge and see it appear in the query results
 		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString());
 		assertEquals(Collections.singletonList(challenge),
 				synapse.listChallengesForParticipant(""+userToDelete, null, null).getResults()
 				);
 		
+		// now there are two unaffiliated participants and no affiliated ones
 		unaffiliatedParticipants.add(userToDelete.toString());
 		checkChallengeParticipants(challengeId, 
-				Collections.EMPTY_SET, unaffiliatedParticipants);
+				affiliatedParticipants, unaffiliatedParticipants);
 
 		Challenge updated = synapse.updateChallenge(challenge);
 		assertFalse(updated.getEtag().equals(challenge.getEtag()));
@@ -221,12 +220,26 @@ public class ITChallengeController {
 		assertTrue(registratableTeams.getResults().toString(), registratableTeams.getResults().isEmpty());
 		assertEquals(new Long(0L), registratableTeams.getTotalNumberOfResults());
 		
+		// having registered the Team, both users are now affiliated
 		// now everyone is affiliated with a Team
 		affiliatedParticipants.add(adminUserId);
 		affiliatedParticipants.add(userToDelete.toString());
 		unaffiliatedParticipants.clear();
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
+		
+		// PLFM-3244: what if they're both in the 'registeredTeam' but only one is in the challenge?
+		// 'userToDelete' leaves the challenge
+		synapse.removeTeamMember(participantTeam.getId(), userToDelete.toString());
+		affiliatedParticipants.clear();
+		unaffiliatedParticipants.clear();
+		affiliatedParticipants.add(adminUserId);
+		checkChallengeParticipants(challengeId, 
+				affiliatedParticipants, unaffiliatedParticipants);
+		// rejoin the challenge to finish things up
+		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString());
+		
+		
 		
 		PaginatedIds submissionTeams = synapse.listSubmissionTeams(challengeId, ""+userToDelete, null, null);
 		assertEquals(new Long(1L), submissionTeams.getTotalNumberOfResults());
