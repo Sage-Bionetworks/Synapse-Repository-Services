@@ -44,6 +44,7 @@ public class UserProfileUtilsTest {
 		dto.setSummary("My summary");
 		dto.setTeamName("Team A");
 		dto.setUrl("http://link.to.my.page/");
+		dto.setProfilePicureFileHandleId("456");
 		AttachmentData picData = new AttachmentData();
 		picData.setName("Fake name");
 		picData.setTokenId("Fake token ID");
@@ -54,6 +55,7 @@ public class UserProfileUtilsTest {
 		
 		DBOUserProfile dbo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
+		assertEquals(new Long(456),dbo.getPictureId());
 		UserProfile dto2 = UserProfileUtils.convertDboToDto(dbo);
 		assertEquals(dto, dto2);
 	}

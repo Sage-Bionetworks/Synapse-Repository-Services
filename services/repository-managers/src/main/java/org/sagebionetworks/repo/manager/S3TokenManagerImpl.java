@@ -32,6 +32,7 @@ import com.amazonaws.services.securitytoken.model.Credentials;
  */
 public class S3TokenManagerImpl implements S3TokenManager {
 
+	public static final String ATTACHMENTS_ARE_DEPRICATED = "Attachments are depricated.";
 	// http://docs.amazonwebservices.com/AmazonS3/latest/dev/UsingMetadata.html
 	private static final int MAX_S3_KEY_LENGTH = 2048;
 	private static final Pattern MD5_REGEX = Pattern.compile("[0-9a-fA-F]{32}");
@@ -50,6 +51,17 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	private LocationHelper locationHelper;
 	@Autowired
 	AmazonS3Utility s3Utility;
+	
+	boolean allowCreationOfOldAttachments;
+	
+	/**
+	 * Injected.
+	 * @param allowCreationOfOldAttachments
+	 */
+	public void setAllowCreationOfOldAttachments(
+			boolean allowCreationOfOldAttachments) {
+		this.allowCreationOfOldAttachments = allowCreationOfOldAttachments;
+	}
 	/**
 	 * This constructor is used by Spring and integration tests.
 	 */
@@ -186,6 +198,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	public S3Token createS3Token(Long userId, String id, S3Token s3Token,
 			EntityType type) throws DatastoreException, NotFoundException,
 			UnauthorizedException, InvalidModelException {
+		
+		validateEnabled();
 		// Validate the parameters
 		if (userId == null)
 			throw new IllegalArgumentException("UserId cannot be null");
@@ -230,10 +244,20 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		return s3Token;
 	}
 	
+	/**
+	 * Are users allowed to create/get old attachmetns.
+	 */
+	private void validateEnabled() {
+		if(!allowCreationOfOldAttachments){
+			throw new IllegalArgumentException(ATTACHMENTS_ARE_DEPRICATED);
+		}
+	}
 	@Override
 	public S3AttachmentToken createS3AttachmentToken(Long userId, String entityId,
 			S3AttachmentToken token) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
+		
+		validateEnabled();
 		// Wrap it up and pass it along
 		// Manipulate the pass-in S3 token to be correct
 		validateMd5(token.getMd5());
@@ -297,6 +321,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
 			String tokenId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
+		validateEnabled();
 		return presignedUrl(userId, entityId, tokenId, false);
 	}
 	

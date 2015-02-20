@@ -101,4 +101,5 @@ public class UserManagerImplUnitTest {
 			fail();
 		} catch (UnauthorizedException e) { }
 	}
+	
 }

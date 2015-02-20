@@ -44,9 +44,6 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.model.entity.query.Sort;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -163,22 +160,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);
-	}
-
-	@Override
-	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId, String profileId, 
-			S3AttachmentToken token, HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.createS3UserProfileAttachmentToken(userInfo, profileId, token);
-	}
-
-	@Override
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId, String profileId,
-			PresignedUrl url, HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
-		return userProfileManager.getUserProfileAttachmentUrl(userId, profileId, url.getTokenID());
 	}
 	
 	@Override

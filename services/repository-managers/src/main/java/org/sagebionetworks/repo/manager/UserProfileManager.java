@@ -15,9 +15,9 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserProfileManager {
@@ -61,21 +61,6 @@ public interface UserProfileManager {
 	public UserProfile createUserProfile(UserProfile updated);
 
 	/**
-	 * userId may not match the profileId
-	 */
-	public S3AttachmentToken createS3UserProfileAttachmentToken(
-			UserInfo userInfo, String profileId, S3AttachmentToken token)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException;
-
-	/**
-	 * return the preassigned url for the user profile attachment
-	 */
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId,
-			String profileId, String tokenID) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException;
-
-	/**
 	 * Adds the entity id to the users's favorites list
 	 */
 	public Favorite addFavorite(UserInfo userInfo, String entityId)
@@ -100,4 +85,12 @@ public interface UserProfileManager {
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
+
+	/**
+	 * Create an S3FileHandle for the given attachment data.
+	 * @param createdBy
+	 * @param attachment
+	 * @return
+	 */
+	S3FileHandle createFileHandleFromAttachment(String createdBy, AttachmentData attachment);
 }
