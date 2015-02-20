@@ -5,6 +5,8 @@ import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.LOCATIO
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.NOT_LOCATIONABLE;
 import static org.sagebionetworks.repo.manager.EntityTypeConvertionError.SOME_VERSIONS_HAVE_FILES_OTHERS_DO_NOT;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +14,10 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -27,11 +32,13 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +49,27 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class EntityTypeConverterImpl implements EntityTypeConverter {
+	
+	
+	/**
+	 * See PLFM-3248
+	 */
+	public static String[] AnnotationKeysToRemove = new String[]{
+		"uri",
+		"annotations",
+		"accessControlList",
+		"concreteType",
+		"attachments",
+		"locations",
+		"md5",
+		"contentType",
+		"s3Token",
+		"versionNumber",
+		"versionLabel",
+		"versionComment",
+		"versionUrl",
+		"versions",
+	};
 	
 	static private Logger log = LogManager.getLogger(EntityTypeConverterImpl.class);
 
@@ -60,6 +88,11 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	LocationHelper locationHelper;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	FileHandleManager fileHandleManager;
+	@Autowired
+	V2WikiManager wikiManager;
+	
 	
 	/**
 	 * For spring
@@ -104,6 +137,8 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 
 			// First get the version for the entity.
 			String newEtag = nodeDao.lockNodeAndIncrementEtag(entity.getId(), entity.getEtag(), ChangeType.UPDATE);
+			// Create a wiki if there is a description or file attachments
+			createWikiIfNeeded(locationable);
 			// Try to create files handles for each version of the entity.
 			List<VersionData> pairs = createFileHandleForForEachVersion(user, locationable);
 			
@@ -118,11 +153,39 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			results.setSuccess(true);
 			return results;
 		} catch (Exception e) {
-			log.error("Failed on: "+entityId, e.getMessage());
+			log.error("Failed on: "+entityId, e);
 			results.setSuccess(false);
 			results.setErrorMessage(e.getMessage());
 			return results;
 		}
+	}
+
+	private void createWikiIfNeeded(Locationable locationable) throws NumberFormatException, NotFoundException, UnsupportedEncodingException, IOException {
+		// we need a wiki if there is a description or attachments
+		if(locationable.getDescription() != null || locationable.getAttachments() != null){
+			V2WikiPage page = new V2WikiPage();
+			String markDown = locationable.getDescription();
+			if(markDown == null){
+				markDown = "See attachments:";
+			}
+			// Create the file handle for the markdown
+			S3FileHandle markDownHandle = fileHandleManager.createCompressedFileFromString(locationable.getCreatedBy(), locationable.getModifiedOn(), markDown);
+			page.setMarkdownFileHandleId(markDownHandle.getId());
+			if(locationable.getAttachments() != null){
+				// create a file handle for each attachment.
+				for(AttachmentData ad: locationable.getAttachments()){
+					S3FileHandle attachHandle = fileHandleManager.createFileHandleFromAttachment(locationable.getCreatedBy(), locationable.getModifiedOn(), ad);
+					if(page.getAttachmentFileHandleIds() == null){
+						page.setAttachmentFileHandleIds(new LinkedList<String>());
+					}
+					page.getAttachmentFileHandleIds().add(attachHandle.getId());
+				}
+			}
+			UserInfo creator = userManager.getUserInfo(Long.parseLong(locationable.getCreatedBy()));
+			// Create the wiki page with all attachments.
+			wikiManager.createWikiPage(creator, locationable.getId(), ObjectType.ENTITY, page);
+		}
+		
 	}
 
 	/**
@@ -207,8 +270,13 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		NamedAnnotations newAnnos = new NamedAnnotations();
 		// Copy the additional annos first
 		newAnnos.getAdditionalAnnotations().addAll(annos.getAdditionalAnnotations());
+		Annotations oldPrimary = annos.getPrimaryAnnotations();
 		// Override with any of the primary annotations.
-		newAnnos.getAdditionalAnnotations().addAll(annos.getPrimaryAnnotations());
+		// But first remove all entity field names
+		for(String key: AnnotationKeysToRemove){
+			oldPrimary.deleteAnnotation(key);
+		}
+		newAnnos.getAdditionalAnnotations().addAll(oldPrimary);
 		return newAnnos;
 	}
 

@@ -7,10 +7,12 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -40,6 +43,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -68,6 +72,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
@@ -404,6 +409,63 @@ public class FileHandleManagerImplAutowireTest {
 		assertEquals("upload here", externalUploadDestination.getBanner());
 		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
 		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
+	}
+	
+	@Test
+	public void testCreateCompressedFileFromString() throws Exception{
+		String fileContents = "This will be compressed";
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
+		assertNotNull(handle);
+		toDelete.add(handle);
+		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
+		assertEquals("compressed.txt", handle.getFileName());
+		assertNotNull(handle.getContentMd5());
+		assertTrue(handle.getContentSize() > 1);
+		assertNotNull(handle.getId());
+		assertTrue(handle.getKey().contains(userId));
+		
+		// Read back the file and confirm the contents
+		S3Object s3Object =s3Client.getObject(handle.getBucketName(), handle.getKey());
+		assertNotNull(s3Object);
+		InputStream input = s3Object.getObjectContent();
+		try{
+			String back = FileUtils.readCompressedStreamAsString(input);
+			assertEquals(fileContents, back);
+		}finally{
+			input.close();
+		}
+	}
+	
+	@Test
+	public void testCreateFileHandleFromAttachment()throws Exception{
+		// First create a real file handle
+		String fileContents = "This will be compressed";
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
+		assertNotNull(handle);
+		toDelete.add(handle);
+		// Create an attachment from the filehandle
+		AttachmentData ad = new AttachmentData();
+		ad.setContentType(handle.getContentType());
+		ad.setMd5(handle.getContentMd5());
+		ad.setName(handle.getFileName());
+		ad.setPreviewId(null);
+		ad.setTokenId(handle.getKey());
+		S3FileHandle h2 = fileUploadManager.createFileHandleFromAttachment(userId, createdOn, ad);
+		assertNotNull(h2);
+		assertEquals(handle.getBucketName(), h2.getBucketName());
+		assertEquals(handle.getKey(), h2.getKey());
+		assertEquals(handle.getContentMd5(), h2.getContentMd5());
+		assertEquals(handle.getContentSize(), h2.getContentSize());
+		assertEquals(handle.getContentType(), h2.getContentType());
+		assertEquals(handle.getCreatedBy(), h2.getCreatedBy());
+		assertEquals(handle.getCreatedOn(), h2.getCreatedOn());
+		assertEquals(handle.getFileName(), h2.getFileName());
+		assertNotNull(h2.getId());
+		toDelete.add(h2);	
 	}
 
 	/**
