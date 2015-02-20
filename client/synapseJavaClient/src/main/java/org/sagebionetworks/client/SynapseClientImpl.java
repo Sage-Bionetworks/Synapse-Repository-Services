@@ -5582,10 +5582,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor)
 			throws SynapseException {
-		if (submissionId==null)
-			throw new IllegalArgumentException("Submission ID is required.");
-			
-		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + submissionId + "/contributor";
+		validateStringAsLong(submissionId);
+		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + submissionId + "/contributor";
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(contributor);
 			jsonObj = createJSONObject(uri, jsonObj);
