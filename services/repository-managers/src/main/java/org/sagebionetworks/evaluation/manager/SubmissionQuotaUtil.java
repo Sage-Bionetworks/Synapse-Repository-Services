@@ -31,6 +31,7 @@ public class SubmissionQuotaUtil {
 		if (evaluation==null) throw new IllegalArgumentException("Evaluation is required.");
 		SubmissionQuota submissionQuota = evaluation.getQuota();
 		if (submissionQuota==null) return null;
+		if (submissionQuota.getSubmissionLimit()==null) return null;
 		return submissionQuota.getSubmissionLimit().intValue();
 	}
 	
