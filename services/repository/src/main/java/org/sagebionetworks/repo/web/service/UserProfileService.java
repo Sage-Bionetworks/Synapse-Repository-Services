@@ -93,43 +93,6 @@ public interface UserProfileService {
 			ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException;
 
 	/**
-	 * Create a security token for use for a particular with a particular
-	 * locationable user profile picture to be stored in AWS S3
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param etag
-	 * @param s3Token
-	 * @param request
-	 * @return a filled-in S3Token
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId,
-			String profileId, S3AttachmentToken token,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException;
-	/**
-	 * Create a token used to upload an attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId, 
-			String profileId, PresignedUrl url, HttpServletRequest request)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException;
-
-	/**
 	 * Batch get headers for users matching a list of supplied Synapse IDs.
 	 * 
 	 * @param ids

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
@@ -51,6 +50,7 @@ public class S3TokenManagerUnitTest {
 		mockS3Utilitiy = Mockito.mock(AmazonS3Utility.class);
 		mockUser = new UserInfo(false);
 		manager = new S3TokenManagerImpl(mockPermissionsManager, mockUuserManager, mocIdGenerator, mocKLocationHelper, mockS3Utilitiy);
+		manager.setAllowCreationOfOldAttachments(true);
 	}
 
 	@Test (expected=InvalidModelException.class)
@@ -239,5 +239,43 @@ public class S3TokenManagerUnitTest {
 		String fileName = "image";
 		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
 		assertEquals("456/image", tokenId);
+	}
+	
+	@Test
+	public void testCreateS3TokenDisabled() throws Exception {
+		// disable
+		manager.setAllowCreationOfOldAttachments(false);
+		try {
+			manager.createS3AttachmentToken(123L, "syn123", new S3AttachmentToken());
+			fail("Should have failed");
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains(S3TokenManagerImpl.ATTACHMENTS_ARE_DEPRICATED));
+		}
+	}
+	
+	
+	@Test
+	public void testCreateS3AttachmentTokenDisabled() throws Exception {
+		// disable
+		manager.setAllowCreationOfOldAttachments(false);
+		try {
+			manager.createS3AttachmentToken(123L, "syn123", new S3AttachmentToken());
+			fail("Should have failed");
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains(S3TokenManagerImpl.ATTACHMENTS_ARE_DEPRICATED));
+		}
+	}
+	
+	
+	@Test
+	public void testGetAttachmentUrlDisabled() throws Exception {
+		// disable
+		manager.setAllowCreationOfOldAttachments(false);
+		try {
+			manager.getAttachmentUrl(123L, "syn123", "456");
+			fail("Should have failed");
+		} catch (Exception e) {
+			assertTrue(e.getMessage().contains(S3TokenManagerImpl.ATTACHMENTS_ARE_DEPRICATED));
+		}
 	}
 }

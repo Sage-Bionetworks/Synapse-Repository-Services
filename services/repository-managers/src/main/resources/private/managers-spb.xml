@@ -195,8 +195,9 @@
 		class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl"
 		scope="singleton" />
 
-	<bean id="s3TokenManager" class="org.sagebionetworks.repo.manager.S3TokenManagerImpl"
-		scope="singleton" />
+	<bean id="s3TokenManager" class="org.sagebionetworks.repo.manager.S3TokenManagerImpl" scope="singleton">
+		<property name="allowCreationOfOldAttachments" ref="stackConfiguration.allowCreationOfOldAttachments"></property>
+	</bean>
 
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
 		scope="singleton" />

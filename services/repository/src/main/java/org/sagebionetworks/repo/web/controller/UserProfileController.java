@@ -134,37 +134,6 @@ public class UserProfileController extends BaseController {
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
-
-	/**
-	 * Create a filled-in <a href="${org.sagebionetworks.repo.model.attachment.S3AttachmentToken}">S3AttachmentToken</a> for use with a particular
-	 * locationable user profile picture to be stored in AWS S3.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.USER_PROFILE_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
-	public @ResponseBody
-	S3AttachmentToken createUserProfileS3AttachmentToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.getUserProfileService().createUserProfileS3AttachmentToken(userId, profileId, token, request);
-	}
-	/**
-	 * Create a new PresignedUrl for a profile picture attachment.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.USER_PROFILE_ATTACHMENT_URL }, method = RequestMethod.POST)
-	public @ResponseBody
-	PresignedUrl getUserProfileAttachmentUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String profileId,
-			@RequestBody PresignedUrl url,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.getUserProfileService().getUserProfileAttachmentUrl(userId, profileId, url, request);
-	}
 	
 	/**
 	 * Batch get UserGroupHeaders.

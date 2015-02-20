@@ -5,26 +5,36 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.util.Md5Utils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -39,10 +49,13 @@ public class UserProfileManagerImplTest {
 	@Autowired
 	private UserProfileManager userProfileManager;
 	
+	@Autowired
+	private AmazonS3Client s3Client;
+	
 	private static final String USER_NAME = "foobar";
 	private static final String USER_EMAIL = "foo@bar.com";
 	private Long userId;
-	
+	UserInfo userInfo;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -52,6 +65,7 @@ public class UserProfileManagerImplTest {
 		user.setLastName("Bar");
 		user.setUserName(USER_NAME);
 		userId = userManager.createUser(user);
+		userInfo = new UserInfo(false, userId);
 	}
 
 	@After
@@ -60,48 +74,6 @@ public class UserProfileManagerImplTest {
 			userManager.deletePrincipal(new UserInfo(true, 0L), userId);
 		}
 		userId = null;
-	}
-
-	@Test
-	public void testGetAttachmentUrl() throws Exception{
-		assertNotNull(userId);
-		UserInfo userInfo = new UserInfo(false, userId); // not an admin
-		
-		Long tokenId = new Long(456);
-		String otherUserProfileId = "12345";
-		
-		// Make the actual call
-		userProfileManager.getUserProfileAttachmentUrl(userInfo.getId(), otherUserProfileId, tokenId.toString());
-	}
-	
-	@Test
-	public void testCreateS3AttachmentToken() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
-		assertNotNull(userId);
-		UserInfo userInfo = new UserInfo(false, userId); // not an admin
-		
-		S3AttachmentToken startToken = new S3AttachmentToken();
-		startToken.setFileName("/some.jpg");
-		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
-		startToken.setMd5(almostMd5);
-		String userId = this.userId.toString();
-		// Make the actual calls
-		S3AttachmentToken endToken = userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
-		assertNotNull(endToken);
-		assertNotNull(endToken.getPresignedUrl());
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateS3AttachmentTokenFromInvalidFile() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
-		UserInfo userInfo = new UserInfo(false, userId.toString()); // not an admin
-		
-		S3AttachmentToken startToken = new S3AttachmentToken();
-		startToken.setFileName("/not_an_image.txt");
-		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
-		startToken.setMd5(almostMd5);
-		Long tokenId = new Long(456);
-		String userId = this.userId.toString();
-		//next line should result in an IllegalArgumentException, since the filename does not not indicate an image file that we recognize
-		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
 	}
 	
 	@Test
@@ -185,5 +157,48 @@ public class UserProfileManagerImplTest {
 		// OK to change emails, as any changes to email are ignored
 		profile = userProfileManager.updateUserProfile(userInfo, profile);
 		assertEquals(Collections.singletonList(USER_EMAIL), profile.getEmails());
+	}
+	
+	/**
+	 * See PLFM-2319.  Originally a user's profile picture was a locationable attachment.
+	 * We have since converted the profile pictures to be FileHandles.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testConvertAttachmentToFileHandle() throws Exception{
+		AttachmentData attachment = createOldStyleAttachment();
+		// Update the user profile
+		UserProfile profile = userProfileManager.getUserProfile(userInfo, ""+userId);
+		profile.setPic(attachment);
+		// The get call should convert the picture to a file handle
+		profile = userProfileManager.updateUserProfile(userInfo, profile);
+		assertEquals("The 'pic' fields should have been replaced and set to null",null, profile.getPic());
+		assertNotNull(profile.getProfilePicureFileHandleId());
+	}
+
+	/**
+	 * Create an old stlye attachment data object and upload it to S3.
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws IOException
+	 */
+	private AttachmentData createOldStyleAttachment()
+			throws UnsupportedEncodingException, IOException {
+		byte[] fileBytes = "Tiny File".getBytes("UTF-8");
+		String name = UUID.randomUUID().toString()+".txt";
+		String bucket = StackConfiguration.getS3Bucket();
+		String key = userId+"/"+name;
+		ObjectMetadata metadata = new ObjectMetadata();
+		// First upload an object to S3.
+		s3Client.putObject(bucket, key, new ByteArrayInputStream(fileBytes), metadata);
+		// Now create an attachment data for this file
+		AttachmentData attachment = new AttachmentData();
+		attachment.setContentType("text/plain");
+		attachment.setMd5(MD5ChecksumHelper.getMD5ChecksumForByteArray(fileBytes));
+		attachment.setPreviewId(null);
+		attachment.setPreviewState(PreviewState.NOT_COMPATIBLE);
+		attachment.setTokenId(key);
+		attachment.setName(name);
+		return attachment;
 	}
 }
