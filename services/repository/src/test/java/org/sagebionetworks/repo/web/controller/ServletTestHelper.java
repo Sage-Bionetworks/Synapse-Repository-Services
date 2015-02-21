@@ -1132,12 +1132,12 @@ public class ServletTestHelper {
 	}
 
 	public PaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId)
+			HttpServlet dispatchServlet, String id, Long userId, ACCESS_TYPE accessType)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils
 				.initRequest(HTTPMODE.GET, "/entity/" + id
 						+ "/accessRequirementUnfulfilled", userId, null);
-
+		request.setParameter("accessType", accessType.name());
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1146,11 +1146,12 @@ public class ServletTestHelper {
 	}
 
 	public PaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId)
+			HttpServlet dispatchServlet, String id, Long userId, ACCESS_TYPE accessType)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/evaluation/" + id
 						+ "/accessRequirementUnfulfilled", userId, null);
+		request.setParameter("accessType", accessType.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);

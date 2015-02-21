@@ -368,7 +368,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, null);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		
@@ -386,7 +386,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, null);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		
@@ -404,7 +404,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(adminEvaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, null);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		

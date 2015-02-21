@@ -175,41 +175,22 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 			unmetARIds = new ArrayList<Long>();
 			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
-			if (accessType==null || accessType==ACCESS_TYPE.DOWNLOAD) {
+			if (accessType==ACCESS_TYPE.DOWNLOAD) {
 				subjectIds.addAll(nodeAncestorIds);
 				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 						userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
-			}
-			if (accessType==null || accessType==ACCESS_TYPE.UPLOAD) {
+			} else if (accessType==ACCESS_TYPE.UPLOAD) {
 				List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
 				entityAndAncestorIds.add(subjectId.getId());
 				unmetARIds.addAll(AccessRequirementUtil.
 				unmetUploadAccessRequirementIdsForEntity(userInfo, 
 							entityAndAncestorIds, nodeDao, accessRequirementDAO));
-			}
-		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
-			List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
-			if (accessType==null) {
-				accessTypes.add(ACCESS_TYPE.DOWNLOAD);
-				accessTypes.add(ACCESS_TYPE.PARTICIPATE);
-				accessTypes.add(ACCESS_TYPE.SUBMIT);
 			} else {
-				accessTypes.add(accessType);
+				throw new IllegalArgumentException("Unexpected access type "+accessType);
 			}
-			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
-					userInfo, subjectId, accessRequirementDAO, accessTypes);
-		} else if (RestrictableObjectType.TEAM==subjectId.getType()) {
-			List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
-			if (accessType==null) {
-				accessTypes.add(ACCESS_TYPE.DOWNLOAD);
-				accessTypes.add(ACCESS_TYPE.PARTICIPATE);
-			} else {
-				accessTypes.add(accessType);
-			}
-			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
-					userInfo, subjectId, accessRequirementDAO, accessTypes);
 		} else {
-			throw new InvalidModelException("Unexpected object type "+subjectId.getType());
+			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
+					userInfo, subjectId, accessRequirementDAO, Collections.singletonList(accessType));
 		}
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
