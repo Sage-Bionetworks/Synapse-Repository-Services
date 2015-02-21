@@ -15,9 +15,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserProfileManager {
@@ -85,12 +83,20 @@ public interface UserProfileManager {
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
-
+	
 	/**
-	 * Create an S3FileHandle for the given attachment data.
-	 * @param createdBy
-	 * @param attachment
-	 * @return
+	 * Get the pre-signed URL for a user's profile picture.
+	 * @param userId
+	 * @return The pre-signed URL that can be used to download the user's profile picture.
+	 * @throws NotFoundException Thrown if the user does not have a profile picture.
 	 */
-	S3FileHandle createFileHandleFromAttachment(String createdBy, AttachmentData attachment);
+	public String getPicturePresignedUrl(String userId) throws NotFoundException;
+	
+	/**
+	 * Get the pre-signed URL for a user's profile picture preview..
+	 * @param userId
+	 * @return The pre-signed URL that can be used to download the user's profile picture preview.
+	 * @throws NotFoundException Thrown if the user does not have a profile picture.
+	 */
+	public String getPicturePreviewPreSignedUrl(String userId) throws NotFoundException;
 }

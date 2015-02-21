@@ -17,6 +17,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdSet;
@@ -52,7 +53,7 @@ public class UserProfileManagerImplUnitTest {
 	PrincipalAliasDAO mockPrincipalAliasDAO;
 	AuthorizationManager mockAuthorizationManager;
 	AmazonS3Client mockS3Client;
-	FileHandleDao mockFileHandleDao;
+	FileHandleManager mockFileHandleManager;
 	
 	UserProfileManager userProfileManager;
 	
@@ -78,8 +79,8 @@ public class UserProfileManagerImplUnitTest {
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
-		mockFileHandleDao = Mockito.mock(FileHandleDao.class);
-		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockFavoriteDAO, mockPrincipalAliasDAO, mockAuthorizationManager, mockS3Client,mockFileHandleDao);
+		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
+		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockFavoriteDAO, mockPrincipalAliasDAO, mockAuthorizationManager, mockS3Client,mockFileHandleManager);
 		
 		
 		userInfo = new UserInfo(false, userId);
@@ -217,37 +218,6 @@ public class UserProfileManagerImplUnitTest {
 		profile.setUserName("some username");
 		profile.setProfilePicureFileHandleId(fileHandleId);
 		userProfileManager.updateUserProfile(userInfo, profile);
-	}
-	
-	@Test
-	public void testCreateFileHandleFromAttachmentNull(){
-		assertEquals(null, userProfileManager.createFileHandleFromAttachment("123", null));
-		assertEquals(null, userProfileManager.createFileHandleFromAttachment("123", new AttachmentData()));
-	}
-	
-	@Test
-	public void testCreateFileHandleFromAttachment(){
-
-		// Starting attachment.
-		String bucket = StackConfiguration.getS3Bucket();
-		AttachmentData ad = new AttachmentData();
-		ad.setTokenId("123/image.jpg");
-		
-		when(mockS3Client.getObjectMetadata(bucket, ad.getTokenId())).thenReturn(new ObjectMetadata());
-		// Return what was passed
-		when(mockFileHandleDao.createFile(any(S3FileHandle.class))).then(new Answer<FileHandle>() {
-			@Override
-			public FileHandle answer(InvocationOnMock invocation) throws Throwable {
-				return (FileHandle) invocation.getArguments()[0];
-			}
-		});
-		String createdBy = "007";
-		S3FileHandle result = userProfileManager.createFileHandleFromAttachment(createdBy, ad);
-		assertNotNull(result);
-		assertEquals("image.jpg", result.getFileName());
-		assertEquals(bucket, result.getBucketName());
-		assertEquals(createdBy, result.getCreatedBy());
-		assertNotNull(result.getCreatedOn());
 	}
 	
 	@Test

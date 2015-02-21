@@ -12,6 +12,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -69,7 +70,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Autowired
 	private AmazonS3Client s3Client;
 	@Autowired
-	private FileHandleDao fileHandleDao;
+	private FileHandleManager fileHandleManager;
 	
 
 	public UserProfileManagerImpl() {
@@ -81,14 +82,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO, FavoriteDAO favoriteDAO, PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
 			AmazonS3Client s3Client,
-			FileHandleDao fileHandleDao) {
+			FileHandleManager fileHandleManager) {
 		super();
 		this.userProfileDAO = userProfileDAO;
 		this.favoriteDAO = favoriteDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
 		this.s3Client = s3Client;
-		this.fileHandleDao = fileHandleDao;
+		this.fileHandleManager = fileHandleManager;
 	}
 
 	@Override
@@ -158,54 +159,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			return profile;
 		}
 		// We need to convert from an attachment to an S3FileHandle
-		S3FileHandle handle = createFileHandleFromAttachment(profile.getOwnerId(), profile.getPic());
+		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachment(profile.getOwnerId(), new Date(), profile.getPic());
 		// clear the pic, set the filehandle.
 		profile.setPic(null);
 		if(handle != null){
 			profile.setProfilePicureFileHandleId(handle.getId());
 		}
 		return userProfileDAO.update(profile);
-	}
-	
-
-	@Override
-	public S3FileHandle createFileHandleFromAttachment(String createdBy, AttachmentData attachment) {
-		if(attachment == null){
-			return null;
-		}
-		if(attachment.getTokenId() == null){
-			return null;
-		}
-		// The keys do not start with "/"
-		String key = attachment.getTokenId();
-		String bucket = StackConfiguration.getS3Bucket();
-		// Can we find this object with the key?
-		try {
-			ObjectMetadata meta = s3Client.getObjectMetadata(bucket, key);
-			S3FileHandle handle = new S3FileHandle();
-			handle.setBucketName(bucket);
-			handle.setKey(key);
-			handle.setContentType(meta.getContentType());
-			handle.setContentMd5(meta.getContentMD5());
-			handle.setContentSize(meta.getContentLength());
-			handle.setFileName(extractFileNameFromKey(key));
-			if(attachment.getName() != null){
-				handle.setFileName(attachment.getName());
-			}
-			if(attachment.getMd5() != null){
-				handle.setContentMd5(attachment.getMd5());
-			}
-			if(attachment.getContentType() != null){
-				handle.setContentType(attachment.getContentType());
-			}
-			handle.setCreatedBy(createdBy);
-			handle.setCreatedOn(new Date(System.currentTimeMillis()));
-			handle = fileHandleDao.createFile(handle);
-			return handle;
-		} catch (Exception e) {
-			log.error("Cannot find profile picture in S3. Key: "+key);
-			return null;
-		}
 	}
 	
 	/**
@@ -357,6 +317,20 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		profile.setEmail(null);
 		profile.setEmails(null);
 		profile.setOpenIds(null);
+	}
+
+	@Override
+	public String getPicturePresignedUrl(String userId)
+			throws NotFoundException {
+		String handleId = userProfileDAO.getPictureFileHandleId(userId);
+		return null;
+	}
+
+	@Override
+	public String getPicturePreviewPreSignedUrl(String userId)
+			throws NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
