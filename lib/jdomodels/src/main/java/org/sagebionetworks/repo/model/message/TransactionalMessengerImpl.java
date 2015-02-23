@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
@@ -119,14 +118,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
 		appendToBoundMessages(message);
-	}
-
-	@Override
-	public void sendModificationMessageAfterCommit(Team team, Long memberId) {
-		ModificationMessage message = new ModificationMessage();
-		message.setObjectId(team.getId());
-		message.setObjectType(ObjectType.TEAM);
-		sendModificationMessageAfterCommit(message);
 	}
 
 	@Override

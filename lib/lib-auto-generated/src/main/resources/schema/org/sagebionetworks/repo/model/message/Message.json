@@ -10,6 +10,11 @@
 		"objectType": {
 			"description": "The type of the object that changed",
 			"$ref":"org.sagebionetworks.repo.model.ObjectType"
+		},
+		"timestamp": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this change was originally committed."
 		}
 	}
 }
