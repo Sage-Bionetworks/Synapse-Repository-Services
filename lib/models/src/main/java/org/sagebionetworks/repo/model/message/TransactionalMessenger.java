@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -34,9 +35,19 @@ public interface TransactionalMessenger {
 	public void sendMessageAfterCommit(ChangeMessage message);
 
 	/**
+	 * Send a modification message when adding or removing a team member
+	 */
+	public void sendModificationMessageAfterCommit(Team team, Long memberId);
+
+	/**
 	 * Send a modification message after the current transaction commits
 	 */
 	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType);
+	
+	/**
+	 * Send a modification message after the current transaction commits
+	 */
+	public void sendModificationMessageAfterCommit(ModificationMessage message);
 
 	/**
 	 * Register an observer that will be notified when there is a message after a commit.

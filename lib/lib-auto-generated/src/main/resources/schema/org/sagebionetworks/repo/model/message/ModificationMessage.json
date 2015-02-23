@@ -1,0 +1,28 @@
+{
+	"title": "ModificationMessage",
+	"description": "JSON schema for a modification message",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.Message"
+		}
+	],
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The user id for which the change applies"
+		},
+		"timestamp": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this change was originally committed."
+		},		
+		"objectId": {
+			"type": "string",
+			"description":"The unique identifier of the object that changed."
+		},
+		"objectType": {
+			"description": "The type of the object that changed",
+			"$ref":"org.sagebionetworks.repo.model.ObjectType"
+		}		
+	}
+}
