@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.message;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -57,50 +57,62 @@ public class TransactionalMessengerImplTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testChangeMessageKeyNull(){
-		new ChangeMessageKey(null);
+	public void testMessageKeyNull() {
+		new MessageKey(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testChangeMessageKeyNullId(){
-		new ChangeMessageKey(new ChangeMessage());
+	public void testMessageKeyNullId() {
+		new MessageKey(new ChangeMessage());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testChangeMessageKeyNullType(){
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectId("notNull");
-		new ChangeMessageKey(message);
+		new MessageKey(message);
 	}
 	
 	@Test
-	public void testChangeMessageKeyEquals(){
+	public void testMessageKeyEquals() {
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
 		// Create the first key
-		ChangeMessageKey one =  new ChangeMessageKey(message);
+		MessageKey one = new MessageKey(message);
 		// Create the second key
 		message = new ChangeMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
-		ChangeMessageKey two =  new ChangeMessageKey(message);
+		MessageKey two = new MessageKey(message);
 		assertEquals(one, two);
 		// Third is not equals
 		message = new ChangeMessage();
 		message.setObjectId("456");
 		message.setObjectType(ObjectType.ENTITY);
-		ChangeMessageKey thrid =  new ChangeMessageKey(message);
-		assertFalse(thrid.equals(two));
-		assertFalse(two.equals(thrid));
+		MessageKey thrid = new MessageKey(message);
+		assertNotSame(thrid, two);
+		assertNotSame(two, thrid);
 		
 		// fourth is not equals
 		message = new ChangeMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ACTIVITY);
-		ChangeMessageKey forth =  new ChangeMessageKey(message);
-		assertFalse(forth.equals(two));
-		assertFalse(two.equals(forth));
+		MessageKey fourth = new MessageKey(message);
+		assertNotSame(fourth, two);
+		assertNotSame(two, fourth);
+
+		ModificationMessage modificationMessage = new ModificationMessage();
+		modificationMessage.setObjectId("123");
+		modificationMessage.setObjectType(ObjectType.ACTIVITY);
+		MessageKey fifth = new MessageKey(modificationMessage);
+		assertNotSame(fourth, fifth);
+
+		modificationMessage = new ModificationMessage();
+		modificationMessage.setObjectId("123");
+		modificationMessage.setObjectType(ObjectType.ACTIVITY);
+		MessageKey sixth = new MessageKey(modificationMessage);
+		assertEquals(fifth, sixth);
 	}
 	
 	@Test
@@ -264,19 +276,16 @@ public class TransactionalMessengerImplTest {
 		assertEquals(1, stubProxy.getSynchronizations().size());
 		// Simulate the before commit
 		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		ChangeMessage message = new ChangeMessage();
+		ModificationMessage message = new ModificationMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setTimestamp(testClock.now());
-		message.setIsModification(true);
-		ModificationInfo modificationInfo = new ModificationInfo();
-		modificationInfo.setUserId(100L);
-		message.setModificationInfo(modificationInfo);
+		message.setUserId(100L);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		// Verify that the one message was fired.
 		verify(mockObserver, times(1)).fireModificationMessage(message);
 		// It should only be called once total!
-		verify(mockObserver, times(1)).fireModificationMessage(any(ChangeMessage.class));
+		verify(mockObserver, times(1)).fireModificationMessage(any(ModificationMessage.class));
 	}
 }

@@ -3,14 +3,11 @@ package org.sagebionetworks.projectstats.worker;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -19,7 +16,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -79,18 +76,18 @@ public class ProjectStatsWorker implements Worker {
 
 	private Message processMessage(Message message) throws Throwable {
 		try {
-			ChangeMessage changeMessage = extractStatus(message);
+			ModificationMessage modificationMessage = extractStatus(message);
 
 			Long projectId = null;
-			if (changeMessage.getObjectType() == ObjectType.ENTITY) {
-				projectId = getProjectIdFromEntityId(changeMessage.getObjectId());
+			if (modificationMessage.getObjectType() == ObjectType.ENTITY) {
+				projectId = getProjectIdFromEntityId(modificationMessage.getObjectId());
 			} else {
-				throw new IllegalArgumentException("cannot handle type " + changeMessage.getObjectType());
+				throw new IllegalArgumentException("cannot handle type " + modificationMessage.getObjectType());
 			}
 
 			if (projectId != null) {
-				ProjectStat projectStat = new ProjectStat(projectId, changeMessage.getModificationInfo().getUserId(),
-						changeMessage.getTimestamp());
+				ProjectStat projectStat = new ProjectStat(projectId, modificationMessage.getUserId(),
+						modificationMessage.getTimestamp());
 				projectStatsDao.update(projectStat);
 			}
 			return message;
@@ -111,19 +108,14 @@ public class ProjectStatsWorker implements Worker {
 	 * @return
 	 * @throws JSONObjectAdapterException
 	 */
-	ChangeMessage extractStatus(Message message) throws JSONObjectAdapterException {
+	ModificationMessage extractStatus(Message message) throws JSONObjectAdapterException {
 		ValidateArgument.required(message, "message");
 
-		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message, ChangeMessage.class);
+		ModificationMessage modificationMessage = MessageUtils.extractMessageBody(message, ModificationMessage.class);
 
-		ValidateArgument.required(changeMessage.getModificationInfo(), "changeMessage.modificationInfo");
-		ValidateArgument.required(changeMessage.getModificationInfo().getUserId(), "changeMessage.modificationInfo.userId");
-		ValidateArgument.required(changeMessage.getTimestamp(), "changeMessage.timestamp");
+		ValidateArgument.required(modificationMessage.getUserId(), "modificationMessage.modificationInfo.userId");
+		ValidateArgument.required(modificationMessage.getTimestamp(), "modificationMessage.timestamp");
 
-		if (!BooleanUtils.isTrue(changeMessage.getIsModification())) {
-			throw new IllegalArgumentException("ChangeMessage is not a modification: " + changeMessage);
-		}
-
-		return changeMessage;
+		return modificationMessage;
 	}
 }
