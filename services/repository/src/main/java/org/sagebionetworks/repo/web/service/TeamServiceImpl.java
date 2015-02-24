@@ -96,7 +96,7 @@ public class TeamServiceImpl implements TeamService {
 	}
 
 	@Override
-	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
+	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException {
 		return teamManager.list(ids);
 	}
 
@@ -251,7 +251,7 @@ public class TeamServiceImpl implements TeamService {
 	}
 	
 	@Override
-	public ListWrapper<TeamMember> listTeamMembers(Set<Long> teamIds, Set<Long> memberIds) throws DatastoreException, NotFoundException {
+	public ListWrapper<TeamMember> listTeamMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException {
 		return teamManager.listMembers(teamIds, memberIds);
 	}
 

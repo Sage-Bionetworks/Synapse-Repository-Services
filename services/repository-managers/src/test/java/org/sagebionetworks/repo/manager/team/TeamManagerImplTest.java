@@ -366,8 +366,8 @@ public class TeamManagerImplTest {
 		assertEquals(teamList.getList(), result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 		
-		when(mockTeamDAO.list(Collections.singleton(101L))).thenReturn(teamList);
-		assertEquals(teamList, teamManagerImpl.list(Collections.singleton(101L)));
+		when(mockTeamDAO.list(Collections.singletonList(101L))).thenReturn(teamList);
+		assertEquals(teamList, teamManagerImpl.list(Collections.singletonList(101L)));
 	}
 	
 	@Test
@@ -709,8 +709,8 @@ public class TeamManagerImplTest {
 		
 		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
 		Long teamId = Long.parseLong(TEAM_ID);
-		when(mockTeamDAO.listMembers(Collections.singleton(teamId), Collections.singleton(101L))).thenReturn(lw);
-		assertEquals(tms, teamManagerImpl.listMembers(Collections.singleton(teamId), Collections.singleton(101L)).getList());
+		when(mockTeamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L))).thenReturn(lw);
+		assertEquals(tms, teamManagerImpl.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L)).getList());
 	}
 	
 	@Test

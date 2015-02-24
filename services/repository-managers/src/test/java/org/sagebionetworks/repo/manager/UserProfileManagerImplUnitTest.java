@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,7 +20,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -225,7 +224,7 @@ public class UserProfileManagerImplUnitTest {
 		List<UserProfile> upList = Collections.singletonList(upForList);
 		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
 		when(mockProfileDAO.getCount()).thenReturn(1L);
-		when(mockProfileDAO.list(Collections.singleton(Long.parseLong(userProfile.getOwnerId())))).
+		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).
 			thenReturn(upList);
 
 		QueryResults<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
@@ -234,8 +233,8 @@ public class UserProfileManagerImplUnitTest {
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(upList, results.getResults());
 		
-		IdSet ids = new IdSet();
-		ids.setSet(Collections.singleton(Long.parseLong(userProfile.getOwnerId())));
+		IdList ids = new IdList();
+		ids.setList(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())));
 		assertEquals(results.getResults(), userProfileManager.list(ids).getList());
 	}
 		

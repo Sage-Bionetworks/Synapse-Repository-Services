@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -43,7 +43,7 @@ public interface UserProfileManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> list(IdSet ids) throws DatastoreException, NotFoundException;
+	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a UserProfile.

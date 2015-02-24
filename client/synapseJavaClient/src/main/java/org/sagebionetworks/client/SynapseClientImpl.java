@@ -1370,11 +1370,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException {
+	public List<UserProfile> listUserProfiles(List<Long> userIds) throws SynapseException {
 		try {
-			IdSet idSet = new IdSet();
-			idSet.setSet(userIds);
-			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
+			IdList idList = new IdList();
+			idList.setList(userIds);
+			String jsonString = EntityFactory.createJSONStringForEntity(idList);
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					getRepoEndpoint(), USER_PROFILE_PATH, jsonString, getUserAgent(), null, null);
 			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), UserProfile.class);
@@ -6952,11 +6952,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<Team> listTeams(Set<Long> ids) throws SynapseException {
+	public List<Team> listTeams(List<Long> ids) throws SynapseException {
 		try {
-			IdSet idSet = new IdSet();
-			idSet.setSet(ids);
-			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
+			IdList idList = new IdList();
+			idList.setList(ids);
+			String jsonString = EntityFactory.createJSONStringForEntity(idList);
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					getRepoEndpoint(), TEAM_LIST, jsonString, getUserAgent(), null, null);
 			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), Team.class);
@@ -7068,11 +7068,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException {
+	public List<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException {
 		try {
-			IdSet idSet = new IdSet();
-			idSet.setSet(ids);
-			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
+			IdList idList = new IdList();
+			idList.setList(ids);
+			String jsonString = EntityFactory.createJSONStringForEntity(idList);
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					getRepoEndpoint(), TEAM+"/"+teamId+MEMBER_LIST, jsonString, getUserAgent(), null, null);
 			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), TeamMember.class);
@@ -7083,11 +7083,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public List<TeamMember> listTeamMembers(Set<Long> teamIds, String userId) throws SynapseException {
+	public List<TeamMember> listTeamMembers(List<Long> teamIds, String userId) throws SynapseException {
 		try {
-			IdSet idSet = new IdSet();
-			idSet.setSet(teamIds);
-			String jsonString = EntityFactory.createJSONStringForEntity(idSet);
+			IdList idList = new IdList();
+			idList.setList(teamIds);
+			String jsonString = EntityFactory.createJSONStringForEntity(idList);
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					getRepoEndpoint(), USER+"/"+userId+MEMBER_LIST, jsonString, getUserAgent(), null, null);
 			return ListWrapper.unwrap(new JSONObjectAdapterImpl(responseBody), TeamMember.class);

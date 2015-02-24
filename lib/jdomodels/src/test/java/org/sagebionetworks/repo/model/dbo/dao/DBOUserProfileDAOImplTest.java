@@ -78,7 +78,7 @@ public class DBOUserProfileDAOImplTest {
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
 		
-		List<UserProfile> listed = userProfileDAO.list(Collections.singleton(Long.parseLong(id)));
+		List<UserProfile> listed = userProfileDAO.list(Collections.singletonList(Long.parseLong(id)));
 		assertEquals(1, listed.size());
 		assertEquals(userProfile, listed.get(0));
 

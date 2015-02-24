@@ -142,11 +142,11 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
 		
-		ListWrapper<Team> listed = teamDAO.list(Collections.singleton(id));
+		ListWrapper<Team> listed = teamDAO.list(Collections.singletonList(id));
 		assertEquals(1, listed.getList().size());
 		assertEquals(updated, listed.getList().get(0));
 		
-		Set<Long> emptyIds = Collections.emptySet();
+		List<Long> emptyIds = Collections.emptyList();
 		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 		assertTrue(teamDAO.list(emptyIds).getList().isEmpty());
@@ -176,15 +176,15 @@ public class DBOTeamDAOImplTest {
 		
 		Long teamId = Long.parseLong(team.getId());
 		ListWrapper<TeamMember> listedMembers = 
-				teamDAO.listMembers(Collections.singleton(teamId), Collections.singleton(Long.parseLong(user.getId())));
+				teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(Long.parseLong(user.getId())));
 		assertEquals(1, listedMembers.getList().size());
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
 		assertEquals(member, listedMembers.getList().get(0));
 		// check that nothing is returned for other team IDs and principal IDs
-		assertEquals(0, teamDAO.listMembers(Collections.singleton(0L), Collections.singleton(Long.parseLong(user.getId()))).getList().size());
-		assertEquals(0, teamDAO.listMembers(Collections.singleton(teamId), Collections.singleton(0L)).getList().size());
+		assertEquals(0, teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId()))).getList().size());
+		assertEquals(0, teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(0L)).getList().size());
 
-		assertTrue(teamDAO.listMembers(Collections.singleton(teamId), emptyIds).getList().isEmpty());
+		assertTrue(teamDAO.listMembers(Collections.singletonList(teamId), emptyIds).getList().isEmpty());
 		
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
@@ -247,7 +247,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, members.size());
 		assertEquals(member, members.get(0));
 		
-		listedMembers = teamDAO.listMembers(Collections.singleton(teamId), Collections.singleton(Long.parseLong(user.getId())));
+		listedMembers = teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(Long.parseLong(user.getId())));
 		assertEquals(member, listedMembers.getList().get(0));
 	}
 	
