@@ -213,11 +213,12 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, teamDAO.getCountForMember(user.getId()));
 		
 		Long teamId = Long.parseLong(team.getId());
+		Long userIdLong = Long.parseLong(user.getId());
 		ListWrapper<TeamMember> listedMembers = 
-				teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(Long.parseLong(user.getId())));
-		assertEquals(1, listedMembers.getList().size());
+				teamDAO.listMembers(Collections.singletonList(teamId), Arrays.asList(new Long[]{userIdLong, userIdLong}));
+		assertEquals(2, listedMembers.getList().size());
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
-		assertEquals(member, listedMembers.getList().get(0));
+		assertEquals(Arrays.asList(new TeamMember[]{member, member}), listedMembers.getList());
 		// check that nothing is returned for other team IDs and principal IDs
 		try {
 			teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId())));
