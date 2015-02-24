@@ -420,7 +420,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(handle);
 		toDelete.add(handle);
 		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
-		assertEquals("compressed.txt", handle.getFileName());
+		assertEquals("compressed.txt.gz", handle.getFileName());
 		assertNotNull(handle.getContentMd5());
 		assertTrue(handle.getContentSize() > 1);
 		assertNotNull(handle.getId());

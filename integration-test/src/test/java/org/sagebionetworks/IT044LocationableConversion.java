@@ -26,9 +26,13 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 
@@ -86,6 +90,7 @@ public class IT044LocationableConversion {
 		Study study = new Study();
 		study.setParentId(project.getId());
 		study.setDisease("cancer");
+		study.setDescription("This should become a wiki.");
 		LocationData ld = new LocationData();
 		ld.setPath("http://www.google.com/somedoc");
 		ld.setType(LocationTypeNames.external);
@@ -100,6 +105,18 @@ public class IT044LocationableConversion {
 		assertEquals(study.getId(), r.getEntityId());
 		// It should have a child
 		assertEquals(new Long(1), adminSynapse.getChildCount(r.getEntityId()));
+		
+		WikiPage wiki = adminSynapse.getRootWikiPage(r.getEntityId(), ObjectType.ENTITY);
+		assertNotNull(wiki);
+		assertEquals(study.getDescription(), wiki.getMarkdown());
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(KeyFactory.stringToKey(r.getEntityId()).toString());
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		key.setWikiPageId(wiki.getId());
+		// This was failing due to PLFM-3256
+		WikiPage v1 = adminSynapse.getVersionOfV2WikiPageAsV1(key, 0L);
+		assertNotNull(v1);
+		assertEquals(study.getDescription(), v1.getMarkdown());
 	}
 	
 	@Test
