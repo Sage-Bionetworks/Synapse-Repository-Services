@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZAT
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PARTICIPANT_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
@@ -14,16 +13,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 
 import java.io.IOException;
-import java.sql.Blob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +31,6 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -50,7 +43,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -108,10 +100,10 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (:"+COL_RESOURCE_ACCESS_GROUP_ID+") ";
 	
 	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_PAGINATED = 
-			"SELECT DISTINCT c.* "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE+LIMIT_OFFSET;// TODO: add DISTINCT
+			"SELECT DISTINCT c.* "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE+LIMIT_OFFSET;
 
 	private static final String SELECT_FOR_PARTICIPANT_AND_REQUESTER_COUNT = 
-			"SELECT COUNT(DISTINCT c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE;// TODO: add DISTINCT
+			"SELECT COUNT(DISTINCT c."+COL_CHALLENGE_ID+") "+SELECT_FOR_PARTICIPANT_AND_REQUESTER_SQL_CORE;
 
 	private static final String SELECT_MEMBERS_IN_REGISTERED_TEAM = 
 			"SELECT gm1."+COL_GROUP_MEMBERS_MEMBER_ID+

@@ -974,6 +974,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag);
 		submissionsToDelete.add(sub2.getId());
 		
+		String doubleHeader = "DOUBLE";
+		double doubleValue = Double.NaN;
 		// add annotations
 		BatchUploadResponse response = null;
 		{
@@ -988,13 +990,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 			Annotations annos = new Annotations();
 			annos.setStringAnnos(stringAnnos);		
 			
-//			DoubleAnnotation da = new DoubleAnnotation();
-//			da.setIsPrivate(true);
-//			da.setKey("nan");
-//			da.setValue(Double.NaN);
-//			List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
-//			doubleAnnos.add(da);
-//			annos.setDoubleAnnos(doubleAnnos);					
+			DoubleAnnotation da = new DoubleAnnotation();
+			da.setIsPrivate(true);
+			da.setKey(doubleHeader);
+			da.setValue(doubleValue);
+			List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+			doubleAnnos.add(da);
+			annos.setDoubleAnnos(doubleAnnos);					
 			
 			status.setScore(0.5);
 			status.setStatus(SubmissionStatusEnum.SCORED);
@@ -1018,13 +1020,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 			Annotations annos = new Annotations();
 			annos.setStringAnnos(stringAnnos);		
 			
-//			DoubleAnnotation da = new DoubleAnnotation();
-//			da.setIsPrivate(true);
-//			da.setKey("nan");
-//			da.setValue(Double.NaN);
-//			List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
-//			doubleAnnos.add(da);
-//			annos.setDoubleAnnos(doubleAnnos);					
+			DoubleAnnotation da = new DoubleAnnotation();
+			da.setIsPrivate(true);
+			da.setKey(doubleHeader);
+			da.setValue(doubleValue);
+			List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+			doubleAnnos.add(da);
+			annos.setDoubleAnnos(doubleAnnos);					
 			
 			status.setScore(0.5);
 			status.setStatus(SubmissionStatusEnum.SCORED);
@@ -1053,19 +1055,21 @@ public class IT520SynapseJavaClientEvaluationTest {
 			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");
 			
 			
-			QueryTableResults allSubmissions = synapseOne.queryEvaluation("SELECT * FROM evaluation_" + eval1.getId());
-			System.out.println("Headers: "+allSubmissions.getHeaders());
-			System.out.println("---- ROWS ----");
-			for (Row submissionRow : allSubmissions.getRows()) {
-				for (String value : submissionRow.getValues()) {
-					System.out.print(value+" ");
-				}
-				System.out.println();
-			}
-			System.out.println("---- END ROWS ----");
-			
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
+			{
+				QueryTableResults allSubmissions = synapseOne.queryEvaluation("SELECT * FROM evaluation_" + eval1.getId());
+				System.out.println("Headers: "+allSubmissions.getHeaders());
+				System.out.println("---- ROWS ----");
+				for (Row submissionRow : allSubmissions.getRows()) {
+					for (String value : submissionRow.getValues()) {
+						System.out.print(value+" ");
+					}
+					System.out.println();
+				}
+				System.out.println("---- END ROWS ----");
+			}
+			
 		}
 		
 		// verify the results
@@ -1077,11 +1081,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(rows.get(0).getValues().get(index).contains(sub1.getId()));
 		assertTrue(rows.get(1).getValues().get(index).contains(sub2.getId()));
 		
-		int nanColumnIndex = headers.indexOf("nan");
+		int nanColumnIndex = headers.indexOf(doubleHeader);
 		assertTrue("Expected NaN but found: "+rows.get(0).getValues().get(nanColumnIndex).toString(), 
-				rows.get(0).getValues().get(nanColumnIndex).contains("NaN"));
+				rows.get(0).getValues().get(nanColumnIndex).contains(""+doubleValue));
 		assertTrue("Expected NaN but found: "+rows.get(1).getValues().get(nanColumnIndex).toString(), 
-				rows.get(1).getValues().get(nanColumnIndex).contains("NaN"));
+				rows.get(1).getValues().get(nanColumnIndex).contains(""+doubleValue));
 		
 		
 		// now check that if you delete the submission it stops appearing in the query
