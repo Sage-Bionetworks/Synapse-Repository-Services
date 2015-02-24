@@ -4,8 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Sends messages as part of a transaction.
@@ -37,6 +35,11 @@ public interface TransactionalMessenger {
 	 * Send a modification message after the current transaction commits
 	 */
 	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType);
+
+	/**
+	 * Send a modification message after the current transaction commits
+	 */
+	public void sendModificationMessageAfterCommit(ModificationMessage message);
 
 	/**
 	 * Register an observer that will be notified when there is a message after a commit.

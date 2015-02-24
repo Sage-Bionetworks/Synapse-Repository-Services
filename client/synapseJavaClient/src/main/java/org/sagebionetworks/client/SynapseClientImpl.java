@@ -1592,12 +1592,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId) throws SynapseException {
-		return getUnmetAccessRequirements(subjectId, null);
-	}
-
-	@Override
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
 			throws SynapseException {
 		String uri = null;

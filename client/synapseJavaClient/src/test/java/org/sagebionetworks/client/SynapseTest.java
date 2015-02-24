@@ -427,7 +427,7 @@ public class SynapseTest {
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		subjectId.setId("12345");
 		VariableContentPaginatedResults<AccessRequirement> clone = 
-			synapse.getUnmetAccessRequirements(subjectId);
+			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
 		assertNotNull(clone);
 		assertEquals(result, clone);
 	}	

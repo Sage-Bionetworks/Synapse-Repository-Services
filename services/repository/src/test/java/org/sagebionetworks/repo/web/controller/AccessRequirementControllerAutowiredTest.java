@@ -153,13 +153,13 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		// get the unmet access requirements for the entity, 
 		// when the user is the entity owner (should be one)
 		results = servletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, userId);	
+				dispatchServlet, entityId, userId, ACCESS_TYPE.DOWNLOAD);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the entity
 		results = servletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, otherUserInfo.getId());	
+				dispatchServlet, entityId, otherUserInfo.getId(), ACCESS_TYPE.DOWNLOAD);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
@@ -203,13 +203,13 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		// get the unmet access requirements for the evaluation, 
 		// when the user is the entity owner, should be the same as for others
 		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), userId);	
+				dispatchServlet, evaluation.getId(), userId, ACCESS_TYPE.PARTICIPATE);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the evaluation
 		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()));	
+				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()), ACCESS_TYPE.PARTICIPATE);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		

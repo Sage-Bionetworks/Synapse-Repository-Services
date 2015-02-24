@@ -1,0 +1,23 @@
+{
+	"title": "TeamModificationMessage",
+	"description": "JSON schema for a team modification message",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.message.ModificationMessage"
+	},
+	"properties": {
+		"memberId": {
+			"type": "integer",
+			"description": "The user id for which the change applies"
+		},
+		"teamModificationType": {
+			"type": "string",
+			"description": "The type of team change that occurred",
+			"name": "TeamModificationType",
+			"id": "org.sagebionetworks.repo.model.message.TeamModificationType",
+			"enum": [
+				"ADDED",
+				"REMOVED"
+			]
+		}
+	}
+}

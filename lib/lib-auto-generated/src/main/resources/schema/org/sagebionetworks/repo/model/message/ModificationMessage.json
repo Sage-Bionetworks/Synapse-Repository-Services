@@ -1,0 +1,15 @@
+{
+	"title": "ModificationMessage",
+	"description": "JSON schema for a modification message",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.Message"
+		}
+	],
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The user id for which the change applies"
+		}		
+	}
+}

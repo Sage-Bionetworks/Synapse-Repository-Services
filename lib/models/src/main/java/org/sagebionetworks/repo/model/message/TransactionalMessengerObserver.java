@@ -23,6 +23,6 @@ public interface TransactionalMessengerObserver {
 	 * 
 	 * @param message
 	 */
-	public void fireModificationMessage(ChangeMessage message);
+	public void fireModificationMessage(ModificationMessage message);
 
 }
