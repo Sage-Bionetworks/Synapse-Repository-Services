@@ -894,10 +894,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytes);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
-		String fileName = "compressed.txt";
+		String fileName = "compressed.txt.gz";
 		ObjectMetadata meta = new ObjectMetadata();
-		meta.setContentType("text/plain");
-		meta.setContentEncoding("gzip");
+		meta.setContentType("application/x-gzip");
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(compressedBytes.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));

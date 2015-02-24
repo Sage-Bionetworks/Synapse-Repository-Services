@@ -405,7 +405,12 @@ public class SharedClientConnection {
 	public String downloadZippedFileString(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
 			FileNotFoundException, SynapseException {
 		HttpGet get = new HttpGet(endpoint+uri);
-		setHeaders(get, defaultGETDELETEHeaders, userAgent);
+		Map<String, String> modHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
+		modHeaders.put(USER_AGENT, userAgent);
+		if (apiKey!=null) {
+			addDigitalSignature(endpoint + uri, modHeaders);
+		} 
+		setHeaders(get, modHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
 		HttpResponse response = clientProvider.execute(get);
 		HttpEntity entity = response.getEntity();
