@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -66,7 +67,7 @@ public class DBOTeamDAOImplTest {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
-	private String teamToDelete;
+	private List<String> teamsToDelete;
 	private String aclToDelete;
 	private String userToDelete;
 
@@ -76,13 +77,16 @@ public class DBOTeamDAOImplTest {
 		for (Team team : teams) {
 			teamDAO.delete(team.getId());
 		}
+		teamsToDelete = new ArrayList<String>();
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		if (aclToDelete!=null) aclDAO.delete(aclToDelete, ObjectType.TEAM);
-		if (teamToDelete!=null) teamDAO.delete(teamToDelete);
-		if (teamToDelete!=null) userGroupDAO.delete(teamToDelete);
+		for (String teamId : teamsToDelete) {
+			teamDAO.delete(teamId);
+			userGroupDAO.delete(teamId);
+		}
 		if (userToDelete!=null) userGroupDAO.delete(userToDelete);
 	}
 	
@@ -95,6 +99,40 @@ public class DBOTeamDAOImplTest {
 		ugh.setLastName(up.getLastName());
 		return ugh;
 	}
+	
+	@Test
+	public void testListTeams() throws Exception {
+		List<Team> createdTeams = new ArrayList<Team>();
+		for (int i=0; i<3; i++) {
+			UserGroup group = new UserGroup();
+			group.setIsIndividual(false);
+			group.setId(userGroupDAO.create(group).toString());
+			teamsToDelete.add(group.getId());
+	
+			// create a team
+			Team team = new Team();
+			Long id = Long.parseLong(group.getId());
+			team.setId(""+id);
+			team.setName("Super Team_"+i);
+			team.setDescription("This is a Team designated for testing.");
+			team.setIcon("999");
+			team.setCreatedOn(new Date());
+			team.setCreatedBy("101");
+			team.setModifiedOn(new Date());
+			team.setModifiedBy("102");
+			createdTeams.add(teamDAO.create(team));
+		}
+		assertEquals(Arrays.asList(new Team[] {createdTeams.get(1), createdTeams.get(0)}),
+		teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)), 
+				Long.parseLong(teamsToDelete.get(0))})).getList());
+		try {
+			teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)), 
+					98776654L+Long.parseLong(teamsToDelete.get(0))}));
+			fail("NotFoundException expected");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+	}
 
 
 	@Test
@@ -102,7 +140,7 @@ public class DBOTeamDAOImplTest {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
-		teamToDelete = group.getId();
+		teamsToDelete.add(group.getId());
 
 		// create a team
 		Team team = new Team();
@@ -181,8 +219,18 @@ public class DBOTeamDAOImplTest {
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
 		assertEquals(member, listedMembers.getList().get(0));
 		// check that nothing is returned for other team IDs and principal IDs
-		assertEquals(0, teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId()))).getList().size());
-		assertEquals(0, teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(0L)).getList().size());
+		try {
+			teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId())));
+			fail("NotFoundException expected");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+		try {
+			teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(0L));
+			fail("NotFoundException expected");
+		} catch (NotFoundException e) {
+			// as expected
+		}
 
 		assertTrue(teamDAO.listMembers(Collections.singletonList(teamId), emptyIds).getList().isEmpty());
 		
