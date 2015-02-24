@@ -38,7 +38,7 @@ public class WikiServiceImpl implements WikiService {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public WikiPage createWikiPage(Long userId, String objectId,	ObjectType objectType, WikiPage toCreate) throws DatastoreException, NotFoundException, IOException {
+	public WikiPage createWikiPage(Long userId, String objectId, ObjectType objectType, WikiPage toCreate) throws DatastoreException, NotFoundException, IOException {
 		// Resolve the userID
 		UserInfo user = userManager.getUserInfo(userId);
 		// Translate the created V1 wiki into a V2 and create it
@@ -49,10 +49,10 @@ public class WikiServiceImpl implements WikiService {
 	}
 
 	@Override
-	public WikiPage getWikiPage(Long userId, WikiPageKey key) throws DatastoreException, NotFoundException, IOException {
+	public WikiPage getWikiPage(Long userId, WikiPageKey key, Long version) throws DatastoreException, NotFoundException, IOException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// Return most recent version of the wiki because V1 service doesn't have history
-		V2WikiPage wiki = v2WikiManager.getWikiPage(user, key, null);
+		V2WikiPage wiki = v2WikiManager.getWikiPage(user, key, version);
 		return wikiModelTranslationHelper.convertToWikiPage(wiki);
 	}
 
@@ -132,6 +132,13 @@ public class WikiServiceImpl implements WikiService {
 		V2WikiPage root = v2WikiManager.getRootWikiPage(user, ownerId, type);
 		// Return as a V1 wiki
 		return wikiModelTranslationHelper.convertToWikiPage(root);
+	}
+
+	@Override
+	public WikiPageKey getRootWikiKey(Long userId, String ownerId,
+			ObjectType type) throws NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return v2WikiManager.getRootWikiKey(user, ownerId, type);
 	}
 
 }

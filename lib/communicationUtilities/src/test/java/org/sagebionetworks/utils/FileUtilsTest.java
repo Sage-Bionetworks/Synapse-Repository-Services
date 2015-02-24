@@ -198,17 +198,6 @@ public class FileUtilsTest {
 	}
 	
 	@Test
-	public void testWriteStringToCompressedFile() throws IOException {
-		String markdown = "This is a test **markdown** that will be compressed.";
-		File temp = File.createTempFile("compressed", ".txt.gz");
-		File zippedFile = FileUtils.writeStringToCompressedFile(temp, markdown);
-		
-		String unzippedString = FileUtils.readCompressedFileAsString(zippedFile);
-		assertEquals(markdown, unzippedString);
-		toDelete.add(zippedFile);
-	}
-	
-	@Test
 	public void testWriteStringToCompressed() throws IOException {
 		String markdown = "This is a test **markdown** that will be compressed.";
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

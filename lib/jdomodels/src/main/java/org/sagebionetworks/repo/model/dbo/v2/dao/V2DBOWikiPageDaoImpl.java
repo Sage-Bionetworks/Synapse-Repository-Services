@@ -27,6 +27,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -75,6 +76,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 
 /**
  * The basic implementation of the V2WikiPageDao.
@@ -476,18 +478,12 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	public String getMarkdown(WikiPageKey key, Long version) throws IOException, NotFoundException {
 		V2WikiPage wiki = get(key, version);
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wiki.getMarkdownFileHandleId());
-		File markdownTemp = File.createTempFile(wiki.getId()+ "_markdown", ".tmp");
-		try {
-			// Retrieve uploaded markdown
-			s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-					markdownHandle.getKey()), markdownTemp);
-			// Read the file as a string
-			String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
-			return markdownString;
-		} finally {
-			if (markdownTemp != null) {
-				markdownTemp.delete();
-			}
+		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		InputStream in = s3Object.getObjectContent();
+		try{
+			return FileUtils.readCompressedStreamAsString(in);
+		}finally{
+			in.close();
 		}
 	}
 	

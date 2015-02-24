@@ -419,4 +419,14 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.getMarkdownHandleId(wikiPageKey, version);
 	}
 
+	@Override
+	public WikiPageKey getRootWikiKey(UserInfo user, String ownerId,
+			ObjectType type) throws NotFoundException {
+		Long rootWikiId = wikiPageDao.getRootWiki(ownerId, type);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, type, rootWikiId.toString());
+		// Validate that the user has read access
+		validateReadAccess(user, key);
+		return key;
+	}
+
 }

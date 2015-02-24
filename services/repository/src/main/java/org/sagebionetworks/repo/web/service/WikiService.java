@@ -40,7 +40,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws IOException TODO
 	 */
-	WikiPage getWikiPage(Long userId, WikiPageKey key) throws DatastoreException, NotFoundException, IOException;
+	WikiPage getWikiPage(Long userId, WikiPageKey key, Long version) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Update a wiki page.
@@ -123,5 +123,15 @@ public interface WikiService {
 	 * @throws IOException TODO
 	 */
 	WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException, IOException;
+
+	/**
+	 * Get the root wiki page key
+	 * @param userId
+	 * @param ownerId
+	 * @param type
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	WikiPageKey getRootWikiKey(Long userId, String ownerId, ObjectType type) throws NotFoundException;
 
 }

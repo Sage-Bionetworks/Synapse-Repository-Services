@@ -2621,6 +2621,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = createWikiURL(key);
 		return getJSONEntity(uri, WikiPage.class);
 	}
+	
+
+	@Override
+	public WikiPage getWikiPageForVersion(WikiPageKey key,
+			Long version) throws JSONObjectAdapterException, SynapseException {
+		String uri = createWikiURL(key) + VERSION_PARAMETER + version;
+		return getJSONEntity(uri, WikiPage.class);
+	}
+
+	@Override
+	public WikiPageKey getRootWikiPageKey(String ownerId, ObjectType ownerType) throws JSONObjectAdapterException, SynapseException {
+		if (ownerId == null)
+			throw new IllegalArgumentException("ownerId cannot be null");
+		if (ownerType == null)
+			throw new IllegalArgumentException("ownerType cannot be null");
+		String uri = createWikiURL(ownerId, ownerType);
+		return getJSONEntity(uri, WikiPageKey.class);
+	}
 
 	/**
 	 * Get a the root WikiPage for a given owner.
@@ -3490,169 +3508,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				V2WikiHistorySnapshot.class);
 		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
 		return paginated;
-	}
-
-	/**
-	 * Creates a V2 WikiPage model from a V1, zipping up markdown content and
-	 * tracking it with a file handle.
-	 * 
-	 * @param from
-	 * @return
-	 * @throws IOException
-	 * @throws SynapseException
-	 */
-	private V2WikiPage createV2WikiPageFromV1(WikiPage from)
-			throws IOException, SynapseException {
-		if (from == null)
-			throw new IllegalArgumentException("WikiPage cannot be null");
-		// Copy over all information
-		V2WikiPage wiki = new V2WikiPage();
-		wiki.setId(from.getId());
-		wiki.setEtag(from.getEtag());
-		wiki.setCreatedOn(from.getCreatedOn());
-		wiki.setCreatedBy(from.getCreatedBy());
-		wiki.setModifiedBy(from.getModifiedBy());
-		wiki.setModifiedOn(from.getModifiedOn());
-		wiki.setParentWikiId(from.getParentWikiId());
-		wiki.setTitle(from.getTitle());
-		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());
-
-		// Zip up markdown
-		File markdownFile = File.createTempFile("compressed", ".txt.gz");
-		try {
-			String markdown = from.getMarkdown();
-			if (markdown != null) {
-				markdownFile = FileUtils.writeStringToCompressedFile(
-						markdownFile, markdown);
-			} else {
-				markdownFile = FileUtils.writeStringToCompressedFile(
-						markdownFile, "");
-			}
-			String contentType = "application/x-gzip";
-			// Create file handle for markdown
-			S3FileHandle markdownS3Handle = createFileHandle(markdownFile,
-					contentType);
-			wiki.setMarkdownFileHandleId(markdownS3Handle.getId());
-			return wiki;
-		} finally {
-			markdownFile.delete();
-		}
-
-	}
-
-	/**
-	 * Creates a V1 WikiPage model from a V2, unzipping the markdown file
-	 * contents into the markdown field.
-	 * 
-	 * @param from
-	 * @param ownerId
-	 * @param ownerType
-	 * @return
-	 * @throws ClientProtocolException
-	 * @throws FileNotFoundException
-	 * @throws IOException
-	 */
-	private WikiPage createWikiPageFromV2(V2WikiPage from, String ownerId,
-			ObjectType ownerType, Long version) throws ClientProtocolException,
-			FileNotFoundException, IOException, SynapseException {
-		if (from == null)
-			throw new IllegalArgumentException("WikiPage cannot be null");
-		if (ownerId == null)
-			throw new IllegalArgumentException("ownerId cannot be null");
-		if (ownerType == null)
-			throw new IllegalArgumentException("ownerType cannot be null");
-		WikiPage wiki = new WikiPage();
-		wiki.setId(from.getId());
-		wiki.setEtag(from.getEtag());
-		wiki.setCreatedOn(from.getCreatedOn());
-		wiki.setCreatedBy(from.getCreatedBy());
-		wiki.setModifiedBy(from.getModifiedBy());
-		wiki.setModifiedOn(from.getModifiedOn());
-		wiki.setParentWikiId(from.getParentWikiId());
-		wiki.setTitle(from.getTitle());
-		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId,
-				ownerType, wiki.getId());
-
-		// We may be returning the most recent version of the V2 Wiki, or
-		// another version
-		// Download the correct markdown file
-		String markdownString = null;
-		if (version == null) {
-			markdownString = downloadV2WikiMarkdown(key);
-		} else {
-			markdownString = downloadVersionOfV2WikiMarkdown(key, version);
-		}
-		// Store the markdown as a string
-		wiki.setMarkdown(markdownString);
-		return wiki;
-	}
-
-	/**
-	 * Creates a V1 WikiPage model from a V2 and the already unzipped/string
-	 * markdown.
-	 * 
-	 * @param model
-	 * @param markdown
-	 * @return
-	 */
-	private WikiPage mergeMarkdownAndMetadata(V2WikiPage model, String markdown) {
-		WikiPage wiki = new WikiPage();
-		wiki.setId(model.getId());
-		wiki.setEtag(model.getEtag());
-		wiki.setCreatedOn(model.getCreatedOn());
-		wiki.setCreatedBy(model.getCreatedBy());
-		wiki.setModifiedBy(model.getModifiedBy());
-		wiki.setModifiedOn(model.getModifiedOn());
-		wiki.setParentWikiId(model.getParentWikiId());
-		wiki.setTitle(model.getTitle());
-		wiki.setAttachmentFileHandleIds(model.getAttachmentFileHandleIds());
-		wiki.setMarkdown(markdown);
-		return wiki;
-	}
-
-	@Override
-	public WikiPage createV2WikiPageWithV1(String ownerId,
-			ObjectType ownerType, WikiPage toCreate) throws IOException,
-			SynapseException, JSONObjectAdapterException {
-		// Zip up markdown and create a V2 WikiPage
-		V2WikiPage converted = createV2WikiPageFromV1(toCreate);
-		// Create the V2 WikiPage
-		V2WikiPage created = createV2WikiPage(ownerId, ownerType, converted);
-		// Return the result in V1 form
-		return createWikiPageFromV2(created, ownerId, ownerType, null);
-	}
-
-	@Override
-	public WikiPage updateV2WikiPageWithV1(String ownerId,
-			ObjectType ownerType, WikiPage toUpdate) throws IOException,
-			SynapseException, JSONObjectAdapterException {
-		// Zip up markdown and create a V2 WikiPage
-		V2WikiPage converted = createV2WikiPageFromV1(toUpdate);
-		// Update the V2 WikiPage
-		V2WikiPage updated = updateV2WikiPage(ownerId, ownerType, converted);
-		// Return result in V1 form
-		return mergeMarkdownAndMetadata(updated, toUpdate.getMarkdown());
-	}
-
-	@Override
-	public WikiPage getV2WikiPageAsV1(WikiPageKey key)
-			throws JSONObjectAdapterException, SynapseException, IOException {
-		// Get the V2 Wiki
-		V2WikiPage v2WikiPage = getV2WikiPage(key);
-		// Convert and return as a V1
-		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(),
-				key.getOwnerObjectType(), null);
-	}
-
-	@Override
-	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version)
-			throws JSONObjectAdapterException, SynapseException, IOException {
-		// Get a version of the V2 Wiki
-		V2WikiPage v2WikiPage = getVersionOfV2WikiPage(key, version);
-		// Convert and return as a V1
-		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(),
-				key.getOwnerObjectType(), version);
 	}
 
 	/**
