@@ -447,7 +447,7 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
 			throws SynapseException;
 	
-	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException;
+	public List<UserProfile> listUserProfiles(List<Long> userIds) throws SynapseException;
 
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException;
@@ -1537,7 +1537,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<Team> listTeams(Set<Long> ids) throws SynapseException;
+	public List<Team> listTeams(List<Long> ids) throws SynapseException;
 	
 	/**
 	 * 
@@ -1614,29 +1614,27 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Return a TeamMember list for a given Team and list of member IDs.
 	 * 
-	 * Note: Invalid IDs in the list are ignored:  The results list is simply
-	 * smaller than the set of IDs passed in.
+	 * Note: Any invalid ID causes a 404 NOT FOUND
 	 * 
 	 * @param teamId
 	 * @param ids
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException;
+	public List<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException;
 
 	
 	/**
 	 * Return a TeamMember list for a set of Team IDs and a given user
 	 * 
-	 * Note: Invalid IDs in the list are ignored:  The results list is simply
-	 * smaller than the set of IDs passed in.
+	 * Note: Any invalid ID causes a 404 NOT FOUND
 	 * 
 	 * @param teamIds
 	 * @param userId
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<TeamMember> listTeamMembers(Set<Long> teamIds, String userId) throws SynapseException;
+	public List<TeamMember> listTeamMembers(List<Long> teamIds, String userId) throws SynapseException;
 
 	/**
 	 * 

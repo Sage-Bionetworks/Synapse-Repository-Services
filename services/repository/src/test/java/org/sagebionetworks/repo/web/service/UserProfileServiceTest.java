@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -200,9 +200,9 @@ public class UserProfileServiceTest {
 		fail();
 	}
 	
-	private static IdSet singletonIdSet(String id) {
-		IdSet result = new IdSet();
-		result.setSet(Collections.singleton(Long.parseLong(id)));
+	private static IdList singletonIdList(String id) {
+		IdList result = new IdList();
+		result.setList(Collections.singletonList(Long.parseLong(id)));
 		return result;
 	}
 	
@@ -220,13 +220,13 @@ public class UserProfileServiceTest {
 		userProfile.setEmails(Collections.singletonList(email));
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
-		when(mockUserProfileManager.list(singletonIdSet(ownerId))).thenReturn(wrap(userProfile));
+		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertNull(someOtherUserProfile.getEtag());
 		assertNull(someOtherUserProfile.getEmails());
 		
-		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdSet(ownerId));
+		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdList(ownerId));
 		assertEquals(1, lwup.getList().size());
 		someOtherUserProfile = lwup.getList().get(0);
 		assertNull(someOtherUserProfile.getEtag());
@@ -245,13 +245,13 @@ public class UserProfileServiceTest {
 		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
-		when(mockUserProfileManager.list(singletonIdSet(ownerId))).thenReturn(wrap(userProfile));
+		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertNull(someOtherUserProfile.getEtag());
 		assertNotNull(someOtherUserProfile.getEmails());
 		
-		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdSet(ownerId));
+		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdList(ownerId));
 		assertEquals(1, lwup.getList().size());
 		someOtherUserProfile = lwup.getList().get(0);
 		assertNull(someOtherUserProfile.getEtag());

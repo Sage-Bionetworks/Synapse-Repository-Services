@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -144,8 +144,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> list(IdSet ids) throws DatastoreException, NotFoundException {
-		List<UserProfile> userProfiles = userProfileDAO.list(ids.getSet());
+	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
+		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
 		addAliasesToProfiles(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);
 	}
