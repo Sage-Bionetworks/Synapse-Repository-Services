@@ -274,6 +274,7 @@ public class V2WikiController extends BaseController {
 	 *            The ID of the owning Entity.
 	 * @param wikiId
 	 *            The ID of the WikiPage to get.
+	 * @param wikiVersion When included returns a specific version of a wiki.           
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException

@@ -5,12 +5,12 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -24,11 +24,10 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 
 public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerTestBase {
 	@Autowired
@@ -104,10 +103,14 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
-		s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-				markdownHandle.getKey()), markdownTemp);
-		// Read the file as a string
-		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		InputStream in = s3Object.getObjectContent();
+		String markdownString = null;
+		try{
+			markdownString = FileUtils.readCompressedStreamAsString(in);
+		}finally{
+			in.close();
+		}
 		// Make sure uploaded markdown is accurate
 		assertEquals(markdownAsString, markdownString);
 		
@@ -136,10 +139,14 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
-		s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-				markdownHandle.getKey()), markdownTemp);
-		// Read the file as a string
-		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		InputStream in = s3Object.getObjectContent();
+		String markdownString = null;
+		try{
+			markdownString = FileUtils.readCompressedStreamAsString(in);
+		}finally{
+			in.close();
+		}
 		assertEquals("", markdownString);
 	}
 }

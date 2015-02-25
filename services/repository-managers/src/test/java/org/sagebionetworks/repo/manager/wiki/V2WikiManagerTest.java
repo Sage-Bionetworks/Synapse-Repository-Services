@@ -314,6 +314,22 @@ public class V2WikiManagerTest {
 		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
 	}
 	
+	// Same test for getMarkdownFileHandleId()
+	@Test (expected=UnauthorizedException.class)
+	public void testGetRootWikiKeyUnauthorized() throws DatastoreException, NotFoundException {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		wikiManager.getRootWikiKey(new UserInfo(false), "owner", ObjectType.ENTITY);
+	}
+	
+	// Same test for getMarkdownFileHandleId()
+	@Test
+	public void testGetRootWikiKey() throws UnauthorizedException, NotFoundException {
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		wikiManager.getRootWikiKey(new UserInfo(false), "owner", ObjectType.ENTITY);
+		verify(mockWikiDao, times(1)).getRootWiki("owner", ObjectType.ENTITY);
+	}
+	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetTreeUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
