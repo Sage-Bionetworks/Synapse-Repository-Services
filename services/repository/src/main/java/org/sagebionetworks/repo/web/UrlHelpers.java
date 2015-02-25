@@ -637,6 +637,7 @@ public class UrlHelpers {
 	// Access Requirement
 	public static final String ACCESS_REQUIREMENT_OWNER_ID = "/access_requirement/{ownerId}";
 	public static final String ACCESS_REQUIREMENT_WIKI = ACCESS_REQUIREMENT_OWNER_ID+ WIKI;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID = ACCESS_REQUIREMENT_OWNER_ID+ WIKI_WITH_ID;
 	public static final String ACCESS_REQUIREMENT_WIKI_KEY = ACCESS_REQUIREMENT_OWNER_ID+ WIKI_KEY;
 	
 

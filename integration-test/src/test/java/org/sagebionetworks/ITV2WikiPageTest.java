@@ -365,9 +365,6 @@ public class ITV2WikiPageTest {
 		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
 		assertEquals("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip", wiki.getTitle());
 		
-		WikiPageKey keyLookup = synapse.getRootWikiPageKey(project.getId(), ObjectType.ACCESS_REQUIREMENT);
-		assertEquals(key, keyLookup);
-		
 		// Delete the wiki
 		adminSynapse.deleteV2WikiPage(key);
 		// Now try to get it

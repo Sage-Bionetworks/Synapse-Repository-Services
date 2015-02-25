@@ -384,7 +384,7 @@ public class WikiController extends BaseController {
 	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPage getAccessRequirementWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -458,7 +458,7 @@ public class WikiController extends BaseController {
 	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	WikiPage updateAccessRequirementPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
