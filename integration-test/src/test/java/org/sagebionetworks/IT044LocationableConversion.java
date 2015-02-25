@@ -114,7 +114,7 @@ public class IT044LocationableConversion {
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		key.setWikiPageId(wiki.getId());
 		// This was failing due to PLFM-3256
-		WikiPage v1 = adminSynapse.getVersionOfV2WikiPageAsV1(key, 0L);
+		WikiPage v1 = adminSynapse.getWikiPageForVersion(key, 0L);
 		assertNotNull(v1);
 		assertEquals(study.getDescription(), v1.getMarkdown());
 	}
