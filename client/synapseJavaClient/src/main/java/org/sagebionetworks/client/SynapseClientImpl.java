@@ -2636,7 +2636,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("ownerId cannot be null");
 		if (ownerType == null)
 			throw new IllegalArgumentException("ownerType cannot be null");
-		String uri = createWikiURL(ownerId, ownerType);
+		String uri = createWikiURL(ownerId, ownerType)+"key";
 		return getJSONEntity(uri, WikiPageKey.class);
 	}
 

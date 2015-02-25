@@ -610,6 +610,7 @@ public class UrlHelpers {
 
 	// Wiki URL
 	public static final String WIKI = "/wiki";
+	public static final String WIKI_KEY = "/wikikey";
 	public static final String WIKI_HEADER_TREE = "/wikiheadertree";
 	public static final String ATTACHMENT = "/attachment";
 	public static final String ATTACHMENT_PREVIEW = "/attachmentpreview";
@@ -618,6 +619,7 @@ public class UrlHelpers {
 	// Entity
 	public static final String ENTITY_OWNER_ID = ENTITY+"/{ownerId}";
 	public static final String ENTITY_WIKI = ENTITY_OWNER_ID + WIKI;
+	public static final String ENTITY_WIKI_KEY = ENTITY_OWNER_ID + WIKI_KEY;
 	public static final String ENTITY_WIKI_TREE = ENTITY_OWNER_ID + WIKI_HEADER_TREE;
 	public static final String ENTITY_WIKI_ID = ENTITY_OWNER_ID + WIKI_WITH_ID;
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_HANDLE = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
@@ -626,6 +628,7 @@ public class UrlHelpers {
 	// Evaluation
 	public static final String EVALUATION_OWNER_ID = EVALUATION+"/{ownerId}";
 	public static final String EVALUATION_WIKI = EVALUATION_OWNER_ID+ WIKI;
+	public static final String EVALUATION_WIKI_KEY = EVALUATION_OWNER_ID+ WIKI_KEY;
 	public static final String EVALUATION_WIKI_TREE = EVALUATION_OWNER_ID + WIKI_HEADER_TREE;
 	public static final String EVALUATION_WIKI_ID =EVALUATION_OWNER_ID + WIKI_WITH_ID;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
@@ -634,6 +637,7 @@ public class UrlHelpers {
 	// Access Requirement
 	public static final String ACCESS_REQUIREMENT_OWNER_ID = "/access_requirement/{ownerId}";
 	public static final String ACCESS_REQUIREMENT_WIKI = ACCESS_REQUIREMENT_OWNER_ID+ WIKI;
+	public static final String ACCESS_REQUIREMENT_WIKI_KEY = ACCESS_REQUIREMENT_OWNER_ID+ WIKI_KEY;
 	
 
 	// V2 Wiki URL

@@ -267,14 +267,70 @@ public class WikiController extends BaseController {
 	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
-	WikiPageKey getRootWikiKey(
+	WikiPageKey getEntityRootWikiKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
 		return serviceProvider.getWikiService().getRootWikiKey(userId,
 				ownerId, ObjectType.ENTITY);
+	}
+	
+	/**
+	 * Get the root WikiPageKey for an Evaluation.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Evaluation.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_KEY, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPageKey getEvaluationRootWikiKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException, UnauthorizedException, IOException {
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
+				ownerId, ObjectType.EVALUATION);
+	}
+	
+	/**
+	 * Get the root WikiPageKey for an Access Requirement.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_KEY, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPageKey getAccessRequirmentRootWikiKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException, UnauthorizedException, IOException {
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
+				ownerId, ObjectType.ACCESS_REQUIREMENT);
 	}
 
 	/**
