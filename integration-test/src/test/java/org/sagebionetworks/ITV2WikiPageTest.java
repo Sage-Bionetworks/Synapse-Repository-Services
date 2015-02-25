@@ -259,6 +259,36 @@ public class ITV2WikiPageTest {
 	}
 	
 	@Test
+	public void testAccessRequirementV1WikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		WikiPage wiki = new WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		String markdownText1 = "markdown text one";
+		wiki.setMarkdown(markdownText1);
+		wiki.setTitle("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip");
+		// Create a V2WikiPage
+		wiki = adminSynapse.createWikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		assertNotNull(wiki);
+		WikiPageKey key = adminSynapse.getRootWikiPageKey(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT);
+		toDelete.add(key);
+		assertEquals(markdownText1, wiki.getMarkdown());
+		
+		// update
+		String markdownText2 = "markdown text two";
+		wiki.setMarkdown(markdownText2);
+		wiki = adminSynapse.updateWikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		assertNotNull(wiki);
+		
+		// Get a version of the wiki
+		WikiPage current = adminSynapse.getWikiPage(key);
+		assertEquals(markdownText2, current.getMarkdown());
+		
+		// get the previous version
+		WikiPage old = adminSynapse.getWikiPageForVersion(key, 0L);
+		assertEquals(markdownText1, old.getMarkdown());
+	}
+	
+	@Test
 	public void testAccessRequirementV2WikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
