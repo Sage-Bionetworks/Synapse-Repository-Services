@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -181,7 +182,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 					page.getAttachmentFileHandleIds().add(attachHandle.getId());
 				}
 			}
-			UserInfo creator = userManager.getUserInfo(Long.parseLong(locationable.getCreatedBy()));
+			UserInfo creator = getCreatorAsAdmin(locationable.getCreatedBy());
 			// Create the wiki page with all attachments.
 			wikiManager.createWikiPage(creator, locationable.getId(), ObjectType.ENTITY, page);
 		}
@@ -233,7 +234,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		for(VersionData pair: pairs){
 			String fileHandleId = pair.getFileHandle().getId();
 			// Get the user that modified this version.
-			UserInfo modifiedUser = userManager.getUserInfo(Long.parseLong(pair.getModifiedBy()));
+			UserInfo modifiedUser =  getCreatorAsAdmin(pair.getModifiedBy());
 			//  create the child
 			child.setDataFileHandleId(fileHandleId);
 			child.setVersionComment(pair.getVersionComments());
@@ -278,6 +279,31 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		}
 		newAnnos.getAdditionalAnnotations().addAll(oldPrimary);
 		return newAnnos;
+	}
+	
+	/**
+	 * Create a user that can act as an admin.
+	 * @param userId
+	 * @return
+	 * @throws NumberFormatException
+	 * @throws NotFoundException
+	 */
+	private UserInfo getCreatorAsAdmin(String userId) throws NumberFormatException, NotFoundException{
+		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
+		return createAdminUserInfoCopy(userInfo);
+	}
+
+	/**
+	 * Create an Admin copy of a user.
+	 * @param userInfo
+	 * @return
+	 */
+	private static UserInfo createAdminUserInfoCopy(UserInfo userInfo) {
+		UserInfo asAdmin = new UserInfo(true, userInfo.getId());
+		asAdmin.setGroups(userInfo.getGroups());
+		// Also make the user certified
+		asAdmin.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		return asAdmin;
 	}
 
 	/**

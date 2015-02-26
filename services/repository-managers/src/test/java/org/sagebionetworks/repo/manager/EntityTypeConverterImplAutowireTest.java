@@ -83,7 +83,9 @@ public class EntityTypeConverterImplAutowireTest {
 	
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
+	private UserInfo userInfo2;;
 	private Long userId;
+	private Long userId2;
 	String sampleMD5;
 	String externalPath;
 	private Project project;
@@ -97,6 +99,13 @@ public class EntityTypeConverterImplAutowireTest {
 		userId = userManager.createUser(nu);
 		userInfo = userManager.getUserInfo(userId);
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		nu = new NewUser();
+		nu.setUserName("test2");
+		nu.setEmail("just.2.test@sagebase.org");
+		userId2 = userManager.createUser(nu);
+		userInfo2 = userManager.getUserInfo(userId2);
+		userInfo2.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		toDelete = new ArrayList<String>();
 		fileHandlesToDelete = new ArrayList<String>();
 		
@@ -128,6 +137,9 @@ public class EntityTypeConverterImplAutowireTest {
 		}
 		if (userId!=null) {
 			userManager.deletePrincipal(adminUserInfo, userId);
+		}
+		if(userId2 != null){
+			userManager.deletePrincipal(adminUserInfo, userId2);
 		}
 	}
 	
@@ -470,6 +482,45 @@ public class EntityTypeConverterImplAutowireTest {
 		assertNotNull(page.getAttachmentFileHandleIds());
 		// There should be one attachment.
 		assertEquals(1, page.getAttachmentFileHandleIds().size());
+	}
+	
+	/**
+	 * See PLFM-3263. There are two operation that the migration process
+	 * attempts to do on behalf of the original creator: create new files
+	 * entities and create wiki pages. These can fail if the the user either is
+	 * not certified or if the user no longer has permission to create.
+	 * 
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws UnsupportedEncodingException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_3263() throws Exception{
+		Study data = new Study();
+		data.setName("DataFile");
+		data.setParentId(project.getId());
+		data.setDescription("This will become a wiki");
+		data.setVersionComment("v1 comments");
+		data.setVersionLabel("v1");
+		LocationData ld = new LocationData();
+
+		ld.setPath(externalPath);
+		ld.setType(LocationTypeNames.external);
+		data.setContentType("text/plain");
+		data.setMd5(sampleMD5);
+		data.setLocations(Arrays.asList(ld));
+		// This user does not really have permission to create this entity but we let them
+		// act as a admin
+		UserInfo userAsAdmin = new UserInfo(true, userInfo2.getId());
+		userAsAdmin.setGroups(userInfo2.getGroups());
+		String id = entityManager.createEntity(userAsAdmin, data, null);
+		data = entityManager.getEntity(userAsAdmin, id, Study.class);
+		// Convert for this user.
+		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertTrue(resutls.getSuccess());
 	}
 	
 	/**
