@@ -71,6 +71,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -91,6 +92,17 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30
 																		// secs
+	
+	/**
+	 * Used as the file contents for old locationables and attachments that were never
+	 * successfully uploaded by the original user.  See PLFM-3266.
+	 */
+	static private String NEVER_UPLOADED_CONTENTS = "Placeholder for a file that has not been uploaded.";
+	/**
+	 * Used as the file name for old locationables and attachments that were never
+	 * successfully uploaded by the original user.  See PLFM-3266.
+	 */
+	private static final String PLACEHOLDER_SUFFIX = "_placeholder.txt";
 
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 
@@ -822,9 +834,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createFileHandleFromAttachment(java.lang.String, java.util.Date, org.sagebionetworks.repo.model.attachment.AttachmentData)
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public S3FileHandle createFileHandleFromAttachment(String createdBy, Date createdOn,
-			AttachmentData attachment) {
+			AttachmentData attachment) throws NotFoundException {
 		if (attachment == null) {
 			throw new IllegalArgumentException("AttachmentData cannot be null");
 		}
@@ -857,8 +870,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			handle.setCreatedOn(createdOn);
 			handle = fileHandleDao.createFile(handle);
 			return handle;
-		} catch (Exception e) {
-			throw new IllegalArgumentException(e);
+		} catch (AmazonServiceException e) {
+			throw new NotFoundException(e);
 		}
 	}
 
@@ -883,6 +896,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
@@ -899,6 +913,41 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		meta.setContentType("application/x-gzip");
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(compressedBytes.length);
+		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
+		String key = MultipartManagerImpl.createNewKey(createdBy, fileName);
+		String bucket = StackConfiguration.getS3Bucket();
+		s3Client.putObject(bucket, key, in, meta);
+		// Create the file handle
+		S3FileHandle handle = new S3FileHandle();
+		handle.setBucketName(bucket);
+		handle.setKey(key);
+		handle.setContentMd5(md5);
+		handle.setContentType(meta.getContentType());
+		handle.setContentSize(meta.getContentLength());
+		handle.setFileName(fileName);
+		handle.setCreatedBy(createdBy);
+		handle.setCreatedOn(modifiedOn);
+		return fileHandleDao.createFile(handle, true);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public S3FileHandle createNeverUploadedPlaceHolderFileHandle(
+			String createdBy, Date modifiedOn, String name) throws IOException {
+		if(name == null){
+			name = "no-name";
+		}
+		// This will be the contents of the file.
+		byte[] bytes = NEVER_UPLOADED_CONTENTS.getBytes("UTF-8");
+		String fileName = name.replaceAll("\\.", "_")+PLACEHOLDER_SUFFIX;
+		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(bytes);
+		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
+		// Upload the file to S3
+		ObjectMetadata meta = new ObjectMetadata();
+		meta.setContentType("text/plain");
+		meta.setContentMD5(hexMd5);
+		meta.setContentLength(bytes.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
 		String key = MultipartManagerImpl.createNewKey(createdBy, fileName);
 		String bucket = StackConfiguration.getS3Bucket();

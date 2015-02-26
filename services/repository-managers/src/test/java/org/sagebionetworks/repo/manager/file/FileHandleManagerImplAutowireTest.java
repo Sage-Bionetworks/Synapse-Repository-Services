@@ -467,6 +467,34 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(h2.getId());
 		toDelete.add(h2);	
 	}
+	
+	
+	@Test (expected=NotFoundException.class)
+	public void testCreateFileHandleFromAttachmentNotFound()throws Exception{
+		// Create an attachment from the filehandle
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		AttachmentData ad = new AttachmentData();
+		ad.setContentType("text/plain");
+		ad.setMd5("md5");
+		ad.setName("some name");
+		ad.setPreviewId(null);
+		ad.setTokenId("123/fake-id/does_not_exist.txt");
+		fileUploadManager.createFileHandleFromAttachment(userId, createdOn, ad);
+	}
+	
+	@Test
+	public void testCreateNeverUploadedPlaceHolderFileHandle() throws UnsupportedEncodingException, IOException{
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		String name = "archive.zip";
+		S3FileHandle handle = fileUploadManager.createNeverUploadedPlaceHolderFileHandle(userId, createdOn, name);
+		assertNotNull(handle);
+		toDelete.add(handle);
+		assertEquals("text/plain", handle.getContentType());
+		assertEquals("archive_zip_placeholder.txt", handle.getFileName());
+		assertNotNull(handle.getContentMd5());
+	}
 
 	/**
 	 * Helper to wait for an upload deamon to finish.

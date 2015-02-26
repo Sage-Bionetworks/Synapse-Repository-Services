@@ -316,7 +316,7 @@ public class EntityTypeConverterImplAutowireTest {
 	
 	
 	@Test
-	public void testPLFM_3229() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+	public void testPLFM_3229() throws Exception {
 		Data data = new Data();
 		data.setName("DataFile");
 		data.setParentId(project.getId());
@@ -518,9 +518,65 @@ public class EntityTypeConverterImplAutowireTest {
 		userAsAdmin.setGroups(userInfo2.getGroups());
 		String id = entityManager.createEntity(userAsAdmin, data, null);
 		data = entityManager.getEntity(userAsAdmin, id, Study.class);
-		// Convert for this user.
+		// Since this user does not have permission to create entities or wikis, the type
+		// Conversion must execute the creates as an admin.
 		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
 		assertTrue(resutls.getSuccess());
+		
+		// Get the wiki page for the file
+		V2WikiPage page = wikiManager.getRootWikiPage(adminUserInfo, data.getId(), ObjectType.ENTITY);
+		assertNotNull(page);
+		assertNotNull(page.getMarkdownFileHandleId());
+		// This should have one child.
+		List<FileEntity> children = entityManager.getEntityChildren(adminUserInfo, data.getId(), FileEntity.class);
+		assertNotNull(children);
+		assertEquals(1, children.size());
+	}
+	
+	/**
+	 * See PLFM-3266. Handle the case where the locations do not exist in S3.
+	 * Locations might not exist and attachments might not exist.  This tests for both cases.
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws InvalidModelException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_3266() throws Exception {
+		Data data = new Data();
+		data.setName("DataFile");
+		data.setDescription("Should end up in a wiki");
+		data.setParentId(project.getId());
+		LocationData ld = new LocationData();
+
+		// location that does not exist.
+		String pathDoesNotExist = "/"+adminUserInfo.getId()+"/"+UUID.randomUUID().toString()+"/archive.zip";
+		ld.setPath(pathDoesNotExist);
+		ld.setType(LocationTypeNames.awss3);
+		data.setContentType("text/plain");
+		data.setMd5(sampleMD5);
+		data.setLocations(Arrays.asList(ld));
+		
+		// Add an attachment that does not exist
+		String pathDoesNotExistTwo = adminUserInfo.getId()+"/"+UUID.randomUUID().toString()+"/archive.zip";
+		AttachmentData ad = new AttachmentData();
+		ad.setContentType("text/plain");
+		ad.setMd5(sampleMD5);
+		ad.setTokenId(pathDoesNotExistTwo);
+		data.setAttachments(new LinkedList<AttachmentData>());
+		data.getAttachments().add(ad);
+		String id = entityManager.createEntity(adminUserInfo, data, null);
+		data = entityManager.getEntity(adminUserInfo, id, Data.class);
+		// Convert should handle the case where the files are missing.
+		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, data.getId());
+		assertTrue(resutls.getSuccess());
+		// should have a wiki
+		V2WikiPage page = wikiManager.getRootWikiPage(adminUserInfo, data.getId(), ObjectType.ENTITY);
+		assertNotNull(page);
+		assertNotNull(page.getMarkdownFileHandleId());
+		assertNotNull(page.getAttachmentFileHandleIds());
+		// There should be one attachment.
+		assertEquals(1, page.getAttachmentFileHandleIds().size());
 	}
 	
 	/**

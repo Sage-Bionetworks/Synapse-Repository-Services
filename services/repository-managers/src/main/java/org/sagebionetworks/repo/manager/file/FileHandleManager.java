@@ -250,8 +250,9 @@ public interface FileHandleManager {
 	 * @param createdBy
 	 * @param attachment
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	S3FileHandle createFileHandleFromAttachment(String createdBy, Date createdOn, AttachmentData attachment);
+	S3FileHandle createFileHandleFromAttachment(String createdBy, Date createdOn, AttachmentData attachment) throws NotFoundException;
 
 	/**
 	 * Create a file handle with the given contents gzipped.
@@ -264,4 +265,16 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException;
+
+	/**
+	 * Create a file handle that is a place holder for a file that was never uploaded.
+	 * @param createdBy
+	 * @param modifiedOn
+	 * @param name 
+	 * @return
+	 * @throws UnsupportedEncodingException 
+	 * @throws IOException 
+	 */
+	S3FileHandle createNeverUploadedPlaceHolderFileHandle(String createdBy,
+			Date modifiedOn, String name) throws UnsupportedEncodingException, IOException;
 }

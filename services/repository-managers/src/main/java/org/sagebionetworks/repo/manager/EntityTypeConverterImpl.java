@@ -46,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
@@ -106,13 +107,14 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 * @param authorizationManager
 	 */
 	public EntityTypeConverterImpl(NodeDAO nodeDao,
-			AuthorizationManager authorizationManager, EntityManager entityManager,AmazonS3Client s3Client, LocationHelper locationHelper) {
+			AuthorizationManager authorizationManager, EntityManager entityManager,AmazonS3Client s3Client, LocationHelper locationHelper, FileHandleDao fileHandleDao) {
 		super();
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authorizationManager;
 		this.entityManager = entityManager;
 		this.s3Client = s3Client;
 		this.locationHelper = locationHelper;
+		this.fileHandleDao = fileHandleDao;
 	}
 
 
@@ -175,7 +177,13 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			if(locationable.getAttachments() != null){
 				// create a file handle for each attachment.
 				for(AttachmentData ad: locationable.getAttachments()){
-					S3FileHandle attachHandle = fileHandleManager.createFileHandleFromAttachment(locationable.getCreatedBy(), locationable.getModifiedOn(), ad);
+					S3FileHandle attachHandle = null;
+					try {
+						attachHandle = fileHandleManager.createFileHandleFromAttachment(locationable.getCreatedBy(), locationable.getModifiedOn(), ad);
+					} catch (NotFoundException e) {
+						// If the original attachment does not exist create a placeholder.
+						attachHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(locationable.getCreatedBy(), locationable.getModifiedOn(), ad.getName());
+					}
 					if(page.getAttachmentFileHandleIds() == null){
 						page.setAttachmentFileHandleIds(new LinkedList<String>());
 					}
@@ -311,11 +319,13 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException,
-			NotFoundException {
+			NotFoundException, UnsupportedEncodingException, IOException {
 		// We need to create file handle for each version.
 		List<VersionData> pairs = new LinkedList<VersionData>();
 		List<Long> versions = nodeDao.getVersionNumbers(entity.getId());
@@ -333,19 +343,11 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 				FileHandle fileHandle = null;
 				if(LocationTypeNames.awss3.equals(data.getType())){
 					// S3 file handle.
-					S3FileHandle s3Handle = createFileHandleFromPath(data.getPath());
-					// Override contentType and md5 when it is null.
-					if(location.getContentType() != null){
-						s3Handle.setContentType(location.getContentType());
+					try {
+						fileHandle = createFileHandleFromPath(location, data);
+					} catch (NotFoundException e) {
+						fileHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(location.getModifiedBy(), location.getModifiedOn(), location.getName());
 					}
-					if(location.getMd5() != null){
-						s3Handle.setContentMd5(location.getMd5());
-					}
-					if(s3Handle.getFileName() == null){
-						s3Handle.setFileName(location.getName());
-					}
-					setCreatedOnAndBy(location, s3Handle);
-					fileHandle = fileHandleDao.createFile(s3Handle);
 				}else{
 					// external file handle
 					ExternalFileHandle efh = new ExternalFileHandle();
@@ -379,8 +381,8 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	}
 
 	@Override
-	public S3FileHandle createFileHandleFromPath(String path) {
-		String key = locationHelper.getS3KeyFromS3Url(path);
+	public S3FileHandle createFileHandleFromPath(Locationable location, LocationData data) throws NotFoundException {
+		String key = locationHelper.getS3KeyFromS3Url(data.getPath());
 		// The keys do not start with "/"
 		if(key.startsWith("/")){
 			key = key.substring(1);
@@ -395,10 +397,22 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			handle.setContentType(meta.getContentType());
 			handle.setContentMd5(meta.getContentMD5());
 			handle.setContentSize(meta.getContentLength());
-			handle.setFileName(extractFileNameFromKey(path));
-			return handle;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Cannot find in S3. Key: "+key+" path: "+path);
+			handle.setFileName(extractFileNameFromKey(data.getPath()));
+			
+			// Override contentType and md5 when it is null.
+			if(location.getContentType() != null){
+				handle.setContentType(location.getContentType());
+			}
+			if(location.getMd5() != null){
+				handle.setContentMd5(location.getMd5());
+			}
+			if(handle.getFileName() == null){
+				handle.setFileName(location.getName());
+			}
+			setCreatedOnAndBy(location, handle);
+			return fileHandleDao.createFile(handle);
+		} catch (AmazonServiceException e) {
+			throw new NotFoundException("Cannot find in S3. Key: "+key+" path: "+data.getPath());
 		}
 	}
 	
