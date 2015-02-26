@@ -1,6 +1,7 @@
 {
 	"title": "ModificationMessage",
 	"description": "JSON schema for a modification message",
+	"type": "interface",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.message.Message"

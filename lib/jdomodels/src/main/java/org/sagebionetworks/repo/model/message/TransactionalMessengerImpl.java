@@ -122,7 +122,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 
 	@Override
 	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
-		ModificationMessage message = new ModificationMessage();
+		DefaultModificationMessage message = new DefaultModificationMessage();
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
 		sendModificationMessageAfterCommit(message);

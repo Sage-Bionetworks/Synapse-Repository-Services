@@ -1,11 +1,19 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.schema.adapter.JSONEntity;
 
+import com.google.common.base.Supplier;
+
 public class PaginatedResultsUtil {
+
+	public static interface Paginator<T extends JSONEntity> {
+		PaginatedResults<T> getBatch(long limit, long offset);
+	}
+
 	/**
 	 * Compute the sub-list indices corresponding to the given limit and offset
 	 * @param listLength
@@ -62,5 +70,45 @@ public class PaginatedResultsUtil {
 
 	public static <T extends JSONEntity> PaginatedResults<T> createEmptyPaginatedResults() {
 		return new PaginatedResults<T>(Collections.<T> emptyList(), 0);
+	}
+	
+	public static <T extends JSONEntity> Iterable<T> getPaginatedResultsIterable(final Paginator<T> paginator, final int batchSize) {
+		return new Iterable<T>() {
+
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					private PaginatedResults<T> nextResults = paginator.getBatch(batchSize, 0L);
+					private int nextResultsIndex = 0;
+					private int currentOffset;
+
+					@Override
+					public boolean hasNext() {
+						return nextResults != null && nextResultsIndex < nextResults.getResults().size();
+					}
+
+					@Override
+					public T next() {
+						T nextValue = nextResults.getResults().get(nextResultsIndex);
+						nextResultsIndex++;
+						if (nextResultsIndex >= nextResults.getResults().size()) {
+							// we must fetch the next batch if any
+							currentOffset += nextResults.getResults().size();
+							if (currentOffset >= nextResults.getTotalNumberOfResults()) {
+								nextResults = null;
+							} else {
+								paginator.getBatch(batchSize, currentOffset);
+							}
+						}
+						return nextValue;
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
 	}
 }
