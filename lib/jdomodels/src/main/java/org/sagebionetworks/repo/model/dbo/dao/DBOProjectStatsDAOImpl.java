@@ -47,8 +47,10 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 		DBOProjectStat dbo;
 		try {
 			dbo = jdbcTemplate.queryForObject(SQL_GET_STATS, rowMapper, projectStat.getProjectId(), projectStat.getUserId());
-			dbo.setLastAccessed(projectStat.getLastAccessed());
-			basicDAO.update(dbo);
+			if (projectStat.getLastAccessed().after(dbo.getLastAccessed())) {
+				dbo.setLastAccessed(projectStat.getLastAccessed());
+				basicDAO.update(dbo);
+			}
 		} catch (EmptyResultDataAccessException e) {
 			dbo = new DBOProjectStat();
 			dbo.setId(idGenerator.generateNewId());

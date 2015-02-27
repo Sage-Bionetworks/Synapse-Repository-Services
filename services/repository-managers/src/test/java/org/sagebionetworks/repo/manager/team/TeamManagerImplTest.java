@@ -54,6 +54,10 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.ModificationMessage;
+import org.sagebionetworks.repo.model.message.TeamModificationMessage;
+import org.sagebionetworks.repo.model.message.TeamModificationType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -77,6 +81,7 @@ public class TeamManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private PrincipalManager mockPrincipalManager;
+	private TransactionalMessenger mockTransactionalMessenger;
 	
 	private UserInfo userInfo;
 	private UserInfo adminInfo;
@@ -99,6 +104,7 @@ public class TeamManagerImplTest {
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
+		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
 				mockTeamDAO,
@@ -112,7 +118,8 @@ public class TeamManagerImplTest {
 				mockUserManager,
 				mockAccessRequirementDAO,
 				mockPrincipalAliasDAO,
-				mockPrincipalManager);
+				mockPrincipalManager,
+				mockTransactionalMessenger);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		adminInfo = createUserInfo(true, "-1");
 	}
@@ -555,6 +562,12 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
+		TeamModificationMessage expectedMessage = new TeamModificationMessage();
+		expectedMessage.setObjectId(TEAM_ID);
+		expectedMessage.setObjectType(ObjectType.TEAM);
+		expectedMessage.setMemberId(987L);
+		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_ADDED);
+		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
 	}
 	
 	@Test
@@ -613,6 +626,12 @@ public class TeamManagerImplTest {
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
 		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
+		TeamModificationMessage expectedMessage = new TeamModificationMessage();
+		expectedMessage.setObjectId(TEAM_ID);
+		expectedMessage.setObjectType(ObjectType.TEAM);
+		expectedMessage.setMemberId(987L);
+		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_REMOVED);
+		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
 		assertEquals(1, acl.getResourceAccess().size());
 	}
 	

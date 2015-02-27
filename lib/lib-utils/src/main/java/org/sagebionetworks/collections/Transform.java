@@ -5,10 +5,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class Transform {
 	public static <F, T> List<T> toList(Iterable<F> iterable, Function<F, T> transformer) {
@@ -18,6 +20,20 @@ public class Transform {
 			result = Lists.newArrayListWithCapacity(size);
 		} else {
 			result = Lists.newLinkedList();
+		}
+		for (F o : iterable) {
+			result.add(transformer.apply(o));
+		}
+		return result;
+	}
+
+	public static <F, T> Set<T> toSet(Iterable<F> iterable, Function<F, T> transformer) {
+		Set<T> result;
+		if (iterable instanceof Collection<?>) {
+			int size = ((Collection<?>) iterable).size();
+			result = Sets.newHashSetWithExpectedSize(size);
+		} else {
+			result = Sets.newHashSet();
 		}
 		for (F o : iterable) {
 			result.add(transformer.apply(o));

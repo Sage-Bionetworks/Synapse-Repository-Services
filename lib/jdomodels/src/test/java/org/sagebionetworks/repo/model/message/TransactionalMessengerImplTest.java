@@ -102,13 +102,13 @@ public class TransactionalMessengerImplTest {
 		assertNotSame(fourth, two);
 		assertNotSame(two, fourth);
 
-		ModificationMessage modificationMessage = new ModificationMessage();
+		ModificationMessage modificationMessage = new DefaultModificationMessage();
 		modificationMessage.setObjectId("123");
 		modificationMessage.setObjectType(ObjectType.ACTIVITY);
 		MessageKey fifth = new MessageKey(modificationMessage);
 		assertNotSame(fourth, fifth);
 
-		modificationMessage = new ModificationMessage();
+		modificationMessage = new DefaultModificationMessage();
 		modificationMessage.setObjectId("123");
 		modificationMessage.setObjectType(ObjectType.ACTIVITY);
 		MessageKey sixth = new MessageKey(modificationMessage);
@@ -276,7 +276,7 @@ public class TransactionalMessengerImplTest {
 		assertEquals(1, stubProxy.getSynchronizations().size());
 		// Simulate the before commit
 		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		ModificationMessage message = new ModificationMessage();
+		ModificationMessage message = new DefaultModificationMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setTimestamp(testClock.now());
