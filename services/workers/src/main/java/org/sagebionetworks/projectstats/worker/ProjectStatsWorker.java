@@ -106,24 +106,12 @@ public class ProjectStatsWorker implements Worker {
 
 			if (modificationMessage instanceof TeamModificationMessage) {
 				final TeamModificationMessage teamModificationMessage = (TeamModificationMessage) modificationMessage;
-				if (teamModificationMessage.getObjectType() == ObjectType.PRINCIPAL) {
+				if (teamModificationMessage.getObjectType() == ObjectType.TEAM) {
 					// for a team modification message, we must update all projects for the member, that the team has
 					// access to
 					Team team = teamDAO.get(teamModificationMessage.getObjectId());
 
 					updateProjectStats(team, teamModificationMessage.getTimestamp(), teamModificationMessage.getMemberId());
-				} else if (teamModificationMessage.getObjectType() == ObjectType.TEAM) {
-					// for a team modification message, we must update all projects for the member, that the team has
-					// access to
-					final Team team = teamDAO.get(teamModificationMessage.getObjectId());
-
-					applyToAllTeamMembers(team, new Function<long[], Void>() {
-						@Override
-						public Void apply(long[] members) {
-							updateProjectStats(team, teamModificationMessage.getTimestamp(), members);
-							return null;
-						}
-					});
 				} else {
 					throw new IllegalArgumentException("cannot handle team modification type " + teamModificationMessage.getObjectType());
 				}

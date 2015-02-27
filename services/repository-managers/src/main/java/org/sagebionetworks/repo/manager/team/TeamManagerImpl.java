@@ -94,7 +94,8 @@ public class TeamManagerImpl implements TeamManager {
 			UserManager userManager,
 			AccessRequirementDAO accessRequirementDAO,
 			PrincipalAliasDAO principalAliasDAO,
-			PrincipalManager principalManager
+			PrincipalManager principalManager,
+			TransactionalMessenger transactionalMessenger
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -110,8 +111,9 @@ public class TeamManagerImpl implements TeamManager {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.principalManager = principalManager;
+		this.transactionalMessenger = transactionalMessenger;
 	}
-	
+
 	public static void validateForCreate(Team team) {
 		Validate.notSpecifiable(team.getCreatedBy(), "createdBy");
 		Validate.notSpecifiable(team.getCreatedOn(), "createdOn");
@@ -475,7 +477,7 @@ public class TeamManagerImpl implements TeamManager {
 
 			TeamModificationMessage message = new TeamModificationMessage();
 			message.setObjectId(teamId);
-			message.setObjectType(ObjectType.PRINCIPAL);
+			message.setObjectType(ObjectType.TEAM);
 			message.setTeamModificationType(TeamModificationType.MEMBER_ADDED);
 			message.setMemberId(principalUserInfo.getId());
 			transactionalMessenger.sendModificationMessageAfterCommit(message);
@@ -525,7 +527,7 @@ public class TeamManagerImpl implements TeamManager {
 
 			TeamModificationMessage message = new TeamModificationMessage();
 			message.setObjectId(teamId);
-			message.setObjectType(ObjectType.PRINCIPAL);
+			message.setObjectType(ObjectType.TEAM);
 			message.setTeamModificationType(TeamModificationType.MEMBER_REMOVED);
 			message.setMemberId(Long.parseLong(principalId));
 			transactionalMessenger.sendModificationMessageAfterCommit(message);
