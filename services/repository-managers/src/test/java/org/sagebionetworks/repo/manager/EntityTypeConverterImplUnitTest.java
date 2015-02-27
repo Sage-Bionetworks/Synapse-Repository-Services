@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Data;
@@ -23,6 +25,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -30,6 +34,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -53,6 +58,7 @@ public class EntityTypeConverterImplUnitTest {
 	AmazonS3Client mockS3Client;
 	LocationHelper mockLocationHelper;
 	EntityTypeConverterImpl typeConverter;
+	FileHandleDao mockFileHandleDao;
 	Entity entity;
 	UserInfo nonAdmin;
 	UserInfo admin;
@@ -64,13 +70,21 @@ public class EntityTypeConverterImplUnitTest {
 		mockEntityManager = Mockito.mock(EntityManager.class);
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
 		mockLocationHelper = Mockito.mock(LocationHelper.class);
-		typeConverter = new EntityTypeConverterImpl(mockNodeDao, mockAuthorizationManager, mockEntityManager, mockS3Client, mockLocationHelper);
+		mockFileHandleDao = Mockito.mock(FileHandleDao.class);
+		typeConverter = new EntityTypeConverterImpl(mockNodeDao, mockAuthorizationManager, mockEntityManager, mockS3Client, mockLocationHelper, mockFileHandleDao);
 		entity = new Study();
 		entity.setId("syn123");
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);
 		when(mockEntityManager.getEntity(nonAdmin, entity.getId())).thenReturn(entity);
 		when(mockAuthorizationManager.canAccess(nonAdmin, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(new AuthorizationStatus(true, null));
+		when(mockFileHandleDao.createFile(any(S3FileHandle.class))).then(new Answer<S3FileHandle>() {
+			@Override
+			public S3FileHandle answer(InvocationOnMock invocation)
+					throws Throwable {
+				return (S3FileHandle) invocation.getArguments()[0];
+			}
+		});
 	}
 	
 	@Test
@@ -143,11 +157,13 @@ public class EntityTypeConverterImplUnitTest {
 	public void testCreateFileHandleFromPathNotFound(){
 		when(mockS3Client.getObjectMetadata(anyString(), anyString())).thenThrow(new AmazonServiceException("Not found"));
 		String path = "/some/path/fileName.txt";
+		LocationData data = new LocationData();
+		data.setPath(path);
 		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(path);
 		try {
-			typeConverter.createFileHandleFromPath(path);
+			typeConverter.createFileHandleFromPath(new Study(), data);
 			fail("Should have failed");
-		} catch (IllegalArgumentException e) {
+		} catch (NotFoundException e) {
 			assertTrue(e.getMessage().contains(path));
 		}
 	}
@@ -172,9 +188,10 @@ public class EntityTypeConverterImplUnitTest {
 	
 	/**
 	 * See: PLFM-3228
+	 * @throws NotFoundException 
 	 */
 	@Test
-	public void testCreateFileHandleFromRelativePath(){
+	public void testCreateFileHandleFromRelativePath() throws Exception{
 		String key = "some/path/fileName.txt";
 		// Add a slash at the front for the path.
 		String path = "/"+key;
@@ -188,8 +205,10 @@ public class EntityTypeConverterImplUnitTest {
 		// cannot be found with the slash.
 		when(mockS3Client.getObjectMetadata(StackConfiguration.getS3Bucket(), path)).thenThrow(new AmazonServiceException("Not found"));
 		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(path);
+		LocationData data = new LocationData();
+		data.setPath(path);
 		// The call
-		S3FileHandle handle = typeConverter.createFileHandleFromPath(path);
+		S3FileHandle handle = typeConverter.createFileHandleFromPath(new Study(), data);
 		assertNotNull(handle);
 		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
 		assertEquals(key, handle.getKey());
@@ -201,9 +220,10 @@ public class EntityTypeConverterImplUnitTest {
 	
 	/**
 	 * See: PLFM-3228
+	 * @throws NotFoundException 
 	 */
 	@Test
-	public void testCreateFileHandleFromFullPath(){
+	public void testCreateFileHandleFromFullPath() throws Exception{
 		String key = "some/path/fileName.txt";
 		String path = "https://s3.amazonaws.com/proddata.sagebase.org/"+key+"?Expires=AWS_SIGNATURE";
 		ObjectMetadata metadata = new ObjectMetadata();
@@ -213,8 +233,10 @@ public class EntityTypeConverterImplUnitTest {
 		// cannot be found with the slash.
 		when(mockS3Client.getObjectMetadata(StackConfiguration.getS3Bucket(), path)).thenThrow(new AmazonServiceException("Not found"));
 		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(key);
+		LocationData loc = new LocationData();
+		loc.setPath(path);
 		// The call
-		S3FileHandle handle = typeConverter.createFileHandleFromPath(path);
+		S3FileHandle handle = typeConverter.createFileHandleFromPath(new Study(), loc);
 		assertNotNull(handle);
 	}
 

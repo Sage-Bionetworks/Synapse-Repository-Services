@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -37,15 +40,18 @@ public interface EntityTypeConverter {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
 	 */
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException, NotFoundException;
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException, NotFoundException, UnsupportedEncodingException, IOException;
 	
 	/**
 	 * Attempt to create a FileHandle given a locationable path.
 	 * @param path
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public S3FileHandle createFileHandleFromPath(String path);
+	public S3FileHandle createFileHandleFromPath(Locationable location, LocationData data) throws NotFoundException;
 	
 	
 }
