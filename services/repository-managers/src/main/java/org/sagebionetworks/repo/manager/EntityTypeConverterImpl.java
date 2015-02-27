@@ -179,7 +179,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 				for(AttachmentData ad: locationable.getAttachments()){
 					S3FileHandle attachHandle = null;
 					try {
-						attachHandle = fileHandleManager.createFileHandleFromAttachment(locationable.getCreatedBy(), locationable.getModifiedOn(), ad);
+						attachHandle = fileHandleManager.createFileHandleFromAttachment(locationable.getId(), locationable.getCreatedBy(), locationable.getModifiedOn(), ad);
 					} catch (NotFoundException e) {
 						// If the original attachment does not exist create a placeholder.
 						attachHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(locationable.getCreatedBy(), locationable.getModifiedOn(), ad.getName());

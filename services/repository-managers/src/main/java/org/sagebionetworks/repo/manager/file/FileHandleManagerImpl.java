@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -836,7 +838,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public S3FileHandle createFileHandleFromAttachment(String createdBy, Date createdOn,
+	public S3FileHandle createFileHandleFromAttachment(String entityId, String createdBy, Date createdOn,
 			AttachmentData attachment) throws NotFoundException {
 		if (attachment == null) {
 			throw new IllegalArgumentException("AttachmentData cannot be null");
@@ -845,7 +847,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new IllegalArgumentException("AttachmentData.tokenId cannot be null");
 		}
 		// The keys do not start with "/"
-		String key = attachment.getTokenId();
+		String key = S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, attachment.getTokenId());
 		String bucket = StackConfiguration.getS3Bucket();
 		// Can we find this object with the key?
 		try {
@@ -963,5 +965,40 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
 		return fileHandleDao.createFile(handle, true);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createAttachmentInS3(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.Date)
+	 */
+	@Override
+	public AttachmentData createAttachmentInS3(String fileContents,
+			String fileName, String userId, String entityId, Date createdOn)
+			throws UnsupportedEncodingException, IOException {
+		String tokenId = S3TokenManagerImpl.createTokenId(Long.parseLong(userId), fileName);
+		String key = S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, tokenId);
+		byte[] bytes = fileContents.getBytes("UTF-8");
+		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(bytes);
+		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
+		// Upload the file to S3
+
+		ObjectMetadata meta = new ObjectMetadata();
+		meta.setContentType("text/plain");
+		meta.setContentMD5(hexMd5);
+		meta.setContentLength(bytes.length);
+		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
+		String bucket = StackConfiguration.getS3Bucket();
+		s3Client.putObject(bucket, key, in, meta);
+		// Create the file handle
+		// Create an attachment from the filehandle
+		AttachmentData ad = new AttachmentData();
+		ad.setContentType(meta.getContentType());
+		ad.setMd5(md5);
+		ad.setName(fileName);
+		ad.setPreviewId(tokenId);
+		ad.setTokenId(tokenId);
+		ad.setPreviewState(PreviewState.PREVIEW_EXISTS);
+		return ad;
 	}
 }

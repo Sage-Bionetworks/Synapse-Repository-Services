@@ -41,8 +41,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -73,6 +73,8 @@ public class EntityTypeConverterImplAutowireTest {
 	private UserManager userManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
+	@Autowired
+	private FileHandleDao fileHandleDao;
 	@Autowired
 	private EntityTypeConverter entityTypeConverter;
 	@Autowired
@@ -393,7 +395,8 @@ public class EntityTypeConverterImplAutowireTest {
 		String userId = adminUserInfo.getId().toString();
 		Date createdOn = new Date(System.currentTimeMillis());
 		// Create an attachment for the wiki
-		AttachmentData ad = createAttachment("attachment data",userId, createdOn);
+		String fileName = "Sample.txt";
+		AttachmentData ad = fileHandleManager.createAttachmentInS3("attachment data", fileName, userId, data.getId(), createdOn);
 		assertNotNull(ad);
 		data.setAttachments(new LinkedList<AttachmentData>());
 		data.getAttachments().add(ad);
@@ -417,6 +420,9 @@ public class EntityTypeConverterImplAutowireTest {
 		assertNotNull(page.getAttachmentFileHandleIds());
 		// There should be one attachment.
 		assertEquals(1, page.getAttachmentFileHandleIds().size());
+		S3FileHandle attachmentHandle = (S3FileHandle) fileHandleDao.get(page.getAttachmentFileHandleIds().get(0));
+		assertNotNull(attachmentHandle);
+		assertEquals(fileName, attachmentHandle.getFileName());
 	}
 	
 	/**
@@ -458,7 +464,7 @@ public class EntityTypeConverterImplAutowireTest {
 		String userId = adminUserInfo.getId().toString();
 		Date createdOn = new Date(System.currentTimeMillis());
 		// Create an attachment for the wiki
-		AttachmentData ad = createAttachment("attachment data",userId, createdOn);
+		AttachmentData ad = fileHandleManager.createAttachmentInS3("attachment data", "Sample.txt", userId, data.getId(), createdOn);
 		assertNotNull(ad);
 		data.setAttachments(new LinkedList<AttachmentData>());
 		data.getAttachments().add(ad);
@@ -670,28 +676,6 @@ public class EntityTypeConverterImplAutowireTest {
 		data.setVersionComment("v2 Comments");
 		entityManager.updateEntity(adminUserInfo, data, true, null);
 		return entityManager.getEntity(adminUserInfo, id, Study.class);
-	}
-	
-	/**
-	 * Create an attachment data back by a file in S3.
-	 * @param fileContents
-	 * @param userId
-	 * @param createdOn
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws IOException
-	 */
-	private AttachmentData createAttachment(String fileContents, String userId, Date createdOn) throws UnsupportedEncodingException, IOException{
-		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(userId, createdOn, fileContents);
-		// Create an attachment from the filehandle
-		AttachmentData ad = new AttachmentData();
-		ad.setContentType(handle.getContentType());
-		ad.setMd5(handle.getContentMd5());
-		ad.setName(handle.getFileName());
-		ad.setPreviewId(handle.getKey());
-		ad.setTokenId(handle.getKey());
-		ad.setPreviewState(PreviewState.PREVIEW_EXISTS);
-		return ad;
 	}
 	
 	/**
