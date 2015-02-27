@@ -189,6 +189,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				throw new IllegalArgumentException("Unexpected access type "+accessType);
 			}
 		} else {
+			if (accessType==null) {
+				if (subjectId.getType()==RestrictableObjectType.EVALUATION) {
+					accessType = ACCESS_TYPE.SUBMIT;
+				} else {
+					throw new IllegalArgumentException("accessType is required.");	
+				}
+			}
 			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
 					userInfo, subjectId, accessRequirementDAO, Collections.singletonList(accessType));
 		}

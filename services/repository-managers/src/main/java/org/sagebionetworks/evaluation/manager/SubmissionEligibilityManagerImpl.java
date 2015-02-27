@@ -123,8 +123,8 @@ public class SubmissionEligibilityManagerImpl implements
 		int submissionCount = (int)submissionDAO.countSubmissionsByTeam(Long.parseLong(evaluation.getId()), 
 				Long.parseLong(teamId), roundInterval.getFirst(), 
 				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		int submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
-		teamEligibility.setIsQuotaFilled(submissionCount>=submissionLimit);
+		Integer submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
+		teamEligibility.setIsQuotaFilled(submissionLimit!=null && submissionCount>=submissionLimit);
 		isTeamEligible &= !teamEligibility.getIsQuotaFilled();
 		
 		// now put it all together to say whether the Team is eligible to submit to the Evaluation
@@ -167,7 +167,7 @@ public class SubmissionEligibilityManagerImpl implements
 				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
 		for (Long principalId : subsByMembers.keySet()) {
 			MemberSubmissionEligibility se = membersEligibilityMap.get(principalId);
-			se.setIsQuotaFilled(subsByMembers.get(principalId)>=submissionLimit);
+			se.setIsQuotaFilled(submissionLimit!=null && subsByMembers.get(principalId)>=submissionLimit);
 		}
  		
 		// now see if members are ineligible because they've submitted elsewhere

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
 import java.util.HashSet;
 
 import org.junit.Before;
@@ -26,4 +25,10 @@ public class AuthorizationUtilsTest {
 		assertTrue(AuthorizationUtils.isCertifiedUser(userInfo));
 	}
 
+	@Test
+	public void testIsCertifiedUserAdmin() {
+		UserInfo userInfo = new UserInfo(true);
+		userInfo.setGroups(new HashSet<Long>());
+		assertTrue(AuthorizationUtils.isCertifiedUser(userInfo));
+	}
 }
