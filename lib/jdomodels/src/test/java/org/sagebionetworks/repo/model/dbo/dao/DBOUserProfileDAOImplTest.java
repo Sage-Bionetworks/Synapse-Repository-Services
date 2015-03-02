@@ -5,7 +5,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,6 +46,8 @@ public class DBOUserProfileDAOImplTest {
 	
 	private UserGroup individualGroup = null;
 	
+	private List<UserGroup> individualGroupsToDelete = null;
+	
 	private List<String> toDelete;
 	
 	@Before
@@ -54,14 +57,22 @@ public class DBOUserProfileDAOImplTest {
 		individualGroup.setCreationDate(new Date());
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 		toDelete = new LinkedList<String>();
+		individualGroupsToDelete = new ArrayList<UserGroup>();
+		for (int i=0; i<2; i++) {
+			UserGroup individualGroup = new UserGroup();
+			individualGroup.setIsIndividual(true);
+			individualGroup.setCreationDate(new Date());
+			individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+			individualGroupsToDelete.add(individualGroup);
+		}
 	}
 		
 	
 	@After
 	public void tearDown() throws Exception{
-		if (individualGroup != null) {
+		for (UserGroup ug : individualGroupsToDelete) {
 			// this will delete the user profile too
-			userGroupDAO.delete(individualGroup.getId());
+			userGroupDAO.delete(ug.getId());
 		}
 		if(toDelete != null){
 			for(String id: toDelete){
@@ -70,34 +81,49 @@ public class DBOUserProfileDAOImplTest {
 				} catch (Exception e) {}
 			}
 		}
+		individualGroupsToDelete.clear();
 	}
 	
 	@Test
 	public void testCRUD() throws Exception{
-		// Create a new type
-		UserProfile userProfile = new UserProfile();
-		userProfile.setOwnerId(individualGroup.getId());
-		userProfile.setFirstName("foo");
-		userProfile.setLastName("bar");
-		userProfile.setRStudioUrl("http://rstudio.com");
-		userProfile.setEtag(NodeConstants.ZERO_E_TAG);
-		
+		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
 		long initialCount = userProfileDAO.getCount();
 		// Create it
-		String id = userProfileDAO.create(userProfile);
-		assertNotNull(id);
-		toDelete.add(id);
+		for (UserGroup ug : individualGroupsToDelete) {
+			// Create a new user profile
+			UserProfile userProfile = new UserProfile();
+			userProfile.setOwnerId(ug.getId());
+			userProfile.setFirstName("foo");
+			userProfile.setLastName("bar");
+			userProfile.setRStudioUrl("http://rstudio.com");
+			userProfile.setEtag(NodeConstants.ZERO_E_TAG);
+			userProfiles.add(userProfile);
+			// Create it
+			String id = userProfileDAO.create(userProfile);
+			assertNotNull(id);
+			userProfile.setOwnerId(id);
+		}
 		
-		assertEquals(1+initialCount, userProfileDAO.getCount());
+		assertEquals(userProfiles.size()+initialCount, userProfileDAO.getCount());
 		
 		// Fetch it
+		UserProfile userProfile = userProfiles.get(0);
+		String id = userProfile.getOwnerId();
 		UserProfile clone = userProfileDAO.get(id);
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
 		
-		List<UserProfile> listed = userProfileDAO.list(Collections.singleton(Long.parseLong(id)));
-		assertEquals(1, listed.size());
-		assertEquals(userProfile, listed.get(0));
+		Long idLong1 = Long.parseLong(userProfiles.get(1).getOwnerId());
+		Long idLong0 = Long.parseLong(userProfiles.get(0).getOwnerId());
+		List<UserProfile> listed = userProfileDAO.list(Arrays.asList(new Long[]{idLong1, idLong0}));
+		assertEquals(2, listed.size());
+		assertEquals(Arrays.asList(new UserProfile[]{userProfiles.get(1), userProfiles.get(0)}), listed);
+		try {
+			userProfileDAO.list(Arrays.asList(new Long[]{idLong1, 87765443L+idLong0}));
+			fail("NotFoundException expected");
+		} catch (NotFoundException e) {
+			//as expected
+		}
 
 		// Update it
 		UserProfile updatedProfile = userProfileDAO.update(clone);
@@ -113,7 +139,9 @@ public class DBOUserProfileDAOImplTest {
 		}
 
 		// Delete it
-		userProfileDAO.delete(id);
+		for (UserProfile up: userProfiles) {
+			userProfileDAO.delete(up.getOwnerId());
+		}
 
 		assertEquals(initialCount, userProfileDAO.getCount());
 	}

@@ -36,6 +36,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -420,7 +421,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(handle);
 		toDelete.add(handle);
 		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
-		assertEquals("compressed.txt", handle.getFileName());
+		assertEquals("compressed.txt.gz", handle.getFileName());
 		assertNotNull(handle.getContentMd5());
 		assertTrue(handle.getContentSize() > 1);
 		assertNotNull(handle.getId());
@@ -444,28 +445,51 @@ public class FileHandleManagerImplAutowireTest {
 		String fileContents = "This will be compressed";
 		String userId = ""+userInfo.getId();
 		Date createdOn = new Date(System.currentTimeMillis());
-		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
-		assertNotNull(handle);
-		toDelete.add(handle);
+		String fileName = "sample.txt";
+		String entityId = "syn1234";
 		// Create an attachment from the filehandle
-		AttachmentData ad = new AttachmentData();
-		ad.setContentType(handle.getContentType());
-		ad.setMd5(handle.getContentMd5());
-		ad.setName(handle.getFileName());
-		ad.setPreviewId(null);
-		ad.setTokenId(handle.getKey());
-		S3FileHandle h2 = fileUploadManager.createFileHandleFromAttachment(userId, createdOn, ad);
+		AttachmentData ad = fileUploadManager.createAttachmentInS3(fileContents, fileName, userId, entityId, createdOn);
+		S3FileHandle h2 = fileUploadManager.createFileHandleFromAttachment(entityId, userId, createdOn, ad);
 		assertNotNull(h2);
-		assertEquals(handle.getBucketName(), h2.getBucketName());
-		assertEquals(handle.getKey(), h2.getKey());
-		assertEquals(handle.getContentMd5(), h2.getContentMd5());
-		assertEquals(handle.getContentSize(), h2.getContentSize());
-		assertEquals(handle.getContentType(), h2.getContentType());
-		assertEquals(handle.getCreatedBy(), h2.getCreatedBy());
-		assertEquals(handle.getCreatedOn(), h2.getCreatedOn());
-		assertEquals(handle.getFileName(), h2.getFileName());
+		assertEquals(StackConfiguration.getS3Bucket(), h2.getBucketName());
+		assertEquals(S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, ad.getTokenId()), h2.getKey());
+		assertNotNull(h2.getContentMd5());
+		assertEquals(new Long(fileContents.getBytes("UTF-8").length), h2.getContentSize());
+		assertEquals("text/plain", h2.getContentType());
+		assertEquals(userId, h2.getCreatedBy());
+		assertNotNull(h2.getCreatedOn());
+		assertEquals(fileName, h2.getFileName());
 		assertNotNull(h2.getId());
 		toDelete.add(h2);	
+	}
+	
+	
+	@Test (expected=NotFoundException.class)
+	public void testCreateFileHandleFromAttachmentNotFound()throws Exception{
+		// Create an attachment from the filehandle
+		String userId = ""+userInfo.getId();
+		String entityId = "syn1234";
+		Date createdOn = new Date(System.currentTimeMillis());
+		AttachmentData ad = new AttachmentData();
+		ad.setContentType("text/plain");
+		ad.setMd5("md5");
+		ad.setName("some name");
+		ad.setPreviewId(null);
+		ad.setTokenId("123/fake-id/does_not_exist.txt");
+		fileUploadManager.createFileHandleFromAttachment(entityId, userId, createdOn, ad);
+	}
+	
+	@Test
+	public void testCreateNeverUploadedPlaceHolderFileHandle() throws UnsupportedEncodingException, IOException{
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		String name = "archive.zip";
+		S3FileHandle handle = fileUploadManager.createNeverUploadedPlaceHolderFileHandle(userId, createdOn, name);
+		assertNotNull(handle);
+		toDelete.add(handle);
+		assertEquals("text/plain", handle.getContentType());
+		assertEquals("archive_zip_placeholder.txt", handle.getFileName());
+		assertNotNull(handle.getContentMd5());
 	}
 
 	/**

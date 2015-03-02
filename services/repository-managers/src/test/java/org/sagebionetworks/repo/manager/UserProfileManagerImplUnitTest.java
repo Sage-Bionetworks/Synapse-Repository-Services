@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,24 +17,19 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
-import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -41,7 +37,6 @@ import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class UserProfileManagerImplUnitTest {
 
@@ -253,7 +248,7 @@ public class UserProfileManagerImplUnitTest {
 		List<UserProfile> upList = Collections.singletonList(upForList);
 		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
 		when(mockProfileDAO.getCount()).thenReturn(1L);
-		when(mockProfileDAO.list(Collections.singleton(Long.parseLong(userProfile.getOwnerId())))).
+		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).
 			thenReturn(upList);
 
 		QueryResults<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
@@ -262,8 +257,8 @@ public class UserProfileManagerImplUnitTest {
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(upList, results.getResults());
 		
-		IdSet ids = new IdSet();
-		ids.setSet(Collections.singleton(Long.parseLong(userProfile.getOwnerId())));
+		IdList ids = new IdList();
+		ids.setList(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())));
 		assertEquals(results.getResults(), userProfileManager.list(ids).getList());
 	}
 		

@@ -7,11 +7,13 @@ import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -26,6 +28,10 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class MessageUtils {
 	
+	private static final String CONCRETE_TYPE = "concreteType";
+
+	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
+
 	public static class MessageBundle {
 		private final Message message;
 		private final ChangeMessage changeMessage;
@@ -46,6 +52,7 @@ public class MessageUtils {
 
 	public static int SQS_MAX_REQUEST_SIZE = 10;
 
+	@SuppressWarnings("unchecked")
 	public static <T extends JSONEntity> T extractMessageBody(Message message, Class<T> clazz) {
 		ValidateArgument.required(message, "message");
 		try {
@@ -62,7 +69,14 @@ public class MessageUtils {
 			} else {
 				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
 			}
-			T result = clazz.newInstance();
+
+			T result;
+			if (adapter.has(CONCRETE_TYPE)) {
+				String concreteType = adapter.getString(CONCRETE_TYPE);
+				result = (T) autoGenFactory.newInstance(concreteType);
+			} else {
+				result = clazz.newInstance();
+			}
 			result.initializeFromJSONObject(adapter);
 			return result;
 		} catch (JSONException e) {

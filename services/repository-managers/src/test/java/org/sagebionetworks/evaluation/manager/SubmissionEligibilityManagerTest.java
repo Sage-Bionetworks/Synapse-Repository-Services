@@ -188,11 +188,38 @@ public class SubmissionEligibilityManagerTest {
 		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
 		// user is registered for challenge
 		challengeParticipants.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
-		
 	}
+	
 	@Test
 	public void testGetTeamSubmissionEligibilityHappyCase() throws Exception {
 		createValidTeamSubmissionState();
+		
+		TeamSubmissionEligibility tse = submissionEligibilityManager.
+				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);
+		
+		assertEquals(EVAL_ID, tse.getEvaluationId());
+		assertEquals(SUBMITTING_TEAM_ID, tse.getTeamId());
+		assertNotNull(tse.getEligibilityStateHash());
+		
+		SubmissionEligibility teamEligibility = tse.getTeamEligibility();
+		assertTrue(teamEligibility.getIsRegistered());
+		assertTrue(teamEligibility.getIsEligible());
+		assertFalse(teamEligibility.getIsQuotaFilled());
+		
+		List<MemberSubmissionEligibility> membersEligibility = tse.getMembersEligibility();
+		assertEquals(1, membersEligibility.size());
+		MemberSubmissionEligibility mse = membersEligibility.get(0);
+		assertEquals(new Long(SUBMITTER_PRINCIPAL_ID), mse.getPrincipalId());
+		assertTrue(mse.getIsRegistered());
+		assertFalse(mse.getIsQuotaFilled());
+		assertFalse(mse.getHasConflictingSubmission());
+		assertTrue(mse.getIsEligible());
+	}
+	
+	@Test
+	public void testGetTeamSubmissionEligibilityNoQuota() throws Exception {
+		createValidTeamSubmissionState();
+		evaluation.setQuota(null);
 		
 		TeamSubmissionEligibility tse = submissionEligibilityManager.
 				getTeamSubmissionEligibility(evaluation, SUBMITTING_TEAM_ID);

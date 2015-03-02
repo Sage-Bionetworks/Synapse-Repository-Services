@@ -39,7 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
-	private static final String SQL_UPDATE_PROGRESS = "UPDATE "+ASYNCH_JOB_STATUS+" SET "+COL_ASYNCH_JOB_PROGRESS_CURRENT+" = ?, "+COL_ASYNCH_JOB_PROGRESS_TOTAL+" = ?, "+COL_ASYNCH_JOB_PROGRESS_MESSAGE+" = ?, "+COL_ASYNCH_JOB_ETAG+" = ?, "+COL_ASYNCH_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_JOB_ID+" = ?";
+	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
+			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
+			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
 	private static final String SQL_SET_FAILED = "UPDATE "+ASYNCH_JOB_STATUS+" SET "+COL_ASYNCH_JOB_ERROR_MESSAGE+" = ?, "+COL_ASYNCH_JOB_ERROR_DETAILS+" = ?, "+COL_ASYNCH_JOB_STATE+" = ?, "+COL_ASYNCH_JOB_ETAG+" = ?, "+COL_ASYNCH_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_JOB_ID+" = ?";
 
 	private static final String TRUNCATE_ALL = "DELETE FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_ID+" > -1";
@@ -90,15 +92,13 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
+	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
-		String newEtag = UUID.randomUUID().toString();
 		progressMessage = AsynchJobStatusUtils.truncateMessageStringIfNeeded(progressMessage);
 		long now = System.currentTimeMillis();
-		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, newEtag, now, jobId);
-		return newEtag;
+		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, jobId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

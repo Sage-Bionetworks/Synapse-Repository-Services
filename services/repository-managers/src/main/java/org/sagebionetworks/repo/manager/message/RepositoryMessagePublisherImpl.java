@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.Message;
+import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
@@ -24,6 +23,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
+import com.google.common.collect.Lists;
 
 /**
  * The basic implementation of the RepositoryMessagePublisher.  This implementation will publish all messages to an AWS topic
@@ -91,7 +91,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 
-	private ConcurrentLinkedQueue<ChangeMessage> messageQueue = new ConcurrentLinkedQueue<ChangeMessage>();
+	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
 
 	public RepositoryMessagePublisherImpl(final String topicPrefix, final String modificationTopicName) {
 		ValidateArgument.required(modificationTopicName, "modificationTopicName");
@@ -131,13 +131,9 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * to push these messages to our AWS topic.
 	 */
 	@Override
-	public void fireModificationMessage(ChangeMessage message) {
+	public void fireModificationMessage(ModificationMessage message) {
 		ValidateArgument.required(message, "ModificationMessage");
-		ValidateArgument.required(message.getModificationInfo(), "ModificationMessage.modificationInfo");
-		ValidateArgument.required(message.getModificationInfo().getUserId(), "ModificationMessage.modificationInfo.userId");
-		if (!BooleanUtils.isTrue(message.getIsModification())) {
-			throw new IllegalArgumentException("Change message is not a modification: " + message);
-		}
+		ValidateArgument.required(message.getUserId(), "ModificationMessage.modificationInfo.userId");
 		// Add the message to a queue
 		messageQueue.add(message);
 	}
@@ -158,7 +154,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@Override
 	public void timerFired(){
 		// Poll all data from the queue.
-		List<ChangeMessage> currentQueue = pollListFromQueue();
+		List<Message> currentQueue = pollListFromQueue();
 		if(!shouldMessagesBePublishedToTopic){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){
@@ -167,12 +163,16 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			return;
 		}
 		// Publish each message to the topic
-		for(ChangeMessage message: currentQueue){
+		for (Message queueItem : currentQueue) {
 			try {
-				if (BooleanUtils.isTrue(message.getIsModification())) {
+				if (queueItem instanceof ChangeMessage) {
+					ChangeMessage message = (ChangeMessage) queueItem;
+					publishToTopic(message);
+				} else if (queueItem instanceof ModificationMessage){
+					ModificationMessage message = (ModificationMessage) queueItem;
 					publishToModificationTopic(message);
 				} else {
-					publishToTopic(message);
+					throw new IllegalArgumentException("Unknown message type " + queueItem.getClass().getName());
 				}
 			} catch (Throwable e) {
 				// If one messages fails, we must send the rest.
@@ -185,9 +185,9 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * Poll all data currently on the queue and add it to a list.
 	 * @return
 	 */
-	private List<ChangeMessage> pollListFromQueue(){
-		List<ChangeMessage> list = new LinkedList<ChangeMessage>();
-		for(ChangeMessage cm = this.messageQueue.poll(); cm != null; cm = this.messageQueue.poll()){
+	private List<Message> pollListFromQueue() {
+		List<Message> list = Lists.newLinkedList();
+		for (Message cm = this.messageQueue.poll(); cm != null; cm = this.messageQueue.poll()) {
 			// Add to the list
 			list.add(cm);
 		}
@@ -258,12 +258,12 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * @param message
 	 */
 	@Override
-	public void publishToModificationTopic(ChangeMessage message) {
+	public void publishToModificationTopic(ModificationMessage message) {
 		String topicArn = getModificationTopicInfoLazy().getArn();
 		publish(message, topicArn);
 	}
 
-	private void publish(JSONEntity message, String topicArn) {
+	private void publish(Message message, String topicArn) {
 		String json;
 		try {
 			json = EntityFactory.createJSONStringForEntity(message);

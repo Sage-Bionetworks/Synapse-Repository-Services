@@ -105,7 +105,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_PROJECTS_SQL3 =
 		" ) acls" +
 			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
-			" where n." + COL_NODE_PROJECT_ID + " is not null";
+			" where n." + COL_NODE_PROJECT_ID + " is not null" +
+				" and n." + COL_NODE_BENEFACTOR_ID + " = n." + COL_NODE_ID;
 	private static final String SELECT_CREATED =
 		"   and n." + COL_NODE_CREATED_BY + " = ";
 	private static final String SELECT_NOT_CREATED =

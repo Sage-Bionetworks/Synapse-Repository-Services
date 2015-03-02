@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
 
@@ -167,6 +168,11 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 
 	@Required
 	public void setWorkerSemaphore(CountingSemaphoreDao workerSemaphore) {
+		ValidateArgument
+				.requirement(
+						workerSemaphore.getLockTimeoutMS() >= 2 * (sqsDao.getLongPollWaitTimeInSeconds() * 1000L),
+						"Worker semaphore timeout should be much longer than the sqs long poll timeout. At least 20 seconds + time it takes to handle messages, but ideally much longer (minutes)");
+
 		this.workerSemaphore = workerSemaphore;
 	}
 

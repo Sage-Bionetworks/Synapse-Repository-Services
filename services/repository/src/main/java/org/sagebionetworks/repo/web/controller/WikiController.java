@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -119,6 +120,43 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toCreate);
 	}
+	
+	/**
+	 * Create a WikiPage with an Access Requirement as an owner.
+	 * 
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CREATE</a> permission on the owner.
+	 * </p>
+	 * <p>
+	 * If the passed WikiPage is a root (parentWikiId = null) and the owner
+	 * already has a root WikiPage, an error will be returned.
+	 * </p>
+	 * 
+	 * @param userId
+	 *            The user's id.
+	 * @param ownerId
+	 *            The ID of the owner Entity.
+	 * @param toCreate
+	 *            The WikiPage to create.
+	 * @return -
+	 * @throws DatastoreException
+	 *             - Synapse error.
+	 * @throws NotFoundException
+	 *             - returned if the user or owner does not exist.
+	 * @throws IOException 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI, method = RequestMethod.POST)
+	public @ResponseBody
+	WikiPage createAccessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
+			throws DatastoreException, NotFoundException, IOException {
+		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
+				ObjectType.ACCESS_REQUIREMENT, toCreate);
+	}
 
 	/**
 	 * Create a WikiPage with an Evaluation as an owner.
@@ -181,6 +219,7 @@ public class WikiController extends BaseController {
 				ownerId, ObjectType.ENTITY);
 	}
 
+
 	/**
 	 * Get the root WikiPage for an Evaluation.
 	 * <p>
@@ -192,6 +231,7 @@ public class WikiController extends BaseController {
 	 * @param userId
 	 * @param ownerId
 	 *            The ID of the owning Evaluation.
+	 * @param wikiVersion When included returns a specific version of a wiki.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -208,6 +248,90 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().getRootWikiPage(userId,
 				ownerId, ObjectType.EVALUATION);
 	}
+	
+	/**
+	 * Get the root WikiPageKey for an Entity.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Entity.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_KEY, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPageKey getEntityRootWikiKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException, UnauthorizedException, IOException {
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
+				ownerId, ObjectType.ENTITY);
+	}
+	
+	/**
+	 * Get the root WikiPageKey for an Evaluation.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Evaluation.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_KEY, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPageKey getEvaluationRootWikiKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException, UnauthorizedException, IOException {
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
+				ownerId, ObjectType.EVALUATION);
+	}
+	
+	/**
+	 * Get the root WikiPageKey for an Access Requirement.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Access Requirement.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_KEY, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPageKey getAccessRequirmentRootWikiKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException, UnauthorizedException, IOException {
+		return serviceProvider.getWikiService().getRootWikiKey(userId,
+				ownerId, ObjectType.ACCESS_REQUIREMENT);
+	}
 
 	/**
 	 * Get a specific WikiPage of of an Entity.
@@ -222,6 +346,7 @@ public class WikiController extends BaseController {
 	 *            The ID of the owning Entity.
 	 * @param wikiId
 	 *            The ID of the WikiPage to get.
+	 * @param wikiVersion When included returns a specific version of a wiki.               
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -232,12 +357,44 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String ownerId, @PathVariable String wikiId)
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().getWikiPage(userId,
-				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 	}
 
+	/**
+	 * Get a specific WikiPage of of an Access Requirement.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Entity.
+	 * @param wikiId
+	 *            The ID of the WikiPage to get.
+	 * @param wikiVersion When included returns a specific version of a wiki.               
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPage getAccessRequirementWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
+			throws DatastoreException, NotFoundException, IOException {
+		return serviceProvider.getWikiService().getWikiPage(userId,
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId), wikiVersion);
+	}
+	
 	/**
 	 * Get a specific WikiPage of of an Evaluation.
 	 * <p>
@@ -261,14 +418,58 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String ownerId, @PathVariable String wikiId)
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().getWikiPage(userId,
-				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 	}
 
 	// Update methods.
 
+	/**
+	 * Update a specific WikiPage of an Entity.
+	 * <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time a WikiPage is updated a new etag will be
+	 * issued to the WikiPage. When an update is request, Synapse will compare
+	 * the etag of the passed WikiPage with the current etag of the WikiPage. If
+	 * the etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs the caller should
+	 * get the latest copy of the WikiPage and re-apply any changes to the
+	 * object, then re-attempt the update. This ensures the caller has all
+	 * changes applied by other users before applying their own changes.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 *            The ID of the owning Entity.
+	 * @param wikiId
+	 *            The ID of the WikiPage to update.
+	 * @param toUpdate
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID, method = RequestMethod.PUT)
+	public @ResponseBody
+	WikiPage updateAccessRequirementPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody WikiPage toUpdate) throws DatastoreException,
+			NotFoundException, IOException {
+		validateUpateArguments(wikiId, toUpdate);
+		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
+				ObjectType.ACCESS_REQUIREMENT, toUpdate);
+	}
+	
 	/**
 	 * Update a specific WikiPage of an Entity.
 	 * <p>

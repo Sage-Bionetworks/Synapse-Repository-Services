@@ -14,6 +14,13 @@ import com.amazonaws.services.sqs.model.Message;
 public interface QueueServiceDao {
 
 	/**
+	 * get the max time the service will wait for messages to come in
+	 * 
+	 * @return the time in seconds
+	 */
+	int getLongPollWaitTimeInSeconds();
+
+	/**
 	 * Receive messages from a queue.
 	 * @param queueUrl The URL of the queue
 	 * @param visibilityTimeoutSec The visibility timeout of each messages (sec) pull from the queue.
@@ -46,7 +53,4 @@ public interface QueueServiceDao {
 	 * @param toReset
 	 */
 	void resetMessageVisibility(String queueUrl, int newVisibiltySeconds, Collection<Message> toReset);
-
-
-
 }

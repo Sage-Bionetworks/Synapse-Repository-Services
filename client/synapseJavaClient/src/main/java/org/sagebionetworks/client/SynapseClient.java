@@ -348,6 +348,27 @@ public interface SynapseClient extends BaseClient {
 	public WikiPage getWikiPage(WikiPageKey properKey)
 			throws JSONObjectAdapterException, SynapseException;
 	
+	/**
+	 * Get a specific version of a wikig page.
+	 * @param properKey
+	 * @param versionNumber
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public WikiPage getWikiPageForVersion(WikiPageKey properKey, Long versionNumber) throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Get the WikiPageKey for the root wiki given an ownerId and ownerType.
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public WikiPageKey getRootWikiPageKey(String ownerId, ObjectType ownerType) throws JSONObjectAdapterException, SynapseException;
+	
 	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException;
 
 	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(
@@ -447,7 +468,7 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
 			throws SynapseException;
 	
-	public List<UserProfile> listUserProfiles(Set<Long> userIds) throws SynapseException;
+	public List<UserProfile> listUserProfiles(List<Long> userIds) throws SynapseException;
 
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException;
@@ -474,9 +495,6 @@ public interface SynapseClient extends BaseClient {
 
 	public ACTAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
-
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId) throws SynapseException;
 
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException;
@@ -696,56 +714,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
-	
-	/**
-	 * Creates a V2 WikiPage from a V1 model. This will zip up markdown
-	 * content and track it with a file handle.
-	 * @param ownerId
-	 * @param ownerType
-	 * @param toCreate
-	 * @return
-	 * @throws IOException
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
-			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException;
-	
-	/**
-	 * Updates a V2 WikiPage from a V1 model.
-	 * @param ownerId
-	 * @param ownerType
-	 * @param toUpdate
-	 * @return
-	 * @throws IOException
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
-			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException;
-	
-	/**
-	 * Gets a V2 WikiPage and returns as a V1 WikiPage.
-	 * @param key
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 */
-	public WikiPage getV2WikiPageAsV1(WikiPageKey key) 
-		throws JSONObjectAdapterException, SynapseException, IOException;
-	
-	/**
-	 * Gets a version of a V2 WikiPage and returns it as a V1 WikiPage.
-	 * @param key
-	 * @param version
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 */
-	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) 
-		throws JSONObjectAdapterException, SynapseException, IOException;
 	
 	@Deprecated
 	public File downloadLocationableFromSynapse(Locationable locationable)
@@ -1540,7 +1508,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<Team> listTeams(Set<Long> ids) throws SynapseException;
+	public List<Team> listTeams(List<Long> ids) throws SynapseException;
 	
 	/**
 	 * 
@@ -1617,29 +1585,27 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Return a TeamMember list for a given Team and list of member IDs.
 	 * 
-	 * Note: Invalid IDs in the list are ignored:  The results list is simply
-	 * smaller than the set of IDs passed in.
+	 * Note: Any invalid ID causes a 404 NOT FOUND
 	 * 
 	 * @param teamId
 	 * @param ids
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<TeamMember> listTeamMembers(String teamId, Set<Long> ids) throws SynapseException;
+	public List<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException;
 
 	
 	/**
 	 * Return a TeamMember list for a set of Team IDs and a given user
 	 * 
-	 * Note: Invalid IDs in the list are ignored:  The results list is simply
-	 * smaller than the set of IDs passed in.
+	 * Note: Any invalid ID causes a 404 NOT FOUND
 	 * 
 	 * @param teamIds
 	 * @param userId
 	 * @return
 	 * @throws SynapseException
 	 */
-	public List<TeamMember> listTeamMembers(Set<Long> teamIds, String userId) throws SynapseException;
+	public List<TeamMember> listTeamMembers(List<Long> teamIds, String userId) throws SynapseException;
 
 	/**
 	 * 

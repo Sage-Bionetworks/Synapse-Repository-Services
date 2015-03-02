@@ -8,8 +8,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -20,7 +21,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -131,19 +130,22 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		}
 		return dtos;
 	}
-
-	public List<UserProfile> list(Set<Long> ids) throws DatastoreException,
-			NotFoundException {
-		if (ids == null || ids.size() < 1)
-			return Collections.emptyList();
-		MapSqlParameterSource param = new MapSqlParameterSource();
+	
+	public List<UserProfile> list(List<Long> ids) throws DatastoreException, NotFoundException {
+		if (ids==null || ids.size()<1) return Collections.emptyList();
+		MapSqlParameterSource param = new MapSqlParameterSource();		
 		param.addValue(COL_USER_PROFILE_ID, ids);
-		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(LIST_FOR_IDS,
-				USER_PROFILE_ROW_MAPPER, param);
-		List<UserProfile> dtos = new ArrayList<UserProfile>();
+		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(LIST_FOR_IDS, USER_PROFILE_ROW_MAPPER, param);
+		Map<String,UserProfile> map = new HashMap<String,UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
 			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
-			dtos.add(dto);
+			map.put(dto.getOwnerId(), dto);
+		}
+		List<UserProfile> dtos = new ArrayList<UserProfile>();
+		for (Long id : ids) {
+			UserProfile userProfile = map.get(id.toString());
+			if (userProfile==null) throw new NotFoundException(""+id);
+			dtos.add(userProfile);
 		}
 		return dtos;
 	}

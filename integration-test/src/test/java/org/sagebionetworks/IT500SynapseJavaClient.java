@@ -397,7 +397,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(file.getId());
-		VariableContentPaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId);
+		VariableContentPaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
@@ -407,7 +407,7 @@ public class IT500SynapseJavaClient {
 		
 		synapseTwo.createAccessApproval(aa);
 		
-		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId);
+		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
@@ -647,7 +647,7 @@ public class IT500SynapseJavaClient {
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 
-		List<UserProfile> users = synapseOne.listUserProfiles(Collections.singleton(
+		List<UserProfile> users = synapseOne.listUserProfiles(Collections.singletonList(
 				Long.parseLong(myPrincipalId)));
 		
 		assertEquals(1, users.size());
@@ -737,7 +737,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(layer.getId());
-		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId);
+		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -758,7 +758,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
 		
 		// get unmet requirements -- should be empty
-		ars = synapseTwo.getUnmetAccessRequirements(subjectId);
+		ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
@@ -1166,7 +1166,7 @@ public class IT500SynapseJavaClient {
 		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		
-		List<Team> teamList = synapseOne.listTeams(Collections.singleton(Long.parseLong(updatedTeam.getId())));
+		List<Team> teamList = synapseOne.listTeams(Collections.singletonList(Long.parseLong(updatedTeam.getId())));
 		assertEquals(1L, teamList.size());
 		assertEquals(updatedTeam, teamList.get(0));
 		
@@ -1222,10 +1222,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
-		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singleton(Long.parseLong(myPrincipalId)));
+		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singletonList(Long.parseLong(myPrincipalId)));
 		assertEquals(members.getResults(), teamMembers);
 
-		teamMembers = synapseOne.listTeamMembers(Collections.singleton(Long.parseLong(updatedTeam.getId())), myPrincipalId);
+		teamMembers = synapseOne.listTeamMembers(Collections.singletonList(Long.parseLong(updatedTeam.getId())), myPrincipalId);
 		assertEquals(members.getResults(), teamMembers);
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
@@ -1320,7 +1320,7 @@ public class IT500SynapseJavaClient {
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
@@ -1333,7 +1333,7 @@ public class IT500SynapseJavaClient {
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 		

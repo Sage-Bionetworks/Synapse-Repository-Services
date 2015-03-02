@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.web;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Date;
 
 import org.sagebionetworks.StackConfiguration;
@@ -22,8 +24,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.util.BinaryUtils;
 
 /**
  * Utility for converting between the WikiPage and V2WikiPage models.
@@ -72,19 +75,21 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		// Zip up the markdown into a file
 		// The upload file will hold the newly created markdown file.
 		String markdown = from.getMarkdown();
-		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
-		try{
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
         if(markdown != null) {
-        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, markdown);
+        	FileUtils.writeCompressedString(markdown, out);
         } else {
-        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, "");
+        	FileUtils.writeCompressedString("", out);
         }
+        byte[] compressedBytest = out.toByteArray();
 		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setContentType(contentType);
-		ccftr.setFileName(markdownTemp.getName());
+		ccftr.setFileName("markdown.txt.gz");
 		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
+		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytest);
+		// Amazon wants the md5 as a base 64 hex string.
+		String hexMD5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		ccftr.setContentMD5(md5);
 		// Start the upload
 		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(userInfo, ccftr);
@@ -92,7 +97,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		S3FileHandle handle = new S3FileHandle();
 		handle.setContentType(token.getContentType());
 		handle.setContentMd5(token.getContentMD5());
-		handle.setContentSize(markdownTemp.length());
+		handle.setContentSize(new Long(compressedBytest.length));
 		handle.setFileName(wiki.getId() + "_markdown.txt");
 		// Creator of the wiki page may not have been set to the user yet
 		// so do not use wiki's createdBy
@@ -102,18 +107,16 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		handle.setKey(token.getKey());
 		handle.setBucketName(StackConfiguration.getS3Bucket());
 		// Upload this to S3
-		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
+		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytest);
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(handle.getContentSize());
+		metadata.setContentMD5(hexMD5);
+		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), in, metadata);
 		// Save the metadata
 		handle = fileMetadataDao.createFile(handle);
 		
 		// Set the file handle id
 		wiki.setMarkdownFileHandleId(handle.getId());
-		}
-		finally{
-			if(markdownTemp != null){
-				markdownTemp.delete();
-			}
-		}
 		return wiki;
 	}
 
@@ -132,17 +135,18 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());
 		
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(from.getMarkdownFileHandleId());
-		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
-		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-				markdownHandle.getKey()), markdownTemp);
-		// Read the file as a string
-		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
-		wiki.setMarkdown(markdownString);
-		if(markdownTemp != null){
-			markdownTemp.delete();
+		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		InputStream in = s3Object.getObjectContent();
+		try{
+			// Read the file as a string
+			String markdownString = FileUtils.readCompressedStreamAsString(in);
+			wiki.setMarkdown(markdownString);
+			return wiki;
+		}finally{
+			in.close();
 		}
-		return wiki;
+
 	}
 
 

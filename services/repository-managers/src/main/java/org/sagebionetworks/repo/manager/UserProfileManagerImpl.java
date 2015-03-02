@@ -11,14 +11,13 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -33,8 +32,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -46,7 +43,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 	
@@ -159,7 +155,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			return profile;
 		}
 		// We need to convert from an attachment to an S3FileHandle
-		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachment(profile.getOwnerId(), new Date(), profile.getPic());
+		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachment(profile.getOwnerId(), profile.getOwnerId(), new Date(), profile.getPic());
 		// clear the pic, set the filehandle.
 		profile.setPic(null);
 		if(handle != null){
@@ -217,8 +213,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> list(IdSet ids) throws DatastoreException, NotFoundException {
-		List<UserProfile> userProfiles = userProfileDAO.list(ids.getSet());
+	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
+		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
 		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);

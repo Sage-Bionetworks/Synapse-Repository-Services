@@ -49,7 +49,7 @@ public interface UserProfileDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<UserProfile> list(Set<Long> ids) throws DatastoreException, NotFoundException;
+	public List<UserProfile> list(List<Long> ids) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total count of UserProfiles in the system

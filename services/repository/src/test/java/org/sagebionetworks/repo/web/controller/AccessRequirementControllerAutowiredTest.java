@@ -153,13 +153,13 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		// get the unmet access requirements for the entity, 
 		// when the user is the entity owner (should be one)
 		results = servletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, userId);	
+				dispatchServlet, entityId, userId, ACCESS_TYPE.DOWNLOAD);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the entity
 		results = servletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, otherUserInfo.getId());	
+				dispatchServlet, entityId, otherUserInfo.getId(), ACCESS_TYPE.DOWNLOAD);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
@@ -185,7 +185,7 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		// create a new access requirement
 		AccessRequirement accessRequirement = null;
 		Map<String, String> extraParams = new HashMap<String, String>();
-		accessRequirement = newAccessRequirement(ACCESS_TYPE.PARTICIPATE);
+		accessRequirement = newAccessRequirement(ACCESS_TYPE.SUBMIT);
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluation.getId());
 		subjectId.setType(RestrictableObjectType.EVALUATION);
@@ -203,13 +203,19 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		// get the unmet access requirements for the evaluation, 
 		// when the user is the entity owner, should be the same as for others
 		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), userId);	
+				dispatchServlet, evaluation.getId(), userId, ACCESS_TYPE.SUBMIT);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// get the unmet access requirements for the evaluation
 		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()));	
+				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()), ACCESS_TYPE.SUBMIT);	
+		ars = results.getResults();
+		assertEquals(1, ars.size());
+		
+		// get the unmet access requirements for the evaluation when accessType is omitted
+		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
+				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()), null);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		

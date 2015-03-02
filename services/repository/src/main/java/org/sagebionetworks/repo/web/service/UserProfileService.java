@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.model.entity.query.Sort;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -78,7 +77,7 @@ public interface UserProfileService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdSet ids)
+	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdList ids)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 

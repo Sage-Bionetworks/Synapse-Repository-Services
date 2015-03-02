@@ -1,19 +1,15 @@
 {
 	"title": "ChangeMessage",
 	"description": "JSON schema for a change message",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.Message"
+		}
+	],
 	"properties": {
 		"changeNumber": {
 			"type": "integer",
 			"description":"The application change number created as a result of this change."
-		},
-		"timestamp": {
-			"type": "string",
-			"format":"date-time",
-			"description":"The timestamp when this change was originally committed."
-		},		
-		"objectId": {
-			"type": "string",
-			"description":"The unique identifier of the object that changed."
 		},
 		"parentId": {
 			"type": "string",
@@ -22,10 +18,6 @@
 		"objectEtag": {
 			"type": "string",
 			"description":"The new Etag of the changed object"
-		},
-		"objectType": {
-			"description": "The type of the object that changed",
-			"$ref":"org.sagebionetworks.repo.model.ObjectType"
 		},
 		"changeType": {
 			"type": "string",
@@ -37,14 +29,6 @@
 				"UPDATE",
 				"DELETE"
 			]
-		},
-		"isModification": {
-			"type": "boolean",
-			"description": "true, if this message is for a modification only"
-		},
-		"modificationInfo": {
-			"$ref": "org.sagebionetworks.repo.model.message.ModificationInfo",
-			"description": "optional info for modifications"
 		}
 	}
 }

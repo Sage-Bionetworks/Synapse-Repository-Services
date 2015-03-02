@@ -135,34 +135,7 @@ public class SearchWorkerIntegrationTest {
 		
 		// Zip up the markdown into a file with UUID
 		String markdown = "markdown contents " + uuid;
-		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
-		FileUtils.writeStringToCompressedFile(markdownTemp, markdown);
-		String contentType = "application/x-gzip";
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setContentType(contentType);
-		ccftr.setFileName(markdownTemp.getName());
-		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
-		ccftr.setContentMD5(md5);
-		// Start the upload
-		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(adminUserInfo, ccftr);
-
-		S3FileHandle handle = new S3FileHandle();
-		handle.setContentType(token.getContentType());
-		handle.setContentMd5(token.getContentMD5());
-		handle.setContentSize(markdownTemp.length());
-		handle.setFileName("markdown.txt");
-		// Creator of the wiki page may not have been set to the user yet
-		// so do not use wiki's createdBy
-		handle.setCreatedBy(adminUserInfo.getId().toString());
-		long currentTime = System.currentTimeMillis();
-		handle.setCreatedOn(new Date(currentTime));
-		handle.setKey(token.getKey());
-		handle.setBucketName(StackConfiguration.getS3Bucket());
-		// Upload this to S3
-		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
-		// Save the metadata
-		markdownOne = fileMetadataDao.createFile(handle);
+		markdownOne = fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdown);
 	}
 
 	private V2WikiPage createWikiPage(UserInfo info){

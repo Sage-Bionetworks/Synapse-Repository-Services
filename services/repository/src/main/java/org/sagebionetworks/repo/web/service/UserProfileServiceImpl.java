@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -142,7 +142,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdSet ids)
+	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdList ids)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		ListWrapper<UserProfile> results = userProfileManager.list(ids);

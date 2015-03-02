@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -151,9 +151,9 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.TEAM_LIST, method = RequestMethod.POST)
 	public @ResponseBody
 	ListWrapper<Team> listTeams(
-			@RequestBody IdSet ids
+			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		ListWrapper<Team> result = serviceProvider.getTeamService().list(ids.getSet());
+		ListWrapper<Team> result = serviceProvider.getTeamService().list(ids.getList());
 		return result;
 	}
 	
@@ -340,9 +340,9 @@ public class TeamController extends BaseController {
 	public @ResponseBody
 	ListWrapper<TeamMember> listTeamMembersGivenTeamandUserList(
 			@PathVariable Long id,
-			@RequestBody IdSet ids
+			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().listTeamMembers(Collections.singleton(id), ids.getSet());
+		return serviceProvider.getTeamService().listTeamMembers(Collections.singletonList(id), ids.getList());
 	}
 	
 	/**
@@ -362,9 +362,9 @@ public class TeamController extends BaseController {
 	public @ResponseBody
 	ListWrapper<TeamMember> listTeamMembersGivenUserandTeamList(
 			@PathVariable Long id,
-			@RequestBody IdSet ids
+			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().listTeamMembers(ids.getSet(), Collections.singleton(id));
+		return serviceProvider.getTeamService().listTeamMembers(ids.getList(), Collections.singletonList(id));
 	}
 	
 	/**
