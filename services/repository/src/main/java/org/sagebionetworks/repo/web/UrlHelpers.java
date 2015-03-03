@@ -179,6 +179,8 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
+	public static final String USER_PROFILE_IMAGE = USER_PROFILE_ID+"/image";
+	public static final String USER_PROFILE_IMAGE_PREVIEW = USER_PROFILE_IMAGE+"/preview";
 
 	public static final String ENTITY_MD5 = ENTITY + "/md5" + "/{md5}";
 

@@ -54,14 +54,65 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
+import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AutoGenFactory;
+import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
+import org.sagebionetworks.repo.model.ChallengeTeam;
+import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
@@ -72,7 +123,6 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -188,8 +238,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ADMIN = "/admin";
 	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
 	private static final String ENTITY = "/entity";
-	private static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
-	private static final String ATTACHMENT_URL = "/attachmentUrl";
 	private static final String GENERATED_BY_SUFFIX = "/generatedBy";
 
 	private static final String ENTITY_URI_PATH = "/entity";
@@ -290,6 +338,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
+	private static final String PROFILE_IMAGE = "/image";
+	private static final String PROFILE_IMAGE_PREVIEW = PROFILE_IMAGE+"/preview";
 
 	private static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
 
@@ -1270,6 +1320,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#getUserProfilePictureUrl(java.lang.String)
+	 */
+	@Override
+	public URL getUserProfilePictureUrl(String ownerId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException {
+		String url = USER_PROFILE_PATH+"/"+ownerId+PROFILE_IMAGE;
+		return getUrl(url);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#getUserProfilePicturePreviewUrl(java.lang.String)
+	 */
+	@Override
+	public URL getUserProfilePicturePreviewUrl(String ownerId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException {
+		String url = USER_PROFILE_PATH+"/"+ownerId+PROFILE_IMAGE_PREVIEW;
+		return getUrl(url);
+	}
+	
 	private String listToString(List<String> ids) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(USER_GROUP_HEADER_BATCH_PATH);
@@ -3700,395 +3770,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return putEntity(locationable);
 	}
 
-	/**
-	 * This version will use the file name for the file name.
-	 * 
-	 * @param entityId
-	 * @param dataFile
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 */
-	@Deprecated
-	@Override
-	public AttachmentData uploadAttachmentToSynapse(String entityId,
-			File dataFile) throws JSONObjectAdapterException, SynapseException,
-			IOException {
-		return uploadAttachmentToSynapse(entityId, dataFile, dataFile.getName());
-	}
-
-	/**
-	 * Upload an attachment to Synapse.
-	 * 
-	 * @param entityId
-	 * @param dataFile
-	 * @param md5
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 */
-	@Deprecated
-	@Override
-	public AttachmentData uploadAttachmentToSynapse(String entityId,
-			File dataFile, String fileName) throws JSONObjectAdapterException,
-			SynapseException, IOException {
-		return uploadAttachmentToSynapse(entityId, AttachmentType.ENTITY,
-				dataFile, fileName);
-	}
-
-	/**
-	 * Upload a user profile attachment to Synapse.
-	 * 
-	 * @param userId
-	 * @param dataFile
-	 * @param md5
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 */
-	@Deprecated
-	@Override
-	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId,
-			File dataFile, String fileName) throws JSONObjectAdapterException,
-			SynapseException, IOException {
-		return uploadAttachmentToSynapse(userId, AttachmentType.USER_PROFILE,
-				dataFile, fileName);
-	}
-
-	/**
-	 * Upload an attachment to Synapse.
-	 * 
-	 * @param attachmentType
-	 * @param userId
-	 * @param dataFile
-	 * @param md5
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 */
-	@Deprecated
-	@Override
-	public AttachmentData uploadAttachmentToSynapse(String id,
-			AttachmentType attachmentType, File dataFile, String fileName)
-			throws JSONObjectAdapterException, SynapseException, IOException {
-		// First we need to get an S3 token
-		S3AttachmentToken token = new S3AttachmentToken();
-		token.setFileName(fileName);
-		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
-				.getAbsolutePath());
-		token.setMd5(md5);
-		// Create the token
-		token = createAttachmentS3Token(id, attachmentType, token);
-		// Upload the file
-		dataUploader.uploadDataSingle(token, dataFile);
-		// We are now done
-		AttachmentData newData = new AttachmentData();
-		newData.setContentType(token.getContentType());
-		newData.setName(fileName);
-		newData.setTokenId(token.getTokenId());
-		newData.setMd5(token.getMd5());
-		return newData;
-	}
-
-	/**
-	 * Get the presigned URL for an entity attachment.
-	 * 
-	 * @param entityId
-	 * @param attachment
-	 *            data type
-	 * @param newData
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public PresignedUrl createAttachmentPresignedUrl(String id,
-			String tokenOrPreviewId) throws SynapseException,
-			JSONObjectAdapterException {
-		return createAttachmentPresignedUrl(id, AttachmentType.ENTITY,
-				tokenOrPreviewId);
-	}
-
-	/**
-	 * Get the presigned URL for a user profile attachment.
-	 * 
-	 * @param userId
-	 * @param attachment
-	 *            data type
-	 * @param newData
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id,
-			String tokenOrPreviewId) throws SynapseException,
-			JSONObjectAdapterException {
-		return createAttachmentPresignedUrl(id, AttachmentType.USER_PROFILE,
-				tokenOrPreviewId);
-	}
-
-	/**
-	 * Get the presigned URL for an attachment.
-	 * 
-	 * @param entityId
-	 * @param attachment
-	 *            data type
-	 * @param newData
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public PresignedUrl createAttachmentPresignedUrl(String id,
-			AttachmentType attachmentType, String tokenOrPreviewId)
-			throws SynapseException, JSONObjectAdapterException {
-		String url = getAttachmentTypeURL(attachmentType) + "/" + id
-				+ ATTACHMENT_URL;
-		PresignedUrl preIn = new PresignedUrl();
-		preIn.setTokenID(tokenOrPreviewId);
-		JSONObject jsonBody = EntityFactory.createJSONObjectForEntity(preIn);
-		JSONObject json = createJSONObject(url, jsonBody);
-		return EntityFactory.createEntityFromJSONObject(json,
-				PresignedUrl.class);
-	}
-
-	/**
-	 * Wait for the given preview to be created.
-	 * 
-	 * @param entityId
-	 * @param tokenOrPreviewId
-	 * @param timeout
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public PresignedUrl waitForPreviewToBeCreated(String entityId,
-			String tokenOrPreviewId, int timeout) throws SynapseException,
-			JSONObjectAdapterException {
-		return waitForPreviewToBeCreated(entityId, AttachmentType.ENTITY,
-				tokenOrPreviewId, timeout);
-	}
-
-	/**
-	 * Wait for the given preview to be created.
-	 * 
-	 * @param userId
-	 * @param tokenOrPreviewId
-	 * @param timeout
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId,
-			String tokenOrPreviewId, int timeout) throws SynapseException,
-			JSONObjectAdapterException {
-		return waitForPreviewToBeCreated(userId, AttachmentType.USER_PROFILE,
-				tokenOrPreviewId, timeout);
-	}
-
-	/**
-	 * Wait for the given preview to be created.
-	 * 
-	 * @param entityId
-	 * @param attachment
-	 *            data type
-	 * @param tokenOrPreviewId
-	 * @param timeout
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public PresignedUrl waitForPreviewToBeCreated(String id,
-			AttachmentType type, String tokenOrPreviewId, int timeout)
-			throws SynapseException, JSONObjectAdapterException {
-		long start = System.currentTimeMillis();
-		PresignedUrl url = createAttachmentPresignedUrl(id, type,
-				tokenOrPreviewId);
-		if (URLStatus.READ_FOR_DOWNLOAD == url.getStatus())
-			return url;
-		while (URLStatus.DOES_NOT_EXIST == url.getStatus()) {
-			// Wait for it.
-			try {
-				Thread.sleep(1000);
-				long now = System.currentTimeMillis();
-				long elapsed = now - start;
-				if (elapsed > timeout)
-					throw new SynapseClientException(
-							"Timed-out waiting for a preview to be created.");
-				url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
-				if (URLStatus.READ_FOR_DOWNLOAD == url.getStatus())
-					return url;
-			} catch (InterruptedException e) {
-				throw new SynapseClientException(e);
-			}
-		}
-		return url;
-	}
-
-	/**
-	 * Download an entity attachment to a local file
-	 * 
-	 * @param entityId
-	 * @param attachmentData
-	 * @param destFile
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public void downloadEntityAttachment(String entityId,
-			AttachmentData attachmentData, File destFile)
-			throws SynapseException, JSONObjectAdapterException {
-		downloadAttachment(entityId, AttachmentType.ENTITY, attachmentData,
-				destFile);
-	}
-
-	/**
-	 * Download an user profile attachment to a local file
-	 * 
-	 * @param userId
-	 * @param attachmentData
-	 * @param destFile
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public void downloadUserProfileAttachment(String userId,
-			AttachmentData attachmentData, File destFile)
-			throws SynapseException, JSONObjectAdapterException {
-		downloadAttachment(userId, AttachmentType.USER_PROFILE, attachmentData,
-				destFile);
-	}
-
-	/**
-	 * Download an entity attachment to a local file
-	 * 
-	 * @param id
-	 * @param attachmentType
-	 * @param destFile
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public void downloadAttachment(String id, AttachmentType type,
-			AttachmentData attachmentData, File destFile)
-			throws SynapseException, JSONObjectAdapterException {
-		// First get the URL
-		String url = null;
-		if (attachmentData.getTokenId() != null) {
-			// Use the token to get the file
-			PresignedUrl preUrl = createAttachmentPresignedUrl(id, type,
-					attachmentData.getTokenId());
-			url = preUrl.getPresignedUrl();
-		} else {
-			// Just download the file.
-			url = attachmentData.getUrl();
-		}
-		// Now download the file
-		downloadFromSynapse(url, null, destFile);
-	}
-
-	/**
-	 * Downlaod a preview to the passed file.
-	 * 
-	 * @param entityId
-	 * @param previewId
-	 * @param destFile
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public void downloadEntityAttachmentPreview(String entityId,
-			String previewId, File destFile) throws SynapseException,
-			JSONObjectAdapterException {
-		downloadAttachmentPreview(entityId, AttachmentType.ENTITY, previewId,
-				destFile);
-	}
-
-	/**
-	 * Downlaod a preview to the passed file.
-	 * 
-	 * @param userId
-	 * @param previewId
-	 * @param destFile
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public void downloadUserProfileAttachmentPreview(String userId,
-			String previewId, File destFile) throws SynapseException,
-			JSONObjectAdapterException {
-		downloadAttachmentPreview(userId, AttachmentType.USER_PROFILE,
-				previewId, destFile);
-	}
-
-	/**
-	 * Downlaod a preview to the passed file.
-	 * 
-	 * @param entityId
-	 * @param attachment
-	 *            data type
-	 * @param previewId
-	 * @param destFile
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Deprecated
-	@Override
-	public void downloadAttachmentPreview(String id, AttachmentType type,
-			String previewId, File destFile) throws SynapseException,
-			JSONObjectAdapterException {
-		// First get the URL
-		String url = null;
-		PresignedUrl preUrl = createAttachmentPresignedUrl(id, type, previewId);
-		url = preUrl.getPresignedUrl();
-		// Now download the file
-		downloadFromSynapse(url, null, destFile);
-	}
-
-	/**
-	 * Create an Attachment s3 token.
-	 * 
-	 * @param entityId
-	 * @param token
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public S3AttachmentToken createAttachmentS3Token(String id,
-			ServiceConstants.AttachmentType attachmentType,
-			S3AttachmentToken token) throws JSONObjectAdapterException,
-			SynapseException {
-		if (id == null)
-			throw new IllegalArgumentException("Id cannot be null");
-		if (token == null)
-			throw new IllegalArgumentException(
-					"S3AttachmentToken cannot be null");
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(token);
-		String uri = getAttachmentTypeURL(attachmentType) + "/" + id
-				+ ATTACHMENT_S3_TOKEN;
-		jsonObject = createJSONObject(uri, jsonObject);
-		return EntityFactory.createEntityFromJSONObject(jsonObject,
-				S3AttachmentToken.class);
-	}
-
 	/******************** Low Level APIs ********************/
 
 	/**
@@ -4437,15 +4118,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
-	/**
-	 * uploads a String to S3 using the chunked file upload service
-	 * 
-	 * @param content
-	 *            the content to upload. Strings in memory should not be large,
-	 *            so we limit to the size of one 'chunk'
-	 * @param contentType
-	 *            should include the character encoding, e.g.
-	 *            "text/plain; charset=utf-8"
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#uploadToFileHandle(byte[], org.apache.http.entity.ContentType, java.lang.String)
 	 */
 	@Override
 	public String uploadToFileHandle(byte[] content, ContentType contentType,

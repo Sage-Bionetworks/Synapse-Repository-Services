@@ -311,14 +311,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public String getPicturePresignedUrl(String userId)
+	public String getUserProfileImageUrl(String userId)
 			throws NotFoundException {
 		String handleId = userProfileDAO.getPictureFileHandleId(userId);
 		return fileHandleManager.getRedirectURLForFileHandle(handleId);
 	}
 
 	@Override
-	public String getPicturePreviewPreSignedUrl(String userId)
+	public String getUserProfileImagePreviewUrl(String userId)
 			throws NotFoundException {
 		String handleId = userProfileDAO.getPictureFileHandleId(userId);
 		String privewId = fileHandleManager.getPreviewFileHandleId(handleId);

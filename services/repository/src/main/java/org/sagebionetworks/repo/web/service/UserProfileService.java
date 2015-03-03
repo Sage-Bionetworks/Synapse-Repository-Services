@@ -197,4 +197,21 @@ public interface UserProfileService {
 
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
+	/**
+	 * Get the pre-signed URL for a user's profile image.
+	 * 
+	 * @param profileId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getUserProfileImage(String profileId) throws NotFoundException;
+
+	/**
+	 * Get a pre-signed URL for a user's profile image preview.
+	 * @param profileId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getUserProfileImagePreview(String profileId) throws NotFoundException;
+
 }

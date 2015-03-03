@@ -419,4 +419,22 @@ public class UserProfileServiceImpl implements UserProfileService {
 		this.principalAliasDAO = mockPrincipalAlaisDAO;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImage(java.lang.String)
+	 */
+	@Override
+	public String getUserProfileImage(String profileId) throws NotFoundException {
+		return userProfileManager.getUserProfileImageUrl(profileId);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImagePreview(java.lang.String)
+	 */
+	@Override
+	public String getUserProfileImagePreview(String profileId) throws NotFoundException {
+		return userProfileManager.getUserProfileImagePreviewUrl(profileId);
+	}
+
 }

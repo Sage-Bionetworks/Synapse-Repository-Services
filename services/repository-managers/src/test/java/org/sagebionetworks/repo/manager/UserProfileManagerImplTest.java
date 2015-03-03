@@ -172,14 +172,14 @@ public class UserProfileManagerImplTest {
 		assertEquals("The 'pic' fields should have been replaced and set to null",null, profile.getPic());
 		assertNotNull(profile.getProfilePicureFileHandleId());
 		// get the presigned url for this handle
-		assertNotNull(userProfileManager.getPicturePresignedUrl(userIdString));
+		assertNotNull(userProfileManager.getUserProfileImageUrl(userIdString));
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testGetPicturePresignedUrlNotFound() throws Exception{
 		String userIdString = ""+userId;
 		// get the presigned url for this handle
-		assertNotNull(userProfileManager.getPicturePresignedUrl(userIdString));
+		assertNotNull(userProfileManager.getUserProfileImageUrl(userIdString));
 	}
 
 }
