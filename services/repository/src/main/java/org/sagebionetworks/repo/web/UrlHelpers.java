@@ -220,11 +220,6 @@ public class UrlHelpers {
 	 * The url used to get an attachment URL.
 	 */
 	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL;
-	
-	/**
-	 * The url used to get a user profile attachment URL.
-	 */
-	public static final String USER_PROFILE_ATTACHMENT_URL = USER_PROFILE_ID+ATTACHMENT_URL;
 
 	// project settings
 	public static final String PROJECT_SETTINGS = "/projectSettings";

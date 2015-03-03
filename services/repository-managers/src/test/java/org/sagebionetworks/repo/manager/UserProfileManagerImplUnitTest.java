@@ -134,64 +134,6 @@ public class UserProfileManagerImplUnitTest {
 		
 	}
 	
-//	@Test (expected=UnauthorizedException.class)
-//	public void testCreateS3URLNonAdminNonOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-//		userProfileManager.createS3UserProfileAttachmentToken(userInfo, "222", testToken);
-//	}
-//	@Test
-//	public void testIsOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-//		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId.toString(), testToken);			
-//	}
-//	@Test
-//	public void testIsAdmin() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-//		userProfileManager.createS3UserProfileAttachmentToken(adminUserInfo, "Superman", testToken);
-//	}	
-//	@Test
-//	public void testAdminGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-//		// Simulate an admin trying to access a presigned url
-//		Long tokenId = new Long(456);
-//		String profileId = "132";
-//		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
-//		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
-//		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-//		when(mockS3TokenManager.getAttachmentUrl(userId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
-//		// Make the actual call
-//		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userId, profileId, tokenId.toString());
-//		assertNotNull(url);
-//		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
-//	}	
-//	@Test
-//	public void testOwnerGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-//		// Simulate an normal user trying to access a presigned url
-//		Long tokenId = new Long(456);
-//		String profileId = "132";
-//		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
-//		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
-//		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-//		when(mockS3TokenManager.getAttachmentUrl(adminUserId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
-//		// Make the actual call
-//		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(adminUserId, profileId, tokenId.toString());
-//		assertNotNull(url);
-//		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
-//	}
-//	@Test
-//	public void testNonOwnerGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-//		// Simulate an normal user trying to access a presigned url
-//		Long tokenId = new Long(456);
-//		String profileId = "132";
-//		Long otherUserId = 209384L;
-//		
-//		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
-//		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
-//		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-//		when(mockS3TokenManager.getAttachmentUrl(otherUserId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
-//		
-//		// Make the actual call
-//		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(otherUserId, profileId, tokenId.toString());
-//		assertNotNull(url);
-//		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
-//	}	
-	
 	@Test
 	public void testUpdateProfileFileHandleAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";

@@ -5,36 +5,29 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.util.Md5Utils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -48,6 +41,9 @@ public class UserProfileManagerImplTest {
 	
 	@Autowired
 	private UserProfileManager userProfileManager;
+	
+	@Autowired
+	private FileHandleManager fileHandleManger;
 	
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -166,39 +162,24 @@ public class UserProfileManagerImplTest {
 	 */
 	@Test
 	public void testConvertAttachmentToFileHandle() throws Exception{
-		AttachmentData attachment = createOldStyleAttachment();
+		String userIdString = ""+userId;
+		AttachmentData attachment = fileHandleManger.createAttachmentInS3("image data", "user.jpg", userIdString, userIdString, new Date());
 		// Update the user profile
-		UserProfile profile = userProfileManager.getUserProfile(userInfo, ""+userId);
+		UserProfile profile = userProfileManager.getUserProfile(userInfo, userIdString);
 		profile.setPic(attachment);
 		// The get call should convert the picture to a file handle
 		profile = userProfileManager.updateUserProfile(userInfo, profile);
 		assertEquals("The 'pic' fields should have been replaced and set to null",null, profile.getPic());
 		assertNotNull(profile.getProfilePicureFileHandleId());
+		// get the presigned url for this handle
+		assertNotNull(userProfileManager.getPicturePresignedUrl(userIdString));
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetPicturePresignedUrlNotFound() throws Exception{
+		String userIdString = ""+userId;
+		// get the presigned url for this handle
+		assertNotNull(userProfileManager.getPicturePresignedUrl(userIdString));
 	}
 
-	/**
-	 * Create an old stlye attachment data object and upload it to S3.
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws IOException
-	 */
-	private AttachmentData createOldStyleAttachment()
-			throws UnsupportedEncodingException, IOException {
-		byte[] fileBytes = "Tiny File".getBytes("UTF-8");
-		String name = UUID.randomUUID().toString()+".txt";
-		String bucket = StackConfiguration.getS3Bucket();
-		String key = userId+"/"+name;
-		ObjectMetadata metadata = new ObjectMetadata();
-		// First upload an object to S3.
-		s3Client.putObject(bucket, key, new ByteArrayInputStream(fileBytes), metadata);
-		// Now create an attachment data for this file
-		AttachmentData attachment = new AttachmentData();
-		attachment.setContentType("text/plain");
-		attachment.setMd5(MD5ChecksumHelper.getMD5ChecksumForByteArray(fileBytes));
-		attachment.setPreviewId(null);
-		attachment.setPreviewState(PreviewState.NOT_COMPATIBLE);
-		attachment.setTokenId(key);
-		attachment.setName(name);
-		return attachment;
-	}
 }

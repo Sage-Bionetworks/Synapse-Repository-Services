@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -235,12 +236,17 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	public String getPictureFileHandleId(String userId)
 			throws NotFoundException {
 		Long userIdLong = Long.parseLong(userId);
-		Long fileHandleId = simpleJdbcTemplate.queryForObject(
-				SQL_SELECT_PROFILE_PIC_ID, Long.class, userIdLong);
-		if(fileHandleId == null){
-			throw new NotFoundException("User: " + userId
-					+ " does not have a profile picture");
+		try {
+			Long fileHandleId = simpleJdbcTemplate.queryForObject(
+					SQL_SELECT_PROFILE_PIC_ID, Long.class, userIdLong);
+			if(fileHandleId == null){
+				throw new NotFoundException("User: " + userId
+						+ " does not have a profile picture");
+			}
+			return fileHandleId.toString();
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Unknown user: " + userId);
 		}
-		return fileHandleId.toString();
+
 	}
 }

@@ -93,7 +93,7 @@ public interface UserProfileManager {
 	public String getPicturePresignedUrl(String userId) throws NotFoundException;
 	
 	/**
-	 * Get the pre-signed URL for a user's profile picture preview..
+	 * Get the pre-signed URL for a user's profile picture preview.
 	 * @param userId
 	 * @return The pre-signed URL that can be used to download the user's profile picture preview.
 	 * @throws NotFoundException Thrown if the user does not have a profile picture.

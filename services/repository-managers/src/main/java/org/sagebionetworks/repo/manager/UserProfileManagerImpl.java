@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -45,8 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 public class UserProfileManagerImpl implements UserProfileManager {
-	
-	static private Logger log = LogManager.getLogger(EntityTypeConverterImpl.class);
+
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
@@ -59,10 +56,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
-	
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	
 	@Autowired
 	private AmazonS3Client s3Client;
 	@Autowired
@@ -319,14 +314,15 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public String getPicturePresignedUrl(String userId)
 			throws NotFoundException {
 		String handleId = userProfileDAO.getPictureFileHandleId(userId);
-		return null;
+		return fileHandleManager.getRedirectURLForFileHandle(handleId);
 	}
 
 	@Override
 	public String getPicturePreviewPreSignedUrl(String userId)
 			throws NotFoundException {
-		// TODO Auto-generated method stub
-		return null;
+		String handleId = userProfileDAO.getPictureFileHandleId(userId);
+		String privewId = fileHandleManager.getPreviewFileHandleId(handleId);
+		return fileHandleManager.getRedirectURLForFileHandle(privewId);
 	}
 
 }
