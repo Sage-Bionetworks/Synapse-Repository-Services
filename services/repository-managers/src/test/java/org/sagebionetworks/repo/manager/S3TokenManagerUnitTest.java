@@ -41,7 +41,7 @@ public class S3TokenManagerUnitTest {
 	private Long userId = 007L;
 	
 	@Before
-	public void before(){
+	public void before() throws NotFoundException{
 		// Create the mocks
 		mockPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
 		mockUuserManager = Mockito.mock(UserManager.class);
@@ -51,6 +51,7 @@ public class S3TokenManagerUnitTest {
 		mockUser = new UserInfo(false);
 		manager = new S3TokenManagerImpl(mockPermissionsManager, mockUuserManager, mocIdGenerator, mocKLocationHelper, mockS3Utilitiy);
 		manager.setAllowCreationOfOldAttachments(true);
+		when(mockUuserManager.getUserInfo(any(Long.class))).thenReturn(mockUser);
 	}
 
 	@Test (expected=InvalidModelException.class)
