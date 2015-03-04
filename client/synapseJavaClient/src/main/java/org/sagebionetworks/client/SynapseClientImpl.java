@@ -1326,7 +1326,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public URL getUserProfilePictureUrl(String ownerId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException {
-		String url = USER_PROFILE_PATH+"/"+ownerId+PROFILE_IMAGE;
+		String url = USER_PROFILE_PATH+"/"+ownerId+PROFILE_IMAGE+"?"+REDIRECT_PARAMETER+"false";
 		return getUrl(url);
 	}
 
@@ -1336,7 +1336,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public URL getUserProfilePicturePreviewUrl(String ownerId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException {
-		String url = USER_PROFILE_PATH+"/"+ownerId+PROFILE_IMAGE_PREVIEW;
+		String url = USER_PROFILE_PATH+"/"+ownerId+PROFILE_IMAGE_PREVIEW+"?"+REDIRECT_PARAMETER+"false";
 		return getUrl(url);
 	}
 	
