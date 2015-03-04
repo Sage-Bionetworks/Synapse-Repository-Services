@@ -199,7 +199,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 			EntityType type) throws DatastoreException, NotFoundException,
 			UnauthorizedException, InvalidModelException {
 		
-		validateEnabled();
+
 		// Validate the parameters
 		if (userId == null)
 			throw new IllegalArgumentException("UserId cannot be null");
@@ -214,6 +214,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 
 		// Manipulate the pass-in S3 token to be correct
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		validateEnabled(userInfo);
 		validateUpdateAccess(userInfo, id);
 		validateMd5(s3Token);
 		validateContentType(s3Token);
@@ -247,7 +248,10 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	/**
 	 * Are users allowed to create/get old attachmetns.
 	 */
-	private void validateEnabled() {
+	private void validateEnabled(UserInfo user) {
+		if(user.isAdmin()){
+			return;
+		}
 		if(!allowCreationOfOldAttachments){
 			throw new IllegalArgumentException(ATTACHMENTS_ARE_DEPRICATED);
 		}
@@ -257,7 +261,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 			S3AttachmentToken token) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		
-		validateEnabled();
+		UserInfo user = userManager.getUserInfo(userId);
+		validateEnabled(user);
 		// Wrap it up and pass it along
 		// Manipulate the pass-in S3 token to be correct
 		validateMd5(token.getMd5());
@@ -321,7 +326,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
 			String tokenId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
-		validateEnabled();
+		UserInfo user = userManager.getUserInfo(userId);
+		validateEnabled(user);
 		return presignedUrl(userId, entityId, tokenId, false);
 	}
 	

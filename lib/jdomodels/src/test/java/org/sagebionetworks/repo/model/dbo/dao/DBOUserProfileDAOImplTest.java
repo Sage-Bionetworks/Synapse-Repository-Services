@@ -47,6 +47,7 @@ public class DBOUserProfileDAOImplTest {
 	private UserGroup individualGroup = null;
 	
 	private List<UserGroup> individualGroupsToDelete = null;
+	private List<String> fileHandlesToDelete = null;
 	
 	private List<String> toDelete;
 	
@@ -65,6 +66,7 @@ public class DBOUserProfileDAOImplTest {
 			individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 			individualGroupsToDelete.add(individualGroup);
 		}
+		fileHandlesToDelete = new LinkedList<String>();
 	}
 		
 	
@@ -78,6 +80,13 @@ public class DBOUserProfileDAOImplTest {
 			for(String id: toDelete){
 				try {
 					userProfileDAO.delete(id);
+				} catch (Exception e) {}
+			}
+		}
+		if(fileHandlesToDelete != null){
+			for(String id:fileHandlesToDelete){
+				try {
+					fileHandleDao.delete(id);
 				} catch (Exception e) {}
 			}
 		}
@@ -173,7 +182,9 @@ public class DBOUserProfileDAOImplTest {
 		ef.setExternalURL("http://google.com");
 		ef.setCreatedBy(individualGroup.getId());
 		ef.setCreatedOn(new Date());
+		ef.setFileName("Some name");
 		ef = fileHandleDao.createFile(ef);
+		fileHandlesToDelete.add(ef.getId());
 		// Create a new type
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(individualGroup.getId());
