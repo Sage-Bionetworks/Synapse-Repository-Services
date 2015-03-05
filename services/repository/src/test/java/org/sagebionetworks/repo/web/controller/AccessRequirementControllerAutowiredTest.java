@@ -163,6 +163,13 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
+		// if we don't specify what kind of access requirement we want, then the
+		// service should assume we want DOWNLOAD access requirements
+		results = servletTestHelper.getUnmetEntityAccessRequirements(
+				dispatchServlet, entityId, otherUserInfo.getId(), null);	
+		ars = results.getResults();
+		assertEquals(1, ars.size());
+		
 		TermsOfUseAccessRequirement tou = (TermsOfUseAccessRequirement)clone;
 		tou.setTermsOfUse("bar");
 		AccessRequirement updated = servletTestHelper.updateAccessRequirement(
