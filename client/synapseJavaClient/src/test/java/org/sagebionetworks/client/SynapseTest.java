@@ -71,7 +71,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class SynapseTest {
 	
 	HttpClientProvider mockProvider;
-	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	SynapseClientImpl synapse;
@@ -81,10 +80,9 @@ public class SynapseTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider));
 		// mock the session token returned when logging in
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
 		synapse.login("foo", "bar");
@@ -510,7 +508,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Make a call and ensure 
 		synapse.getVersionInfo();
 		// Validate that the User-Agent was sent
@@ -527,7 +525,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
 		synapse.appendUserAgent(appended);

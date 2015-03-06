@@ -79,7 +79,6 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -95,7 +94,6 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
@@ -113,9 +111,6 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
@@ -439,8 +434,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected String authEndpoint;
 	protected String fileEndpoint;
 
-	private DataUploader dataUploader;
-
 	private AutoGenFactory autoGenFactory = new AutoGenFactory();
 
 	/**
@@ -467,8 +460,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	public SynapseClientImpl() {
 		// Use the default implementations
-		this(new SharedClientConnection(new HttpClientProviderImpl()),
-				new DataUploaderMultipartImpl());
+		this(new SharedClientConnection(new HttpClientProviderImpl()));
 	}
 
 	/**
@@ -478,7 +470,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param dataUploader
 	 */
 	public SynapseClientImpl(BaseClient other) {
-		this(other.getSharedClientConnection(), new DataUploaderMultipartImpl());
+		this(other.getSharedClientConnection());
 	}
 
 	/**
@@ -487,22 +479,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param clientProvider
 	 * @param dataUploader
 	 */
-	public SynapseClientImpl(SharedClientConnection sharedClientConnection,
-			DataUploader dataUploader) {
+	public SynapseClientImpl(SharedClientConnection sharedClientConnection) {
 		super(SYNPASE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(),
 				sharedClientConnection);
 		if (sharedClientConnection == null)
 			throw new IllegalArgumentException(
 					"SharedClientConnection cannot be null");
-
-		if (dataUploader == null)
-			throw new IllegalArgumentException("DataUploader cannot be null");
-
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 		setFileEndpoint(DEFAULT_FILE_ENDPOINT);
-
-		this.dataUploader = dataUploader;
 	}
 
 	/**
@@ -511,8 +496,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	public SynapseClientImpl(DomainType domain) {
 		// Use the default implementations
-		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl(),
-				domain);
+		this(new HttpClientProviderImpl(), domain);
 	}
 
 	/**
@@ -521,9 +505,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param clientProvider
 	 * @param dataUploader
 	 */
-	public SynapseClientImpl(HttpClientProvider clientProvider,
-			DataUploader dataUploader, DomainType domain) {
-		this(new SharedClientConnection(clientProvider, domain), dataUploader);
+	public SynapseClientImpl(HttpClientProvider clientProvider, DomainType domain) {
+		this(new SharedClientConnection(clientProvider, domain));
 	}
 
 	/**
@@ -534,16 +517,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	public void setHttpClientProvider(HttpClientProvider clientProvider) {
 		getSharedClientConnection().setHttpClientProvider(clientProvider);
-	}
-
-	/**
-	 * Use this method to override the default implementation of
-	 * {@link DataUploader}
-	 * 
-	 * @param dataUploader
-	 */
-	public void setDataUploader(DataUploader dataUploader) {
-		this.dataUploader = dataUploader;
 	}
 
 	/**
@@ -3660,114 +3633,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			File destinationFile) throws SynapseException {
 		return getSharedClientConnection().downloadFromSynapse(path, md5,
 				destinationFile, null);
-	}
-
-	/**
-	 * @param locationable
-	 * @param dataFile
-	 * 
-	 * @return the updated locationable
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public Locationable uploadLocationableToSynapse(Locationable locationable,
-			File dataFile) throws SynapseException {
-
-		try {
-			String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
-					.getAbsolutePath());
-			return uploadLocationableToSynapse(locationable, dataFile, md5);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	/**
-	 * Dev Note: this implementation allows only one location per Locationable,
-	 * ultimately we plan to support multiple locations (e.g., a copy in
-	 * GoogleStorage, S3, and on a local server), but we'll save that work for
-	 * later
-	 * 
-	 * @param locationable
-	 * @param dataFile
-	 * @param md5
-	 * @return the updated locationable
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public Locationable uploadLocationableToSynapse(Locationable locationable,
-			File dataFile, String md5) throws SynapseException {
-
-		// Step 1: get the token
-		S3Token s3Token = new S3Token();
-		s3Token.setPath(dataFile.getName());
-		s3Token.setMd5(md5);
-		s3Token = createJSONEntity(locationable.getS3Token(), s3Token);
-
-		// Step 2: perform the upload
-		dataUploader.uploadDataMultiPart(s3Token, dataFile);
-
-		// Step 3: set the upload location in the locationable so that Synapse
-		// is aware of the new data
-		LocationData location = new LocationData();
-		location.setPath(s3Token.getPath());
-		location.setType(LocationTypeNames.awss3);
-
-		List<LocationData> locations = new ArrayList<LocationData>();
-		locations.add(location);
-
-		locationable.setContentType(s3Token.getContentType());
-		locationable.setMd5(s3Token.getMd5());
-		locationable.setLocations(locations);
-
-		return putEntity(locationable);
-	}
-
-	/**
-	 * Update the locationable to point to the given external url
-	 * 
-	 * @param locationable
-	 * @param externalUrl
-	 * @return the updated locationable
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public Locationable updateExternalLocationableToSynapse(
-			Locationable locationable, String externalUrl)
-			throws SynapseException {
-		return updateExternalLocationableToSynapse(locationable, externalUrl,
-				null);
-	}
-
-	/**
-	 * Update the locationable to point to the given external url
-	 * 
-	 * @param locationable
-	 * @param externalUrl
-	 * @param md5
-	 *            the calculated md5 checksum for the file referenced by the
-	 *            external url
-	 * @return the updated locationable
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public Locationable updateExternalLocationableToSynapse(
-			Locationable locationable, String externalUrl, String md5)
-			throws SynapseException {
-		// set the upload location in the locationable so that Synapse
-		// is aware of the new data
-		LocationData location = new LocationData();
-		location.setPath(externalUrl);
-		location.setType(LocationTypeNames.external);
-		locationable.setMd5(md5);
-		List<LocationData> locations = new ArrayList<LocationData>();
-		locations.add(location);
-		locationable.setLocations(locations);
-		return putEntity(locationable);
 	}
 
 	/******************** Low Level APIs ********************/

@@ -777,22 +777,6 @@ public interface SynapseClient extends BaseClient {
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	
-	@Deprecated
-	public Locationable uploadLocationableToSynapse(Locationable locationable,
-			File dataFile) throws SynapseException;
-
-	@Deprecated
-	public Locationable uploadLocationableToSynapse(Locationable locationable,
-			File dataFile, String md5) throws SynapseException;
-
-	@Deprecated
-	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
-			String externalUrl) throws SynapseException;
-
-	@Deprecated
-	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
-			String externalUrl, String md5) throws SynapseException;
-	
 	public String getSynapseTermsOfUse() throws SynapseException;
 	
 	public String getTermsOfUse(DomainType domain) throws SynapseException;
