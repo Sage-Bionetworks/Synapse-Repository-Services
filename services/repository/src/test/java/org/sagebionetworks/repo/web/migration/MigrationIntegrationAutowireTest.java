@@ -79,6 +79,8 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.S3UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
@@ -209,6 +211,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private ProjectSettingsDAO projectSettingsDAO;
 
 	@Autowired
+	private UploadDestinationLocationDAO uploadDestinationLocationDAO;
+
+	@Autowired
 	private ProjectStatsDAO projectStatsDAO;
 	
 	@Autowired
@@ -309,12 +314,18 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 	
 	private void createProjectSetting() {
+		S3UploadDestinationLocationSetting destination = new S3UploadDestinationLocationSetting();
+		destination.setDescription("upload normal");
+		destination.setUploadType(UploadType.S3);
+		destination.setBanner("warning");
+		destination.setCreatedOn(new Date());
+		destination.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		Long uploadId = uploadDestinationLocationDAO.create(destination);
+
 		UploadDestinationListSetting settings = new UploadDestinationListSetting();
 		settings.setProjectId(project.getId());
-		settings.setSettingsType("upload");
-		S3UploadDestinationSetting destination = new S3UploadDestinationSetting();
-		destination.setUploadType(UploadType.S3);
-		settings.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));
+		settings.setSettingsType(ProjectSettingsType.upload);
+		settings.setLocations(Collections.singletonList(uploadId));
 		projectSettingsDAO.create(settings);
 	}
 

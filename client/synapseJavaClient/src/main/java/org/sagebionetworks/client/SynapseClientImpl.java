@@ -72,7 +72,6 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
@@ -91,6 +90,7 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -102,6 +102,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -113,28 +115,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
-import org.sagebionetworks.repo.model.table.AppendableRowSet;
-import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
-import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
-import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.RowReference;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
-import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
-import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
-import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -335,6 +316,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ETAG = "etag";
 
 	private static final String PROJECT_SETTINGS = "/projectSettings";
+
+	private static final String UPLOAD_DESTINATION_LOCATION = "/uploadDestinationLocation";
 
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -2251,18 +2234,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			return results;
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
-		}
-	}
-
-	public List<UploadDestination> getUploadDestinations(String parentEntityId)
-			throws SynapseException {
-		// Get the json for this entity as a list wrapper
-		String url = ENTITY + "/" + parentEntityId + "/uploadDestinations";
-		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
-		try {
-			return ListWrapper.unwrap(new JSONObjectAdapterImpl(json), UploadDestination.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
 		}
 	}
 
@@ -5935,15 +5906,62 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ProjectSetting getProjectSetting(String projectId,
-			String settingsType) throws SynapseException {
+	@Deprecated
+	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException {
+		// Get the json for this entity as a list wrapper
+		String url = ENTITY + "/" + parentEntityId + "/uploadDestinations";
+		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
 		try {
-			String uri = PROJECT_SETTINGS + "/" + projectId + "/type/"
-					+ settingsType;
-			JSONObject jsonObject = getSharedClientConnection().getJson(
-					repoEndpoint, uri, getUserAgent());
-			return createJsonObjectFromInterface(jsonObject,
-					ProjectSetting.class);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(json), UploadDestination.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(T uploadDestinationLocation)
+			throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(uploadDestinationLocation);
+			jsonObject = getSharedClientConnection().postJson(repoEndpoint, UPLOAD_DESTINATION_LOCATION, jsonObject.toString(),
+					getUserAgent(), null);
+			return (T) createJsonObjectFromInterface(jsonObject, UploadDestinationLocationSetting.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public UploadDestinationLocation[] getUploadDestinationLocations(String parentEntityId) throws SynapseException {
+		// Get the json for this entity as a list wrapper
+		String url = ENTITY + "/" + parentEntityId + "/uploadDestinationLocations";
+		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
+		try {
+			List<UploadDestinationLocation> locations = ListWrapper.unwrap(new JSONObjectAdapterImpl(json), UploadDestinationLocation.class);
+			return locations.toArray(new UploadDestinationLocation[locations.size()]);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public UploadDestination getUploadDestination(String parentEntityId, Long uploadId) throws SynapseException {
+		try {
+			String uri = ENTITY + "/" + parentEntityId + "/uploadDestination/" + uploadId;
+			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			return createJsonObjectFromInterface(jsonObject, UploadDestination.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException {
+		try {
+			String uri = PROJECT_SETTINGS + "/" + projectId + "/type/" + projectSettingsType;
+			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			return createJsonObjectFromInterface(jsonObject, ProjectSetting.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

@@ -1,0 +1,13 @@
+{
+	"description": "An upload destination location",
+	"properties": {
+		"uploadId": {
+			"type": "integer",
+			"description": "the unique id for this upload destination type"
+		},
+		"description": {
+			"type": "string",
+			"description": "The description to show the user when the user has to choose which upload destination to use"
+		}
+	}
+}

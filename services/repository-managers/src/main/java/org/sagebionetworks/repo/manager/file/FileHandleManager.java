@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -242,8 +243,33 @@ public interface FileHandleManager {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
+	@Deprecated
 	List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException;
+
+	/**
+	 * get the list of upload locations
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, String parentId) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * get the upload location for an uploadId
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getUploadDestination(UserInfo userInfo, String parentId, Long uploadId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create a file handle from the an old style attachment data.

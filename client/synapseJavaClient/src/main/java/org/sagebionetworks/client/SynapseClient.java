@@ -27,52 +27,8 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Challenge;
-import org.sagebionetworks.repo.model.ChallengePagedResults;
-import org.sagebionetworks.repo.model.ChallengeTeam;
-import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -99,6 +55,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -110,6 +67,8 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -589,8 +548,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
 			throws SynapseException, IOException;
-
-	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
@@ -1903,6 +1860,38 @@ public interface SynapseClient extends BaseClient {
 	 */
 	void logError(LogEntry logEntry) throws SynapseException;
 
+	@Deprecated
+	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException;
+
+	/**
+	 * create a new upload destination setting
+	 * 
+	 * @param uploadDestinationSetting
+	 * @return
+	 * @throws SynapseException
+	 */
+	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(T uploadDestinationLocationSetting)
+			throws SynapseException;
+
+	/**
+	 * get all upload destination locations for a container
+	 * 
+	 * @param parentEntityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public UploadDestinationLocation[] getUploadDestinationLocations(String parentEntityId) throws SynapseException;
+
+	/**
+	 * get the upload destination for a container and upload location id
+	 * 
+	 * @param parentEntityId
+	 * @param uploadId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public UploadDestination getUploadDestination(String parentEntityId, Long uploadId) throws SynapseException;
+
 	/**
 	 * create a project setting
 	 * 
@@ -1919,7 +1908,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
-	ProjectSetting getProjectSetting(String projectId, String settingsType) throws SynapseException;
+	ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException;
 
 	/**
 	 * create a project setting
@@ -2143,5 +2132,4 @@ public interface SynapseClient extends BaseClient {
 	 */
 	AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(
 			String jobId) throws SynapseException;
-
 }

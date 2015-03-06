@@ -1,0 +1,22 @@
+{
+	"description": "The external upload destination setting contains information to generate an SFTP or HTTPS upload destination.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting"
+		}
+	],
+	"properties": {
+		"url": {
+			"type": "string",
+			"description": "the s3 URL for uploading to"
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use"
+		},
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key to use"
+		}
+	}
+}

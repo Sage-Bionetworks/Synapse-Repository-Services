@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PreviewState;
@@ -59,10 +60,16 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.S3UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -94,7 +101,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30
 																		// secs
-	
+
+	public static final Long DEFAULT_UPLOAD_DESTINATION_LOCATION_ID = 0L;
+
 	/**
 	 * Used as the file contents for old locationables and attachments that were never
 	 * successfully uploaded by the original user.  See PLFM-3266.
@@ -135,6 +144,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
+	
+	@Autowired UploadDestinationLocationDAO uploadDestinationLocationDAO;
 
 	@Autowired
 	NodeManager nodeManager;
@@ -733,80 +744,93 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public List<UploadDestination> getUploadDestinations(UserInfo userInfo,
-			String parentId) throws DatastoreException, UnauthorizedException,
-			NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager
-				.getProjectSettingForParent(userInfo, parentId, "upload",
-						UploadDestinationListSetting.class);
+	@Deprecated
+	public List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		List<UploadDestinationLocation> uploadDestinationLocations = getUploadDestinationLocations(userInfo, parentId);
 
-		// make sure there is always one entry
-		if (uploadDestinationsSettings == null
-				|| uploadDestinationsSettings.getDestinations() == null
-				|| uploadDestinationsSettings.getDestinations().isEmpty()) {
-			uploadDestinationsSettings = new UploadDestinationListSetting();
-			S3UploadDestinationSetting s3UploadDestinationSetting = new S3UploadDestinationSetting();
-			s3UploadDestinationSetting.setUploadType(UploadType.S3);
-			uploadDestinationsSettings
-					.setDestinations(Collections
-							.<UploadDestinationSetting> singletonList(s3UploadDestinationSetting));
+		List<UploadDestination> destinations = Lists.newArrayListWithExpectedSize(4);
+		for (UploadDestinationLocation uploadDestinationLocation : uploadDestinationLocations) {
+			destinations.add(getUploadDestination(userInfo, parentId, uploadDestinationLocation.getUploadId()));
 		}
-
-		List<UploadDestination> destinations = Lists
-				.newArrayListWithExpectedSize(4);
-
-		// generate random file name
-		String filename = UUID.randomUUID().toString();
-		for (UploadDestinationSetting uploadDestinationSetting : uploadDestinationsSettings
-				.getDestinations()) {
-			UploadDestination uploadDestination;
-
-			switch (uploadDestinationSetting.getUploadType()) {
-			case HTTPS:
-			case SFTP:
-				List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo,
-						parentId);
-				uploadDestination = createExternalUploadDestination(
-						uploadDestinationSetting, nodePath, filename);
-				break;
-			default:
-			case S3:
-				uploadDestination = createS3UploadDestination(uploadDestinationSetting);
-				break;
-			}
-
-			uploadDestination.setUploadType(uploadDestinationSetting
-					.getUploadType());
-			uploadDestination.setBanner(uploadDestinationSetting.getBanner());
-			destinations.add(uploadDestination);
-		}
-
 		return destinations;
 	}
 
-	private UploadDestination createS3UploadDestination(
-			UploadDestinationSetting uploadDestinationSetting) {
-		S3UploadDestinationSetting s3UploadDestinationSetting = (S3UploadDestinationSetting) uploadDestinationSetting;
+	@Override
+	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, String parentId) throws DatastoreException,
+			NotFoundException {
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
+
+		// make sure there is always one entry
+		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getLocations() == null
+				|| uploadDestinationsSettings.getLocations().isEmpty()) {
+			UploadDestinationLocation uploadDestinationLocation = new UploadDestinationLocation();
+			uploadDestinationLocation.setUploadId(DEFAULT_UPLOAD_DESTINATION_LOCATION_ID);
+			return Collections.<UploadDestinationLocation> singletonList(uploadDestinationLocation);
+		} else {
+			return projectSettingsManager.getUploadDestinationLocations(userInfo, uploadDestinationsSettings.getLocations());
+		}
+	}
+
+	@Override
+	public UploadDestination getUploadDestination(UserInfo userInfo, String parentId, Long uploadId) throws DatastoreException,
+			NotFoundException {
+		// handle default case
+		if (uploadId.equals(DEFAULT_UPLOAD_DESTINATION_LOCATION_ID)) {
+			S3UploadDestination s3UploadDestination = new S3UploadDestination();
+			s3UploadDestination.setUploadId(DEFAULT_UPLOAD_DESTINATION_LOCATION_ID);
+			s3UploadDestination.setUploadType(UploadType.S3);
+			return s3UploadDestination;
+		}
+
+		UploadDestinationLocationSetting uploadDestinationLocationSetting = uploadDestinationLocationDAO.get(uploadId);
+
+		UploadDestination uploadDestination;
+
+		if (uploadDestinationLocationSetting instanceof S3UploadDestinationLocationSetting) {
+			uploadDestination = createS3UploadDestination((S3UploadDestinationLocationSetting) uploadDestinationLocationSetting);
+		} else if (uploadDestinationLocationSetting instanceof ExternalS3UploadDestinationLocationSetting) {
+			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
+					+ uploadDestinationLocationSetting.getClass().getName());
+		} else if (uploadDestinationLocationSetting instanceof ExternalUploadDestinationLocationSetting) {
+			String filename = UUID.randomUUID().toString();
+			List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
+			uploadDestination = createExternalUploadDestination((ExternalUploadDestinationLocationSetting) uploadDestinationLocationSetting,
+					nodePath, filename);
+		} else {
+			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
+					+ uploadDestinationLocationSetting.getClass().getName());
+		}
+
+		uploadDestination.setUploadId(uploadId);
+		uploadDestination.setUploadType(uploadDestinationLocationSetting.getUploadType());
+		uploadDestination.setBanner(uploadDestinationLocationSetting.getBanner());
+		return uploadDestination;
+	}
+
+	private UploadDestination createS3UploadDestination(S3UploadDestinationLocationSetting s3UploadDestinationSetting) {
 		S3UploadDestination s3UploadDestination = new S3UploadDestination();
 		return s3UploadDestination;
 	}
 
-	private UploadDestination createExternalUploadDestination(
-			UploadDestinationSetting uploadDestinationSetting,
+	private UploadDestination createExternalUploadDestination(ExternalUploadDestinationLocationSetting externalUploadDestinationSetting,
 			List<EntityHeader> nodePath, String filename) {
-		ExternalUploadDestinationSetting externalUploadDestinationSetting = (ExternalUploadDestinationSetting) uploadDestinationSetting;
-		StringBuilder url = new StringBuilder(
-				externalUploadDestinationSetting.getUrl());
+		return createExternalUploadDestination(externalUploadDestinationSetting.getUrl(),
+				externalUploadDestinationSetting.getSupportsSubfolders(), nodePath, filename);
+	}
+
+	private UploadDestination createExternalUploadDestination(String baseUrl, Boolean supportsSubfolders, List<EntityHeader> nodePath,
+			String filename) {
+		StringBuilder url = new StringBuilder(baseUrl);
 		if (url.length() == 0) {
-			throw new IllegalArgumentException(
-					"The url for the external upload destination setting is empty");
+			throw new IllegalArgumentException("The url for the external upload destination setting is empty");
 		}
 		if (url.charAt(url.length() - 1) != '/') {
 			url.append('/');
 		}
 		// need to add subfolders here if supported
-		if (BooleanUtils.isTrue(externalUploadDestinationSetting
-				.getSupportsSubfolders())) {
+		if (BooleanUtils.isTrue(supportsSubfolders)) {
 			if (nodePath.size() > 0) {
 				// the first path in the node path is always "root". We don't
 				// want that to show up in the file path
@@ -817,9 +841,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					// we need to url encode, but r client does not like '+' for
 					// space. So encode with java encoder and
 					// then replace '+' with %20
-					url.append(
-							URLEncoder.encode(node.getName(), "UTF-8").replace(
-									"+", "%20")).append('/');
+					url.append(URLEncoder.encode(node.getName(), "UTF-8").replace("+", "%20")).append('/');
 				} catch (UnsupportedEncodingException e) {
 					// shouldn't happen
 					throw new IllegalArgumentException(e.getMessage(), e);

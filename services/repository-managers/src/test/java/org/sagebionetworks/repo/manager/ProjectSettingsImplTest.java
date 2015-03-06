@@ -13,11 +13,16 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -44,6 +49,10 @@ public class ProjectSettingsImplTest {
 	@Autowired
 	private UserManager userManager;
 
+	private ExternalUploadDestinationLocationSetting externalLocationSetting;
+
+	private ExternalS3UploadDestinationLocationSetting externalS3LocationSetting;
+
 	private UserInfo adminUserInfo;
 	private String projectId;
 	private String childId;
@@ -65,6 +74,18 @@ public class ProjectSettingsImplTest {
 		childChild.setName("child");
 		childChild.setParentId(childId);
 		childChildId = entityManager.createEntity(adminUserInfo, childChild, null);
+
+		externalLocationSetting = new ExternalUploadDestinationLocationSetting();
+		externalLocationSetting.setUploadType(UploadType.SFTP);
+		externalLocationSetting.setUrl("sftp://here");
+		externalLocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(adminUserInfo, externalLocationSetting);
+
+		externalS3LocationSetting = new ExternalS3UploadDestinationLocationSetting();
+		externalS3LocationSetting.setUploadType(UploadType.S3);
+		externalS3LocationSetting.setUrl("sftp://here");
+		externalS3LocationSetting.setBucket("bucket");
+		externalS3LocationSetting.setBaseKey("key");
+		externalS3LocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(adminUserInfo, externalS3LocationSetting);
 	}
 
 	@After
@@ -78,20 +99,16 @@ public class ProjectSettingsImplTest {
 	public void testCRUD() throws Exception {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
-		toCreate.setSettingsType("upload");
-		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-		ExternalUploadDestinationSetting s1 = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
-		s1.setUrl("sftp://url");
-		s1.setUploadType(UploadType.SFTP);
+		toCreate.setSettingsType(ProjectSettingsType.upload);
+		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
 		ProjectSetting settings = projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
 		assertTrue(settings instanceof UploadDestinationListSetting);
 
 		ProjectSetting copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
 		assertEquals(settings, copy);
 
-		ExternalUploadDestinationSetting s2 = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) settings).getDestinations().get(0));
-		s2.setUrl("sftp://url");
-		s2.setUploadType(UploadType.SFTP);
+		((UploadDestinationListSetting) settings).setLocations(Lists.newArrayList(externalLocationSetting.getUploadId(),
+				externalS3LocationSetting.getUploadId()));
 		projectSettingsManager.updateProjectSetting(adminUserInfo, settings);
 		copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
 		assertNotSame(settings, copy);
@@ -105,26 +122,20 @@ public class ProjectSettingsImplTest {
 	public void testFind() throws Exception {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
-		toCreate.setSettingsType("upload");
-		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
-		s.setUrl("https://url");
-		s.setUploadType(UploadType.HTTPS);
+		toCreate.setSettingsType(ProjectSettingsType.upload);
+		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
 		projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
 
-		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, projectId, "upload",
+		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, projectId,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		assertEquals(externalLocationSetting.getUploadId(), setting.getLocations().get(0));
+
+		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+		assertEquals(externalLocationSetting.getUploadId(), setting.getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, "upload", UploadDestinationListSetting.class);
-		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
-
-		setting = projectSettingsManager
-				.getProjectSettingForParent(adminUserInfo, childChildId, "upload", UploadDestinationListSetting.class);
-		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
-
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, "upload-not",
+		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertNull(setting);
+		assertEquals(externalLocationSetting.getUploadId(), setting.getLocations().get(0));
 	}
 }

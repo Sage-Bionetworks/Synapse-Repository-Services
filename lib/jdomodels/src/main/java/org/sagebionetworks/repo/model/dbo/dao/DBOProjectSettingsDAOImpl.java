@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,12 +17,13 @@ import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,11 +38,14 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String SELECT_SETTING = "SELECT * FROM " + SqlConstants.TABLE_PROJECT_SETTING + " WHERE "
+	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
-	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + SqlConstants.TABLE_PROJECT_SETTING + " WHERE "
+	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
 
 	private static final RowMapper<DBOProjectSetting> projectSettingRowMapper = (new DBOProjectSetting()).getTableMapping();
@@ -61,10 +66,10 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	}
 
 	@Override
-	public ProjectSetting get(String projectId, String type) throws DatastoreException {
+	public ProjectSetting get(String projectId, ProjectSettingsType type) throws DatastoreException {
 		try {
 			DBOProjectSetting projectSetting = jdbcTemplate.queryForObject(SELECT_SETTING, projectSettingRowMapper,
-					KeyFactory.stringToKey(projectId), type);
+					KeyFactory.stringToKey(projectId), type.name());
 			ProjectSetting dto = convertDboToDto(projectSetting);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
@@ -159,5 +164,4 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		dto.setEtag(dbo.getEtag());
 		return dto;
 	}
-
 }

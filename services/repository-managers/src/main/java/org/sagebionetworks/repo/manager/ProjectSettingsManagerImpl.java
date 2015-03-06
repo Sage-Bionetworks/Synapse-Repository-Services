@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -15,15 +16,16 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.sun.tools.internal.xjc.generator.bean.field.NoExtendedContentField;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -31,6 +33,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private ProjectSettingsDAO projectSettingsDao;
+
+	@Autowired
+	private UploadDestinationLocationDAO uploadDestinationLocationDAO;
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -59,8 +64,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public ProjectSetting getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, String type) throws DatastoreException,
-			NotFoundException {
+	public ProjectSetting getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, ProjectSettingsType type)
+			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
 			throw new UnauthorizedException("Cannot read information from this project");
 		}
@@ -70,8 +75,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, String type, Class<T> expectedType)
-			throws DatastoreException, UnauthorizedException, NotFoundException {
+	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, ProjectSettingsType type,
+			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
 			throw new UnauthorizedException("Cannot read information for this parent entity");
 		}
@@ -99,6 +104,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
+	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) {
+		return uploadDestinationLocationDAO.getUploadDestinationLocations(locations);
+	}
+
+	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		// make sure the project id is a project
@@ -109,7 +119,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
-		ProjectSettingsUtil.validateProjectSetting(projectSetting);
+		ProjectSettingsUtil.validateProjectSetting(projectSetting, uploadDestinationLocationDAO);
 		String id = projectSettingsDao.create(projectSetting);
 		return projectSettingsDao.get(id);
 	}
@@ -120,7 +130,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
-		ProjectSettingsUtil.validateProjectSetting(projectSetting);
+		ProjectSettingsUtil.validateProjectSetting(projectSetting, uploadDestinationLocationDAO);
 		projectSettingsDao.update(projectSetting);
 	}
 
@@ -133,5 +143,24 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 		projectSettingsDao.delete(id);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(UserInfo userInfo,
+			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException {
+		uploadDestinationLocationSetting.setCreatedBy(userInfo.getId());
+		uploadDestinationLocationSetting.setCreatedOn(new Date());
+		Long uploadId = uploadDestinationLocationDAO.create(uploadDestinationLocationSetting);
+		return (T) uploadDestinationLocationDAO.get(uploadId);
+	}
+
+	@Override
+	public <T extends UploadDestinationLocationSetting> T updateUploadDestinationLocationSetting(UserInfo userInfo,
+			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException {
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Cannot update settings on this project");
+		}
+		return uploadDestinationLocationDAO.update(uploadDestinationLocationSetting);
 	}
 }

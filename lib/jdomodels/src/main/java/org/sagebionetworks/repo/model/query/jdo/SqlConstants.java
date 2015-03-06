@@ -82,6 +82,15 @@ public class SqlConstants {
 	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
 	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
 
+	// The Upload Destination Location table
+	public static final String TABLE_UPLOAD_DESTINATION_LOCATION			= "UPLOAD_DESTINATION_LOCATION";
+	public static final String COL_UPLOAD_DESTINATION_LOCATION_ID			= "ID";
+	public static final String COL_UPLOAD_DESTINATION_LOCATION_DESCRIPTION	= "DESCRIPTION";
+	public static final String COL_UPLOAD_DESTINATION_LOCATION_ETAG			= "ETAG";
+	public static final String COL_UPLOAD_DESTINATION_LOCATION_DATA			= "DATA";
+	public static final String COL_UPLOAD_DESTINATION_LOCATION_CREATED_ON	= "CREATED_ON";
+	public static final String COL_UPLOAD_DESTINATION_LOCATION_CREATED_BY	= "CREATED_BY";
+
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";

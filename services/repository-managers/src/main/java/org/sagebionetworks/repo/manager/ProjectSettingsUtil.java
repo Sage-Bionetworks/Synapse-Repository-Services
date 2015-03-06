@@ -1,66 +1,35 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
-
-import java.util.List;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.util.CollectionUtils;
 
 public class ProjectSettingsUtil {
-	
-	public static void validateProjectSetting(ProjectSetting setting) {
-		if (setting == null) {
-			throw new IllegalArgumentException("Setting cannot be null");
-		}
+
+	public static void validateProjectSetting(ProjectSetting setting, UploadDestinationLocationDAO uploadDestinationLocationDAO) {
+		ValidateArgument.required(setting.getProjectId(), "projectId");
+		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
-			ProjectSettingsUtil.validateUploadDestinationListSetting((UploadDestinationListSetting)setting);
-		}
-	}
-	
-	public static void validateUploadDestinationListSetting(UploadDestinationListSetting setting) {
-		if (setting == null) {
-			throw new IllegalArgumentException("Setting cannot be null.");
-		}
-		if (setting.getDestinations() == null) {
-			throw new IllegalArgumentException("setting.getDestinations() cannot be null.");
-		}
-		List<UploadDestinationSetting> destinations = setting.getDestinations();
-		for (UploadDestinationSetting dest: destinations) {
-			validateUploadDestinationSetting(dest);
-		}
-	}
-	
-	public static void validateUploadDestinationSetting(UploadDestinationSetting setting) {
-		if (setting == null) {
-			throw new IllegalArgumentException("Setting cannot be null.");
-		}
-		if ((setting.getUploadType() == null)) {
-			throw new IllegalArgumentException("Setting.getUploadType() cannot be null.");
-		}
-		
-		if (setting instanceof ExternalUploadDestinationSetting) {
-			if (((ExternalUploadDestinationSetting) setting).getUrl() == null) {
-				throw new IllegalArgumentException("setting.getUrl() cannot be null.");
-			}
-			if (setting.getUploadType() == UploadType.S3) {
-				throw new IllegalArgumentException("UploadType.S3 invalid for ExternalUploadDestinationSetting.");
-			}
-			if ((setting.getUploadType() == UploadType.HTTPS) && 
-					(!((ExternalUploadDestinationSetting) setting).getUrl().toLowerCase().startsWith("https:"))) {
-				throw new IllegalArgumentException("setting.getUrl() must start with 'http' if setting.getUploadType() is UploadType.HTTP.");
-			}
-			if ((setting.getUploadType() == UploadType.SFTP) && 
-					(!((ExternalUploadDestinationSetting) setting).getUrl().toLowerCase().startsWith("sftp"))) {
-				throw new IllegalArgumentException("setting.getUrl() must start with 'sftp' if setting.getUploadType() is UploadType.SFTP.");
-			}
-		}
-		if ((setting instanceof S3UploadDestinationSetting) &&
-				(setting.getUploadType() != UploadType.S3)) {
-			throw new IllegalArgumentException("setting.getUploadType() must be UploadType.S3 if type is S3UploadDestinationSetting.");
+			ProjectSettingsUtil.validateUploadDestinationListSetting((UploadDestinationListSetting) setting, uploadDestinationLocationDAO);
+		} else {
+			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}
 	}
 
+	private static void validateUploadDestinationListSetting(UploadDestinationListSetting setting,
+			UploadDestinationLocationDAO uploadDestinationLocationDAO) {
+		ValidateArgument.requirement(CollectionUtils.isEmpty(setting.getDestinations()), "setting.getDestinations() cannot have a value.");
+		ValidateArgument.required(setting.getLocations(), "settings.locations");
+		ValidateArgument.requirement(setting.getLocations().size() >= 1, "settings.locations must at least have one entry");
+		for (Long uploadId : setting.getLocations()) {
+			try {
+				uploadDestinationLocationDAO.get(uploadId);
+			} catch (NotFoundException e) {
+				ValidateArgument.failRequirement("uploadId " + uploadId + " is not a valid upload destination location");
+			}
+		}
+	}
 }

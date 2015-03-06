@@ -6,6 +6,10 @@
             "type": "string",
             "description": "Indicates which implementation this object represents."
         },
+		"uploadId": {
+			"type": "integer",
+			"description": "the unique id for this upload destination type"
+		},
 		"uploadType": {
 			"type": "string",
 			"name": "UploadType",

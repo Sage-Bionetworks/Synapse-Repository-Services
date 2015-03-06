@@ -58,8 +58,11 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -387,18 +390,21 @@ public class FileHandleManagerImplAutowireTest {
 	}
 
 	@Test
-	public void testExternalUploadDestination() throws Exception {
+	public void testExternalUploadDestinationOld() throws Exception {
 		final String URL = "sftp://www.sftpsite.com/base/basefolder";
+
+		ExternalUploadDestinationLocationSetting externalLocationSetting = new ExternalUploadDestinationLocationSetting();
+		externalLocationSetting.setBanner("upload here");
+		externalLocationSetting.setSupportsSubfolders(true);
+		externalLocationSetting.setUploadType(UploadType.SFTP);
+		externalLocationSetting.setUrl(URL);
+		externalLocationSetting.setDescription("external");
+		externalLocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalLocationSetting);
 
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
-		uploadDestinationListSetting.setSettingsType("upload");
-		ExternalUploadDestinationSetting uploadDestination = new ExternalUploadDestinationSetting();
-		uploadDestination.setBanner("upload here");
-		uploadDestination.setSupportsSubfolders(true);
-		uploadDestination.setUploadType(UploadType.SFTP);
-		uploadDestination.setUrl(URL);
-		uploadDestinationListSetting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(uploadDestination));
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
 
 		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
 
@@ -406,6 +412,39 @@ public class FileHandleManagerImplAutowireTest {
 		assertEquals(1, uploadDestinations.size());
 		assertEquals(ExternalUploadDestination.class, uploadDestinations.get(0).getClass());
 		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestinations.get(0);
+		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
+		assertEquals("upload here", externalUploadDestination.getBanner());
+		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
+		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
+	}
+
+	@Test
+	public void testExternalUploadDestination() throws Exception {
+		final String URL = "sftp://www.sftpsite.com/base/basefolder";
+
+		ExternalUploadDestinationLocationSetting externalLocationSetting = new ExternalUploadDestinationLocationSetting();
+		externalLocationSetting.setBanner("upload here");
+		externalLocationSetting.setSupportsSubfolders(true);
+		externalLocationSetting.setUploadType(UploadType.SFTP);
+		externalLocationSetting.setUrl(URL);
+		externalLocationSetting.setDescription("external");
+		externalLocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalLocationSetting);
+
+		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
+		uploadDestinationListSetting.setProjectId(projectId);
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
+
+		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
+
+		List<UploadDestinationLocation> uploadDestinationLocations = fileUploadManager.getUploadDestinationLocations(userInfo, uploadFolder);
+		assertEquals(1, uploadDestinationLocations.size());
+		assertEquals("external", uploadDestinationLocations.get(0).getDescription());
+
+		UploadDestination uploadDestination = fileUploadManager.getUploadDestination(userInfo, uploadFolder, uploadDestinationLocations
+				.get(0).getUploadId());
+		assertEquals(ExternalUploadDestination.class, uploadDestination.getClass());
+		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestination;
 		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
 		assertEquals("upload here", externalUploadDestination.getBanner());
 		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";

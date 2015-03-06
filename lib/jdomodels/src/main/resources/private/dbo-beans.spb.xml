@@ -47,6 +47,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDestinationLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />

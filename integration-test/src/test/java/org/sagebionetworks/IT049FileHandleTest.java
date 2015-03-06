@@ -24,23 +24,34 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.S3UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
 
@@ -267,40 +278,31 @@ public class IT049FileHandleTest {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType("upload");
-		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
-		destination.setUploadType(UploadType.HTTPS);
-		destination.setUrl("https://not-valid");
-		projectSetting.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
+
+		ExternalUploadDestinationLocationSetting externalDestination = new ExternalUploadDestinationLocationSetting();
+		externalDestination.setUploadType(UploadType.HTTPS);
+		externalDestination.setUrl("https://not-valid");
+		externalDestination.setBanner("warning, at institute");
+		externalDestination.setDescription("not in synapse, this is");
+		externalDestination = synapse.createUploadDestinationLocationSetting(externalDestination);
+		projectSetting.setLocations(Lists.newArrayList(externalDestination.getUploadId()));
 
 		ProjectSetting created = synapse.createProjectSetting(projectSetting);
 		assertEquals(project.getId(), created.getProjectId());
-		assertEquals("upload", created.getSettingsType());
+		assertEquals(ProjectSettingsType.upload, created.getSettingsType());
 		assertEquals(UploadDestinationListSetting.class, created.getClass());
-		assertEquals(projectSetting.getDestinations(), ((UploadDestinationListSetting) created).getDestinations());
+		assertEquals(projectSetting.getLocations(), ((UploadDestinationListSetting) created).getLocations());
 
-		ProjectSetting clone = synapse.getProjectSetting(project.getId(), "upload");
+		ProjectSetting clone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload);
 		assertEquals(created, clone);
 
-		try {
-			ProjectSetting clone2 = synapse.getProjectSetting(project.getId(), "upload");
-			clone2.setSettingsType("notupload");
-			synapse.updateProjectSetting(clone2);
-			fail("Should not have succeeded, you cannot change the settings type");
-		} catch (SynapseBadRequestException e) {
-		}
-		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) clone).getDestinations().get(0));
-		s.setUrl("sftp://not-valid");
-		s.setUploadType(UploadType.SFTP);
-		synapse.updateProjectSetting(clone);
-
-		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), "upload");
-		assertEquals("sftp://not-valid",
-				((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) newClone).getDestinations().get(0)).getUrl());
+		UploadDestination uploadDestination = synapse.getUploadDestination(project.getId(), externalDestination.getUploadId());
+		assertEquals(externalDestination, uploadDestination);
 
 		synapse.deleteProjectSetting(created.getId());
 
-		assertNull(synapse.getProjectSetting(project.getId(), "upload"));
+		assertNull(synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload));
 	}
 
 	@Test(expected = NotImplementedException.class)
@@ -308,7 +310,7 @@ public class IT049FileHandleTest {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType("upload");
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
 		destination.setUploadType(UploadType.HTTPS);
 		destination.setUrl("https://not-valid");
@@ -341,6 +343,45 @@ public class IT049FileHandleTest {
 		// } catch (SynapseNotFoundException e) {
 		// // expected.
 		// }
+	}
+
+	@Test
+	public void testExternalUploadDestinationChoice() throws SynapseException, IOException, InterruptedException {
+		// create an project setting
+		ExternalS3UploadDestinationLocationSetting externalS3Destination = new ExternalS3UploadDestinationLocationSetting();
+		externalS3Destination.setUploadType(UploadType.S3);
+		externalS3Destination.setUrl("s3.amazon.com");
+		externalS3Destination.setBucket("bucket");
+		externalS3Destination.setBaseKey("key");
+		externalS3Destination.setBanner("warning, at institute");
+		externalS3Destination.setDescription("not in synapse, this is");
+		externalS3Destination = synapse.createUploadDestinationLocationSetting(externalS3Destination);
+
+		S3UploadDestinationLocationSetting internalS3Destination = new S3UploadDestinationLocationSetting();
+		internalS3Destination.setUploadType(UploadType.S3);
+		internalS3Destination.setBanner("warning, not at institute");
+		internalS3Destination = synapse.createUploadDestinationLocationSetting(internalS3Destination);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(project.getId());
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
+		projectSetting.setLocations(Lists.newArrayList(externalS3Destination.getUploadId(), internalS3Destination.getUploadId()));
+		synapse.createProjectSetting(projectSetting);
+
+		UploadDestinationLocation[] uploadDestinationLocations = synapse.getUploadDestinationLocations(project.getId());
+		assertEquals(2, uploadDestinationLocations.length);
+		assertEquals(externalS3Destination.getUploadId(), uploadDestinationLocations[0].getUploadId());
+		assertEquals(internalS3Destination.getUploadId(), uploadDestinationLocations[1].getUploadId());
+
+		UploadDestination uploadDestination = synapse.getUploadDestination(project.getId(), uploadDestinationLocations[0].getUploadId());
+		assertEquals(UploadType.S3, uploadDestination.getUploadType());
+		assertEquals(externalS3Destination.getUploadId(), uploadDestination.getUploadId());
+		assertEquals(ExternalS3UploadDestination.class, uploadDestination.getClass());
+
+		uploadDestination = synapse.getUploadDestination(project.getId(), uploadDestinationLocations[1].getUploadId());
+		assertEquals(UploadType.S3, uploadDestination.getUploadType());
+		assertEquals(internalS3Destination.getUploadId(), uploadDestination.getUploadId());
+		assertEquals(S3UploadDestination.class, uploadDestination.getClass());
 	}
 
 	@Test
