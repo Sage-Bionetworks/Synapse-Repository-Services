@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -61,7 +62,8 @@ public class ProjectSettingsController extends BaseController {
 	@RequestMapping(value = UrlHelpers.PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE, method = RequestMethod.GET)
 	public @ResponseBody
 	ProjectSetting getProjectSettingByProjectAndType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String projectId, @PathVariable String type) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@PathVariable String projectId, @PathVariable ProjectSettingsType type) throws DatastoreException, UnauthorizedException,
+			NotFoundException {
 		return serviceProvider.getProjectSettingsService().getProjectSettingByProjectAndType(userId, projectId, type);
 	}
 

@@ -102,6 +102,7 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -5935,15 +5936,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ProjectSetting getProjectSetting(String projectId,
-			String settingsType) throws SynapseException {
+	public ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException {
 		try {
-			String uri = PROJECT_SETTINGS + "/" + projectId + "/type/"
-					+ settingsType;
-			JSONObject jsonObject = getSharedClientConnection().getJson(
-					repoEndpoint, uri, getUserAgent());
-			return createJsonObjectFromInterface(jsonObject,
-					ProjectSetting.class);
+			String uri = PROJECT_SETTINGS + "/" + projectId + "/type/" + projectSettingsType;
+			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			return createJsonObjectFromInterface(jsonObject, ProjectSetting.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

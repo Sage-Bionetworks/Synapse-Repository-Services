@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +24,8 @@ public class ProjectSettingsServiceImpl implements ProjectSettingsService {
 	}
 
 	@Override
-	public ProjectSetting getProjectSettingByProjectAndType(Long userId, String projectId, String type) throws DatastoreException, NotFoundException {
+	public ProjectSetting getProjectSettingByProjectAndType(Long userId, String projectId, ProjectSettingsType type)
+			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return projectSettingsManager.getProjectSettingByProjectAndType(userInfo, projectId, type);
 	}
