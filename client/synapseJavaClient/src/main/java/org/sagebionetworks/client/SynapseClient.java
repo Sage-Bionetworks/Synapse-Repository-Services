@@ -2132,4 +2132,5 @@ public interface SynapseClient extends BaseClient {
 	 */
 	AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(
 			String jobId) throws SynapseException;
+
 }

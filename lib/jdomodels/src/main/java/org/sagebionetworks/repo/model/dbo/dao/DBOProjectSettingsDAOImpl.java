@@ -43,8 +43,8 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
-			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
+	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_PROJECT_ID
+			+ " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
 
@@ -164,4 +164,5 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		dto.setEtag(dbo.getEtag());
 		return dto;
 	}
+
 }
