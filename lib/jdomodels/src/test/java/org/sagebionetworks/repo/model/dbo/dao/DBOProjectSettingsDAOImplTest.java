@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -67,10 +68,10 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setEtag("etag");
 		setting.setId(null);
 		setting.setProjectId(projectId);
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 
 		// there should not be a settings to begin with
-		assertNull(projectSettingsDao.get(projectId, "upload"));
+		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 
 		// Create it
@@ -79,7 +80,7 @@ public class DBOProjectSettingsDAOImplTest {
 		assertNotNull(id);
 
 		// Fetch it
-		ProjectSetting clone = projectSettingsDao.get(projectId, "upload");
+		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
 		assertNotNull(clone);
 		assertEquals(setting, clone);
 
@@ -106,7 +107,7 @@ public class DBOProjectSettingsDAOImplTest {
 		// Delete it
 		projectSettingsDao.delete(id);
 
-		assertNull(projectSettingsDao.get(projectId, "upload"));
+		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 	}
 
@@ -116,7 +117,7 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setEtag("etag");
 		setting.setId(null);
 		setting.setProjectId(projectId);
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 		projectSettingsDao.create(setting);
 		assertEquals(1, projectSettingsDao.getAllForProject(projectId).size());
 
@@ -129,7 +130,7 @@ public class DBOProjectSettingsDAOImplTest {
 	public void testProjectIdMustBeSet() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(null);
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 		projectSettingsDao.create(setting);
 	}
 
@@ -137,7 +138,7 @@ public class DBOProjectSettingsDAOImplTest {
 	public void testProjectIdMustBeValid() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId("123");
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 		projectSettingsDao.create(setting);
 	}
 

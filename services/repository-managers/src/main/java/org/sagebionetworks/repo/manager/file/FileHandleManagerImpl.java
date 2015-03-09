@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
@@ -737,7 +738,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager
-				.getProjectSettingForParent(userInfo, parentId, "upload",
+				.getProjectSettingForParent(userInfo, parentId, ProjectSettingsType.upload,
 						UploadDestinationListSetting.class);
 
 		// make sure there is always one entry

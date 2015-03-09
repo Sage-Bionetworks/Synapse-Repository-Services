@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -267,7 +268,7 @@ public class IT049FileHandleTest {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType("upload");
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
 		destination.setUploadType(UploadType.HTTPS);
 		destination.setUrl("https://not-valid");
@@ -275,32 +276,25 @@ public class IT049FileHandleTest {
 
 		ProjectSetting created = synapse.createProjectSetting(projectSetting);
 		assertEquals(project.getId(), created.getProjectId());
-		assertEquals("upload", created.getSettingsType());
+		assertEquals(ProjectSettingsType.upload, created.getSettingsType());
 		assertEquals(UploadDestinationListSetting.class, created.getClass());
 		assertEquals(projectSetting.getDestinations(), ((UploadDestinationListSetting) created).getDestinations());
 
-		ProjectSetting clone = synapse.getProjectSetting(project.getId(), "upload");
+		ProjectSetting clone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload);
 		assertEquals(created, clone);
 
-		try {
-			ProjectSetting clone2 = synapse.getProjectSetting(project.getId(), "upload");
-			clone2.setSettingsType("notupload");
-			synapse.updateProjectSetting(clone2);
-			fail("Should not have succeeded, you cannot change the settings type");
-		} catch (SynapseBadRequestException e) {
-		}
 		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) clone).getDestinations().get(0));
 		s.setUrl("sftp://not-valid");
 		s.setUploadType(UploadType.SFTP);
 		synapse.updateProjectSetting(clone);
 
-		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), "upload");
+		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload);
 		assertEquals("sftp://not-valid",
 				((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) newClone).getDestinations().get(0)).getUrl());
 
 		synapse.deleteProjectSetting(created.getId());
 
-		assertNull(synapse.getProjectSetting(project.getId(), "upload"));
+		assertNull(synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload));
 	}
 
 	@Test(expected = NotImplementedException.class)
@@ -308,7 +302,7 @@ public class IT049FileHandleTest {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType("upload");
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
 		destination.setUploadType(UploadType.HTTPS);
 		destination.setUrl("https://not-valid");

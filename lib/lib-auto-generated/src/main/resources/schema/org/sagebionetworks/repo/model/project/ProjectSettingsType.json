@@ -1,0 +1,8 @@
+{
+    "description":"The enumeration of project setting types.",
+    "name": "ProjectSettingsType",
+    "type":"string",
+    "enum":[
+        "upload"
+    ]
+}

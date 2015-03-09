@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 import java.util.List;
 
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
@@ -36,7 +37,7 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 	private Long projectId;
 
 	@Field(name = COL_PROJECT_SETTING_TYPE, nullable = false, varchar = 256)
-	private String type;
+	private ProjectSettingsType type;
 
 	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true)
 	private String etag;
@@ -72,11 +73,11 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 		this.projectId = projectId;
 	}
 
-	public String getType() {
+	public ProjectSettingsType getType() {
 		return type;
 	}
 
-	public void setType(String type) {
+	public void setType(ProjectSettingsType type) {
 		this.type = type;
 	}
 

@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
@@ -311,7 +312,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private void createProjectSetting() {
 		UploadDestinationListSetting settings = new UploadDestinationListSetting();
 		settings.setProjectId(project.getId());
-		settings.setSettingsType("upload");
+		settings.setSettingsType(ProjectSettingsType.upload);
 		S3UploadDestinationSetting destination = new S3UploadDestinationSetting();
 		destination.setUploadType(UploadType.S3);
 		settings.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));

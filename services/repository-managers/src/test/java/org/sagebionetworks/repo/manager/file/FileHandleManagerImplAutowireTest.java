@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -392,7 +393,7 @@ public class FileHandleManagerImplAutowireTest {
 
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
-		uploadDestinationListSetting.setSettingsType("upload");
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting uploadDestination = new ExternalUploadDestinationSetting();
 		uploadDestination.setBanner("upload here");
 		uploadDestination.setSupportsSubfolders(true);

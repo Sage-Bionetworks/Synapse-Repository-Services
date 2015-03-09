@@ -110,6 +110,7 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -1919,7 +1920,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
-	ProjectSetting getProjectSetting(String projectId, String settingsType) throws SynapseException;
+	ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException;
 
 	/**
 	 * create a project setting
