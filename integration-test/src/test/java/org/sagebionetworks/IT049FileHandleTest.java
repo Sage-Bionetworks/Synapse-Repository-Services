@@ -268,7 +268,7 @@ public class IT049FileHandleTest {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.UPLOAD);
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
 		destination.setUploadType(UploadType.HTTPS);
 		destination.setUrl("https://not-valid");
@@ -276,11 +276,11 @@ public class IT049FileHandleTest {
 
 		ProjectSetting created = synapse.createProjectSetting(projectSetting);
 		assertEquals(project.getId(), created.getProjectId());
-		assertEquals(ProjectSettingsType.UPLOAD, created.getSettingsType());
+		assertEquals(ProjectSettingsType.upload, created.getSettingsType());
 		assertEquals(UploadDestinationListSetting.class, created.getClass());
 		assertEquals(projectSetting.getDestinations(), ((UploadDestinationListSetting) created).getDestinations());
 
-		ProjectSetting clone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.UPLOAD);
+		ProjectSetting clone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload);
 		assertEquals(created, clone);
 
 		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) clone).getDestinations().get(0));
@@ -288,13 +288,13 @@ public class IT049FileHandleTest {
 		s.setUploadType(UploadType.SFTP);
 		synapse.updateProjectSetting(clone);
 
-		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.UPLOAD);
+		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload);
 		assertEquals("sftp://not-valid",
 				((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) newClone).getDestinations().get(0)).getUrl());
 
 		synapse.deleteProjectSetting(created.getId());
 
-		assertNull(synapse.getProjectSetting(project.getId(), ProjectSettingsType.UPLOAD));
+		assertNull(synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload));
 	}
 
 	@Test(expected = NotImplementedException.class)
@@ -302,7 +302,7 @@ public class IT049FileHandleTest {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.UPLOAD);
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
 		destination.setUploadType(UploadType.HTTPS);
 		destination.setUrl("https://not-valid");

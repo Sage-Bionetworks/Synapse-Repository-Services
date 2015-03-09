@@ -393,7 +393,7 @@ public class FileHandleManagerImplAutowireTest {
 
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
-		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.UPLOAD);
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
 		ExternalUploadDestinationSetting uploadDestination = new ExternalUploadDestinationSetting();
 		uploadDestination.setBanner("upload here");
 		uploadDestination.setSupportsSubfolders(true);

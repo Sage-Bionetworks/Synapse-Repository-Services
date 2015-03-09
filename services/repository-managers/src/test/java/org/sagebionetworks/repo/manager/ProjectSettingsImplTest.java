@@ -79,7 +79,7 @@ public class ProjectSettingsImplTest {
 	public void testCRUD() throws Exception {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
-		toCreate.setSettingsType(ProjectSettingsType.UPLOAD);
+		toCreate.setSettingsType(ProjectSettingsType.upload);
 		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
 		ExternalUploadDestinationSetting s1 = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
 		s1.setUrl("sftp://url");
@@ -106,7 +106,7 @@ public class ProjectSettingsImplTest {
 	public void testFind() throws Exception {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
-		toCreate.setSettingsType(ProjectSettingsType.UPLOAD);
+		toCreate.setSettingsType(ProjectSettingsType.upload);
 		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
 		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
 		s.setUrl("https://url");
@@ -114,14 +114,14 @@ public class ProjectSettingsImplTest {
 		projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
 
 		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, projectId,
-				ProjectSettingsType.UPLOAD, UploadDestinationListSetting.class);
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, ProjectSettingsType.UPLOAD,
+		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, ProjectSettingsType.UPLOAD,
+		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
 	}

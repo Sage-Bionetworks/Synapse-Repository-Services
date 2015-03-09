@@ -738,7 +738,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager
-				.getProjectSettingForParent(userInfo, parentId, ProjectSettingsType.UPLOAD,
+				.getProjectSettingForParent(userInfo, parentId, ProjectSettingsType.upload,
 						UploadDestinationListSetting.class);
 
 		// make sure there is always one entry

@@ -155,9 +155,6 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 
 			@Override
 			public DBOProjectSetting createDatabaseObjectFromBackup(DBOProjectSetting backup) {
-				if (backup.getType() == ProjectSettingsType.upload) {
-					backup.setType(ProjectSettingsType.UPLOAD);
-				}
 				return backup;
 			}
 
