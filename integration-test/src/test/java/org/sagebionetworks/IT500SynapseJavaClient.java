@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -797,9 +799,10 @@ public class IT500SynapseJavaClient {
 
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
+	 * @throws Exception 
 	 */
 	@Test
-	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+	public void testProfileImageRoundTrip() throws Exception{
 		// First load an image from the classpath
 		String fileName = "images/profile_pic.png";
 		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
@@ -819,8 +822,30 @@ public class IT500SynapseJavaClient {
 		// Make sure we can get a pre-signed url the image and its preview.
 		URL profileURL = synapseOne.getUserProfilePictureUrl(profile.getOwnerId());
 		assertNotNull(profileURL);
-		URL profilePreviewURL = synapseOne.getUserProfilePicturePreviewUrl(profile.getOwnerId());
+		URL profilePreviewURL = waitForProfilePreview(synapseOne, profile.getOwnerId());
 		assertNotNull(profilePreviewURL);
+
+	}
+	
+	/**
+	 * Wait for a profile preview.
+	 * @param client
+	 * @param userId
+	 * @return
+	 * @throws Exception
+	 */
+	public URL waitForProfilePreview(SynapseClient client, String userId) throws Exception{
+		long start = System.currentTimeMillis();
+		while(true){
+			if(System.currentTimeMillis()-start > 30000){
+				fail("Timed out wait for a profile preview: "+userId);
+			}
+			try {
+				return client.getUserProfilePicturePreviewUrl(userId);
+			} catch (SynapseNotFoundException e) {
+				Thread.sleep(1000);
+			}
+		}
 	}
 
 	@Test	
