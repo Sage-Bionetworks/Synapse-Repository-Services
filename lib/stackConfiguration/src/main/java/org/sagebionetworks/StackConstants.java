@@ -123,4 +123,8 @@ public class StackConstants {
 	 */
 	public static final String STACK_LOG_BUCKET = "%1$s.log.sagebase.org";
 
+	/**
+	 * External S3 location test bucket.
+	 */
+	public static final String EXTERNAL_S3_TEST_BUCKET = "%1$s.external.s3.test.sagebase.org";
 }

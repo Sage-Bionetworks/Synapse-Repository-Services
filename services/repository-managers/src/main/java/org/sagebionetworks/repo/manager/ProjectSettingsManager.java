@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,7 +30,7 @@ public interface ProjectSettingsManager {
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	<T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(UserInfo userInfo,
-			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException;
+			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException, IOException;
 
 	<T extends UploadDestinationLocationSetting> T updateUploadDestinationLocationSetting(UserInfo userInfo,
 			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException;

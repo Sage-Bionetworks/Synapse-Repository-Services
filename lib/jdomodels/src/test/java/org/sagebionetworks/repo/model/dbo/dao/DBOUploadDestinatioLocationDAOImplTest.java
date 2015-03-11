@@ -58,6 +58,8 @@ public class DBOUploadDestinatioLocationDAOImplTest {
 
 	private void doTestCRUD(UploadDestinationLocationSetting locationSetting) throws Exception {
 		locationSetting.setDescription("description");
+		locationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		locationSetting.setCreatedOn(new Date());
 		Long id = uploadDestinationLocationDAO.create(locationSetting);
 
 		UploadDestinationLocationSetting clone = uploadDestinationLocationDAO.get(id);

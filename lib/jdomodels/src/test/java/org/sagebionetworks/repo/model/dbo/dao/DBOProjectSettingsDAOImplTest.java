@@ -160,9 +160,13 @@ public class DBOProjectSettingsDAOImplTest {
 		ExternalUploadDestinationLocationSetting locationSetting1 = new ExternalUploadDestinationLocationSetting();
 		locationSetting1.setUploadType(UploadType.SFTP);
 		locationSetting1.setUrl("sftp://");
+		locationSetting1.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		locationSetting1.setCreatedOn(new Date());
 		ExternalS3UploadDestinationLocationSetting locationSetting2 = new ExternalS3UploadDestinationLocationSetting();
 		locationSetting2.setUploadType(UploadType.S3);
 		locationSetting2.setBucket("bucket");
+		locationSetting2.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		locationSetting2.setCreatedOn(new Date());
 		Long l1 = uploadDestinationLocationDAO.create(locationSetting1);
 		Long l2 = uploadDestinationLocationDAO.create(locationSetting2);
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();

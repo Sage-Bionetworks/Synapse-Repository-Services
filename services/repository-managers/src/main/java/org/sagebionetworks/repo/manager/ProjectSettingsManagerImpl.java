@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
@@ -18,7 +19,9 @@ import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
@@ -26,6 +29,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -45,6 +50,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private NodeManager nodeManager;
+
+	@Autowired
+	private AmazonS3Client s3client;
+
+	@Autowired
+	private UserProfileManager userProfileManager;
 
 	private EntityType PROJECT_ENTITY_TYPE;
 
@@ -119,7 +130,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
-		ProjectSettingsUtil.validateProjectSetting(projectSetting, uploadDestinationLocationDAO);
+		ProjectSettingsUtil.validateProjectSetting(projectSetting, userInfo, userProfileManager, uploadDestinationLocationDAO);
 		String id = projectSettingsDao.create(projectSetting);
 		return projectSettingsDao.get(id);
 	}
@@ -130,7 +141,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
-		ProjectSettingsUtil.validateProjectSetting(projectSetting, uploadDestinationLocationDAO);
+		ProjectSettingsUtil.validateProjectSetting(projectSetting, userInfo, userProfileManager, uploadDestinationLocationDAO);
 		projectSettingsDao.update(projectSetting);
 	}
 
@@ -148,7 +159,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(UserInfo userInfo,
-			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException {
+			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException, IOException {
+		if (uploadDestinationLocationSetting instanceof ExternalS3UploadDestinationLocationSetting) {
+			UserProfile userProfile = userProfileManager.getUserProfile(userInfo, userInfo.getId().toString());
+			ProjectSettingsUtil.validateOwnership((ExternalS3UploadDestinationLocationSetting) uploadDestinationLocationSetting, userProfile,
+					s3client);
+		}
+
 		uploadDestinationLocationSetting.setCreatedBy(userInfo.getId());
 		uploadDestinationLocationSetting.setCreatedOn(new Date());
 		Long uploadId = uploadDestinationLocationDAO.create(uploadDestinationLocationSetting);
