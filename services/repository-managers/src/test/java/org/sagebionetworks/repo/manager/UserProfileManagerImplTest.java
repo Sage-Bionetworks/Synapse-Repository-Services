@@ -7,24 +7,27 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -39,10 +42,16 @@ public class UserProfileManagerImplTest {
 	@Autowired
 	private UserProfileManager userProfileManager;
 	
+	@Autowired
+	private FileHandleManager fileHandleManger;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
+	
 	private static final String USER_NAME = "foobar";
 	private static final String USER_EMAIL = "foo@bar.com";
 	private Long userId;
-	
+	UserInfo userInfo;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -52,6 +61,7 @@ public class UserProfileManagerImplTest {
 		user.setLastName("Bar");
 		user.setUserName(USER_NAME);
 		userId = userManager.createUser(user);
+		userInfo = new UserInfo(false, userId);
 	}
 
 	@After
@@ -60,48 +70,6 @@ public class UserProfileManagerImplTest {
 			userManager.deletePrincipal(new UserInfo(true, 0L), userId);
 		}
 		userId = null;
-	}
-
-	@Test
-	public void testGetAttachmentUrl() throws Exception{
-		assertNotNull(userId);
-		UserInfo userInfo = new UserInfo(false, userId); // not an admin
-		
-		Long tokenId = new Long(456);
-		String otherUserProfileId = "12345";
-		
-		// Make the actual call
-		userProfileManager.getUserProfileAttachmentUrl(userInfo.getId(), otherUserProfileId, tokenId.toString());
-	}
-	
-	@Test
-	public void testCreateS3AttachmentToken() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
-		assertNotNull(userId);
-		UserInfo userInfo = new UserInfo(false, userId); // not an admin
-		
-		S3AttachmentToken startToken = new S3AttachmentToken();
-		startToken.setFileName("/some.jpg");
-		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
-		startToken.setMd5(almostMd5);
-		String userId = this.userId.toString();
-		// Make the actual calls
-		S3AttachmentToken endToken = userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
-		assertNotNull(endToken);
-		assertNotNull(endToken.getPresignedUrl());
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateS3AttachmentTokenFromInvalidFile() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
-		UserInfo userInfo = new UserInfo(false, userId.toString()); // not an admin
-		
-		S3AttachmentToken startToken = new S3AttachmentToken();
-		startToken.setFileName("/not_an_image.txt");
-		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
-		startToken.setMd5(almostMd5);
-		Long tokenId = new Long(456);
-		String userId = this.userId.toString();
-		//next line should result in an IllegalArgumentException, since the filename does not not indicate an image file that we recognize
-		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
 	}
 	
 	@Test
@@ -186,4 +154,32 @@ public class UserProfileManagerImplTest {
 		profile = userProfileManager.updateUserProfile(userInfo, profile);
 		assertEquals(Collections.singletonList(USER_EMAIL), profile.getEmails());
 	}
+	
+	/**
+	 * See PLFM-2319.  Originally a user's profile picture was a locationable attachment.
+	 * We have since converted the profile pictures to be FileHandles.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testConvertAttachmentToFileHandle() throws Exception{
+		String userIdString = ""+userId;
+		AttachmentData attachment = fileHandleManger.createAttachmentInS3("image data", "user.jpg", userIdString, userIdString, new Date());
+		// Update the user profile
+		UserProfile profile = userProfileManager.getUserProfile(userInfo, userIdString);
+		profile.setPic(attachment);
+		// The get call should convert the picture to a file handle
+		profile = userProfileManager.updateUserProfile(userInfo, profile);
+		assertEquals("The 'pic' fields should have been replaced and set to null",null, profile.getPic());
+		assertNotNull(profile.getProfilePicureFileHandleId());
+		// get the presigned url for this handle
+		assertNotNull(userProfileManager.getUserProfileImageUrl(userIdString));
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetPicturePresignedUrlNotFound() throws Exception{
+		String userIdString = ""+userId;
+		// get the presigned url for this handle
+		assertNotNull(userProfileManager.getUserProfileImageUrl(userIdString));
+	}
+
 }

@@ -15,8 +15,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -61,21 +59,6 @@ public interface UserProfileManager {
 	public UserProfile createUserProfile(UserProfile updated);
 
 	/**
-	 * userId may not match the profileId
-	 */
-	public S3AttachmentToken createS3UserProfileAttachmentToken(
-			UserInfo userInfo, String profileId, S3AttachmentToken token)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException;
-
-	/**
-	 * return the preassigned url for the user profile attachment
-	 */
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId,
-			String profileId, String tokenID) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException;
-
-	/**
 	 * Adds the entity id to the users's favorites list
 	 */
 	public Favorite addFavorite(UserInfo userInfo, String entityId)
@@ -100,4 +83,20 @@ public interface UserProfileManager {
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
+	
+	/**
+	 * Get the pre-signed URL for a user's profile picture.
+	 * @param userId
+	 * @return The pre-signed URL that can be used to download the user's profile picture.
+	 * @throws NotFoundException Thrown if the user does not have a profile picture.
+	 */
+	public String getUserProfileImageUrl(String userId) throws NotFoundException;
+	
+	/**
+	 * Get the pre-signed URL for a user's profile picture preview.
+	 * @param userId
+	 * @return The pre-signed URL that can be used to download the user's profile picture preview.
+	 * @throws NotFoundException Thrown if the user does not have a profile picture.
+	 */
+	public String getUserProfileImagePreviewUrl(String userId) throws NotFoundException;
 }

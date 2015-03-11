@@ -86,4 +86,12 @@ public interface UserProfileDAO {
 	 * Ensure the bootstrap user's profiles exist
 	 */
 	public void bootstrapProfiles();
+
+	/**
+	 * Get the picture FileHandleId for a user.
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getPictureFileHandleId(String userId) throws NotFoundException;
 }

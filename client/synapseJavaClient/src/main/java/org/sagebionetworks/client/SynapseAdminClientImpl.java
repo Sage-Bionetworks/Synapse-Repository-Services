@@ -66,8 +66,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		super();
 	}
 	
-	public SynapseAdminClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
-		super(new SharedClientConnection(clientProvider), dataUploader);
+	public SynapseAdminClientImpl(HttpClientProvider clientProvider) {
+		super(new SharedClientConnection(clientProvider));
 	}
 	
 	/**

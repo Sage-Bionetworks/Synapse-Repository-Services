@@ -179,6 +179,8 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
+	public static final String USER_PROFILE_IMAGE = USER_PROFILE_ID+"/image";
+	public static final String USER_PROFILE_IMAGE_PREVIEW = USER_PROFILE_IMAGE+"/preview";
 
 	public static final String ENTITY_MD5 = ENTITY + "/md5" + "/{md5}";
 
@@ -220,11 +222,6 @@ public class UrlHelpers {
 	 * The url used to get an attachment URL.
 	 */
 	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL;
-	
-	/**
-	 * The url used to get a user profile attachment URL.
-	 */
-	public static final String USER_PROFILE_ATTACHMENT_URL = USER_PROFILE_ID+ATTACHMENT_URL;
 
 	// project settings
 	public static final String PROJECT_SETTINGS = "/projectSettings";

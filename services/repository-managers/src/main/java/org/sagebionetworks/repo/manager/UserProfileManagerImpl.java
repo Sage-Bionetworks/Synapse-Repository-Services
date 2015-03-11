@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -26,9 +30,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -37,17 +40,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class UserProfileManagerImpl implements UserProfileManager {
-	
+import com.amazonaws.services.s3.AmazonS3Client;
 
+public class UserProfileManagerImpl implements UserProfileManager {
+
+	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
-		
-	@Autowired
-	private S3TokenManager s3TokenManager;
-	
-	@Autowired
-	private AttachmentManager attachmentManager;
 	
 	@Autowired
 	private FavoriteDAO favoriteDAO;
@@ -57,9 +56,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
-	
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private AmazonS3Client s3Client;
+	@Autowired
+	private FileHandleManager fileHandleManager;
+	
 
 	public UserProfileManagerImpl() {
 	}
@@ -67,14 +70,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	/**
 	 * Used by unit tests
 	 */
-	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO,
-			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO, AttachmentManager attachmentManager, PrincipalAliasDAO principalAliasDAO) {
+	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO, FavoriteDAO favoriteDAO, PrincipalAliasDAO principalAliasDAO,
+			AuthorizationManager authorizationManager,
+			AmazonS3Client s3Client,
+			FileHandleManager fileHandleManager) {
 		super();
 		this.userProfileDAO = userProfileDAO;
-		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
-		this.attachmentManager = attachmentManager;
 		this.principalAliasDAO = principalAliasDAO;
+		this.authorizationManager = authorizationManager;
+		this.s3Client = s3Client;
+		this.fileHandleManager = fileHandleManager;
 	}
 
 	@Override
@@ -88,6 +94,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
+		userProfile = convertAttachemtns(userProfile);
 		List<PrincipalAlias> aliases = principalAliasDAO.
 				listPrincipalAliases(Long.parseLong(ownerId));
 		userProfile.setEmails(new ArrayList<String>());
@@ -111,6 +118,62 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		}
 	}
 
+	/**
+	 *  Convert old style attachment pictures to files handles as needed.
+	 * @param profiles
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 */
+	private List<UserProfile> convertAttachemtns(List<UserProfile> profiles) throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException{
+		List<UserProfile> list = new LinkedList<UserProfile>();
+		for(UserProfile profile: profiles){
+			list.add(convertAttachemtns(profile));
+		}
+		return list;
+	}
+	
+	/**
+	 * Convert old style attachment pictures to files handles as needed.
+	 * @param profile
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 */
+	private UserProfile convertAttachemtns(UserProfile profile) throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException{
+		if(profile.getPic() == null){
+			// nothing do to here.
+			return profile;
+		}
+		// We need to convert from an attachment to an S3FileHandle
+		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachment(profile.getOwnerId(), profile.getOwnerId(), new Date(), profile.getPic());
+		// clear the pic, set the filehandle.
+		profile.setPic(null);
+		if(handle != null){
+			profile.setProfilePicureFileHandleId(handle.getId());
+		}
+		return userProfileDAO.update(profile);
+	}
+	
+	/**
+	 * Extract the file name from the keys
+	 * @param key
+	 * @return
+	 */
+	public static String extractFileNameFromKey(String key){
+		if(key == null){
+			return null;
+		}
+		String[] slash = key.split("/");
+		if(slash.length > 0){
+			return slash[slash.length-1];
+		}
+		return null;
+	}
 
 	private void addAliasesToProfiles(List<UserProfile> userProfiles) {
 		Set<Long> principalIds = new HashSet<Long>();
@@ -132,6 +195,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
@@ -146,6 +210,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 */
 	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
 		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
+		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);
 	}
@@ -161,33 +226,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		clearAliasFields(updated);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, updated.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
-		attachmentManager.checkAttachmentsForPreviews(updated);
+		
+		if(updated.getProfilePicureFileHandleId() != null){
+			// The user must own the file handle to set it as a picture.
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId()));
+		}
 		// Update the DAO first
 		userProfileDAO.update(updated);
 		// Bind all aliases
 		bindUserName(updatedUserName, principalId);
 		// Get the updated value
 		return getUserProfilePrivate(updated.getOwnerId());
-	}
-
-	@Override
-	public S3AttachmentToken createS3UserProfileAttachmentToken(
-			UserInfo userInfo, String profileId, S3AttachmentToken token)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException {
-		boolean isOwnerOrAdmin = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, profileId);
-		if (!isOwnerOrAdmin)
-			throw new UnauthorizedException("Can't assign attachment to another user's profile");
-		if (!AttachmentManagerImpl.isPreviewType(token.getFileName()))
-			throw new IllegalArgumentException("User profile attachment is not a recognized image type, please try a different file.");
-		return s3TokenManager.createS3AttachmentToken(userInfo.getId(), profileId, token);
-	}
-	
-	@Override
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId,
-			String profileId, String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		//anyone can see the public profile pictures
-		return s3TokenManager.getAttachmentUrl(userId, profileId, tokenID);
 	}
 
 	@Override
@@ -259,6 +308,21 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		profile.setEmail(null);
 		profile.setEmails(null);
 		profile.setOpenIds(null);
+	}
+
+	@Override
+	public String getUserProfileImageUrl(String userId)
+			throws NotFoundException {
+		String handleId = userProfileDAO.getPictureFileHandleId(userId);
+		return fileHandleManager.getRedirectURLForFileHandle(handleId);
+	}
+
+	@Override
+	public String getUserProfileImagePreviewUrl(String userId)
+			throws NotFoundException {
+		String handleId = userProfileDAO.getPictureFileHandleId(userId);
+		String privewId = fileHandleManager.getPreviewFileHandleId(handleId);
+		return fileHandleManager.getRedirectURLForFileHandle(privewId);
 	}
 
 }
