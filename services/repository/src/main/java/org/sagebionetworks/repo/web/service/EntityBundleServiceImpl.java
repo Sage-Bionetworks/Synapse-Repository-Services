@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,10 +18,12 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -128,6 +131,15 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			tableBundle.setColumnModels(paginated.getResults());
 			tableBundle.setMaxRowsPerPage(serviceProvider.getTableServices().getMaxRowsPerPage(paginated.getResults()));
 			eb.setTableBundle(tableBundle);
+		}
+		if((mask & EntityBundle.ROOT_WIKI_ID) > 0 ){
+			 try {
+				WikiPageKey rootKey = serviceProvider.getWikiService().getRootWikiKey(userId, entityId, ObjectType.ENTITY);
+				eb.setRootWikiId(rootKey.getWikiPageId());
+			} catch (NotFoundException e) {
+				// does not exist
+				eb.setRootWikiId(null);
+			}
 		}
 		return eb;
 	}	

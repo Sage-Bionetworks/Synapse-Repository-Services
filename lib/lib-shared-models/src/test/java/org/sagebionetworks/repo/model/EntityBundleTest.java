@@ -174,6 +174,7 @@ public class EntityBundleTest {
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
 		entityBundle.setFileHandles(fileHandleList);
 		entityBundle.setTableBundle(tableBundle);
+		entityBundle.setRootWikiId("9876");
 		
 		return entityBundle;
 	}
