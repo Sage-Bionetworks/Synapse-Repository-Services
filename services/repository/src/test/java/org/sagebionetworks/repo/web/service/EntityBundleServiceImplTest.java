@@ -29,10 +29,12 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -49,6 +51,7 @@ public class EntityBundleServiceImplTest {
 	private ServiceProvider mockServiceProvider;
 	private EntityService mockEntityService;
 	private TableServices mockTableService;
+	private WikiService mockWikiService;
 	
 	private Project project;
 	private Study study;
@@ -70,10 +73,12 @@ public class EntityBundleServiceImplTest {
 		// Mocks
 		mockServiceProvider = mock(ServiceProvider.class);
 		mockEntityService = mock(EntityService.class);
+		mockWikiService = mock(WikiService.class);
 		
 		entityBundleService = new EntityBundleServiceImpl(mockServiceProvider);
 		mockTableService = mock(TableServices.class);
 		when(mockServiceProvider.getTableServices()).thenReturn(mockTableService);
+		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
 		
 		// Entities
 		project = new Project();
@@ -211,4 +216,28 @@ public class EntityBundleServiceImplTest {
 		assertEquals(new Long(12345), bundle.getTableBundle().getMaxRowsPerPage());
 	}
 	
+	@Test
+	public void testRootWikiId() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.ROOT_WIKI_ID;
+		String rootWikiId = "456";
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		key.setWikiPageId(rootWikiId);
+		when(mockWikiService.getRootWikiKey(TEST_USER1, entityId, ObjectType.ENTITY)).thenReturn(key);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(rootWikiId, bundle.getRootWikiId());
+	}
+	
+	@Test
+	public void testRootWikiIdNotFound() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.ROOT_WIKI_ID;
+		when(mockWikiService.getRootWikiKey(TEST_USER1, entityId, ObjectType.ENTITY)).thenThrow(new NotFoundException("does not exist"));
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals("ID should be null when it does not exist",null, bundle.getRootWikiId());
+	}
 }
