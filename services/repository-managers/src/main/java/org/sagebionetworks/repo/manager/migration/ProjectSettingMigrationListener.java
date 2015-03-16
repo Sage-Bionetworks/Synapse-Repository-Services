@@ -5,16 +5,16 @@ import java.util.List;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -26,7 +26,7 @@ public class ProjectSettingMigrationListener implements MigrationTypeListener {
 	private DBOBasicDao basicDao;
 
 	@Autowired
-	private UploadDestinationLocationDAO uploadDestinationLocationDAO;
+	private StorageLocationDAO storageLocationDAO;
 
 	@Override
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(MigrationType type, List<D> delta) {
@@ -46,7 +46,7 @@ public class ProjectSettingMigrationListener implements MigrationTypeListener {
 	}
 
 	private void migrateProjectSetting(DBOProjectSetting projectSetting) throws Exception {
-		List<UploadDestinationLocationSetting> allSettings = uploadDestinationLocationDAO.getAllUploadDestinationLocationSettings();
+		List<StorageLocationSetting> allSettings = storageLocationDAO.getAllStorageLocationSettings();
 		if (projectSetting.getData() instanceof UploadDestinationListSetting) {
 			UploadDestinationListSetting list = (UploadDestinationListSetting) projectSetting.getData();
 			if (list.getLocations() == null) {
@@ -61,7 +61,7 @@ public class ProjectSettingMigrationListener implements MigrationTypeListener {
 									externalDestination.getUploadType(), externalDestination.getBanner(), externalDestination.getUrl());
 
 							if (uploadId == null) {
-								ExternalUploadDestinationLocationSetting locationSetting = new ExternalUploadDestinationLocationSetting();
+								ExternalStorageLocationSetting locationSetting = new ExternalStorageLocationSetting();
 								locationSetting.setSupportsSubfolders(externalDestination.getSupportsSubfolders());
 								locationSetting.setUploadType(externalDestination.getUploadType());
 								locationSetting.setBanner(externalDestination.getBanner());
@@ -69,8 +69,8 @@ public class ProjectSettingMigrationListener implements MigrationTypeListener {
 								locationSetting.setDescription("Upload to " + externalDestination.getUrl());
 								locationSetting.setCreatedOn(new Date());
 								locationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-								uploadId = uploadDestinationLocationDAO.create(locationSetting);
-								locationSetting.setUploadId(uploadId);
+								uploadId = storageLocationDAO.create(locationSetting);
+								locationSetting.setStorageLocationId(uploadId);
 								allSettings.add(locationSetting);
 							}
 							uploadIds.add(uploadId);
@@ -90,26 +90,26 @@ public class ProjectSettingMigrationListener implements MigrationTypeListener {
 		}
 	}
 
-	private Long findSetting(List<UploadDestinationLocationSetting> allSettings, Boolean supportsSubfolders, UploadType uploadType,
+	private Long findSetting(List<StorageLocationSetting> allSettings, Boolean supportsSubfolders, UploadType uploadType,
 			String banner, String url) {
-		for (UploadDestinationLocationSetting setting : allSettings) {
-			if (!(setting instanceof ExternalUploadDestinationLocationSetting)) {
+		for (StorageLocationSetting setting : allSettings) {
+			if (!(setting instanceof ExternalStorageLocationSetting)) {
 				// this only works for this one type
 				continue;
 			}
-			if (!ObjectUtils.equals(((ExternalUploadDestinationLocationSetting) setting).getSupportsSubfolders(), supportsSubfolders)) {
+			if (!ObjectUtils.equals(((ExternalStorageLocationSetting) setting).getSupportsSubfolders(), supportsSubfolders)) {
 				continue;
 			}
-			if (!ObjectUtils.equals(((ExternalUploadDestinationLocationSetting) setting).getUploadType(), uploadType)) {
+			if (!ObjectUtils.equals(((ExternalStorageLocationSetting) setting).getUploadType(), uploadType)) {
 				continue;
 			}
-			if (!ObjectUtils.equals(((ExternalUploadDestinationLocationSetting) setting).getBanner(), banner)) {
+			if (!ObjectUtils.equals(((ExternalStorageLocationSetting) setting).getBanner(), banner)) {
 				continue;
 			}
-			if (!ObjectUtils.equals(((ExternalUploadDestinationLocationSetting) setting).getUrl(), url)) {
+			if (!ObjectUtils.equals(((ExternalStorageLocationSetting) setting).getUrl(), url)) {
 				continue;
 			}
-			return setting.getUploadId();
+			return setting.getStorageLocationId();
 		}
 		return null;
 	}

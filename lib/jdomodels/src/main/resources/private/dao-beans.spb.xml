@@ -124,8 +124,8 @@
 	<bean id="projectSettingsDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectSettingsDAOImpl"/>
 	
-	<bean id="uploadDestinationLocationDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOUploadDestinationLocationDAOImpl"/>
+	<bean id="storageLocationDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl"/>
 	
 	<bean id="projectStatsDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectStatsDAOImpl"/>

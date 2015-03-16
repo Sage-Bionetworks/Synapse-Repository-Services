@@ -2,7 +2,7 @@
 	"description": "The external upload destination setting contains information to generate an SFTP or HTTPS upload destination.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting"
+			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
 		}
 	],
 	"properties": {

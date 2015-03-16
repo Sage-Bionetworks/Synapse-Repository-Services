@@ -6,9 +6,9 @@
 		}
 	],
 	"properties": {
-		"url": {
+		"endpointUrl": {
 			"type": "string",
-			"description": "the generated file URL for uploading to the external destination"
+			"description": "the s3 endpoint url (default: https://s3.amazonaws.com)"
 		},
 		"bucket": {
 			"type": "string",

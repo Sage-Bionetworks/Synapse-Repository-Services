@@ -91,6 +91,7 @@ import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -103,7 +104,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -317,7 +318,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String PROJECT_SETTINGS = "/projectSettings";
 
-	private static final String UPLOAD_DESTINATION_LOCATION = "/uploadDestinationLocation";
+	private static final String STORAGE_LOCATION = "/storageLocation";
 
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -2108,35 +2109,40 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public FileHandle createFileHandle(File temp, String contentType,
-			Boolean shouldPreviewBeCreated, String parentEntityId)
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
 			throws SynapseException, IOException {
-		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
-		if (uploadDestinations.isEmpty()) {
+		UploadDestination uploadDestination = getDefaultUploadDestination(parentEntityId);
+		return createFileHandle(temp, contentType, shouldPreviewBeCreated, uploadDestination.getStorageLocationId(),
+				uploadDestination.getUploadType());
+	}
+
+	@Override
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId,
+			Long storageLocationId) throws SynapseException, IOException {
+		UploadDestination uploadDestination = getUploadDestination(parentEntityId, storageLocationId);
+		return createFileHandle(temp, contentType, shouldPreviewBeCreated, storageLocationId, uploadDestination.getUploadType());
+	}
+
+	private FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, Long storageLocationId,
+			UploadType uploadType) throws SynapseException, IOException {
+		if (storageLocationId == null) {
 			// default to S3
-			return createFileHandleUsingChunkedUpload(temp, contentType,
-					shouldPreviewBeCreated, null);
+			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, null);
 		}
 
-		UploadDestination uploadDestination = uploadDestinations.get(0);
-		switch (uploadDestination.getUploadType()) {
+		switch (uploadType) {
 		case HTTPS:
 		case SFTP:
-			throw new NotImplementedException(
-					"SFTP and HTTPS uploads not implemented yet");
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
 		case S3:
-			return createFileHandleUsingChunkedUpload(temp, contentType,
-					shouldPreviewBeCreated,
-					(S3UploadDestination) uploadDestination);
+			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, storageLocationId);
 		default:
-			throw new NotImplementedException(uploadDestination.getUploadType()
-					.name() + " uploads not implemented yet");
+			throw new NotImplementedException(uploadType.name() + " uploads not implemented yet");
 		}
 	}
 
-	private S3FileHandle createFileHandleUsingChunkedUpload(File temp,
-			String contentType, Boolean shouldPreviewBeCreated,
-			UploadDestination uploadDestination) throws SynapseException,
+	private S3FileHandle createFileHandleUsingChunkedUpload(File temp, String contentType, Boolean shouldPreviewBeCreated,
+			Long storageLocationId) throws SynapseException,
 			IOException {
 		if (temp == null) {
 			throw new IllegalArgumentException("File cannot be null");
@@ -2146,7 +2152,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setUploadDestination(uploadDestination);
+		ccftr.setStorageLocationId(storageLocationId);
 		ccftr.setContentType(contentType);
 		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
@@ -4490,6 +4496,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
 		ccftr.setUploadDestination(uploadDestination);
+		ccftr.setStorageLocationId(uploadDestination.getStorageLocationId());
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 
@@ -5920,13 +5927,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(T uploadDestinationLocation)
+	public <T extends StorageLocationSetting> T createStorageLocationSetting(T storageLocation)
 			throws SynapseException {
 		try {
-			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(uploadDestinationLocation);
-			jsonObject = getSharedClientConnection().postJson(repoEndpoint, UPLOAD_DESTINATION_LOCATION, jsonObject.toString(),
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(storageLocation);
+			jsonObject = getSharedClientConnection().postJson(repoEndpoint, STORAGE_LOCATION, jsonObject.toString(),
 					getUserAgent(), null);
-			return (T) createJsonObjectFromInterface(jsonObject, UploadDestinationLocationSetting.class);
+			return (T) createJsonObjectFromInterface(jsonObject, StorageLocationSetting.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -5946,10 +5953,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public UploadDestination getUploadDestination(String parentEntityId, Long uploadId) throws SynapseException {
+	public UploadDestination getUploadDestination(String parentEntityId, Long storageLocationId) throws SynapseException {
 		try {
-			String uri = ENTITY + "/" + parentEntityId + "/uploadDestination/" + uploadId;
-			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			String uri = ENTITY + "/" + parentEntityId + "/uploadDestination/" + storageLocationId;
+			JSONObject jsonObject = getSharedClientConnection().getJson(fileEndpoint, uri, getUserAgent());
+			return createJsonObjectFromInterface(jsonObject, UploadDestination.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public UploadDestination getDefaultUploadDestination(String parentEntityId) throws SynapseException {
+		try {
+			String uri = ENTITY + "/" + parentEntityId + "/uploadDestination";
+			JSONObject jsonObject = getSharedClientConnection().getJson(fileEndpoint, uri, getUserAgent());
 			return createJsonObjectFromInterface(jsonObject, UploadDestination.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);

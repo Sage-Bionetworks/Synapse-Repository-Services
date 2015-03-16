@@ -15,8 +15,6 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -515,7 +513,7 @@ public class UploadController extends BaseController {
 	}
 
 	/**
-	 * Get the upload destinations for this upload id. This will always return an upload destination
+	 * Get the upload destinations for this storage location id. This will always return an upload destination
 	 * 
 	 * @param userId
 	 * @param parentId
@@ -524,11 +522,29 @@ public class UploadController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination/{uploadId}", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination/{storageLocationId}", method = RequestMethod.GET)
 	public @ResponseBody
 	UploadDestination getUploadDestination(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id") String parentId, @PathVariable Long uploadId) throws DatastoreException, NotFoundException {
-		UploadDestination uploadDestination = fileService.getUploadDestination(userId, parentId, uploadId);
+			@PathVariable(value = "id") String parentId, @PathVariable Long storageLocationId) throws DatastoreException, NotFoundException {
+		UploadDestination uploadDestination = fileService.getUploadDestination(userId, parentId, storageLocationId);
+		return uploadDestination;
+	}
+
+	/**
+	 * Get the default upload destinations for this storage location id. This will always return an upload destination
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination", method = RequestMethod.GET)
+	public @ResponseBody
+	UploadDestination getDefaultUploadDestination(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String parentId) throws DatastoreException, NotFoundException {
+		UploadDestination uploadDestination = fileService.getDefaultUploadDestination(userId, parentId);
 		return uploadDestination;
 	}
 

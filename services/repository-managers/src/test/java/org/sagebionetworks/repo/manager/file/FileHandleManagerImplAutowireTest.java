@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPut;
@@ -35,7 +36,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConstants;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -69,21 +69,19 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
-import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -297,7 +295,7 @@ public class FileHandleManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testChunckedFileUpload() throws ClientProtocolException, IOException{
+	public void testChunckedFileUpload() throws Exception {
 		String fileBody = "This is the body of the file!!!!!";
 		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
 		String md5 = TransferUtils.createMD5(fileBodyBytes);
@@ -425,18 +423,18 @@ public class FileHandleManagerImplAutowireTest {
 	public void testExternalUploadDestinationOld() throws Exception {
 		final String URL = "sftp://www.sftpsite.com/base/basefolder";
 
-		ExternalUploadDestinationLocationSetting externalLocationSetting = new ExternalUploadDestinationLocationSetting();
+		ExternalStorageLocationSetting externalLocationSetting = new ExternalStorageLocationSetting();
 		externalLocationSetting.setBanner("upload here");
 		externalLocationSetting.setSupportsSubfolders(true);
 		externalLocationSetting.setUploadType(UploadType.SFTP);
 		externalLocationSetting.setUrl(URL);
 		externalLocationSetting.setDescription("external");
-		externalLocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalLocationSetting);
+		externalLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
 
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
 		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
-		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
 
 		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
 
@@ -456,27 +454,28 @@ public class FileHandleManagerImplAutowireTest {
 	public void testExternalUploadDestination() throws Exception {
 		final String URL = "sftp://www.sftpsite.com/base/basefolder";
 
-		ExternalUploadDestinationLocationSetting externalLocationSetting = new ExternalUploadDestinationLocationSetting();
+		ExternalStorageLocationSetting externalLocationSetting = new ExternalStorageLocationSetting();
 		externalLocationSetting.setBanner("upload here");
 		externalLocationSetting.setSupportsSubfolders(true);
 		externalLocationSetting.setUploadType(UploadType.SFTP);
 		externalLocationSetting.setUrl(URL);
 		externalLocationSetting.setDescription("external");
-		externalLocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalLocationSetting);
+		externalLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
 
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
 		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
-		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
 
 		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
 
 		List<UploadDestinationLocation> uploadDestinationLocations = fileUploadManager.getUploadDestinationLocations(userInfo, uploadFolder);
 		assertEquals(1, uploadDestinationLocations.size());
 		assertEquals("external", uploadDestinationLocations.get(0).getDescription());
+		assertEquals(UploadType.SFTP, uploadDestinationLocations.get(0).getUploadType());
 
 		UploadDestination uploadDestination = fileUploadManager.getUploadDestination(userInfo, uploadFolder, uploadDestinationLocations
-				.get(0).getUploadId());
+				.get(0).getStorageLocationId());
 		assertEquals(ExternalUploadDestination.class, uploadDestination.getClass());
 		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestination;
 		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
@@ -488,21 +487,32 @@ public class FileHandleManagerImplAutowireTest {
 	@Test
 	public void testExternalS3UploadDestinationSecurityCheck() throws Exception {
 		String testBase = "test-base-" + UUID.randomUUID();
-		ExternalS3UploadDestinationLocationSetting externalS3LocationSetting = new ExternalS3UploadDestinationLocationSetting();
+		ExternalS3StorageLocationSetting externalS3LocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3LocationSetting.setBanner("upload here");
 		externalS3LocationSetting.setDescription("external");
 		externalS3LocationSetting.setUploadType(UploadType.S3);
-		externalS3LocationSetting.setUrl(Constants.S3_HOSTNAME);
-		externalS3LocationSetting.setBucket(String.format(StackConstants.EXTERNAL_S3_TEST_BUCKET, StackConfiguration.getStack()));
+		externalS3LocationSetting.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey(testBase);
 
 		s3Client.createBucket(externalS3LocationSetting.getBucket());
 
+		externalS3LocationSetting.setEndpointUrl("https://someurl");
 		try {
-			projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalS3LocationSetting);
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
 			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().indexOf("Did not find S3 object") != -1);
+		} catch (NotImplementedException e) {
+		}
+
+		// null, empty or us-east-1 should all not give NotImplementedException
+		for (String host : new String[] { null, "", "https://" + Constants.S3_HOSTNAME }) {
+			externalS3LocationSetting.setEndpointUrl(host);
+
+			try {
+				projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+				fail();
+			} catch (IllegalArgumentException e) {
+				assertTrue(e.getMessage().indexOf("Did not find S3 object") != -1);
+			}
 		}
 
 		String nothing = "";
@@ -516,7 +526,7 @@ public class FileHandleManagerImplAutowireTest {
 		toDelete.add(fauxHandle);
 
 		try {
-			projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalS3LocationSetting);
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().indexOf("No username found") != -1);
@@ -527,7 +537,7 @@ public class FileHandleManagerImplAutowireTest {
 		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(wrongName), metadata);
 
 		try {
-			projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalS3LocationSetting);
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().indexOf("is not what was expected") != -1);
@@ -536,13 +546,13 @@ public class FileHandleManagerImplAutowireTest {
 		metadata.setContentLength(username.length());
 		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(username), metadata);
 
-		externalS3LocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(userInfo, externalS3LocationSetting);
+		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
 
 		// make sure only owner can use this s3 setting
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
 		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
-		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalS3LocationSetting.getUploadId()));
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalS3LocationSetting.getStorageLocationId()));
 
 		try {
 			projectSettingsManager.createProjectSetting(userInfo2, uploadDestinationListSetting);

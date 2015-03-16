@@ -174,8 +174,15 @@ public class FileUploadServiceImpl implements FileUploadService {
 	}
 
 	@Override
-	public UploadDestination getUploadDestination(Long userId, String parentId, Long uploadId) throws DatastoreException, NotFoundException {
+	public UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException,
+			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileUploadManager.getUploadDestination(userInfo, parentId, uploadId);
+		return fileUploadManager.getUploadDestination(userInfo, parentId, storageLocationId);
+	}
+
+	@Override
+	public UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getDefaultUploadDestination(userInfo, parentId);
 	}
 }

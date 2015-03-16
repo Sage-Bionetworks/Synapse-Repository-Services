@@ -80,10 +80,8 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.S3UploadDestinationLocationSetting;
-import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
@@ -91,7 +89,6 @@ import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -211,7 +208,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private ProjectSettingsDAO projectSettingsDAO;
 
 	@Autowired
-	private UploadDestinationLocationDAO uploadDestinationLocationDAO;
+	private StorageLocationDAO storageLocationDAO;
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDAO;
@@ -314,13 +311,13 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 	
 	private void createProjectSetting() {
-		S3UploadDestinationLocationSetting destination = new S3UploadDestinationLocationSetting();
+		S3StorageLocationSetting destination = new S3StorageLocationSetting();
 		destination.setDescription("upload normal");
 		destination.setUploadType(UploadType.S3);
 		destination.setBanner("warning");
 		destination.setCreatedOn(new Date());
 		destination.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		Long uploadId = uploadDestinationLocationDAO.create(destination);
+		Long uploadId = storageLocationDAO.create(destination);
 
 		UploadDestinationListSetting settings = new UploadDestinationListSetting();
 		settings.setProjectId(project.getId());

@@ -20,6 +20,10 @@
 		"contentMD5": {
 			"description": "The file's content MD5 (should be a HEX encoded string).",
 			"type": "string"
+		},
+		"storageLocationId": {
+			"description": "The storage location used for this request",
+			"type": "integer"
 		}
 	}
 }

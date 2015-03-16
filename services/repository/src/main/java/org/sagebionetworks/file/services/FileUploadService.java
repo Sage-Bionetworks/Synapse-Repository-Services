@@ -190,5 +190,17 @@ public interface FileUploadService {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	UploadDestination getUploadDestination(Long userId, String parentId, Long uploadId) throws DatastoreException, NotFoundException;
+	UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the default upload location for a parent
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException;
 }

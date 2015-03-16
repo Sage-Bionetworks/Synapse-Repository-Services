@@ -31,7 +31,6 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 	UploadDaemonStatus uploadStatus;
 	CompleteAllChunksRequest cacf;
 	MultipartManager multipartManager;
-	String bucket;
 	long maxWaitMS;
 	String userId;
 
@@ -48,14 +47,13 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 	public CompleteUploadWorker(UploadDaemonStatusDao uploadDaemonStatusDao,
 			ExecutorService uploadFileDaemonThreadPoolSecondary,
 			UploadDaemonStatus uploadStatus, CompleteAllChunksRequest cacf,
-			MultipartManager multipartManager, String bucket, long maxWaitMS, String userId) {
+ MultipartManager multipartManager, long maxWaitMS, String userId) {
 		super();
 		this.uploadDaemonStatusDao = uploadDaemonStatusDao;
 		this.uploadFileDaemonThreadPoolSecondary = uploadFileDaemonThreadPoolSecondary;
 		this.uploadStatus = uploadStatus;
 		this.cacf = cacf;
 		this.multipartManager = multipartManager;
-		this.bucket = bucket;
 		this.maxWaitMS = maxWaitMS;
 		this.userId = userId;
 	}
@@ -78,7 +76,7 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 			List<Future<ChunkResult>> futures = new LinkedList<Future<ChunkResult>>();
 			for(Long partNumber: cacf.getChunkNumbers()){
 				// Submit each future
-				CopyPartWorker worker = new CopyPartWorker(multipartManager, cacf.getChunkedFileToken(), partNumber.intValue(), bucket, maxWaitMS);
+				CopyPartWorker worker = new CopyPartWorker(multipartManager, cacf.getChunkedFileToken(), partNumber.intValue(), maxWaitMS);
 				Future<ChunkResult> future = uploadFileDaemonThreadPoolSecondary.submit(worker);
 				futures.add(future);
 			}
@@ -89,7 +87,7 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 			ccfr.setChunkedFileToken(cacf.getChunkedFileToken());
 			ccfr.setChunkResults(done);
 			ccfr.setShouldPreviewBeGenerated(cacf.getShouldPreviewBeGenerated());
-			S3FileHandle handle = multipartManager.completeChunkFileUpload(ccfr, bucket, userId);
+			S3FileHandle handle = multipartManager.completeChunkFileUpload(ccfr, ccfr.getChunkedFileToken().getStorageLocationId(), userId);
 			if(handle == null) throw new RuntimeException("multipartManager.completeChunkFileUpload() returned null"); 
 			if(handle.getId() == null) throw new RuntimeException("multipartManager.completeChunkFileUpload() returned FileHandle ID"); 
 			// Update the status

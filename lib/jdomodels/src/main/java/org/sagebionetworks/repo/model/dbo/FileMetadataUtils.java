@@ -66,6 +66,7 @@ public class FileMetadataUtils {
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
 		dbo.setName(dto.getFileName());
+		dbo.setStorageLocationId(dto.getStorageLocationId());
 		dbo.setContentType(dto.getContentType());
 		return dbo;
 	}
@@ -115,6 +116,7 @@ public class FileMetadataUtils {
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
 		dbo.setName(dto.getFileName());
+		dbo.setStorageLocationId(dto.getStorageLocationId());
 	}
 	
 	/**
@@ -141,6 +143,7 @@ public class FileMetadataUtils {
 			external.setExternalURL(dbo.getKey());
 			external.setFileName(dbo.getName());
 			external.setContentType(dbo.getContentType());
+			external.setStorageLocationId(dbo.getStorageLocationId());
 			return external;
 		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
 			S3FileHandleInterface metaInterface = null;
@@ -172,6 +175,7 @@ public class FileMetadataUtils {
 				metaInterface.setCreatedBy(dbo.getCreatedBy().toString());
 			}
 			metaInterface.setCreatedOn(dbo.getCreatedOn());
+			metaInterface.setStorageLocationId(dbo.getStorageLocationId());
 			return metaInterface;
 		}else{
 			throw new IllegalArgumentException("Unknown metadata type: "+dbo.getMetadataTypeEnum());
@@ -212,14 +216,17 @@ public class FileMetadataUtils {
 		if(in.getKey() != null){
 			out.setKey(in.getKey());
 		}
-		if(in.getMetadataTypeEnum() != null){
-			out.setMetadataType(in.getMetadataType());
+		if (in.getMetadataTypeEnum() != null) {
+			out.setMetadataType(in.getMetadataTypeEnum().name());
 		}
 		if(in.getName() != null){
 			out.setName(in.getName());
 		}
 		if(in.getPreviewId() != null){
 			out.setPreviewId(in.getPreviewId());
+		}
+		if (in.getStorageLocationId() != null) {
+			out.setStorageLocationId(in.getStorageLocationId());
 		}
 		return out;
 	}
@@ -266,6 +273,9 @@ public class FileMetadataUtils {
 		}
 		if(in.getPreviewId() != null){
 			out.setPreviewId(in.getPreviewId());
+		}
+		if (in.getStorageLocationId() != null) {
+			out.setStorageLocationId(in.getStorageLocationId());
 		}
 		return out;
 	}

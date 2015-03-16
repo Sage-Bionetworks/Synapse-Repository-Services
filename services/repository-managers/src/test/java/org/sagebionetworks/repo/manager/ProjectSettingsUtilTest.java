@@ -5,11 +5,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 
 public class ProjectSettingsUtilTest {
 
-	private UploadDestinationLocationDAO mockDao = mock(UploadDestinationLocationDAO.class);
+	private StorageLocationDAO mockDao = mock(StorageLocationDAO.class);
 	private UserProfileManager mockUserProfileManager = mock(UserProfileManager.class);
 
 	@Test
@@ -106,9 +106,9 @@ public class ProjectSettingsUtilTest {
 
 
 		UserInfo currentUser = new UserInfo(false, 11L);
-		ExternalS3UploadDestinationLocationSetting externalS3UploadDestinationLocationSetting = new ExternalS3UploadDestinationLocationSetting();
-		externalS3UploadDestinationLocationSetting.setCreatedBy(11L);
-		when(mockDao.get(1L)).thenReturn(externalS3UploadDestinationLocationSetting);
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setCreatedBy(11L);
+		when(mockDao.get(1L)).thenReturn(externalS3StorageLocationSetting);
 
 		ProjectSettingsUtil.validateProjectSetting(setting, currentUser, mockUserProfileManager, mockDao);
 
@@ -123,9 +123,9 @@ public class ProjectSettingsUtilTest {
 		setting.setLocations(Lists.newArrayList(1L));
 
 		UserInfo currentUser = new UserInfo(false, 11L);
-		ExternalS3UploadDestinationLocationSetting externalS3UploadDestinationLocationSetting = new ExternalS3UploadDestinationLocationSetting();
-		externalS3UploadDestinationLocationSetting.setCreatedBy(12L);
-		when(mockDao.get(1L)).thenReturn(externalS3UploadDestinationLocationSetting);
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setCreatedBy(12L);
+		when(mockDao.get(1L)).thenReturn(externalS3StorageLocationSetting);
 
 		UserProfile profile = new UserProfile();
 		when(mockUserProfileManager.getUserProfile(currentUser, "12")).thenReturn(profile);

@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.List;
@@ -17,10 +21,10 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
-import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -41,7 +45,7 @@ public class DBOProjectSettingsDAOImplTest {
 	ProjectSettingsDAO projectSettingsDao;
 
 	@Autowired
-	UploadDestinationLocationDAO uploadDestinationLocationDAO;
+	StorageLocationDAO storageLocationDAO;
 
 	private String projectId;
 
@@ -157,18 +161,18 @@ public class DBOProjectSettingsDAOImplTest {
 
 	@Test
 	public void testGetUploadLocations() {
-		ExternalUploadDestinationLocationSetting locationSetting1 = new ExternalUploadDestinationLocationSetting();
+		ExternalStorageLocationSetting locationSetting1 = new ExternalStorageLocationSetting();
 		locationSetting1.setUploadType(UploadType.SFTP);
 		locationSetting1.setUrl("sftp://");
 		locationSetting1.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		locationSetting1.setCreatedOn(new Date());
-		ExternalS3UploadDestinationLocationSetting locationSetting2 = new ExternalS3UploadDestinationLocationSetting();
+		ExternalS3StorageLocationSetting locationSetting2 = new ExternalS3StorageLocationSetting();
 		locationSetting2.setUploadType(UploadType.S3);
 		locationSetting2.setBucket("bucket");
 		locationSetting2.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		locationSetting2.setCreatedOn(new Date());
-		Long l1 = uploadDestinationLocationDAO.create(locationSetting1);
-		Long l2 = uploadDestinationLocationDAO.create(locationSetting2);
+		Long l1 = storageLocationDAO.create(locationSetting1);
+		Long l2 = storageLocationDAO.create(locationSetting2);
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(ProjectSettingsType.upload);

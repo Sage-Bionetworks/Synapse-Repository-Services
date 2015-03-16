@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -76,5 +77,14 @@ public class ProjectSettingsController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
 			IOException, JSONObjectAdapterException {
 		serviceProvider.getProjectSettingsService().deleteProjectSetting(userId, id);
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.POST)
+	public @ResponseBody
+	StorageLocationSetting createStorageLocationSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody StorageLocationSetting storageLocationSetting, HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, InvalidModelException, IOException {
+		return serviceProvider.getProjectSettingsService().createStorageLocationSetting(userId, storageLocationSetting);
 	}
 }

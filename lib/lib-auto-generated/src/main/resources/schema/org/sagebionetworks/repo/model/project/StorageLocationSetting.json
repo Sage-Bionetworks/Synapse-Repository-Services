@@ -6,9 +6,9 @@
             "type": "string",
             "description": "Indicates which implementation this object represents."
         },
-		"uploadId": {
+		"storageLocationId": {
 			"type": "integer",
-			"description": "the unique id for this upload destination type"
+			"description": "the unique id for this storage location"
 		},
 		"uploadType": {
 			"name": "UploadType",

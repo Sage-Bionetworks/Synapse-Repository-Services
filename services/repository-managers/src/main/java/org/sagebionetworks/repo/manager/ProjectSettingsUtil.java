@@ -5,14 +5,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
@@ -27,29 +27,29 @@ public class ProjectSettingsUtil {
 	private static final String EXTERNAL_S3_HELP = "www.synapes.org//#!Help:ExternalS3 for more information on how to create a new external s3 upload destination";
 
 	public static void validateProjectSetting(ProjectSetting setting, UserInfo currentUser, UserProfileManager userProfileManager,
-			UploadDestinationLocationDAO uploadDestinationLocationDAO) {
+			StorageLocationDAO storageLocationDAO) {
 		ValidateArgument.required(setting.getProjectId(), "projectId");
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			ProjectSettingsUtil.validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser, userProfileManager,
-					uploadDestinationLocationDAO);
+					storageLocationDAO);
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}
 	}
 
 	private static void validateUploadDestinationListSetting(UploadDestinationListSetting setting, UserInfo currentUser,
-			UserProfileManager userProfileManager, UploadDestinationLocationDAO uploadDestinationLocationDAO) {
+			UserProfileManager userProfileManager, StorageLocationDAO storageLocationDAO) {
 		ValidateArgument.requirement(CollectionUtils.isEmpty(setting.getDestinations()), "setting.getDestinations() cannot have a value.");
 		ValidateArgument.required(setting.getLocations(), "settings.locations");
 		ValidateArgument.requirement(setting.getLocations().size() >= 1, "settings.locations must at least have one entry");
 		for (Long uploadId : setting.getLocations()) {
 			try {
-				UploadDestinationLocationSetting uploadDestinationLocationSetting = uploadDestinationLocationDAO.get(uploadId);
-				if (uploadDestinationLocationSetting instanceof ExternalS3UploadDestinationLocationSetting) {
+				StorageLocationSetting storageLocationSetting = storageLocationDAO.get(uploadId);
+				if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 					// only the owner or an admin can add this setting to a project
-					if (!currentUser.isAdmin() && !currentUser.getId().equals(uploadDestinationLocationSetting.getCreatedBy())) {
-						UserProfile owner = userProfileManager.getUserProfile(currentUser, uploadDestinationLocationSetting.getCreatedBy()
+					if (!currentUser.isAdmin() && !currentUser.getId().equals(storageLocationSetting.getCreatedBy())) {
+						UserProfile owner = userProfileManager.getUserProfile(currentUser, storageLocationSetting.getCreatedBy()
 								.toString());
 						throw new UnauthorizedException(
 								"Only the owner of the external s3 upload destination (user "
@@ -64,11 +64,11 @@ public class ProjectSettingsUtil {
 		}
 	}
 
-	public static void validateOwnership(ExternalS3UploadDestinationLocationSetting externalS3UploadDestinationLocationSetting,
+	public static void validateOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting,
 			UserProfile userProfile, AmazonS3Client s3client) throws IOException, NotFoundException {
 		// check the ownership of the S3 bucket against the user
-		String bucket = externalS3UploadDestinationLocationSetting.getBucket();
-		String key = externalS3UploadDestinationLocationSetting.getBaseKey() + OWNER_MARKER;
+		String bucket = externalS3StorageLocationSetting.getBucket();
+		String key = externalS3StorageLocationSetting.getBaseKey() + OWNER_MARKER;
 
 		S3Object s3object;
 		try {

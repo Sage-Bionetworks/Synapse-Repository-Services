@@ -227,6 +227,7 @@ public class UrlHelpers {
 	public static final String USER_PROFILE_ATTACHMENT_URL = USER_PROFILE_ID+ATTACHMENT_URL;
 
 	// project settings
+	public static final String STORAGE_LOCATION = "/storageLocation";
 	public static final String PROJECT_SETTINGS = "/projectSettings";
 	public static final String PROJECT_SETTINGS_BY_ID = "/projectSettings" + ID;
 	public static final String PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE = "/projectSettings/{projectId}/type/{type}";

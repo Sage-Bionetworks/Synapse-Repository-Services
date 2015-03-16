@@ -68,7 +68,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -548,6 +548,9 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
 			throws SynapseException, IOException;
+
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId,
+			Long storageLocationId) throws SynapseException, IOException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
@@ -1870,7 +1873,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(T uploadDestinationLocationSetting)
+	public <T extends StorageLocationSetting> T createStorageLocationSetting(T storageLocationSetting)
 			throws SynapseException;
 
 	/**
@@ -1891,6 +1894,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public UploadDestination getUploadDestination(String parentEntityId, Long uploadId) throws SynapseException;
+
+	/**
+	 * get the default upload destination for a container
+	 * 
+	 * @param parentEntityId
+	 * @param uploadId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public UploadDestination getDefaultUploadDestination(String parentEntityId) throws SynapseException;
 
 	/**
 	 * create a project setting

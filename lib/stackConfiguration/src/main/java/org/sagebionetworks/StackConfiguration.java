@@ -1539,6 +1539,15 @@ public class StackConfiguration {
 	}
 	
 	/**
+	 * Get the name of the stack test bucket.
+	 * 
+	 * @return
+	 */
+	public String getExternalS3TestBucketName() {
+		return String.format(StackConstants.EXTERNAL_S3_TEST_BUCKET, StackConfiguration.getStack());
+	}
+
+	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to a file (the default)
 	 */
 	public static boolean getDeliverEmail() {

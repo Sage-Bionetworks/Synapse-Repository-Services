@@ -1,12 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UPLOAD_DESTINATION_LOCATION_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UPLOAD_DESTINATION_LOCATION_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UPLOAD_DESTINATION_LOCATION_DATA;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UPLOAD_DESTINATION_LOCATION_DESCRIPTION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_UPLOAD_DESTINATION_LOCATION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_UPLOAD_DESTINATION_LOCATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.util.Date;
 import java.util.List;
@@ -17,43 +11,47 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 /**
  * descriptor of what's in a column of a participant data record
  */
-@Table(name = TABLE_UPLOAD_DESTINATION_LOCATION)
-public class DBOUploadDestinationLocation implements MigratableDatabaseObject<DBOUploadDestinationLocation, DBOUploadDestinationLocation> {
+@Table(name = TABLE_STORAGE_LOCATION)
+public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLocation, DBOStorageLocation> {
 
-	@Field(name = COL_UPLOAD_DESTINATION_LOCATION_ID, backupId = true, primary = true, nullable = false)
+	@Field(name = COL_STORAGE_LOCATION_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 
-	@Field(name = COL_UPLOAD_DESTINATION_LOCATION_DESCRIPTION, varchar = 512)
+	@Field(name = COL_STORAGE_LOCATION_DESCRIPTION, varchar = 512)
 	private String description;
+
+	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE)
+	private UploadType uploadType;
 
 	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true)
 	private String etag;
 
-	@Field(name = COL_UPLOAD_DESTINATION_LOCATION_DATA, serialized = "mediumblob")
-	private UploadDestinationLocationSetting data;
+	@Field(name = COL_STORAGE_LOCATION_DATA, serialized = "mediumblob")
+	private StorageLocationSetting data;
 
-	@Field(name = COL_UPLOAD_DESTINATION_LOCATION_CREATED_BY, nullable = false)
+	@Field(name = COL_STORAGE_LOCATION_CREATED_BY, nullable = false)
 	private Long createdBy;
 
-	@Field(name = COL_UPLOAD_DESTINATION_LOCATION_CREATED_ON, nullable = false)
+	@Field(name = COL_STORAGE_LOCATION_CREATED_ON, nullable = false)
 	private Date createdOn;
 
-	private static TableMapping<DBOUploadDestinationLocation> tableMapping = AutoTableMapping.create(DBOUploadDestinationLocation.class);
+	private static TableMapping<DBOStorageLocation> tableMapping = AutoTableMapping.create(DBOStorageLocation.class);
 
 	@Override
-	public TableMapping<DBOUploadDestinationLocation> getTableMapping() {
+	public TableMapping<DBOStorageLocation> getTableMapping() {
 		return tableMapping;
 	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.UPLOAD_DESTINATION_LOCATION;
+		return MigrationType.STORAGE_LOCATION;
 	}
 
 	public Long getId() {
@@ -72,6 +70,14 @@ public class DBOUploadDestinationLocation implements MigratableDatabaseObject<DB
 		this.description = description;
 	}
 
+	public UploadType getUploadType() {
+		return uploadType;
+	}
+
+	public void setUploadType(UploadType uploadType) {
+		this.uploadType = uploadType;
+	}
+
 	public String getEtag() {
 		return etag;
 	}
@@ -80,11 +86,11 @@ public class DBOUploadDestinationLocation implements MigratableDatabaseObject<DB
 		this.etag = etag;
 	}
 
-	public UploadDestinationLocationSetting getData() {
+	public StorageLocationSetting getData() {
 		return data;
 	}
 
-	public void setData(UploadDestinationLocationSetting data) {
+	public void setData(StorageLocationSetting data) {
 		this.data = data;
 	}
 
@@ -114,6 +120,7 @@ public class DBOUploadDestinationLocation implements MigratableDatabaseObject<DB
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((uploadType == null) ? 0 : uploadType.hashCode());
 		return result;
 	}
 
@@ -125,7 +132,7 @@ public class DBOUploadDestinationLocation implements MigratableDatabaseObject<DB
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOUploadDestinationLocation other = (DBOUploadDestinationLocation) obj;
+		DBOStorageLocation other = (DBOStorageLocation) obj;
 		if (createdBy == null) {
 			if (other.createdBy != null)
 				return false;
@@ -156,40 +163,42 @@ public class DBOUploadDestinationLocation implements MigratableDatabaseObject<DB
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (uploadType != other.uploadType)
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOUploadDestinationLocation [id=" + id + ", description=" + description + ", etag=" + etag + ", data=" + data
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + "]";
+		return "DBOStorageLocation [id=" + id + ", description=" + description + ", uploadType=" + uploadType + ", etag=" + etag + ", data="
+				+ data + ", createdBy=" + createdBy + ", createdOn=" + createdOn + "]";
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOUploadDestinationLocation, DBOUploadDestinationLocation> getTranslator() {
+	public MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOUploadDestinationLocation, DBOUploadDestinationLocation>() {
+		return new MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation>() {
 
 			@Override
-			public DBOUploadDestinationLocation createDatabaseObjectFromBackup(DBOUploadDestinationLocation backup) {
+			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
 				return backup;
 			}
 
 			@Override
-			public DBOUploadDestinationLocation createBackupFromDatabaseObject(DBOUploadDestinationLocation dbo) {
+			public DBOStorageLocation createBackupFromDatabaseObject(DBOStorageLocation dbo) {
 				return dbo;
 			}
 		};
 	}
 
 	@Override
-	public Class<? extends DBOUploadDestinationLocation> getBackupClass() {
-		return DBOUploadDestinationLocation.class;
+	public Class<? extends DBOStorageLocation> getBackupClass() {
+		return DBOStorageLocation.class;
 	}
 
 	@Override
-	public Class<? extends DBOUploadDestinationLocation> getDatabaseObjectClass() {
-		return DBOUploadDestinationLocation.class;
+	public Class<? extends DBOStorageLocation> getDatabaseObjectClass() {
+		return DBOStorageLocation.class;
 	}
 
 	@Override

@@ -6,6 +6,8 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -16,21 +18,22 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
-import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.internal.Constants;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -40,7 +43,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	private ProjectSettingsDAO projectSettingsDao;
 
 	@Autowired
-	private UploadDestinationLocationDAO uploadDestinationLocationDAO;
+	private StorageLocationDAO storageLocationDAO;
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -116,7 +119,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Override
 	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) {
-		return uploadDestinationLocationDAO.getUploadDestinationLocations(locations);
+		return storageLocationDAO.getUploadDestinationLocations(locations);
 	}
 
 	@Override
@@ -130,7 +133,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
-		ProjectSettingsUtil.validateProjectSetting(projectSetting, userInfo, userProfileManager, uploadDestinationLocationDAO);
+		ProjectSettingsUtil.validateProjectSetting(projectSetting, userInfo, userProfileManager, storageLocationDAO);
 		String id = projectSettingsDao.create(projectSetting);
 		return projectSettingsDao.get(id);
 	}
@@ -141,7 +144,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
-		ProjectSettingsUtil.validateProjectSetting(projectSetting, userInfo, userProfileManager, uploadDestinationLocationDAO);
+		ProjectSettingsUtil.validateProjectSetting(projectSetting, userInfo, userProfileManager, storageLocationDAO);
 		projectSettingsDao.update(projectSetting);
 	}
 
@@ -158,26 +161,39 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(UserInfo userInfo,
-			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException, IOException {
-		if (uploadDestinationLocationSetting instanceof ExternalS3UploadDestinationLocationSetting) {
+	public <T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo, T storageLocationSetting)
+			throws DatastoreException, NotFoundException, IOException {
+		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			UserProfile userProfile = userProfileManager.getUserProfile(userInfo, userInfo.getId().toString());
-			ProjectSettingsUtil.validateOwnership((ExternalS3UploadDestinationLocationSetting) uploadDestinationLocationSetting, userProfile,
-					s3client);
+			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
+			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getEndpointUrl())
+					&& !externalS3StorageLocationSetting.getEndpointUrl().equals("https://" + Constants.S3_HOSTNAME)) {
+				throw new NotImplementedException("Synapse does not yet support external S3 buckets in non-us-east-1 locations");
+			}
+			ProjectSettingsUtil.validateOwnership(externalS3StorageLocationSetting, userProfile, s3client);
 		}
 
-		uploadDestinationLocationSetting.setCreatedBy(userInfo.getId());
-		uploadDestinationLocationSetting.setCreatedOn(new Date());
-		Long uploadId = uploadDestinationLocationDAO.create(uploadDestinationLocationSetting);
-		return (T) uploadDestinationLocationDAO.get(uploadId);
+		storageLocationSetting.setCreatedBy(userInfo.getId());
+		storageLocationSetting.setCreatedOn(new Date());
+		Long uploadId = storageLocationDAO.create(storageLocationSetting);
+		return (T) storageLocationDAO.get(uploadId);
 	}
 
 	@Override
-	public <T extends UploadDestinationLocationSetting> T updateUploadDestinationLocationSetting(UserInfo userInfo,
-			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException {
+	public <T extends StorageLocationSetting> T updateStorageLocationSetting(UserInfo userInfo, T storageLocationSetting)
+			throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
-		return uploadDestinationLocationDAO.update(uploadDestinationLocationSetting);
+		return storageLocationDAO.update(storageLocationSetting);
+	}
+
+	@Override
+	public StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException,
+			NotFoundException {
+		if (storageLocationId == null) {
+			return null;
+		}
+		return storageLocationDAO.get(storageLocationId);
 	}
 }

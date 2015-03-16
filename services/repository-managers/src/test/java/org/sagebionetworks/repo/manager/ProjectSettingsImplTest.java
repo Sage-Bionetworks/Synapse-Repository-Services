@@ -2,32 +2,36 @@ package org.sagebionetworks.repo.manager;
 
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.UUID;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UploadDestinationLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalS3UploadDestinationLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
 /**
@@ -49,50 +53,72 @@ public class ProjectSettingsImplTest {
 	@Autowired
 	private UserManager userManager;
 
-	private ExternalUploadDestinationLocationSetting externalLocationSetting;
+	@Autowired
+	private UserProfileManager userProfileManager;
 
-	private ExternalS3UploadDestinationLocationSetting externalS3LocationSetting;
+	@Autowired
+	private AmazonS3Client s3Client;
 
-	private UserInfo adminUserInfo;
+	private ExternalStorageLocationSetting externalLocationSetting;
+
+	private ExternalS3StorageLocationSetting externalS3LocationSetting;
+
+	private UserInfo userInfo;
 	private String projectId;
 	private String childId;
 	private String childChildId;
 
 	@Before
 	public void setUp() throws Exception {
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		NewUser user = new NewUser();
+		String username = UUID.randomUUID().toString();
+		user.setEmail(username + "@test.com");
+		user.setUserName(username);
+		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
 		Project project = new Project();
 		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));
-		projectId = entityManager.createEntity(adminUserInfo, project, null);
+		projectId = entityManager.createEntity(userInfo, project, null);
 
 		Folder child = new Folder();
 		child.setName("child");
 		child.setParentId(projectId);
-		childId = entityManager.createEntity(adminUserInfo, child, null);
+		childId = entityManager.createEntity(userInfo, child, null);
 
 		Folder childChild = new Folder();
 		childChild.setName("child");
 		childChild.setParentId(childId);
-		childChildId = entityManager.createEntity(adminUserInfo, childChild, null);
+		childChildId = entityManager.createEntity(userInfo, childChild, null);
 
-		externalLocationSetting = new ExternalUploadDestinationLocationSetting();
+		externalLocationSetting = new ExternalStorageLocationSetting();
 		externalLocationSetting.setUploadType(UploadType.SFTP);
 		externalLocationSetting.setUrl("sftp://here");
-		externalLocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(adminUserInfo, externalLocationSetting);
+		externalLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
 
-		externalS3LocationSetting = new ExternalS3UploadDestinationLocationSetting();
+		externalS3LocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3LocationSetting.setUploadType(UploadType.S3);
-		externalS3LocationSetting.setUrl("sftp://here");
-		externalS3LocationSetting.setBucket("bucket");
-		externalS3LocationSetting.setBaseKey("key");
-		externalS3LocationSetting = projectSettingsManager.createUploadDestinationLocationSetting(adminUserInfo, externalS3LocationSetting);
+		externalS3LocationSetting.setEndpointUrl("");
+		externalS3LocationSetting.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
+		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
+
+		s3Client.createBucket(externalS3LocationSetting.getBucket());
+
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(username.length());
+		s3Client.putObject(externalS3LocationSetting.getBucket(), externalS3LocationSetting.getBaseKey() + "owner.txt",
+				new StringInputStream(username), metadata);
+
+		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		entityManager.deleteEntity(adminUserInfo, childChildId);
 		entityManager.deleteEntity(adminUserInfo, childId);
 		entityManager.deleteEntity(adminUserInfo, projectId);
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
 	}
 
 	@Test
@@ -100,22 +126,22 @@ public class ProjectSettingsImplTest {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
 		toCreate.setSettingsType(ProjectSettingsType.upload);
-		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
-		ProjectSetting settings = projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
+		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
+		ProjectSetting settings = projectSettingsManager.createProjectSetting(userInfo, toCreate);
 		assertTrue(settings instanceof UploadDestinationListSetting);
 
-		ProjectSetting copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
+		ProjectSetting copy = projectSettingsManager.getProjectSetting(userInfo, settings.getId());
 		assertEquals(settings, copy);
 
-		((UploadDestinationListSetting) settings).setLocations(Lists.newArrayList(externalLocationSetting.getUploadId(),
-				externalS3LocationSetting.getUploadId()));
-		projectSettingsManager.updateProjectSetting(adminUserInfo, settings);
-		copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
+		((UploadDestinationListSetting) settings).setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId(),
+				externalS3LocationSetting.getStorageLocationId()));
+		projectSettingsManager.updateProjectSetting(userInfo, settings);
+		copy = projectSettingsManager.getProjectSetting(userInfo, settings.getId());
 		assertNotSame(settings, copy);
 		settings.setEtag(copy.getEtag());
 		assertEquals(settings, copy);
 
-		projectSettingsManager.deleteProjectSetting(adminUserInfo, settings.getId());
+		projectSettingsManager.deleteProjectSetting(userInfo, settings.getId());
 	}
 
 	@Test
@@ -123,19 +149,19 @@ public class ProjectSettingsImplTest {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
 		toCreate.setSettingsType(ProjectSettingsType.upload);
-		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getUploadId()));
-		projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
+		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
+		projectSettingsManager.createProjectSetting(userInfo, toCreate);
 
-		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, projectId,
+		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(userInfo, projectId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		assertEquals(externalLocationSetting.getUploadId(), setting.getLocations().get(0));
+		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForParent(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(externalLocationSetting.getUploadId(), setting.getLocations().get(0));
+		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForParent(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(externalLocationSetting.getUploadId(), setting.getLocations().get(0));
+		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
 	}
 }

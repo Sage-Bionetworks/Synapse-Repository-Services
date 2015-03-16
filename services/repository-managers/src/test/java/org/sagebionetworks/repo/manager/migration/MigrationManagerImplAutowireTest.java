@@ -379,7 +379,7 @@ public class MigrationManagerImplAutowireTest {
 		String xml = new String(out.toByteArray(), "UTF-8");
 
 		int beforeCount = namedParameterJdbcTemplate.queryForObject(
-				"select COUNT(*) from UPLOAD_DESTINATION_LOCATION where DESCRIPTION like 'Upload to sftp://%'",
+				"select COUNT(*) from STORAGE_LOCATION where DESCRIPTION like 'Upload to sftp://%'",
 				Collections.<String, String> emptyMap(), Integer.class).intValue();
 
 		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
@@ -393,7 +393,7 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(
 				3,
 				namedParameterJdbcTemplate.queryForObject(
-						"select COUNT(*) from UPLOAD_DESTINATION_LOCATION where DESCRIPTION like 'Upload to sftp://%'",
+						"select COUNT(*) from STORAGE_LOCATION where DESCRIPTION like 'Upload to sftp://%'",
 						Collections.<String, String> emptyMap(), Integer.class).intValue()
 						- beforeCount);
 

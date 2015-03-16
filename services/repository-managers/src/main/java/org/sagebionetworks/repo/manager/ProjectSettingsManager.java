@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
@@ -29,11 +29,13 @@ public interface ProjectSettingsManager {
 	<T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	<T extends UploadDestinationLocationSetting> T createUploadDestinationLocationSetting(UserInfo userInfo,
-			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException, IOException;
+	<T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo, T StorageLocationSetting) throws DatastoreException,
+			NotFoundException, IOException;
 
-	<T extends UploadDestinationLocationSetting> T updateUploadDestinationLocationSetting(UserInfo userInfo,
-			T uploadDestinationLocationSetting) throws DatastoreException, NotFoundException;
+	<T extends StorageLocationSetting> T updateStorageLocationSetting(UserInfo userInfo, T StorageLocationSetting) throws DatastoreException,
+			NotFoundException;
+
+	StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException, NotFoundException;
 
 	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations);
 }

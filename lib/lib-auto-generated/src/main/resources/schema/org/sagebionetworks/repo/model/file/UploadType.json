@@ -1,0 +1,11 @@
+{
+    "description":"The enumeration of possible upload types.",
+    "name": "UploadType",
+    "type":"string",
+    "enum":[
+		"S3",
+		"SFTP",
+		"HTTPS"
+	]
+}
+    
