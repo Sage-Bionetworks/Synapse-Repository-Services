@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -53,7 +54,7 @@ import com.amazonaws.util.BinaryUtils;
 public class MultipartManagerImpl implements MultipartManager {
 	
 	// [base/]userid/UUID/filename
-	private static final String FILE_TOKEN_TEMPLATE_SEPARATOR = "/";
+	public static final String FILE_TOKEN_TEMPLATE_SEPARATOR = "/";
 	private static final String FILE_TOKEN_TEMPLATE = "%1$s%2$s" + FILE_TOKEN_TEMPLATE_SEPARATOR + "%3$s" + FILE_TOKEN_TEMPLATE_SEPARATOR
 			+ "%4$s";
 	
@@ -160,16 +161,20 @@ public class MultipartManagerImpl implements MultipartManager {
 	}
 	
 	private static String getBucket(StorageLocationSetting storageLocationSetting) {
-		String bucket = StackConfiguration.getS3Bucket();
-		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
+		String bucket;
+		if (storageLocationSetting == null || storageLocationSetting instanceof S3StorageLocationSetting) {
+			bucket = StackConfiguration.getS3Bucket();
+		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			bucket = ((ExternalS3StorageLocationSetting) storageLocationSetting).getBucket();
+		} else {
+			throw new IllegalArgumentException("Cannot get bucket from storage location setting type " + storageLocationSetting.getClass());
 		}
 		return bucket;
 	}
 
 	@Override
 	public String getBucket(Long storageLocationId) throws DatastoreException, NotFoundException {
-		StorageLocationSetting storageLocationSetting =getStorageLocationSetting(storageLocationId);
+		StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
 		return getBucket(storageLocationSetting);
 	}
 

@@ -12,10 +12,6 @@
 		"externalURL": {
 			"type": "string",
 			"description": "The external URL of this file."
-		},
-		"uploadId": {
-			"type": "integer",
-			"description": "The optional upload ID used to upload this file."
 		}
 	}
 }

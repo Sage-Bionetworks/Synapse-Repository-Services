@@ -38,9 +38,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
-	@Autowired
 	private IdGenerator idGenerator;
 
 	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_PROJECT_ID

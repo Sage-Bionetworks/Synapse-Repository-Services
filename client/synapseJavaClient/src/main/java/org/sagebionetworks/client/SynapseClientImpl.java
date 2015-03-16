@@ -4496,7 +4496,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
 		ccftr.setUploadDestination(uploadDestination);
-		ccftr.setStorageLocationId(uploadDestination.getStorageLocationId());
+		ccftr.setStorageLocationId(uploadDestination == null ? null : uploadDestination.getStorageLocationId());
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 

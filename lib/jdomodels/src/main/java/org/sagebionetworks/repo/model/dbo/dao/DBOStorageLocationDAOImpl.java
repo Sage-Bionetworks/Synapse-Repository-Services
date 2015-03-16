@@ -1,28 +1,33 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_LOCATION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,7 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Function;
 
-public class DBOStorageLocationDAOImpl implements StorageLocationDAO {
+public class DBOStorageLocationDAOImpl implements StorageLocationDAO, InitializingBean {
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -47,6 +52,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	public static final Long DEFAULT_STORAGE_LOCATION_ID = 1L;
+
 	private static final String STORAGE_LOCATION_IDS_PARAM = "udl_ids";
 
 	private static final String SELECT_STORAGE_LOCATIONS = "SELECT " + COL_STORAGE_LOCATION_ID + ", " + COL_STORAGE_LOCATION_DESCRIPTION
@@ -54,6 +61,22 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO {
 			+ STORAGE_LOCATION_IDS_PARAM + ")";
 
 	private static final RowMapper<DBOStorageLocation> StorageLocationRowMapper = (new DBOStorageLocation()).getTableMapping();
+
+	public static UploadDestination getDefaultUploadDestination() {
+		S3UploadDestination defaultUploadDestination = new S3UploadDestination();
+		defaultUploadDestination.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+		defaultUploadDestination.setUploadType(UploadType.S3);
+		return defaultUploadDestination;
+	}
+
+	private static StorageLocationSetting getDefaultStorageLocationSetting() {
+		StorageLocationSetting storageLocationSetting = new S3StorageLocationSetting();
+		storageLocationSetting.setStorageLocationId(DEFAULT_STORAGE_LOCATION_ID);
+		storageLocationSetting.setUploadType(UploadType.S3);
+		storageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		storageLocationSetting.setCreatedOn(new Date());
+		return storageLocationSetting;
+	}
 
 	private static final Function<DBOStorageLocation, StorageLocationSetting> CONVERT_DBO_TO_STORAGE_LOCATION = new Function<DBOStorageLocation, StorageLocationSetting>() {
 		@Override
@@ -72,6 +95,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO {
 		@Override
 		public DBOStorageLocation apply(StorageLocationSetting setting) {
 			DBOStorageLocation dbo = new DBOStorageLocation();
+			dbo.setId(setting.getStorageLocationId());
 			dbo.setDescription(setting.getDescription());
 			dbo.setUploadType(setting.getUploadType());
 			dbo.setEtag(setting.getEtag());
@@ -82,12 +106,27 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO {
 		}
 	};
 
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		try {
+			basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
+					DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
+		} catch (NotFoundException e) {
+			S3StorageLocationSetting defaultStorageLocationSetting = (S3StorageLocationSetting) DBOStorageLocationDAOImpl
+					.getDefaultStorageLocationSetting();
+			defaultStorageLocationSetting.setCreatedOn(new Date());
+			defaultStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+			defaultStorageLocationSetting.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+			create(defaultStorageLocationSetting);
+		}
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Long create(StorageLocationSetting dto) {
 		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
+			dbo.setId(idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID));
 		}
 		if (dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());
@@ -130,8 +169,13 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO {
 	}
 
 	@Override
-	public StorageLocationSetting get(Long id) throws DatastoreException, NotFoundException {
-		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(id));
+	public StorageLocationSetting get(Long storageLocationId) throws DatastoreException, NotFoundException {
+		if (storageLocationId == null || DEFAULT_STORAGE_LOCATION_ID.equals(storageLocationId)) {
+			return getDefaultStorageLocationSetting();
+		}
+
+		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
+				storageLocationId));
 		return CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
 	}
 

@@ -30,6 +30,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -298,7 +299,9 @@ public class IT049FileHandleTest {
 		assertEquals(created, clone);
 
 		UploadDestination uploadDestination = synapse.getUploadDestination(project.getId(), externalDestination.getStorageLocationId());
-		assertEquals(externalDestination, uploadDestination);
+		assertEquals(externalDestination.getUploadType(), uploadDestination.getUploadType());
+		assertEquals(externalDestination.getBanner(), uploadDestination.getBanner());
+		assertEquals(externalDestination.getStorageLocationId(), uploadDestination.getStorageLocationId());
 
 		synapse.deleteProjectSetting(created.getId());
 
@@ -353,14 +356,12 @@ public class IT049FileHandleTest {
 	@Test
 	public void testExternalUploadDestinationChoice() throws SynapseException, IOException, InterruptedException {
 		// create an project setting
-		ExternalS3StorageLocationSetting externalS3Destination = new ExternalS3StorageLocationSetting();
-		externalS3Destination.setUploadType(UploadType.S3);
-		externalS3Destination.setEndpointUrl("s3.amazon.com");
-		externalS3Destination.setBucket("bucket");
-		externalS3Destination.setBaseKey("key");
-		externalS3Destination.setBanner("warning, at institute");
-		externalS3Destination.setDescription("not in synapse, this is");
-		externalS3Destination = synapse.createStorageLocationSetting(externalS3Destination);
+		ExternalStorageLocationSetting externalDestination = new ExternalStorageLocationSetting();
+		externalDestination.setUploadType(UploadType.SFTP);
+		externalDestination.setUrl("sftp://somewhere");
+		externalDestination.setBanner("warning, at institute");
+		externalDestination.setDescription("not in synapse, this is");
+		externalDestination = synapse.createStorageLocationSetting(externalDestination);
 
 		S3StorageLocationSetting internalS3Destination = new S3StorageLocationSetting();
 		internalS3Destination.setUploadType(UploadType.S3);
@@ -370,20 +371,20 @@ public class IT049FileHandleTest {
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
 		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(Lists.newArrayList(externalS3Destination.getStorageLocationId(),
+		projectSetting.setLocations(Lists.newArrayList(externalDestination.getStorageLocationId(),
 				internalS3Destination.getStorageLocationId()));
 		synapse.createProjectSetting(projectSetting);
 
 		UploadDestinationLocation[] uploadDestinationLocations = synapse.getUploadDestinationLocations(project.getId());
 		assertEquals(2, uploadDestinationLocations.length);
-		assertEquals(externalS3Destination.getStorageLocationId(), uploadDestinationLocations[0].getStorageLocationId());
+		assertEquals(externalDestination.getStorageLocationId(), uploadDestinationLocations[0].getStorageLocationId());
 		assertEquals(internalS3Destination.getStorageLocationId(), uploadDestinationLocations[1].getStorageLocationId());
 
 		UploadDestination uploadDestination = synapse.getUploadDestination(project.getId(),
 				uploadDestinationLocations[0].getStorageLocationId());
-		assertEquals(UploadType.S3, uploadDestination.getUploadType());
-		assertEquals(externalS3Destination.getStorageLocationId(), uploadDestination.getStorageLocationId());
-		assertEquals(ExternalS3UploadDestination.class, uploadDestination.getClass());
+		assertEquals(UploadType.SFTP, uploadDestination.getUploadType());
+		assertEquals(externalDestination.getStorageLocationId(), uploadDestination.getStorageLocationId());
+		assertEquals(ExternalUploadDestination.class, uploadDestination.getClass());
 
 		uploadDestination = synapse.getUploadDestination(project.getId(), uploadDestinationLocations[1].getStorageLocationId());
 		assertEquals(UploadType.S3, uploadDestination.getUploadType());

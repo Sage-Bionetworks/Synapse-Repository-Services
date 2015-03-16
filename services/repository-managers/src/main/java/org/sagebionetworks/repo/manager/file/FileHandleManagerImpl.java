@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
+import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.file.*;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -81,8 +82,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30
 																		// secs
-
-	public static final Long DEFAULT_STORAGE_LOCATION_ID = 0L;
 
 	/**
 	 * Used as the file contents for old locationables and attachments that were never
@@ -633,9 +632,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (token.getContentType() == null)
 			throw new IllegalArgumentException(
 					"ChunkedFileToken.getFileContentType cannot be null");
-		// The token key must start with the User's id
+		// The token key must start with the User's id (and the baseKey if any)
 		String userId = getUserId(userInfo);
-		if (!token.getKey().startsWith(userId))
+		if (!token.getKey().startsWith(userId)
+				&& token.getKey().indexOf(
+						MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR + userId + MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR) == -1)
 			throw new UnauthorizedException("The ChunkedFileToken: " + token
 					+ " does not belong to User: " + userId);
 	}
@@ -735,7 +736,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getLocations() == null
 				|| uploadDestinationsSettings.getLocations().isEmpty()) {
 			UploadDestinationLocation uploadDestinationLocation = new UploadDestinationLocation();
-			uploadDestinationLocation.setStorageLocationId(DEFAULT_STORAGE_LOCATION_ID);
+			uploadDestinationLocation.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
 			uploadDestinationLocation.setUploadType(UploadType.S3);
 			return Collections.<UploadDestinationLocation> singletonList(uploadDestinationLocation);
 		} else {
@@ -747,11 +748,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public UploadDestination getUploadDestination(UserInfo userInfo, String parentId, Long storageLocationId) throws DatastoreException,
 			NotFoundException {
 		// handle default case
-		if (storageLocationId.equals(DEFAULT_STORAGE_LOCATION_ID)) {
-			S3UploadDestination s3UploadDestination = new S3UploadDestination();
-			s3UploadDestination.setStorageLocationId(DEFAULT_STORAGE_LOCATION_ID);
-			s3UploadDestination.setUploadType(UploadType.S3);
-			return s3UploadDestination;
+		if (storageLocationId.equals(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID)) {
+			return DBOStorageLocationDAOImpl.getDefaultUploadDestination();
 		}
 
 		StorageLocationSetting storageLocationSetting = storageLocationDAO.get(storageLocationId);
@@ -792,7 +790,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Long storageLocationId;
 		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getLocations() == null
 				|| uploadDestinationsSettings.getLocations().isEmpty()) {
-			storageLocationId = DEFAULT_STORAGE_LOCATION_ID;
+			storageLocationId = DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID;
 		} else {
 			storageLocationId = uploadDestinationsSettings.getLocations().get(0);
 		}
