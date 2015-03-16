@@ -10,6 +10,7 @@
     	"PRINCIPAL_ALIAS", 
     	"NOTIFICATION_EMAIL", 
     	"USER_PROFILE",
+    	"STORAGE_LOCATION",
         "FILE_HANDLE",
 		"MESSAGE", 
         "MESSAGE_CONTENT", 

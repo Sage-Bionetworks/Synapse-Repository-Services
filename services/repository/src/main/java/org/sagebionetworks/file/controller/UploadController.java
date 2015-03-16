@@ -15,8 +15,6 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -29,6 +27,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -483,6 +482,7 @@ public class UploadController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestinations", method = RequestMethod.GET)
 	public @ResponseBody
@@ -490,6 +490,62 @@ public class UploadController extends BaseController {
 			@PathVariable(value = "id") String parentId) throws DatastoreException, NotFoundException {
 		List<UploadDestination> uploadDestinations = fileService.getUploadDestinations(userId, parentId);
 		return ListWrapper.wrap(uploadDestinations, UploadDestination.class);
+	}
+
+	/**
+	 * Get the upload destination locations for this parent entity. This will return a list of at least one destination
+	 * location. The first destination in the list is always the default destination
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestinationLocations", method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<UploadDestinationLocation> getUploadDestinationLocations(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id") String parentId)
+			throws DatastoreException, NotFoundException {
+		List<UploadDestinationLocation> uploadDestinationLocations = fileService.getUploadDestinationLocations(userId, parentId);
+		return ListWrapper.wrap(uploadDestinationLocations, UploadDestinationLocation.class);
+	}
+
+	/**
+	 * Get the upload destinations for this storage location id. This will always return an upload destination
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination/{storageLocationId}", method = RequestMethod.GET)
+	public @ResponseBody
+	UploadDestination getUploadDestination(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String parentId, @PathVariable Long storageLocationId) throws DatastoreException, NotFoundException {
+		UploadDestination uploadDestination = fileService.getUploadDestination(userId, parentId, storageLocationId);
+		return uploadDestination;
+	}
+
+	/**
+	 * Get the default upload destinations for this storage location id. This will always return an upload destination
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination", method = RequestMethod.GET)
+	public @ResponseBody
+	UploadDestination getDefaultUploadDestination(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String parentId) throws DatastoreException, NotFoundException {
+		UploadDestination uploadDestination = fileService.getDefaultUploadDestination(userId, parentId);
+		return uploadDestination;
 	}
 
 	/**

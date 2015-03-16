@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -156,38 +157,52 @@ public interface FileHandleManager {
 	BucketCrossOriginConfiguration getBucketCrossOriginConfiguration();
 
 	/**
-	 * This is the first step in uploading a file as multiple chunks. The returned file token must be provide in all subsequent chunk calls.
+	 * This is the first step in uploading a file as multiple chunks. The returned file token must be provide in all
+	 * subsequent chunk calls.
+	 * 
 	 * @param userInfo
 	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr);
+	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr) throws DatastoreException,
+			NotFoundException;
 	
 	/**
 	 * Create a pre-signed URL that can be used to PUT a single chunk of file data to S3.
+	 * 
 	 * @param token
 	 * @param partNumber
 	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr);
+	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * After uploading a file chunk to the pre-signed URL add it to the larger file.
-	 * This must be called for each chunk.
+	 * After uploading a file chunk to the pre-signed URL add it to the larger file. This must be called for each chunk.
+	 * 
 	 * @param userInfo
 	 * @param token
 	 * @param partNumber
 	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr);
+	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
-	 * The final step of a chunked file upload.  This is where an {@link S3FileHandle} is created.
+	 * The final step of a chunked file upload. This is where an {@link S3FileHandle} is created.
+	 * 
 	 * @param userInfo
 	 * @param token
 	 * @param partList
 	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public S3FileHandle completeChunkFileUpload(UserInfo userInfo,	CompleteChunkedFileRequest ccfr);
+	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) throws DatastoreException,
+			NotFoundException;
 	
 	/**
 	 * Start an asynchronous daemon that will add all chunks to the file upload and complete the file upload
@@ -242,8 +257,46 @@ public interface FileHandleManager {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
+	@Deprecated
 	List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException;
+
+	/**
+	 * get the list of upload locations
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, String parentId) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * get the upload location for an uploadId
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @param storageLocationId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getUploadDestination(UserInfo userInfo, String parentId, Long storageLocationId) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * get the default upload location for a parent
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create a file handle from the an old style attachment data.

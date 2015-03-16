@@ -30,6 +30,10 @@
 		"fileName": {
 			"type": "string",
 			"description": "The short, user visible name for this file."
+		},
+		"storageLocationId": {
+			"type": "integer",
+			"description": "The optional storage location descriptor"
 		}
 	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.migration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -13,28 +14,41 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -44,6 +58,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -80,6 +95,18 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	ConnectionFactory connectionFactory;
 
+	@Autowired
+	ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private ProjectSettingsDAO projectSettingsDao;
+
+	@Autowired
+	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+	@Autowired
+	FileHandleManager fileHandleManager;
+
 	private List<String> toDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
@@ -87,8 +114,9 @@ public class MigrationManagerImplAutowireTest {
 	private PreviewFileHandle preview;
 	private long startCount;
 	private String tableId;
+	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
-	
+
 	@Before
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
@@ -113,6 +141,12 @@ public class MigrationManagerImplAutowireTest {
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		// The etag should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+
+		for (int i = 0; i < projectIds.length; i++) {
+			Project project = new Project();
+			project.setName(UUID.randomUUID().toString());
+			projectIds[i] = entityManager.createEntity(adminUser, project, null);
+		}
 
 		// Do this only if table enabled
 		if (StackConfiguration.singleton().getTableEnabled()) {
@@ -153,6 +187,12 @@ public class MigrationManagerImplAutowireTest {
 		try {
 			entityManager.deleteEntity(adminUser, tableId);
 		} catch (Exception e) {
+		}
+		for (String projectId : projectIds) {
+			try {
+				entityManager.deleteEntity(adminUser, projectId);
+			} catch (Exception e) {
+			}
 		}
 	}
 	
@@ -295,4 +335,78 @@ public class MigrationManagerImplAutowireTest {
 		}
 	}
 	
+	@Test
+	public void testProjectSettingMigration() throws Exception {
+
+		// create old style
+		String description = RandomStringUtils.random(20);
+
+		ExternalUploadDestinationSetting d1 = new ExternalUploadDestinationSetting();
+		d1.setBanner(description);
+		d1.setSupportsSubfolders(true);
+		d1.setUploadType(UploadType.SFTP);
+		d1.setUrl("sftp://1");
+		ExternalUploadDestinationSetting d2 = new ExternalUploadDestinationSetting();
+		d2.setBanner(description);
+		d2.setSupportsSubfolders(true);
+		d2.setUploadType(UploadType.SFTP);
+		d2.setUrl("sftp://2");
+		ExternalUploadDestinationSetting d3 = new ExternalUploadDestinationSetting();
+		d3.setBanner(description);
+		d3.setSupportsSubfolders(false);
+		d3.setUploadType(UploadType.SFTP);
+		d3.setUrl("sftp://2");
+
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId(projectIds[0]);
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(d1));
+		Long id1 = Long.parseLong(projectSettingsDao.create(setting));
+
+		setting.setProjectId(projectIds[1]);
+		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(d1, d2));
+		Long id2 = Long.parseLong(projectSettingsDao.create(setting));
+
+		setting.setProjectId(projectIds[2]);
+		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(d2, d3, d3));
+		Long id3 = Long.parseLong(projectSettingsDao.create(setting));
+
+		// Write the backup data
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		Writer writer = new OutputStreamWriter(out, "UTF-8");
+		migrationManager.writeBackupBatch(adminUser, MigrationType.PROJECT_SETTINGS, Lists.newArrayList(id1,id2,id3), writer);
+		writer.flush();
+		String xml = new String(out.toByteArray(), "UTF-8");
+
+		int beforeCount = namedParameterJdbcTemplate.queryForObject(
+				"select COUNT(*) from STORAGE_LOCATION where DESCRIPTION like 'Upload to sftp://%'",
+				Collections.<String, String> emptyMap(), Integer.class).intValue();
+
+		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.PROJECT_SETTINGS, in);
+
+		assertEquals(
+				3,
+				namedParameterJdbcTemplate.queryForObject("select COUNT(*) from PROJECT_SETTING where ID in (:x)",
+						Collections.singletonMap("x", Lists.newArrayList(id1, id2, id3)), Integer.class).intValue());
+
+		assertEquals(
+				3,
+				namedParameterJdbcTemplate.queryForObject(
+						"select COUNT(*) from STORAGE_LOCATION where DESCRIPTION like 'Upload to sftp://%'",
+						Collections.<String, String> emptyMap(), Integer.class).intValue()
+						- beforeCount);
+
+		for (int i = 0; i < projectIds.length; i++) {
+			ProjectSetting projectSetting = projectSettingsManager.getProjectSettingByProjectAndType(adminUser, projectIds[i],
+					ProjectSettingsType.upload);
+			assertTrue(projectSetting instanceof UploadDestinationListSetting);
+			assertNull(((UploadDestinationListSetting) projectSetting).getDestinations());
+			assertEquals(i + 1, ((UploadDestinationListSetting) projectSetting).getLocations().size());
+			for (Long location : ((UploadDestinationListSetting) projectSetting).getLocations()) {
+				UploadDestination uploadDestination = fileHandleManager.getUploadDestination(adminUser, projectIds[i], location);
+				assertTrue(uploadDestination instanceof ExternalUploadDestination);
+			}
+		}
+	}
 }

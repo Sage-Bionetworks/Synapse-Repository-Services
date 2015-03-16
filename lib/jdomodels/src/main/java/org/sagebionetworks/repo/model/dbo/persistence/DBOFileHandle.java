@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
@@ -48,7 +49,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		EXTERNAL,
 		PREVIEW,
 	}
-	
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_FILES_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_FILES_ETAG).withIsEtag(true),
@@ -62,8 +63,9 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		new FieldColumn("bucketName", COL_FILES_BUCKET_NAME),
 		new FieldColumn("key", COL_FILES_KEY),
 		new FieldColumn("name", COL_FILES_NAME),
+		new FieldColumn("storageLocationId", COL_FILES_STORAGE_LOCATION_ID),
 	};
-	
+
 	private Long id;
 	private String etag;
 	private Long previewId;
@@ -76,6 +78,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	private String bucketName;
 	private String key;
 	private String name;
+	private Long storageLocationId;
 
 	@Override
 	public TableMapping<DBOFileHandle> getTableMapping() {
@@ -103,6 +106,10 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				results.setBucketName(rs.getString(COL_FILES_BUCKET_NAME));
 				results.setKey(rs.getString(COL_FILES_KEY));
 				results.setName(rs.getString(COL_FILES_NAME));
+				results.setStorageLocationId(rs.getLong(COL_FILES_STORAGE_LOCATION_ID));
+				if (rs.wasNull()) {
+					results.setStorageLocationId(null);
+				}
 				return results;
 			}
 			
@@ -173,18 +180,13 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		return null;
 	}
 
+	public MetadataType getMetadataTypeEnum() {
+		return metadataType;
+	}
+
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.FILE;
-	}
-
-	@Override
-	public String getEtag() {
-		return etag;
-	}
-
-	public void setEtag(String etag) {
-		this.etag = etag;
 	}
 
 	public Long getId() {
@@ -193,6 +195,14 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 	public Long getPreviewId() {
@@ -211,10 +221,14 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		this.createdBy = createdBy;
 	}
 
-	public MetadataType getMetadataTypeEnum() {
-		return metadataType;
+	public Timestamp getCreatedOn() {
+		return createdOn;
 	}
-	
+
+	public void setCreatedOn(Timestamp createdOn) {
+		this.createdOn = createdOn;
+	}
+
 	public String getMetadataType() {
 		return metadataType.name();
 	}
@@ -263,14 +277,6 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		this.key = key;
 	}
 
-	public Timestamp getCreatedOn() {
-		return createdOn;
-	}
-
-	public void setCreatedOn(Timestamp createdOn) {
-		this.createdOn = createdOn;
-	}
-
 	public String getName() {
 		return name;
 	}
@@ -279,30 +285,31 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		this.name = name;
 	}
 
+	public Long getStorageLocationId() {
+		return storageLocationId;
+	}
+
+	public void setStorageLocationId(Long storageLocationId) {
+		this.storageLocationId = storageLocationId;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((bucketName == null) ? 0 : bucketName.hashCode());
-		result = prime * result
-				+ ((contentMD5 == null) ? 0 : contentMD5.hashCode());
-		result = prime * result
-				+ ((contentSize == null) ? 0 : contentSize.hashCode());
-		result = prime * result
-				+ ((contentType == null) ? 0 : contentType.hashCode());
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((bucketName == null) ? 0 : bucketName.hashCode());
+		result = prime * result + ((contentMD5 == null) ? 0 : contentMD5.hashCode());
+		result = prime * result + ((contentSize == null) ? 0 : contentSize.hashCode());
+		result = prime * result + ((contentType == null) ? 0 : contentType.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
-		result = prime * result
-				+ ((metadataType == null) ? 0 : metadataType.hashCode());
+		result = prime * result + ((metadataType == null) ? 0 : metadataType.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result
-				+ ((previewId == null) ? 0 : previewId.hashCode());
+		result = prime * result + ((previewId == null) ? 0 : previewId.hashCode());
+		result = prime * result + ((storageLocationId == null) ? 0 : storageLocationId.hashCode());
 		return result;
 	}
 
@@ -372,17 +379,20 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				return false;
 		} else if (!previewId.equals(other.previewId))
 			return false;
+		if (storageLocationId == null) {
+			if (other.storageLocationId != null)
+				return false;
+		} else if (!storageLocationId.equals(other.storageLocationId))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOFileMetadata [id=" + id + ", etag=" + etag + ", previewId="
-				+ previewId + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", metadataType=" + metadataType
-				+ ", contentType=" + contentType + ", contentSize="
-				+ contentSize + ", contentMD5=" + contentMD5 + ", bucketName="
-				+ bucketName + ", key=" + key + ", name=" + name + "]";
+		return "DBOFileHandle [id=" + id + ", etag=" + etag + ", previewId=" + previewId + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", metadataType=" + metadataType + ", contentType=" + contentType + ", contentSize=" + contentSize
+				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName + ", key=" + key + ", name=" + name + ", storageLocationId="
+				+ storageLocationId + "]";
 	}
 
 }

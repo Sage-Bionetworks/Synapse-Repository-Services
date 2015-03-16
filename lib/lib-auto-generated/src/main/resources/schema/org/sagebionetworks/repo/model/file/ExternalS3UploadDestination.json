@@ -1,0 +1,22 @@
+{
+	"description": "The upload destination contains information to start an upload to different types of destinations.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+		}
+	],
+	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "the s3 endpoint url (default: https://s3.amazonaws.com)"
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use"
+		},
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key to use"
+		}
+	}
+}

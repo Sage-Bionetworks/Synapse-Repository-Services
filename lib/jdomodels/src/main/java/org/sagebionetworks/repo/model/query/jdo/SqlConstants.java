@@ -83,6 +83,16 @@ public class SqlConstants {
 	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
 	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
 
+	// The Upload Destination Location table
+	public static final String TABLE_STORAGE_LOCATION				= "STORAGE_LOCATION";
+	public static final String COL_STORAGE_LOCATION_ID				= "ID";
+	public static final String COL_STORAGE_LOCATION_DESCRIPTION		= "DESCRIPTION";
+	public static final String COL_STORAGE_LOCATION_UPLOAD_TYPE		= "UPLOAD_TYPE";
+	public static final String COL_STORAGE_LOCATION_ETAG			= "ETAG";
+	public static final String COL_STORAGE_LOCATION_DATA			= "DATA";
+	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
+	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
+
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";
@@ -209,6 +219,7 @@ public class SqlConstants {
 	public static final String COL_FILES_BUCKET_NAME				= "BUCKET_NAME";
 	public static final String COL_FILES_KEY						= "KEY";
 	public static final String COL_FILES_NAME						= "NAME";
+	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 
 	// 

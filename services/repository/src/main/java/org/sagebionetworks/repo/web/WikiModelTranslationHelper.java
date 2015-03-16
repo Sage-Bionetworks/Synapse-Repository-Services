@@ -10,6 +10,7 @@ import java.util.Date;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -58,7 +59,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public V2WikiPage convertToV2WikiPage(WikiPage from, UserInfo userInfo) throws IOException {
+	public V2WikiPage convertToV2WikiPage(WikiPage from, UserInfo userInfo) throws IOException, DatastoreException, NotFoundException {
 		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		if(userInfo == null) throw new IllegalArgumentException("User cannot be null");
 		V2WikiPage wiki = new V2WikiPage();
