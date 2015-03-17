@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -112,12 +113,19 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 			basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
 					DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
 		} catch (NotFoundException e) {
-			S3StorageLocationSetting defaultStorageLocationSetting = (S3StorageLocationSetting) DBOStorageLocationDAOImpl
-					.getDefaultStorageLocationSetting();
-			defaultStorageLocationSetting.setCreatedOn(new Date());
-			defaultStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-			defaultStorageLocationSetting.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
-			create(defaultStorageLocationSetting);
+			try {
+				// make sure we skip the first couple of IDs
+				idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID);
+				idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID);
+				S3StorageLocationSetting defaultStorageLocationSetting = (S3StorageLocationSetting) DBOStorageLocationDAOImpl
+						.getDefaultStorageLocationSetting();
+				defaultStorageLocationSetting.setCreatedOn(new Date());
+				defaultStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+				defaultStorageLocationSetting.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+				create(defaultStorageLocationSetting);
+			} catch (DuplicateKeyException e2) {
+				// someone else got there first
+			}
 		}
 	}
 
