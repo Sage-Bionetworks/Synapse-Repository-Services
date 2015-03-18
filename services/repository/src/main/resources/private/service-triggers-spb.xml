@@ -36,8 +36,8 @@
 	    <property name="jobDetail" ref="refreshTeamMemberCache" />
 	    <!-- build cache immediately -->
     	<property name="startDelay" value="0" />
-	    <!-- repeat every 5 minutes -->
-	    <property name="repeatInterval" value="300000" />
+	    <!-- repeat every 6 or so minutes -->
+	    <property name="repeatInterval" value="367000" />
 	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
 	</bean>
 
