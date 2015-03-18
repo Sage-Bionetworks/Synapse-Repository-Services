@@ -7,7 +7,8 @@ import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 
-import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 
 public class DynamoConfigTest {
 	@Test
@@ -24,10 +25,12 @@ public class DynamoConfigTest {
 				Assert.assertNotNull(table.getKeySchema());
 				Assert.assertNotNull(table.getKeySchema().getHashKey());
 				Assert.assertEquals(DboNodeLineage.HASH_KEY_NAME, table.getKeySchema().getHashKey().getKeyName());
-				Assert.assertEquals(ScalarAttributeType.S, table.getKeySchema().getHashKey().getKeyType());
+				Assert.assertEquals(KeyType.HASH, table.getKeySchema().getHashKey().getKeyType());
+				Assert.assertEquals(ScalarAttributeType.S, table.getKeySchema().getHashKey().getAttributeType());
 				Assert.assertNotNull(table.getKeySchema().getRangeKey());
 				Assert.assertEquals(DboNodeLineage.RANGE_KEY_NAME, table.getKeySchema().getRangeKey().getKeyName());
-				Assert.assertEquals(ScalarAttributeType.S, table.getKeySchema().getRangeKey().getKeyType());
+				Assert.assertEquals(KeyType.RANGE, table.getKeySchema().getRangeKey().getKeyType());
+				Assert.assertEquals(ScalarAttributeType.S, table.getKeySchema().getRangeKey().getAttributeType());
 				Assert.assertNotNull(table.getThroughput());
 				Assert.assertTrue(table.getThroughput().getReadThroughput().longValue() >= 1L);
 				Assert.assertTrue(table.getThroughput().getWriteThroughput().longValue() >= 1L);

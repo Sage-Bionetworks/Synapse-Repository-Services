@@ -6,12 +6,12 @@ import java.util.Locale;
 import org.sagebionetworks.dynamo.DynamoTable;
 import org.sagebionetworks.dynamo.KeyValueSplitter;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBAttribute;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBIgnore;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBVersionAttribute;
 
 /**
  * Maps directly to the DynamoDB table named NodeLineage.
@@ -49,6 +49,18 @@ public class DboNodeLineage implements DynamoTable {
 		return nodeId + KeyValueSplitter.SEPARATOR + lineageType.getType();
 	}
 
+	static DboNodeLineage createHashKeyValue(final String nodeId, final LineageType lineageType) {
+		if (nodeId == null) {
+			throw new NullPointerException();
+		}
+		if (lineageType == null) {
+			throw new NullPointerException();
+		}
+		DboNodeLineage result = new DboNodeLineage();
+		result.setHashKey(createHashKey(nodeId, lineageType));
+		return result;
+	}
+
 	/**
 	 * Creates the composite range key from distance and node ID. Example range key, "005#95373".
 	 */
@@ -65,20 +77,32 @@ public class DboNodeLineage implements DynamoTable {
 		return String.format(Locale.ROOT, format, distance) + KeyValueSplitter.SEPARATOR + ancOrDescId;
 	}
 
+	public DboNodeLineage() {
+	}
+
+	public DboNodeLineage(String nodeId, LineageType lineageType, int distance, String ancOrDescId, Long version, Date timestamp) {
+		this.hashKey = createHashKey(nodeId, lineageType);
+		this.rangeKey = createRangeKey(distance, ancOrDescId);
+		this.version = version;
+		this.timestamp = timestamp;
+	}
+
 	@DynamoDBHashKey(attributeName=DboNodeLineage.HASH_KEY_NAME)
 	public String getHashKey() {
-		return this.nodeIdLineageType;
+		return this.hashKey;
 	}
-	public void setHashKey(String nodeIdLineageType) {
-		this.nodeIdLineageType = nodeIdLineageType;
+
+	public void setHashKey(String hashKey) {
+		this.hashKey = hashKey;
 	}
 
 	@DynamoDBRangeKey(attributeName=DboNodeLineage.RANGE_KEY_NAME)
 	public String getRangeKey() {
-		return this.distanceNodeId;
+		return this.rangeKey;
 	}
-	public void setRangeKey(String distanceNodeId) {
-		this.distanceNodeId = distanceNodeId;
+
+	public void setRangeKey(String rangeKey) {
+		this.rangeKey = rangeKey;
 	}
 
 	@DynamoDBVersionAttribute
@@ -100,13 +124,11 @@ public class DboNodeLineage implements DynamoTable {
 	@DynamoDBIgnore
 	@Override
 	public String toString() {
-		return "DboNodeLineage [nodeIdLineageType=" + nodeIdLineageType
-				+ ", distanceNodeId=" + distanceNodeId + ", version=" + version
-				+ ", timestamp=" + timestamp + "]";
+		return "DboNodeLineage [hashKey=" + hashKey + ", rangeKey=" + rangeKey + ", version=" + version + ", timestamp=" + timestamp + "]";
 	}
 
-	private String nodeIdLineageType;
-	private String distanceNodeId;
+	private String hashKey;
+	private String rangeKey;
 	private Long version;
 	private Date timestamp;
 }
