@@ -98,7 +98,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		"select count(*) from (" + 
 			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
 	private static final String SELECT_PROJECTS_SQL1 =
-		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE + ", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED +
+		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE +
+				", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED +
+				", r." + COL_REVISION_MODIFIED_BY + ", r." + COL_REVISION_MODIFIED_ON +
 		" from (" +
 			" select distinct n." + COL_NODE_PROJECT_ID +
 				" from ( ";
@@ -106,20 +108,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		" ) acls" +
 			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
 			" where n." + COL_NODE_PROJECT_ID + " is not null" +
-				" and n." + COL_NODE_BENEFACTOR_ID + " = n." + COL_NODE_ID;
+				" and n." + COL_NODE_BENEFACTOR_ID + " = n." + COL_NODE_ID +
+		" ) pids" +
+		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID +
+		" join " + TABLE_REVISION + " r on n." + COL_NODE_ID + " = r." + COL_REVISION_OWNER_NODE;
+
 	private static final String SELECT_CREATED =
 		"   and n." + COL_NODE_CREATED_BY + " = ";
 	private static final String SELECT_NOT_CREATED =
 		"   and n." + COL_NODE_CREATED_BY + " <> ";
 
-	private static final String SELECT_PROJECTS_SQL4 =
-		" ) pids" +
-		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID;
 	private static final String SELECT_PROJECTS_SQL_JOIN_STATS =
 		" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
-
-	private static final String SELECT_ONLY_PROJECTS_GROUPS =
-		"   n." + COL_NODE_BENEFACTOR_ID + " in ( :" + GROUP_IDS_PARAM_NAME + ")";
 
 	private static final String SELECT_PROJECTS_ORDER =
 		" order by " + LAST_ACCESSED_OR_CREATED;
@@ -1447,9 +1447,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			whereClause2 = " where " + auth2;
 		}
 
-		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + SELECT_PROJECTS_SQL4 + whereClause
+		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause
 				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + SELECT_PROJECTS_SQL4 + whereClause + whereClause2;
+		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause + whereClause2;
 
 		return getProjectHeaders(parameters, selectSql, countSql);
 	}
@@ -1466,6 +1466,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if (!rs.wasNull()) {
 					header.setLastActivity(new Date(lastActivity));
 				}
+				header.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
+				header.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
 				return header;
 			}
 		});
