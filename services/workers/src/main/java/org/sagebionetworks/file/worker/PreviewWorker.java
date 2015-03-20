@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.sqs.model.Message;
 
 /**
@@ -105,16 +106,28 @@ public class PreviewWorker implements Callable<List<Message>> {
 				log.error("Failed to process message: "+message.toString(), e);
 				// Depending on cause, we may or may not retry
 				Throwable causeEx = e.getCause();
-				if ((causeEx != null)
-						&& ((causeEx instanceof EOFException)
-								|| (causeEx instanceof IllegalArgumentException)
-								|| (causeEx instanceof ArrayIndexOutOfBoundsException)
-								|| (causeEx instanceof javax.imageio.IIOException))) {
-					processedMessage.add(message);
-					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
-				}  else {
+				boolean retry = true;
+				if (causeEx != null) {
+					if ((causeEx instanceof EOFException)
+							|| (causeEx instanceof IllegalArgumentException)
+							|| (causeEx instanceof ArrayIndexOutOfBoundsException)
+							|| (causeEx instanceof javax.imageio.IIOException)) {
+						retry = false;
+					}
+					if (causeEx instanceof AmazonS3Exception) {
+						AmazonS3Exception exAmzn = (AmazonS3Exception) causeEx;
+						if (exAmzn.getStatusCode() == 404) {
+							retry = false;
+						}
+					}
+					if (! retry) {
+						processedMessage.add(message);
+					}
+					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, retry);
+				} else {
 					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
 				}
+					
 			} catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.
 				// For unknown errors we leave the messages on the queue.
