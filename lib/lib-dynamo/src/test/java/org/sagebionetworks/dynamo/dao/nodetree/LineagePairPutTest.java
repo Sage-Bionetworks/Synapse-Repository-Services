@@ -9,7 +9,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 
 public class LineagePairPutTest {
 

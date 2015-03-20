@@ -22,7 +22,7 @@
 		<constructor-arg index="1" ref="userKey" />
 	</bean>
 
-	<bean id="dynamoClient" class="com.amazonaws.services.dynamodb.AmazonDynamoDBClient" scope="singleton">
+	<bean id="dynamoClient" class="com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient" scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 

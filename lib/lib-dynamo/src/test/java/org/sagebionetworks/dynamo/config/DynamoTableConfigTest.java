@@ -1,30 +1,39 @@
 package org.sagebionetworks.dynamo.config;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 
-import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 
 public class DynamoTableConfigTest {
 
 	@Test
 	public void testDynamoKey() {
 
-		DynamoTableConfig.DynamoKey key = new DynamoTableConfig.DynamoKey("name", ScalarAttributeType.N);
-		Assert.assertEquals("name", key.getKeyName());
-		Assert.assertEquals(ScalarAttributeType.N, key.getKeyType());
+		DynamoTableConfig.DynamoKey key = new DynamoTableConfig.DynamoKey("name", KeyType.HASH, ScalarAttributeType.S);
+		assertEquals("name", key.getKeyName());
+		assertEquals(KeyType.HASH, key.getKeyType());
+		assertEquals(ScalarAttributeType.S, key.getAttributeType());
 
 		try {
-			key = new DynamoTableConfig.DynamoKey("name", null);
+			key = new DynamoTableConfig.DynamoKey("name", null, ScalarAttributeType.S);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
 
 		try {
-			key = new DynamoTableConfig.DynamoKey(null, ScalarAttributeType.S);
+			key = new DynamoTableConfig.DynamoKey(null, KeyType.HASH, ScalarAttributeType.S);
+			fail();
+		} catch (IllegalArgumentException e) {
+		}
+
+		try {
+			key = new DynamoTableConfig.DynamoKey("name", KeyType.HASH, null);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
@@ -33,13 +42,15 @@ public class DynamoTableConfigTest {
 	@Test
 	public void testDynamoKeySchema() {
 
-		DynamoTableConfig.DynamoKey hashKey = new DynamoTableConfig.DynamoKey("hash", ScalarAttributeType.N);
-		DynamoTableConfig.DynamoKey rangeKey = new DynamoTableConfig.DynamoKey("range", ScalarAttributeType.S);
+		DynamoTableConfig.DynamoKey hashKey = new DynamoTableConfig.DynamoKey("hash", KeyType.HASH, ScalarAttributeType.N);
+		DynamoTableConfig.DynamoKey rangeKey = new DynamoTableConfig.DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoTableConfig.DynamoKeySchema keySchema = new DynamoTableConfig.DynamoKeySchema(hashKey, rangeKey);
 		Assert.assertEquals("hash", keySchema.getHashKey().getKeyName());
-		Assert.assertEquals(ScalarAttributeType.N, keySchema.getHashKey().getKeyType());
+		Assert.assertEquals(KeyType.HASH, keySchema.getHashKey().getKeyType());
+		Assert.assertEquals(ScalarAttributeType.N, keySchema.getHashKey().getAttributeType());
 		Assert.assertEquals("range", keySchema.getRangeKey().getKeyName());
-		Assert.assertEquals(ScalarAttributeType.S, keySchema.getRangeKey().getKeyType());
+		Assert.assertEquals(KeyType.RANGE, keySchema.getRangeKey().getKeyType());
+		Assert.assertEquals(ScalarAttributeType.S, keySchema.getRangeKey().getAttributeType());
 
 		keySchema = new DynamoTableConfig.DynamoKeySchema(hashKey, null);
 		Assert.assertNotNull(keySchema);
@@ -78,8 +89,8 @@ public class DynamoTableConfigTest {
 
 		String tableName = "name";
 
-		DynamoTableConfig.DynamoKey hashKey = new DynamoTableConfig.DynamoKey("hash", ScalarAttributeType.N);
-		DynamoTableConfig.DynamoKey rangeKey = new DynamoTableConfig.DynamoKey("range", ScalarAttributeType.S);
+		DynamoTableConfig.DynamoKey hashKey = new DynamoTableConfig.DynamoKey("hash", KeyType.HASH, ScalarAttributeType.S);
+		DynamoTableConfig.DynamoKey rangeKey = new DynamoTableConfig.DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoTableConfig.DynamoKeySchema keySchema = new DynamoTableConfig.DynamoKeySchema(hashKey, rangeKey);
 
 		Long read = Long.valueOf(1L);

@@ -5,12 +5,11 @@ import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
-import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
-import com.amazonaws.services.dynamodb.model.Key;
-import com.amazonaws.services.dynamodb.model.ScanRequest;
-import com.amazonaws.services.dynamodb.model.ScanResult;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest;
+import com.amazonaws.services.dynamodbv2.model.ScanRequest;
+import com.amazonaws.services.dynamodbv2.model.ScanResult;
 
 public class DynamoAdminDaoImpl extends DynamoDaoBaseImpl implements DynamoAdminDao {
 
@@ -48,14 +47,7 @@ public class DynamoAdminDaoImpl extends DynamoDaoBaseImpl implements DynamoAdmin
 		List<Map<String, AttributeValue>> items = scanResult.getItems();
 
 		for (Map<String, AttributeValue> item : items) {
-			AttributeValue hashKeyValue = item.get(hashKeyName);
-			AttributeValue rangeKeyValue = item.get(rangeKeyName);
-			Key key = new Key()
-					.withHashKeyElement(hashKeyValue)
-					.withRangeKeyElement(rangeKeyValue);
-			DeleteItemRequest deleteItemRequest = new DeleteItemRequest()
-					.withTableName(fullTableName)
-					.withKey(key);
+			DeleteItemRequest deleteItemRequest = new DeleteItemRequest().withTableName(fullTableName).withKey(item);
 			getDynamoClient().deleteItem(deleteItemRequest);
 		}
 	}

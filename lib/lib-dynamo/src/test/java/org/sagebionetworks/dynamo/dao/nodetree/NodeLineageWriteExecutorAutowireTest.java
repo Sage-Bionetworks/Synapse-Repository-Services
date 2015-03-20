@@ -19,11 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -138,7 +138,7 @@ public class NodeLineageWriteExecutorAutowireTest {
 		String hashKey = a2r.getHashKey();
 		AttributeValue hashKeyAttr = new AttributeValue();
 		hashKeyAttr.setS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		DynamoDBQueryExpression<DboNodeLineage> queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(a2r);
 		PaginatedQueryList<DboNodeLineage> results = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		results.loadAllResults();
 
@@ -151,7 +151,7 @@ public class NodeLineageWriteExecutorAutowireTest {
 		hashKey = a2d.getHashKey();
 		hashKeyAttr = new AttributeValue();
 		hashKeyAttr.setS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(a2d);
 		results = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		results.loadAllResults();
 
