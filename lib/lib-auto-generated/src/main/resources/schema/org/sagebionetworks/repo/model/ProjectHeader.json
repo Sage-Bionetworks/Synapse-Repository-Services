@@ -14,6 +14,17 @@
 			"format": "date-time",
 			"description": "The optional last recorded activity for this project and the current user.",
 			"title": "Last Activity"
-        }
+        },
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this project was last modified.",
+			"title": "Modified On"
+		},
+		"modifiedBy": {
+			"type": "integer",
+			"description": "The ID of the user that last modified this project.",
+			"title": "Modified By"
+		}
     }
 }
