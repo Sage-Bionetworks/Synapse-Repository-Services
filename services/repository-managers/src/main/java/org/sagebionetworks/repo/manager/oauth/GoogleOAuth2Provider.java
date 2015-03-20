@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.scribe.builder.ServiceBuilder;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
@@ -44,7 +45,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	private static final String SCOPE_EMAIL = "email";
 
 	private String apiKey;
-	private OAuthService service;
+	private String apiSecret;
 
 	/**
 	 * Thread safe Google provider.
@@ -54,8 +55,22 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	 */
 	public GoogleOAuth2Provider(String apiKey, String apiSecret) {
 		this.apiKey = apiKey;
-		this.service = new Google2Api().createService(new OAuthConfig(apiKey,
-				apiSecret, null, null, SCOPE_EMAIL, null));
+		this.apiSecret = apiSecret;
+	}
+	
+	/**
+	 * Build a service using the provided redirectURL
+	 * @param redirectUrl
+	 * @return
+	 */
+	private OAuthService buildService(String redirectUrl){
+		return new ServiceBuilder()
+		.provider(Google2Api.class)
+		.apiKey(apiKey)
+		.apiSecret(apiSecret)
+		.scope(SCOPE_EMAIL)
+		.callback(redirectUrl)
+		.build();
 	}
 
 	@Override
@@ -64,8 +79,12 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode) {
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
+		if(redirectUrl == null){
+			throw new IllegalArgumentException("RedirectUrl cannot be null");
+		}
 		try{
+			OAuthService service = buildService(redirectUrl);
 			/*
 			 * Get an access token from Google using the provided authorization code.
 			 * This token is used to sign request for user's information.

@@ -111,9 +111,10 @@ public class AuthenticationServiceImplTest {
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode())).thenReturn(info);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
@@ -131,9 +132,10 @@ public class AuthenticationServiceImplTest {
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail(null);
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode())).thenReturn(info);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
@@ -151,9 +153,10 @@ public class AuthenticationServiceImplTest {
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode())).thenReturn(info);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(null);
 		//call under test
 		try {

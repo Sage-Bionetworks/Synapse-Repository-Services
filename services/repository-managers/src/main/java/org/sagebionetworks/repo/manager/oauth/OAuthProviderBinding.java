@@ -43,5 +43,5 @@ public interface OAuthProviderBinding {
 	 *            redirectUrl.
 	 * @return Information about the user provided by the OAuthProvider.
 	 */
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode);
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
 }

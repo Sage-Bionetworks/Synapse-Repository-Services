@@ -287,6 +287,7 @@ public class IT990AuthenticationController {
 			OAuthValidationRequest request = new OAuthValidationRequest();
 			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 			request.setAuthenticationCode("test auth code");
+			request.setRedirectUrl(null);
 			synapse.validateOAuthAuthenticationCode(request);
 			fail();
 		} catch (SynapseUnauthorizedException e) {
