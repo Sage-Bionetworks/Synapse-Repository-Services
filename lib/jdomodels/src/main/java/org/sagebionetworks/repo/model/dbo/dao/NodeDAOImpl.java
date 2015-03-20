@@ -111,7 +111,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				" and n." + COL_NODE_BENEFACTOR_ID + " = n." + COL_NODE_ID +
 		" ) pids" +
 		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID +
-		" join " + TABLE_REVISION + " r on n." + COL_NODE_ID + " = r." + COL_REVISION_OWNER_NODE;
+		" join " + TABLE_REVISION + " r on n." + COL_NODE_ID + " = r." + COL_REVISION_OWNER_NODE + " and r." + COL_REVISION_NUMBER + " = n." + COL_CURRENT_REV;
 
 	private static final String SELECT_CREATED =
 		"   and n." + COL_NODE_CREATED_BY + " = ";
