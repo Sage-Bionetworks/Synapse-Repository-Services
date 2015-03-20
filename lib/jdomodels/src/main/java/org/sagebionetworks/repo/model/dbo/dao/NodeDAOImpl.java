@@ -1179,7 +1179,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean changeNodeParent(String nodeId, String newParentId) throws NumberFormatException, NotFoundException, DatastoreException{
+	public boolean changeNodeParent(String nodeId, String newParentId, boolean isMoveToTrash) throws NumberFormatException,
+			NotFoundException, DatastoreException {
 		DBONode node = getNodeById(KeyFactory.stringToKey(nodeId));
 		//if node's parentId is null it is a root and can't have
 		//it's parentId altered
@@ -1194,11 +1195,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode newParentNode = getNodeById(KeyFactory.stringToKey(newParentId));
 		//make the update 
 		node.setParentId(newParentNode.getId());
+
+		Long desiredProjectId = newParentNode.getProjectId();
+		if (desiredProjectId == null && !isMoveToTrash && node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
+			// we are our own project
+			desiredProjectId = node.getId();
+		}
+
 		// also update the project, since that might have changed too
-		if (!ObjectUtils.equals(node.getProjectId(), newParentNode.getProjectId())) {
-			node.setProjectId(newParentNode.getProjectId());
+		if (!ObjectUtils.equals(node.getProjectId(), desiredProjectId)) {
+			node.setProjectId(desiredProjectId);
 			// this means we need to update all the children also
-			updateProjectForAllChildren(node, newParentNode.getProjectId());
+			updateProjectForAllChildren(node, desiredProjectId);
 		}
 		dboBasicDao.update(node);
 		return true;
