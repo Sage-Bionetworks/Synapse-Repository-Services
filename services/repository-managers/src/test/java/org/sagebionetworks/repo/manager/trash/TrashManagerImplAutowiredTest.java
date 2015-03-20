@@ -43,6 +43,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TrashManagerImplAutowiredTest {
@@ -239,10 +241,23 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		assertNotNull(nodeId);
 		toClearList.add(nodeId);
+
+		node = new Node();
+		node.setName("TrashManagerImplAutowiredTest.testSingleNodeRoundTripRestoreToRoot() child");
+		node.setNodeType(EntityType.folder.name());
+		node.setParentId(nodeId);
+		final String childId = nodeManager.createNewNode(node, testUserInfo);
+		assertNotNull(childId);
+		toClearList.add(childId);
+
 		Node nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
+		Node childNodeRetrieved = nodeManager.get(testUserInfo, childId);
 		assertNotNull(nodeRetrieved);
 		final String parentId = nodeRetrieved.getParentId();
 		assertNotNull(parentId);
+		assertEquals(nodeId, nodeRetrieved.getProjectId());
+		assertEquals(nodeId, childNodeRetrieved.getParentId());
+		assertEquals(nodeId, childNodeRetrieved.getProjectId());
 
 		trashManager.moveToTrash(testUserInfo, nodeId);
 
@@ -254,14 +269,20 @@ public class TrashManagerImplAutowiredTest {
 		}
 
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
-		assertEquals(1L, results.getTotalNumberOfResults());
-		assertEquals(1, results.getResults().size());
+		assertEquals(2L, results.getTotalNumberOfResults());
+		assertEquals(2, results.getResults().size());
 		TrashedEntity trash = results.getResults().get(0);
 		assertNotNull(trash);
 		assertEquals(nodeId, trash.getEntityId());
 		assertEquals(parentId, trash.getOriginalParentId());
 		assertEquals(testUserInfo.getId().toString(), trash.getDeletedByPrincipalId());
 		assertNotNull(trash.getDeletedOn());
+		TrashedEntity child = results.getResults().get(1);
+		assertNotNull(child);
+		assertEquals(childId, child.getEntityId());
+		assertEquals(nodeId, child.getOriginalParentId());
+		assertEquals(testUserInfo.getId().toString(), child.getDeletedByPrincipalId());
+		assertNotNull(child.getDeletedOn());
 
 		trashManager.restoreFromTrash(testUserInfo, nodeId, parentId);
 
@@ -270,9 +291,13 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(0, results.getResults().size());
 
 		nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
+		childNodeRetrieved = nodeManager.get(testUserInfo, childId);
 		assertNotNull(nodeRetrieved);
 		assertEquals(nodeId, nodeRetrieved.getId());
 		assertEquals(nodeId, nodeInheritanceManager.getBenefactor(nodeRetrieved.getId()));
+		assertEquals(nodeId, nodeRetrieved.getProjectId());
+		assertEquals(nodeId, childNodeRetrieved.getParentId());
+		assertEquals(nodeId, childNodeRetrieved.getProjectId());
 	}
 
 	@Test
@@ -347,35 +372,53 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(nodeIdB);
 		toClearList.add(nodeIdB);
 
+		List<String> projectA = Lists.newArrayList();
+		List<String> projectB = Lists.newArrayList();
+
 		node00.setParentId(nodeIdA);
 		final String nodeId00 = nodeManager.createNewNode(node00, testUserInfo);
 		assertNotNull(nodeId00);
 		toClearList.add(nodeId00);
+		projectA.add(nodeId00);
 
 		node01.setParentId(nodeIdB);
 		final String nodeId01 = nodeManager.createNewNode(node01, testUserInfo);
 		assertNotNull(nodeId01);
 		toClearList.add(nodeId01);
+		projectB.add(nodeId01);
 
 		node11.setParentId(nodeId00);
 		final String nodeId11 = nodeManager.createNewNode(node11, testUserInfo);
 		assertNotNull(nodeId11);
 		toClearList.add(nodeId11);
+		projectA.add(nodeId11);
 
 		node12.setParentId(nodeId00);
 		final String nodeId12 = nodeManager.createNewNode(node12, testUserInfo);
 		assertNotNull(nodeId12);
 		toClearList.add(nodeId12);
+		projectA.add(nodeId12);
 
 		node21.setParentId(nodeId11);
 		final String nodeId21 = nodeManager.createNewNode(node21, testUserInfo);
 		assertNotNull(nodeId21);
 		toClearList.add(nodeId21);
+		projectA.add(nodeId21);
 
 		node22.setParentId(nodeId12);
 		final String nodeId22 = nodeManager.createNewNode(node22, testUserInfo);
 		assertNotNull(nodeId22);
 		toClearList.add(nodeId22);
+		projectA.add(nodeId22);
+
+		for (String child : projectA) {
+			Node childNode = nodeManager.get(testUserInfo, child);
+			assertEquals(nodeIdA, childNode.getProjectId());
+		}
+		for (String child : projectB) {
+			Node childNode = nodeManager.get(testUserInfo, child);
+			assertEquals(nodeIdB, childNode.getProjectId());
+		}
 
 		// Modify nodeId12 to be its own benefactor
 		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId12, testUserInfo);
@@ -515,6 +558,15 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(nodeId01, nodeBack01.getId());
 		assertEquals(nodeName01, nodeBack01.getName());
 		assertEquals(parentId01, nodeBack01.getParentId());
+
+		for (String child : projectA) {
+			Node childNode = nodeManager.get(testUserInfo, child);
+			assertEquals(nodeIdA, childNode.getProjectId());
+		}
+		for (String child : projectB) {
+			Node childNode = nodeManager.get(testUserInfo, child);
+			assertEquals(nodeIdB, childNode.getProjectId());
+		}
 	}
 
 	@Test
