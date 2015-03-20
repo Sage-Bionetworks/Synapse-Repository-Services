@@ -1577,6 +1577,15 @@ public class StackConfiguration {
 		return Boolean.parseBoolean(configuration
 						.getProperty("org.sagebionetworks.allow.create.old.entities"));
 	}
+	
+	/**
+	 * Are users allowed to create old attachments (entity attachments and user profile attachments?)
+	 */
+	public boolean getAllowCreationOfOldAttachments() {
+		return Boolean.parseBoolean(configuration
+						.getProperty("org.sagebionetworks.allow.create.old.attachments"));
+	}
+
 
 	private static StackConfiguration singleton = new StackConfiguration();
 	/**

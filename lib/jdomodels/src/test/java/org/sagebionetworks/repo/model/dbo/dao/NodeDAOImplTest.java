@@ -2145,6 +2145,14 @@ public class NodeDAOImplTest {
 		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
 		projectStatsDAO.update(projectStat);
 
+		Thread.sleep(2);
+
+		ownedProject.setModifiedByPrincipalId(Long.parseLong(user2));
+		ownedProject.setModifiedOn(new Date());
+		nodeDao.updateNode(ownedProject);
+		projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user2), new Date());
+		projectStatsDAO.update(projectStat);
+
 		PaginatedResults<ProjectHeader> projectHeadersAfter = nodeDao.getProjectHeaders(user1Info, user1Info, null,
 				ProjectListType.MY_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
 		assertEquals(1, projectHeadersAfter.getTotalNumberOfResults());
@@ -2152,6 +2160,9 @@ public class NodeDAOImplTest {
 		assertEquals(ownedProject.getName(), headerAfter.getName());
 		assertEquals(owned, headerAfter.getId());
 		assertNotNull(headerAfter.getLastActivity());
+
+		assertEquals(user2, headerAfter.getModifiedBy().toString());
+		assertTrue(headerAfter.getModifiedOn().after(headerAfter.getLastActivity()));
 
 		Thread.sleep(2);
 		Date after = new Date();

@@ -11,7 +11,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -23,6 +22,7 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -587,6 +587,7 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
 	}
 	
+	@Ignore // see PLFM-3278
 	@Test
 	public void testSendMessageTo_AUTH_USERS() throws Exception {
 		// This should fail since no one has permission to send to this public group

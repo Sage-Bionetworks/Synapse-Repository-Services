@@ -32,9 +32,6 @@ import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -222,21 +219,9 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public String getFileEndpoint();
 
-	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp, String fileName) 
-			throws JSONObjectAdapterException, SynapseException, IOException;
-
 	public Entity getEntityById(String entityId) throws SynapseException;
 
 	public <T extends Entity> T putEntity(T entity) throws SynapseException;
-
-	@Deprecated
-	public PresignedUrl waitForPreviewToBeCreated(String entityId,
-			String tokenId, int maxTimeOut) throws SynapseException,
-			JSONObjectAdapterException;
-
-	@Deprecated
-	public PresignedUrl createAttachmentPresignedUrl(String entityId,
-			String tokenId) throws SynapseException, JSONObjectAdapterException;
 
 	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey properKey,
 			String fileName) throws ClientProtocolException, IOException, SynapseException;
@@ -391,6 +376,28 @@ public interface SynapseClient extends BaseClient {
 
 	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
 			throws SynapseException;
+	
+	/**
+	 * Get the pre-signed URL for a user's profile picture.
+	 * @param ownerId
+	 * @return
+	 * @throws SynapseException 
+	 * @throws IOException 
+	 * @throws MalformedURLException 
+	 * @throws ClientProtocolException 
+	 */
+	public URL getUserProfilePictureUrl(String ownerId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException;
+
+	/**
+	 * Get the pre-signed URL for a user's profile picture preview.
+	 * @param ownerId
+	 * @return
+	 * @throws SynapseException 
+	 * @throws IOException 
+	 * @throws MalformedURLException 
+	 * @throws ClientProtocolException 
+	 */
+	public URL getUserProfilePicturePreviewUrl(String ownerId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException;
 
 	/**
 	 * 
@@ -730,89 +737,6 @@ public interface SynapseClient extends BaseClient {
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	
-	@Deprecated
-	public Locationable uploadLocationableToSynapse(Locationable locationable,
-			File dataFile) throws SynapseException;
-
-	@Deprecated
-	public Locationable uploadLocationableToSynapse(Locationable locationable,
-			File dataFile, String md5) throws SynapseException;
-
-	@Deprecated
-	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
-			String externalUrl) throws SynapseException;
-
-	@Deprecated
-	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
-			String externalUrl, String md5) throws SynapseException;
-
-	@Deprecated
-	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile)
-			throws JSONObjectAdapterException, SynapseException, IOException;
-
-	@Deprecated
-	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId,
-			File dataFile, String fileName) throws JSONObjectAdapterException,
-			SynapseException, IOException;
-
-	@Deprecated
-	public AttachmentData uploadAttachmentToSynapse(String id,
-			AttachmentType attachmentType, File dataFile, String fileName)
-			throws JSONObjectAdapterException, SynapseException, IOException;
-
-	@Deprecated
-	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id,
-			String tokenOrPreviewId) throws SynapseException,
-			JSONObjectAdapterException;
-
-	@Deprecated
-	public PresignedUrl createAttachmentPresignedUrl(String id,
-			AttachmentType attachmentType, String tokenOrPreviewId)
-			throws SynapseException, JSONObjectAdapterException;
-
-	@Deprecated
-	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId,
-			String tokenOrPreviewId, int timeout) throws SynapseException,
-			JSONObjectAdapterException;
-
-	@Deprecated
-	public PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type,
-			String tokenOrPreviewId, int timeout) throws SynapseException,
-			JSONObjectAdapterException;
-
-	@Deprecated
-	public void downloadEntityAttachment(String entityId,
-			AttachmentData attachmentData, File destFile)
-			throws SynapseException, JSONObjectAdapterException;
-
-	@Deprecated
-	public void downloadUserProfileAttachment(String userId,
-			AttachmentData attachmentData, File destFile)
-			throws SynapseException, JSONObjectAdapterException;
-
-	@Deprecated
-	public void downloadAttachment(String id, AttachmentType type,
-			AttachmentData attachmentData, File destFile)
-			throws SynapseException, JSONObjectAdapterException;
-
-	@Deprecated
-	public void downloadEntityAttachmentPreview(String entityId, String previewId,
-			File destFile) throws SynapseException, JSONObjectAdapterException;
-
-	@Deprecated
-	public void downloadUserProfileAttachmentPreview(String userId, String previewId,
-			File destFile) throws SynapseException, JSONObjectAdapterException;
-
-	@Deprecated
-	public void downloadAttachmentPreview(String id, AttachmentType type,
-			String previewId, File destFile) throws SynapseException,
-			JSONObjectAdapterException;
-
-	@Deprecated
-	public S3AttachmentToken createAttachmentS3Token(String id,
-			AttachmentType attachmentType, S3AttachmentToken token)
-			throws JSONObjectAdapterException, SynapseException;
-	
 	public String getSynapseTermsOfUse() throws SynapseException;
 	
 	public String getTermsOfUse(DomainType domain) throws SynapseException;
@@ -830,7 +754,14 @@ public interface SynapseClient extends BaseClient {
 	 */ 
 	public String uploadToFileHandle(byte[] content, ContentType contentType, String parentEntityId) throws SynapseException;
 
-	@Deprecated
+	/**
+	 * Upload a file to Synapse. This is for uploading files that are not related to entities.
+	 * To upload a file for a FileEntity use @see org.sagebionetworks.client.SynapseClient#uploadToFileHandle(byte[], org.apache.http.entity.ContentType, java.lang.String)
+	 * @param content
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
 	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
 
 	/**
