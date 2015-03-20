@@ -31,6 +31,9 @@
 	<bean id="stackConfiguration.idGeneratorDatabaseUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabasePassword" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<bean id="stackConfiguration.oAuth2GoogleClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2GoogleClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 	<!-- Map used for JDO config  -->
 	<bean id="stackConfiguration.repositoryJDOConfigurationMap" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	

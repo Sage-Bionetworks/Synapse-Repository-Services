@@ -1,0 +1,14 @@
+{
+    "title":"OAuthUrlRequest",
+    "description":"Request for an OAuth2 authorization url.",
+	"properties": {
+		"provider":{
+			"$ref": "org.sagebionetworks.repo.model.oauth.OAuthProvider",
+			"description":"The Oauth Provider to be used for authentication."
+		},
+		"redirectUrl": {
+			"type": "string",
+			"description": "The URL that the OAuth provider is expected to redirect to after authenticating the user."
+		}
+	}
+}

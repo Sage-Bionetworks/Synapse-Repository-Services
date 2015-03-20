@@ -59,6 +59,9 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -1669,6 +1672,7 @@ public interface SynapseClient extends BaseClient {
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
 	 * @return A session token if the authentication passes
 	 */
+	@Deprecated
 	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
 	
 	/**
@@ -1678,6 +1682,7 @@ public interface SynapseClient extends BaseClient {
 	 *            Whether a user should be created if the user does not already
 	 *            exist
 	 */
+	@Deprecated
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary) throws SynapseException;
 
@@ -1686,8 +1691,44 @@ public interface SynapseClient extends BaseClient {
 	 *            Which client did the user access to authenticate via a third
 	 *            party provider (Synapse or Bridge)?
 	 */
+	@Deprecated
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary, DomainType domain)
+			throws SynapseException;
+	
+	/**
+	 * The first step in OAuth authentication involves sending the user to
+	 * authenticate on an OAuthProvider's web page. Use this method to get a
+	 * properly formed URL to redirect the browser to an OAuthProvider's
+	 * authentication page.
+	 * 
+	 * Upon successful authentication at the OAuthProvider's page, the provider
+	 * will redirect the browser to the redirectURL. The provider will add a query
+	 * parameter to the redirect URL named "code". The code parameter's value is
+	 * an authorization code that must be provided to Synapse to validate a
+	 * user.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthUrlResponse getOAuth2AuthenticationUrl(OAuthUrlRequest request)
+			throws SynapseException;
+	
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch information about the
+	 * user from the OAuthProvider. If successful, a session token for the user
+	 * will be returned.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 * @throws NotFoundException if the user does not exist in Synapse.
+	 */
+	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
 	
 	/**
@@ -2076,5 +2117,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(
 			String jobId) throws SynapseException;
+
+
 
 }

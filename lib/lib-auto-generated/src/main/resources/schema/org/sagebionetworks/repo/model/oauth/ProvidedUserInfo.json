@@ -1,0 +1,22 @@
+{
+    "title":"ProvidedUserInfo",
+    "description":"Information about a user provided by an OAuthProvider",
+	"properties": {
+		"providersUserId":{
+			"type":"string",
+			"description":"The OauthProvider's ID for the user."
+		},
+		"usersVerifiedEmail": {
+			"type": "string",
+			"description": "The user's email address that has been verified by the OauthProvider."
+		},
+		"firstName": {
+			"type": "string",
+			"description": "The user's first name."
+		},
+		"lastName": {
+			"type": "string",
+			"description": "The user's last name."
+		}
+	}
+}
