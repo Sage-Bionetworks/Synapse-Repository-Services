@@ -1441,7 +1441,7 @@ public class StackConfiguration {
 	 */
 	public String getOAuth2GoogleClientSecret() {
 		return configuration
-				.getProperty("org.sagebionetworks.oauth2.google.client.password");
+				.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
 	}
 	
 	/**

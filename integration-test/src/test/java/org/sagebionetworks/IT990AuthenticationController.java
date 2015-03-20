@@ -17,6 +17,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -287,11 +288,12 @@ public class IT990AuthenticationController {
 			OAuthValidationRequest request = new OAuthValidationRequest();
 			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 			request.setAuthenticationCode("test auth code");
+			// this null will trigger a bad request.
 			request.setRedirectUrl(null);
 			synapse.validateOAuthAuthenticationCode(request);
 			fail();
-		} catch (SynapseUnauthorizedException e) {
-			assertTrue(e.getMessage().contains("Required parameter missing"));
+		} catch (SynapseBadRequestException e) {
+			assertTrue(e.getMessage().contains("RedirectUrl cannot be null"));
 		}
 	}
 }
