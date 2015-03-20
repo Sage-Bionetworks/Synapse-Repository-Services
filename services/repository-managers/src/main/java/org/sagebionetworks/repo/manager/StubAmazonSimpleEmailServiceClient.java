@@ -4,6 +4,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ResponseMetadata;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.DeleteIdentityRequest;
 import com.amazonaws.services.simpleemail.model.DeleteIdentityResult;
@@ -211,6 +212,12 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public ResponseMetadata getCachedResponseMetadata(
 			AmazonWebServiceRequest request) {
 		return null;
+	}
+
+	@Override
+	public void setRegion(Region region) throws IllegalArgumentException {
+		// TODO Auto-generated method stub
+
 	}
 	
 }
