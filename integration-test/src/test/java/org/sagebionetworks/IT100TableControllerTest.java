@@ -528,7 +528,7 @@ public class IT100TableControllerTest {
 
 		URL url = synapse.getTableFileHandleTemporaryUrl(table.getId(), results.getRows().get(0), one.getId());
 		assertTrue("The temporary URL did not contain the expected file handle key",
-				url.toString().indexOf(URLEncoder.encode(((S3FileHandle) fileHandle).getKey(), "UTF-8")) > 0);
+				url.toString().contains(((S3FileHandle) fileHandle).getKey()));
 
 		File tempFile2 = File.createTempFile("temp", ".txt");
 		tempFiles.add(tempFile2);
