@@ -419,13 +419,13 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 				.getVersionNumber());
 		String url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, two.getId(),
 				adminUserId, false);
-		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyOne?"));
+		assertTrue(url.contains("EntityControllerTest.mainFileKeyOne?"));
 
 		rowRef = TableModelTestUtils.createRowReference(results.getRows().get(1).getRowId(), results.getRows().get(1).getVersionNumber());
 		url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, two.getId(),
 				adminUserId,
 				false);
-		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyTwo?"));
+		assertTrue(url.contains("EntityControllerTest.mainFileKeyTwo?"));
 
 		try {
 			servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, one.getId(), adminUserId,
@@ -489,12 +489,12 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 				.getVersionNumber());
 		String url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, one.getId(),
 				adminUserId, false);
-		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyTwo?"));
+		assertTrue(url.contains("EntityControllerTest.mainFileKeyTwo?"));
 
 		url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, one.getId(),
 				adminUserId,
 				true);
-		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyOne?"));
+		assertTrue(url.contains("EntityControllerTest.mainFileKeyOne?"));
 	}
 
 	@Test
