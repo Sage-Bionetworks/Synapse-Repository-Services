@@ -129,10 +129,9 @@ public class IT054FileEntityTest {
 		assertEquals(previewFileHandle.getId(), fhr.getList().get(1).getId());
 
 		// Make sure we can get the URLs for this file
-		String expectedKey = URLEncoder.encode(fileHandle.getKey(), "UTF-8"); 
 		URL tempUrl = synapse.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedKey) > 0);
+		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(fileHandle.getKey()));
 		// now check that the redirect-based download works correctly
 		File tempfile = File.createTempFile("test", null);
 		tempfile.deleteOnExit();
@@ -142,22 +141,21 @@ public class IT054FileEntityTest {
 		// Get the url using the version number
 		tempUrl = synapse.getFileEntityTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedKey) > 0);
+		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(fileHandle.getKey()));
 		synapse.downloadFromFileEntityForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertEquals(fileHandle.getContentMd5(),  MD5ChecksumHelper.getMD5Checksum(tempfile));
 
 		// Now get the preview URLs
-		String expectedPreviewKey = URLEncoder.encode(previewFileHandle.getKey(), "UTF-8"); 
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
+		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
 		synapse.downloadFromFileEntityPreviewCurrentVersion(file.getId(), tempfile);
 		assertTrue(tempfile.length()>0);
 
 		// Get the preview using the version number
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
+		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
 		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertTrue(tempfile.length()>0);
 	}
