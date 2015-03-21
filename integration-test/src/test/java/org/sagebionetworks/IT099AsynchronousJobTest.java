@@ -163,13 +163,13 @@ public class IT099AsynchronousJobTest {
 			UploadToTablePreviewRequest previewRequest = new UploadToTablePreviewRequest();
 			previewRequest.setUploadFileHandleId(fileHandle.getId());
 			
-			final String uploadPreviewToken = synapse.uploadCsvTablePreviewAsyncStart(previewRequest, tableId);
+			final String uploadPreviewToken = synapse.uploadCsvTablePreviewAsyncStart(previewRequest);
 			// Wait for the job to finish
 			UploadToTablePreviewResult uploadPreviewResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTablePreviewResult>>() {
 				@Override
 				public Pair<Boolean, UploadToTablePreviewResult> call() throws Exception {
 					try {
-						UploadToTablePreviewResult uploadResult = synapse.uploadCsvToTablePreviewAsyncGet(uploadPreviewToken, tableId);
+						UploadToTablePreviewResult uploadResult = synapse.uploadCsvToTablePreviewAsyncGet(uploadPreviewToken);
 						return Pair.create(true, uploadResult);
 					} catch (SynapseResultNotReadyException e) {
 						return Pair.create(false, null);

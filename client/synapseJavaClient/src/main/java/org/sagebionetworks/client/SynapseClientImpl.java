@@ -3743,20 +3743,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public String startAsynchJob(AsynchJobType type,
-			AsynchronousRequestBody request, String tableId)
-			throws SynapseException {
-		String url = "/entity/" + tableId + type.getStartUrl();
+	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException {
+		String url = type.getStartUrl(request);
 		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, request,
 				AsyncJobId.class, null);
 		return jobId.getToken();
 	}
 
 	@Override
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type,
-			String jobId, String tableId) throws SynapseException,
-			SynapseClientException, SynapseResultNotReadyException {
-		String url = "/entity/" + tableId + type.getResultUrl(jobId);
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request)
+			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
+		String url = type.getResultUrl(jobId, request);
+		return getAsynchJobResponse(url, type.getReponseClass());
+	}
+
+	@Override
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId)
+			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
+		String url = type.getResultUrl(jobId, entityId);
 		return getAsynchJobResponse(url, type.getReponseClass());
 	}
 
@@ -5971,8 +5975,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public String appendRowSetToTableStart(AppendableRowSet rowSet,
 			String tableId) throws SynapseException {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
+		request.setEntityId(tableId);
 		request.setToAppend(rowSet);
-		return startAsynchJob(AsynchJobType.TableAppendRowSet, request, tableId);
+		return startAsynchJob(AsynchJobType.TableAppendRowSet, request);
 	}
 
 	@Override
@@ -6114,9 +6119,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		query.setOffset(offset);
 		query.setLimit(limit);
 		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		bundleRequest.setEntityId(tableId);
 		bundleRequest.setQuery(query);
 		bundleRequest.setPartMask((long) partsMask);
-		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest, tableId);
+		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
 	}
 
 	@Override
@@ -6131,9 +6137,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public String queryTableEntityNextPageAsyncStart(String nextPageToken,
 			String tableId) throws SynapseException {
 		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
+		queryNextPageToken.setEntityId(tableId);
 		queryNextPageToken.setToken(nextPageToken);
-		return startAsynchJob(AsynchJobType.TableQueryNextPage,
-				queryNextPageToken, tableId);
+		return startAsynchJob(AsynchJobType.TableQueryNextPage, queryNextPageToken);
 	}
 
 	@Override
@@ -6150,12 +6156,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			CsvTableDescriptor csvDescriptor, String tableId)
 			throws SynapseException {
 		DownloadFromTableRequest downloadRequest = new DownloadFromTableRequest();
+		downloadRequest.setEntityId(tableId);
 		downloadRequest.setSql(sql);
 		downloadRequest.setWriteHeader(writeHeader);
 		downloadRequest.setIncludeRowIdAndRowVersion(includeRowIdAndRowVersion);
 		downloadRequest.setCsvTableDescriptor(csvDescriptor);
-		return startAsynchJob(AsynchJobType.TableCSVDownload, downloadRequest,
-				tableId);
+		return startAsynchJob(AsynchJobType.TableCSVDownload, downloadRequest);
 	}
 
 	@Override
@@ -6171,13 +6177,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String fileHandleId, String etag, Long linesToSkip,
 			CsvTableDescriptor csvDescriptor) throws SynapseException {
 		UploadToTableRequest uploadRequest = new UploadToTableRequest();
+		uploadRequest.setEntityId(tableId);
 		uploadRequest.setTableId(tableId);
 		uploadRequest.setUploadFileHandleId(fileHandleId);
 		uploadRequest.setUpdateEtag(etag);
 		uploadRequest.setLinesToSkip(linesToSkip);
 		uploadRequest.setCsvTableDescriptor(csvDescriptor);
-		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest,
-				tableId);
+		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest);
 	}
 
 	@Override
@@ -6189,19 +6195,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public String uploadCsvTablePreviewAsyncStart(
-			UploadToTablePreviewRequest request, String tableId)
-			throws SynapseException {
-		return startAsynchJob(AsynchJobType.TableCSVUploadPreview, request,
-				tableId);
+	public String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request) throws SynapseException {
+		return startAsynchJob(AsynchJobType.TableCSVUploadPreview, request);
 	}
 
 	@Override
-	public UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(
-			String asyncJobToken, String tableId) throws SynapseException,
-			SynapseResultNotReadyException {
+	public UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken) 
+			throws SynapseException, SynapseResultNotReadyException {
 		return (UploadToTablePreviewResult) getAsyncResult(
-				AsynchJobType.TableCSVUploadPreview, asyncJobToken, tableId);
+				AsynchJobType.TableCSVUploadPreview, asyncJobToken, (String) null);
 	}
 
 	@Override
