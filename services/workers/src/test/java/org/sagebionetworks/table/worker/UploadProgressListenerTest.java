@@ -3,11 +3,14 @@ package org.sagebionetworks.table.worker;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
 import static org.mockito.Mockito.*;
+
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 
-import com.amazonaws.services.s3.model.ProgressEvent;
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.services.sqs.model.Message;
 
 public class UploadProgressListenerTest {
@@ -36,10 +39,10 @@ public class UploadProgressListenerTest {
 		// Start making progress
 		UploadProgressListener listener = new UploadProgressListener(mockProgress, originatingMessage, startPrgoress, bytesPerRow, totalProgress, mockAsynchJobStatusManager, jobId);
 		// start
-		listener.progressChanged(new ProgressEvent(0));
-		listener.progressChanged(new ProgressEvent(10));
-		listener.progressChanged(new ProgressEvent(20));
-		listener.progressChanged(new ProgressEvent(1));
+		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT, 0));
+		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT,10));
+		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT,20));
+		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT,1));
 		
 		verify(mockProgress, times(4)).progressMadeForMessage(originatingMessage);
 		verify(mockAsynchJobStatusManager, times(1)).updateJobProgress(jobId, startPrgoress, totalProgress, UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE);

@@ -37,8 +37,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ProgressEvent;
-import com.amazonaws.services.s3.model.ProgressListener;
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressListener;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -170,7 +170,7 @@ public class MultipartManagerImplAutowireTest {
 					new ProgressListener() {
 				@Override
 				public void progressChanged(ProgressEvent progressEvent) {
-					System.out.println("FileUpload bytesTransfered: : "+progressEvent.getBytesTransfered());
+					System.out.println("FileUpload bytesTransfered: : "+progressEvent.getBytesTransferred());
 					
 				}});
 			assertNotNull(handle);
