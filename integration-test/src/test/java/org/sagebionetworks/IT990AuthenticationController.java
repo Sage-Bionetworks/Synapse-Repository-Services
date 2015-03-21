@@ -17,6 +17,8 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
@@ -25,6 +27,10 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 
 public class IT990AuthenticationController {
 
@@ -257,6 +263,37 @@ public class IT990AuthenticationController {
 			fail();
 		} catch (SynapseUnauthorizedException e) {
 			assertTrue(e.getMessage().contains("Required parameter missing"));
+		}
+	}
+	
+	@Test
+	public void testGetOAuth2AuthenticationUrl() throws SynapseException{
+		String rediect = "https://domain.com";
+		OAuthUrlRequest request = new OAuthUrlRequest();
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl(rediect);
+		OAuthUrlResponse response = synapse.getOAuth2AuthenticationUrl(request);
+		assertNotNull(response);
+		assertNotNull(response.getAuthorizationUrl());
+	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test
+	public void testValidateOAuthAuthenticationCode() throws SynapseException{
+		try {
+			OAuthValidationRequest request = new OAuthValidationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setAuthenticationCode("test auth code");
+			// this null will trigger a bad request.
+			request.setRedirectUrl(null);
+			synapse.validateOAuthAuthenticationCode(request);
+			fail();
+		} catch (SynapseBadRequestException e) {
+			assertTrue(e.getMessage().contains("RedirectUrl cannot be null"));
 		}
 	}
 }

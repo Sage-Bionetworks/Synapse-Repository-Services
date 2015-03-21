@@ -8,6 +8,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -16,6 +17,10 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
+import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -36,14 +41,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
+	private OAuthManager oauthManager;
+	
+	@Autowired
 	private MessageManager messageManager;
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager, OAuthManager oauthManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
 		this.messageManager = messageManager;
+		this.oauthManager = oauthManager;
 	}
 
 	@Override
@@ -260,5 +269,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
 		sendPasswordEmail(pa.getPrincipalId(), domain);
 		
+	}
+
+	@Override
+	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request) {
+		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl());
+		OAuthUrlResponse response = new OAuthUrlResponse();
+		response.setAuthorizationUrl(url);
+		return response;
+	}
+
+	@Override
+	public Session validateOAuthAuthenticationCode(
+			OAuthValidationRequest request) throws NotFoundException {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// This is the ID of the user within the provider's system.
+		PrincipalAlias emailAlais = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
+		if(emailAlais == null){
+			// Let the caller know we did not find the user
+			throw new NotFoundException(providedInfo.getUsersVerifiedEmail());
+		}
+		// Return the user's session token
+		return authManager.getSessionToken(emailAlais.getPrincipalId(), DomainType.SYNAPSE);
 	}
 }

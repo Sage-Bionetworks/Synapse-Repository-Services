@@ -35,6 +35,22 @@
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
 	
 	<bean id="principalManager" class="org.sagebionetworks.repo.manager.principal.PrincipalManagerImpl" />
+	
+	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
+		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientId" index="0" />
+		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />
+	</bean>
+
+	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
+		<property name="providerMap">
+			<map>
+				<entry
+					key="GOOGLE_OAUTH_2_0"
+					value-ref="googleOAuth2Provider" />
+			</map>
+		</property>
+
+	</bean>
 
 	<!-- Trash manager -->
 	<bean id="trashManager" class="org.sagebionetworks.repo.manager.trash.TrashManagerImpl" />

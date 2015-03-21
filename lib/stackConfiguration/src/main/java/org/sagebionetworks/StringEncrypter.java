@@ -29,7 +29,7 @@ public class StringEncrypter {
 	public static void main(String[] args) {
 
 		if (args.length != 3) {
-			System.out.println("Usage: StringEncrypter <encrypt|decrpty> <encryption key> <text>");
+			System.out.println("Usage: StringEncrypter <encrypt|decrypt> <encryption key> <text>");
 			System.exit(0);
 		}
 

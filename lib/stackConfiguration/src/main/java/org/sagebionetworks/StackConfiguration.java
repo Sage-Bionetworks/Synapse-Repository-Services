@@ -1427,6 +1427,24 @@ public class StackConfiguration {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public String getOAuth2GoogleClientId() {
+		return configuration
+				.getProperty("org.sagebionetworks.oauth2.google.client.id");
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String getOAuth2GoogleClientSecret() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
+	}
+	
+	/**
 	 * Get the name of the participant data bucket.
 	 * 
 	 * @return
