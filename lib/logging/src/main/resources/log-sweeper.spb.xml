@@ -28,9 +28,13 @@
 		</constructor-arg>
 	</bean>
 
+	<bean name="s3ClientOptions" class="com.amazonaws.services.s3.S3ClientOptions" scope="singleton">
+		<property name="pathStyleAccess" value="true"/>
+	</bean>
 	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
+		<property name="s3ClientOptions" ref="s3ClientOptions"/>
 	</bean>
 	
 	<bean id="logDAO" class="org.sagebionetworks.logging.s3.LogDAOImpl" scope="singleton" init-method="initialize">

@@ -364,7 +364,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if (isParentIdChange(parentInDatabase, parentInUpdate)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
-			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate);
+			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate, changeType == ChangeType.DELETE);
 			// Update the ACL accordingly
 			if (skipBenefactor) {
 				nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate);

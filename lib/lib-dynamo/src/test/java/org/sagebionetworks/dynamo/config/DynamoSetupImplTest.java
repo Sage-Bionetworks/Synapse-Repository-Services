@@ -24,20 +24,22 @@ import org.sagebionetworks.util.TestClock;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.model.CreateTableRequest;
-import com.amazonaws.services.dynamodb.model.DescribeTableRequest;
-import com.amazonaws.services.dynamodb.model.DescribeTableResult;
-import com.amazonaws.services.dynamodb.model.KeySchema;
-import com.amazonaws.services.dynamodb.model.KeySchemaElement;
-import com.amazonaws.services.dynamodb.model.ListTablesResult;
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputDescription;
-import com.amazonaws.services.dynamodb.model.ResourceNotFoundException;
-import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
-import com.amazonaws.services.dynamodb.model.TableDescription;
-import com.amazonaws.services.dynamodb.model.TableStatus;
-import com.amazonaws.services.dynamodb.model.UpdateTableRequest;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
+import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputDescription;
+import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.amazonaws.services.dynamodbv2.model.TableStatus;
+import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
+import com.google.common.collect.Lists;
 
 public class DynamoSetupImplTest {
 
@@ -65,8 +67,8 @@ public class DynamoSetupImplTest {
 
 		String tableName = "testCreateTable";
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
-		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.N);
+		DynamoKey rangeKey = new DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);
 
 		Long read = Long.valueOf(1L);
@@ -76,17 +78,11 @@ public class DynamoSetupImplTest {
 		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
 		this.dynamoSetup.createTable(table);
 
-		KeySchemaElement hashKeyElement = new KeySchemaElement()
-				.withAttributeName("hash")
-				.withAttributeType(ScalarAttributeType.N);
+		KeySchemaElement hashKeyElement = new KeySchemaElement().withAttributeName("hash").withKeyType(KeyType.HASH);
 
-		KeySchemaElement rangeKeyElement = new KeySchemaElement()
-				.withAttributeName("range")
-				.withAttributeType(ScalarAttributeType.S);
+		KeySchemaElement rangeKeyElement = new KeySchemaElement().withAttributeName("range").withKeyType(KeyType.RANGE);
 
-		KeySchema kSchema = new KeySchema()
-				.withHashKeyElement(hashKeyElement)
-				.withRangeKeyElement(rangeKeyElement);
+		List<KeySchemaElement> kSchema = Lists.newArrayList(hashKeyElement, rangeKeyElement);
 
 		ProvisionedThroughput pThroughput = new ProvisionedThroughput()
 				.withReadCapacityUnits(1L)
@@ -96,7 +92,9 @@ public class DynamoSetupImplTest {
 		CreateTableRequest request = new CreateTableRequest()
 				.withTableName(tableName)
 				.withKeySchema(kSchema)
-				.withProvisionedThroughput(pThroughput);
+				.withProvisionedThroughput(pThroughput)
+				.withAttributeDefinitions(new AttributeDefinition("hash", ScalarAttributeType.N),
+						new AttributeDefinition("range", ScalarAttributeType.S));
 
 		verify(this.mockDynamoClient, times(1)).createTable(request);
 	}
@@ -106,8 +104,8 @@ public class DynamoSetupImplTest {
 
 		String tableName = "testUpdateThroughput";
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
-		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.S);
+		DynamoKey rangeKey = new DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);
 
 		Long read = Long.valueOf(1L);
@@ -138,8 +136,8 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(new ArrayList<String>());
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
-		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.N);
+		DynamoKey rangeKey = new DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);
@@ -154,13 +152,11 @@ public class DynamoSetupImplTest {
 
 		KeySchemaElement hashKeyElement = new KeySchemaElement()
 				.withAttributeName("hash")
-				.withAttributeType(ScalarAttributeType.N);
+				.withKeyType(KeyType.HASH);
 		KeySchemaElement rangeKeyElement = new KeySchemaElement()
 				.withAttributeName("range")
-				.withAttributeType(ScalarAttributeType.S);
-		KeySchema keySchema = new KeySchema()
-				.withHashKeyElement(hashKeyElement)
-				.withRangeKeyElement(rangeKeyElement);
+				.withKeyType(KeyType.RANGE);
+		List<KeySchemaElement> keySchema = Lists.newArrayList(hashKeyElement, rangeKeyElement);
 		ProvisionedThroughput pThroughput = new ProvisionedThroughput()
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(2L);
@@ -168,7 +164,8 @@ public class DynamoSetupImplTest {
 		CreateTableRequest ctRequest = new CreateTableRequest()
 				.withTableName(tableName)
 				.withKeySchema(keySchema)
-				.withProvisionedThroughput(pThroughput);
+				.withProvisionedThroughput(pThroughput).withAttributeDefinitions(new AttributeDefinition("hash", ScalarAttributeType.N),
+						new AttributeDefinition("range", ScalarAttributeType.S));
 		verify(this.mockDynamoClient, times(1)).createTable(ctRequest);
 	}
 
@@ -180,22 +177,18 @@ public class DynamoSetupImplTest {
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
 				stackPrefix + tableName);
-		KeySchemaElement hashKeyElement = new KeySchemaElement()
-				.withAttributeName("hash")
-				.withAttributeType(ScalarAttributeType.N);
-		KeySchemaElement rangeKeyElement = new KeySchemaElement()
-				.withAttributeName("range")
-				.withAttributeType(ScalarAttributeType.S);
-		KeySchema keySchema = new KeySchema()
-				.withHashKeyElement(hashKeyElement)
-				.withRangeKeyElement(rangeKeyElement);
+		KeySchemaElement hashKeyElement = new KeySchemaElement().withAttributeName("hash").withKeyType(KeyType.HASH);
+		KeySchemaElement rangeKeyElement = new KeySchemaElement().withAttributeName("range").withKeyType(KeyType.RANGE);
+		List<KeySchemaElement> keySchema = Lists.newArrayList(hashKeyElement, rangeKeyElement);
 		ProvisionedThroughputDescription throughputDesc = new ProvisionedThroughputDescription()
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(2L);
 		TableDescription tableDesc = new TableDescription()
 				.withKeySchema(keySchema)
 				.withProvisionedThroughput(throughputDesc)
-				.withTableStatus(TableStatus.ACTIVE);
+				.withTableStatus(TableStatus.ACTIVE)
+				.withAttributeDefinitions(new AttributeDefinition("hash", ScalarAttributeType.N),
+						new AttributeDefinition("range", ScalarAttributeType.S));
 		DescribeTableResult dtResult = mock(DescribeTableResult.class);
 		when(dtResult.getTable()).thenReturn(tableDesc);
 		when(this.mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult);
@@ -205,8 +198,8 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
-		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.N);
+		DynamoKey rangeKey = new DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(3L); // Different write throughput -- increase by 1
@@ -246,16 +239,14 @@ public class DynamoSetupImplTest {
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
 				stackPrefix + tableName);
-		KeySchemaElement hashKeyElement = new KeySchemaElement()
-				.withAttributeName("hash")
-				.withAttributeType(ScalarAttributeType.N);
-		KeySchemaElement rangeKeyElement = new KeySchemaElement()
-				.withAttributeName("range")
-				.withAttributeType(ScalarAttributeType.S);
-		KeySchema keySchema = new KeySchema()
-				.withHashKeyElement(hashKeyElement)
-				.withRangeKeyElement(rangeKeyElement);
-		TableDescription tableDesc = new TableDescription().withKeySchema(keySchema).withTableName(stackPrefix + tableName);
+		KeySchemaElement hashKeyElement = new KeySchemaElement().withAttributeName("hash").withKeyType(KeyType.HASH);
+		KeySchemaElement rangeKeyElement = new KeySchemaElement().withAttributeName("range").withKeyType(KeyType.RANGE);
+		List<KeySchemaElement> keySchema = Lists.newArrayList(hashKeyElement, rangeKeyElement);
+		TableDescription tableDesc = new TableDescription()
+				.withKeySchema(keySchema)
+				.withTableName(stackPrefix + tableName)
+				.withAttributeDefinitions(new AttributeDefinition("hash", ScalarAttributeType.N),
+						new AttributeDefinition("range", ScalarAttributeType.S));
 		DescribeTableResult dtResult = mock(DescribeTableResult.class);
 		when(dtResult.getTable()).thenReturn(tableDesc);
 		when(this.mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult);
@@ -265,8 +256,8 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.S);
-		DynamoKey rangeKey = new DynamoKey("rangeDiff", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.S);
+		DynamoKey rangeKey = new DynamoKey("rangeDiff", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);
@@ -294,11 +285,13 @@ public class DynamoSetupImplTest {
 		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(stackPrefix + tableName);
-		KeySchemaElement hashKeyElement = new KeySchemaElement().withAttributeName("hash").withAttributeType(ScalarAttributeType.N);
-		KeySchemaElement rangeKeyElement = new KeySchemaElement().withAttributeName("range").withAttributeType(ScalarAttributeType.S);
-		KeySchema keySchema = new KeySchema().withHashKeyElement(hashKeyElement).withRangeKeyElement(rangeKeyElement);
+		KeySchemaElement hashKeyElement = new KeySchemaElement().withAttributeName("hash").withKeyType(KeyType.HASH);
+		KeySchemaElement rangeKeyElement = new KeySchemaElement().withAttributeName("range").withKeyType(KeyType.RANGE);
+		List<KeySchemaElement> keySchema = Lists.newArrayList(hashKeyElement, rangeKeyElement);
 		TableDescription tableDesc = new TableDescription().withKeySchema(keySchema).withTableName(stackPrefix + tableName)
-				.withTableStatus("ACTIVE");
+				.withTableStatus("ACTIVE")
+				.withAttributeDefinitions(new AttributeDefinition("hash", ScalarAttributeType.N),
+						new AttributeDefinition("range", ScalarAttributeType.S));
 		DescribeTableResult dtResult = mock(DescribeTableResult.class);
 		when(dtResult.getTable()).thenReturn(tableDesc);
 		List<String> tableNames = new ArrayList<String>();
@@ -307,8 +300,8 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.S);
-		DynamoKey rangeKey = new DynamoKey("rangeDiff", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.S);
+		DynamoKey rangeKey = new DynamoKey("rangeDiff", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);
@@ -335,21 +328,17 @@ public class DynamoSetupImplTest {
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
 				stackPrefix + tableName);
-		KeySchemaElement hashKeyElement = new KeySchemaElement()
-				.withAttributeName("hash")
-				.withAttributeType(ScalarAttributeType.N);
-		KeySchemaElement rangeKeyElement = new KeySchemaElement()
-				.withAttributeName("range")
-				.withAttributeType(ScalarAttributeType.S);
-		KeySchema keySchema = new KeySchema()
-				.withHashKeyElement(hashKeyElement)
-				.withRangeKeyElement(rangeKeyElement);
+		KeySchemaElement hashKeyElement = new KeySchemaElement().withAttributeName("hash").withKeyType(KeyType.HASH);
+		KeySchemaElement rangeKeyElement = new KeySchemaElement().withAttributeName("range").withKeyType(KeyType.RANGE);
+		List<KeySchemaElement> keySchema = Lists.newArrayList(hashKeyElement, rangeKeyElement);
 		ProvisionedThroughputDescription throughputDesc = new ProvisionedThroughputDescription()
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(2L);
 		TableDescription tableDesc = new TableDescription()
 				.withKeySchema(keySchema)
 				.withProvisionedThroughput(throughputDesc)
+				.withAttributeDefinitions(new AttributeDefinition("hash", ScalarAttributeType.N),
+						new AttributeDefinition("range", ScalarAttributeType.S))
 				.withTableStatus(TableStatus.UPDATING); // This should trigger the exception
 		DescribeTableResult dtResult = mock(DescribeTableResult.class);
 		when(dtResult.getTable()).thenReturn(tableDesc);
@@ -360,8 +349,8 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
-		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.N);
+		DynamoKey rangeKey = new DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
 		Long read = Long.valueOf(2L); // Different throughput -- increase read by 1
 		Long write = Long.valueOf(2L);
@@ -393,8 +382,8 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
-		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
+		DynamoKey hashKey = new DynamoKey("hash", KeyType.HASH, ScalarAttributeType.S);
+		DynamoKey rangeKey = new DynamoKey("range", KeyType.RANGE, ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);

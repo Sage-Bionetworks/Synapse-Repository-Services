@@ -1,0 +1,7 @@
+{
+    "description":"Supported OAuth providers",
+    "type":"string",
+    "enum":[
+        "GOOGLE_OAUTH_2_0"
+    ]
+}

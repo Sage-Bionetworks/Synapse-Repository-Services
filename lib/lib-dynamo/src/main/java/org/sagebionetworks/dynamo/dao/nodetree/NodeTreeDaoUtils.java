@@ -1,13 +1,14 @@
 package org.sagebionetworks.dynamo.dao.nodetree;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
-import com.amazonaws.services.dynamodb.model.ComparisonOperator;
-import com.amazonaws.services.dynamodb.model.Condition;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
+import com.amazonaws.services.dynamodbv2.model.Condition;
 
 /**
  * Utility class that provides raw operations on node lineage trees in DynamoDB.
@@ -154,16 +155,15 @@ class NodeTreeDaoUtils {
 	static List<DboNodeLineage> query(final String nodeId, final LineageType lineageType,
 			final int distance, final DynamoDBMapper dynamoMapper) {
 
-		final String hashKey = DboNodeLineage.createHashKey(nodeId, lineageType);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		DynamoDBQueryExpression<DboNodeLineage> queryExpression = new DynamoDBQueryExpression<DboNodeLineage>()
+				.withHashKeyValues(DboNodeLineage.createHashKeyValue(nodeId, lineageType));
 
 		if (distance > 0) {
 			String rangeKeyStart = DboNodeLineage.createRangeKey(distance, "");
 			Condition rangeKeyCondition = new Condition()
 					.withComparisonOperator(ComparisonOperator.BEGINS_WITH)
 					.withAttributeValueList(new AttributeValue().withS(rangeKeyStart));
-			queryExpression.setRangeKeyCondition(rangeKeyCondition);
+			queryExpression.setRangeKeyConditions(Collections.singletonMap(DboNodeLineage.RANGE_KEY_NAME, rangeKeyCondition));
 		}
 
 		List<DboNodeLineage> dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);

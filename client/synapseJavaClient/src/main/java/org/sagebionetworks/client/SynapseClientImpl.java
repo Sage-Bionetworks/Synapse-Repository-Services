@@ -144,6 +144,9 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -366,6 +369,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String STORAGE_LOCATION = "/storageLocation";
 
+	public static final String AUTH_OAUTH_2 = "/oauth2";
+	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
+	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
@@ -6824,12 +6831,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public Session passThroughOpenIDParameters(String queryString)
 			throws SynapseException {
 		return passThroughOpenIDParameters(queryString, false);
 	}
 
+	@Deprecated
 	@Override
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary) throws SynapseException {
@@ -6837,6 +6846,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				DomainType.SYNAPSE);
 	}
 
+	@Deprecated
 	@Override
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary, DomainType domain)
@@ -6859,7 +6869,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#getOAuth2AuthenticationUrl(org.sagebionetworks.repo.model.oauth.OAuthUrlRequest)
+	 */
+	@Override
+	public OAuthUrlResponse getOAuth2AuthenticationUrl(OAuthUrlRequest request) throws SynapseException{
+		return asymmetricalPost(getAuthEndpoint(), AUTH_OAUTH_2_AUTH_URL, request, OAuthUrlResponse.class, null);
+	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#validateOAuthAuthenticationCode(org.sagebionetworks.repo.model.oauth.OAuthValidationRequest)
+	 */
+	@Override
+	public Session validateOAuthAuthenticationCode(OAuthValidationRequest request) throws SynapseException{
+		return asymmetricalPost(getAuthEndpoint(), AUTH_OAUTH_2_SESSION, request, Session.class, null);
+	}
+	
 	private Map<String, String> domainToParameterMap(DomainType domain) {
 		Map<String, String> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
