@@ -1,0 +1,9 @@
+{
+	"description": "The object that implements this interface contains an entityId.",
+	"type": "interface",
+	"properties": {
+		"entityId":{
+			"type": "string"
+		}
+	}
+}

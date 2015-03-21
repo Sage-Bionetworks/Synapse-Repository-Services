@@ -10,8 +10,10 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREVIEW;
 
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.HasEntityId;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
@@ -42,17 +44,40 @@ public enum AsynchJobType {
 	
 	/**
 	 * Get the URL used to start this job type.
+	 * @param request
 	 */
-	public  String getStartUrl(){
+	public  String getStartUrl(AsynchronousRequestBody request){
+		if (request instanceof HasEntityId) {
+			HasEntityId obj = (HasEntityId) request;
+			return "/entity/" + obj.getEntityId() + prefix + ASYNC_START;
+		}
 		return prefix+ASYNC_START;
 	}
 
 	/**
 	 * Get the URL used to get the results for this job type.
 	 * @param token
+	 * @param request
 	 * @return
 	 */
-	public String getResultUrl(String token){
+	public String getResultUrl(String token, AsynchronousRequestBody request){
+		if (request instanceof HasEntityId) {
+			HasEntityId obj = (HasEntityId) request;
+			return "/entity/" + obj.getEntityId() + prefix + ASYNC_START + token;
+		}
+		return prefix+ASYNC_GET + token;
+	}
+
+	/**
+	 * Get the URL used to get the results for this job type.
+	 * @param token
+	 * @param entityId
+	 * @return
+	 */
+	public String getResultUrl(String token, String entityId){
+		if (entityId != null) {
+			return "/entity/" + entityId + prefix + ASYNC_START + token;
+		}
 		return prefix+ASYNC_GET + token;
 	}
 	
