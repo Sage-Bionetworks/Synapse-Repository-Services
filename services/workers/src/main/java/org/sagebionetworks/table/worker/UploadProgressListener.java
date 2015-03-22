@@ -3,8 +3,8 @@ package org.sagebionetworks.table.worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 
-import com.amazonaws.services.s3.model.ProgressEvent;
-import com.amazonaws.services.s3.model.ProgressListener;
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.sqs.model.Message;
 
 /**
@@ -54,7 +54,7 @@ public class UploadProgressListener implements ProgressListener {
 	@Override
 	public void progressChanged(ProgressEvent progressEvent) {
 		// increment the bytes transfered.
-		bytesTransferedSoFar += progressEvent.getBytesTransfered();
+		bytesTransferedSoFar += progressEvent.getBytesTransferred();
 		long currentProgress;
 		if(bytesTransferedSoFar == 0){
 			currentProgress = startProgress;

@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.s3.model.ProgressListener;
+import com.amazonaws.event.ProgressListener;
 
 /**
  * Abstraction for multi-part support.
