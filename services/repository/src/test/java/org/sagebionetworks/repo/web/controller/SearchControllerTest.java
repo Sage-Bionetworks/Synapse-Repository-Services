@@ -64,7 +64,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(documentProvider);
 
 		// wait for search initialization
-		assertTrue(TimeUtils.waitFor(10000, 100, null, new Predicate<Void>() {
+		assertTrue(TimeUtils.waitFor(60000, 100, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
 				try {
@@ -83,13 +83,17 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchDao.createOrUpdateSearchDocument(doc);
 		// Wait for it to show up
-		long start = System.currentTimeMillis();
-		while(!searchDao.doesDocumentExist(project.getId(), project.getEtag())){
-			System.out.println("Waiting for entity to appearh in seach index: "+project.getId()+"...");
-			Thread.sleep(1000);
-			long elapse = System.currentTimeMillis()-start;
-			assertTrue("Timed out waiting for a document to appear in the search index",elapse < MAX_WAIT);
-		}
+		assertTrue(TimeUtils.waitFor(60000, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					System.out.println("Waiting for entity to appearh in seach index: " + project.getId() + "...");
+					return searchDao.doesDocumentExist(project.getId(), project.getEtag());
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 	}
 	
 	@After
