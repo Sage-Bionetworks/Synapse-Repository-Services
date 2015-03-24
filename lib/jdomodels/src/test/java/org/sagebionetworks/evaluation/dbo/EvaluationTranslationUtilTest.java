@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.UnsupportedEncodingException;
 
+import javax.mail.Quota;
+
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -61,6 +63,7 @@ public class EvaluationTranslationUtilTest {
 		backup.setStatus(EvaluationStatus.COMPLETED.ordinal());
 		backup.setSubmissionInstructions("foo".getBytes("UTF-8"));
 		backup.setSubmissionReceiptMessage("bar".getBytes("UTF-8"));
+		backup.setQuota((new String("evaluation quota info goes here")).getBytes());
 		// Create the dbo
 		EvaluationDBO dbo = EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
 		assertNotNull(dbo);

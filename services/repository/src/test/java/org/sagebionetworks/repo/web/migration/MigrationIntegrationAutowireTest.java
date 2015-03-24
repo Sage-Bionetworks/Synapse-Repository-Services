@@ -45,7 +45,6 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
-import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -423,12 +422,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation.setSubmissionInstructionsMessage("instructions");
 		evaluation.setSubmissionReceiptMessage("receipt");
-		SubmissionQuota quota = new SubmissionQuota();
-		quota.setFirstRoundStart(new Date());
-		quota.setNumberOfRounds(100L);
-		quota.setRoundDurationMillis(100000L);
-		quota.setSubmissionLimit(10L);
-		evaluation.setQuota(quota);
 		evaluation = serviceProvider.getEvaluationService().createEvaluation(adminUserId, evaluation);
 
 		// initialize Participants
