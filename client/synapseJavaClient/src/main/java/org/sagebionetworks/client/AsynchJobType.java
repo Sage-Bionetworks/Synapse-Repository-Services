@@ -63,7 +63,7 @@ public enum AsynchJobType {
 	public String getResultUrl(String token, AsynchronousRequestBody request){
 		if (request instanceof HasEntityId) {
 			HasEntityId obj = (HasEntityId) request;
-			return "/entity/" + obj.getEntityId() + prefix + ASYNC_START + token;
+			return "/entity/" + obj.getEntityId() + prefix + ASYNC_GET + token;
 		}
 		return prefix+ASYNC_GET + token;
 	}
@@ -76,11 +76,11 @@ public enum AsynchJobType {
 	 */
 	public String getResultUrl(String token, String entityId){
 		if (entityId != null) {
-			return "/entity/" + entityId + prefix + ASYNC_START + token;
+			return "/entity/" + entityId + prefix + ASYNC_GET + token;
 		}
 		return prefix+ASYNC_GET + token;
 	}
-	
+
 	/**
 	 * Get the response class.
 	 * @return
