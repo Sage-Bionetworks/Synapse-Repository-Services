@@ -26,6 +26,7 @@ public class EvaluationTranslationUtil {
 		dbo.setStatusEnum(EvaluationStatus.values()[backup.getStatus()]);
 		dbo.setSubmissionInstructionsMessage(backup.getSubmissionInstructions());
 		dbo.setSubmissionReceiptMessage(backup.getSubmissionReceiptMessage());
+		dbo.setQuota(backup.getQuota());
 		return dbo;
 	}
 
@@ -41,6 +42,7 @@ public class EvaluationTranslationUtil {
 		backup.setStatus(dbo.getStatus());
 		backup.setSubmissionInstructions(dbo.getSubmissionInstructionsMessage());
 		backup.setSubmissionReceiptMessage(dbo.getSubmissionReceiptMessage());
+		backup.setQuota(dbo.getQuota());
 		return backup;
 	}
 	

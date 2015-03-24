@@ -662,6 +662,17 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, submissionEligibilityHash, request);
 	}
 	
+	/**
+	 * Add a contributor to an existing Submission.  This service is available to administrators only.
+	 * 
+	 * @param userId
+	 * @param subId
+	 * @param submissionContributor
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_CONTRIBUTOR, method = RequestMethod.POST)
 	public @ResponseBody
