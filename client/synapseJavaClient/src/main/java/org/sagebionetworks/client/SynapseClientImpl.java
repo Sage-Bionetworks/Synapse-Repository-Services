@@ -6209,8 +6209,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken) 
 			throws SynapseException, SynapseResultNotReadyException {
+		String entityId = null;
 		return (UploadToTablePreviewResult) getAsyncResult(
-				AsynchJobType.TableCSVUploadPreview, asyncJobToken, (String) null);
+				AsynchJobType.TableCSVUploadPreview, asyncJobToken, entityId);
 	}
 
 	@Override
