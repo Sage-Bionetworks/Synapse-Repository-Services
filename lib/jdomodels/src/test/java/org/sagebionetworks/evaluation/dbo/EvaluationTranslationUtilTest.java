@@ -5,8 +5,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.UnsupportedEncodingException;
 
-import javax.mail.Quota;
-
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
