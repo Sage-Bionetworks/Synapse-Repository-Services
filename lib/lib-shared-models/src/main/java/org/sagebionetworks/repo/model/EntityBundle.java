@@ -34,6 +34,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static int FILE_HANDLES				= 0x800;
 	public static int TABLE_DATA				= 0x1000;
 	public static int ROOT_WIKI_ID				= 0x2000;
+	public static int BENEFACTOR_ACL			= 0x4000;
 	
 	private static FileHandleInstanceFactory fileHandleInstanceFactory = new FileHandleInstanceFactory();
 	private static EntityInstanceFactory entityInstanceFactory = new EntityInstanceFactory();
@@ -47,6 +48,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_HAS_CHILDREN 	= "hasChildren";
 
 	public static final String JSON_ACL = "accessControlList";
+	public static final String JSON_BENEFACTOR_ACL = "benefactorAcl";
 	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
 	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
 	public static final String JSON_FILE_HANDLES = "fileHandles";
@@ -65,7 +67,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private List<FileHandle> fileHandles;
 	private TableBundle tableBundle;
 	private String rootWikiId;
-	
+	private AccessControlList benefactorAcl;
 	/**
 	 * Create a new EntityBundle
 	 */
@@ -130,6 +132,13 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (acl == null)
 				acl = new AccessControlList();
 			acl.initializeFromJSONObject(joa);
+		}
+		if (toInitFrom.has(JSON_BENEFACTOR_ACL)) {
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_BENEFACTOR_ACL);
+			if (benefactorAcl == null){
+				benefactorAcl = new AccessControlList();
+			}
+			benefactorAcl.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ACCESS_REQUIREMENTS)) {
 			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_ACCESS_REQUIREMENTS);
@@ -213,6 +222,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			JSONObjectAdapter joa = writeTo.createNew();
 			acl.writeToJSONObject(joa);
 			writeTo.put(JSON_ACL, joa);
+		}
+		if(benefactorAcl != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			benefactorAcl.writeToJSONObject(joa);
+			writeTo.put(JSON_BENEFACTOR_ACL, joa);
 		}
 		if (accessRequirements != null) {
 			JSONArrayAdapter arArray = writeTo.createNewArray();
@@ -414,6 +428,14 @@ public class EntityBundle implements JSONEntity, Serializable {
 		this.rootWikiId = rootWikiId;
 	}
 
+	public AccessControlList getBenefactorAcl() {
+		return benefactorAcl;
+	}
+
+	public void setBenefactorAcl(AccessControlList benefactorAcl) {
+		this.benefactorAcl = benefactorAcl;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -425,6 +447,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
 		result = prime * result
 				+ ((entityType == null) ? 0 : entityType.hashCode());
@@ -471,6 +495,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (other.annotations != null)
 				return false;
 		} else if (!annotations.equals(other.annotations))
+			return false;
+		if (benefactorAcl == null) {
+			if (other.benefactorAcl != null)
+				return false;
+		} else if (!benefactorAcl.equals(other.benefactorAcl))
 			return false;
 		if (entity == null) {
 			if (other.entity != null)
@@ -535,7 +564,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ acl + ", accessRequirements=" + accessRequirements
 				+ ", unmetAccessRequirements=" + unmetAccessRequirements
 				+ ", fileHandles=" + fileHandles + ", tableBundle="
-				+ tableBundle + ", rootWikiId=" + rootWikiId + "]";
+				+ tableBundle + ", rootWikiId=" + rootWikiId
+				+ ", benefactorAcl=" + benefactorAcl + "]";
 	}
 
 }

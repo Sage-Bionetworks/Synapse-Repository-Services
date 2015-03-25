@@ -399,8 +399,7 @@ public interface EntityService {
 	 *             inherits its permissions. The exception will include the
 	 *             benefactor's ID.
 	 */
-	public AccessControlList getEntityACL(String entityId, Long userId,
-			HttpServletRequest request) throws NotFoundException,
+	public AccessControlList getEntityACL(String entityId, Long userId) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException;
 
 	/**
