@@ -96,12 +96,21 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if ((mask & EntityBundle.ACL) > 0) {
 			try {
-				eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId, request));
+				eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId));
 			} catch (ACLInheritanceException e) {
 				// ACL is inherited from benefactor. Set ACL to null.
 				eb.setAccessControlList(null);
 			}
-		}		
+		}
+		if ((mask & EntityBundle.BENEFACTOR_ACL) > 0) {
+			try {
+				// If this entity is its own benefactor then we just get the ACL
+				eb.setBenefactorAcl(serviceProvider.getEntityService().getEntityACL(entityId, userId));
+			} catch (ACLInheritanceException e) {
+				// ACL is inherited from benefactor. So get the benefactor's ACL
+				eb.setBenefactorAcl(serviceProvider.getEntityService().getEntityACL(e.getBenefactorId(), userId));
+			}
+		}
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);

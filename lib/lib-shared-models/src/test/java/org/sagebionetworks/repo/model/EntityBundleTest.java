@@ -118,6 +118,11 @@ public class EntityBundleTest {
 		acl.setCreatedBy("John Doe");
 		acl.setId("syn456");
 		
+		AccessControlList benefactorAcl = (AccessControlList) 
+				autoGenFactory.newInstance(AccessControlList.class.getName());
+		benefactorAcl.setCreatedBy("John Doe");
+		benefactorAcl.setId("syn456");
+		
 		// Child Count
 		Boolean hasChildren = true;
 		
@@ -170,6 +175,7 @@ public class EntityBundleTest {
 		entityBundle.setReferencedBy(rb);
 		entityBundle.setHasChildren(hasChildren);
 		entityBundle.setAccessControlList(acl);
+		entityBundle.setBenefactorAcl(benefactorAcl);
 		entityBundle.setAccessRequirements(accessRequirements);
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
 		entityBundle.setFileHandles(fileHandleList);
