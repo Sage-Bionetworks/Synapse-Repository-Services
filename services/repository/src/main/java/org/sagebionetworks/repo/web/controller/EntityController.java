@@ -977,8 +977,7 @@ public class EntityController extends BaseController {
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
-		return serviceProvider.getEntityService().getEntityACL(id, userId,
-				request);
+		return serviceProvider.getEntityService().getEntityACL(id, userId);
 	}
 
 	/**

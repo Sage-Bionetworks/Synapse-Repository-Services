@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -465,7 +464,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public  AccessControlList getEntityACL(String entityId, Long userId, HttpServletRequest request)
+	public  AccessControlList getEntityACL(String entityId, Long userId)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException {
 		// First try the updated
 		UserInfo userInfo = userManager.getUserInfo(userId);

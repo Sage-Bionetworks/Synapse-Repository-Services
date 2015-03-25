@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.*;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -79,6 +79,7 @@ public class EntityBundleServiceImplTest {
 		mockTableService = mock(TableServices.class);
 		when(mockServiceProvider.getTableServices()).thenReturn(mockTableService);
 		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
+		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		
 		// Entities
 		project = new Project();
@@ -124,7 +125,7 @@ public class EntityBundleServiceImplTest {
 		String activityId = "123";
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(studyWithId);
 		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId), any(HttpServletRequest.class))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1), any(HttpServletRequest.class))).thenReturn(acl);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(new Annotations());
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class))).thenReturn(annos);
@@ -164,7 +165,7 @@ public class EntityBundleServiceImplTest {
 			
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(studyWithId);
 		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId), any(HttpServletRequest.class))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1), any(HttpServletRequest.class))).thenReturn(acl);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(annosWithId);
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class))).thenReturn(annos);
@@ -239,5 +240,36 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals("ID should be null when it does not exist",null, bundle.getRootWikiId());
+	}
+	
+	/**
+	 * For this case, the entity is its own benefactor.
+	 */
+	@Test
+	public void testGetBenefactorAclOwnBenefactor() throws Exception {
+		AccessControlList acl = new AccessControlList();
+		acl.setId("123");
+		String entityId = "syn123";
+		int mask = EntityBundle.BENEFACTOR_ACL;
+		when(mockEntityService.getEntityACL(anyString(), anyLong())).thenReturn(acl);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(acl, bundle.getBenefactorAcl());
+	}
+	
+	@Test
+	public void testGetBenefactorAclInheritied() throws Exception {
+		AccessControlList acl = new AccessControlList();
+		acl.setId("456");
+		String entityId = "syn123";
+		String benefactorId = "syn456";
+		int mask = EntityBundle.BENEFACTOR_ACL;
+		// this entity inherits its permissions.
+		when(mockEntityService.getEntityACL(entityId, TEST_USER1)).thenThrow(new ACLInheritanceException("Has a benefactor", benefactorId));
+		// return the benefactor ACL.
+		when(mockEntityService.getEntityACL(benefactorId, TEST_USER1)).thenReturn(acl);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(acl, bundle.getBenefactorAcl());
 	}
 }
