@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityGroup;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LocationData;
@@ -73,6 +74,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		"versionComment",
 		"versionUrl",
 		"versions",
+		"groups"
 	};
 	
 	static private Logger log = LogManager.getLogger(EntityTypeConverterImpl.class);
@@ -132,7 +134,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			results.setCreatedBy(entity.getCreatedBy());
 			results.setOriginalType(entity.getClass().getName());
 			
-			if(!(entity instanceof Locationable) || !(entity instanceof Summary)){
+			if(!(entity instanceof Locationable) && !(entity instanceof Summary)){
 				NOT_LOCATIONABLE.throwException();
 			}
 			UserInfo.validateUserInfo(user);
@@ -165,9 +167,17 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	private String convertSummary(UserInfo user, Entity entity, String newEtag) throws UnsupportedEncodingException, IOException, NotFoundException {
 		Summary summary = (Summary) entity;
 		// First create a wiki for this entity
-		V2WikiPage wiki = createWiki(summary, "");
-		return null;
+		String description = entity.getDescription();
+		if(description == null){
+			description = "";
+		}
+		String summaryMarkdown = SummaryMarkdownUtils.generateSummaryMarkdown(summary);
+		V2WikiPage wiki = createWiki(summary, description+summaryMarkdown);
+		
+		return convertToFolder(user, entity, newEtag, new LinkedList<VersionData>());
 	}
+	
+
 
 	public String convertLocationable(UserInfo user, Entity entity,
 			String newEtag) throws NotFoundException,
@@ -263,7 +273,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	private String convertToFolder(UserInfo user, Locationable entity, String newEtag, List<VersionData> pairs) throws DatastoreException, UnauthorizedException, NotFoundException {
+	private String convertToFolder(UserInfo user, Entity entity, String newEtag, List<VersionData> pairs) throws DatastoreException, UnauthorizedException, NotFoundException {
 		// The latest version is fist but we need to process these in the original order.
 		FileEntity child = new FileEntity();
 		child.setParentId(entity.getId());
@@ -302,7 +312,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		return Folder.class.getName();
 	}
 
-	public NamedAnnotations convertAnnotations(Locationable entity,
+	public NamedAnnotations convertAnnotations(Entity entity,
 			Long verionNumber) throws NotFoundException {
 		// Re-write this version
 		NamedAnnotations annos = nodeDao.getAnnotationsForVersion(entity.getId(), verionNumber);
@@ -354,7 +364,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException,
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Entity entity) throws DatastoreException,
 			NotFoundException, UnsupportedEncodingException, IOException {
 		// We need to create file handle for each version.
 		List<VersionData> pairs = new LinkedList<VersionData>();

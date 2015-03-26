@@ -589,6 +589,9 @@ public class EntityTypeConverterImplAutowireTest {
 		assertEquals(1, page.getAttachmentFileHandleIds().size());
 	}
 	
+	/**
+	 * Test to convert a summary to a folder.
+	 */
 	@Test
 	public void testPLFM_3304() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		Summary summary = createSummary();
