@@ -50,7 +50,7 @@ public enum AsynchJobType {
 	public  String getStartUrl(AsynchronousRequestBody request){
 		if (request instanceof UploadToTableRequest) {
 			UploadToTableRequest obj = (UploadToTableRequest) request;
-			return "/entity" + obj.getTableId() + prefix + ASYNC_START;
+			return "/entity/" + obj.getTableId() + prefix + ASYNC_START;
 		}
 		if (request instanceof HasEntityId) {
 			HasEntityId obj = (HasEntityId) request;

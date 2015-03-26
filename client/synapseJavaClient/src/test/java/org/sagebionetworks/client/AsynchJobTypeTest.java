@@ -27,6 +27,7 @@ public class AsynchJobTypeTest {
 	@Test
 	public void testGetStartUrlwUploadToTableRequest() {
 		UploadToTableRequest request = new UploadToTableRequest();
+		request.setTableId(tableId);
 		AsynchJobType type = AsynchJobType.TableCSVUpload;
 		String actual = type.getStartUrl(request);
 		String expected = "/entity/0123456/table/upload/csv/async/start";
@@ -85,6 +86,7 @@ public class AsynchJobTypeTest {
 	@Test
 	public void testGetResultUrlwUploadToTableRequest() {
 		UploadToTableRequest request = new UploadToTableRequest();
+		request.setTableId(tableId);
 		AsynchJobType type = AsynchJobType.TableCSVUpload;
 		String actual = type.getResultUrl(token, request);
 		String expected = "/entity/0123456/table/upload/csv/async/get/abcdefgh";
