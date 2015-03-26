@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 /**
  * Maps job types to the URL prefix needed for each type.
@@ -47,8 +48,14 @@ public enum AsynchJobType {
 	 * @param request
 	 */
 	public  String getStartUrl(AsynchronousRequestBody request){
+		if (request instanceof UploadToTableRequest) {
+			UploadToTableRequest obj = (UploadToTableRequest) request;
+			return "/entity" + obj.getTableId() + prefix + ASYNC_START;
+		}
 		if (request instanceof HasEntityId) {
 			HasEntityId obj = (HasEntityId) request;
+			if (obj.getEntityId() == null) 
+				throw new IllegalArgumentException("entityId cannot be null");
 			return "/entity/" + obj.getEntityId() + prefix + ASYNC_START;
 		}
 		return prefix+ASYNC_START;
@@ -61,8 +68,14 @@ public enum AsynchJobType {
 	 * @return
 	 */
 	public String getResultUrl(String token, AsynchronousRequestBody request){
+		if (request instanceof UploadToTableRequest) {
+			UploadToTableRequest obj = (UploadToTableRequest) request;
+			return "/entity/" + obj.getTableId() + prefix + ASYNC_GET + token;
+		}
 		if (request instanceof HasEntityId) {
 			HasEntityId obj = (HasEntityId) request;
+			if (obj.getEntityId() == null) 
+				throw new IllegalArgumentException("entityId cannot be null");
 			return "/entity/" + obj.getEntityId() + prefix + ASYNC_GET + token;
 		}
 		return prefix+ASYNC_GET + token;
