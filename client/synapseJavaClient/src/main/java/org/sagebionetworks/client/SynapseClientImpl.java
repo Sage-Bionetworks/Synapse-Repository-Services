@@ -6184,7 +6184,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String fileHandleId, String etag, Long linesToSkip,
 			CsvTableDescriptor csvDescriptor) throws SynapseException {
 		UploadToTableRequest uploadRequest = new UploadToTableRequest();
-		uploadRequest.setEntityId(tableId);
 		uploadRequest.setTableId(tableId);
 		uploadRequest.setUploadFileHandleId(fileHandleId);
 		uploadRequest.setUpdateEtag(etag);
