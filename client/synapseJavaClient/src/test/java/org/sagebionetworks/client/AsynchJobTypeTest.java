@@ -27,7 +27,6 @@ public class AsynchJobTypeTest {
 	@Test
 	public void testGetStartUrlwUploadToTableRequest() {
 		UploadToTableRequest request = new UploadToTableRequest();
-		request.setEntityId(tableId);
 		AsynchJobType type = AsynchJobType.TableCSVUpload;
 		String actual = type.getStartUrl(request);
 		String expected = "/entity/0123456/table/upload/csv/async/start";
@@ -86,7 +85,6 @@ public class AsynchJobTypeTest {
 	@Test
 	public void testGetResultUrlwUploadToTableRequest() {
 		UploadToTableRequest request = new UploadToTableRequest();
-		request.setEntityId(tableId);
 		AsynchJobType type = AsynchJobType.TableCSVUpload;
 		String actual = type.getResultUrl(token, request);
 		String expected = "/entity/0123456/table/upload/csv/async/get/abcdefgh";
@@ -146,5 +144,19 @@ public class AsynchJobTypeTest {
 		String actual = type.getResultUrl(token, (String) null);
 		String expected = "/table/upload/csv/preview/async/get/abcdefgh";
 		assertEquals(actual, expected);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetStartUrlwNullEntityId() {
+		AppendableRowSetRequest request = new AppendableRowSetRequest();
+		AsynchJobType type = AsynchJobType.TableAppendRowSet;
+		type.getStartUrl(request);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetResultUrlwNullEntityId2() {
+		AppendableRowSetRequest request = new AppendableRowSetRequest();
+		AsynchJobType type = AsynchJobType.TableAppendRowSet;
+		type.getResultUrl(token, request);
 	}
 }
