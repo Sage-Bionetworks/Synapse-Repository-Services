@@ -48,17 +48,30 @@ public enum AsynchJobType {
 	 * @param request
 	 */
 	public  String getStartUrl(AsynchronousRequestBody request){
-		if (request instanceof UploadToTableRequest) {
-			UploadToTableRequest obj = (UploadToTableRequest) request;
-			return "/entity/" + obj.getTableId() + prefix + ASYNC_START;
+		String entityId = getEntityIdFromRequest(request);
+		if (entityId != null) {
+			return "/entity/" + entityId + prefix + ASYNC_START;
+		} else {
+			return prefix + ASYNC_START;
 		}
-		if (request instanceof HasEntityId) {
-			HasEntityId obj = (HasEntityId) request;
-			if (obj.getEntityId() == null) 
-				throw new IllegalArgumentException("entityId cannot be null");
-			return "/entity/" + obj.getEntityId() + prefix + ASYNC_START;
+	}
+
+	/*
+	 * extracts the entityId from the request body 
+	 * throws an exception if the request has an entityId field but the entityId is null
+	 * If the request body does not have an entityId field, returns null.
+	 */
+	private String getEntityIdFromRequest(AsynchronousRequestBody request) {
+		if (request instanceof UploadToTableRequest && ((UploadToTableRequest) request).getTableId() != null) {
+			return ((UploadToTableRequest) request).getTableId();
+		} else if (request instanceof HasEntityId && ((HasEntityId) request).getEntityId() != null) {
+			return ((HasEntityId) request).getEntityId();
+		} else if ((request instanceof UploadToTableRequest && ((UploadToTableRequest) request).getTableId() == null) ||
+					(request instanceof HasEntityId && ((HasEntityId) request).getEntityId() == null)) {
+			throw new IllegalArgumentException("entityId cannot be null");
+		} else {
+			return null;
 		}
-		return prefix+ASYNC_START;
 	}
 
 	/**
@@ -68,17 +81,7 @@ public enum AsynchJobType {
 	 * @return
 	 */
 	public String getResultUrl(String token, AsynchronousRequestBody request){
-		if (request instanceof UploadToTableRequest) {
-			UploadToTableRequest obj = (UploadToTableRequest) request;
-			return "/entity/" + obj.getTableId() + prefix + ASYNC_GET + token;
-		}
-		if (request instanceof HasEntityId) {
-			HasEntityId obj = (HasEntityId) request;
-			if (obj.getEntityId() == null) 
-				throw new IllegalArgumentException("entityId cannot be null");
-			return "/entity/" + obj.getEntityId() + prefix + ASYNC_GET + token;
-		}
-		return prefix+ASYNC_GET + token;
+		return getResultUrl(token, getEntityIdFromRequest(request));
 	}
 
 	/**
