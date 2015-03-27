@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityGroup;
+import org.sagebionetworks.repo.model.EntityGroupRecord;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -36,8 +38,10 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Summary;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
@@ -583,6 +587,101 @@ public class EntityTypeConverterImplAutowireTest {
 		assertNotNull(page.getAttachmentFileHandleIds());
 		// There should be one attachment.
 		assertEquals(1, page.getAttachmentFileHandleIds().size());
+	}
+	
+	/**
+	 * Test to convert a summary to a folder.
+	 */
+	@Test
+	public void testPLFM_3304() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		Summary summary = createSummary();
+		LocationableTypeConversionResult resutls = entityTypeConverter.convertOldTypeToNew(adminUserInfo, summary.getId());
+		assertTrue(resutls.getSuccess());
+	}
+	
+	/**
+	 * Create a summary with multiple entities to point to.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	private Summary createSummary() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		Summary summary = new Summary();
+		summary.setDescription("This text is from the original description of the entity.");
+		summary.setParentId(project.getId());
+		summary.setName("A summary");
+		// Create some groups to link to.
+		summary.setGroups(new LinkedList<EntityGroup>());
+		for(int i=0; i<6; i++){
+			summary.getGroups().add(createGroup(i));
+		}
+		String id = entityManager.createEntity(adminUserInfo, summary, null);
+		return (Summary) entityManager.getEntity(adminUserInfo, id);
+	}
+	
+	private EntityGroup createGroup(int groupIndex) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		EntityGroup group = new EntityGroup();
+		String decription = null;
+		if(groupIndex % 3 == 0){
+			decription = "Group description: "+groupIndex;
+		}
+		group.setDescription(decription);
+		String name = null;
+		if(groupIndex % 2 == 0){
+			name = "Group Name: "+groupIndex;
+		}
+		group.setName(name);
+		group.setRecords(new LinkedList<EntityGroupRecord>());
+		for(int recordIndex=0; recordIndex<3; recordIndex++){
+			group.getRecords().add(createRecord(groupIndex, recordIndex));
+		}
+		return group;
+	}
+	
+	private EntityGroupRecord createRecord(int groupIndex, int recordIndex) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		EntityGroupRecord record = new EntityGroupRecord();
+		String note = null;
+		if(recordIndex % 2 == 0){
+			note = "note for group: "+groupIndex+" record: "+recordIndex;
+		}
+		record.setNote(note);
+		// Create a file to link to.
+		FileEntity file = new FileEntity();
+		file.setName("g"+groupIndex+"r"+recordIndex);
+		file.setParentId(project.getId());
+		//handle
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setContentType("text/plain");
+		efh.setExternalURL("https://www.google.com/");
+		efh.setFileName(file.getName());
+		efh.setCreatedBy(""+adminUserInfo.getId());
+		efh.setCreatedOn(new Date());
+		efh = fileHandleDao.createFile(efh);
+		// file
+		file.setDataFileHandleId(efh.getId());
+		String fileId = entityManager.createEntity(adminUserInfo, file, null);
+		file = (FileEntity) entityManager.getEntity(adminUserInfo, fileId);
+		Reference ref = new Reference();
+		ref.setTargetId(file.getId());
+		
+		if(recordIndex % 2 == 0){
+			// create a second version
+			efh = new ExternalFileHandle();
+			efh.setContentType("text/plain");
+			efh.setExternalURL("https://www.google.com/2");
+			efh.setFileName(file.getName()+"2");
+			efh.setCreatedBy(""+adminUserInfo.getId());
+			efh.setCreatedOn(new Date());
+			efh = fileHandleDao.createFile(efh);
+			file.setDataFileHandleId(efh.getId());
+			file.setVersionLabel("v2");
+			entityManager.updateEntity(adminUserInfo, file, true, null);
+			ref.setTargetVersionNumber(1L);
+		}
+		record.setEntityReference(ref);
+		return record;
 	}
 	
 	/**

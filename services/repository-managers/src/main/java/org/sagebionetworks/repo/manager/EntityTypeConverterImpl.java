@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityGroup;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LocationData;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Summary;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -40,6 +42,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +74,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		"versionComment",
 		"versionUrl",
 		"versions",
+		"groups"
 	};
 	
 	static private Logger log = LogManager.getLogger(EntityTypeConverterImpl.class);
@@ -129,10 +133,10 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			Entity entity = entityManager.getEntity(user, entityId);
 			results.setCreatedBy(entity.getCreatedBy());
 			results.setOriginalType(entity.getClass().getName());
-			if(!(entity instanceof Locationable)){
+			
+			if(!(entity instanceof Locationable) && !(entity instanceof Summary)){
 				NOT_LOCATIONABLE.throwException();
 			}
-			Locationable locationable = (Locationable) entity;
 			UserInfo.validateUserInfo(user);
 			// Must have update permission on the entity.
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -140,17 +144,14 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 
 			// First get the version for the entity.
 			String newEtag = nodeDao.lockNodeAndIncrementEtag(entity.getId(), entity.getEtag(), ChangeType.UPDATE);
-			// Create a wiki if there is a description or file attachments
-			createWikiIfNeeded(locationable);
-			// Try to create files handles for each version of the entity.
-			List<VersionData> pairs = createFileHandleForForEachVersion(user, locationable);
 			
-			// Studies and objects with no file data are converted to folders, while all other types are converted to files.
 			String resultType = null;
-			if(entity instanceof Study || pairs.isEmpty()){
-				resultType = convertToFolder(user, locationable, newEtag, pairs);
+			if(entity instanceof Locationable){
+				resultType = convertLocationable(user, entity, newEtag);
+			}else if(entity instanceof Summary){
+				resultType = convertSummary(user, entity, newEtag);
 			}else{
-				resultType = convertToFile(user, locationable, newEtag, pairs);
+				NOT_LOCATIONABLE.throwException();
 			}
 			results.setNewType(resultType);
 			results.setSuccess(true);
@@ -163,38 +164,77 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		}
 	}
 
-	private void createWikiIfNeeded(Locationable locationable) throws NumberFormatException, NotFoundException, UnsupportedEncodingException, IOException {
+	private String convertSummary(UserInfo user, Entity entity, String newEtag) throws UnsupportedEncodingException, IOException, NotFoundException {
+		Summary summary = (Summary) entity;
+		// First create a wiki for this entity
+		String description = entity.getDescription();
+		if(description == null){
+			description = "";
+		}
+		String summaryMarkdown = SummaryMarkdownUtils.generateSummaryMarkdown(summary);
+		V2WikiPage wiki = createWiki(summary, description+summaryMarkdown);
+		
+		return convertToFolder(user, entity, newEtag, new LinkedList<VersionData>());
+	}
+	
+
+
+	public String convertLocationable(UserInfo user, Entity entity,
+			String newEtag) throws NotFoundException,
+			UnsupportedEncodingException, IOException {
+		Locationable locationable = (Locationable) entity;
+		// Create a wiki if there is a description or file attachments
+		createWikiIfNeeded(locationable);
+		// Try to create files handles for each version of the entity.
+		List<VersionData> pairs = createFileHandleForForEachVersion(user, locationable);
+		
+		// Studies and objects with no file data are converted to folders, while all other types are converted to files.
+		String resultType = null;
+		if(entity instanceof Study || pairs.isEmpty()){
+			resultType = convertToFolder(user, locationable, newEtag, pairs);
+		}else{
+			resultType = convertToFile(user, locationable, newEtag, pairs);
+		}
+		return resultType;
+	}
+
+	private V2WikiPage createWikiIfNeeded(Entity entity) throws NumberFormatException, NotFoundException, UnsupportedEncodingException, IOException {
 		// we need a wiki if there is a description or attachments
-		if(locationable.getDescription() != null || locationable.getAttachments() != null){
-			V2WikiPage page = new V2WikiPage();
-			String markDown = locationable.getDescription();
+		if(entity.getDescription() != null || entity.getAttachments() != null){
+			String markDown = entity.getDescription();
 			if(markDown == null){
 				markDown = "See attachments:";
 			}
-			// Create the file handle for the markdown
-			S3FileHandle markDownHandle = fileHandleManager.createCompressedFileFromString(locationable.getCreatedBy(), locationable.getModifiedOn(), markDown);
-			page.setMarkdownFileHandleId(markDownHandle.getId());
-			if(locationable.getAttachments() != null){
-				// create a file handle for each attachment.
-				for(AttachmentData ad: locationable.getAttachments()){
-					S3FileHandle attachHandle = null;
-					try {
-						attachHandle = fileHandleManager.createFileHandleFromAttachment(locationable.getId(), locationable.getCreatedBy(), locationable.getModifiedOn(), ad);
-					} catch (NotFoundException e) {
-						// If the original attachment does not exist create a placeholder.
-						attachHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(locationable.getCreatedBy(), locationable.getModifiedOn(), ad.getName());
-					}
-					if(page.getAttachmentFileHandleIds() == null){
-						page.setAttachmentFileHandleIds(new LinkedList<String>());
-					}
-					page.getAttachmentFileHandleIds().add(attachHandle.getId());
-				}
-			}
-			UserInfo creator = getCreatorAsAdmin(locationable.getCreatedBy());
-			// Create the wiki page with all attachments.
-			wikiManager.createWikiPage(creator, locationable.getId(), ObjectType.ENTITY, page);
+			return createWiki(entity, markDown);
 		}
-		
+		return null;
+	}
+
+	public V2WikiPage createWiki(Entity entity, String markDown)
+			throws UnsupportedEncodingException, IOException, NotFoundException {
+		V2WikiPage page = new V2WikiPage();
+		// Create the file handle for the markdown
+		S3FileHandle markDownHandle = fileHandleManager.createCompressedFileFromString(entity.getCreatedBy(), entity.getModifiedOn(), markDown);
+		page.setMarkdownFileHandleId(markDownHandle.getId());
+		if(entity.getAttachments() != null){
+			// create a file handle for each attachment.
+			for(AttachmentData ad: entity.getAttachments()){
+				S3FileHandle attachHandle = null;
+				try {
+					attachHandle = fileHandleManager.createFileHandleFromAttachment(entity.getId(), entity.getCreatedBy(), entity.getModifiedOn(), ad);
+				} catch (NotFoundException e) {
+					// If the original attachment does not exist create a placeholder.
+					attachHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(entity.getCreatedBy(), entity.getModifiedOn(), ad.getName());
+				}
+				if(page.getAttachmentFileHandleIds() == null){
+					page.setAttachmentFileHandleIds(new LinkedList<String>());
+				}
+				page.getAttachmentFileHandleIds().add(attachHandle.getId());
+			}
+		}
+		UserInfo creator = getCreatorAsAdmin(entity.getCreatedBy());
+		// Create the wiki page with all attachments.
+		return wikiManager.createWikiPage(creator, entity.getId(), ObjectType.ENTITY, page);
 	}
 
 	/**
@@ -233,7 +273,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	private String convertToFolder(UserInfo user, Locationable entity, String newEtag, List<VersionData> pairs) throws DatastoreException, UnauthorizedException, NotFoundException {
+	private String convertToFolder(UserInfo user, Entity entity, String newEtag, List<VersionData> pairs) throws DatastoreException, UnauthorizedException, NotFoundException {
 		// The latest version is fist but we need to process these in the original order.
 		FileEntity child = new FileEntity();
 		child.setParentId(entity.getId());
@@ -272,7 +312,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		return Folder.class.getName();
 	}
 
-	public NamedAnnotations convertAnnotations(Locationable entity,
+	public NamedAnnotations convertAnnotations(Entity entity,
 			Long verionNumber) throws NotFoundException {
 		// Re-write this version
 		NamedAnnotations annos = nodeDao.getAnnotationsForVersion(entity.getId(), verionNumber);
@@ -324,7 +364,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException,
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Entity entity) throws DatastoreException,
 			NotFoundException, UnsupportedEncodingException, IOException {
 		// We need to create file handle for each version.
 		List<VersionData> pairs = new LinkedList<VersionData>();

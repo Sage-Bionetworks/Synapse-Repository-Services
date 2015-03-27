@@ -43,7 +43,7 @@ public interface EntityTypeConverter {
 	 * @throws IOException 
 	 * @throws UnsupportedEncodingException 
 	 */
-	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Locationable entity) throws DatastoreException, NotFoundException, UnsupportedEncodingException, IOException;
+	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Entity entity) throws DatastoreException, NotFoundException, UnsupportedEncodingException, IOException;
 	
 	/**
 	 * Attempt to create a FileHandle given a locationable path.
