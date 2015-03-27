@@ -61,9 +61,11 @@ public class IT930ActivityController {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+		if (userToDelete != null) {
+			adminSynapse.deleteUser(userToDelete);
+		}
 	}
-		
+
 	@Test 
 	public void testActivityCrud() throws Exception {
 		// create

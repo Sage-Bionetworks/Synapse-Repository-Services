@@ -1034,7 +1034,23 @@ public class TableController extends BaseController {
 		return (DownloadFromTableResult) jobStatus.getResponseBody();
 	}
 
-	@Deprecated
+	/**
+	 * <p>
+	 * The method can be used to test both the parameters for reading an upload
+	 * CSV file and the required table schema. The caller can then adjust both
+	 * parameters and schema before applying the CSV to that table.
+	 * </p>
+	 * Asynchronously start a csv upload preview. Use the returned job id and <a
+	 * href="${GET.table.upload.csv.preview.async.get.asyncToken}">GET
+	 * /table/upload/csv/preview/async/get/{asyncToken}</a> to get the results.
+	 * 
+	 * @param userId
+	 * @param uploadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -1047,62 +1063,12 @@ public class TableController extends BaseController {
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
-	}
-
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
-	public @ResponseBody
-	UploadToTablePreviewResult csvUploadPreviewAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws DatastoreException,
-			NotFoundException, IOException, AsynchJobFailedException,
-			NotReadyException {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
-		return (UploadToTablePreviewResult) jobStatus.getResponseBody();
-	}
-
-	/**
-	 * <p>
-	 * The method can be used to test both the parameters for reading an upload
-	 * CSV file and the required table schema. The caller can then adjust both
-	 * parameters and schema before applying the CSV to that table.
-	 * </p>
-	 * Asynchronously start a csv upload preview. Use the returned job id and <a
-	 * href="${GET.entity.id.table.upload.csv.preview.async.get.asyncToken}">GET
-	 * /entity/{id}/table/upload/csv/preview/async/get/{asyncToken}</a> to get the results.
-	 * 
-	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity.
-	 * @param uploadRequest
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
-	public @ResponseBody
-	AsyncJobId csvUploadPreviewAsyncStart(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @RequestBody UploadToTablePreviewRequest uploadRequest)
-			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
-		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, uploadRequest);
-		AsyncJobId asyncJobId = new AsyncJobId();
-		asyncJobId.setToken(job.getJobId());
-		return asyncJobId;
-	}
+	}	
 
 	/**
 	 * Asynchronously get the results of a csv upload preview started with <a
-	 * href="${POST.entity.id.table.upload.csv.preview.async.start}">POST
-	 * /entity/{id}/table/upload/csv/async/start</a>
+	 * href="${POST.table.upload.csv.preview.async.start}">POST
+	 * /table/upload/csv/async/start</a>
 	 * 
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status
@@ -1112,8 +1078,6 @@ public class TableController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity.
 	 * @param asyncToken
 	 * @return
 	 * @throws DatastoreException
@@ -1123,15 +1087,13 @@ public class TableController extends BaseController {
 	 * @throws NotReadyException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	UploadToTablePreviewResult csvUploadPreviewAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @PathVariable String asyncToken)
-			throws DatastoreException, NotFoundException, IOException,
-			AsynchJobFailedException, NotReadyException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
+			@PathVariable String asyncToken) throws DatastoreException,
+			NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);

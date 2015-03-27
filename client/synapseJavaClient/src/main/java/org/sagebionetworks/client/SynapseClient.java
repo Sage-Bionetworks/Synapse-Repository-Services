@@ -28,7 +28,6 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -1227,20 +1226,29 @@ public interface SynapseClient extends BaseClient {
 	 * Start an Asynchronous job of the given type.
 	 * @param type The type of job.
 	 * @param request The request body.
-	 * @param tableId the id of the TableEntity.
 	 * @return The jobId is used to get the job results.
 	 */
-	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request, String tableId) throws SynapseException;
+	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException;
 	
 	/**
 	 * Get the results of an Asynchronous job.
 	 * @param type The type of job.
 	 * @param jobId The JobId.
-	 * @param tableId the id of the TableEntity.
+	 * @param request 
 	 * @throws SynapseResultNotReadyException if the job is not ready.
 	 * @return
 	 */
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String tableId) throws SynapseException, SynapseResultNotReadyException;
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Get the results of an Asynchronous job.
+	 * @param type The type of job.
+	 * @param jobId The JobId.
+	 * @param entityId
+	 * @throws SynapseResultNotReadyException if the job is not ready.
+	 * @return
+	 */
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
 	 * Get the result of an asynchronous queryTableEntityNextPage
@@ -1317,7 +1325,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the results of a table append RowSet job using the jobId token returned when the job was started.
 	 * @param token
-	 * @param tableId the id of the TableEntity.
+	 * @param tableId
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
@@ -1914,27 +1922,23 @@ public interface SynapseClient extends BaseClient {
 	void deleteProjectSetting(String projectSettingsId) throws SynapseException;
 
 	/**
-	 * Start a job to generate a preivew for an upload CSV to Table.
+	 * Start a job to generate a preview for an upload CSV to Table.
 	 * Get the results using {@link #uploadCsvToTablePreviewAsyncGet(String)}
 	 * @param request
-	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 */
-	String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request, String tableId)
-			throws SynapseException;
+	String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request) throws SynapseException;
 
 	/**
 	 * Get the resulting preview from the job started with {@link #uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest)}
 	 * @param asyncJobToken
-	 * @param tableId the id of the TableEntity.
 	 * @return
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
-	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(
-			String asyncJobToken, String tableId) throws SynapseException,
-			SynapseResultNotReadyException;
+	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 	
 	/**
 	 * Execute a query to find entities that meet the conditions provided query.
