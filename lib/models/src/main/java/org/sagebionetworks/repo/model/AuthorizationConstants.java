@@ -62,9 +62,8 @@ public class AuthorizationConstants {
 	public static final String USER_ID_PARAM = "userId";
 	
 	/**
-	 * The name of the client make the REST call. For a few calls, behavior will 
-	 * change depending on whether this is Bridge or a Synapse client (at the least, 
-	 * email contents change).
+	 * The name of the client make the REST call. For a few calls, behavior will change depending on domain (at the
+	 * least, email contents change).
 	 */
 	public static final String DOMAIN_PARAM = "domain";
 	

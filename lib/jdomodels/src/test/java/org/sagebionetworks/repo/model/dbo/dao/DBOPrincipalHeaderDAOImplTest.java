@@ -122,7 +122,7 @@ public class DBOPrincipalHeaderDAOImplTest {
 		// These two rows will have completely different values
 		// But the two names will have similar prefixes
 		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE), PrincipalType.USER, DomainType.SYNAPSE);
-		prinHeadDAO.insertNew(principalTwo, Sets.newHashSet(NAME_TWO), PrincipalType.TEAM, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalTwo, Sets.newHashSet(NAME_TWO), PrincipalType.TEAM, DomainType.NONE);
 		
 		// With no enum filters, the prefix match should return both results
 		assertEquals(2, prinHeadDAO.countQueryResults(PREFIX, MATCH_TYPE.PREFIX, new HashSet<PrincipalType>(), new HashSet<DomainType>()));
@@ -148,8 +148,8 @@ public class DBOPrincipalHeaderDAOImplTest {
 		assertEquals(1, results.size());
 		assertTrue(results.contains(principalOne));
 
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, MATCH_TYPE.PREFIX, null, Sets.newHashSet(DomainType.BRIDGE)));
-		results = prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, null, Sets.newHashSet(DomainType.BRIDGE), DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, MATCH_TYPE.PREFIX, null, Sets.newHashSet(DomainType.NONE)));
+		results = prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, null, Sets.newHashSet(DomainType.NONE), DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
 		assertTrue(results.contains(principalTwo));
 		
@@ -158,11 +158,15 @@ public class DBOPrincipalHeaderDAOImplTest {
 		assertEquals(1, results.size());
 		assertTrue(results.contains(principalOne));
 
-		results = prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.BRIDGE), DEFAULT_LIMIT, DEFAULT_OFFSET);
+		results = prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.NONE),
+				DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
 		assertTrue(results.contains(principalTwo));
 
-		assertEquals(0, prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, Sets.newHashSet(PrincipalType.USER), Sets.newHashSet(DomainType.BRIDGE), DEFAULT_LIMIT, DEFAULT_OFFSET).size());
+		assertEquals(
+				0,
+				prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, Sets.newHashSet(PrincipalType.USER), Sets.newHashSet(DomainType.NONE),
+						DEFAULT_LIMIT, DEFAULT_OFFSET).size());
 		assertEquals(0, prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.SYNAPSE), DEFAULT_LIMIT, DEFAULT_OFFSET).size());
 	}
 	
@@ -194,7 +198,7 @@ public class DBOPrincipalHeaderDAOImplTest {
 	@Test
 	public void testReturnDistinctIDs() throws Exception {
 		// Insert two rows belonging to the same user, but with different names
-		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.NONE);
 
 		// Prefix query should only return one result
 		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, MATCH_TYPE.PREFIX, null, null));
@@ -206,7 +210,7 @@ public class DBOPrincipalHeaderDAOImplTest {
 	@Test
 	public void testNullNameFilter() throws Exception {
 		// Insert two rows belonging to the same user, but with different names
-		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.NONE);
 
 		// A null prefix match should return one result for each ID
 		assertEquals(1, prinHeadDAO.countQueryResults(null, MATCH_TYPE.PREFIX, null, null));

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.bridge.model.Community;
 
 /**
  * Helper to identify deprecated entity types.
@@ -32,9 +31,6 @@ public class DeprecatedEntities {
 			return true;
 		}
 		if(entity instanceof Page){
-			return true;
-		}
-		if(entity instanceof Community){
 			return true;
 		}
 		return false;

@@ -115,7 +115,6 @@
 		<url-pattern>/auth/v1/secretKey</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
-		<url-pattern>/bridge/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -146,7 +145,6 @@
 		<filter-name>userThrottleFilter</filter-name>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
-		<url-pattern>/bridge/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -210,7 +208,6 @@
 	<servlet-mapping>
 		<servlet-name>tomcatDefaultServlet</servlet-name>
 		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
-		<url-pattern>/auth/v1/bridgeTermsOfUse.html</url-pattern>
 	</servlet-mapping>
 
 

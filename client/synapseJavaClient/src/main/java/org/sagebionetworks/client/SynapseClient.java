@@ -1695,9 +1695,7 @@ public interface SynapseClient extends BaseClient {
 			Boolean createUserIfNecessary) throws SynapseException;
 
 	/**
-	 * @param domain
-	 *            Which client did the user access to authenticate via a third
-	 *            party provider (Synapse or Bridge)?
+	 * @param domain Which client did the user access to authenticate via a third party provider (Synapse or Other)?
 	 */
 	@Deprecated
 	public Session passThroughOpenIDParameters(String queryString,

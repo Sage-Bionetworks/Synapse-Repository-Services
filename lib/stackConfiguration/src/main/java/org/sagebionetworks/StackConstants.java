@@ -99,11 +99,6 @@ public class StackConstants {
 	public static final String TABLE_ROW_CHANGE_BUCKET = "%1$s.table.row.changes";
 	
 	/**
-	 * The bucket containing all participant data.
-	 */
-	public static final String PARTICIPANT_DATA_BUCKET = "%1$s.ptdata";
-
-	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String ACCESS_RECORD_BUCKET = "%1$s.access.record.sagebase.org";

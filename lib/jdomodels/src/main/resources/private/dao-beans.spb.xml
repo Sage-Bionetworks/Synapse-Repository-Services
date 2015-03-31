@@ -259,18 +259,6 @@
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
-	<bean id="communityTeamDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOCommunityTeamDAOImpl" scope="singleton"/>
-
-	<bean id="participantDataDAO"
-		class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDAOImpl"
-		scope="singleton" init-method="initialize">
-		<property name="s3Bucket" ref="stackConfiguration.participantDataBucketName"/>
-	</bean>
-	<bean id="bridgeParticipantDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeParticipantDAOImpl" scope="singleton"/>
-	<bean id="bridgeUserParticipantMappingDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeUserParticipantMappingDAOImpl" scope="singleton"/>
-	<bean id="participantDataDescriptorDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDescriptorDAOImpl" scope="singleton"/>
-	<bean id="participantDataStatusDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataStatusDAOImpl" scope="singleton"/>
-
 	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
 
 		<bean id="membershipInvtnSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipInvtnSubmissionDAOImpl" scope="singleton"/>

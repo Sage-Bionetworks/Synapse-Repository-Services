@@ -5,6 +5,5 @@
 
 	<import resource="classpath:private/shared-servlet-spb.xml" />
 	<import resource="classpath:private/controller-spb.xml" />
-	<import resource="classpath:private/bridge-controller-spb.xml" />
 
 </beans>

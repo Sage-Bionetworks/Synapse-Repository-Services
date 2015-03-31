@@ -91,12 +91,9 @@ public class SynapseTest {
 	@Test
 	public void testOriginatingClient() throws Exception {
 		SharedClientConnection connection = synapse.getSharedClientConnection();
-		connection.setDomain(DomainType.BRIDGE);
-		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
-		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=BRIDGE", url);
 
 		connection.setDomain(DomainType.SYNAPSE);
-		url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
+		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=SYNAPSE", url);
 	}
 	
@@ -604,10 +601,6 @@ public class SynapseTest {
 		// One variation of the parameters that can be passed in
 		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, DomainType.SYNAPSE);
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&domain=SYNAPSE"));
-		
-		// Another variation
-		synapse.passThroughOpenIDParameters("blah=fun", false, DomainType.BRIDGE);
-		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&domain=BRIDGE"));
 	}
 	
 	

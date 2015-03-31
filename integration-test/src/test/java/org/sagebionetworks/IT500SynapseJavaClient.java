@@ -141,7 +141,6 @@ public class IT500SynapseJavaClient {
 		// note, this must match the bootstrapped teams defined in managers-spb.xml
 		bootstrappedTeams.add("2"); // Administrators
 		bootstrappedTeams.add("464532"); // Access and Compliance Team
-		bootstrappedTeams.add("3320020"); // Bridge Administrators
 		bootstrappedTeams.add("4"); // Trusted message senders
 	}
 	
@@ -784,16 +783,10 @@ public class IT500SynapseJavaClient {
 		assertTrue(termsOfUse.length()>100);
 	}
 	
-	@Test
-	public void testRetrieveBridgeTOU() throws Exception {
-		String synapseTermsOfUse = synapseOne.getTermsOfUse(DomainType.BRIDGE);
-		assertNotNull(synapseTermsOfUse);
-		assertTrue(synapseTermsOfUse.length()>100);
-
-		String bridgeTermsOfUse = synapseOne.getTermsOfUse(DomainType.SYNAPSE);
-		assertNotNull(bridgeTermsOfUse);
-		assertTrue(bridgeTermsOfUse.length()>100);
-		assertFalse(bridgeTermsOfUse.equals(synapseTermsOfUse));
+	@Test(expected = SynapseServerException.class)
+	public void testRetrieveOtherTOU() throws Exception {
+		// NONE domain not supported
+		synapseOne.getTermsOfUse(DomainType.NONE);
 	}
 	
 

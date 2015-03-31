@@ -338,7 +338,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
 			if (!AuthorizationUtils.isUserAnonymous(abs.getId())) {
 				setTermsOfUseAcceptance(abs.getId(), DomainType.SYNAPSE, true);
-				setTermsOfUseAcceptance(abs.getId(), DomainType.BRIDGE, true);
 			}
 		}
 		// The migration admin should only be used in specific, non-development stacks

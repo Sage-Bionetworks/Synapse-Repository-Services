@@ -24,7 +24,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -249,10 +248,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					List<String> idList = new LinkedList<String>();
 					idList.add(columnModelOne.getId());
 					table.setColumnIds(idList);
-				}
-				if (object instanceof Community) {
-					Community community = (Community) object;
-					community.setTeamId(testTeam.getId());
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);

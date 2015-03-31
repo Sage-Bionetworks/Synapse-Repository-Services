@@ -104,15 +104,11 @@ public class AuthenticationController extends BaseController {
 	}
 
 	/**
-	 * Create a new user. An email will be sent regarding how to set a password
-	 * for the account. <br/>
-	 * The query parameter <code>domain</code> may be appended to this URI. If
-	 * absent or set to "synapse", the service will send email specific to the
-	 * Synapse application; if set to "bridge", the application will send email
-	 * appropriate to the Bridge application. <br/>
-	 * Note: The passed request body must contain an email. First, last, and
-	 * full name are recommended but not required. All other fields will be
-	 * ignored.
+	 * Create a new user. An email will be sent regarding how to set a password for the account. <br/>
+	 * The query parameter <code>domain</code> may be appended to this URI. If absent or set to "synapse", the service
+	 * will send email specific to the Synapse application; <br/>
+	 * Note: The passed request body must contain an email. First, last, and full name are recommended but not required.
+	 * All other fields will be ignored.
 	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
@@ -126,10 +122,8 @@ public class AuthenticationController extends BaseController {
 
 	/**
 	 * Sends an email for setting a user's password. <br/>
-	 * The query parameter <code>domain</code> may be appended to this URI. If
-	 * absent or set to "synapse", the service will send email specific to the
-	 * Synapse application; if set to "bridge", the application will send email
-	 * appropriate to the Bridge application.
+	 * The query parameter <code>domain</code> may be appended to this URI. If absent or set to "synapse", the service
+	 * will send email specific to the Synapse application;
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
