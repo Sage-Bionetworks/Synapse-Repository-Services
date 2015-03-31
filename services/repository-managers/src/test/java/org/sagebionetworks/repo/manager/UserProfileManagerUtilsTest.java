@@ -33,16 +33,17 @@ public class UserProfileManagerUtilsTest {
 		assertFalse(UserProfileManagerUtils.isOwnerOrAdmin(null, otherId));
 	}
 	
+	/**
+	 * Test updated for PLFM-3317.
+	 */
 	@Test
 	public void testClearPrivateFields() {
 		UserInfo userInfo = new UserInfo(false);
 		UserProfile up = new UserProfile();
-		AttachmentData pic = new AttachmentData();
-		pic.setPreviewId("a preview ID");
-		up.setPic(pic);
+		up.setProfilePicureFileHandleId("456");
 		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
-		assertEquals(pic, up.getPic());
+		assertEquals("456", up.getProfilePicureFileHandleId());
 		assertNull(up.getRStudioUrl());
 	}
 
