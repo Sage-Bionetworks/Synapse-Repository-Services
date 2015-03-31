@@ -196,7 +196,6 @@
         <property name="migrationListeners" >
             <list>
 				<bean id="tableCacheInvalidationMigrationListener" class="org.sagebionetworks.repo.manager.migration.TableCacheInvalidationMigrationListener" />
-				<bean id="projectSettingMigrationListener" class="org.sagebionetworks.repo.manager.migration.ProjectSettingMigrationListener" />
 				<bean id="nodeWithProjectIdMigrationListener" class="org.sagebionetworks.repo.manager.migration.NodeWithProjectIdMigrationListener" />
             </list>
         </property>
