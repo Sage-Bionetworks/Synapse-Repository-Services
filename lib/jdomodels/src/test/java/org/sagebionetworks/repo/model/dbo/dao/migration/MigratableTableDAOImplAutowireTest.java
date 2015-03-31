@@ -265,6 +265,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL_ALIAS);
 		expectedPrimaryTypes.add(MigrationType.NOTIFICATION_EMAIL);
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
+		expectedPrimaryTypes.add(MigrationType.STORAGE_LOCATION);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
