@@ -116,7 +116,7 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOPrincipaHeaderDAOImpl" />
 
 	<bean id="principalPrefixDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.PrincipalPrefixDAOImpl" />
+		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAOImpl" />
 
 
 	<bean id="userProfileDAO"

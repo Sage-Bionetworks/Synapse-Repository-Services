@@ -102,7 +102,6 @@ public class SqlConstants {
 	
 	// Principal Prefix table
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
-	public static final String COL_PRINCIPAL_PREFIX_ID 				= "ID";
 	public static final String COL_PRINCIPAL_PREFIX_TOKEN			= "TOKEN";
 	public static final String COL_PRINCIPAL_PREFIX_PRINCIPAL_ID 	= "PRINCIPAL_ID";
 

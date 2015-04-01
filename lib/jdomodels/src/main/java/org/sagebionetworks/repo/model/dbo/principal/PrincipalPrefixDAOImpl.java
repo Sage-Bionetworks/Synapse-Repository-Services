@@ -1,11 +1,10 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.principal;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.UserGroupHeader;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	
+	private static final String SQL_CLEAR_PRINCIPAL = "DELETE FROM "+TABLE_PRINCIPAL_PREFIX+" WHERE "+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID+" = ?";
+
+	private static final String WILDCARD = "%";
+
+	private static final String SQL_COUNT_DISTINCT_PREFIX = "SELECT COUNT(DISTINCT "+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID+") FROM "+TABLE_PRINCIPAL_PREFIX+" WHERE "+COL_PRINCIPAL_PREFIX_TOKEN+" LIKE ?";
+
+	private static final String SQL_TRUNCATE_TABLE = "TRUNCATE TABLE "+TABLE_PRINCIPAL_PREFIX;
+
+	private static final String SQL_INSERT_WITH_DUPLICATE_IGNORE = "INSERT IGNORE INTO "+TABLE_PRINCIPAL_PREFIX+" ("+COL_PRINCIPAL_PREFIX_TOKEN+","+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID+") VALUES (?,?)";
+
 	private static final String EMPTY = "";
 
-	private static final String REG_EX_NON_ALPHA_NUMERIC = "^[a-z,0-9]";
+	private static final String REG_EX_NON_ALPHA_NUMERIC = "[^a-z0-9]";
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -32,11 +41,12 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 		if(EMPTY.equals(processed)){
 			return false;
 		}
-		DBOPrincipalPrefix dbo = new DBOPrincipalPrefix();
-		dbo.setPrincipalId(principalId);
-		dbo.setToken(processed);
-		basicDAO.createNew(dbo);
+		insertIgnore(principalId, processed);
 		return true;
+	}
+
+	private void insertIgnore(Long principalId, String processed) {
+		jdbcTemplate.update(SQL_INSERT_WITH_DUPLICATE_IGNORE, processed, principalId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -47,28 +57,15 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 		List<DBOPrincipalPrefix> list = new LinkedList<DBOPrincipalPrefix>();
 		// frist-last
 		String firstLast = preProcessToken(firstName+lastName);
-		DBOPrincipalPrefix dbo = new DBOPrincipalPrefix();
 		if(!EMPTY.equals(firstLast)){
-			dbo.setPrincipalId(principalId);
-			dbo.setToken(firstLast);
-			list.add(dbo);
+			insertIgnore(principalId, firstLast);
 		}
 
 		// last-first
 		String lastFrist = preProcessToken(lastName+firstName);
 		if(!EMPTY.equals(lastFrist)){
-			dbo = new DBOPrincipalPrefix();
-			dbo.setPrincipalId(principalId);
-			dbo.setToken(lastFrist);
-			list.add(dbo);
+			insertIgnore(principalId, lastFrist);
 		}
-
-		if(list.isEmpty()){
-			// Nothing to add
-			return false;
-		}
-		// batch add.
-		basicDAO.createBatch(list);
 		return true;
 	}
 	
@@ -87,22 +84,37 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
 	@Override
 	public void clearPrincipal(Long principalId) {
-		// TODO Auto-generated method stub
-
+		jdbcTemplate.update(SQL_CLEAR_PRINCIPAL, principalId);
 	}
 
 	@Override
-	public PaginatedResults<UserGroupHeader> listUsersForPrefix(String prefix,
+	public List<Long> listUsersForPrefix(String prefix, Long limit, Long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Long countUsersForPrefix(String prefix) {
+		String prcessed = preProcessToken(prefix);
+		return jdbcTemplate.queryForObject(SQL_COUNT_DISTINCT_PREFIX, Long.class, prcessed+WILDCARD);
+	}
+
+	@Override
+	public List<Long> listTeamMembersForPrefix(String prefix, Long teamId,
 			Long limit, Long offset) {
-		
+		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public PaginatedResults<TeamMember> listTeamMembersForPrefix(String prefix,
-			Long teamId, Long limit, Long offset) {
+	public Long countTeamMembersForPrefix(String prefix, Long teamId) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void truncateTable() {
+		jdbcTemplate.update(SQL_TRUNCATE_TABLE);
 	}
 
 }

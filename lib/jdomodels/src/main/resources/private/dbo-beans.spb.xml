@@ -18,8 +18,8 @@
 		<property name="databaseObjectRegister">
 			<list>
 				<!-- DBOUserGroup must be declared before tables that have a foreign key to it -->
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalHeader" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />

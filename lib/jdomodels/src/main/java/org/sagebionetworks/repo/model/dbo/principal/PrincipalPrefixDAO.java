@@ -1,8 +1,6 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.principal;
 
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.UserGroupHeader;
+import java.util.List;
 
 /**
  * Abstraction for a Dao used to lookup principals using a prefix.
@@ -43,8 +41,14 @@ public interface PrincipalPrefixDAO {
 	 * @param offset
 	 * @return
 	 */
-	PaginatedResults<UserGroupHeader> listUsersForPrefix(String prefix, Long limit, Long offset);
+	List<Long> listUsersForPrefix(String prefix, Long limit, Long offset);
 	
+	/**
+	 * Count the nubmer of users that match this prefix
+	 * @param prefix
+	 * @return
+	 */
+	Long countUsersForPrefix(String prefix);
 	
 	/**
 	 * List all team members with a given prefix for a given team name.
@@ -55,7 +59,20 @@ public interface PrincipalPrefixDAO {
 	 * @param offset
 	 * @return
 	 */
-	PaginatedResults<TeamMember> listTeamMembersForPrefix(String prefix, Long teamId, Long limit, Long offset);
+	List<Long> listTeamMembersForPrefix(String prefix, Long teamId, Long limit, Long offset);
+	
+	/**
+	 * Count the number of users that have the given prefix and belong to the given team.
+	 * @param prefix
+	 * @param teamId
+	 * @return
+	 */
+	Long countTeamMembersForPrefix(String prefix, Long teamId);
+
+	/**
+	 * Delete all data in the table.
+	 */
+	public void truncateTable();
 
 
 }
