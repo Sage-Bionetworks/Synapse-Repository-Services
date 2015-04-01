@@ -45,7 +45,7 @@ import com.amazonaws.services.s3.model.S3Object;
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	private static final String OWNER_MARKER = "owner.txt";
-	private static final String EXTERNAL_S3_HELP = "www.synapes.org//#!HelpPages:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
+	private static final String EXTERNAL_S3_HELP = "www.synapse.org//#!HelpPages:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
 
 	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
 
@@ -246,7 +246,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throws IOException, NotFoundException {
 		// check the ownership of the S3 bucket against the user
 		String bucket = externalS3StorageLocationSetting.getBucket();
-		String key = externalS3StorageLocationSetting.getBaseKey() + OWNER_MARKER;
+		String key = (externalS3StorageLocationSetting.getBaseKey() == null ? "" : externalS3StorageLocationSetting.getBaseKey())
+				+ OWNER_MARKER;
 
 		S3Object s3object;
 		try {
