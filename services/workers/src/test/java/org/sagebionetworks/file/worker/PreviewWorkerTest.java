@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.sqs.model.Message;
 
 public class PreviewWorkerTest {
@@ -269,6 +270,46 @@ public class PreviewWorkerTest {
 		// This message should have been processed and returned.
 		assertTrue("We cannot recover from this type of exception so the message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
+	public void testErrorAmznNotFound() throws Exception{
+		// We cannot recover from this type of exception so the message should be returned.
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		// Get a 404 from AMZN
+		AmazonS3Exception causeException = new AmazonS3Exception("Object not found");
+		causeException.setStatusCode(404);
+		RuntimeException expectedException = new RuntimeException(causeException);
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		assertEquals(1, processedList.size());
+		// This message should have been processed and returned.
+		assertTrue("We cannot recover from this type of exception so the message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
+	public void testErrorAmzn() throws Exception{
+		// We cannot recover from this type of exception so the message should be returned.
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		AmazonS3Exception causeException = new AmazonS3Exception("Object not found");
+		RuntimeException expectedException = new RuntimeException(causeException);
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		assertEquals(0, processedList.size());
+		// This message should not have been processed.
+		assertFalse("We cannot recover from this type of exception so the message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
 	}
 	
 	@Test
