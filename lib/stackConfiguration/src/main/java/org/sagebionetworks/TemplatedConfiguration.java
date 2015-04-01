@@ -133,13 +133,6 @@ public interface TemplatedConfiguration {
 	public String getFileServiceEndpoint();
 	
 	/**
-	 * Get the bridge service Endpoint.
-	 * 
-	 * @return
-	 */
-	public String getBridgeServiceEndpoint();
-
-	/**
 	 * 
 	 * @return search service endpoint
 	 */

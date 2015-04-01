@@ -352,10 +352,6 @@
             <property name="name" value="Synapse Access and Compliance Team" />
         </bean>
         <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
-            <property name="id" value="3320020" />
-            <property name="name" value="BridgeAdministrators" />
-        </bean>
-        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
             <property name="id" value="4" />
             <property name="name" value="Trusted Message Senders" />
             <property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />

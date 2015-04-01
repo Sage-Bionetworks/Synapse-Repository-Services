@@ -2,7 +2,7 @@ package org.sagebionetworks.client;
 
 
 /**
- * Low-level Java Client API for Bridge REST APIs
+ * Low-level Java Client API for REST APIs
  */
 public class BaseClientImpl implements BaseClient {
 
@@ -35,8 +35,9 @@ public class BaseClientImpl implements BaseClient {
 	}
 
 	/**
-	 * Each request includes the 'User-Agent' header. This is set to: 'User-Agent':'Bridge-Java-Client/<version_number>'
-	 * Addition User-Agent information can be appended to this string by calling this method.
+	 * Each request includes the 'User-Agent' header. This is set to:
+	 * 'User-Agent':'Synapse-Java-Client/<version_number>' Addition User-Agent information can be appended to this
+	 * string by calling this method.
 	 * 
 	 * @param toAppend
 	 */

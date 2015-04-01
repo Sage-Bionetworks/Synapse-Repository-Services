@@ -221,7 +221,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (user.getLastName()==null) user.setLastName("");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		
-		if (domain.equals(DomainType.SYNAPSE) || domain.equals(DomainType.BRIDGE)) {
+		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForNewAccount(user, domain, new Date());
 			String urlString = portalEndpoint+token;
 			URL url = null;
@@ -359,7 +359,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		
-		if (domain.equals(DomainType.SYNAPSE) || domain.equals(DomainType.BRIDGE)) {
+		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), domain, new Date());
 			String urlString = portalEndpoint+token;
 			URL url = null;

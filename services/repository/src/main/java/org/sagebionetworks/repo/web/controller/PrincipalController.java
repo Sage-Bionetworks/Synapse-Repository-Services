@@ -74,15 +74,15 @@ public class PrincipalController extends BaseController {
 	}
 	
 	/**
-	 * This service starts the process of creating a new account by sending a 'validation email'
-	 * message to the provided email address.  The email contains a link back to the application
-	 * calling the service which the user follows to complete the account creation process.
+	 * This service starts the process of creating a new account by sending a 'validation email' message to the provided
+	 * email address. The email contains a link back to the application calling the service which the user follows to
+	 * complete the account creation process.
+	 * 
 	 * @param user the first name, last name and email address for the user
-	 * @param client Synapse or Bridge
-	 * @param portalEndpoint the beginning of the URL included in the email verification message.
-	 * When concatenated with a list of ampersand (&) separated request parameters, must become
-	 * a well formed URL.  The concatenated string must be included with 
-	 * the <a href="${POST.account}">POST /account</a> request.
+	 * @param client Synapse
+	 * @param portalEndpoint the beginning of the URL included in the email verification message. When concatenated with
+	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
+	 *        string must be included with the <a href="${POST.account}">POST /account</a> request.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_EMAIL_VALIDATION }, method = RequestMethod.POST)
@@ -96,14 +96,13 @@ public class PrincipalController extends BaseController {
 	}
 	
 	/**
-	 * This service completes the email validation process for setting up a new account. 
-	 * The client must provide the validation token which was sent by email.  The request
-	 * will be rejected if the validation token is missing or invalid or if the requested
-	 * user name is not available.  After successful account creation the user is logged in
+	 * This service completes the email validation process for setting up a new account. The client must provide the
+	 * validation token which was sent by email. The request will be rejected if the validation token is missing or
+	 * invalid or if the requested user name is not available. After successful account creation the user is logged in
 	 * and a session token returned to the client.
-	 * @param accountSetupInfo user's first name, last name, requested user name, 
-	 * password, and validation token
-	 * @param client Synapse or Bridge
+	 * 
+	 * @param accountSetupInfo user's first name, last name, requested user name, password, and validation token
+	 * @param client Synapse
 	 * @return a session token, allowing the client to begin making authenticated requests
 	 * @throws NotFoundException
 	 */
@@ -119,20 +118,18 @@ public class PrincipalController extends BaseController {
 	}
 	
 	/**
-	 * This service starts the process of adding a new email address to an existing 
-	 * account by sending a 'validation email' message to the provided email address.  
-	 * The email contains a link back to the application calling the service which 
-	 * the user follows to complete the process
+	 * This service starts the process of adding a new email address to an existing account by sending a 'validation
+	 * email' message to the provided email address. The email contains a link back to the application calling the
+	 * service which the user follows to complete the process
 	 * 
-	 * @param id the ID of the user account to which the email address is to be added.
-	 * Must match the ID of the user making the request.
+	 * @param id the ID of the user account to which the email address is to be added. Must match the ID of the user
+	 *        making the request.
 	 * @param userId
 	 * @param email the email address to be added to the account
-	 * @param client Synapse or Bridge
-	 * @param portalEndpoint the beginning of the URL included in the email verification message.
-	 * When concatenated with a list of ampersand (&) separated request parameters, must become
-	 * a well formed URL.  The concatenated string must be included with 
-	 * the <a href="${POST.email}">POST /email</a> request.
+	 * @param client Synapse
+	 * @param portalEndpoint the beginning of the URL included in the email verification message. When concatenated with
+	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
+	 *        string must be included with the <a href="${POST.email}">POST /email</a> request.
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)

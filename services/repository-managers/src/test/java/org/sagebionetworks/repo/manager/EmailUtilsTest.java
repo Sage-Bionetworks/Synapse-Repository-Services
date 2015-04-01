@@ -45,12 +45,12 @@ public class EmailUtilsTest {
 	public void testReadMailTemplate() {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayname#", "Foo Bar");
-		fieldValues.put("#domain#", "Bridge");
+		fieldValues.put("#domain#", "Synapse");
 		fieldValues.put("#username#", "foobar");
 		String message = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
 		assertTrue(message.indexOf("#")<0); // all fields have been replaced
 		assertTrue(message.indexOf("Foo Bar")>=0);
-		assertTrue(message.indexOf("Bridge")>=0);
+		assertTrue(message.indexOf("Synapse") >= 0);
 		assertTrue(message.indexOf("foobar")>=0);
 	}
 

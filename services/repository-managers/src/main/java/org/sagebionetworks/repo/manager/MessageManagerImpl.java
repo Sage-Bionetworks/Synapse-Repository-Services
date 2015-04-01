@@ -634,9 +634,6 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String webLink;
 		switch (domain) {
-		case BRIDGE:
-			webLink = "https://bridge.synapse.org/resetPassword.html?token=" + sessionToken;
-			break;
 		case SYNAPSE:
 			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 			break;

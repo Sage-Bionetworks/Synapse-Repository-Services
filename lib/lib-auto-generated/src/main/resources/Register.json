@@ -211,17 +211,6 @@
             "name":"table",
             "entityType":"org.sagebionetworks.repo.model.table.TableEntity",
             "defaultParentPath":"/root"
-        },
-		{
-            "validParentTypes":[
-            	"DEFAULT"
-            ],
-            "aliases":[
-                "community"
-            ],
-            "name":"community",
-            "entityType":"org.sagebionetworks.bridge.model.Community",
-            "defaultParentPath":"/root"
         }
     ]
 }

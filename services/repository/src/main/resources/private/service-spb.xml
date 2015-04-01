@@ -158,9 +158,6 @@
 	<bean id="tableEntityMetadataProvider"
 		class="org.sagebionetworks.repo.web.service.metadata.TableEntityMetadataProvider"
 		scope="singleton" />
-	<bean id="communityMetadataProvider"
-		class="org.sagebionetworks.bridge.service.metadata.CommunityMetadataProvider"
-		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
 		enum -->
@@ -201,9 +198,6 @@
 				</entry>
 				<entry key="table">
 					<ref bean="tableEntityMetadataProvider"/>
-				</entry>
-				<entry key="community">
-					<ref bean="communityMetadataProvider"/>
 				</entry>
 			</map>
 		</property>

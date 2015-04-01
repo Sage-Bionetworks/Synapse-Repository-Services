@@ -668,51 +668,6 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
 
-	// The community team table
-	public static final String TABLE_COMMUNITY_TEAM = "COMMUNITY_TEAM";
-	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
-	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
-
-	// User to participant mapping
-	public static final String TABLE_USER_PARTICIPANT_MAP = "USER_PARTICIPANT_MAP";
-	public static final String COL_USER_PARTICIPANT_MAP_USER_ID = "ID";
-	public static final String COL_USER_PARTICIPANT_MAP_MAP = "MAP";
-
-	// Participant
-	public static final String TABLE_PARTICIPANT = "PARTICIPANT";
-	public static final String COL_PARTICIPANT_ID = "ID";
-
-	// Participant data sets descriptor
-	public static final String TABLE_PARTICIPANT_DATA_DESCRIPTOR = "PARTICIPANT_DATA_DESCRIPTOR";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_TYPE = "TYPE";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME = "DATETIME_START_COLUMN_NAME";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_EVENT_COLUMN_NAME = "EVENT_COLUMN_NAME";
-
-	// Participant data sets column descriptor
-	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID = "ID";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME = "NAME";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES = "PROPERTIES";
-
-	// Participant data sets
-	public static final String TABLE_PARTICIPANT_DATA = "PARTICIPANT_DATA";
-	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
-	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
-	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
-	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
-
-	// Participant data set statuses
-	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
-	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
-	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
-	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
-	
 	// QuizResponse data set
 	public static final String TABLE_QUIZ_RESPONSE = "QUIZ_RESPONSE";
 	public static final String COL_QUIZ_RESPONSE_ID = "ID";

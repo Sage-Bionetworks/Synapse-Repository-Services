@@ -1,5 +1,0 @@
-<module>
-	<!-- Specify the paths for translatable code -->
-	<source path="exceptions" />
-	<inherits name="com.google.gwt.junit.JUnit" />
-</module>

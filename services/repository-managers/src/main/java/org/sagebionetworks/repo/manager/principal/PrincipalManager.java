@@ -35,7 +35,7 @@ public interface PrincipalManager {
 	 * 
 	 * @param user the info for the new user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
-	 * @param domain Synapse or Bridge
+	 * @param domain Synapse
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain);
 	
@@ -50,11 +50,12 @@ public interface PrincipalManager {
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
+	 * 
 	 * @param userInfo the authenticated user making the request
 	 * @param email the email which is claimed by the user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
-	 * @param domain Synapse or Bridge
-	 * @throws NotFoundException 
+	 * @param domain Synapse
+	 * @throws NotFoundException
 	 */
 	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndpoint, DomainType domain) throws NotFoundException;
 	

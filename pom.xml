@@ -476,12 +476,6 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>bridgeJavaClient</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
 				<artifactId>synapsePythonClient</artifactId>
 				<version>${project.version}</version>
 				<classifier>synapse-python-client-assembly</classifier>

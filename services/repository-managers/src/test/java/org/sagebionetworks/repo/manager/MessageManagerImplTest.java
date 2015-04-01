@@ -715,9 +715,6 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.BRIDGE, "Blah?");
-		
-		// Try another variation
 		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
@@ -727,9 +724,6 @@ public class MessageManagerImplTest {
 		List<String> mockErrors = new ArrayList<String>();
 		mockErrors.add(UUID.randomUUID().toString());
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
-		
-		// Try another variation
-		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.BRIDGE);
 	}
 	
 	@Test

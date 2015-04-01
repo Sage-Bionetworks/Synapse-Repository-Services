@@ -3,6 +3,6 @@
     "type":"string",
     "enum":[
     	"SYNAPSE",
-    	"BRIDGE"
+    	"NONE"
     ]
 }
