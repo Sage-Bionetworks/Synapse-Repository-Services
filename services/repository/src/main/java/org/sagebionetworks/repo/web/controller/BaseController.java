@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.sql.SQLTransientException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -643,17 +644,30 @@ public abstract class BaseController {
 	}
 
 	/**
-	 * Log the exception at the warning level and return an ErrorResponse
-	 * object. Child classes should override this method if they want to change
-	 * the behavior for all exceptions.
+	 * When we encounter transient sql errors, rather we tell them to try again later with a 503.
 	 * 
 	 * @param ex
-	 *            the exception to be handled
 	 * @param request
-	 *            the client request
+	 * @return
+	 */
+	@ExceptionHandler(SQLTransientException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public @ResponseBody
+	ErrorResponse handleTransientSqlExceptions(SQLTransientException ex, HttpServletRequest request) {
+		log.error("Handling " + request.toString(), ex);
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER + " " + ex.getMessage());
+		return er;
+	}
+
+	/**
+	 * Log the exception at the warning level and return an ErrorResponse object. Child classes should override this
+	 * method if they want to change the behavior for all exceptions.
+	 * 
+	 * @param ex the exception to be handled
+	 * @param request the client request
 	 * @param fullTrace Should the full stack trace of the exception be written to the log.
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
+	 * @return an ErrorResponse object containing the exception reason or some other human-readable response
 	 */
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullTrace) {
