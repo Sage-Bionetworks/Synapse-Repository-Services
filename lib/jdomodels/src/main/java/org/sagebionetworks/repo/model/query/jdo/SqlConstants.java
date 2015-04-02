@@ -99,6 +99,11 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
+	
+	// Principal Prefix table
+	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
+	public static final String COL_PRINCIPAL_PREFIX_TOKEN			= "TOKEN";
+	public static final String COL_PRINCIPAL_PREFIX_PRINCIPAL_ID 	= "PRINCIPAL_ID";
 
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";

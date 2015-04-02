@@ -115,6 +115,10 @@
 	<bean id="principalHeaderDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOPrincipaHeaderDAOImpl" />
 
+	<bean id="principalPrefixDao"
+		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAOImpl" />
+
+
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
 		depends-on="userGroupDAO" 
