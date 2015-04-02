@@ -112,7 +112,8 @@ public class CSVToRowIterator implements Iterator<Row> {
 		for(int i=0; i<this.resultSchema.size(); i++){
 			int index = this.indexMapping[i];
 			if (index >= lastRow.length) {
-				throw new IllegalArgumentException("Line number " + rowLineNumber + ": index " + index + " out of bounds for row " + lastRow);
+				throw new IllegalArgumentException("Line number " + rowLineNumber + ": column index " + index + " out of bounds for row "
+						+ lastRow);
 			}
 			values.add(lastRow[index]);
 		}
