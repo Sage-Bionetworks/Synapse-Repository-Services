@@ -13,6 +13,13 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
+/**
+ * This table is populated by a worker and queried by the services to lookup principals using a prefix.
+ * This table is not migrated.
+ * 
+ * @author John
+ *
+ */
 @Table(name = TABLE_PRINCIPAL_PREFIX, constraints = { "INDEX PREFIX_TOKEN_INDEX (" + COL_PRINCIPAL_PREFIX_TOKEN +")"})
 public class DBOPrincipalPrefix implements DatabaseObject<DBOPrincipalPrefix>{
 	
