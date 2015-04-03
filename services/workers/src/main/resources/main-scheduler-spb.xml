@@ -52,6 +52,7 @@
     <import resource="classpath:change-synch-worker-spb.xml" />
     <import resource="classpath:project-stats-sqs-spb.xml" />
     <import resource="classpath:acl-snapshot-sqs-spb.xml"/>
+    <import resource="classpath:principal-prefix-sqs-spb.xml"/>
     
     <import resource="classpath:locationable-type-conversion-worker-spb.xml"/>
 
@@ -66,6 +67,7 @@
 		<property name="triggers">
 			<list>
 				<!-- workers -->
+				<ref bean="principalPrefixQueueMessageReveiverTrigger" />
 				<ref bean="dynamoQueueMessageRetrieverTrigger" />
  				<ref bean="dynamoRdsSynchronizerTrigger" />
 				<ref bean="rdsQueueMessageReveiverTrigger" />
