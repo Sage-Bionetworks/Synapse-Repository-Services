@@ -167,9 +167,9 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 		}
 
 		// Concatenate last-first
-		String lastFrist = preProcessToken(lastName + firstName);
-		if (!EMPTY.equals(lastFrist)) {
-			insertIgnoreDuplicate(principalId, lastFrist);
+		String lastFirst = preProcessToken(lastName + firstName);
+		if (!EMPTY.equals(lastFirst)) {
+			insertIgnoreDuplicate(principalId, lastFirst);
 		}
 	}
 
@@ -209,9 +209,9 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	@Override
 	public List<Long> listPrincipalsForPrefix(String prefix, Long limit,
 			Long offset) {
-		String prcessed = preProcessToken(prefix);
+		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX,
-				Long.class, prcessed + WILDCARD, limit, offset);
+				Long.class, processed + WILDCARD, limit, offset);
 	}
 
 	/*
@@ -222,9 +222,9 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 */
 	@Override
 	public Long countPrincipalsForPrefix(String prefix) {
-		String prcessed = preProcessToken(prefix);
+		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForObject(SQL_COUNT_DISTINCT_PREFIX,
-				Long.class, prcessed + WILDCARD);
+				Long.class, processed + WILDCARD);
 	}
 
 	/*
@@ -237,9 +237,9 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	@Override
 	public List<Long> listTeamMembersForPrefix(String prefix, Long teamId,
 			Long limit, Long offset) {
-		String prcessed = preProcessToken(prefix);
+		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForList(SQL_LIST_TEAM_MEMBERS_FOR_PREFIX,
-				Long.class, teamId, prcessed + WILDCARD, limit, offset);
+				Long.class, teamId, processed + WILDCARD, limit, offset);
 	}
 
 	/*
@@ -250,8 +250,8 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 */
 	@Override
 	public Long countTeamMembersForPrefix(String prefix, Long teamId) {
-		String prcessed = preProcessToken(prefix);
-		return jdbcTemplate.queryForObject(SQL_COUNT_TEAM_MEMBERS_FOR_PREFIX, Long.class, teamId, prcessed + WILDCARD);
+		String processed = preProcessToken(prefix);
+		return jdbcTemplate.queryForObject(SQL_COUNT_TEAM_MEMBERS_FOR_PREFIX, Long.class, teamId, processed + WILDCARD);
 	}
 
 	/*
@@ -268,15 +268,15 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
 	@Override
 	public List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset) {
-		String prcessed = preProcessToken(prefix);
+		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForList(SQL_LIST_TEAMS_FOR_PREFIX,
-				Long.class, prcessed + WILDCARD, limit, offset);
+				Long.class, processed + WILDCARD, limit, offset);
 	}
 
 	@Override
 	public Long countTeamsForPrefix(String prefix) {
-		String prcessed = preProcessToken(prefix);
-		return jdbcTemplate.queryForObject(SQL_COUNT_TEAMS_FOR_PREFIX, Long.class, prcessed + WILDCARD);
+		String processed = preProcessToken(prefix);
+		return jdbcTemplate.queryForObject(SQL_COUNT_TEAMS_FOR_PREFIX, Long.class, processed + WILDCARD);
 	}
 
 }

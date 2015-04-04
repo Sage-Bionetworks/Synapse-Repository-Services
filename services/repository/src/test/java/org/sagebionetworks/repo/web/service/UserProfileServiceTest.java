@@ -113,45 +113,7 @@ public class UserProfileServiceTest {
 		userProfileService.setEntityManager(mockEntityManager);
 		userProfileService.setPrincipalAlaisDAO(mockPrincipalAlaisDAO);
 	}
-	
-	@Test
-	public void testGetUserGroupHeadersById() throws DatastoreException, NotFoundException {
-		List<Long> ids = new ArrayList<Long>();
-		ids.add(0L);
-		ids.add(1l);
-		ids.add(2L);
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren())
-			headers.put(ugh.getOwnerId(), ugh);
-		assertEquals(3, headers.size());
-		assertTrue(headers.containsKey("0"));
-		assertTrue(headers.containsKey("1"));
-		assertTrue(headers.containsKey("2"));
-	}
-	
-	@Test
-	public void testGetUserGroupHeadersByIdNotInCache() throws DatastoreException, NotFoundException {
-		List<Long> ids = new ArrayList<Long>();
-		ids.add(0L);
-		ids.add(1l);
-		ids.add(2L);
-		ids.add(EXTRA_USER_ID); // should require fetch from repo
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren()) {
-			headers.put(ugh.getOwnerId(), ugh);
-		}
-		assertEquals(4, headers.size());
-		assertTrue(headers.containsKey("0"));
-		assertTrue(headers.containsKey("1"));
-		assertTrue(headers.containsKey("2"));
-		assertTrue(headers.containsKey(EXTRA_USER_ID.toString()));
-		
-		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()));
-	}
+
 	
 	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
 		List<Long> ids = new ArrayList<Long>();

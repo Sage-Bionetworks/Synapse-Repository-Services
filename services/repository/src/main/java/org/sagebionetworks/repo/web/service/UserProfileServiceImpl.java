@@ -2,7 +2,12 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -29,12 +34,15 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -71,6 +79,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
+	@Autowired
+	UserGroupDAO userGroupDao;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
@@ -141,17 +151,43 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids) 
-			throws DatastoreException, NotFoundException {		
+			throws DatastoreException, NotFoundException {
+		// split users and groups using the alias.
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(new HashSet<Long>(ids));
+		Map<Long, UserGroupHeader> map = new HashMap<Long, UserGroupHeader>(ids.size());
+		// Track all users
+		Set<Long> userIdSet = new HashSet<Long>(ids.size());
+		for(PrincipalAlias alias: aliases){
+			if(AliasType.TEAM_NAME.equals(alias.getType())){
+				// Team
+				UserGroupHeader teamHeader = new UserGroupHeader();
+				teamHeader.setIsIndividual(false);
+				teamHeader.setUserName(alias.getAlias());
+				teamHeader.setOwnerId(alias.getPrincipalId().toString());
+				map.put(alias.getPrincipalId(), teamHeader);
+			}else if(AliasType.USER_EMAIL.equals(alias.getType())){
+				// This is a user
+				userIdSet.add(alias.getPrincipalId());
+			}
+		}
+		// Fetch all users
 		IdList idList = new IdList();
-		idList.setList(ids);
+		idList.setList(new LinkedList<Long>(userIdSet));
 		ListWrapper<UserProfile> profiles = userProfileManager.list(idList);
-		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>(profiles.getList().size());
 		for(UserProfile profile: profiles.getList()){
-			ugHeaders.add(convertUserProfileToHeader(profile));
+			// Convert the profiles to headers
+			UserGroupHeader userHeader = convertUserProfileToHeader(profile);
+			map.put(Long.parseLong(profile.getOwnerId()), userHeader);
+		}
+		// final results will be in this list.
+		List<UserGroupHeader> finalList = new LinkedList<UserGroupHeader>();
+		// Now put all of the parts back together in the requested order
+		for(Long principalId: ids){
+			finalList.add(map.get(principalId));
 		}
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
-		response.setChildren(ugHeaders);
-		response.setTotalNumberOfResults((long) ugHeaders.size());
+		response.setChildren(finalList);
+		response.setTotalNumberOfResults((long) finalList.size());
 		response.setPrefixFilter(null);
 		return response;
 	}

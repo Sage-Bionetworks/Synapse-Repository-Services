@@ -3,6 +3,10 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -16,7 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -57,7 +60,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		principalPrefixDAO.truncateTable();
 		principalsToDelete = new LinkedList<Long>();
 		// Get the admin info
-		admin = userManger.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		admin = userManger.getUserInfo(THE_ADMIN_USER.getPrincipalId());
 		// Create two users
 		
 		// Create a user Profile
@@ -96,6 +99,9 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		principalPrefixDAO.addPrincipalAlias(nu.getUserName(), principalThree);
 		principalPrefixDAO.addPrincipalName(nu.getFirstName(), nu.getLastName(), principalThree);
 		
+		// Add some groups
+		principalPrefixDAO.addPrincipalAlias(AUTHENTICATED_USERS_GROUP.name(), AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		principalPrefixDAO.addPrincipalAlias(PUBLIC_GROUP.name(), PUBLIC_GROUP.getPrincipalId());
 	}
 	
 	@After
@@ -170,6 +176,8 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalOne));
 		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalTwo));
 		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalThree));
+		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(PUBLIC_GROUP.getPrincipalId()));
 	}
 	
 
@@ -200,5 +208,65 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		
 		assertTrue("Failed to find the user with a 'B' prefix query",resultSet.contains(principalOne));
 		assertTrue("Failed to find the user with a 'B' prefix query",resultSet.contains(principalTwo));
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByIds() throws DatastoreException, NotFoundException{
+		// Request both users and groups.
+		List<Long> request = new LinkedList<Long>();
+		request.add(THE_ADMIN_USER.getPrincipalId());
+		request.add(PUBLIC_GROUP.getPrincipalId());
+		request.add(AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		request.add(ANONYMOUS_USER.getPrincipalId());
+		request.add(principalThree);
+		// request
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByIds(null, request);
+		assertNotNull(ughrp);
+		List<UserGroupHeader> children = ughrp.getChildren();
+		System.out.println(children.toString());
+		assertNotNull(children);
+		assertEquals(5, children.size());
+		// They should be in the same order as requested
+		// admin user
+		UserGroupHeader header = children.get(0);
+		assertEquals(true, header.getIsIndividual());
+		assertEquals(THE_ADMIN_USER.getPrincipalId().toString(), header.getOwnerId());
+		assertNotNull(header.getUserName());
+		// We no longer give out emails.
+		assertEquals(null, header.getEmail());
+		// public group
+		header = children.get(1);
+		assertEquals(false, header.getIsIndividual());
+		assertEquals(PUBLIC_GROUP.getPrincipalId().toString(), header.getOwnerId());
+		assertNotNull(header.getUserName());
+		assertEquals(null, header.getFirstName());
+		assertEquals(null, header.getLastName());
+		// We no longer give out emails.
+		assertEquals(null, header.getEmail());
+		// Authenticated users group
+		header = children.get(2);
+		assertEquals(false, header.getIsIndividual());
+		assertEquals(AUTHENTICATED_USERS_GROUP.getPrincipalId().toString(), header.getOwnerId());
+		assertNotNull(header.getUserName());
+		assertEquals(null, header.getFirstName());
+		assertEquals(null, header.getLastName());
+		// We no longer give out emails.
+		assertEquals(null, header.getEmail());
+		// ANONYMOUS_USERs
+		header = children.get(3);
+		assertEquals(true, header.getIsIndividual());
+		assertEquals(ANONYMOUS_USER.getPrincipalId().toString(), header.getOwnerId());
+		assertNotNull(header.getUserName());
+		// We no longer give out emails.
+		assertEquals(null, header.getEmail());
+		// Cate Archer
+		header = children.get(4);
+		assertEquals(true, header.getIsIndividual());
+		assertEquals(principalThree.toString(), header.getOwnerId());
+		assertEquals("cate001", header.getUserName());
+		assertEquals("Cate", header.getFirstName());
+		assertEquals("Archer", header.getLastName());
+		// We no longer give out emails.
+		assertEquals(null, header.getEmail());
 	}
 }
