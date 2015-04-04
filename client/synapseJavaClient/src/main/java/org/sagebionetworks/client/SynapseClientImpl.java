@@ -402,7 +402,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String PERMISSION = "/permission";
 	protected static final String MEMBERSHIP_STATUS = "/membershipStatus";
 	protected static final String TEAM_MEMBERSHIP_PERMISSION = "isAdmin";
-	protected static final String TEAM_UPDATE_SEARCH_CACHE = "/updateTeamSearchCache";
 
 	// membership invitation
 	private static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
@@ -6758,12 +6757,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint,
 				MEMBERSHIP_REQUEST + "/" + requestId, getUserAgent());
-	}
-
-	@Override
-	public void updateTeamSearchCache() throws SynapseException {
-		getSharedClientConnection().postUri(repoEndpoint,
-				TEAM_UPDATE_SEARCH_CACHE, getUserAgent());
 	}
 
 	@Override

@@ -4,6 +4,5 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
 	<import resource="classpath:private/repo-log-sweep-trigger-spb.xml" />
-	<import resource="classpath:private/service-triggers-spb.xml" />
 
 </beans>

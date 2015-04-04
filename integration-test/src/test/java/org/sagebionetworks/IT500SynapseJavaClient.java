@@ -1086,7 +1086,7 @@ public class IT500SynapseJavaClient {
 		// query for all teams, based on name fragment
 		// need to update cache.  the service to trigger an update
 		// requires admin privileges, so we log in as an admin:
-		adminSynapse.updateTeamSearchCache();
+//		adminSynapse.updateTeamSearchCache();
 		teams = synapseOne.getTeams(name.substring(0, 3),1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
@@ -1158,7 +1158,7 @@ public class IT500SynapseJavaClient {
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
 		// update the prefix cache
-		adminSynapse.updateTeamSearchCache();
+//		adminSynapse.updateTeamSearchCache();
 		
 		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1183,7 +1183,7 @@ public class IT500SynapseJavaClient {
 		
 		// make the other member an admin
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
-		adminSynapse.updateTeamSearchCache();
+//		adminSynapse.updateTeamSearchCache();
 		
 		members = synapseOne.getTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
@@ -1194,7 +1194,7 @@ public class IT500SynapseJavaClient {
 
 		// remove admin privileges
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
-		adminSynapse.updateTeamSearchCache();
+//		adminSynapse.updateTeamSearchCache();
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
@@ -1202,7 +1202,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// remove the member from the team
 		synapseOne.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
-		adminSynapse.updateTeamSearchCache();
+//		adminSynapse.updateTeamSearchCache();
 		// query for teams based on member's id (should get nothing)
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(0L, teams.getTotalNumberOfResults());

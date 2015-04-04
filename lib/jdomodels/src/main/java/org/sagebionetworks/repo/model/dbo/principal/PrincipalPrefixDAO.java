@@ -75,6 +75,24 @@ public interface PrincipalPrefixDAO {
 	 * @return
 	 */
 	Long countTeamMembersForPrefix(String prefix, Long teamId);
+	
+	/**
+	 * List a single page of teams that match a given prefix.
+	 * 
+	 * @param prefix Prefix to filter teams by.
+	 * @param limit Pagination parameter.
+	 * @param offset Pagination parameter.
+	 * @return List of principal IDs that match the query ordered alphabetically.
+	 */
+	List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset);
+
+	/**
+	 * Count the number of teams that match the given prefix.
+	 * 
+	 * @param prefix
+	 * @return
+	 */
+	Long countTeamsForPrefix(String prefix);
 
 	/**
 	 * Delete all data in the table.

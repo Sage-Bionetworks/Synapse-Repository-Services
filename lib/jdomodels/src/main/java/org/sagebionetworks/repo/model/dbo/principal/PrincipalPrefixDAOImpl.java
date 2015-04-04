@@ -1,10 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_PREFIX;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -43,6 +48,36 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ " AND M."
 			+ COL_GROUP_MEMBERS_GROUP_ID
 			+ " = ? AND P."
+			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ?";
+	
+	private static final String SQL_LIST_TEAMS_FOR_PREFIX = "SELECT DISTINCT P."
+			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+			+ " FROM "
+			+ TABLE_PRINCIPAL_PREFIX
+			+ " P, "
+			+ TABLE_USER_GROUP
+			+ " G WHERE P."
+			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+			+ " = G."
+			+ COL_USER_GROUP_ID
+			+ " AND G."
+			+ COL_USER_GROUP_IS_INDIVIDUAL
+			+ " = 0 AND P."
+			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ? LIMIT ? OFFSET ?";
+	
+	private static final String SQL_COUNT_TEAMS_FOR_PREFIX = "SELECT COUNT(DISTINCT P."
+			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+			+ ") FROM "
+			+ TABLE_PRINCIPAL_PREFIX
+			+ " P, "
+			+ TABLE_USER_GROUP
+			+ " G WHERE P."
+			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+			+ " = G."
+			+ COL_USER_GROUP_ID
+			+ " AND G."
+			+ COL_USER_GROUP_IS_INDIVIDUAL
+			+ " = 0 AND P."
 			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ?";
 
 	private static final String SQL_LIST_PRINCIPALS_FOR_PREFIX = "SELECT DISTINCT "
@@ -175,9 +210,6 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	public List<Long> listPrincipalsForPrefix(String prefix, Long limit,
 			Long offset) {
 		String prcessed = preProcessToken(prefix);
-		if (EMPTY.equals(prcessed)) {
-			return new LinkedList<Long>();
-		}
 		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX,
 				Long.class, prcessed + WILDCARD, limit, offset);
 	}
@@ -191,9 +223,6 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	@Override
 	public Long countPrincipalsForPrefix(String prefix) {
 		String prcessed = preProcessToken(prefix);
-		if (EMPTY.equals(prcessed)) {
-			return 0L;
-		}
 		return jdbcTemplate.queryForObject(SQL_COUNT_DISTINCT_PREFIX,
 				Long.class, prcessed + WILDCARD);
 	}
@@ -209,9 +238,6 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	public List<Long> listTeamMembersForPrefix(String prefix, Long teamId,
 			Long limit, Long offset) {
 		String prcessed = preProcessToken(prefix);
-		if (EMPTY.equals(prcessed)) {
-			return new LinkedList<Long>();
-		}
 		return jdbcTemplate.queryForList(SQL_LIST_TEAM_MEMBERS_FOR_PREFIX,
 				Long.class, teamId, prcessed + WILDCARD, limit, offset);
 	}
@@ -225,9 +251,6 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	@Override
 	public Long countTeamMembersForPrefix(String prefix, Long teamId) {
 		String prcessed = preProcessToken(prefix);
-		if (EMPTY.equals(prcessed)) {
-			return 0L;
-		}
 		return jdbcTemplate.queryForObject(SQL_COUNT_TEAM_MEMBERS_FOR_PREFIX, Long.class, teamId, prcessed + WILDCARD);
 	}
 
@@ -241,6 +264,19 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	@Override
 	public void truncateTable() {
 		jdbcTemplate.update(SQL_TRUNCATE_TABLE);
+	}
+
+	@Override
+	public List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset) {
+		String prcessed = preProcessToken(prefix);
+		return jdbcTemplate.queryForList(SQL_LIST_TEAMS_FOR_PREFIX,
+				Long.class, prcessed + WILDCARD, limit, offset);
+	}
+
+	@Override
+	public Long countTeamsForPrefix(String prefix) {
+		String prcessed = preProcessToken(prefix);
+		return jdbcTemplate.queryForObject(SQL_COUNT_TEAMS_FOR_PREFIX, Long.class, prcessed + WILDCARD);
 	}
 
 }

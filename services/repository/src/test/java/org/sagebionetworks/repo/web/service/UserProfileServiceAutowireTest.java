@@ -15,7 +15,6 @@ import javax.servlet.ServletException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -25,12 +24,11 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  *
@@ -41,6 +39,8 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 	UserManager userManger;
 	@Autowired
 	UserProfileService userProfileService;
+	@Autowired
+	PrincipalPrefixDAO principalPrefixDAO;
 
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
@@ -54,6 +54,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 
 	@Before
 	public void before() throws NotFoundException{
+		principalPrefixDAO.truncateTable();
 		principalsToDelete = new LinkedList<Long>();
 		// Get the admin info
 		admin = userManger.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -66,7 +67,10 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		nu.setUserName("007");
 		nu.setEmail("superSpy@Spies.org");
 		principalOne = userManger.createUser(nu);
+		// In the wild a worker will add these alais.
 		principalsToDelete.add(principalOne);
+		principalPrefixDAO.addPrincipalAlias(nu.getUserName(), principalOne);
+		principalPrefixDAO.addPrincipalName(nu.getFirstName(), nu.getLastName(), principalOne);
 		
 		// Create another profile
 		nu = new NewUser();
@@ -75,7 +79,10 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		nu.setUserName("random");
 		nu.setEmail("super@duper.org");
 		principalTwo = userManger.createUser(nu);
+		// In the wild a worker will add these alais.
 		principalsToDelete.add(principalTwo);
+		principalPrefixDAO.addPrincipalAlias(nu.getUserName(), principalTwo);
+		principalPrefixDAO.addPrincipalName(nu.getFirstName(), nu.getLastName(), principalTwo);
 		
 		// Create another profile
 		nu = new NewUser();
@@ -84,10 +91,11 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		nu.setUserName("cate001");
 		nu.setEmail("cate@Spies.org");
 		principalThree = userManger.createUser(nu);
+		// In the wild a worker will add these alais.
 		principalsToDelete.add(principalThree);
+		principalPrefixDAO.addPrincipalAlias(nu.getUserName(), principalThree);
+		principalPrefixDAO.addPrincipalName(nu.getFirstName(), nu.getLastName(), principalThree);
 		
-		// refresh the cache here
-		userProfileService.refreshCache();
 	}
 	
 	@After
