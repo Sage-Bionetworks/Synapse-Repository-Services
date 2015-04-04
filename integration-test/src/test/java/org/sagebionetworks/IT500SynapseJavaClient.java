@@ -659,13 +659,30 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testGetUserGroupHeaders() throws Exception {
 		UserProfile adminProfile = adminSynapse.getMyProfile();
+		adminSynapse.updateMyProfile(adminProfile);
 		assertNotNull(adminProfile);
 		// here we are just trying to check that the URI and request parameters are 'wired up' right
-		UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName());
+		UserGroupHeaderResponsePage page = waitForUserGroupHeadersByPrefix(adminProfile.getUserName());
 		assertTrue(page.getTotalNumberOfResults()>0);
 		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), 5, 0);
 		assertTrue(page.getTotalNumberOfResults()>0);
 		
+	}
+	
+	private UserGroupHeaderResponsePage waitForUserGroupHeadersByPrefix(String prefix) throws SynapseException, InterruptedException, UnsupportedEncodingException{
+		long start = System.currentTimeMillis();
+		while(true){
+			UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(prefix);
+			if(page.getTotalNumberOfResults() < 1){
+				System.out.println("Waiting for principal prefix worker");
+				Thread.sleep(1000);
+				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
+					fail("Timed out waiting for principal prefix worker.");
+				}
+			}else{
+				return page;
+			}
+		}
 	}
 
 	@Test
@@ -1076,7 +1093,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
 		assertTrue(target.length()>0);
 		// query for all teams
-		PaginatedResults<Team> teams = synapseOne.getTeams(null, getBootstrapCountPlus(1L), 0);
+		PaginatedResults<Team> teams = waitForTeams(null, 1000, 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works
@@ -1217,7 +1234,7 @@ public class IT500SynapseJavaClient {
 	private PaginatedResults<Team> waitForTeams(String prefix, int limit, int offset) throws SynapseException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while(true){
-			PaginatedResults<Team> teams = synapseOne.getTeams(prefix,1, 0);
+			PaginatedResults<Team> teams = synapseOne.getTeams(prefix,limit, offset);
 			if(teams.getTotalNumberOfResults() < 1){
 				Thread.sleep(1000);
 				System.out.println("Waiting for principal prefix worker");
