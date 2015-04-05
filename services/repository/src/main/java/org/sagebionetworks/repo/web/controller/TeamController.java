@@ -385,19 +385,4 @@ public class TeamController extends BaseController {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
 	}	
 	
-	/**
-	 * Refresh the cached prefix tree of Team and member names.  Note:  This is for testing only and
-	 * may only be invoked by a Synapse administrator.
-	 * @param userId
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.TEAM_UPDATE_SEARCH_CACHE, method = RequestMethod.POST)
-	public void refreshCache(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
-			) throws NotFoundException, DatastoreException, UnauthorizedException {
-		serviceProvider.getTeamService().refreshCache(userId);
-	}	
 }

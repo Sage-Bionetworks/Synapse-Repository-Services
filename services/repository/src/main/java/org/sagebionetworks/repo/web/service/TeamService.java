@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -144,27 +143,6 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public void removeMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
-	 * 
-	 * @return
-	 */
-	Long millisSinceLastCacheUpdate();
-
-	/**
-	 * For use by Quartz
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void refreshCache() throws DatastoreException, NotFoundException;
-	
-	/**
-	 * For use by TeamController, requests from which must be authenticated
-	 * @param userId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void refreshCache(Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

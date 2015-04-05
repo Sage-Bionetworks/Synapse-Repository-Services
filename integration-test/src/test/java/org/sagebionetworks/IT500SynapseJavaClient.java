@@ -659,13 +659,30 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testGetUserGroupHeaders() throws Exception {
 		UserProfile adminProfile = adminSynapse.getMyProfile();
+		adminSynapse.updateMyProfile(adminProfile);
 		assertNotNull(adminProfile);
 		// here we are just trying to check that the URI and request parameters are 'wired up' right
-		UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName());
+		UserGroupHeaderResponsePage page = waitForUserGroupHeadersByPrefix(adminProfile.getUserName());
 		assertTrue(page.getTotalNumberOfResults()>0);
 		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), 5, 0);
 		assertTrue(page.getTotalNumberOfResults()>0);
 		
+	}
+	
+	private UserGroupHeaderResponsePage waitForUserGroupHeadersByPrefix(String prefix) throws SynapseException, InterruptedException, UnsupportedEncodingException{
+		long start = System.currentTimeMillis();
+		while(true){
+			UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(prefix);
+			if(page.getTotalNumberOfResults() < 1){
+				System.out.println("Waiting for principal prefix worker");
+				Thread.sleep(1000);
+				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
+					fail("Timed out waiting for principal prefix worker.");
+				}
+			}else{
+				return page;
+			}
+		}
 	}
 
 	@Test
@@ -1017,7 +1034,7 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
-	public void testTeamAPI() throws SynapseException, IOException {
+	public void testTeamAPI() throws SynapseException, IOException, InterruptedException {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
@@ -1076,22 +1093,21 @@ public class IT500SynapseJavaClient {
 		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
 		assertTrue(target.length()>0);
 		// query for all teams
-		PaginatedResults<Team> teams = synapseOne.getTeams(null, getBootstrapCountPlus(1L), 0);
+		PaginatedResults<Team> teams = waitForTeams(null, 1000, 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works
-		teams = synapseOne.getTeams(null, 10, 1);
+		teams = waitForTeams(null, 10, 1);
 		assertEquals(getBootstrapCountPlus(0L), teams.getResults().size());
 		
 		// query for all teams, based on name fragment
 		// need to update cache.  the service to trigger an update
 		// requires admin privileges, so we log in as an admin:
-		adminSynapse.updateTeamSearchCache();
-		teams = synapseOne.getTeams(name.substring(0, 3),1, 0);
+		teams = waitForTeams(name.substring(0, 3),1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// again, make sure pagination works
-		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
+		teams = waitForTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		
 		List<Team> teamList = synapseOne.listTeams(Collections.singletonList(Long.parseLong(updatedTeam.getId())));
@@ -1099,7 +1115,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(updatedTeam, teamList.get(0));
 		
 		// query for team members.  should get just the creator
-		PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 1, 0);
+		PaginatedResults<TeamMember> members = waitForTeamMembers(updatedTeam.getId(), null, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
@@ -1145,7 +1161,7 @@ public class IT500SynapseJavaClient {
 
 		// query for team members using name fragment.  should get team creator back
 		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getUserName();
-		members = synapseOne.getTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
+		members = waitForTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
@@ -1157,8 +1173,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(members.getResults(), teamMembers);
 
 		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
-		// update the prefix cache
-		adminSynapse.updateTeamSearchCache();
 		
 		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1169,12 +1183,12 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getCanJoin());
 
 		// query for team members.  should get creator as well as new member back
-		members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 2, 0);
+		members = waitForTeamMembers(updatedTeam.getId(), null, 2, 0);
 		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		
 		// query for team members using name fragment
-		members = synapseOne.getTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
+		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		
 		TeamMember otherMember = members.getResults().get(0);
@@ -1183,9 +1197,8 @@ public class IT500SynapseJavaClient {
 		
 		// make the other member an admin
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
-		adminSynapse.updateTeamSearchCache();
 		
-		members = synapseOne.getTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
+		members = waitForTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
@@ -1194,7 +1207,6 @@ public class IT500SynapseJavaClient {
 
 		// remove admin privileges
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
-		adminSynapse.updateTeamSearchCache();
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
@@ -1202,7 +1214,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// remove the member from the team
 		synapseOne.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
-		adminSynapse.updateTeamSearchCache();
+
 		// query for teams based on member's id (should get nothing)
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(0L, teams.getTotalNumberOfResults());
@@ -1216,6 +1228,38 @@ public class IT500SynapseJavaClient {
 			fail("Failed to delete Team "+updatedTeam.getId());
 		} catch (SynapseException e) {
 			// as expected
+		}
+	}
+	
+	private PaginatedResults<Team> waitForTeams(String prefix, int limit, int offset) throws SynapseException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			PaginatedResults<Team> teams = synapseOne.getTeams(prefix,limit, offset);
+			if(teams.getTotalNumberOfResults() < 1){
+				Thread.sleep(1000);
+				System.out.println("Waiting for principal prefix worker");
+				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
+					fail("Timed out waiting for principal prefix worker.");
+				}
+			}else{
+				return teams;
+			}
+		}
+	}
+	
+	private PaginatedResults<TeamMember> waitForTeamMembers(String teamId, String prefix, int limit, int offset) throws SynapseException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(teamId, prefix, limit, offset);
+			if(members.getTotalNumberOfResults() < 1){
+				System.out.println("Waiting for principal prefix worker");
+				Thread.sleep(1000);
+				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
+					fail("Timed out waiting for principal prefix worker.");
+				}
+			}else{
+				return members;
+			}
 		}
 	}
 

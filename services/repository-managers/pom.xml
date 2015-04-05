@@ -138,13 +138,6 @@
 			<artifactId>imgscalr-lib</artifactId>
 		</dependency>
 
-		<!-- Trie library -->
-		<dependency>
-			<groupId>org.ardverk</groupId>
-			<artifactId>patricia-trie</artifactId>
-			<version>0.6</version>
-		</dependency>
-
 		<!-- file upload -->
 		<dependency>
 			<groupId>commons-fileupload</groupId>

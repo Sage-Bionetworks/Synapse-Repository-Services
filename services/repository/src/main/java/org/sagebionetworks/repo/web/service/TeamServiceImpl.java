@@ -3,21 +3,12 @@
  */
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ardverk.collection.PatriciaTrie;
-import org.ardverk.collection.StringKeyAnalyzer;
-import org.ardverk.collection.Trie;
-import org.ardverk.collection.Tries;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -31,6 +22,7 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -44,29 +36,15 @@ public class TeamServiceImpl implements TeamService {
 	private TeamManager teamManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	PrincipalPrefixDAO principalPrefixDAO;
 	
 	private final Logger logger = LogManager.getLogger(TeamServiceImpl.class);
-
-/**
-	 * 
-	 * The following is taken from the cached prefix tree in UserProfileServiceImpl
-	 * 
-	 * These member variables are declared volatile to enforce thread-safe
-	 * cache access. Clients should fetch the latest cache objects for every
-	 * request.
-	 * 
-	 * The cache objects may be *replaced* by new cache objects created in the
-	 * refreshCache() method, but existing cache objects can NOT be modified.
-	 * This is to avoid corruption of cache state during multithreaded read
-	 * operations.
-	 */
-	private volatile Long cachesLastUpdated = 0L;
-	private volatile Trie<String, Collection<Team>> teamNamePrefixCache;
-	// key is team id, value is a prefix cache for the team's members
-	private volatile Map<String, Trie<String, Collection<TeamMember>>> teamMemberPrefixCache;
 	
 	// for testing (e.g. setting a mocked manager
 	public void setTeamManager(TeamManager teamManager) {this.teamManager=teamManager;}
+	
+	public void setPrincipalPrefixDAO(PrincipalPrefixDAO principalPrefixDAO) {this.principalPrefixDAO=principalPrefixDAO;}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#create(java.lang.String, org.sagebionetworks.repo.model.Team)
@@ -116,99 +94,15 @@ public class TeamServiceImpl implements TeamService {
 		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
 		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
 		if (fragment==null || fragment.trim().length()==0) return teamManager.list(limit, offset);
-
-		if (teamNamePrefixCache == null || teamNamePrefixCache.size() == 0 )
-			refreshCache();
 		
-		// Get the results from the cache
-		SortedMap<String, Collection<Team>> matched = teamNamePrefixCache.prefixMap(fragment.toLowerCase());
-		List<Team> fullList = PrefixCacheHelper.flatten(matched, teamComparator);
-		return PaginatedResultsUtil.createPaginatedResults(fullList, limit, offset);
+		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
+		List<Team> teams = teamManager.list(teamIds).getList();
+		PaginatedResults<Team> results = PaginatedResultsUtil.createPaginatedResults(teams, limit, offset);
+		results.setTotalNumberOfResults(principalPrefixDAO.countTeamsForPrefix(fragment));
+		return results;
 	}
 
-	@Override
-	public void refreshCache(Long userId) throws DatastoreException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!userInfo.isAdmin()) throw new UnauthorizedException("Must be a Synapse administrator.");
-		refreshCache();
-	}
-	
-	@Override
-	public void refreshCache() throws DatastoreException, NotFoundException {
-		this.logger.info("refreshCache() started at time " + System.currentTimeMillis());
 
-		// Create and populate local caches. Upon completion, swap them for the
-		// singleton member variable caches.
-		Trie<String, Collection<Team>> tempPrefixCache = new PatriciaTrie<String, Collection<Team>>(StringKeyAnalyzer.CHAR);
-		Map<String, Trie<String, Collection<TeamMember>>> tempTeamMemberPrefixCacheSet = new HashMap<String, Trie<String, Collection<TeamMember>>>();
-		Map<Team, Collection<TeamMember>> allTeams = teamManager.listAllTeamsAndMembers();
-		for (Team team : allTeams.keySet()) {
-			addToTeamPrefixCache(tempPrefixCache, team);
-			Trie<String, Collection<TeamMember>>tempTeamMemberPrefixCache = tempTeamMemberPrefixCacheSet.get(team.getId());
-			if (tempTeamMemberPrefixCache==null) {
-				tempTeamMemberPrefixCache = new PatriciaTrie<String, Collection<TeamMember>>(StringKeyAnalyzer.CHAR);
-				tempTeamMemberPrefixCacheSet.put(team.getId(), tempTeamMemberPrefixCache);
-			}
-			for (TeamMember member : allTeams.get(team)) {
-				addToMemberPrefixCache(tempTeamMemberPrefixCache, member);
-			}
-		}
-		Map<String, Trie<String, Collection<TeamMember>>> tempUnModifiableTeamMemberPrefixCacheSet = new HashMap<String, Trie<String, Collection<TeamMember>>>();
-		for (String teamId : tempTeamMemberPrefixCacheSet.keySet()) {
-			tempUnModifiableTeamMemberPrefixCacheSet.put(teamId, 
-					Tries.unmodifiableTrie(tempTeamMemberPrefixCacheSet.get(teamId)));
-		}
-		teamNamePrefixCache = Tries.unmodifiableTrie(tempPrefixCache);
-		teamMemberPrefixCache = tempUnModifiableTeamMemberPrefixCacheSet;
-		cachesLastUpdated = System.currentTimeMillis();
-
-		this.logger.info("refreshCache() completed at time " + System.currentTimeMillis());
-	}
-	
-	private void addToTeamPrefixCache(Trie<String, Collection<Team>> prefixCache, Team team) {
-		//get the collection of prefixes that we want to associate to this Team
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(team.getName());
-		for (String prefix : prefixes) {
-			Collection<Team> coll = prefixCache.get(prefix);
-			if (coll==null) {
-				coll = new HashSet<Team>();
-				prefixCache.put(prefix, coll);
-			}
-			coll.add(team);
-		}
-	}
-
-	// NOTE:  A side effect is clearing the private fields of the UserGroupHeader in 'member',
-	// as well as obfuscating the email address.
-	private void addToMemberPrefixCache(Trie<String, Collection<TeamMember>> prefixCache, TeamMember member) {
-		// A user with no display name has no prefixes
-		//TODO replace this logic with alias logic
-		if (member.getMember().getUserName() == null) {
-			return;
-		}
-		
-		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember());
-		
-		UserProfileManagerUtils.clearPrivateFields(null, member.getMember());
-		
-		for (String prefix : prefixes) {
-			Collection<TeamMember> coll = prefixCache.get(prefix);
-			if (coll==null) {
-				coll = new HashSet<TeamMember>();
-				prefixCache.put(prefix, coll);
-			}
-			coll.add(member);
-		}
-	}
-
-	@Override
-	public Long millisSinceLastCacheUpdate() {
-		if (teamNamePrefixCache == null) {
-			return null;
-		}
-		return System.currentTimeMillis() - cachesLastUpdated;
-	}
 
 	private static Comparator<TeamMember> teamMemberComparator = new Comparator<TeamMember>() {
 		@Override
@@ -237,17 +131,12 @@ public class TeamServiceImpl implements TeamService {
 			}
 			return results;
 		}
-		
-		if (teamMemberPrefixCache == null || teamMemberPrefixCache.size() == 0 )
-			refreshCache();
-		
-		Trie<String, Collection<TeamMember>> teamSpecificMemberPrefixCache = teamMemberPrefixCache.get(teamId);
-		if (teamSpecificMemberPrefixCache==null) throw new NotFoundException("Unrecognized teamId: "+teamId);
-		
-		// Get the results from the cache
-		SortedMap<String, Collection<TeamMember>> matched = teamSpecificMemberPrefixCache.prefixMap(fragment.toLowerCase());
-		List<TeamMember> fullList = PrefixCacheHelper.flatten(matched, teamMemberComparator);
-		return PaginatedResultsUtil.createPaginatedResults(fullList, limit, offset);
+		Long teamIdLong = Long.parseLong(teamId);
+		List<Long> memberIds = principalPrefixDAO.listTeamMembersForPrefix(fragment, teamIdLong, limit, offset);
+		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
+		PaginatedResults<TeamMember> results = PaginatedResultsUtil.createPaginatedResults(members, limit, offset);
+		results.setTotalNumberOfResults(principalPrefixDAO.countTeamMembersForPrefix(fragment, teamIdLong));
+		return results;
 	}
 	
 	@Override
