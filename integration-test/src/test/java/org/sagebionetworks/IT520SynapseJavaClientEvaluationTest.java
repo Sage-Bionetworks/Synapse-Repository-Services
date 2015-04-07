@@ -69,7 +69,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -288,7 +287,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
-		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
+		PaginatedResults<AccessRequirement> paginatedResults;
 		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
@@ -710,7 +709,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.RECEIVED, 0, 1);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		assertEquals(1, subs.getResults().size());
-		assertTrue(subs.getPaging().get(PaginatedResults.NEXT_PAGE_FIELD).contains(eval1.getId()));
 		
 		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.RECEIVED, 0, 10);
 		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.RECEIVED, 0, 10);

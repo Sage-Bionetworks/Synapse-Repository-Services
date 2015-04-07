@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -414,14 +413,14 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
-		VariableContentPaginatedResults<AccessRequirement> result = 
-			new VariableContentPaginatedResults<AccessRequirement>();
+		PaginatedResults<AccessRequirement> result = 
+			new PaginatedResults<AccessRequirement>();
 		JSONObjectAdapter adapter = result.writeToJSONObject(new JSONObjectAdapterImpl());
 		configureMockHttpResponse(200, adapter.toJSONString());
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		subjectId.setId("12345");
-		VariableContentPaginatedResults<AccessRequirement> clone = 
+		PaginatedResults<AccessRequirement> clone = 
 			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
 		assertNotNull(clone);
 		assertEquals(result, clone);

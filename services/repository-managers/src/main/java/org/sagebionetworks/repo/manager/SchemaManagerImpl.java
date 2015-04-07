@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -17,6 +16,7 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 /**
  * Implementation of the schema manager.
@@ -29,7 +29,7 @@ public class SchemaManagerImpl implements SchemaManager {
 	/**
 	 * This auto-generated factory provides most of the entity mapping.
 	 */
-	AutoGenFactory autoGenFactory = new AutoGenFactory();
+	ServerSideOnlyFactory serverSideFactory = new ServerSideOnlyFactory();
 
 	/**
 	 * 
@@ -37,7 +37,7 @@ public class SchemaManagerImpl implements SchemaManager {
 	@Override
 	public RestResourceList getRESTResources() {
 		List<String> keys = new ArrayList<String>();
-		Iterator<String> it = autoGenFactory.getKeySetIterator();
+		Iterator<String> it = serverSideFactory.getKeySetIterator();
 		while (it.hasNext()) {
 			String id = it.next();
 			keys.add(id);
@@ -54,7 +54,7 @@ public class SchemaManagerImpl implements SchemaManager {
 			throw new IllegalArgumentException("ResourceID cannot be null");
 		// Look up this resource
 		try {
-			JSONEntity entity = autoGenFactory.newInstance(resourceId);
+			JSONEntity entity = serverSideFactory.newInstance(resourceId);
 			return EntityFactory.createEntityFromJSONString(
 					entity.getJSONSchema(), ObjectSchema.class);
 		} catch (IllegalArgumentException e) {
@@ -71,7 +71,7 @@ public class SchemaManagerImpl implements SchemaManager {
 		// Look up this resource
 		resourceId = resourceId.replaceAll("\\.", "/");
 		String fileName = "schema/" + resourceId + ".json";
-		InputStream stream = AutoGenFactory.class.getClassLoader().getResourceAsStream(fileName);
+		InputStream stream = ServerSideOnlyFactory.class.getClassLoader().getResourceAsStream(fileName);
 		if (stream == null) throw new NotFoundException("JSON Schema cannot be found for: "+ fileName);
 		String json;
 		try {

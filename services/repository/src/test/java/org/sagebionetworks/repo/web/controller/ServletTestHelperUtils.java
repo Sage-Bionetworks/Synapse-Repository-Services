@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -190,12 +189,12 @@ public class ServletTestHelperUtils {
 	 * Extracts the JSON content of a HTTP response and parses it into a set of
 	 * variable paginated results
 	 */
-	public static <T extends JSONEntity> VariableContentPaginatedResults<T> readResponseVariablePaginatedResults(
+	public static <T extends JSONEntity> PaginatedResults<T> readResponseVariablePaginatedResults(
 			MockHttpServletResponse response, Class<? extends T> clazz)
 			throws Exception {
 		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
 				.readResponseJSON(response);
-		VariableContentPaginatedResults<T> pr = new VariableContentPaginatedResults<T>();
+		PaginatedResults<T> pr = new PaginatedResults<T>();
 		pr.initializeFromJSONObject(adapter);
 		return pr;
 	}

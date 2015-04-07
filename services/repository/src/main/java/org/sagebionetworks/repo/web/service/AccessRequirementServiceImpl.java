@@ -64,14 +64,8 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		QueryResults<AccessRequirement> results = 
 			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType);
 		
-		return new PaginatedResults<AccessRequirement>(
-				UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
+		return new PaginatedResults<AccessRequirement>(results.getResults(),
+				(int)results.getTotalNumberOfResults());
 	}
 	
 	@Override
@@ -95,14 +89,8 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		QueryResults<AccessRequirement> results = 
 			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
 		
-		return new PaginatedResults<AccessRequirement>(
-				UrlHelpers.ACCESS_REQUIREMENT, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
+		return new PaginatedResults<AccessRequirement>(results.getResults(),
+				(int)results.getTotalNumberOfResults());
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

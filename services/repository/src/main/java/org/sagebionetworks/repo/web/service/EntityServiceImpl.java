@@ -548,8 +548,7 @@ public class EntityServiceImpl implements EntityService {
 		if (limit==null) limit = Integer.MAX_VALUE;
 		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
 		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
-		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults(urlPath,  results.getResults(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
+		return new PaginatedResults(results.getResults(), results.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -600,9 +599,7 @@ public class EntityServiceImpl implements EntityService {
 			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
 			entityList.add(entity);
 		}
-		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				nodeResults.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
+		return new PaginatedResults<T>(nodeResults.getTotalNumberOfResults(), paging.getOffset());
 	}
 
 	@Override
