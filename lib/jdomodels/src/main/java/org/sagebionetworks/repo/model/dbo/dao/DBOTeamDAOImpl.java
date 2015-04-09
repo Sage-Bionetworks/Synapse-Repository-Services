@@ -263,6 +263,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#update(org.sagebionetworks.repo.model.Team)
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Team update(Team dto) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -305,6 +306,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#delete(java.lang.String)
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
