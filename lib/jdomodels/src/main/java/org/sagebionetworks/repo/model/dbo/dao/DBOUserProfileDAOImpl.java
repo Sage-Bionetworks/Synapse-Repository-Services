@@ -145,7 +145,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		List<UserProfile> dtos = new ArrayList<UserProfile>();
 		for (Long id : ids) {
 			UserProfile userProfile = map.get(id.toString());
-			if (userProfile==null) throw new NotFoundException(""+id);
+			if (userProfile == null) {
+				throw new NotFoundException("User with id " + id + " not found");
+			}
 			dtos.add(userProfile);
 		}
 		return dtos;

@@ -15,7 +15,7 @@ public interface StorageLocationDAO {
 
 	public StorageLocationSetting get(Long id) throws DatastoreException, NotFoundException;
 
-	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations);
+	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) throws DatastoreException, NotFoundException;
 
 	public List<StorageLocationSetting> getAllStorageLocationSettings();
 }

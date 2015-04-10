@@ -241,8 +241,7 @@ public class DBOAccessControlListDAOImplTest {
 	@Test  (expected=NotFoundException.class)
 	public void testGetWithBadAclID() throws Exception {
 		Long aclId = -598787L;
-		AccessControlList acl = aclDAO.get(aclId);
-		assertNull(acl);
+		aclDAO.get(aclId);
 	}
 
 	/**
@@ -262,8 +261,7 @@ public class DBOAccessControlListDAOImplTest {
 	@Test  (expected=NotFoundException.class)
 	public void testGetOwnerTypeWithBadAclID() throws Exception {
 		Long aclId = -598787L;
-		ObjectType ownerType = aclDAO.getOwnerType(aclId);
-		assertNull(ownerType);
+		aclDAO.getOwnerType(aclId);
 	}
 
 	/**

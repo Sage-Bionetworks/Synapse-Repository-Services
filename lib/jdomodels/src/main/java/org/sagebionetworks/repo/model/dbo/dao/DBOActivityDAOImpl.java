@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -129,7 +130,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return basicDao.getCount(DBOActivity.class);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@MandatoryWriteTransaction
 	@Override
 	public String lockActivityAndGenerateEtag(String id, String eTag, ChangeType changeType)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -145,7 +146,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return dbo.getEtag();
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@MandatoryWriteTransaction
 	@Override
 	public void sendDeleteMessage(String id) {
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ACTIVITY, ChangeType.DELETE);

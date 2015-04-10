@@ -300,12 +300,12 @@ public interface FileHandleManager {
 
 	/**
 	 * Create a file handle from the an old style attachment data.
+	 * 
 	 * @param createdBy
 	 * @param attachment
-	 * @return
-	 * @throws NotFoundException 
+	 * @return null if not found
 	 */
-	S3FileHandle createFileHandleFromAttachment(String entityId, String createdBy, Date createdOn, AttachmentData attachment) throws NotFoundException;
+	S3FileHandle createFileHandleFromAttachmentIfExists(String entityId, String createdBy, Date createdOn, AttachmentData attachment);
 
 	/**
 	 * Create a file handle with the given contents gzipped.

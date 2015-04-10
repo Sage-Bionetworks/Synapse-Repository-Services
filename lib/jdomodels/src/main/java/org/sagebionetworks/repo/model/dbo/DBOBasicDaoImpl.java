@@ -211,18 +211,37 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	@Override
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
-		return doGetObjectByPrimaryKey(clazz, namedParameters, false);
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException, NotFoundException {
+		try {
+			return doGetObjectByPrimaryKey(clazz, namedParameters, false);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		}
+	}
+
+	@Override
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyIfExists(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException {
+		try {
+			return doGetObjectByPrimaryKey(clazz, namedParameters, false);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 	
 	@Override
 	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
 			throws DatastoreException, NotFoundException {
-		return doGetObjectByPrimaryKey(clazz, namedParameters, true);
+		try {
+			return doGetObjectByPrimaryKey(clazz, namedParameters, true);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		}
 	}
 
 	private <T extends DatabaseObject<T>> T doGetObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters,
-			boolean updateLock) throws DatastoreException, NotFoundException {
+			boolean updateLock) throws DatastoreException {
 		if (clazz == null)
 			throw new IllegalArgumentException("Clazz cannot be null");
 		if (namedParameters == null)
@@ -236,11 +255,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if (updateLock) {
 			fetchSql += " FOR UPDATE";
 		}
-		try {
-			return simpleJdbcTemplate.queryForObject(fetchSql, mapping, namedParameters);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
-		}
+		return simpleJdbcTemplate.queryForObject(fetchSql, mapping, namedParameters);
 	}
 
 	@Override

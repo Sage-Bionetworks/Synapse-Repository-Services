@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
@@ -108,7 +109,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		assertNotNull(evalSubs.getEtag());
 		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit((ChangeMessage)anyObject());
 		
-		EvaluationSubmissions retrieved = evaluationSubmissionsDAO.getForEvaluation(evalIdLong);
+		EvaluationSubmissions retrieved = evaluationSubmissionsDAO.getForEvaluationIfExists(evalIdLong);
 		assertEquals(evalSubs, retrieved);
 		
 		retrieved = evaluationSubmissionsDAO.lockAndGetForEvaluation(evalIdLong);
@@ -118,7 +119,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit((ChangeMessage)anyObject());
 		
 		evalSubs.setEtag(newEtag);
-		retrieved = evaluationSubmissionsDAO.getForEvaluation(evalIdLong);
+		retrieved = evaluationSubmissionsDAO.getForEvaluationIfExists(evalIdLong);
 		assertEquals(evalSubs, retrieved);
 		
 		newEtag = evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
@@ -127,12 +128,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		evaluationSubmissionsDAO.deleteForEvaluation(evalIdLong);
 		verify(mockTransactionalMessenger, times(3)).sendMessageAfterCommit((ChangeMessage)anyObject());
 		
-		try {
-			evaluationSubmissionsDAO.getForEvaluation(evalIdLong);
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		assertNull(evaluationSubmissionsDAO.getForEvaluationIfExists(evalIdLong));
 	}
 
 }

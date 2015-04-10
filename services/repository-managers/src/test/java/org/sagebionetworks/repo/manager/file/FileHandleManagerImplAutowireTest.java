@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
@@ -601,7 +602,7 @@ public class FileHandleManagerImplAutowireTest {
 		String entityId = "syn1234";
 		// Create an attachment from the filehandle
 		AttachmentData ad = fileUploadManager.createAttachmentInS3(fileContents, fileName, userId, entityId, createdOn);
-		S3FileHandle h2 = fileUploadManager.createFileHandleFromAttachment(entityId, userId, createdOn, ad);
+		S3FileHandle h2 = fileUploadManager.createFileHandleFromAttachmentIfExists(entityId, userId, createdOn, ad);
 		assertNotNull(h2);
 		assertEquals(StackConfiguration.getS3Bucket(), h2.getBucketName());
 		assertEquals(S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, ad.getTokenId()), h2.getKey());
@@ -616,7 +617,7 @@ public class FileHandleManagerImplAutowireTest {
 	}
 	
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testCreateFileHandleFromAttachmentNotFound()throws Exception{
 		// Create an attachment from the filehandle
 		String userId = ""+userInfo.getId();
@@ -628,7 +629,7 @@ public class FileHandleManagerImplAutowireTest {
 		ad.setName("some name");
 		ad.setPreviewId(null);
 		ad.setTokenId("123/fake-id/does_not_exist.txt");
-		fileUploadManager.createFileHandleFromAttachment(entityId, userId, createdOn, ad);
+		assertNull(fileUploadManager.createFileHandleFromAttachmentIfExists(entityId, userId, createdOn, ad));
 	}
 	
 	@Test

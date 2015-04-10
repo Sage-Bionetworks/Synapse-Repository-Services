@@ -37,5 +37,6 @@ public interface ProjectSettingsManager {
 
 	StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException, NotFoundException;
 
-	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations);
+	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) throws DatastoreException,
+			NotFoundException;
 }

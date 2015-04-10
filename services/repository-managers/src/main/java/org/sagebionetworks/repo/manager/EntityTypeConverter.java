@@ -47,11 +47,10 @@ public interface EntityTypeConverter {
 	
 	/**
 	 * Attempt to create a FileHandle given a locationable path.
+	 * 
 	 * @param path
 	 * @return
-	 * @throws NotFoundException 
 	 */
-	public S3FileHandle createFileHandleFromPath(Locationable location, LocationData data) throws NotFoundException;
-	
+	public S3FileHandle createFileHandleFromPathIfExists(Locationable location, LocationData data);
 	
 }

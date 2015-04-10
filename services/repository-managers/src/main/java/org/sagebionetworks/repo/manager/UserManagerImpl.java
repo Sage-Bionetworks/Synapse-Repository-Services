@@ -195,7 +195,6 @@ public class UserManagerImpl implements UserManager {
 		return getUserInfo(principalId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);

@@ -119,11 +119,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		dbo.setCreatedOn(new Date().getTime());
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		basicDao.createNew(dbo);
-		try {
-			return getIndividualFavorite(dto.getPrincipalId(), dto.getEntityId());
-		} catch (NotFoundException e) {
-			throw new DatastoreException("Favorite not added.");
-		}
+		return getIndividualFavorite(dto.getPrincipalId(), dto.getEntityId());
 	}
 
 	@Override

@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -72,7 +73,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 * This is set to Propagation.REQUIRES_NEW because the transaction
 	 * must be committed before a message is sent to the worker.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -92,7 +93,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");

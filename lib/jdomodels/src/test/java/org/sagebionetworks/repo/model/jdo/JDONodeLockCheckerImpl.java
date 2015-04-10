@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,7 +36,7 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 	private volatile long nodeId = -1;
 	private volatile DatastoreException toThrow = null;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void aquireAndHoldLock(String stringId, String currentETag) throws InterruptedException, NotFoundException, DatastoreException {
 		holdLock = true;

@@ -24,7 +24,8 @@ public class BaseControllerTest {
 	public void testDeadlockError(){
 		EntityController controller = new EntityController();
 		HttpServletRequest request = new MockHttpServletRequest();
-		ErrorResponse response = controller.handleDeadlockExceptions(new DeadlockLoserDataAccessException("Message", new BatchUpdateException()), request);
+		ErrorResponse response = controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
+				new BatchUpdateException()), request);
 		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 	
@@ -32,7 +33,8 @@ public class BaseControllerTest {
 	public void testTransientError() {
 		EntityController controller = new EntityController();
 		HttpServletRequest request = new MockHttpServletRequest();
-		ErrorResponse response = controller.handleDeadlockExceptions(new TransientDataAccessException("Message", new BatchUpdateException()) {
+		ErrorResponse response = controller.handleTransientDataAccessExceptions(new TransientDataAccessException("Message",
+				new BatchUpdateException()) {
 			private static final long serialVersionUID = 1L;
 		}, request);
 		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());

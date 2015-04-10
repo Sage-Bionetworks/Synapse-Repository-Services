@@ -3,9 +3,13 @@ package org.sagebionetworks.repo.model.dbo.dao.transactions;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -39,6 +43,38 @@ public class TransactionValidatorImpl implements TransactionValidator {
 			throw toThrow;
 		}
 		return getString(id);
+	}
+
+	/**
+	 * Set the value then throw the given exception
+	 */
+	@WriteTransaction
+	@Override
+	public String setStringLevel2(Long id, String value, Throwable toThrow) throws Throwable {
+		return setString(id, value, toThrow);
+	}
+
+	@MandatoryWriteTransaction
+	@Override
+	public String mandatory(Callable<String> callable) throws Exception {
+		return callable.call();
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String required(Callable<String> callable) throws Exception {
+		return callable.call();
+	}
+
+	@NewWriteTransaction
+	@Override
+	public String requiresNew(Callable<String> callable) throws Exception {
+		return callable.call();
+	}
+
+	@Override
+	public void setStringNoTransaction(Long id, String value) {
+		simpleJdbcTemplate.update(INSERT_INTO_TRANS_TEST_ID_NAME_VALUES, id, value, value);
 	}
 
 	@Override

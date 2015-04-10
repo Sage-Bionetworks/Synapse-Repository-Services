@@ -112,15 +112,14 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	}
 	
 	@Override
-	public EvaluationSubmissions getForEvaluation(long evaluationId)
-			throws NotFoundException {
+	public EvaluationSubmissions getForEvaluationIfExists(long evaluationId) {
 		try {
 			EvaluationSubmissionsDBO dbo = jdbcTemplate.queryForObject(SELECT_FOR_EVALUATION, new Object[]{evaluationId}, EVAL_SUB_ROW_MAPPER);
 			EvaluationSubmissions dto = new EvaluationSubmissions();
 			copyDboToDto(dbo, dto);
 			return dto;		
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Cannot find EvaluationSubmissions for evaluation "+evaluationId, e);
+			return null;
 		}
 	}
 	
@@ -134,7 +133,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 			copyDboToDto(dbo, dto);
 			return dto;		
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Cannot find EvaluationSubmissions for evaluation "+evaluationId, e);
+			throw new NotFoundException("Cannot find EvaluationSubmissions for evaluation " + evaluationId);
 		}
 	}
 	

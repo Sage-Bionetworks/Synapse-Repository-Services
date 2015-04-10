@@ -6,13 +6,12 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Implementation of the BackupRestoreStatusDAO. Note: Since a
@@ -41,7 +40,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	 * @return The ID of the newly created status.
 	 * @throws DatastoreException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public String create(BackupRestoreStatus dto) throws DatastoreException {
 		// First assign the id
@@ -105,7 +104,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	 * @throws DatastoreException
 	 * 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void update(BackupRestoreStatus dto) throws DatastoreException,
 			NotFoundException {
@@ -118,7 +117,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 		dboBasicDao.update(jdo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -149,7 +148,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	 * Note: Requires a new Transaction. Value changes will occur through web services
 	 * while the value will be checked from the backup daemon.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void setForceTermination(String id, boolean terminate)
 			throws DatastoreException, NotFoundException {

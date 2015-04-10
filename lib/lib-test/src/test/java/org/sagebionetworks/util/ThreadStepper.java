@@ -42,9 +42,9 @@ public class ThreadStepper {
 				ThreadStepper.this.start();
 				try {
 					callable.call();
-				} catch (Exception e) {
-					e.printStackTrace();
-					Assert.fail("Got unexpected exception:" + e);
+				} catch (Throwable t) {
+					t.printStackTrace();
+					Assert.fail("Got unexpected exception:" + t);
 				} finally {
 					ThreadStepper.this.end();
 				}

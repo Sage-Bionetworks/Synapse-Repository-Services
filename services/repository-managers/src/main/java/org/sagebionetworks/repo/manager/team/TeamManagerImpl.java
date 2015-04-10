@@ -298,11 +298,7 @@ public class TeamManagerImpl implements TeamManager {
 		alias.setPrincipalId(teamId);
 		alias.setType(AliasType.TEAM_NAME);
 		// bind this alias
-		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
-		} catch (NotFoundException e1) {
-			throw new DatastoreException(e1);
-		}
+		principalAliasDAO.bindAliasToPrincipal(alias);
 	}
 
 	/* (non-Javadoc)

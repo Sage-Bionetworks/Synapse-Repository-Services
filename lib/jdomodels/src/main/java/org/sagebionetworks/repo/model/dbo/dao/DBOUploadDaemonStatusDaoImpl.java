@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -61,7 +62,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 		basicDao.deleteObjectByPrimaryKey(DBOUploadDaemonStatus.class, param);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public boolean update(UploadDaemonStatus status) {
 		validate(status);

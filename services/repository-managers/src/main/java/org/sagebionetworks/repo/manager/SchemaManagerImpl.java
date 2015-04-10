@@ -58,7 +58,7 @@ public class SchemaManagerImpl implements SchemaManager {
 			return EntityFactory.createEntityFromJSONString(
 					entity.getJSONSchema(), ObjectSchema.class);
 		} catch (IllegalArgumentException e) {
-			throw new NotFoundException("Could not find a schema for resourceId = "+ resourceId);
+			throw new NotFoundException("Could not find a schema for resourceId = " + resourceId, e);
 		} catch (JSONObjectAdapterException e) {
 			throw new DatastoreException(e);
 		}

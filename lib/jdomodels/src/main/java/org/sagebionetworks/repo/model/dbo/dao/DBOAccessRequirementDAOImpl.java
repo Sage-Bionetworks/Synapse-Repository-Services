@@ -249,7 +249,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return basicDao.getCount(DBOAccessRequirement.class);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();

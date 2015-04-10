@@ -24,14 +24,11 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,14 +171,8 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 			ConflictingUpdateException {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
 		validateChallengeTeam(dto);
-		DBOChallengeTeam dbo;
-		try {
-			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class, 
-					new SinglePrimaryKeySqlParameterSource(dto.getId()));
-			
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
-		}
+		DBOChallengeTeam dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(
+				dto.getId()));
 		if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
 			throw new IllegalArgumentException(
 					"You cannot change the challenge ID.");
