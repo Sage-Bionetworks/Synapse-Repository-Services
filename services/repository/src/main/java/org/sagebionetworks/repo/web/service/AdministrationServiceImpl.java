@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -458,6 +461,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		try {
 			Throwable t = null;
 			Class<?> exceptionClass = Class.forName(exception);
+			if (exceptionClass == ACLInheritanceException.class) {
+				throw new ACLInheritanceException("", "100");
+			}
+			if (exceptionClass == AsynchJobFailedException.class) {
+				throw new AsynchJobFailedException(new AsynchronousJobStatus());
+			}
 			Constructor<?>[] constructors = exceptionClass.getConstructors();
 			for (Constructor<?> constructor : constructors) {
 				Class<?>[] parameterTypes = constructor.getParameterTypes();
