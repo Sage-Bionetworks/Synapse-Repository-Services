@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -30,6 +26,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -523,7 +520,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	/**
-	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast conccurent updates
+	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast concurrent updates
 	 * @throws ExecutionException 
 	 * @throws InterruptedException 
 	 */
@@ -535,11 +532,7 @@ public class DBOChangeDAOImplAutowiredTest {
 			@Override
 			public Integer call() throws Exception {
 				for(int i=0; i<timesToRun; i++){
-					try {
-						changeDAO.replaceChange(toSpam);
-					} catch (TransientDataAccessException e) {
-						// this type of exception is allowed.
-					}
+					changeDAO.replaceChange(toSpam);
 				}
 				return timesToRun;
 		}};
@@ -554,6 +547,71 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(new Integer(timesToRun), oneResult);
 		Integer twoResult = two.get();
 		assertEquals(new Integer(timesToRun), twoResult);
+	}
+	
+	/**
+	 * This test creates, then updates change messages on two separate threads.
+	 * One thread works with even ObjectIds while the other works with odd. 
+	 * This test would cause deadlock 4 out of 5 times before we fixed PLFM-3329.
+	 * 
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	@Test
+	public void testPLFM3329() throws InterruptedException, ExecutionException{
+		final int number = 25;
+		final int timesToRun = 100;
+		Callable<Integer> even = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				// create new changes for each run.
+				for(int t=0; t<timesToRun; t++){
+					List<ChangeMessage> batch = new LinkedList<ChangeMessage>();
+					// start at zero for even ids.
+					for(int i=0; i< number; i+=2){
+						batch.add(createChange(ObjectType.FILE, i));
+					}
+					Collections.shuffle(batch);
+					changeDAO.replaceChange(batch);
+				}
+				return timesToRun;
+		}};
+		
+		Callable<Integer> odd = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				// create new changes for each run.
+				for(int t=0; t<timesToRun; t++){
+					List<ChangeMessage> batch = new LinkedList<ChangeMessage>();
+					// start at one for odd ids.
+					for(int i=1; i< number; i+=2){
+						batch.add(createChange(ObjectType.FILE, i));
+					}
+					Collections.shuffle(batch);
+					changeDAO.replaceChange(batch);
+				}
+				return timesToRun;
+		}};
+		// Run multiple threads at the same time
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		// Submit twice
+		Future<Integer> one = pool.submit(even);
+		// Submit again
+		Future<Integer> two = pool.submit(odd);
+		// There should be no errors
+		try {
+			Integer oneResult = one.get();
+			Integer twoResult = two.get();
+			assertEquals(new Integer(timesToRun), oneResult);
+			assertEquals(new Integer(timesToRun), twoResult);
+		} catch (ExecutionException e) {
+			if(e.getCause() instanceof DeadlockLoserDataAccessException){
+				fail("Failed to make non-conflicting additions to the changes table without causing deadlock");
+			}else{
+				// unknown error
+				throw e;
+			}
+		}
 	}
 	
 	@Test
@@ -588,17 +646,28 @@ public class DBOChangeDAOImplAutowiredTest {
 	private List<ChangeMessage> createList(int numChangesInBatch, ObjectType type) {
 		List<ChangeMessage> batch = new ArrayList<ChangeMessage>();
 		for(int i=0; i<numChangesInBatch; i++){
-			ChangeMessage change = new ChangeMessage();
-			if(ObjectType.ENTITY == type){
-				change.setObjectId("syn"+i);
-			}else{
-				change.setObjectId(""+i);
-			}
-			change.setObjectEtag("etag"+i);
-			change.setChangeType(ChangeType.UPDATE);
-			change.setObjectType(type);
+			ChangeMessage change = createChange(type, i);
 			batch.add(change);
 		}
 		return batch;
+	}
+
+	/**
+	 * Create a test change number
+	 * @param type
+	 * @param i
+	 * @return
+	 */
+	public ChangeMessage createChange(ObjectType type, int i) {
+		ChangeMessage change = new ChangeMessage();
+		if(ObjectType.ENTITY == type){
+			change.setObjectId("syn"+i);
+		}else{
+			change.setObjectId(""+i);
+		}
+		change.setObjectEtag("etag"+i);
+		change.setChangeType(ChangeType.UPDATE);
+		change.setObjectType(type);
+		return change;
 	}
 }

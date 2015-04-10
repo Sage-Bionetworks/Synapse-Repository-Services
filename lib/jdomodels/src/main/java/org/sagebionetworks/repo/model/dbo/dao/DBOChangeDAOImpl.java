@@ -150,21 +150,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		long nowMs = (System.currentTimeMillis() / 1000) * 1000;
 		changeDbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
 		changeDbo.setTimeStamp(new Timestamp(nowMs));
-
-		/*
-		 * Before we start we grab a lock on the row in the changes table. This
-		 * ensures that the original change number cannot change until this
-		 * method completes.
-		 */
-		Long changeNumber = selectChangeNumberForUpdate(changeDbo.getObjectId(), changeDbo.getObjectType());
-		if(changeNumber == null){
-			// This occurs when there is a new object.
-			// Use create or update as two threads could try to create this change at the same time.
-			basicDao.createNew(changeDbo);
-		}else{
-			// Update the row.
-			basicDao.update(changeDbo);
-		}
+		// create or update the change.
+		basicDao.createOrUpdate(changeDbo);
 		// Setup and clear the sent message
 		DBOSentMessage sentDBO = new DBOSentMessage();
 		sentDBO.setChangeNumber(null);
