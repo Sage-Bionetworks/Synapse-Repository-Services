@@ -15,14 +15,13 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	
@@ -39,7 +38,7 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	/**
 	 * This should always occur in its own transaction.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void updateStatus(StackStatus dto) {
 		if(dto == null) throw new IllegalArgumentException("Status cannot be null");
@@ -63,12 +62,10 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// This is the boot strap.
-		try{
-			// Try to get the single status row.  If it does not exist yet we will need to create it.
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("id", DBOStackStatus.STATUS_ID);
-			DBOStackStatus jdo = dboBasicDao.getObjectByPrimaryKey(DBOStackStatus.class, params);
-		}catch (NotFoundException e){
+		// Try to get the single status row. If it does not exist yet we will need to create it.
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("id", DBOStackStatus.STATUS_ID);
+		if (dboBasicDao.getObjectByPrimaryKeyIfExists(DBOStackStatus.class, params) == null) {
 			// If here then the the single status row does not exist.
 			DBOStackStatus status = new DBOStackStatus();
 			status.setId(DBOStackStatus.STATUS_ID);

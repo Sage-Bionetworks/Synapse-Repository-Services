@@ -7,14 +7,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -33,7 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -52,46 +50,10 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.downloadtools.FileUtils;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.query.Condition;
 import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
@@ -102,11 +64,28 @@ import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
 import org.sagebionetworks.repo.model.entity.query.EntityType;
 import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.utils.HttpClientHelperException;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.QueryTimeoutException;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.support.HandlerMethodInvocationException;
+import org.springframework.web.util.NestedServletException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -236,6 +215,7 @@ public class IT500SynapseJavaClient {
 				adminSynapse.deleteTeam(id);
 			} catch (SynapseNotFoundException e) {}
 		}
+		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(true);
 	}
 	
 	@AfterClass
@@ -1583,5 +1563,85 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, results.getEntities().size());
 		EntityQueryResult projectResult = results.getEntities().get(0);
 		assertEquals(project.getId(), projectResult.getId());
+	}
+
+
+	Object[][] testCodes = new Object[][] {
+			{ 503, new Object[] { DeadlockLoserDataAccessException.class } },
+			{ HttpStatus.ACCEPTED, new Object[] { TableUnavilableException.class, NotReadyException.class } },
+			{
+					HttpStatus.NOT_FOUND,
+					new Object[] { NotFoundException.class,
+							"org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMethodException",
+							ACLInheritanceException.class, EntityInTrashCanException.class } },
+			{ HttpStatus.SERVICE_UNAVAILABLE,
+					new Object[] { ServiceUnavailableException.class, QueryTimeoutException.class /* TransientDataAccessException */} },
+			{ HttpStatus.PRECONDITION_FAILED, new Object[] { ConflictingUpdateException.class } },
+			{ HttpStatus.FORBIDDEN, new Object[] { UnauthorizedException.class } },
+			{ HttpStatus.UNAUTHORIZED, new Object[] { UnauthenticatedException.class } },
+			{ HttpStatus.CONFLICT, new Object[] { NameConflictException.class } },
+			{
+					HttpStatus.BAD_REQUEST,
+					new Object[] { "org.springframework.web.bind.MissingServletRequestParameterException", AsynchJobFailedException.class,
+							IllegalArgumentException.class, InvalidModelException.class, TypeMismatchException.class,
+							JSONObjectAdapterException.class, EOFException.class, HandlerMethodInvocationException.class,
+							HttpMessageNotReadableException.class, ParseException.class, HttpClientHelperException.class } },
+			{ HttpStatus.NOT_ACCEPTABLE, new Object[] { "org.springframework.web.HttpMediaTypeNotAcceptableException" } },
+			{ HttpStatus.UNSUPPORTED_MEDIA_TYPE, new Object[] { "org.springframework.web.HttpMediaTypeNotSupportedException" } },
+			{
+					HttpStatus.INTERNAL_SERVER_ERROR,
+					new Object[] { DatastoreException.class, "javax.servlet.ServletException",
+							"org.springframework.web.util.NestedServletException", IllegalStateException.class, NullPointerException.class,
+							Exception.class } },
+			{ HttpStatus.FORBIDDEN, new Object[] { ParentInTrashCanException.class, TermsOfUseException.class } },
+			{ 429, new Object[] { TooManyRequestsException.class } } };
+
+	@Test
+	public void testReturnCodes() throws Exception {
+		Project project = new Project();
+		project.setName("p" + UUID.randomUUID());
+		project = adminSynapse.createEntity(project);
+		toDelete.add(project.getId());
+		Folder folder = new Folder();
+		folder.setName("folder");
+		folder.setParentId(project.getId());
+		folder = adminSynapse.createEntity(folder);
+		toDelete.add(folder.getId());
+		MessageToUser message = new MessageToUser();
+		// adminSynapse.sendMessage(message, folder.getId());
+		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
+		for (Object[] test : testCodes) {
+			int code ;
+			if(test[0]instanceof Integer){
+				code = (Integer) test[0];
+			}else if(test[0] instanceof HttpStatus){
+				code = ((HttpStatus) test[0]).value();
+			}else{
+				fail(test[0].getClass() + " not recognized");
+				code = 0;
+			}
+			Object[] exceptions = (Object[]) test[1];
+			for (Object exception : exceptions) {
+				boolean isRuntimeException = false;
+				String exceptionClassName = exception.toString();
+				if(exception instanceof Class){
+					Class<?> exceptionClass = (Class<?>) exception;
+					isRuntimeException = RuntimeException.class.isAssignableFrom(exceptionClass);
+					exceptionClassName = exceptionClass.getName();
+				}
+
+				int result = adminSynapse.throwException(exceptionClassName, true, false);
+				assertEquals("in transaction: " + exceptionClassName, code, result);
+
+				if (isRuntimeException) {
+					// this test can handle runtime exceptions
+					result = adminSynapse.throwException(exceptionClassName, true, true);
+					assertEquals("after transaction: " + exceptionClassName, code, result);
+				}
+
+				result = adminSynapse.throwException(exceptionClassName, false, false);
+				assertEquals("no transaction: " + exceptionClassName, code, result);
+			}
+		}
 	}
 }

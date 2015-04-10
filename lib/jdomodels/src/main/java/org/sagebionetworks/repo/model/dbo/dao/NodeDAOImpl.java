@@ -22,7 +22,6 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.ObjectUtils;
-import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -41,6 +40,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -338,7 +338,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean delete(String id) throws NotFoundException, DatastoreException {
+	public boolean delete(String id) throws DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		Long longId = KeyFactory.stringToKey(id);
 		MapSqlParameterSource prams = getNodeParameters(longId);
@@ -548,7 +548,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@MandatoryWriteTransaction
 	@Override
 	public String lockNodeAndIncrementEtag(String id, String eTag)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -560,7 +560,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@MandatoryWriteTransaction
 	@Override
 	public String lockNodeAndIncrementEtag(String id, String eTag, ChangeType changeType)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -783,20 +783,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public void boostrapAllNodeTypes() throws DatastoreException {
 		// Make sure all of the known types are there
 		EntityType[] types = EntityType.values();
-		for(EntityType type: types){
-			try{
-				// Try to get the type.
-				// If the type does not already exist then an exception will be thrown
-				@SuppressWarnings("unused")
-				DBONodeType jdo = getNodeType(type);
-			}catch(NotFoundException e){
+		for (EntityType type : types) {
+			// Try to get the type.
+			// If the type does not already exist then an exception will be thrown
+			DBONodeType jdo = getNodeType(type);
+			if (jdo == null) {
 				// The type does not exist so create it.
-				DBONodeType jdo = new DBONodeType();
+				jdo = new DBONodeType();
 				jdo.setId(type.getId());
 				jdo.setName(type.name());
 				dboBasicDao.createNew(jdo);
 				// Create the aliases for this type.
-				for(String aliasString: type.getAllAliases()){
+				for (String aliasString : type.getAllAliases()) {
 					DBONodeTypeAlias alias = new DBONodeTypeAlias();
 					alias.setTypeOwner(type.getId());
 					alias.setAlias(aliasString);
@@ -806,11 +804,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
-	private DBONodeType getNodeType(EntityType type) throws DatastoreException, NotFoundException {
+	private DBONodeType getNodeType(EntityType type) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", type.getId());
 		params.addValue("name", type.name());
-		return dboBasicDao.getObjectByPrimaryKey(DBONodeType.class, params);
+		return dboBasicDao.getObjectByPrimaryKeyIfExists(DBONodeType.class, params);
 	}
 
 	@Override
@@ -953,7 +951,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			row = jdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Entity "+nodeId+" is not found.", e);
+			throw new NotFoundException("Entity " + nodeId + " is not found.");
 		}
 		List<ParentTypeName> result = new ArrayList<ParentTypeName>();
 		for (int i=0; i<depth; i++) {

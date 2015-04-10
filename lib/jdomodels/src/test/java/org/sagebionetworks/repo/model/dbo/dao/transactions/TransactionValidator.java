@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.transactions;
 
+import java.util.concurrent.Callable;
+
 /**
  * 
  * @author John
@@ -17,6 +19,8 @@ interface TransactionValidator {
 	 * @throws Exception
 	 */
 	public String setString(Long id, String value, Throwable toThrow) throws Throwable;
+
+	public String setStringLevel2(Long id, String value, Throwable toThrow) throws Throwable;
 	
 	/**
 	 * Get the current value for the given ID
@@ -24,4 +28,13 @@ interface TransactionValidator {
 	 * @return
 	 */
 	public String getString(Long id);
+
+	public void setStringNoTransaction(Long id, String value);
+
+	public String mandatory(Callable<String> callable) throws Exception;
+
+	public String required(Callable<String> callable) throws Exception;
+
+	public String requiresNew(Callable<String> callable) throws Exception;
+
 }

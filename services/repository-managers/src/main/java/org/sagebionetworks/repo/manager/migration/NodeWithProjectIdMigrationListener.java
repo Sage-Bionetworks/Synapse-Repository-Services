@@ -61,14 +61,9 @@ public class NodeWithProjectIdMigrationListener implements MigrationTypeListener
 				jdbcTemplate.update(UPDATE_PROJECT_SQL, node.getId(), node.getId());
 			} else {
 				// get the project id of the parent node
-				try {
-					MapSqlParameterSource params = new MapSqlParameterSource("id", node.getParentId());
-					DBONode parentNode = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
-					jdbcTemplate.update(UPDATE_PROJECT_SQL, parentNode.getProjectId(), node.getId());
-				} catch (NotFoundException e) {
-					// this ought not happen. Abort migration if it does
-					throw new RuntimeException(e.getMessage(), e);
-				}
+				MapSqlParameterSource params = new MapSqlParameterSource("id", node.getParentId());
+				DBONode parentNode = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
+				jdbcTemplate.update(UPDATE_PROJECT_SQL, parentNode.getProjectId(), node.getId());
 			}
 		}
 	}

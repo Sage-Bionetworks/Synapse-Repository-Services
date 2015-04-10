@@ -246,12 +246,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		transactionalMessenger.sendModificationMessageAfterCommit(ownerId, ObjectType.ENTITY);
 		
-		try {
-			return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
-		} catch (NotFoundException e) {
-			// This should not occur.
-			throw new RuntimeException(e);
-		}
+		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
 	}
 	
 	private V2DBOWikiPage create(ObjectType ownerType, V2DBOWikiPage dbo,

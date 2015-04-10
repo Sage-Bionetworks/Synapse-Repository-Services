@@ -68,7 +68,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean delete(String id) throws NotFoundException, DatastoreException;
+	public boolean delete(String id) throws DatastoreException;
 	
 	/**
 	 * Delete a specific version.

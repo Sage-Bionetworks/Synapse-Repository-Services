@@ -201,7 +201,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<Team> dtos = new ArrayList<Team>();
 		for (Long id : ids) {
 			Team team = map.get(id.toString());
-			if (team==null) throw new NotFoundException(""+id);
+			if (team == null) {
+				throw new NotFoundException("Team with id " + id + " not found");
+			}
 			dtos.add(team);
 		}
 		
@@ -361,7 +363,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
 		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
@@ -421,7 +422,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset)
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
@@ -485,7 +485,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
@@ -502,7 +501,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public long getAdminMemberCount(String teamId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);

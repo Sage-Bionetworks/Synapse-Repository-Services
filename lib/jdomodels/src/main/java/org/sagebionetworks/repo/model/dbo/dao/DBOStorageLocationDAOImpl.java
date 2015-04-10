@@ -109,10 +109,9 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		try {
-			basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
-					DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		} catch (NotFoundException e) {
+		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(
+				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+		if (basicDao.getObjectByPrimaryKeyIfExists(DBOStorageLocation.class, params) == null) {
 			try {
 				// make sure we skip the first couple of IDs
 				idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID);
@@ -148,7 +147,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	@Override
 	public <T extends StorageLocationSetting> T update(T dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {
-		try {
 			DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
 					new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
 
@@ -168,12 +166,9 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 				throw new DatastoreException("Unsuccessful updating project setting in database.");
 
 			// re-get, so we don't clobber the object we put in the dbo directly with setData
-			dbo = basicDao
-					.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
+		dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
 			return (T) CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
-		}
 	}
 
 	@Override

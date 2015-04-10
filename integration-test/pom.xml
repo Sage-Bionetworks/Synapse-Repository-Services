@@ -62,7 +62,7 @@
 				<version>2.0</version>
 				<configuration>
 					<!-- Deploy this as the root application -->
-					<path>/</path>
+					<path>/services-repository-${project.version}</path>
 				</configuration>
 			</plugin>
 
@@ -138,9 +138,9 @@
 						<properties>
 							<cargo.jvmargs>
 
-<!--  								-Xdebug -->
-<!--  								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
-<!--  								-Xnoagent -->
+ 								-Xdebug
+ 								-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8989
+ 								-Xnoagent
 
 								-Xmx2g
 								-Xms128m
@@ -229,11 +229,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-id-generator</artifactId>
 		</dependency>
 
 		<dependency>

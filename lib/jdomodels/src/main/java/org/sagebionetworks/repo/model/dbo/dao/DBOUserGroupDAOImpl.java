@@ -201,7 +201,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			dbo = basicDao.getObjectByPrimaryKey(DBOUserGroup.class, param);
 		} catch (NotFoundException e) {
 			// Rethrow the basic DAO's generic error message
-			throw new NotFoundException("Principal (" + id + ") does not exist", e);
+			throw new NotFoundException("Principal (" + id + ") does not exist");
 		}
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto);

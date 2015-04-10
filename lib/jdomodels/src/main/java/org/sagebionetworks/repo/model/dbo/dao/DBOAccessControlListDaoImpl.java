@@ -37,14 +37,12 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.AclModificationMessage;
 import org.sagebionetworks.repo.model.message.AclModificationType;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -171,7 +169,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		try {
 			return simpleJdbcTemplate.queryForLong(SQL_SELECT_ACL_ID_FOR_RESOURCE, KeyFactory.stringToKey(id), objectType.name());
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException("Acl " + id + " not found");
 		}
 	}
 
@@ -180,7 +178,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		try {
 			return ObjectType.valueOf(simpleJdbcTemplate.queryForObject(SQL_SELECT_OWNER_TYPE_FOR_RESOURCE, String.class, id));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException("owner type " + id + " not found");
 		}
 	}
 	
@@ -188,7 +186,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		List<DBOAccessControlList> dboList = null;
 		dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_ACL_WITH_ACL_ID, aclRowMapper, id);
 		if (dboList.size() != 1) {
-			throw new NotFoundException(); 
+			throw new NotFoundException("Acl " + id + " not found");
 		}
 		return dboList.get(0);
 	}
@@ -315,12 +313,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		// Bind the object type
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, resourceType.name());
 		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
-		try{
-			long count = simpleJdbcTemplate.queryForLong(sql, parameters);
-			return count > 0;
-		}catch (DataAccessException e){
-			throw new DatastoreException(e);
-		}
+
+		long count = simpleJdbcTemplate.queryForLong(sql, parameters);
+		return count > 0;
 	}
 	
 	// To avoid potential race conditions, we do "SELECT ... FOR UPDATE" on etags.

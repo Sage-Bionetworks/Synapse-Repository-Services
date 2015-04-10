@@ -248,14 +248,10 @@ public class BackupRestoreDaemon implements Runnable{
 	}
 
 	private void updateStatus() throws DatastoreException {
-		try {
-			long currentTimeNamo = System.nanoTime();
-			long elapseMS = (currentTimeNamo-startTimeNano)/NANO_SECONDS_PER_MILISECOND;
-			status.setTotalTimeMS(elapseMS);
-			backupRestoreStatusDao.update(status);
-		}  catch (NotFoundException e) {
-			throw new DatastoreException(e);
-		}
+		long currentTimeNamo = System.nanoTime();
+		long elapseMS = (currentTimeNamo - startTimeNano) / NANO_SECONDS_PER_MILISECOND;
+		status.setTotalTimeMS(elapseMS);
+		backupRestoreStatusDao.update(status);
 	}
 
 	/**

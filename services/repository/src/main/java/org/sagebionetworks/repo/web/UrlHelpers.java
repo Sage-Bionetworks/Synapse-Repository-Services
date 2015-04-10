@@ -875,6 +875,11 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_WAIT = ADMIN + "/wait";
 	
+	/**
+	 * API for testing exception handling
+	 */
+	public static final String ADMIN_EXCEPTION = ADMIN + "/exception";
+
 	static {
 		@SuppressWarnings("rawtypes")
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();

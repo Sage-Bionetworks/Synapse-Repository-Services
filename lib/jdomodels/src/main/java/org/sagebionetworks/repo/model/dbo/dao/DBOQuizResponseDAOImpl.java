@@ -169,7 +169,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			passingRecord.setResponseId(dbo.getId());
 			return passingRecord;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+			throw new NotFoundException("No quiz results for quiz " + quizId + " and user " + principalId);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -192,7 +192,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			}
 			return dtos;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+			throw new NotFoundException("No quiz results for quiz " + quizId + " and user " + principalId);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

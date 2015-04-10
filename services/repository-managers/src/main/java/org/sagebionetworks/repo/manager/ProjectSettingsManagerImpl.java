@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -128,7 +129,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) {
+	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) throws DatastoreException,
+			NotFoundException {
 		return storageLocationDAO.getUploadDestinationLocations(locations);
 	}
 
@@ -252,9 +254,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		try {
 			s3object = s3client.getObject(bucket, key);
 		} catch (AmazonServiceException e) {
-			if ("NoSuchBucket".equals(e.getErrorCode())) {
+			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
-			} else if ("NoSuchKey".equals(e.getErrorCode())) {
+			} else if (AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
 						+ getExplanation(userProfile, bucket, key));
 			} else {

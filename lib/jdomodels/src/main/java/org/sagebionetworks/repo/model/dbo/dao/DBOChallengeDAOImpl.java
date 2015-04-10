@@ -300,13 +300,8 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			DatastoreException {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
 		validateChallenge(dto);
-		DBOChallenge dbo;
-		try {
-			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class, 
-					new SinglePrimaryKeySqlParameterSource(dto.getId()));
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
-		}
+		DBOChallenge dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getId()));
 		if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()))) {
 			throw new IllegalArgumentException(
 					"You cannot change the challenge Project ID.");

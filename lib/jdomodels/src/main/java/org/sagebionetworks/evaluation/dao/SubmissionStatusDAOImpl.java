@@ -121,7 +121,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
@@ -188,7 +188,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		try {
 			return simpleJdbcTemplate.queryForLong(SELECT_EVALUATION_FOR_IDS, param);
 		} catch (EmptyResultDataAccessException erda) {
-			throw new IllegalArgumentException("Submissions are not found in the system.", erda);
+			throw new NotFoundException("Submissions are not found in the system.");
 		} catch (IncorrectResultSizeDataAccessException irsdae) {
 			throw new IllegalArgumentException("Submission batch must be for a single Evaluation queue.", irsdae);
 			

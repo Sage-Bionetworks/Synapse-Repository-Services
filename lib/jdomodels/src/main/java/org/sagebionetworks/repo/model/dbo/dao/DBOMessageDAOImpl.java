@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -201,7 +202,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		try {
 			bundle = simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Message (" + messageId + ") not found", e);
+			throw new NotFoundException("Message (" + messageId + ") not found");
 		}
 		
 		// Then get the recipients
@@ -382,7 +383,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
 		createMessageStatus(messageId, userId, status);
 	}
@@ -412,7 +413,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	public boolean updateMessageStatus_NewTransaction(MessageStatus status) {
 		return updateMessageStatus(status);
 	}

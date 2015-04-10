@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.AmazonErrorCodes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -219,10 +220,9 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 		if(entity.getAttachments() != null){
 			// create a file handle for each attachment.
 			for(AttachmentData ad: entity.getAttachments()){
-				S3FileHandle attachHandle = null;
-				try {
-					attachHandle = fileHandleManager.createFileHandleFromAttachment(entity.getId(), entity.getCreatedBy(), entity.getModifiedOn(), ad);
-				} catch (NotFoundException e) {
+				S3FileHandle attachHandle = fileHandleManager.createFileHandleFromAttachmentIfExists(entity.getId(), entity.getCreatedBy(),
+						entity.getModifiedOn(), ad);
+				if (attachHandle == null) {
 					// If the original attachment does not exist create a placeholder.
 					attachHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(entity.getCreatedBy(), entity.getModifiedOn(), ad.getName());
 				}
@@ -383,9 +383,8 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 				FileHandle fileHandle = null;
 				if(LocationTypeNames.awss3.equals(data.getType())){
 					// S3 file handle.
-					try {
-						fileHandle = createFileHandleFromPath(location, data);
-					} catch (NotFoundException e) {
+					fileHandle = createFileHandleFromPathIfExists(location, data);
+					if (fileHandle == null) {
 						fileHandle = fileHandleManager.createNeverUploadedPlaceHolderFileHandle(location.getModifiedBy(), location.getModifiedOn(), location.getName());
 					}
 				}else{
@@ -421,7 +420,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	}
 
 	@Override
-	public S3FileHandle createFileHandleFromPath(Locationable location, LocationData data) throws NotFoundException {
+	public S3FileHandle createFileHandleFromPathIfExists(Locationable location, LocationData data) throws NotFoundException {
 		String key = locationHelper.getS3KeyFromS3Url(data.getPath());
 		// The keys do not start with "/"
 		if(key.startsWith("/")){
@@ -452,7 +451,12 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 			setCreatedOnAndBy(location, handle);
 			return fileHandleDao.createFile(handle);
 		} catch (AmazonServiceException e) {
-			throw new NotFoundException("Cannot find in S3. Key: "+key+" path: "+data.getPath());
+			if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
+				return null;
+			} else {
+				log.error("Unknown S3 error, handling as not found: " + e.getMessage(), e);
+				return null;
+			}
 		}
 	}
 	

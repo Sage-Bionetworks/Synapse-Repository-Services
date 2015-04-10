@@ -10,26 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -150,7 +131,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			return profile;
 		}
 		// We need to convert from an attachment to an S3FileHandle
-		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachment(profile.getOwnerId(), profile.getOwnerId(), new Date(), profile.getPic());
+		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachmentIfExists(profile.getOwnerId(), profile.getOwnerId(),
+				new Date(), profile.getPic());
 		// clear the pic, set the filehandle.
 		profile.setPic(null);
 		if(handle != null){
@@ -277,11 +259,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		clearAliasFields(profile);
 		// Save the profile
 		this.userProfileDAO.create(profile);
-		try {
-			return getUserProfilePrivate(profile.getOwnerId());
-		} catch (NotFoundException e) {
-			throw new DatastoreException(e);
-		}
+		return getUserProfilePrivate(profile.getOwnerId());
 	}
 
 	private void bindUserName(String username, Long principalId) {

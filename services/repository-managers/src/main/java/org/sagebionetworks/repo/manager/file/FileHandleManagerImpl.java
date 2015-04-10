@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,12 +64,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
@@ -839,12 +840,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createFileHandleFromAttachment(java.lang.String, java.util.Date, org.sagebionetworks.repo.model.attachment.AttachmentData)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.manager.file.FileHandleManager#createFileHandleFromAttachmentifExists(java.lang.String,
+	 * java.util.Date, org.sagebionetworks.repo.model.attachment.AttachmentData)
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public S3FileHandle createFileHandleFromAttachment(String entityId, String createdBy, Date createdOn,
-			AttachmentData attachment) throws NotFoundException {
+	public S3FileHandle createFileHandleFromAttachmentIfExists(String entityId, String createdBy, Date createdOn, AttachmentData attachment)
+			throws NotFoundException {
 		if (attachment == null) {
 			throw new IllegalArgumentException("AttachmentData cannot be null");
 		}
@@ -878,7 +882,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			handle = fileHandleDao.createFile(handle);
 			return handle;
 		} catch (AmazonServiceException e) {
-			throw new NotFoundException(e);
+			if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
+				return null;
+			} else {
+				log.error("Unknown S3 error, handling as not found: " + e.getMessage(), e);
+				return null;
+			}
 		}
 	}
 

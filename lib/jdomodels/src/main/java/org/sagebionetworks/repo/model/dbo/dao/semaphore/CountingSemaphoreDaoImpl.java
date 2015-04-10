@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLockMaster;
 import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.BeanNameAware;
@@ -35,8 +36,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -134,19 +133,19 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		return doAttemptToAcquireLock(extraKey);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void releaseLock(String token) {
 		doReleaseLock(token, null);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void releaseLock(String token, String extraKey) {
 		doReleaseLock(token, extraKey);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void extendLockLease(String token) throws NotFoundException {
 		int count = jdbcTemplate.update(SQL_UPDATE_LOCK_TIMEOUT, clock.currentTimeMillis() + lockTimeoutMS, token);

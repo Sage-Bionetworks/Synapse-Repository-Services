@@ -39,7 +39,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -271,7 +270,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_SECRET_KEY, new SingleColumnRowMapper<String>(), principalId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(e);
+			throw new NotFoundException("");
 		}
 	}
 	

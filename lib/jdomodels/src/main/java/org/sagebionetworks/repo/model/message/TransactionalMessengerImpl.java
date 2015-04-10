@@ -182,19 +182,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private void registerHandlerIfNeeded(){
 		// Inspect the current handlers.
 		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
-		if(currentList.size() < 1){
-			// Add a new handler
-			transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
-		}else if(currentList.size() == 1){
-			// Validate that the handler is what we expected
-			TransactionSynchronization ts = currentList.get(0);
-			if(ts == null) throw new IllegalStateException("TransactionSynchronization cannot be null");
-			if(!(ts instanceof SynchronizationHandler)){
-				throw new IllegalStateException("Found an unknow TransactionSynchronization: "+ts.getClass().getName());
+		for (TransactionSynchronization sync : currentList) {
+			if (sync instanceof SynchronizationHandler) {
+				return;
 			}
-		}else{
-			throw new IllegalStateException("Expected one and only one TransactionSynchronization for this therad but found: "+currentList.size());
 		}
+		transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
 	}
 	
 	/**

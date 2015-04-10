@@ -160,12 +160,7 @@ public class EntityTypeConverterImplUnitTest {
 		LocationData data = new LocationData();
 		data.setPath(path);
 		when(mockLocationHelper.getS3KeyFromS3Url(path)).thenReturn(path);
-		try {
-			typeConverter.createFileHandleFromPath(new Study(), data);
-			fail("Should have failed");
-		} catch (NotFoundException e) {
-			assertTrue(e.getMessage().contains(path));
-		}
+		assertNull(typeConverter.createFileHandleFromPathIfExists(new Study(), data));
 	}
 	
 	@Test
@@ -208,7 +203,7 @@ public class EntityTypeConverterImplUnitTest {
 		LocationData data = new LocationData();
 		data.setPath(path);
 		// The call
-		S3FileHandle handle = typeConverter.createFileHandleFromPath(new Study(), data);
+		S3FileHandle handle = typeConverter.createFileHandleFromPathIfExists(new Study(), data);
 		assertNotNull(handle);
 		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
 		assertEquals(key, handle.getKey());
@@ -236,7 +231,7 @@ public class EntityTypeConverterImplUnitTest {
 		LocationData loc = new LocationData();
 		loc.setPath(path);
 		// The call
-		S3FileHandle handle = typeConverter.createFileHandleFromPath(new Study(), loc);
+		S3FileHandle handle = typeConverter.createFileHandleFromPathIfExists(new Study(), loc);
 		assertNotNull(handle);
 	}
 

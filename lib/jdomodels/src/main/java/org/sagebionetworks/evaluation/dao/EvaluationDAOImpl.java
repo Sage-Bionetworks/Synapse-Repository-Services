@@ -147,10 +147,14 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public Evaluation get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param);
-		Evaluation dto = new Evaluation();
-		copyDboToDto(dbo, dto);
-		return dto;
+		try {
+			EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param);
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			return dto;
+		} catch (NotFoundException e) {
+			throw new NotFoundException(EVALUATION_NOT_FOUND + id);
+		}
 	}
 	
 	@Override
@@ -225,7 +229,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, param);		
