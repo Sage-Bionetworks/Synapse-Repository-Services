@@ -334,19 +334,23 @@ public class AdministrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	public void throwException(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String exception, @RequestParam(required = true) Boolean inTransaction,
-			@RequestParam(required = true) Boolean inAfterTransaction) throws Throwable {
+			@RequestParam(required = true) Boolean inBeforeCommit) throws Throwable {
 		try {
-		if (inTransaction) {
-			if (inAfterTransaction) {
-				serviceProvider.getAdministrationService().throwExceptionTransactionalAfter(exception);
+			if (inTransaction) {
+				if (inBeforeCommit) {
+					serviceProvider.getAdministrationService().throwExceptionTransactionalBeforeCommit(exception);
+				} else {
+					serviceProvider.getAdministrationService().throwExceptionTransactional(exception);
+				}
 			} else {
-				serviceProvider.getAdministrationService().throwExceptionTransactional(exception);
+				serviceProvider.getAdministrationService().throwException(exception);
 			}
-		} else {
-			serviceProvider.getAdministrationService().throwException(exception);
-		}
 		} catch (Throwable t) {
 			t.printStackTrace();
+			if (!t.getClass().getName().equals(exception)) {
+				// this is an error, so return 200 which will make the test fail
+				return;
+			}
 			throw t;
 		}
 	}
