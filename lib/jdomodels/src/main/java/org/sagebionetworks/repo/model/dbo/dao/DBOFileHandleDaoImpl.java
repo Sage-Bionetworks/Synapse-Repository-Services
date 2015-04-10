@@ -177,13 +177,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(previewId != null && !doesExist(previewId)){
 			throw new NotFoundException("The previewId: "+previewId+" does not exist");
 		}
-
-		// Change the etag
-		String newEtag = UUID.randomUUID().toString();
-		simpleJdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
-
-		// Send the update message
-		transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
+		try{
+			// Change the etag
+			String newEtag = UUID.randomUUID().toString();
+			simpleJdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
+			
+			// Send the update message
+			transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
+			
+		} catch (DataIntegrityViolationException e){
+			throw new NotFoundException(e.getMessage());
+		}
 	}
 
 	/**
