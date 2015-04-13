@@ -270,8 +270,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		S3Object s3object;
 		try {
-			s3object = s3client.getObject(new GetObjectRequest(bucket, key, BooleanUtils.isTrue(externalS3StorageLocationSetting
-					.getIsRequesterPays())));
+			s3object = s3client.getObject(bucket, key);
 		} catch (AmazonServiceException e) {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
