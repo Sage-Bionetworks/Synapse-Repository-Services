@@ -5490,6 +5490,29 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends StorageLocationSetting> T getMyStorageLocationSetting(Long storageLocationId) throws SynapseException {
+		try {
+			String url = STORAGE_LOCATION + "/" + storageLocationId;
+			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), null);
+			return (T) createJsonObjectFromInterface(jsonObject, StorageLocationSetting.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public List<StorageLocationSetting> getMyStorageLocationSettings() throws SynapseException {
+		try {
+			String url = STORAGE_LOCATION;
+			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), null);
+			return ListWrapper.unwrap(new JSONObjectAdapterImpl(jsonObject), StorageLocationSetting.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	@Override
 	public UploadDestinationLocation[] getUploadDestinationLocations(String parentEntityId) throws SynapseException {
 		// Get the json for this entity as a list wrapper

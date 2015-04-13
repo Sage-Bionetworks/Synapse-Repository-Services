@@ -1849,6 +1849,24 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	/**
+	 * get an upload destination setting (owned by me)
+	 * 
+	 * @param storageLocationId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public <T extends StorageLocationSetting> T getMyStorageLocationSetting(Long storageLocationId) throws SynapseException;
+
+	/**
+	 * get a list of my upload destination settings
+	 * 
+	 * @param storageLocationId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public <T extends StorageLocationSetting> List<T> getMyStorageLocationSettings() throws SynapseException;
+
+	/**
 	 * get all upload destination locations for a container
 	 * 
 	 * @param parentEntityId

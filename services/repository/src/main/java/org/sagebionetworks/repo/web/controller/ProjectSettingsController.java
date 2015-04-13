@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -86,5 +87,23 @@ public class ProjectSettingsController extends BaseController {
 			@RequestBody StorageLocationSetting storageLocationSetting, HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException, IOException {
 		return serviceProvider.getProjectSettingsService().createStorageLocationSetting(userId, storageLocationSetting);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<StorageLocationSetting> getStorageLocationSettings(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException,
+			IOException {
+		return ListWrapper.wrap(serviceProvider.getProjectSettingsService().getMyStorageLocations(userId), StorageLocationSetting.class);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION_BY_ID }, method = RequestMethod.GET)
+	public @ResponseBody
+	StorageLocationSetting getStorageLocationSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException,
+			InvalidModelException, IOException {
+		return serviceProvider.getProjectSettingsService().getMyStorageLocation(userId, id);
 	}
 }

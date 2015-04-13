@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -23,4 +24,8 @@ public interface ProjectSettingsService {
 
 	StorageLocationSetting createStorageLocationSetting(Long userId, StorageLocationSetting storageLocationSetting)
 			throws DatastoreException, NotFoundException, IOException;
+
+	List<StorageLocationSetting> getMyStorageLocations(Long userId) throws DatastoreException, NotFoundException;
+
+	StorageLocationSetting getMyStorageLocation(Long userId, Long storageLocationId) throws DatastoreException, NotFoundException;
 }
