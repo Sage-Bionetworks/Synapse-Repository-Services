@@ -253,4 +253,69 @@ public class TransactionSettingsTest {
 		} catch (IllegalTransactionStateException e) {
 		}
 	}
+
+	@Test
+	public void validateTransactionIsolationIsRepeatableRead() {
+		final Long id = 2l;
+		final ThreadStepper stepper = new ThreadStepper(10);
+		transactionValidator.setStringNoTransaction(id, "none");
+		stepper.add(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				transactionValidator.required(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						transactionValidator.setStringNoTransaction(id, "write1");
+						return null;
+					}
+				});
+				stepper.stepDone("first write");
+				stepper.waitForStepDone("verify first write");
+				transactionValidator.required(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						transactionValidator.setStringNoTransaction(id, "write2");
+						return null;
+					}
+				});
+				stepper.stepDone("second write");
+				stepper.waitForStepDone("verify second write");
+				stepper.waitForStepDone("verify second write again");
+				transactionValidator.required(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						transactionValidator.setStringNoTransaction(id, "write3");
+						return null;
+					}
+				});
+				stepper.stepDone("third write");
+				stepper.waitForStepDone("verify third write");
+				return null;
+			}
+		});
+		stepper.add(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				transactionValidator.required(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						stepper.waitForStepDone("first write");
+						assertEquals("write1", transactionValidator.getString(id));
+						stepper.stepDone("verify first write");
+						stepper.waitForStepDone("second write");
+						assertEquals("write1", transactionValidator.getString(id));
+						stepper.stepDone("verify second write");
+						return null;
+					}
+				});
+				assertEquals("write2", transactionValidator.getString(id));
+				stepper.stepDone("verify second write again");
+				stepper.waitForStepDone("third write");
+				assertEquals("write3", transactionValidator.getString(id));
+				stepper.stepDone("verify third write");
+				return null;
+			}
+		});
+		stepper.run();
+	}
 }
