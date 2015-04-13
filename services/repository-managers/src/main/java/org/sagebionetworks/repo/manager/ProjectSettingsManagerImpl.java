@@ -212,7 +212,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			NotFoundException {
 		ValidateArgument.required(storageLocationId, "storageLocationId");
 		StorageLocationSetting setting = storageLocationDAO.get(storageLocationId);
-		if (userInfo.getId().equals(setting.getCreatedBy())) {
+		if (!userInfo.getId().equals(setting.getCreatedBy())) {
 			throw new UnauthorizedException("Only the creator can access storage location settings");
 		}
 		return setting;
