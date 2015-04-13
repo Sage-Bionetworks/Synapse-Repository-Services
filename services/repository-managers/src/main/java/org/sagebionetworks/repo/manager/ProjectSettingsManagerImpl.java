@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -41,6 +42,7 @@ import org.springframework.util.CollectionUtils;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
@@ -201,8 +203,23 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException,
+	public List<StorageLocationSetting> getMyStorageLocationSettings(UserInfo userInfo) throws DatastoreException, NotFoundException {
+		return storageLocationDAO.getByOwner(userInfo.getId());
+	}
+
+	@Override
+	public StorageLocationSetting getMyStorageLocationSetting(UserInfo userInfo, Long storageLocationId) throws DatastoreException,
 			NotFoundException {
+		ValidateArgument.required(storageLocationId, "storageLocationId");
+		StorageLocationSetting setting = storageLocationDAO.get(storageLocationId);
+		if (userInfo.getId().equals(setting.getCreatedBy())) {
+			throw new UnauthorizedException("Only the creator can access storage location settings");
+		}
+		return setting;
+	}
+
+	@Override
+	public StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException, NotFoundException {
 		if (storageLocationId == null) {
 			return null;
 		}
@@ -253,11 +270,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		S3Object s3object;
 		try {
-			s3object = s3client.getObject(bucket, key);
+			s3object = s3client.getObject(new GetObjectRequest(bucket, key, BooleanUtils.isTrue(externalS3StorageLocationSetting
+					.getIsRequesterPays())));
 		} catch (AmazonServiceException e) {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
-			} else if (AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
+			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
 						+ getExplanation(userProfile, bucket, key));
 			} else {

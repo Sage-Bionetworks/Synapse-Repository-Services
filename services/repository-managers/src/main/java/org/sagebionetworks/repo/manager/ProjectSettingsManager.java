@@ -35,6 +35,11 @@ public interface ProjectSettingsManager {
 	<T extends StorageLocationSetting> T updateStorageLocationSetting(UserInfo userInfo, T StorageLocationSetting) throws DatastoreException,
 			NotFoundException;
 
+	List<StorageLocationSetting> getMyStorageLocationSettings(UserInfo userInfo) throws DatastoreException, NotFoundException;
+
+	StorageLocationSetting getMyStorageLocationSetting(UserInfo userInfo, Long storageLocationId) throws DatastoreException,
+			NotFoundException;
+
 	StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException, NotFoundException;
 
 	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) throws DatastoreException,

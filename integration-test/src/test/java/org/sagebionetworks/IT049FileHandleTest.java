@@ -286,9 +286,18 @@ public class IT049FileHandleTest {
 		externalDestination.setUrl("https://not-valid");
 		externalDestination.setBanner("warning, at institute");
 		externalDestination.setDescription("not in synapse, this is");
-		externalDestination = synapse.createStorageLocationSetting(externalDestination);
-		projectSetting.setLocations(Lists.newArrayList(externalDestination.getStorageLocationId()));
 
+		List<StorageLocationSetting> settings = synapse.getMyStorageLocationSettings();
+		assertFalse(settings.contains(externalDestination));
+
+		externalDestination = synapse.createStorageLocationSetting(externalDestination);
+
+		settings = synapse.getMyStorageLocationSettings();
+		assertTrue(settings.contains(externalDestination));
+		StorageLocationSetting settingsClone = synapse.getMyStorageLocationSetting(externalDestination.getStorageLocationId());
+		assertEquals(externalDestination, settingsClone);
+
+		projectSetting.setLocations(Lists.newArrayList(externalDestination.getStorageLocationId()));
 		ProjectSetting created = synapse.createProjectSetting(projectSetting);
 		assertEquals(project.getId(), created.getProjectId());
 		assertEquals(ProjectSettingsType.upload, created.getSettingsType());
@@ -345,6 +354,9 @@ public class IT049FileHandleTest {
 
 		assertEquals(S3FileHandle.class, result.getClass());
 		assertEquals(externalS3Destination.getStorageLocationId(), result.getStorageLocationId());
+
+		File tmpFile = File.createTempFile(imageFile.getName(), ".tmp");
+		synapse.downloadFromFileHandleTemporaryUrl(result.getId(), tmpFile);
 
 		FileHandle result2 = synapse.createFileHandle(imageFile, myContentType, false, project.getId(), result.getStorageLocationId());
 		toDelete.add(result2);
