@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -50,9 +49,6 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.query.Condition;
@@ -69,23 +65,10 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
-import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.utils.HttpClientHelperException;
-import org.springframework.beans.TypeMismatchException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
-import org.springframework.dao.QueryTimeoutException;
-import org.springframework.dao.TransientDataAccessException;
+import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
+import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
+import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.support.HandlerMethodInvocationException;
-import org.springframework.web.util.NestedServletException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -105,7 +88,6 @@ public class IT500SynapseJavaClient {
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
 	
-	private static final int PREVIEW_TIMOUT = 10*1000;
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
 	private List<String> toDelete;
@@ -1610,81 +1592,24 @@ public class IT500SynapseJavaClient {
 	}
 
 
-	Object[][] testCodes = new Object[][] {
-			{ 503, new Object[] { DeadlockLoserDataAccessException.class } },
-			{ HttpStatus.ACCEPTED, new Object[] { TableUnavilableException.class, NotReadyException.class } },
-			{
-					HttpStatus.NOT_FOUND,
-					new Object[] { NotFoundException.class,
-							"org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMethodException",
-							ACLInheritanceException.class, EntityInTrashCanException.class } },
-			{ HttpStatus.SERVICE_UNAVAILABLE,
-					new Object[] { ServiceUnavailableException.class, QueryTimeoutException.class /* TransientDataAccessException */} },
-			{ HttpStatus.PRECONDITION_FAILED, new Object[] { ConflictingUpdateException.class } },
-			{ HttpStatus.FORBIDDEN, new Object[] { UnauthorizedException.class } },
-			{ HttpStatus.UNAUTHORIZED, new Object[] { UnauthenticatedException.class } },
-			{ HttpStatus.CONFLICT, new Object[] { NameConflictException.class } },
-			{
-					HttpStatus.BAD_REQUEST,
-					new Object[] { "org.springframework.web.bind.MissingServletRequestParameterException", AsynchJobFailedException.class,
-							IllegalArgumentException.class, InvalidModelException.class, TypeMismatchException.class,
-							JSONObjectAdapterException.class, EOFException.class, HandlerMethodInvocationException.class,
-							HttpMessageNotReadableException.class, ParseException.class, HttpClientHelperException.class } },
-			{ HttpStatus.NOT_ACCEPTABLE, new Object[] { "org.springframework.web.HttpMediaTypeNotAcceptableException" } },
-			{ HttpStatus.UNSUPPORTED_MEDIA_TYPE, new Object[] { "org.springframework.web.HttpMediaTypeNotSupportedException" } },
-			{
-					HttpStatus.INTERNAL_SERVER_ERROR,
-					new Object[] { DatastoreException.class, "javax.servlet.ServletException",
-							"org.springframework.web.util.NestedServletException", IllegalStateException.class, NullPointerException.class,
-							Exception.class } },
-			{ HttpStatus.FORBIDDEN, new Object[] { ParentInTrashCanException.class, TermsOfUseException.class } },
-			{ 429, new Object[] { TooManyRequestsException.class } } };
-
 	@Test
 	public void testReturnCodes() throws Exception {
-		Project project = new Project();
-		project.setName("p" + UUID.randomUUID());
-		project = adminSynapse.createEntity(project);
-		toDelete.add(project.getId());
-		Folder folder = new Folder();
-		folder.setName("folder");
-		folder.setParentId(project.getId());
-		folder = adminSynapse.createEntity(folder);
-		toDelete.add(folder.getId());
-		MessageToUser message = new MessageToUser();
-		// adminSynapse.sendMessage(message, folder.getId());
 		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
-		for (Object[] test : testCodes) {
-			int code ;
-			if(test[0]instanceof Integer){
-				code = (Integer) test[0];
-			}else if(test[0] instanceof HttpStatus){
-				code = ((HttpStatus) test[0]).value();
-			}else{
-				fail(test[0].getClass() + " not recognized");
-				code = 0;
-			}
-			Object[] exceptions = (Object[]) test[1];
-			for (Object exception : exceptions) {
-				boolean isRuntimeException = false;
-				String exceptionClassName = exception.toString();
-				if(exception instanceof Class){
-					Class<?> exceptionClass = (Class<?>) exception;
-					isRuntimeException = RuntimeException.class.isAssignableFrom(exceptionClass);
-					exceptionClassName = exceptionClass.getName();
-				}
+		for (TestEntry test : ExceptionHandlers.testEntries) {
+			for (ExceptionType exception : test.exceptions) {
+				String exceptionClassName = exception.concreteClassName != null ? exception.concreteClassName : exception.name;
 
 				int result = adminSynapse.throwException(exceptionClassName, true, false);
-				assertEquals("in transaction: " + exceptionClassName, code, result);
+				assertEquals("in transaction: " + exceptionClassName, test.statusCode, result);
 
-				if (isRuntimeException) {
-					// this test can handle runtime exceptions
+				// this test can only handle runtime exceptions, non-runtime exceptions will return
+				if (exception.isRuntimeException) {
 					result = adminSynapse.throwException(exceptionClassName, true, true);
-					assertEquals("after transaction: " + exceptionClassName, code, result);
+					assertEquals("after transaction: " + exceptionClassName, test.statusCode, result);
 				}
 
 				result = adminSynapse.throwException(exceptionClassName, false, false);
-				assertEquals("no transaction: " + exceptionClassName, code, result);
+				assertEquals("no transaction: " + exceptionClassName, test.statusCode, result);
 			}
 		}
 	}

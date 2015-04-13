@@ -765,13 +765,10 @@ public abstract class BaseController {
 	 * When the number of requests made to a particular service exceeds a threshold rate
 	 */
 	@ExceptionHandler(TooManyRequestsException.class)
+	@ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
 	public @ResponseBody
 	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
 			HttpServletRequest request, HttpServletResponse response) {
-		// Note: This older version of Spring lacks HttpStatus.TOO_MANY_REQUESTS
-		// Therefore, the status must be set manually
-		//TODO Change this method to match the other exception handlers when Spring is updated 
-		response.setStatus(429);
 		return handleException(ex, request, false);
 	}
 	
