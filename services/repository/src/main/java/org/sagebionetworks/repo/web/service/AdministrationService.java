@@ -208,5 +208,5 @@ public interface AdministrationService {
 	public void throwExceptionTransactional(String exception) throws Throwable;
 	public void doNothing() throws Throwable;
 	public void throwException(String exception) throws Throwable;
-	public void throwExceptionTransactionalAfter(String exception);
+	public void throwExceptionTransactionalBeforeCommit(String exception);
 }

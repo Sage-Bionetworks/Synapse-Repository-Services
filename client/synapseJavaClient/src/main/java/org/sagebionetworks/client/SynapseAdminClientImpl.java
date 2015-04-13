@@ -370,9 +370,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public int throwException(String exceptionClassName, boolean inTransaction, boolean inAfterTransaction) throws SynapseException {
-		String url = ADMIN + "/exception?exception=" + exceptionClassName + "&inTransaction=" + inTransaction + "&inAfterTransaction="
-				+ inAfterTransaction;
+	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException {
+		String url = ADMIN + "/exception?exception=" + exceptionClassName + "&inTransaction=" + inTransaction + "&inBeforeCommit="
+				+ inBeforeCommit;
 		try {
 			getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), new SharedClientConnection.ErrorHandler() {
 				@Override

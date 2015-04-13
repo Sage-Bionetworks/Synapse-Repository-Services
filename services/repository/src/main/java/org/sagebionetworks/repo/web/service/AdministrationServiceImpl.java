@@ -435,7 +435,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void throwExceptionTransactionalAfter(String exception) {
+	public void throwExceptionTransactionalBeforeCommit(String exception) {
 		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
 		TransactionSynchronizationStub handler = null;
 		for (TransactionSynchronization sync : currentList) {

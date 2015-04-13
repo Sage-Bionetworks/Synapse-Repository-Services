@@ -243,8 +243,8 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * 
 	 * @param exception
 	 * @param inTransaction
-	 * @param inAfterTransaction
+	 * @param inBeforeCommit
 	 * @throws SynapseException
 	 */
-	public int throwException(String exceptionClassName, boolean inTransaction, boolean inAfterTransaction) throws SynapseException;
+	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException;
 }
