@@ -33,8 +33,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
@@ -212,7 +212,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public MessageToUser createMessage(MessageToUser dto) {
 		DBOMessageContent content = new DBOMessageContent();
 		DBOMessageToUser info = new DBOMessageToUser();
@@ -268,7 +268,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void touch(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
@@ -277,7 +277,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void updateMessageTransmissionAsComplete(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
@@ -389,7 +389,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
 		createMessageStatus(messageId, userId, status);
 	}
@@ -419,7 +419,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public boolean updateMessageStatus_SameTransaction(MessageStatus status) {
 		return updateMessageStatus(status);
 	}

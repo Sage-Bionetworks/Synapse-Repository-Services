@@ -29,8 +29,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
@@ -104,7 +104,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		return results;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void replaceAnnotations(Annotations annotations) throws DatastoreException {
 		if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
@@ -146,7 +146,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAnnotationsByOwnerId(Long ownerId) {
 		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");

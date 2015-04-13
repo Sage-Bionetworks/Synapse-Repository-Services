@@ -10,8 +10,8 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
 
@@ -32,7 +32,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
 		// Check the username password combination
 		// This will throw an UnauthorizedException if invalid
@@ -54,7 +54,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Long checkSessionToken(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
@@ -74,13 +74,13 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void invalidateSessionToken(String sessionToken) {
 		authDAO.deleteSessionToken(sessionToken);
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void changePassword(Long principalId, String password) {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(principalId, passHash);
@@ -92,13 +92,13 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void changeSecretKey(Long principalId) {
 		authDAO.changeSecretKey(principalId);
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session getSessionToken(long principalId, DomainType domain) throws NotFoundException {
 		// Get the session token
 		Session session = authDAO.getSessionTokenIfValid(principalId, domain);
@@ -135,7 +135,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void setTermsOfUseAcceptance(Long principalId, DomainType domain, Boolean acceptance) {
 		if (domain == null) {
 			throw new IllegalArgumentException("Must provide a domain");

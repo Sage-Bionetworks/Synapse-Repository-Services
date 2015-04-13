@@ -42,8 +42,8 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -123,7 +123,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChangeMessage replaceChange(ChangeMessage change) {
 		if(change == null) throw new IllegalArgumentException("DBOChange cannot be null");
@@ -162,7 +162,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public List<ChangeMessage> replaceChange(List<ChangeMessage> batchDTO) throws TransientDataAccessException {
 		if(batchDTO == null) throw new IllegalArgumentException("Batch cannot be null");
@@ -176,7 +176,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		return resutls;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteChange(Long objectId, ObjectType type) {
 		if(objectId == null) throw new IllegalArgumentException("ObjectId cannot be null");
@@ -213,7 +213,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		return jdbcTemplate.queryForLong(SQL_SELECT_COUNT_CHANGE_NUMBER);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAllChanges() {
 		jdbcTemplate.update("DELETE FROM  "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" > -1");
@@ -234,7 +234,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean registerMessageSent(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Change cannot be null");

@@ -18,8 +18,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -199,7 +199,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	/**
 	 * This method is only available to the object owner or an admin
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException {
 		validateProfile(updated);
@@ -252,7 +252,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return projectHeaders;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public UserProfile createUserProfile(UserProfile profile) {
 		validateProfile(profile);

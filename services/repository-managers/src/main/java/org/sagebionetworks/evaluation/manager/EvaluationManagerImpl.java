@@ -29,8 +29,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationManagerImpl implements EvaluationManager {
 
@@ -56,7 +56,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	private SubmissionEligibilityManager submissionEligibilityManager;
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Evaluation createEvaluation(UserInfo userInfo, Evaluation eval) 
 			throws DatastoreException, InvalidModelException, NotFoundException {
 
@@ -170,7 +170,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Evaluation updateEvaluation(UserInfo userInfo, Evaluation eval)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		// validate arguments
@@ -205,7 +205,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteEvaluation(UserInfo userInfo, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);

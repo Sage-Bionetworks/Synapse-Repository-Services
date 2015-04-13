@@ -47,8 +47,8 @@ import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.AmazonErrorCodes;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -124,7 +124,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public LocationableTypeConversionResult convertOldTypeToNew(UserInfo user, String entityId) throws UnauthorizedException, DatastoreException, NotFoundException {
 		LocationableTypeConversionResult results = new LocationableTypeConversionResult();
@@ -362,7 +362,7 @@ public class EntityTypeConverterImpl implements EntityTypeConverter {
 	 * @throws IOException 
 	 * @throws UnsupportedEncodingException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public List<VersionData> createFileHandleForForEachVersion(UserInfo user, Entity entity) throws DatastoreException,
 			NotFoundException, UnsupportedEncodingException, IOException {

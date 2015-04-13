@@ -15,8 +15,8 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
@@ -128,7 +128,7 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#
 	 * addPrincipalAlias(java.lang.String, java.lang.Long)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addPrincipalAlias(String alias, Long principalId) {
 		String processed = preProcessToken(alias);
@@ -155,7 +155,7 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#
 	 * addPrincipalName(java.lang.String, java.lang.String, java.lang.Long)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addPrincipalName(String firstName, String lastName,
 			Long principalId) {

@@ -29,8 +29,8 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic implementation for a job status CRUD.
@@ -63,7 +63,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void truncateAllAsynchTableJobStatus() {
 		jdbcTemplate.update(TRUNCATE_ALL);
@@ -102,7 +102,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, jobId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setJobFailed(String jobId, Throwable error) {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
@@ -115,7 +115,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return newEtag;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");

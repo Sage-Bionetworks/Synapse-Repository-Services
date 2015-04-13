@@ -46,8 +46,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationDAOImpl implements EvaluationDAO {
 	
@@ -101,7 +101,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";	
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
 		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
 		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
@@ -209,7 +209,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void update(Evaluation dto)
 			throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException {
@@ -228,7 +228,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);

@@ -23,8 +23,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionStatusAnnotationsAsyncManager {
 
@@ -52,7 +52,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		return evalSubs.getEtag()!=null && evalSubs.getEtag().equals(submissionsEtag);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
@@ -60,7 +60,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
@@ -92,7 +92,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		annotationsDAO.replaceAnnotations(annoList);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
 		if (evalIdString == null) throw new IllegalArgumentException("Id cannot be null");

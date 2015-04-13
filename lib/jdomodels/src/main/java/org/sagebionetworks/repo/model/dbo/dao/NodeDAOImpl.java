@@ -51,8 +51,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -202,7 +202,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		PROJECT_ENTITY_TYPE = EntityType.getNodeTypeForClass(Project.class);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
@@ -286,7 +286,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		throw e;
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
@@ -336,7 +336,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return NodeUtils.copyFromJDO(jdo, rev);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean delete(String id) throws DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -347,7 +347,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException {
 		// Get the version in question
@@ -603,7 +603,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return currentTag;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
@@ -625,7 +625,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		dboBasicDao.update(revToUpdate);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
 
@@ -660,7 +660,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return list;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId)
 			throws NotFoundException, DatastoreException {
@@ -684,7 +684,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void changeNodeType(String nodeId, String newEtag, String newType) throws DatastoreException, NotFoundException {
 		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
@@ -767,7 +767,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return queryResults;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void afterPropertiesSet() throws Exception {
 
@@ -778,7 +778,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * This must occur in its own transaction.
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void boostrapAllNodeTypes() throws DatastoreException {
 		// Make sure all of the known types are there
@@ -1175,7 +1175,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return toReturn;
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean changeNodeParent(String nodeId, String newParentId, boolean isMoveToTrash) throws NumberFormatException,
 			NotFoundException, DatastoreException {

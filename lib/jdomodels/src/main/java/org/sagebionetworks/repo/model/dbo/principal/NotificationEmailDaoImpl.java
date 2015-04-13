@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	private static final String UPDATE_FOR_PRINCIPAL = "UPDATE "+TABLE_NOTIFICATION_EMAIL+
@@ -58,7 +58,7 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 		return dbo;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void create(PrincipalAlias dto) {
 		validateDTO(dto);
@@ -68,7 +68,7 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 		basicDao.createNew(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void update(PrincipalAlias dto) {
 		validateDTO(dto);

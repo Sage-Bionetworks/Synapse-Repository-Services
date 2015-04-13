@@ -54,7 +54,7 @@ import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvide
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Implementation for REST controller for CRUD operations on Entity DTOs and Entity
@@ -236,7 +236,7 @@ public class EntityServiceImpl implements EntityService {
 		return entityHeaders;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> T createEntity(Long userId, T newEntity, String activityId, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -290,7 +290,7 @@ public class EntityServiceImpl implements EntityService {
 		}
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> T updateEntity(Long userId,
 			T updatedEntity, boolean newVersion, String activityId, HttpServletRequest request)
@@ -315,7 +315,7 @@ public class EntityServiceImpl implements EntityService {
 		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEntity(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -327,7 +327,7 @@ public class EntityServiceImpl implements EntityService {
 		deleteEntity(userId, entityId, type.getClassForType());
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> void deleteEntity(Long userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -350,7 +350,7 @@ public class EntityServiceImpl implements EntityService {
 		return;
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEntityVersion(Long userId, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
@@ -362,7 +362,7 @@ public class EntityServiceImpl implements EntityService {
 		deleteEntityVersion(userId, entityId, versionNumber, type.getClassForType());
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> void deleteEntityVersion(Long userId, String id,
 			Long versionNumber, Class<? extends Entity> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException {
@@ -416,7 +416,7 @@ public class EntityServiceImpl implements EntityService {
 		return annotations;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Annotations updateEntityAnnotations(Long userId, String entityId,
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
@@ -451,7 +451,7 @@ public class EntityServiceImpl implements EntityService {
 		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList createEntityACL(Long userId, AccessControlList newACL,
 			HttpServletRequest request) throws DatastoreException,
@@ -475,7 +475,7 @@ public class EntityServiceImpl implements EntityService {
 		return acl;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList updateEntityACL(Long userId,
 			AccessControlList updated, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
@@ -488,7 +488,7 @@ public class EntityServiceImpl implements EntityService {
 		return acl;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList createOrUpdateEntityACL(Long userId,
 			AccessControlList acl, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
@@ -502,7 +502,7 @@ public class EntityServiceImpl implements EntityService {
 		}
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEntityACL(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
@@ -635,7 +635,7 @@ public class EntityServiceImpl implements EntityService {
 		return entityManager.getActivityForEntity(userInfo, entityId, versionNumber);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Activity setActivityForEntity(Long userId, String entityId,
 			String activityId, HttpServletRequest request)
@@ -648,7 +648,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteActivityForEntity(Long userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,

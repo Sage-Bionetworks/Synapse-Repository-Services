@@ -18,8 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Simple database backed implementation of SemaphoreDao.
@@ -48,7 +48,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 	
 	private TableMapping<DBOSemaphore> mapping = new DBOSemaphore().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String attemptToAcquireLock(String key, long timeoutMS) {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
@@ -99,7 +99,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean releaseLock(String key, String token) {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
@@ -109,7 +109,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 		return result == 1;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void forceReleaseAllLocks() {
 		// Set all locks to timeout
@@ -126,7 +126,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void refreshLockTimeout(String key, String token, long timeoutMS) {
 		// First validate the caller is still holding the lock

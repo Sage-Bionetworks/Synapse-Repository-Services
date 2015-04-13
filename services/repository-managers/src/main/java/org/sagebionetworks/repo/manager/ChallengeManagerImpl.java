@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class ChallengeManagerImpl implements ChallengeManager {
 	
@@ -68,7 +68,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			throw new InvalidModelException("Participant Team ID is required.");
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Challenge createChallenge(UserInfo userInfo, Challenge challenge) throws DatastoreException, NotFoundException {
 		validateChallenge(challenge);
@@ -78,7 +78,6 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return challengeDAO.create(challenge);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Challenge getChallenge(UserInfo userInfo, long challengeId)
 			throws DatastoreException, NotFoundException {
@@ -113,7 +112,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Challenge updateChallenge(UserInfo userInfo, Challenge challenge)
 			throws DatastoreException, NotFoundException {
@@ -124,7 +123,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return challengeDAO.update(challenge);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteChallenge(UserInfo userInfo, long challengeId)
 			throws DatastoreException, NotFoundException {
@@ -186,7 +185,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChallengeTeam createChallengeTeam(UserInfo userInfo,
 			ChallengeTeam challengeTeam) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -225,7 +224,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChallengeTeam updateChallengeTeam(UserInfo userInfo,
 			ChallengeTeam challengeTeam) throws DatastoreException,
@@ -236,7 +235,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return challengeTeamDAO.update(challengeTeam);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteChallengeTeam(UserInfo userInfo, long challengeTeamId)
 			throws NotFoundException, DatastoreException {

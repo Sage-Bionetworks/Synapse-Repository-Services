@@ -59,8 +59,8 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 /**
@@ -369,14 +369,14 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	// we want to test throwing exceptions from within a transaction
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void throwExceptionTransactional(String exception) throws Throwable {
 		throwException(exception);
 	}
 
 	// we want to test throwing exceptions from within a transaction
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void doNothing() {
 	}
 
@@ -434,7 +434,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void throwExceptionTransactionalBeforeCommit(String exception) {
 		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
 		TransactionSynchronizationStub handler = null;

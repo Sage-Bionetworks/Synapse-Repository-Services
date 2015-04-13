@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Provides Code specific metadata.
@@ -82,7 +82,7 @@ public class CodeMetadataProvider implements TypeSpecificMetadataProvider<Code>,
 	 * THIS SHOULD BE DELETED FOR ANALYSIS CLEANUP
 	 */
 	@Deprecated
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	private void updateProvenanceRecord(String stepId, Code entity,
 			UserInfo user, EventType eventType) {
 		

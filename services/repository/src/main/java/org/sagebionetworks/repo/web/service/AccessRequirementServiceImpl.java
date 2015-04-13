@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessRequirementServiceImpl implements AccessRequirementService {
 
@@ -26,7 +26,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessRequirement createAccessRequirement(Long userId, 
 			AccessRequirement accessRequirement) throws Exception {
@@ -36,7 +36,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessRequirement updateAccessRequirement(Long userId,
 			String accessRequirementId, AccessRequirement accessRequirement) throws Exception {
@@ -45,7 +45,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessRequirement createLockAccessRequirement(Long userId, 
 			String entityId) throws Exception {
@@ -105,7 +105,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 				false);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAccessRequirements(Long userId, String requirementId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException

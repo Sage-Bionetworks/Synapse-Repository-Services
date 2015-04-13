@@ -37,8 +37,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -134,7 +134,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Long create(StorageLocationSetting dto) {
 		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
@@ -149,7 +149,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	}
 
 	@SuppressWarnings("unchecked")
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends StorageLocationSetting> T update(T dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {

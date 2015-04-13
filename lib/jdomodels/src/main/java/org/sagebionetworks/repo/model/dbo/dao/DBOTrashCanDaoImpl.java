@@ -22,8 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
 
@@ -78,7 +78,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void create(String userGroupId, String nodeId, String nodeName, String parentId) throws DatastoreException {
 
@@ -232,7 +232,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String userGroupId, String nodeId)
 			throws DatastoreException, NotFoundException {

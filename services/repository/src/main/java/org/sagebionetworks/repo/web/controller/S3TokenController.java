@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,7 +51,6 @@ public class S3TokenController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	@Transactional(readOnly = false)
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY_S3TOKEN},
 			method = RequestMethod.POST)

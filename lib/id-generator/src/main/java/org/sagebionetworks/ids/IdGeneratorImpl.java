@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * This class creates domain unique ids using a MySql sequence via AUTO_INCREMENT of a primary key.
@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = false)
 public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
 	// Create table template

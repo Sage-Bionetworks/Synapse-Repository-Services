@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -34,6 +35,7 @@ public class S3TokenServiceImpl implements S3TokenService {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.S3TokenService#createEntityS3Token(java.lang.String, java.lang.String, org.sagebionetworks.repo.model.S3Token, javax.servlet.http.HttpServletRequest)
 	 */
+	@WriteTransaction
 	@Override
 	public S3Token createEntityS3Token(Long userId, String id, S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
