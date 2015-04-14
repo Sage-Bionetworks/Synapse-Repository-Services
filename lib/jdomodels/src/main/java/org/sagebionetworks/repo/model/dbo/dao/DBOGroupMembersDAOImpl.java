@@ -136,7 +136,6 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		userGroupDAO.touch(Long.parseLong(groupId));
 	}
 
-	@WriteTransaction
 	@Override
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException, NotFoundException {
