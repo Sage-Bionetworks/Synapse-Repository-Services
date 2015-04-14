@@ -40,8 +40,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
@@ -102,7 +102,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		return dbo;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -121,13 +121,13 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends FileHandle> T createFile(T fileHandle) {
 		return createFilePrivate(fileHandle, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated) {
 		return createFilePrivate(metadata, shouldPreviewBeGenerated);
@@ -166,7 +166,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setPreviewId(String fileId, String previewId) throws NotFoundException {
 		if(fileId == null) throw new IllegalArgumentException("FileId cannot be null");

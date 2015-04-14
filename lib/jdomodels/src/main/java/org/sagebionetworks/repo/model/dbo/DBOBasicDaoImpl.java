@@ -13,8 +13,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Provides basic CRUD operations for objects that implement DatabaseObject
@@ -92,7 +92,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException {
 		if(toCreate == null) throw new IllegalArgumentException("The object to create cannot be null");
@@ -101,7 +101,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return insert(toCreate, insertSQl);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)	
+	@WriteTransaction	
 	@Override
 	public <T extends DatabaseObject<T>> T createOrUpdate(T toCreate) throws DatastoreException {
 		// Lookup the insert SQL
@@ -131,7 +131,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
@@ -141,7 +141,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return batchUpdate(batch, insertSQl, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends DatabaseObject<T>> List<T> createOrUpdateBatch(
 			List<T> batch) throws DatastoreException {
@@ -191,7 +191,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 	
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends DatabaseObject<T>> boolean update(T toUpdate)	throws DatastoreException {
 		String sql = getUpdateSQL(toUpdate.getClass());
@@ -268,7 +268,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return simpleJdbcTemplate.queryForLong(countSql);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends DatabaseObject<T>> boolean deleteObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException {
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");

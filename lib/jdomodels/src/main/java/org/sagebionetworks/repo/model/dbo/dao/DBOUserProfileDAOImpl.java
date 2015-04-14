@@ -33,8 +33,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * @author brucehoff
@@ -80,7 +80,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	 * @see
 	 * org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -88,7 +88,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOUserProfile.class, param);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String create(UserProfile dto) throws DatastoreException,
 			InvalidModelException {
@@ -164,7 +164,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#update(UserProfile,
 	 * ObjectSchema)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public UserProfile update(UserProfile dto) throws DatastoreException,
 			InvalidModelException, NotFoundException,
@@ -207,7 +207,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void bootstrapProfiles() {
 		// Boot strap all users and groups
 		if (this.userGroupDAO.getBootstrapPrincipals() == null) {

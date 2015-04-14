@@ -58,14 +58,9 @@
 		</tx:attributes>
 	</tx:advice>
 
-	<!-- This advisor will be applied to any method with the @Transactional 
-		annotation. This allows us to change the default rollback exception types 
+	<!-- These advisor will be applied to any method with the @WriteTransaction, @NewWriteTransaction and 
+		@MandatoryWriteTransaction annotations. This allows us to change the default rollback exception types 
 		for all of our transactional methods -->
-	<aop:config>
-		<aop:pointcut id="defaultDao"
-			expression="@annotation(org.springframework.transaction.annotation.Transactional)" />
-		<aop:advisor pointcut-ref="defaultDao" advice-ref="defaultWriteTxRollbackAdvice" />
-	</aop:config>
 	<aop:config>
 		<aop:pointcut id="defaultWrites"
 			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransaction)" />

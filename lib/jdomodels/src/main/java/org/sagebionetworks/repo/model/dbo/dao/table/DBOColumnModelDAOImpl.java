@@ -46,8 +46,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Sets;
 
@@ -123,7 +123,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return jdbcTemplate.queryForObject(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT,new SingleColumnRowMapper<Long>(), likeString);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws DatastoreException, NotFoundException {
 		// Convert to the DBO
@@ -150,14 +150,14 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return ColumnModelUtils.createDTOFromDBO(dbo);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public int deleteColumModel(String id) {
 		if(id == null) throw new IllegalArgumentException("id cannot be null");
 		return jdbcTemplate.update(SQL_DELETE_COLUMN_MODEL, id);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public int unbindAllColumnsFromObject(String objectIdString) {
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
@@ -167,13 +167,13 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return jdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, objectId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteOwner(String objectId) {
 		basicDao.deleteObjectByPrimaryKey(DBOBoundColumnOwner.class, new SinglePrimaryKeySqlParameterSource(KeyFactory.stringToKey(objectId)));
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
@@ -255,7 +255,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean truncateAllColumnData() {
 		int count = jdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMN_ORDINAL);
@@ -346,7 +346,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return builder.toString();
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String lockOnOwner(String objectIdString) {
 		Long objectId = KeyFactory.stringToKey(objectIdString);

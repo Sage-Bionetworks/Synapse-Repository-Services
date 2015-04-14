@@ -12,8 +12,8 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * This is a simple DAO like object used to test the transaction settings.
@@ -33,7 +33,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	/**
 	 * Set the value then throw the given exception
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setString(Long id, String value, Throwable toThrow)throws Throwable {
 		// Insert
@@ -60,7 +60,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 		return callable.call();
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String required(Callable<String> callable) throws Exception {
 		return callable.call();

@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.WikiModelTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class WikiServiceImpl implements WikiService {
 	
@@ -36,7 +36,7 @@ public class WikiServiceImpl implements WikiService {
 	@Autowired
 	FileHandleManager fileHandleManager;
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public WikiPage createWikiPage(Long userId, String objectId, ObjectType objectType, WikiPage toCreate) throws DatastoreException, NotFoundException, IOException {
 		// Resolve the userID
@@ -56,7 +56,7 @@ public class WikiServiceImpl implements WikiService {
 		return wikiModelTranslationHelper.convertToWikiPage(wiki);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public WikiPage updateWikiPage(Long userId, String objectId,	ObjectType objectType, WikiPage toUpdate) throws DatastoreException, NotFoundException, IOException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -68,7 +68,7 @@ public class WikiServiceImpl implements WikiService {
 		return wikiModelTranslationHelper.convertToWikiPage(updated);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteWikiPage(Long userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);

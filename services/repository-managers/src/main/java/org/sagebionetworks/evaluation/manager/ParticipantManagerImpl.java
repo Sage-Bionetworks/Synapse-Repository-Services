@@ -19,8 +19,8 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class ParticipantManagerImpl implements ParticipantManager {
 
@@ -61,7 +61,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 
@@ -93,7 +93,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove)
 			throws DatastoreException, NotFoundException {
 

@@ -25,8 +25,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
@@ -76,7 +76,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		// By default we do not want to keep the etag
@@ -84,7 +84,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		addBeneficiary(beneficiaryId, toBenefactorId, keepOldEtag);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId,
 			boolean keepOldEtag) throws NotFoundException, DatastoreException {

@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  *
@@ -65,7 +65,7 @@ public class AnalysisMetadataProvider implements
 	 */
 	
 	@Deprecated
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	private void updateProvenanceRecord(String stepId, Analysis entity,
 			UserInfo user, EventType eventType) {
 

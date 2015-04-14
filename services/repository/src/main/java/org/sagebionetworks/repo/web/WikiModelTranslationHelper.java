@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -57,7 +57,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		this.tempFileProvider = tempFileProvider;
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiPage convertToV2WikiPage(WikiPage from, UserInfo userInfo) throws IOException, DatastoreException, NotFoundException {
 		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");

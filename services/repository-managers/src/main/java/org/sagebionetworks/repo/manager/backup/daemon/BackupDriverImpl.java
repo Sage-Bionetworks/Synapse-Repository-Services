@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * The Migration driver updates the progress and read/writes migration data to zip files.
@@ -102,7 +102,7 @@ public class BackupDriverImpl implements BackupDriver {
 		return true;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws Exception {
 		if (source == null)

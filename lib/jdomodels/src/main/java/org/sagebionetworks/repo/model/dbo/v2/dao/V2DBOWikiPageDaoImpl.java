@@ -71,8 +71,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -185,7 +185,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		}
 	};
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiPage create(V2WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException {
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
@@ -263,7 +263,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return dbo;
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiPage updateWikiPage(V2WikiPage wikiPage,
 			Map<String, FileHandle> fileNameToFileHandleMap, String ownerId,
@@ -324,7 +324,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiOrderHint updateOrderHint(V2WikiOrderHint orderHint, WikiPageKey key) throws NotFoundException {
 		if (key == null) throw new IllegalArgumentException("Key cannot be null");
@@ -596,7 +596,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return getRootWiki(KeyFactory.stringToKey(ownerId), ownerType);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(WikiPageKey key) {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
@@ -624,7 +624,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 * Propagation should be mandatory because this method should be called from within a transaction,
 	 * otherwise the lock won't be held. Not mandatory for testing.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)		
+	@WriteTransaction		
 	@Override																	
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
@@ -635,7 +635,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 * Propagation should be mandatory because this method should be called from within a transaction,
 	 * otherwise the lock won't be held. Not mandatory for testing.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override									
 	public String lockWikiOwnersForUpdate(String rootWikiId) {
 		// Lock the wiki owner row and return current Etag.

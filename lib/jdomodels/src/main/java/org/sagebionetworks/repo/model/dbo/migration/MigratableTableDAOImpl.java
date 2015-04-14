@@ -27,8 +27,8 @@ import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * This is a generic dao like DBOBasicDao that provides data migration functions for individual tables.
@@ -280,7 +280,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public int deleteObjectsById(MigrationType type, List<Long> idList) {
 		if (type == null) {
@@ -327,7 +327,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return page;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch) {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");

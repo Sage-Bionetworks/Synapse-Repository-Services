@@ -59,8 +59,8 @@ import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
@@ -204,7 +204,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		this.fallbackStrategy = fallbackStrategy;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public FileUploadResults uploadfiles(UserInfo userInfo,
 			Set<String> expectedParams, FileItemIterator itemIterator)
@@ -274,7 +274,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public S3FileHandle uploadFile(String userId, FileItemStream fis)
 			throws IOException, ServiceUnavailableException {
 		// Create a token for this file
@@ -346,7 +346,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return handle;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteFileHandle(UserInfo userInfo, String handleId)
 			throws DatastoreException {
@@ -459,7 +459,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ExternalFileHandle createExternalFileHandle(UserInfo userInfo,
 			ExternalFileHandle fileHandle) {
@@ -597,7 +597,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) throws DatastoreException,
 			NotFoundException {
@@ -845,7 +845,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * org.sagebionetworks.repo.manager.file.FileHandleManager#createFileHandleFromAttachmentifExists(java.lang.String,
 	 * java.util.Date, org.sagebionetworks.repo.model.attachment.AttachmentData)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle createFileHandleFromAttachmentIfExists(String entityId, String createdBy, Date createdOn, AttachmentData attachment)
 			throws NotFoundException {
@@ -912,7 +912,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
@@ -946,7 +946,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.createFile(handle, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle createNeverUploadedPlaceHolderFileHandle(
 			String createdBy, Date modifiedOn, String name) throws IOException {

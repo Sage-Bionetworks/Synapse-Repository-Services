@@ -48,8 +48,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -124,7 +124,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
@@ -216,7 +216,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
@@ -257,7 +257,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public BatchUploadResponse updateSubmissionStatusBatch(UserInfo userInfo, String evalId,
 			SubmissionStatusBatch batch) throws NotFoundException, ConflictingUpdateException {
 		
@@ -314,7 +314,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @return
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public SubmissionContributor addSubmissionContributor(UserInfo userInfo,
 			String submissionId, SubmissionContributor submissionContributor) {
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("This service is only available to Synapse administrators.");
@@ -326,7 +326,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		UserInfo.validateUserInfo(userInfo);
 		

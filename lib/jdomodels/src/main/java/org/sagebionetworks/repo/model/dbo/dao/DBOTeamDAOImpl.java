@@ -52,8 +52,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * @author brucehoff
@@ -164,7 +164,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#create(org.sagebionetworks.repo.model.Team)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Team create(Team dto) throws DatastoreException,
 	InvalidModelException {
@@ -265,7 +265,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#update(org.sagebionetworks.repo.model.Team)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Team update(Team dto) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -308,7 +308,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#delete(java.lang.String)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();

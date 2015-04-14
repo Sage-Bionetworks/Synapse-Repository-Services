@@ -47,8 +47,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -96,7 +96,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Autowired
 	TransactionalMessenger transactionalMessenger;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String create(AccessControlList acl, ObjectType ownerType) throws DatastoreException, NotFoundException {
 
@@ -219,7 +219,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		return acl;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void update(AccessControlList acl, ObjectType ownerType) throws DatastoreException, NotFoundException {
 
@@ -278,7 +278,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String ownerId, ObjectType ownerType) throws DatastoreException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);

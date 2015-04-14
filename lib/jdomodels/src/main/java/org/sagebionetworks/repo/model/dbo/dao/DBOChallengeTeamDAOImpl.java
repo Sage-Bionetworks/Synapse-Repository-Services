@@ -30,8 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Autowired
@@ -102,7 +102,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static TableMapping<DBOChallengeTeam> DBO_CHALLENGE_TEAM_TABLE_MAPPING =
 			(new DBOChallengeTeam()).getTableMapping();
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
 		validateChallengeTeam(dto);
@@ -165,7 +165,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		return dto;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChallengeTeam update(ChallengeTeam dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {
@@ -222,7 +222,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		return jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_COUNT, Long.class, challengeId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(long id) throws DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(id));

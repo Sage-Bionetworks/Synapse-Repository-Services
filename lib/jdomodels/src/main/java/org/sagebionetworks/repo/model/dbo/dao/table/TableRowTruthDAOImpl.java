@@ -52,8 +52,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
@@ -130,7 +130,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange()
 			.getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
 		if (tableIdString == null)
@@ -189,7 +189,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		s3Client.createBucket(s3Bucket);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public RowReferenceSet appendRowSetToTable(String userId, String tableId, ColumnModelMapper models, RawRowSet delta)
 			throws IOException {

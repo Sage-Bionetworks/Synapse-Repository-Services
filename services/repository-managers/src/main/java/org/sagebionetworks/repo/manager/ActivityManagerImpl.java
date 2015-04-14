@@ -18,8 +18,8 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class ActivityManagerImpl implements ActivityManager {
 	static private Log log = LogFactory.getLog(ActivityManagerImpl.class);
@@ -47,7 +47,7 @@ public class ActivityManagerImpl implements ActivityManager {
 
 	public ActivityManagerImpl() { }
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String createActivity(UserInfo userInfo, Activity activity)
 			throws DatastoreException, InvalidModelException {		
@@ -59,7 +59,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		return activityDAO.create(activity);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Activity updateActivity(UserInfo userInfo, Activity activity)
 			throws InvalidModelException, NotFoundException,
@@ -87,7 +87,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		return activityDAO.update(activity);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteActivity(UserInfo userInfo, String activityId) throws DatastoreException, UnauthorizedException {				
 		Activity activity;

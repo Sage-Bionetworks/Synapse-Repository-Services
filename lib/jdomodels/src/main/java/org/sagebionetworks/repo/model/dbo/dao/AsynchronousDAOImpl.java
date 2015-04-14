@@ -16,8 +16,8 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic implementation of the AsynchronousDAO.
@@ -63,7 +63,7 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	this.fileMetadataDao = fileMetadataDao;
 }
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean createEntity(String id) throws DatastoreException, NotFoundException {
 		// Replace all
@@ -71,7 +71,7 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		return true;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean updateEntity(String id) throws NotFoundException {
 		// Replace all
@@ -79,7 +79,7 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		return true;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean deleteEntity(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");

@@ -16,8 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOStorageQuotaDaoImpl implements StorageQuotaDao {
 
@@ -33,7 +33,7 @@ public class DBOStorageQuotaDaoImpl implements StorageQuotaDao {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setQuota(StorageQuota quota) {
 
