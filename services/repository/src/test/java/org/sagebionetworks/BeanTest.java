@@ -68,4 +68,27 @@ public class BeanTest implements ApplicationContextAware {
 		assertEquals(0, reflections.getTypesAnnotatedWith(Transactional.class).size());
 		assertEquals(0, reflections.getMethodsAnnotatedWith(Transactional.class).size());
 	}
+
+	private static final List<String> readMethodPrefixes = Lists.newArrayList("check", "get");
+	private static final List<String> exceptions = Lists.newArrayList("checkSessionToken", "getSessionToken", "getEtagForUpdate");
+
+	@Test
+	public void testNoGetterWriteTransactions() {
+		Reflections reflections = new Reflections("org.sagebionetworks", new MethodAnnotationsScanner());
+		Set<Method> writeMethods = reflections.getMethodsAnnotatedWith(WriteTransaction.class);
+		writeMethods.addAll(reflections.getMethodsAnnotatedWith(NewWriteTransaction.class));
+		writeMethods.addAll(reflections.getMethodsAnnotatedWith(MandatoryWriteTransaction.class));
+		Set<String> prefixes = Sets.newHashSet();
+		for (Method method : writeMethods) {
+			String prefix = method.getName().replaceAll("[A-Z].*$", "");
+			if (readMethodPrefixes.contains(prefix)) {
+				if (!exceptions.contains(method.getName())) {
+					fail("Possible read only method that has write transaction: " + method);
+				}
+			} else {
+				prefixes.add(prefix);
+			}
+		}
+		System.out.println("method prefixes for modifying methods: " + prefixes);
+	}
 }
