@@ -60,8 +60,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
-import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
@@ -78,8 +76,6 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -165,7 +161,28 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
-import org.sagebionetworks.repo.model.table.*;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
+import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -3537,82 +3554,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return paginated;
 	}
 
-	/**
-	 * Download the locationable to a tempfile
-	 * 
-	 * @param locationable
-	 * @return destination file
-	 * @throws SynapseException
-	 * @throws SynapseClientException
-	 */
-	@Deprecated
-	@Override
-	public File downloadLocationableFromSynapse(Locationable locationable)
-			throws SynapseException {
-		// TODO do the equivalent of the R client synapse cache and file naming
-		// scheme
-		File file;
-		try {
-			// from the Java doc
-			// prefix - The prefix string to be used in generating the file's
-			// name; must be at least three characters long
-			String prefix = locationable.getId();
-			if (prefix.length() < 3) {
-				prefix = "000".substring(prefix.length()) + prefix;
-			}
-			file = File.createTempFile(prefix, ".txt");
-			return downloadLocationableFromSynapse(locationable, file);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	/**
-	 * Download the locationable to the specified destination file using the
-	 * default location type
-	 * 
-	 * @param locationable
-	 * @param destinationFile
-	 * @return destination file
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public File downloadLocationableFromSynapse(Locationable locationable,
-			File destinationFile) throws SynapseException {
-		List<LocationData> locations = locationable.getLocations();
-		if ((null == locations) || (0 == locations.size())) {
-			throw new SynapseClientException(
-					"No locations available for locationable " + locationable);
-		}
-
-		// TODO if there are multiple locations for this locationable look in
-		// user
-		// preferences to download from the appropriate location (e.g., Sage
-		// Internal versus S3 versus GoogleStorage). For now we are just
-		// downloading from the first location
-		LocationData location = locations.get(0);
-		return downloadFromSynapse(location, locationable.getMd5(),
-				destinationFile);
-	}
-
-	/**
-	 * Download data from Synapse to the specified destination file given a
-	 * specific location from which to download
-	 * 
-	 * @param location
-	 * @param md5
-	 * @param destinationFile
-	 * @return destination file
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	@Override
-	public File downloadFromSynapse(LocationData location, String md5,
-			File destinationFile) throws SynapseException {
-		return downloadFromSynapse(location.getPath(), md5, destinationFile);
-	}
-
 	public File downloadFromSynapse(String path, String md5,
 			File destinationFile) throws SynapseException {
 		return getSharedClientConnection().downloadFromSynapse(path, md5,
@@ -3732,20 +3673,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return getSharedClientConnection().getJson(endpoint, uri,
 				getUserAgent());
-	}
-	
-	@Override
-	public String startLocationableTypeConvertJob(AsyncLocationableTypeConversionRequest request) throws SynapseException{
-		String url = "/entity/convertLocationable/start";
-		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, request,
-				AsyncJobId.class, null);
-		return jobId.getToken();
-	}
-	
-	@Override
-	public AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(String jobId) throws SynapseException{
-		String url = "/entity/convertLocationable/"+jobId;
-		return (AsyncLocationableTypeConversionResults) getAsynchJobResponse(url, AsyncLocationableTypeConversionResults.class);
 	}
 
 	@Override

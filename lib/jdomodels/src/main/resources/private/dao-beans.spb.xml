@@ -279,11 +279,6 @@
 		</property>
 	</bean>
 
-	<!-- The alias cache singleton -->
-	<bean id="alaisCache"
-		class="org.sagebionetworks.repo.model.query.jdo.NodeAliasCacheImpl"
-		depends-on="entityBootstrapper" />
-
 	<!-- The node query dao singleton -->
 	<bean id="nodeQueryDao"
 		class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl"

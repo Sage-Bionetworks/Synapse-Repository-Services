@@ -100,7 +100,7 @@ public class AclSnapshotWorkerIntegrationTest {
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedById);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String nodeId = nodeDao.createNew(node);
 		assertNotNull(nodeId);
 		node = nodeDao.getNode(nodeId);

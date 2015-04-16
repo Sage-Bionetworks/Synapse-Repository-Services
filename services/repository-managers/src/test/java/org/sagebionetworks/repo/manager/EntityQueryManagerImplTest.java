@@ -141,8 +141,8 @@ public class EntityQueryManagerImplTest {
 		map.put(EntityFieldName.benefactorId.name(), results.getBenefactorId());
 		map.put(EntityFieldName.projectId.name(), results.getProjectId());
 		
-		EntityType type = EntityType.getEntityType(results.getEntityType());
-		map.put("nodeType", new Integer( type.getId()));
+		EntityType type = EntityType.valueOf(results.getEntityType());
+		map.put("nodeType", type.name());
 		return map;
 	}
 }

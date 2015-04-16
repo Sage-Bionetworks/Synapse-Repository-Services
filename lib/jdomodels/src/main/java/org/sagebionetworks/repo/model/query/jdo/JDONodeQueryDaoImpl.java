@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.query.EntityType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -43,9 +44,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
-	@Autowired
-	private NodeAliasCache aliasCache;
+
 
 	/**
 	 * The maximum number of bytes allowed per query.
@@ -164,8 +163,10 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Add a filter on type if needed
 		if(in.getFrom() != null){
 			// Add the type to the filter
-			List<Short> ids = aliasCache.getAllNodeTypesForAlias(in.getFrom());
-			in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, ids));
+			if(!"entity".equals(in.getFrom().toLowerCase())){
+				EntityType type = EntityType.valueOf(in.getFrom().toLowerCase());
+				in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, type.name()));
+			}
 		}
 		// Filter out nodes in the trash can
 		in.addExpression(new Expression(new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName()), Comparator.NOT_EQUALS, TRASH_FOLDER_ID));

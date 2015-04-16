@@ -163,7 +163,7 @@ class NodeUtils {
 		jdo.setCreatedBy(dto.getCreatedByPrincipalId());
 		jdo.seteTag(KeyFactory.urlDecode(dto.getETag()));
 		jdo.setCurrentRevNumber(dto.getVersionNumber());
-		jdo.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
+		jdo.setType(dto.getNodeType().name());
 		if(dto.getParentId() != null){
 			jdo.setParentId(KeyFactory.stringToKey(dto.getParentId()));
 		}else{
@@ -202,8 +202,8 @@ class NodeUtils {
 		if(jdo.getEtag() != null){
 			dto.setETag(jdo.getEtag());
 		}
-		if(jdo.getNodeType() != null){
-			dto.setNodeType(EntityType.getTypeForId(jdo.getNodeType()).name());
+		if(jdo.getType() != null){
+			dto.setNodeType(EntityType.valueOf(jdo.getType()));
 		}
 		dto.setCreatedOn(new Date(jdo.getCreatedOn()));
 		dto.setCreatedByPrincipalId(jdo.getCreatedBy());

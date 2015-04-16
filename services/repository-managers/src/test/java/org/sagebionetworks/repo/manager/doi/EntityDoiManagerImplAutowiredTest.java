@@ -101,7 +101,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testRoundTrip()";
 		node.setName(nodeName);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		toClearList.add(nodeId);
 		assertNotNull(nodeId);
@@ -154,7 +154,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testRoundTrip()";
 		node.setName(nodeName);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		toClearList.add(nodeId);
 		assertNotNull(nodeId);
@@ -207,7 +207,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testRetryableOnError()";
 		node.setName(nodeName);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		toClearList.add(nodeId);
 		assertNotNull(nodeId);

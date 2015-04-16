@@ -75,7 +75,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
-		userProfile = convertAttachemtns(userProfile);
 		List<PrincipalAlias> aliases = principalAliasDAO.
 				listPrincipalAliases(Long.parseLong(ownerId));
 		userProfile.setEmails(new ArrayList<String>());
@@ -97,48 +96,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		} else {
 			throw new IllegalStateException("Expected user name, email or open id but found "+alias.getType());
 		}
-	}
-
-	/**
-	 *  Convert old style attachment pictures to files handles as needed.
-	 * @param profiles
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws ConflictingUpdateException
-	 * @throws NotFoundException
-	 */
-	private List<UserProfile> convertAttachemtns(List<UserProfile> profiles) throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException{
-		List<UserProfile> list = new LinkedList<UserProfile>();
-		for(UserProfile profile: profiles){
-			list.add(convertAttachemtns(profile));
-		}
-		return list;
-	}
-	
-	/**
-	 * Convert old style attachment pictures to files handles as needed.
-	 * @param profile
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws ConflictingUpdateException
-	 * @throws NotFoundException
-	 */
-	private UserProfile convertAttachemtns(UserProfile profile) throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException{
-		if(profile.getPic() == null){
-			// nothing do to here.
-			return profile;
-		}
-		// We need to convert from an attachment to an S3FileHandle
-		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachmentIfExists(profile.getOwnerId(), profile.getOwnerId(),
-				new Date(), profile.getPic());
-		// clear the pic, set the filehandle.
-		profile.setPic(null);
-		if(handle != null){
-			profile.setProfilePicureFileHandleId(handle.getId());
-		}
-		return userProfileDAO.update(profile);
 	}
 	
 	/**
@@ -177,7 +134,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
-		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
@@ -192,7 +148,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 */
 	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
 		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
-		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);
 	}

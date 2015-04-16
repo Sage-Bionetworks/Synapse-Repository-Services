@@ -186,7 +186,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setId("5678");
 		node.setParentId("1234");
 		node.setETag("0");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setDescription("Test annotations");
 		Long nonexistantPrincipalId = 42L;
 		node.setCreatedByPrincipalId(nonexistantPrincipalId);
@@ -325,7 +325,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setId("5678");
 		node.setParentId("1234");
 		node.setETag("0");
-		node.setNodeType(EntityType.step.name());
+		node.setNodeType(EntityType.folder);
 		node
 				.setDescription("For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA).");
 		Long nonexistantPrincipalId = 42L;

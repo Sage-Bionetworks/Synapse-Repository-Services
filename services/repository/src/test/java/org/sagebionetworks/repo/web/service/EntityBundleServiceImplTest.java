@@ -3,7 +3,8 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -27,12 +28,12 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -54,8 +55,8 @@ public class EntityBundleServiceImplTest {
 	private WikiService mockWikiService;
 	
 	private Project project;
-	private Study study;
-	private Study studyWithId;
+	private Folder study;
+	private Folder studyWithId;
 	private Annotations annos;
 	private AccessControlList acl;
 	
@@ -86,12 +87,12 @@ public class EntityBundleServiceImplTest {
 		project.setName(DUMMY_PROJECT);
 		project.setEntityType(project.getClass().getName());
 		
-		study = new Study();
+		study = new Folder();
 		study.setName(DUMMY_STUDY_1);
 		study.setEntityType(study.getClass().getName());
 		study.setParentId(project.getId());
 		
-		studyWithId = new Study();
+		studyWithId = new Folder();
 		studyWithId.setName(DUMMY_STUDY_1);
 		studyWithId.setEntityType(study.getClass().getName());
 		studyWithId.setParentId(project.getId());
@@ -139,7 +140,7 @@ public class EntityBundleServiceImplTest {
 		ebc.setAccessControlList(acl);
 		
 		EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, activityId, null);		
-		Study s2 = (Study) eb.getEntity();
+		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
 		
@@ -182,7 +183,7 @@ public class EntityBundleServiceImplTest {
 
 		EntityBundle eb = entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, ebc, activityId, null);
 		
-		Study s2 = (Study) eb.getEntity();
+		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
 		

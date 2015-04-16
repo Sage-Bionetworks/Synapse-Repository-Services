@@ -12,20 +12,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -35,8 +31,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.ActivityService;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * This is an integration test for the ActivityController.
@@ -150,13 +144,13 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 		proj.setEntityType(Project.class.getName());
 		proj = entityService.createEntity(userId, proj, null, mockRequest);
 		entityIdsToDelete.add(proj.getId());
-		Data entity1 = new Data();
-		entity1.setEntityType(Data.class.getName());
+		Folder entity1 = new Folder();
+		entity1.setEntityType(Folder.class.getName());
 		entity1.setParentId(proj.getId());
 		entity1 = entityService.createEntity(userId, entity1, act.getId(), mockRequest);
 		entityIdsToDelete.add(entity1.getId());
-		Data entity2 = new Data();
-		entity2.setEntityType(Data.class.getName());
+		Folder entity2 = new Folder();
+		entity2.setEntityType(Folder.class.getName());
 		entity2.setParentId(proj.getId());
 		entity2 = entityService.createEntity(userId, entity2, act.getId(), mockRequest);
 		entityIdsToDelete.add(entity2.getId());
@@ -175,12 +169,12 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 		
 		Reference ref1 = new Reference();
 		ref1.setTargetId(entity1.getId());
-		ref1.setTargetVersionNumber(entity1.getVersionNumber());
+		ref1.setTargetVersionNumber(0L);
 		assertTrue(refs.contains(ref1));
 
 		Reference ref2 = new Reference();
 		ref2.setTargetId(entity2.getId());
-		ref2.setTargetVersionNumber(entity2.getVersionNumber());
+		ref2.setTargetVersionNumber(0L);
 		assertTrue(refs.contains(ref2));
 
 	}

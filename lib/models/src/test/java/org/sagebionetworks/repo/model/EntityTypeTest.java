@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -28,16 +27,6 @@ public class EntityTypeTest {
 		}
 	}
 	
-	@Test
-	public void testGetId(){
-		EntityType[] values = EntityType.values();
-		assertNotNull(values);
-		HashSet<Short> ids = new HashSet<Short>();
-		for(EntityType type: values){
-			assertTrue(ids.add(type.getId()));
-		}
-		assertEquals(values.length, ids.size());
-	}
 		
 	@Test
 	public void testGetNodeTypeForClass(){
@@ -45,16 +34,6 @@ public class EntityTypeTest {
 		for(EntityType type: array){
 			assertNotNull(type.getClassForType());
 			EntityType result = EntityType.getNodeTypeForClass(type.getClassForType());
-			assertEquals(type, result);
-		}
-	}
-	
-	@Test
-	public void testGetTypeForId(){
-		EntityType[] array = EntityType.values();
-		for(EntityType type: array){
-			assertNotNull(type.getId());
-			EntityType result = EntityType.getTypeForId(type.getId());
 			assertEquals(type, result);
 		}
 	}

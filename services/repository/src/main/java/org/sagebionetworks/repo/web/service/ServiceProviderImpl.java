@@ -26,8 +26,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private NodeQueryService nodeQueryService;
 	@Autowired
-	private S3TokenService s3TokenService;
-	@Autowired
 	private StorageUsageService storageUsageService;
 	@Autowired
 	private UserGroupService userGroupService;
@@ -94,9 +92,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public NodeQueryService getNodeQueryService() {
 		return nodeQueryService;
-	}
-	public S3TokenService getS3TokenService() {
-		return s3TokenService;
 	}
 	public StorageUsageService getStorageUsageService() {
 		return storageUsageService;

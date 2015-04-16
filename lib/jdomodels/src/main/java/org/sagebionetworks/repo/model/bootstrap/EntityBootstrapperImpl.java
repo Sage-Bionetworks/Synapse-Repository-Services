@@ -26,10 +26,9 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * 
@@ -106,8 +105,6 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		groupMembersDAO.bootstrapGroups();
 		authDAO.bootstrapCredentials();
 		
-		// First make sure the nodeDao has been bootstrapped
-		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
 		// Map the default users to their ids
 		// Now create a node for each type in the list
@@ -136,7 +133,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setParentId(parentId);
 			toCreate.setDescription(entityBoot.getEntityDescription());
 			if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
-			toCreate.setNodeType(entityBoot.getEntityType().name());
+			toCreate.setNodeType(entityBoot.getEntityType());
 			toCreate.setCreatedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 			toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
 			toCreate.setModifiedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

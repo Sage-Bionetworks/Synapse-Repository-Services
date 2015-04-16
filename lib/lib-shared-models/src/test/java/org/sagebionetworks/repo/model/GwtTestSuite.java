@@ -82,26 +82,6 @@ public class GwtTestSuite extends GWTTestCase {
 		assertEquals(entityBundle, clone);		
 	}
 	
-	/**
-	 * Make sure we can load the register
-	 * @throws JSONObjectAdapterException 
-	 * @throws UnsupportedEncodingException 
-	 */
-	@Test
-	public void testRegister() throws JSONObjectAdapterException, UnsupportedEncodingException {
-		RegisterConstants constants = GWT.create(RegisterConstants.class);
-		// Load the Regiseter json
-		GwtAdapterFactory factory = new GwtAdapterFactory();
-		String base64String = constants.getRegisterJson();
-		String decoded =  new String(Base64.decodeBase64(base64String.getBytes("UTF-8")), "UTF-8");
-		assertNotNull(decoded);
-		// Decode it
-		JSONObjectAdapter adapter = factory.createNew(decoded);
-		assertTrue(adapter.has("entityTypes"));
-		EntityRegistry registry = new EntityRegistry();
-		registry.initializeFromJSONObject(adapter);
-	}	
-	
 	@Test
 	public void serviceConstantsTest() throws JSONObjectAdapterException, UnsupportedEncodingException{
 		assertNotNull(ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE);

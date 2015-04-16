@@ -7,36 +7,29 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class EntityBundleControllerTest extends AbstractAutowiredControllerTestBase {
 	
@@ -98,18 +91,18 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		String id = p2.getId();
 		toDelete.add(id);
 		
-		Study s1 = new Study();
+		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
-		s1 = (Study) entityServletHelper.createEntity(s1, adminUserId, null);
+		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
 		
-		Study s2 = new Study();
+		Folder s2 = new Folder();
 		s2.setName(DUMMY_STUDY_2);
 		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
-		s2 = (Study) entityServletHelper.createEntity(s2, adminUserId, null);
+		s2 = (Folder) entityServletHelper.createEntity(s2, adminUserId, null);
 		toDelete.add(s2.getId());
 		
 		// Get/add/update annotations for this entity
@@ -165,92 +158,23 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		String id = p2.getId();
 		toDelete.add(id);
 		
-		Study s1 = new Study();
+		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
-		s1 = (Study) entityServletHelper.createEntity(s1, adminUserId, null);
+		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
 		
 		// Get the bundle, verify contents
 		int mask =  EntityBundle.ENTITY | 
 					EntityBundle.ACL;
 		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), mask, adminUserId);
-		Study s2 = (Study) eb.getEntity();
+		Folder s2 = (Folder) eb.getEntity();
 		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
 		assertEquals(s1, s2);
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNull("AccessControlList is inherited; should have been null in bundle.", acl);
-	}
-		
-	/**
-	 * Test that proper versions are returned
-	 */
-	@Test
-	public void testGetEntityBundleForVersion() throws Exception {		
-		// Create an entity
-		Project p = new Project();
-		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
-		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
-		String parentId = p2.getId();
-		toDelete.add(parentId);
-		
-		Data d1 = new Data();
-		d1.setName("Dummy Data 1");
-		d1.setParentId(parentId);
-		d1.setEntityType(d1.getClass().getName());
-		LocationData d1Location = new LocationData();
-		d1Location.setPath("fakepath");
-		d1Location.setType(LocationTypeNames.external);		
-		d1.setLocations(Arrays.asList(new LocationData[] { d1Location }));
-		d1.setMd5("c88c3db97754be31f9242eb3c08382ee");
-		d1 = (Data) entityServletHelper.createEntity(d1, adminUserId, null);
-		toDelete.add(d1.getId());
-		
-		// Get/add/update annotations for this entity
-		Annotations a1 = entityServletHelper.getEntityAnnotations(d1.getId(), adminUserId);
-		a1.addAnnotation("v1", new Long(1));
-		a1 = entityServletHelper.updateAnnotations(a1, adminUserId);
-		a1 = entityServletHelper.getEntityAnnotations(d1.getId(), adminUserId);
-	
-		// create 2nd version of entity and annotations
-		d1 = (Data) entityServletHelper.getEntity(d1.getId(), adminUserId);
-		d1Location = new LocationData();
-		d1Location.setPath("fakepath_2");
-		d1Location.setType(LocationTypeNames.external);		
-		d1.setLocations(Arrays.asList(new LocationData[] { d1Location }));
-		d1.setMd5("c88c3db97754be31f9242eb3c08382e0");
-		entityServletHelper.updateEntity(d1, adminUserId);
-		// Get/add/update annotations for this entity
-		Annotations a2 = entityServletHelper.getEntityAnnotations(d1.getId(), adminUserId);
-		a2.addAnnotation("v2", new Long(2));
-		a2 = entityServletHelper.updateAnnotations(a2, adminUserId);
-		a2 = entityServletHelper.getEntityAnnotations(d1.getId(), adminUserId);
-		
-		int mask =  EntityBundle.ENTITY | 
-					EntityBundle.ANNOTATIONS |
-					EntityBundle.ENTITY_REFERENCEDBY;
-		// Get the bundle for version 1, verify contents
-		Long versionNumber = new Long(1);
-		EntityBundle eb = entityServletHelper.getEntityBundleForVersion(d1.getId(), versionNumber, mask, adminUserId);
-		Data d2 = (Data) eb.getEntity();
-		assertEquals(versionNumber, d2.getVersionNumber());
-		
-		Annotations a3 = eb.getAnnotations();
-		assertTrue(a3.getLongAnnotations().containsKey("v1"));
-		assertFalse(a3.getLongAnnotations().containsKey("v2"));
-		
-		// Get the bundle for version 2, verify contents
-		versionNumber = new Long(2);
-		EntityBundle eb2 = entityServletHelper.getEntityBundleForVersion(d1.getId(), versionNumber, mask, adminUserId);
-		d2 = (Data) eb2.getEntity();
-		assertEquals(versionNumber, d2.getVersionNumber());
-		
-		a3 = eb2.getAnnotations();
-		assertTrue(a3.getLongAnnotations().containsKey("v1"));
-		assertTrue(a3.getLongAnnotations().containsKey("v2"));	
 	}
 	
 	@Test

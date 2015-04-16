@@ -166,7 +166,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				EntityHeader referrer = new EntityHeader();
 				referrer.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 				referrer.setName(rs.getString(COL_NODE_NAME));
-				referrer.setType(EntityType.getTypeForId((short)rs.getInt(COL_NODE_TYPE)).name());
+				referrer.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)).name());
 				results.add(referrer);
 				return referrer;
 			}

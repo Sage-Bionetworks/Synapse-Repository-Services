@@ -10,9 +10,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
@@ -103,9 +103,9 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	public void testPostWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Study child = new Study();
+		Folder child = new Folder();
 		child.setParentId(sampleProject.getId());
-		Study fetched = servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+		Folder fetched = servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
 		assertNotNull(fetched);
 	}
 	

@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
-import org.sagebionetworks.repo.manager.EntityTypeConverter;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -31,14 +29,13 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.QueryUtils;
@@ -53,8 +50,6 @@ import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Implementation for REST controller for CRUD operations on Entity DTOs and Entity
@@ -88,8 +83,6 @@ public class EntityServiceImpl implements EntityService {
 	private AllTypesValidator allTypesValidator;
 	@Autowired
 	FileHandleManager fileHandleManager;
-	@Autowired
-	EntityTypeConverter entityTypeConverter;
 	
 	public EntityServiceImpl(){}
 
@@ -148,7 +141,7 @@ public class EntityServiceImpl implements EntityService {
 	public Entity getEntity(Long userId, String id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityHeader header = entityManager.getEntityHeader(userInfo, id, null);
-		EntityType type = EntityType.getEntityType(header.getType());
+		EntityType type = EntityType.valueOf(header.getType());
 		return getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
 	}
 	/**
@@ -557,18 +550,6 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
-	
-	@Override
-	public S3AttachmentToken createS3AttachmentToken(Long userId, String entityId,
-			S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException {
-		return entityManager.createS3AttachmentToken(userId, entityId, token);
-	}
-
-	@Override
-	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
-			String tokenId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		return entityManager.getAttachmentUrl(userId, entityId, tokenId);
-	}
 
 	/**
 	 * First, execute the given query to determine the nodes that match the criteria.
@@ -732,14 +713,6 @@ public class EntityServiceImpl implements EntityService {
 		List<String> idsList = new LinkedList<String>();
 		idsList.add(fileHandleId);
 		return fileHandleManager.getAllFileHandles(idsList, true);
-	}
-
-	@Override
-	public LocationableTypeConversionResult convertLocationable(Long userId, String entityId) throws NotFoundException {
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		if(entityId == null) throw new IllegalArgumentException("Entity cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityTypeConverter.convertOldTypeToNew(userInfo, entityId);
 	}
 
 }

@@ -208,13 +208,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(node.getNodeType())) 
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		
 		return certifiedUserHasAccess(parentId, CREATE, userInfo);
 	}
-
-	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
 	
 	/**
 	 * 
@@ -230,7 +228,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
 				(accessType==CREATE ||
-				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))))
+				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, accessType, userInfo);
@@ -387,7 +385,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				!nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))
+				!nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);

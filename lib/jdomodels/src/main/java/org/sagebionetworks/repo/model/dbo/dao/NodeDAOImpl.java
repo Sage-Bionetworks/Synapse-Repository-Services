@@ -1,6 +1,39 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REFS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.io.IOException;
 import java.sql.Blob;
@@ -14,23 +47,39 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeParentRelation;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
@@ -41,6 +90,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -51,8 +101,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -78,7 +126,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R."+COL_REVISION_ANNOS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER;
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
-	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -180,8 +227,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 
-	private EntityType PROJECT_ENTITY_TYPE;
-
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
@@ -196,11 +241,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
-
-	@PostConstruct
-	private void getProjectEntityType() {
-		PROJECT_ENTITY_TYPE = EntityType.getNodeTypeForClass(Project.class);
-	}
 
 	@WriteTransaction
 	@Override
@@ -230,7 +270,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
-		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
+		node.setType(dto.getNodeType().name());
 
 		DBONode parent = null;
 		// Set the parent and benefactor
@@ -249,7 +289,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		if (node.getProjectId() == null) {
 			// we need to find the project id for this node if possible
-			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
+			if (EntityType.project.name().equals(node.getType())) {
 				// we are our own project
 				node.setProjectId(node.getId());
 			} else if (parent != null) {
@@ -683,17 +723,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} 
 		
 	}
-
-	@WriteTransaction
-	@Override
-	public void changeNodeType(String nodeId, String newEtag, String newType) throws DatastoreException, NotFoundException {
-		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		DBONode jdo =  getNodeById(nodeIdLong);
-		jdo.seteTag(newEtag);
-		jdo.setNodeType(EntityType.valueOf(newType).getId());
-		jdo.setDescription(null);
-		dboBasicDao.update(jdo);
-	}
 	
 	@Override
 	public long getVersionCount(String entityId) throws NotFoundException,
@@ -771,44 +800,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 
-	}
-	
-	
-	/**
-	 * This must occur in its own transaction.
-	 * @throws DatastoreException 
-	 */
-	@WriteTransaction
-	@Override
-	public void boostrapAllNodeTypes() throws DatastoreException {
-		// Make sure all of the known types are there
-		EntityType[] types = EntityType.values();
-		for (EntityType type : types) {
-			// Try to get the type.
-			// If the type does not already exist then an exception will be thrown
-			DBONodeType jdo = getNodeType(type);
-			if (jdo == null) {
-				// The type does not exist so create it.
-				jdo = new DBONodeType();
-				jdo.setId(type.getId());
-				jdo.setName(type.name());
-				dboBasicDao.createNew(jdo);
-				// Create the aliases for this type.
-				for (String aliasString : type.getAllAliases()) {
-					DBONodeTypeAlias alias = new DBONodeTypeAlias();
-					alias.setTypeOwner(type.getId());
-					alias.setAlias(aliasString);
-					dboBasicDao.createNew(alias);
-				}
-			}
-		}
-	}
-
-	private DBONodeType getNodeType(EntityType type) throws DatastoreException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("id", type.getId());
-		params.addValue("name", type.name());
-		return dboBasicDao.getObjectByPrimaryKeyIfExists(DBONodeType.class, params);
 	}
 
 	@Override
@@ -911,7 +902,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		header.setName(ptn.getName());
 		header.setVersionNumber(versionNumber);
 		header.setVersionLabel(versionLabel);
-		EntityType type = EntityType.getTypeForId(ptn.getType());
+		EntityType type = ptn.getType();
 		header.setType(type.getEntityType());
 		return header;
 	}
@@ -929,7 +920,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			results.setId((Long) row.get(COL_NODE_ID));
 			results.setName((String) row.get(COL_NODE_NAME));
 			results.setParentId((Long) row.get(COL_NODE_PARENT_ID));
-			results.setType(((Integer) row.get(COL_NODE_TYPE)).shortValue());
+			results.setType(EntityType.valueOf((String) row.get(COL_NODE_TYPE)));
 			return results;
 		}catch(EmptyResultDataAccessException e){
 			// Occurs if there are no results
@@ -961,7 +952,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			ptn.setId(id);
 			ptn.setName((String)row.get(COL_NODE_NAME+"_"+i));
 			ptn.setParentId((Long)row.get(COL_NODE_PARENT_ID+"_"+i));
-			ptn.setType(((Integer)row.get(COL_NODE_TYPE+"_"+i)).shortValue());
+			ptn.setType(EntityType.valueOf((String)row.get(COL_NODE_TYPE+"_"+i)));
 			result.add(ptn);
 		}
 		return result;
@@ -997,7 +988,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public  static class ParentTypeName {
 		Long id;
 		Long parentId;
-		Short type;
+		EntityType type;
 		String name;
 		
 		public Long getId() {
@@ -1012,10 +1003,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		public void setParentId(Long parentId) {
 			this.parentId = parentId;
 		}
-		public Short getType() {
+		public EntityType getType() {
 			return type;
 		}
-		public void setType(Short type) {
+		public void setType(EntityType type) {
 			this.type = type;
 		}
 		public String getName() {
@@ -1195,7 +1186,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		node.setParentId(newParentNode.getId());
 
 		Long desiredProjectId = newParentNode.getProjectId();
-		if (desiredProjectId == null && !isMoveToTrash && node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
+		if (desiredProjectId == null && !isMoveToTrash && EntityType.project.name().equals(node.getType())) {
 			// we are our own project
 			desiredProjectId = node.getId();
 		}
@@ -1265,18 +1256,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
-	}
-
-	@Override
-	public List<Short> getAllNodeTypesForAlias(String alias) {
-		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
-		// Run the query.
-		return this.jdbcTemplate.query(SQL_SELECT_TYPE_FOR_ALIAS, new RowMapper<Short>() {
-			@Override
-			public Short mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return  rs.getShort(COL_OWNER_TYPE);
-			}
-		}, alias);
 	}
 
 	@Override

@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.file.UploadType;
@@ -55,7 +54,7 @@ public class DBOProjectSettingsDAOImplTest {
 
 		Node project = new Node();
 		project.setName("project");
-		project.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
+		project.setNodeType(EntityType.project);
 		project.setCreatedByPrincipalId(userId);
 		project.setCreatedOn(new Date());
 		project.setModifiedByPrincipalId(userId);

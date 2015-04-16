@@ -62,7 +62,7 @@ public class DBONodeTest {
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.seteTag("1");
-		node.setNodeType(EntityType.project.getId());
+		node.setType(EntityType.project.name());
 		// Make sure we can create it
 		DBONode clone = dboBasicDao.createNew(node);
 		assertNotNull(clone);
@@ -84,7 +84,7 @@ public class DBONodeTest {
 		child.setCreatedOn(System.currentTimeMillis());
 		child.setCurrentRevNumber(new Long(0));
 		child.seteTag("1");
-		child.setNodeType(EntityType.folder.getId());
+		child.setType(EntityType.folder.name());
 		child.setParentId(node.getId());
 		child.setDescription("I have a description".getBytes("UTF-8"));
 		// Get it back

@@ -215,7 +215,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
-    	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0].toString());
+    	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0]);
     	when(mockNode.getETag()).thenReturn(ETAG);
     	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());

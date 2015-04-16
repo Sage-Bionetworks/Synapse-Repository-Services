@@ -60,7 +60,7 @@ public class DBOProjectStatsDAOImplTest {
 
 		Node project = new Node();
 		project.setName("project1");
-		project.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
+		project.setNodeType(EntityType.project);
 		project.setCreatedByPrincipalId(userId);
 		project.setCreatedOn(new Date());
 		project.setModifiedByPrincipalId(userId);

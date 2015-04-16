@@ -49,9 +49,6 @@
 
 	<!-- The Node Query Service -->
 	<bean id="nodeQueryService" class="org.sagebionetworks.repo.web.service.NodeQueryServiceImpl" />
-
-	<!-- The S3Token Service -->
-	<bean id="s3TokenService" class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />
 	
 	<!-- The Messaging Service -->
 	<bean id="messageService" class="org.sagebionetworks.repo.web.service.MessageServiceImpl" />

@@ -27,7 +27,47 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
+import org.sagebionetworks.repo.model.ChallengeTeam;
+import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -684,17 +724,7 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
 	
-	@Deprecated
-	public File downloadLocationableFromSynapse(Locationable locationable)
-			throws SynapseException;
 
-	@Deprecated
-	public File downloadLocationableFromSynapse(Locationable locationable,
-			File destinationFile) throws SynapseException;
-
-	@Deprecated
-	public File downloadFromSynapse(LocationData location, String md5,
-			File destinationFile) throws SynapseException;
 	
 	@Deprecated
 	public File downloadFromSynapse(String path, String md5, File destinationFile) throws SynapseException;
@@ -2112,26 +2142,4 @@ public interface SynapseClient extends BaseClient {
 			String submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
 	
-
-	/**
-	 * Start a job to convert a list of locationable entities.
-	 * @param request
-	 * @return
-	 * @throws SynapseException
-	 */
-	String startLocationableTypeConvertJob(
-			AsyncLocationableTypeConversionRequest request)
-			throws SynapseException;
-
-	/**
-	 * Get the results of a job to convert locationable entities.
-	 * @param jobId
-	 * @return
-	 * @throws SynapseException
-	 */
-	AsyncLocationableTypeConversionResults getLocationableTypeConverJobResults(
-			String jobId) throws SynapseException;
-
-
-
 }

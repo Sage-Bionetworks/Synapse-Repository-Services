@@ -90,7 +90,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 		verify(mockUserProfileDao).bootstrapProfiles();
 		verify(mockGroupMembersDao).bootstrapGroups();
 		verify(mockAuthenticationDao).bootstrapCredentials();
-		verify(mockNodeDao).boostrapAllNodeTypes();
 		verify(mockNodeDao).createNew(any(Node.class));
 		verify(mockAclDao).create(any(AccessControlList.class), any(ObjectType.class));
 		verify(mockNodeInheritanceDao).addBeneficiary(any(String.class), any(String.class));
@@ -111,7 +110,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 			verify(mockUserProfileDao).bootstrapProfiles();
 			verify(mockGroupMembersDao).bootstrapGroups();
 			verify(mockAuthenticationDao).bootstrapCredentials();
-			verify(mockNodeDao).boostrapAllNodeTypes();
 			verify(mockSemaphoreDao).releaseLock("ENTITYBOOTSTRAPPERLOCK", "token");
 		}
 	}

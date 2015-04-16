@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -55,7 +54,6 @@ public class UserProfileManagerImplUnitTest {
 	UserInfo userInfo;
 	UserInfo adminUserInfo;
 	UserProfile userProfile;
-	S3AttachmentToken testToken;
 	
 	private static final Long userId = 9348725L;
 	private static final Long adminUserId = 823746L;
@@ -114,9 +112,6 @@ public class UserProfileManagerImplUnitTest {
 				return copy;
 			}
 		}).when(mockProfileDAO).update((UserProfile) Mockito.any());
-		
-		testToken = new S3AttachmentToken();
-		testToken.setFileName("testonly.jpg");
 		
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(USER_EMAIL);

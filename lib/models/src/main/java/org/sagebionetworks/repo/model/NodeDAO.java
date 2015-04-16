@@ -188,16 +188,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 */
 	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Change the type of a node.
-	 * @param nodeId
-	 * @param newEtag
-	 * @param newType
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public void changeNodeType(String nodeId, String newEtag, String newType) throws DatastoreException, NotFoundException;
 
 	
 	/**
@@ -240,12 +230,6 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 */
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Bootstrap all node types.
-	 * @throws DatastoreException 
-	 */
-	public void boostrapAllNodeTypes() throws DatastoreException;
 	
 	/**
 	 * Lookup a node id using its unique path.
@@ -326,13 +310,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException;
-
-	/**
-	 * Get all of the node types for a given alias.
-	 * @param alias
-	 * @return
-	 */
-	public List<Short> getAllNodeTypesForAlias(String alias);
 	
 	/**
 	 * returns true iff the given node is root

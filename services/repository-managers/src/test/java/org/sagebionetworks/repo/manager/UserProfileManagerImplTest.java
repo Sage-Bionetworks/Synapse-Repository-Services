@@ -155,26 +155,6 @@ public class UserProfileManagerImplTest {
 		assertEquals(Collections.singletonList(USER_EMAIL), profile.getEmails());
 	}
 	
-	/**
-	 * See PLFM-2319.  Originally a user's profile picture was a locationable attachment.
-	 * We have since converted the profile pictures to be FileHandles.
-	 * @throws Exception 
-	 */
-	@Test
-	public void testConvertAttachmentToFileHandle() throws Exception{
-		String userIdString = ""+userId;
-		AttachmentData attachment = fileHandleManger.createAttachmentInS3("image data", "user.jpg", userIdString, userIdString, new Date());
-		// Update the user profile
-		UserProfile profile = userProfileManager.getUserProfile(userInfo, userIdString);
-		profile.setPic(attachment);
-		// The get call should convert the picture to a file handle
-		profile = userProfileManager.updateUserProfile(userInfo, profile);
-		assertEquals("The 'pic' fields should have been replaced and set to null",null, profile.getPic());
-		assertNotNull(profile.getProfilePicureFileHandleId());
-		// get the presigned url for this handle
-		assertNotNull(userProfileManager.getUserProfileImageUrl(userIdString));
-	}
-	
 	@Test (expected=NotFoundException.class)
 	public void testGetPicturePresignedUrlNotFound() throws Exception{
 		String userIdString = ""+userId;
