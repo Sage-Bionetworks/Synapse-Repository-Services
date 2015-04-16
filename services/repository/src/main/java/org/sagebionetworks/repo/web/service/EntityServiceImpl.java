@@ -141,7 +141,7 @@ public class EntityServiceImpl implements EntityService {
 	public Entity getEntity(Long userId, String id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityHeader header = entityManager.getEntityHeader(userInfo, id, null);
-		EntityType type = EntityType.valueOf(header.getType());
+		EntityType type = EntityType.getEntityType(header.getType());
 		return getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
 	}
 	/**

@@ -262,7 +262,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
 		
-		assertEquals("study", fields.getNode_type());
+		assertEquals("folder", fields.getNode_type());
 		assertEquals(node.getDescription()+wikiPageText, fields.getDescription());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
 		assertEquals(nonexistantPrincipalId.toString(), fields.getCreated_by());

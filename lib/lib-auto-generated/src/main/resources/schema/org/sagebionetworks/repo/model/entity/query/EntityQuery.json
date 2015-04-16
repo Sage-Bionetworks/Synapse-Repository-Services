@@ -11,7 +11,8 @@
 				"project",
 				"folder",
 				"file",
-				"table"
+				"table",
+				"link"
 			]
 		},
 		"conditions": {

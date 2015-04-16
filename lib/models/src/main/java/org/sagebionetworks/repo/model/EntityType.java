@@ -33,6 +33,7 @@ public enum EntityType {
 		this.metadata.setDefaultParentPath("/root");
 		this.metadata.setEntityType(clazz.getName());
 		this.metadata.setValidParentTypes(validParentTypes);
+		this.metadata.setName(this.name());
 		this.clazz = clazz;
 	}
 	
@@ -95,7 +96,7 @@ public enum EntityType {
 		if(type == null){
 			return true;
 		}
-		return isValidTypeInList(type, type.getValidParentTypes());
+		return isValidTypeInList(type, this.getValidParentTypes());
 	}
 	
 	private boolean isValidTypeInList(EntityType type, String[] typeUrlList) {
@@ -129,5 +130,24 @@ public enum EntityType {
 	public String getEntityType() {
 		return metadata.getEntityType();
 	}
-	
+
+	/**
+	 * Get the first type that occurs in a given url.
+	 * 
+	 * @param url
+	 * @return
+	 */
+	public static EntityType getEntityType(String entityType) {
+		if (entityType == null){
+			throw new IllegalArgumentException("URL cannot be null");
+		}
+		EntityType[] array = EntityType.values();
+		for (EntityType type : array) {
+			if (type.clazz.getName().equals(entityType))
+				return type;
+		}
+		throw new IllegalArgumentException(
+				"Unknown Entity type for entityType: " + entityType);
+	}
+
 }

@@ -213,14 +213,14 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
-		JSONObject results = synapseOne.query("select * from dataset limit 10");
+		JSONObject results = synapseOne.query("select * from folder limit 10");
 
 		assertTrue(0 <= results.getInt("totalNumberOfResults"));
 
 		JSONArray datasets = results.getJSONArray("results");
 
 		if (0 < datasets.length()) {
-			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
+			String datasetId = datasets.getJSONObject(0).getString("folder.id");
 
 			Folder aStoredDataset = synapseOne.getEntity(datasetId, Folder.class);
 			assertNotNull(aStoredDataset.getAnnotations());

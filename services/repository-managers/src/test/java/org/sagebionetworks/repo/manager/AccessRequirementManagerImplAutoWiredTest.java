@@ -110,7 +110,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		nodesToDelete.add(rootId); // the deletion of 'rootId' will cascade to its children
 		Node node = new Node();
 		node.setName("A");
-		node.setNodeType(EntityType.folder);
+		node.setNodeType(EntityType.link);
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
 		
@@ -122,7 +122,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 		Node childNode = new Node();
 		childNode.setName("Child");
-		childNode.setNodeType(EntityType.folder);
+		childNode.setNodeType(EntityType.link);
 		childNode.setParentId(entityId);
 		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
@@ -147,7 +147,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		nodesToDelete.add(rootId2); // the deletion of 'rootId' will cascade to its children
 		node = new Node();
 		node.setName("B");
-		node.setNodeType(EntityType.folder);
+		node.setNodeType(EntityType.link);
 		node.setParentId(rootId2);
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 

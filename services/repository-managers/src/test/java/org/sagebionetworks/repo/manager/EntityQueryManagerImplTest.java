@@ -48,7 +48,7 @@ public class EntityQueryManagerImplTest {
 		result.setCreatedOn(new Date(1L));
 		result.setModifiedByPrincipalId(456L);
 		result.setModifiedOn(new Date(2));
-		result.setEntityType(TableEntity.class.getName());
+		result.setEntityType(EntityType.table.name());
 		result.setEtag("etag");
 		result.setName("aName");
 		result.setParentId("syn99");

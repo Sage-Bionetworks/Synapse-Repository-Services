@@ -27,8 +27,6 @@
 		<property name="allowCreationOfOldEntities" ref="stackConfiguration.allowCreationOfOldEntities"/>
 	</bean>
 	
-	<bean id="entityTypeConverter" class="org.sagebionetworks.repo.manager.EntityTypeConverterImpl"/>
-	
 	<bean id="entityQueryManager" class="org.sagebionetworks.repo.manager.EntityQueryManagerImpl" />
 
 	<!-- Activity manager -->

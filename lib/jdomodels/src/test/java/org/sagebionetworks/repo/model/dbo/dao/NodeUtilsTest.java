@@ -42,7 +42,8 @@ public class NodeUtilsTest {
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
-		node.setNodeType(EntityType.project);
+		// This is an update round trip and the type cannot be changed on an update.
+//		node.setNodeType(EntityType.project);
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedByPrincipalId(createdById);
 		node.setETag("1013");

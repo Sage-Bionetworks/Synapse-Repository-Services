@@ -12,8 +12,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.mail.Folder;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.AfterClass;
@@ -131,7 +129,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(Folder.class.getName());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -211,7 +209,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(Folder.class.getName());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -242,7 +240,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(Folder.class.getName());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -277,7 +275,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	@Test
 	public void testQueryWithAnnotations() throws DatastoreException{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(Folder.class.getName());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort(attributeName);
@@ -459,7 +457,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesInProjectA = new HashMap<String, Node>();
 		for(int i=0; i<25; i++){
 			Node node = NodeTestUtils.createNew("nodeInProjectA"+i, creatorUserGroupId);
-			node.setNodeType(EntityType.folder);
+			node.setNodeType(EntityType.link);
 			node.setParentId(projectA.getId());
 			id = nodeDao.createNew(node);
 			toUpdate.add(id);
@@ -472,7 +470,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesInProjectB = new HashMap<String, Node>();
 		for(int i=0; i<25; i++){
 			Node node = NodeTestUtils.createNew("nodeInProjectB"+i, creatorUserGroupId);
-			node.setNodeType(EntityType.folder);
+			node.setNodeType(EntityType.link);
 			node.setParentId(projectB.getId());
 			id = nodeDao.createNew(node);
 			toUpdate.add(id);

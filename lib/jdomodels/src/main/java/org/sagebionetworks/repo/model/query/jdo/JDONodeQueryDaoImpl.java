@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +37,12 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 @SuppressWarnings("rawtypes")
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
+
+	private static final String VERSIONABLE = "versionable";
+	
+	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name());
+
+	private static final String ENTITY = "entity";
 
 	static private Logger log = LogManager.getLogger(JDONodeQueryDaoImpl.class);
 	
@@ -163,9 +170,13 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Add a filter on type if needed
 		if(in.getFrom() != null){
 			// Add the type to the filter
-			if(!"entity".equals(in.getFrom().toLowerCase())){
-				EntityType type = EntityType.valueOf(in.getFrom().toLowerCase());
-				in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, type.name()));
+			if(!ENTITY.equals(in.getFrom().toLowerCase())){
+				if(VERSIONABLE.equals(in.getFrom().toLowerCase())){
+					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, VERSIONABLE_TYPES));
+				}else{
+					EntityType type = EntityType.valueOf(in.getFrom().toLowerCase());
+					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, type.name()));
+				}
 			}
 		}
 		// Filter out nodes in the trash can
