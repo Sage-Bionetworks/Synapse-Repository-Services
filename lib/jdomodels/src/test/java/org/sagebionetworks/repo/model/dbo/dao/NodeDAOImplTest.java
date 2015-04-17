@@ -2171,6 +2171,13 @@ public class NodeDAOImplTest {
 		assertTrue(headerAfter.getLastActivity().before(after));
 	}
 
+	private static final Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
+		@Override
+		public String apply(ProjectHeader input) {
+			return input.getId();
+		}
+	};
+
 	@Test
 	public void testGetProjectHeaders() throws Exception {
 		UserInfo user1Info = createUserInfo(user1, false);
@@ -2178,13 +2185,6 @@ public class NodeDAOImplTest {
 		UserInfo user3Info = createUserInfo(user3, false);
 
 		createProjects();
-
-		Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
-			@Override
-			public String apply(ProjectHeader input) {
-				return input.getId();
-			}
-		};
 
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
@@ -2273,13 +2273,6 @@ public class NodeDAOImplTest {
 
 		createProjects();
 
-		Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
-			@Override
-			public String apply(ProjectHeader input) {
-				return input.getId();
-			}
-		};
-
 		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
 		List<String> projectIds = Lists.transform(projectHeaders.getResults(), transformToId);
@@ -2306,6 +2299,27 @@ public class NodeDAOImplTest {
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
 		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate),
 				Lists.transform(projectHeaders.getResults(), transformToId));
+	}
+
+	@Test
+	public void testGetMyProjectHeaders() throws Exception {
+		UserInfo user1Info = createUserInfo(user1, true);
+
+		String first = createProject("aaa1", user1);
+		toDelete.add(first);
+		addReadAcl(first, user1);
+
+		String second = createProject("AAA2", user1);
+		toDelete.add(second);
+		addReadAcl(second, user1);
+
+		String third = createProject("bbb", user1);
+		toDelete.add(third);
+		addReadAcl(third, user1);
+
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null,
+				ProjectListType.MY_CREATED_PROJECTS, ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100, 0);
+		assertEquals(Lists.newArrayList(first, second, third), Lists.transform(projectHeaders.getResults(), transformToId));
 	}
 
 	private void createProjects() throws Exception, NotFoundException {
