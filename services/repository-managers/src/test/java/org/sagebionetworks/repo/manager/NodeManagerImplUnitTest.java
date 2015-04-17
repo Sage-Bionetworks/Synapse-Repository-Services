@@ -104,7 +104,7 @@ public class NodeManagerImplUnitTest {
 	public void testValidateNode(){
 		Node node = new Node();
 		node.setName("notNull");
-		node.setNodeType("some type");
+		node.setNodeType(EntityType.file);
 		NodeManagerImpl.validateNode(node);
 	}
 	
@@ -161,7 +161,7 @@ public class NodeManagerImplUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.folder.name());
+		newNode.setNodeType(EntityType.folder);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
 		
 		// Sure the mock is ready.
@@ -186,7 +186,7 @@ public class NodeManagerImplUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.layer.name());  // in reality it would be a 'FileEntity'
+		newNode.setNodeType(EntityType.folder);  // in reality it would be a 'FileEntity'
 		String fileHandleId = "123";
 		newNode.setFileHandleId(fileHandleId);
 		String parentId = "202";
@@ -215,7 +215,7 @@ public class NodeManagerImplUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.layer.name());  // in reality it would be a 'FileEntity'
+		newNode.setNodeType(EntityType.folder);  // in reality it would be a 'FileEntity'
 		newNode.setFileHandleId(fileHandleId);
 		newNode.setParentId(parentId);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
@@ -251,7 +251,7 @@ public class NodeManagerImplUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.folder.name());
+		newNode.setNodeType(EntityType.folder);
 		when(mockAuthManager.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		String activityId = "8439208403928402";
 		newNode.setActivityId(activityId);
@@ -281,7 +281,7 @@ public class NodeManagerImplUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType(EntityType.folder.name());
+		newNode.setNodeType(EntityType.folder);
 		when(mockAuthManager.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		String activityId = "8439208403928402";
 		newNode.setActivityId(activityId);
@@ -314,7 +314,7 @@ public class NodeManagerImplUnitTest {
 		String parentId = "456";
 		node.setId(nodeId);
 		node.setName("testUpdateNode");
-		node.setNodeType(EntityType.folder.name());	
+		node.setNodeType(EntityType.folder);	
 		node.setParentId(parentId);
 		String activityId = "8439208403928402";
 		node.setActivityId(activityId);		
@@ -350,7 +350,7 @@ public class NodeManagerImplUnitTest {
 		node.setId(nodeId);
 		node.setParentId(parentId);
 		node.setName("testUpdateNode");
-		node.setNodeType(EntityType.folder.name());		
+		node.setNodeType(EntityType.folder);		
 		String activityId = "8439208403928402";
 		node.setActivityId(activityId);		
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -459,7 +459,7 @@ public class NodeManagerImplUnitTest {
 		
 		when(node.getId()).thenReturn(nodeId);
 		when(node.getParentId()).thenReturn(parentId);
-		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getNodeType()).thenReturn(EntityType.project);
 		when(node.getName()).thenReturn("some name");
 		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
@@ -477,7 +477,7 @@ public class NodeManagerImplUnitTest {
 		reset(node);
 		when(node.getId()).thenReturn(nodeId);
 		when(node.getParentId()).thenReturn(parentId);
-		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getNodeType()).thenReturn(EntityType.project);
 		when(node.getName()).thenReturn("some name");
 		
 		// update for real
@@ -502,7 +502,7 @@ public class NodeManagerImplUnitTest {
 		
 		when(node.getId()).thenReturn(nodeId);
 		when(node.getParentId()).thenReturn(parentId);
-		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getNodeType()).thenReturn(EntityType.project);
 		when(node.getName()).thenReturn("some name");
 		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
@@ -522,7 +522,7 @@ public class NodeManagerImplUnitTest {
 		reset(node);
 		when(node.getId()).thenReturn(nodeId);
 		when(node.getParentId()).thenReturn(parentId);
-		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getNodeType()).thenReturn(EntityType.project);
 		when(node.getName()).thenReturn("some name");
 		
 		// update for real
@@ -543,7 +543,7 @@ public class NodeManagerImplUnitTest {
 		
 		when(node.getId()).thenReturn(nodeId);
 		when(node.getParentId()).thenReturn(unauthorizedParentId);
-		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getNodeType()).thenReturn(EntityType.project);
 		when(node.getName()).thenReturn("some name");
 		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
 		when(mockNodeDao.getParentId(nodeId)).thenReturn(currentParentId);
@@ -565,7 +565,7 @@ public class NodeManagerImplUnitTest {
 		reset(node);
 		when(node.getId()).thenReturn(nodeId);
 		when(node.getParentId()).thenReturn(authorizedParentId);
-		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getNodeType()).thenReturn(EntityType.table);
 		when(node.getName()).thenReturn("some name");
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(authorizedParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		

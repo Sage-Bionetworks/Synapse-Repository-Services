@@ -299,15 +299,6 @@ public interface FileHandleManager {
 	UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Create a file handle from the an old style attachment data.
-	 * 
-	 * @param createdBy
-	 * @param attachment
-	 * @return null if not found
-	 */
-	S3FileHandle createFileHandleFromAttachmentIfExists(String entityId, String createdBy, Date createdOn, AttachmentData attachment);
-
-	/**
 	 * Create a file handle with the given contents gzipped.
 	 * @param createdBy
 	 * @param modifiedOn
@@ -331,16 +322,4 @@ public interface FileHandleManager {
 	S3FileHandle createNeverUploadedPlaceHolderFileHandle(String createdBy,
 			Date modifiedOn, String name) throws UnsupportedEncodingException, IOException;
 	
-	/**
-	 * Create an attachment data object with data in S3.
-	 * @param fileContents
-	 * @param fileName
-	 * @param userId
-	 * @param entityId
-	 * @param createdOn
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws IOException
-	 */
-	AttachmentData createAttachmentInS3(String fileContents, String fileName, String userId, String entityId, Date createdOn) throws UnsupportedEncodingException, IOException;
 }

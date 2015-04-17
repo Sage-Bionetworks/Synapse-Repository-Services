@@ -10,14 +10,12 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DeprecatedEntities;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -25,13 +23,10 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  *
@@ -40,8 +35,6 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Autowired
 	NodeManager nodeManager;
-	@Autowired
-	private S3TokenManager s3TokenManager;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
@@ -61,11 +54,9 @@ public class EntityManagerImpl implements EntityManager {
 	}
 	
 	public EntityManagerImpl(NodeManager nodeManager,
-			S3TokenManager s3TokenManager,
 			EntityPermissionsManager permissionsManager, UserManager userManager) {
 		super();
 		this.nodeManager = nodeManager;
-		this.s3TokenManager = s3TokenManager;
 		this.entityPermissionsManager = permissionsManager;
 		this.userManager = userManager;
 	}
@@ -77,14 +68,10 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException, NotFoundException {
 		if (newEntity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
-		if(!allowCreationOfOldEntities && !userInfo.isAdmin() && DeprecatedEntities.isDeprecated(newEntity)){
-			throw new IllegalArgumentException("Entities of type: "+newEntity.getClass().getName()+" are deprecated and can no longer be created.");
-		}
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass())
-				.name());
+		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass()));
 		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
@@ -106,7 +93,7 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
 		validateType(EntityType.getNodeTypeForClass(entityClass),
-				EntityType.valueOf(node.getNodeType()), entityId);
+				node.getNodeType(), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
 	
@@ -116,7 +103,7 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = nodeManager.getAnnotations(user, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(user, entityId);
-		EntityWithAnnotations ewa = populateEntityWithNodeAndAnnotations(EntityType.valueOf(node.getNodeType()).getClassForType(), annos, node);
+		EntityWithAnnotations ewa = populateEntityWithNodeAndAnnotations(node.getNodeType().getClassForType(), annos, node);
 		return ewa.getEntity();
 	}
 
@@ -334,19 +321,6 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = nodeManager.getAnnotations(userInfo,
 				updated.getId());
 		annos.setEtag(updated.getEtag());
-	
-		// Detect if new version for specific types
-		// Auto-version locationable entities
-		if (!newVersion && (updated instanceof Locationable)) {
-			Locationable locationable = (Locationable) updated;
-			String currentMd5 = (String) annos.getPrimaryAnnotations()
-					.getSingleValue("md5");
-			if (null != currentMd5 && !currentMd5.equals(locationable.getMd5())) {
-				newVersion = true;
-				// setting this to null we cause the revision id to be used.
-				locationable.setVersionLabel(null);
-			}
-		}
 		
 		// Auto-version FileEntity See PLFM-1744
 		if(!newVersion && (updated instanceof FileEntity)){
@@ -436,7 +410,7 @@ public class EntityManagerImpl implements EntityManager {
 		EntityType type = EntityType.getNodeTypeForClass(childrenClass);
 		while (it.hasNext()) {
 			Node child = it.next();
-			if (EntityType.valueOf(child.getNodeType()) == type) {
+			if (child.getNodeType() == type) {
 				resultSet.add(this.getEntity(userInfo, child.getId(),
 						childrenClass));
 			}
@@ -550,23 +524,6 @@ public class EntityManagerImpl implements EntityManager {
 			}
 		}
 		return results;
-	}
-
-	@Override
-	public S3AttachmentToken createS3AttachmentToken(Long userId,
-			String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException{
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		validateUpdateAccess(userInfo, entityId);
-		return s3TokenManager.createS3AttachmentToken(userId, entityId, token);
-	}
-	
-	@Override
-	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
-			String tokenId) throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		validateReadAccess(userInfo, entityId);
-		return s3TokenManager.getAttachmentUrl(userId, entityId, tokenId);
 	}
 	
 	@Override

@@ -71,7 +71,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedById);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
 		node = nodeDAO.getNode(nodeId);

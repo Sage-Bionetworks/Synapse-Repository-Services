@@ -101,7 +101,7 @@ public class AuthorizationManagerImplTest {
 		node.setCreatedByPrincipalId(createdBy);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedBy);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		node.setActivityId(activityId);
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
@@ -279,7 +279,7 @@ public class AuthorizationManagerImplTest {
 		
 		Node childNode = new Node();
 		childNode.setParentId(node.getId());
-		childNode.setNodeType("file");
+		childNode.setNodeType(EntityType.file);
 		assertFalse(authorizationManager.canCreate(anonInfo, childNode).getAuthorized());
 		
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo, node.getId());

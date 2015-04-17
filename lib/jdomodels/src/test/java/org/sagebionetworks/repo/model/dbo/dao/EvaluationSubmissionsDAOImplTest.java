@@ -67,7 +67,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		Long ownerId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		Node node = new Node();
 		node.setName("testNode");
-		node.setNodeType(EntityType.project.toString());
+		node.setNodeType(EntityType.project);
 		node.setCreatedByPrincipalId(ownerId);
 		node.setCreatedOn(new Date());
 		node.setModifiedByPrincipalId(ownerId);

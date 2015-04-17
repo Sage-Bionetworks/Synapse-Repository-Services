@@ -8,21 +8,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
-import org.json.JSONException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -33,25 +26,17 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BooleanResult;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Step;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * This is a an integration test for the DefaultController.
@@ -155,10 +140,10 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		toDelete.add(clone.getId());
 
 		// create a dataset in the project
-		Study ds = new Study();
+		Folder ds = new Folder();
 		ds.setName("testDataset");
 		ds.setParentId(clone.getId());
-		Study dsClone = servletTestHelper.createEntity(dispatchServlet, ds, userId);
+		Folder dsClone = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(dsClone);
 		toDelete.add(dsClone.getId());
 
@@ -247,26 +232,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 	}
 
-	/**
-	 * This is a test for PLFM-431.  If you try to get an object where they type does not match the ID
-	 * an exception should be thrown.
-	 */
-	// Not needed if everything is /entity/
-	@Ignore
-	@Test (expected=IllegalArgumentException.class)
-	public void testTypeDoesNotMatchId() throws Exception {
-		// First create a project as a non-admin
-		Project project = new Project();
-		// Make sure we can still set a name to null.  The name should then match the ID.
-		project.setName(null);
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Now try to get the project as a dataset
-		Object wrong = servletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(), otherUserId);
-
-	}
-
 	@Test
 	public void testGetEntityType() throws Exception {
 		Project project = new Project();
@@ -290,7 +255,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		;
 		toDelete.add(project.getId());
 		// Create a dataset
-		Study ds = new Study();
+		Folder ds = new Folder();
 		ds.setParentId(project.getId());
 		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(ds);
@@ -305,7 +270,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
-		benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Study.class, otherUserId);
+		benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Folder.class, otherUserId);
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
@@ -322,7 +287,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		;
 		toDelete.add(project.getId());
 		// Create a dataset
-		Study ds = new Study();
+		Folder ds = new Folder();
 		ds.setParentId(project.getId());
 		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(ds);
@@ -333,94 +298,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 		// Now attempt to update the ACL as the dataset
 		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);
-	}
-
-	@Test
-	public void testGetEntityReferences() throws Exception , JSONException, NotFoundException {
-		// Create project
-		Project project = new Project();
-		project.setName("testProject");
-		Project projectClone = servletTestHelper.createEntity(dispatchServlet, project, userId);
-		toDelete.add(projectClone.getId());
-		Study dataset = new Study();
-		dataset.setName("testDataset");
-		dataset.setParentId(projectClone.getId());
-		Study datasetClone = servletTestHelper.createEntity(dispatchServlet, dataset, userId);
-		toDelete.add(datasetClone.getId());
-		// Create a layer
-		Data layer = new Data();
-		layer.setName("testLayer");
-		layer.setVersionNumber((Long)1L);
-		layer.setParentId(datasetClone.getId());
-		layer.setType(LayerTypeNames.E);
-		Data clone = servletTestHelper.createEntity(dispatchServlet, layer, userId);
-		assertEquals((Long)1L, clone.getVersionNumber());
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-
-		// get references to object
-		PaginatedResults<EntityHeader> prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
-		List<EntityHeader> ehs = prs.getResults();
-		assertEquals(0, prs.getTotalNumberOfResults());
-		assertEquals(0, ehs.size());
-
-		// add step
-		Step step = null;
-		Step stepClone = null;
-		{
-			step = new Step();
-			Reference ref = new Reference();
-			ref.setTargetId(clone.getId());
-			Set<Reference> refs = new HashSet<Reference>();
-			refs.add(ref);
-			step.setInput(refs);
-			stepClone = servletTestHelper.createEntity(dispatchServlet, step, userId);
-			toDelete.add(stepClone.getId());
-			Set<Reference> refs2 = stepClone.getInput();
-			assertEquals(1, refs2.size());
-			Reference ref2 = refs2.iterator().next();
-			// NOTE:  Since we don't specify the version of the target, it is automatically set to the current version!
-			assertEquals(clone.getVersionNumber(), ref2.getTargetVersionNumber());
-		}
-		// manual update
-		updateAnnotationsAndReferences();
-		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
-		ehs = prs.getResults();
-		assertEquals(1, ehs.size());
-		assertEquals(stepClone.getId(), ehs.iterator().next().getId());
-
-		// try referencing a specific, nonexistent version
-		Long v = clone.getVersionNumber();
-		{
-			step = new Step();
-			Reference ref = new Reference();
-			ref.setTargetId(clone.getId());
-			ref.setTargetVersionNumber(v+1);
-			Set<Reference> refs = new HashSet<Reference>();
-			refs.add(ref);
-			step.setInput(refs);
-			stepClone = servletTestHelper.createEntity(dispatchServlet, step, userId);
-			toDelete.add(stepClone.getId());
-		}
-		// manual update
-		updateAnnotationsAndReferences();
-		// both Steps refer to some version of the Project
-		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
-		ehs = prs.getResults();
-		assertEquals(ehs.toString(), 2, ehs.size());
-		// manual update
-		updateAnnotationsAndReferences();
-		// only one step refers to version 1 of the Project
-		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
-		ehs = prs.getResults();
-		assertEquals(ehs.toString(), 1, ehs.size());
-		// manual update
-		updateAnnotationsAndReferences();
-		// No Step refers to version 100 of the Project
-		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v + 99, userId);
-		ehs = prs.getResults();
-		assertEquals(0, ehs.size());
-
 	}
 
 	/**
@@ -435,42 +312,4 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		}
 	}
 
-	@Test
-	public void testForPLFM_1096() throws Exception {
-		Project project = new Project();
-		project.setName(null);
-		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
-		;
-		toDelete.add(project.getId());
-		// Create a dataset
-		Study ds = new Study();
-		ds.setParentId(project.getId());
-		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
-		assertNotNull(ds);
-		toDelete.add(ds.getId());
-		
-		// Create a layer
-		Data data = new Data();
-		data.setParentId(project.getId());
-		data = servletTestHelper.createEntity(dispatchServlet, data, userId);
-		assertNotNull(data);
-		toDelete.add(data.getId());
-		// Make sure we can find both
-		QueryResults<Map<String, Object>> qr = servletTestHelper.query(dispatchServlet,
-				"select * from study where parentId=='" + project.getId() + "'", userId);
-		assertNotNull(qr);
-		assertEquals(1, qr.getTotalNumberOfResults());
-		assertEquals(ds.getId(), qr.getResults().get(0).get("study.id"));
-		
-		// Make sure we can find both
-		qr = servletTestHelper.query(dispatchServlet, "select * from data where parentId=='" + project.getId() + "'", userId);
-		assertNotNull(qr);
-		assertEquals(1, qr.getTotalNumberOfResults());
-		assertEquals(data.getId(), qr.getResults().get(0).get("data.id"));
-		// Make sure we can find both with versionable
-		qr = servletTestHelper.query(dispatchServlet, "select * from versionable where parentId=='" + project.getId() + "'", userId);
-		assertNotNull(qr);
-		assertEquals(2, qr.getTotalNumberOfResults());
-
-	}
 }

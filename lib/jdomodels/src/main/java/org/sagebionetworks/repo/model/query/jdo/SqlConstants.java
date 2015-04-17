@@ -4,10 +4,8 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.query.Comparator;
  
@@ -228,6 +226,7 @@ public class SqlConstants {
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 
 	// 
+	public static final String COL_STACK_STATUS_ID					= "ID";
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
 	public static final String COL_STACK_STATUS_CURRENT_MESSAGE		= "CURRENT_MESSAGE";
 	public static final String COL_STACK_STATUS_PENDING_MESSAGE		= "PENDING_MESSAGE";
@@ -244,19 +243,8 @@ public class SqlConstants {
 	public static final String DDL_FILE_LONG_ANNOTATION			= "schema/LongAnnotation-ddl.sql";
 	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
 	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
-
-	// The name of the node type table.
-	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
-	public static final String COL_NODE_TYPE_NAME 			= "NAME";
-	public static final String COL_NODE_TYPE_ID 			= "ID";
-	public static final String DDL_FILE_NODE_TYPE			= "schema/NodeType-ddl.sql";
 	
-	// The name of the node type table.
-	public static final String TABLE_NODE_TYPE_ALIAS		= "NODE_TYPE_ALIAS";
-	public static final String COL_OWNER_TYPE	 			= "OWNER_TYPE";
-	public static final String COL_NODE_TYPE_ALIAS 			= "ALIAS";
-	public static final String DDL_FILE_NODE_TYPE_ALIAS		= "schema/NodeTypeAlias-ddl.sql";
-	
+	public static final String COL_OWNER_TYPE	 			= "OWNER_TYPE";	
 	
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
@@ -729,10 +717,6 @@ public class SqlConstants {
 		SqlConstants.addAllFields(Node.class, primaryFieldColumns);
 		// This is a special case for nodes.
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID_OID");
-		
-		// These will be deleted once we move to NodeDao
-		SqlConstants.addAllFields(Study.class, primaryFieldColumns);
-		SqlConstants.addAllFields(Data.class, primaryFieldColumns);
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 				

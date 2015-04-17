@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.sample.ExampleContainer;
 
@@ -20,6 +20,6 @@ public class JSONEntityUtilTest {
 
 	@Test
 	public void testGetSchema(){
-		assertEquals(Study.EFFECTIVE_SCHEMA, JSONEntityUtil.getJSONSchema(Study.class));
+		assertEquals(FileEntity.EFFECTIVE_SCHEMA, JSONEntityUtil.getJSONSchema(FileEntity.class));
 	}
 }

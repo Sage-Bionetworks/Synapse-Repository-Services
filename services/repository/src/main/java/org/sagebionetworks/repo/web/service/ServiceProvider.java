@@ -22,8 +22,6 @@ public interface ServiceProvider {
 	
 	public NodeQueryService getNodeQueryService();
 	
-	public S3TokenService getS3TokenService();
-	
 	public StorageUsageService getStorageUsageService();
 	
 	public UserGroupService getUserGroupService();

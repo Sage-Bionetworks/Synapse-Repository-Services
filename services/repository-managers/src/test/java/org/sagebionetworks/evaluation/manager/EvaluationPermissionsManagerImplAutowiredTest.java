@@ -587,7 +587,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		node.setCreatedByPrincipalId(principalId);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(principalId);
-		node.setNodeType(type.name());
+		node.setNodeType(type);
 		String id = nodeManager.createNewNode(node, userInfo);
 		nodesToDelete.add(id);
 		return id;

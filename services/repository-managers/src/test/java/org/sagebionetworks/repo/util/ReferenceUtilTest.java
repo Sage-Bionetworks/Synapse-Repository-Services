@@ -93,7 +93,7 @@ public class ReferenceUtilTest {
 		node.setModifiedByPrincipalId(userGroupId);
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		return node;
 	}
 	

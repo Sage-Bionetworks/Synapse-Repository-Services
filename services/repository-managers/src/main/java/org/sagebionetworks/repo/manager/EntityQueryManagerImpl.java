@@ -225,8 +225,8 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 		translated.setProjectId((Long) map.get(EntityFieldName.projectId.name()));
 		translated.setActivityId((String) map.get(EntityFieldName.activityId.name()));
 		// type is special as it is an index in the database but a string to the user.
-		EntityType type =EntityType.getTypeForId(((Integer)map.get(NODE_TYPE)).shortValue());
-		translated.setEntityType(type.getEntityType());
+		EntityType type = EntityType.valueOf((((String)map.get(NODE_TYPE))));
+		translated.setEntityType(type.name());
 		return translated;
 	}
 

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_CURRENT_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_PENDING_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_STATUS;
@@ -25,7 +25,7 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", COL_NODE_TYPE_ID, true),
+			new FieldColumn("id", COL_STACK_STATUS_ID, true),
 			new FieldColumn("status", COL_STACK_STATUS_STATUS), 
 			new FieldColumn("currentMessage", COL_STACK_STATUS_CURRENT_MESSAGE), 
 			new FieldColumn("pendingMessage", COL_STACK_STATUS_PENDING_MESSAGE), 
@@ -39,7 +39,7 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 			public DBOStackStatus mapRow(ResultSet rs, int index)
 					throws SQLException {
 				DBOStackStatus status = new DBOStackStatus();
-				status.setId(rs.getLong(COL_NODE_TYPE_ID));
+				status.setId(rs.getLong(COL_STACK_STATUS_ID));
 				status.setStatus(rs.getShort(COL_STACK_STATUS_STATUS));
 				status.setCurrentMessage(rs.getString(COL_STACK_STATUS_CURRENT_MESSAGE));
 				if(rs.wasNull()){

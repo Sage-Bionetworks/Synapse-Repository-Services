@@ -108,7 +108,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, newNode);
 		
 		// What is the object type of this node
-		EntityType type = EntityType.valueOf(newNode.getNodeType());
+		EntityType type = newNode.getNodeType();
 		
 		// By default all nodes inherit their their ACL from their parent.
 		ACL_SCHEME aclSchem = ACL_SCHEME.INHERIT_FROM_PARENT;
@@ -372,7 +372,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				// If the node is being moved to right under the root, we need to create a new ACL
 				// The root cannot be the benefactor
 				boolean newAcl = nodeDao.isNodeRoot(parentInUpdate);
-				EntityType type = EntityType.valueOf(updatedNode.getNodeType());
+				EntityType type = updatedNode.getNodeType();
 				String defaultPath = type.getDefaultParentPath();
 				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
@@ -513,14 +513,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Node node = get(userInfo, nodeId);
-		return EntityType.valueOf(node.getNodeType());
+		return node.getNodeType();
 	}
 	
 	@Override
 	public EntityType getNodeTypeForDeletion(String nodeId) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		Node node = nodeDao.getNode(nodeId);
-		return EntityType.valueOf(node.getNodeType());
+		return node.getNodeType();
 	}
 
 	@Override

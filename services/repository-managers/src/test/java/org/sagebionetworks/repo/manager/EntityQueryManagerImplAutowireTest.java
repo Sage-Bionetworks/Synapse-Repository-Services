@@ -145,7 +145,7 @@ public class EntityQueryManagerImplAutowireTest {
 		assertEquals(table.getId(), tableResult.getId());
 		assertEquals(table.getName(), tableResult.getName());
 		assertEquals(table.getEtag(), tableResult.getEtag());
-		assertEquals(TableEntity.class.getName(), tableResult.getEntityType());
+		assertEquals(EntityType.table.name(), tableResult.getEntityType());
 		assertEquals(userId, tableResult.getCreatedByPrincipalId());
 		assertEquals(table.getCreatedOn(), tableResult.getCreatedOn());
 		assertEquals(userId, tableResult.getModifiedByPrincipalId());

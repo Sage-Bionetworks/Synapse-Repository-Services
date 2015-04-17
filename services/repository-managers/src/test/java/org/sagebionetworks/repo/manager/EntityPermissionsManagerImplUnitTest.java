@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -89,7 +90,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	project = new Node();
     	project.setId(projectId);
     	project.setCreatedByPrincipalId(111111L);
-    	project.setNodeType("project");
+    	project.setNodeType(EntityType.project);
        	project.setParentId(projectParentId);
     	when(mockNodeDao.getNode(projectId)).thenReturn(project);
     	
@@ -97,7 +98,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	folder.setId(folderId);
     	folder.setCreatedByPrincipalId(111111L);
         folder.setParentId(folderParentId);
-    	folder.setNodeType("folder");
+    	folder.setNodeType(EntityType.folder);
     	when(mockNodeDao.getNode(folderId)).thenReturn(folder);
     	
     	UserInfo anonymousUser = new UserInfo(false);

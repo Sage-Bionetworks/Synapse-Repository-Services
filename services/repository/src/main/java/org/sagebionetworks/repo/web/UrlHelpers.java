@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -1055,10 +1054,6 @@ public class UrlHelpers {
 		entity.setAnnotations(entity.getUri()+ANNOTATIONS);
 		// Add the acl
 		entity.setAccessControlList(entity.getUri()+ACL);
-		if(entity instanceof Locationable) {
-			Locationable able = (Locationable) entity;
-			able.setS3Token(entity.getUri() + UrlHelpers.S3TOKEN);
-		}
 	}
 	
 	
@@ -1125,15 +1120,6 @@ public class UrlHelpers {
 			expected = object.getUri()+UrlHelpers.VERSION+"/"+able.getVersionNumber();
 			if(!expected.equals(able.getVersionUrl())){
 				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
-			}
-		}
-		
-		// Locationable
-		if(object instanceof Locationable) {
-			Locationable able = (Locationable) object;
-			expected = object.getUri() + UrlHelpers.S3TOKEN;
-			if(!expected.equals(able.getS3Token())) {
-				throw new IllegalArgumentException("Expected s3Token: " + expected + " but was " + able.getS3Token());
 			}
 		}
 	}

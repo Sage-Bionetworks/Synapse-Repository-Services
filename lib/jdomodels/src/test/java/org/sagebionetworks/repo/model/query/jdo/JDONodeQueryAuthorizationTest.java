@@ -129,7 +129,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset.name());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -209,7 +209,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset.name());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -240,7 +240,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset.name());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -275,7 +275,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	@Test
 	public void testQueryWithAnnotations() throws DatastoreException{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset.name());
+		query.setFrom(EntityType.link.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort(attributeName);
@@ -422,7 +422,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		// Now create the two projects
 		//Project A
 		projectA = NodeTestUtils.createNew("projectA", creatorUserGroupId);
-		projectA.setNodeType(EntityType.project.name());
+		projectA.setNodeType(EntityType.project);
 		String id = nodeDao.createNew(projectA);
 		toUpdate.add(id);
 		nodesToDelete.add(id);
@@ -438,7 +438,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		// Project B
 		projectB = NodeTestUtils.createNew("projectB", creatorUserGroupId);
-		projectB.setNodeType(EntityType.project.name());
+		projectB.setNodeType(EntityType.project);
 		id = nodeDao.createNew(projectB);
 		nodesToDelete.add(id);
 		toUpdate.add(id);
@@ -457,7 +457,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesInProjectA = new HashMap<String, Node>();
 		for(int i=0; i<25; i++){
 			Node node = NodeTestUtils.createNew("nodeInProjectA"+i, creatorUserGroupId);
-			node.setNodeType(EntityType.dataset.name());
+			node.setNodeType(EntityType.link);
 			node.setParentId(projectA.getId());
 			id = nodeDao.createNew(node);
 			toUpdate.add(id);
@@ -470,7 +470,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesInProjectB = new HashMap<String, Node>();
 		for(int i=0; i<25; i++){
 			Node node = NodeTestUtils.createNew("nodeInProjectB"+i, creatorUserGroupId);
-			node.setNodeType(EntityType.dataset.name());
+			node.setNodeType(EntityType.link);
 			node.setParentId(projectB.getId());
 			id = nodeDao.createNew(node);
 			toUpdate.add(id);

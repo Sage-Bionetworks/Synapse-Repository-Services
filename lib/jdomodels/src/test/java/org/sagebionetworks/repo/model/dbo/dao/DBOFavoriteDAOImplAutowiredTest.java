@@ -229,8 +229,8 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		nodesToDelete.add(parentId);
 
 		// make two nodes & two favorites
-		String node1Type = EntityType.project.name();
-		String node2Type = EntityType.project.name();
+		EntityType node1Type = EntityType.project;
+		EntityType node2Type = EntityType.project;
 		String node1Name = "node1";
 		String node2Name = "node2";
 		

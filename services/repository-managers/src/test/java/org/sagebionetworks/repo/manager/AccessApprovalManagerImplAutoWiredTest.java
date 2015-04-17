@@ -107,12 +107,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		
 		Node rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
-		rootProject.setNodeType(EntityType.project.name());
+		rootProject.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(rootProject, adminUserInfo);
 		nodesToDelete.add(rootId); // the deletion of 'rootId' will cascade to its children
 		Node node = new Node();
 		node.setName("A");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(rootId);
 		nodeAId = nodeManager.createNewNode(node, adminUserInfo);
 		ar = newToUAccessRequirement(nodeAId);
@@ -120,7 +120,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		
 		node = new Node();
 		node.setName("B");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(nodeAId);
 		nodeBId = nodeManager.createNewNode(node, adminUserInfo);
 		arB = newToUAccessRequirement(nodeBId);

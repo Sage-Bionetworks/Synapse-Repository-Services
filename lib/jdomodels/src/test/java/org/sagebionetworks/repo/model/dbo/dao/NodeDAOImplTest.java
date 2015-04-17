@@ -972,7 +972,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetEntityHeader() throws Exception {
 		Node parent = privateCreateNew("parent");
-		parent.setNodeType(EntityType.project.name());
+		parent.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(parent);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -984,7 +984,7 @@ public class NodeDAOImplTest {
 		assertEquals(parentId, parentHeader.getId());
 		
 		Node child = privateCreateNew("child");
-		child.setNodeType(EntityType.dataset.name());
+		child.setNodeType(EntityType.folder);
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		toDelete.add(childId);
@@ -992,7 +992,7 @@ public class NodeDAOImplTest {
 		// Get the header of this node
 		EntityHeader childHeader = nodeDao.getEntityHeader(childId, 1L);
 		assertNotNull(childHeader);
-		assertEquals(EntityType.dataset.getEntityType(), childHeader.getType());
+		assertEquals(EntityType.folder.getEntityType(), childHeader.getType());
 		assertEquals("child", childHeader.getName());
 		assertEquals(childId, childHeader.getId());
 
@@ -1014,20 +1014,20 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetEntityPath() throws Exception {
 		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		// Add a child		
 		node = privateCreateNew("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentId);
 		String childId = nodeDao.createNew(node);
 		toDelete.add(childId);
 		assertNotNull(childId);
 		// Add a GrandChild		
 		node = privateCreateNew("grandChild");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(childId);
 		String grandId = nodeDao.createNew(node);
 		toDelete.add(grandId);
@@ -1089,7 +1089,7 @@ public class NodeDAOImplTest {
 		String[] ids = new String[depth];
 		for (int i=0; i<depth; i++) {
 			Node node = privateCreateNew("node_"+i);
-			node.setNodeType(EntityType.project.name());
+			node.setNodeType(EntityType.project);
 			if (i>0) node.setParentId(ids[i-1]);
 			ids[i] = nodeDao.createNew(node);
 			assertNotNull(ids[i]);
@@ -1113,7 +1113,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetChildrenList() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -1122,7 +1122,7 @@ public class NodeDAOImplTest {
 		List<String> childIds = new ArrayList<String>();
 		for(int i=0; i<4; i++){
 			node = privateCreateNew("child"+i);
-			node.setNodeType(EntityType.dataset.name());
+			node.setNodeType(EntityType.folder);
 			node.setParentId(parentId);
 			String id = nodeDao.createNew(node);
 			toDelete.add(id);
@@ -1144,7 +1144,7 @@ public class NodeDAOImplTest {
 	public void testGetRefrenceNull() throws DatastoreException, InvalidModelException, NotFoundException{
 		// Create a new node
 		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		// This should be empty but not null
@@ -1157,13 +1157,13 @@ public class NodeDAOImplTest {
 	public void testGetRefrence() throws DatastoreException, InvalidModelException, NotFoundException{
 		// Create a new node
 		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		// Create a child with a refrence to the parent
 		node = privateCreateNew("child");
 		node.setParentId(parentId);
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		// Add a reference
 		node.setReferences(new HashMap<String, Set<Reference>>());
 		HashSet<Reference> set = new HashSet<Reference>();
@@ -1360,14 +1360,14 @@ public class NodeDAOImplTest {
 	public void testGetParentId() throws Exception {
 		//make parent project
 		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		
 		//add a child to the parent	
 		node = privateCreateNew("child1");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentId);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
@@ -1386,14 +1386,14 @@ public class NodeDAOImplTest {
 	public void testChangeNodeParent() throws Exception {
 		//make a parent project
 		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentProjectId = nodeDao.createNew(node);
 		toDelete.add(parentProjectId);
 		assertNotNull(parentProjectId);
 		
 		//add a child to the parent
 		node = privateCreateNew("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentProjectId);
 		String childId = nodeDao.createNew(node);
 		toDelete.add(childId);
@@ -1401,7 +1401,7 @@ public class NodeDAOImplTest {
 		
 		//make a second project
 		node = privateCreateNew("newParent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String newParentId = nodeDao.createNew(node);
 		toDelete.add(newParentId);
 		assertNotNull(newParentId);
@@ -1429,14 +1429,14 @@ public class NodeDAOImplTest {
 	public void testChangeNodeParentAndProject() throws Exception {
 		// make a parent project
 		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentProjectId = nodeDao.createNew(node);
 		toDelete.add(parentProjectId);
 		assertNotNull(parentProjectId);
 
 		// add a child to the parent
 		node = privateCreateNew("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentProjectId);
 		String childId = nodeDao.createNew(node);
 		toDelete.add(childId);
@@ -1446,7 +1446,7 @@ public class NodeDAOImplTest {
 		// add children to child
 		for (int i = 0; i < childChilds.length; i++) {
 			node = privateCreateNew("child" + i);
-			node.setNodeType(EntityType.dataset.name());
+			node.setNodeType(EntityType.folder);
 			node.setParentId(childId);
 			childChilds[i] = nodeDao.createNew(node);
 			toDelete.add(childChilds[i]);
@@ -1462,7 +1462,7 @@ public class NodeDAOImplTest {
 
 		// make a second project
 		node = privateCreateNew("newParent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String newParentId = nodeDao.createNew(node);
 		toDelete.add(newParentId);
 		assertNotNull(newParentId);
@@ -1509,14 +1509,14 @@ public class NodeDAOImplTest {
 	public void testChangeNodeParentWhenParentIsNull() throws Exception {
 		//make a project
 		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String rootId = nodeDao.createNew(node);
 		toDelete.add(rootId);
 		assertNotNull(rootId);
 		
 		//make a second project
 		node = privateCreateNew("newParent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String newParentId = nodeDao.createNew(node);
 		toDelete.add(newParentId);
 		assertNotNull(newParentId);
@@ -1535,14 +1535,14 @@ public class NodeDAOImplTest {
 	public void testChangeNodeParentWhenParamParentIsCurrentParent() throws Exception {
 		//make a parent project
 		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentProjectId = nodeDao.createNew(node);
 		toDelete.add(parentProjectId);
 		assertNotNull(parentProjectId);
 		
 		//add a child to the parent
 		node = privateCreateNew("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentProjectId);
 		String childId = nodeDao.createNew(node);
 		toDelete.add(childId);
@@ -1597,7 +1597,7 @@ public class NodeDAOImplTest {
 		
 		// Create the node that holds the references
 		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		node.setReferences(refs);
 		node.setVersionLabel("references 1.0");
 		String id = nodeDao.createNew(node);
@@ -1643,7 +1643,7 @@ public class NodeDAOImplTest {
 		// This test ensures that we can have giant string annotations without any problems.
 		//make a parent project
 		Node node = privateCreateNew("testForPLFM_791");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String projectId = nodeDao.createNew(node);
 		toDelete.add(projectId);
 		assertNotNull(projectId);
@@ -1671,7 +1671,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetCurrentRevNumber() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node backup = privateCreateNew("withReveNumber");
-		backup.setNodeType(EntityType.project.name());
+		backup.setNodeType(EntityType.project);
 		String id = nodeDao.createNew(backup);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -1727,7 +1727,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetCreatedBy() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = privateCreateNew("foobar");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -1741,41 +1741,6 @@ public class NodeDAOImplTest {
 		Long createdBy = nodeDao.getCreatedBy(KeyFactory.keyToString(new Long(-12)));
 	}
 	
-	@Test
-	public void testGetAllNodeTypesForAlias(){
-		// This should return all entity types.
-		List<Short> expected = new ArrayList<Short>();
-		for(short i=0; i<EntityType.values().length; i++){
-			expected.add(i);
-		}
-		List<Short> ids = nodeDao.getAllNodeTypesForAlias("entity");
-		assertNotNull(ids);
-		System.out.println(ids);
-		assertEquals(expected, ids);
-		
-		// Test some of the known types
-		ids = nodeDao.getAllNodeTypesForAlias("dataset");
-		assertNotNull(ids);
-		assertEquals(1, ids.size());
-		assertEquals(new Short(EntityType.dataset.getId()), ids.get(0));
-		
-		ids = nodeDao.getAllNodeTypesForAlias("study");
-		assertNotNull(ids);
-		assertEquals(1, ids.size());
-		assertEquals(new Short(EntityType.dataset.getId()), ids.get(0));
-		
-		ids = nodeDao.getAllNodeTypesForAlias("layer");
-		assertNotNull(ids);
-		assertEquals(5, ids.size());
-		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
-		
-		ids = nodeDao.getAllNodeTypesForAlias("data");
-		assertNotNull(ids);
-		assertEquals(1, ids.size());
-		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
-		
-	}
-	
 	/**
 	 * Tests isNodeRoot()
 	 * @throws Exception
@@ -1784,7 +1749,7 @@ public class NodeDAOImplTest {
 	public void testIsNodeRoot() throws Exception {
 		//make root node
 		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -1792,7 +1757,7 @@ public class NodeDAOImplTest {
 		
 		//add a child to the root	
 		node = privateCreateNew("child1");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentId);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
@@ -1800,7 +1765,7 @@ public class NodeDAOImplTest {
 		
 		// Now get child's parentId
 		node = privateCreateNew("grandchild");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(child1Id);
 		String grandkidId = nodeDao.createNew(node);
 		toDelete.add(grandkidId);
@@ -1815,7 +1780,7 @@ public class NodeDAOImplTest {
 	public void testIsNodesParentRoot() throws Exception {
 		//make root node
 		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -1823,7 +1788,7 @@ public class NodeDAOImplTest {
 		
 		//add a child to the root	
 		node = privateCreateNew("child1");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentId);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
@@ -1831,7 +1796,7 @@ public class NodeDAOImplTest {
 		
 		// Now get child's parentId
 		node = privateCreateNew("grandchild");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(child1Id);
 		String grandkidId = nodeDao.createNew(node);
 		toDelete.add(grandkidId);
@@ -1842,7 +1807,7 @@ public class NodeDAOImplTest {
 	public void testHasChildren() throws DatastoreException, InvalidModelException, NotFoundException{
 		//make root node
 		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -1850,7 +1815,7 @@ public class NodeDAOImplTest {
 		
 		//add a child to the root	
 		node = privateCreateNew("child1");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentId);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
@@ -2330,7 +2295,7 @@ public class NodeDAOImplTest {
 		subFolderProject = createProject("testGetProjectHeaders.5.subFolderProject", user2);
 		Node folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1", Long.parseLong(user1));
 		folder.setParentId(subFolderProject);
-		folder.setNodeType(EntityType.folder.name());
+		folder.setNodeType(EntityType.folder);
 		String ownerFolder = this.nodeDao.createNew(folder);
 		toDelete.add(ownerFolder);
 		addReadAcl(ownerFolder, group);
@@ -2339,7 +2304,7 @@ public class NodeDAOImplTest {
 		addReadAcl(subFolderProject2, user1);
 		folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1a", Long.parseLong(user1));
 		folder.setParentId(subFolderProject2);
-		folder.setNodeType(EntityType.folder.name());
+		folder.setNodeType(EntityType.folder);
 		ownerFolder = this.nodeDao.createNew(folder);
 		toDelete.add(ownerFolder);
 		addReadAcl(ownerFolder, group);
