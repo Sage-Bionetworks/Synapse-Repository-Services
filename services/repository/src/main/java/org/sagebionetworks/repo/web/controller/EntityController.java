@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionRequest;
 import org.sagebionetworks.repo.model.AsyncLocationableTypeConversionResults;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -41,12 +40,9 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
-import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
-import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -651,7 +647,7 @@ public class EntityController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody
-	BatchResults<EntityHeader> getEntityTypeBatch(
+	PaginatedResults<EntityHeader> getEntityTypeBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch,
 			HttpServletRequest request) throws NotFoundException,
@@ -667,7 +663,7 @@ public class EntityController extends BaseController {
 			entityHeaders.add(entityHeader);
 		}
 
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
 		results.setResults(entityHeaders);
 		results.setTotalNumberOfResults(entityHeaders.size());
 		return results;
@@ -693,7 +689,7 @@ public class EntityController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
 	public @ResponseBody
-	BatchResults<EntityHeader> getEntityVersionedTypeBatch(
+	PaginatedResults<EntityHeader> getEntityVersionedTypeBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ReferenceList referenceList, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException {
@@ -716,7 +712,7 @@ public class EntityController extends BaseController {
 			}
 		}
 
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
 		results.setResults(entityHeaders);
 		results.setTotalNumberOfResults(entityHeaders.size());
 		return results;
@@ -1663,14 +1659,14 @@ public class EntityController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_MD5 }, method = RequestMethod.GET)
 	public @ResponseBody
-	BatchResults<EntityHeader> getEntityHeaderByMd5(
+	PaginatedResults<EntityHeader> getEntityHeaderByMd5(
 			@PathVariable String md5,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
 		List<EntityHeader> entityHeaders = serviceProvider.getEntityService()
 				.getEntityHeaderByMd5(userId, md5, request);
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
 		results.setResults(entityHeaders);
 		results.setTotalNumberOfResults(entityHeaders.size());
 		return results;

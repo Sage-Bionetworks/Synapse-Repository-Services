@@ -95,9 +95,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		checkAuthorization(isAdmin, currentUserId, userId);
 
 		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForUser(userId, offset, limit);
-		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
-				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
-				offset, limit, null, true);
+		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(queryResults.getResults(), queryResults.getTotalNumberOfResults());
 		return results;
 	}
 

@@ -29,14 +29,7 @@ public class PaginatedResultsTest {
 			list.add(project);
 		}
 		
-		PaginatedResults<Project> pr = new PaginatedResults<Project>(
-				"http//localhost:8080/rep/v1/projects",
-				list,
-				101,
-				4,
-				14,
-				"name",
-				true);
+		PaginatedResults<Project> pr = new PaginatedResults<Project>(list, 101);
 		// now write it to JSON
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		pr.writeToJSONObject(adapter);

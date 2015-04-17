@@ -24,8 +24,6 @@ public class EntityBundleCreate implements JSONEntity {
 	public static int ACL					= EntityBundle.ACL;
 	public static int ACCESS_REQUIREMENT	= EntityBundle.ACCESS_REQUIREMENTS;
 	
-	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
-	
 	private static final String JSON_ENTITY = EntityBundle.JSON_ENTITY;
 	private static final String JSON_ENTITY_TYPE = EntityBundle.JSON_ENTITY_TYPE;
 	private static final String JSON_ANNOTATIONS = EntityBundle.JSON_ANNOTATIONS;
@@ -71,7 +69,7 @@ public class EntityBundleCreate implements JSONEntity {
 		if (toInitFrom.has(JSON_ENTITY)) {
 			entityType = toInitFrom.getString(JSON_ENTITY_TYPE);
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ENTITY);
-			entity = (Entity) autoGenFactory.newInstance(entityType);
+			entity = (Entity) EntityInstanceFactory.singleton().newInstance(entityType);
 			entity.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ANNOTATIONS)) {
@@ -83,12 +81,13 @@ public class EntityBundleCreate implements JSONEntity {
 		if (toInitFrom.has(JSON_ACL)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACL);
 			if (acl == null)
-				acl = (AccessControlList) autoGenFactory.newInstance(AccessControlList.class.getName());
+				acl = new AccessControlList();
 			acl.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ACCESS_REQUIREMENT)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACCESS_REQUIREMENT);
-			accessRequirement = (AccessRequirement) EntityClassHelper.deserialize(joa);
+			String contentType = joa.getString("concreteType");
+			accessRequirement = AccessRequirementInstanceFactory.singleton().newInstance(contentType);
 		}
 		return toInitFrom;
 	}

@@ -145,7 +145,10 @@ public class EntityBundle implements JSONEntity, Serializable {
 			accessRequirements = new ArrayList<AccessRequirement>();
 			for (int i=0; i<a.length(); i++) {
 				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
-				accessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+				String type = joa.getString("concreteType");
+				AccessRequirement ar = AccessRequirementInstanceFactory.singleton().newInstance(type);
+				ar.initializeFromJSONObject(joa);
+				accessRequirements.add(ar);
 			}
 		}
 		if (toInitFrom.has(JSON_UNMET_ACCESS_REQUIREMENTS)) {
@@ -153,7 +156,10 @@ public class EntityBundle implements JSONEntity, Serializable {
 			unmetAccessRequirements = new ArrayList<AccessRequirement>();
 			for (int i=0; i<a.length(); i++) {
 				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
-				unmetAccessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+				String type = joa.getString("concreteType");
+				AccessRequirement ar = AccessRequirementInstanceFactory.singleton().newInstance(type);
+				ar.initializeFromJSONObject(joa);
+				unmetAccessRequirements.add(ar);
 			}
 		}
 		if (toInitFrom.has(JSON_FILE_HANDLES)) {

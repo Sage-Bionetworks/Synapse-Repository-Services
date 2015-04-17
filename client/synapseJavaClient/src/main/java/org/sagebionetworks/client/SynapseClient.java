@@ -317,7 +317,7 @@ public interface SynapseClient extends BaseClient {
 	
 	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException;
 
-	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(
+	public PaginatedResults<AccessRequirement> getAccessRequirements(
 			RestrictableObjectDescriptor subjectId) throws SynapseException;
 
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
@@ -464,7 +464,7 @@ public interface SynapseClient extends BaseClient {
 	public ACTAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
 
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException;
 
 	public <T extends AccessApproval> T createAccessApproval(T aa)
@@ -504,10 +504,10 @@ public interface SynapseClient extends BaseClient {
 
 	public EntityPath getEntityPath(String entityId) throws SynapseException;
 
-	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
+	public PaginatedResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
 			throws SynapseException;
 
-	public BatchResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
+	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
 
 	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
