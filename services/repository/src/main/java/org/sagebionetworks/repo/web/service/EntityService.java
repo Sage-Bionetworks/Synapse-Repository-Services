@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -13,7 +14,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -76,8 +76,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(Long userId,
-			Integer offset, Integer limit, String entityId,
-			HttpServletRequest request) throws DatastoreException,
+			Integer offset, Integer limit, String entityId) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
 	/**

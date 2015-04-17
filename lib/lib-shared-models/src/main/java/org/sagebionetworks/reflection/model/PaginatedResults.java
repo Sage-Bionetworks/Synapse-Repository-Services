@@ -1,11 +1,8 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.reflection.model;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -108,6 +105,9 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 			for(int i=0; i<array.length(); i++){
 				JSONObjectAdapter childAdapter = array.getJSONObject(i);
 				try {
+					if(clazz == null){
+						throw new IllegalArgumentException("Cannot call initializeFromJSONObject() without setting the Class of the results elements.");
+					}
 					T newInstance = (T) Class.forName(clazz.getName()).newInstance();
 					newInstance.initializeFromJSONObject(childAdapter);
 					this.results.add(newInstance);
@@ -145,7 +145,6 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((clazz == null) ? 0 : clazz.hashCode());
 		result = prime * result + ((results == null) ? 0 : results.hashCode());
 		result = prime * result
 				+ (int) (totalNumberOfResults ^ (totalNumberOfResults >>> 32));
@@ -161,11 +160,6 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		if (getClass() != obj.getClass())
 			return false;
 		PaginatedResults other = (PaginatedResults) obj;
-		if (clazz == null) {
-			if (other.clazz != null)
-				return false;
-		} else if (!clazz.equals(other.clazz))
-			return false;
 		if (results == null) {
 			if (other.results != null)
 				return false;

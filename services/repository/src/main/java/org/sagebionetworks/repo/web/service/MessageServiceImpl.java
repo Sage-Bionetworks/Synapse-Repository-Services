@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.web.service;
 import java.net.URL;
 import java.util.List;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -41,9 +41,7 @@ public class MessageServiceImpl implements MessageService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		QueryResults<MessageBundle> messages = messageManager.getInbox(
 				userInfo, inclusionFilter, sortBy, descending, limit, offset);
-		return new PaginatedResults<MessageBundle>(urlPath,
-				messages.getResults(), messages.getTotalNumberOfResults(),
-				offset, limit, sortBy.name(), !descending);
+		return new PaginatedResults<MessageBundle>(messages.getResults(), messages.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -53,9 +51,7 @@ public class MessageServiceImpl implements MessageService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		QueryResults<MessageToUser> messages = messageManager.getOutbox(
 				userInfo, sortBy, descending, limit, offset);
-		return new PaginatedResults<MessageToUser>(urlPath,
-				messages.getResults(), messages.getTotalNumberOfResults(),
-				offset, limit, sortBy.name(), !descending);
+		return new PaginatedResults<MessageToUser>(messages.getResults(), messages.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -79,9 +75,7 @@ public class MessageServiceImpl implements MessageService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		QueryResults<MessageToUser> messages = messageManager.getConversation(
 				userInfo, messageId, sortBy, descending, limit, offset);
-		return new PaginatedResults<MessageToUser>(urlPath,
-				messages.getResults(), messages.getTotalNumberOfResults(),
-				offset, limit, sortBy.name(), !descending);
+		return new PaginatedResults<MessageToUser>(messages.getResults(), messages.getTotalNumberOfResults());
 	}
 
 	@Override

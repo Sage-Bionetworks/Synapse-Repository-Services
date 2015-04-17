@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -27,7 +28,6 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
@@ -110,14 +110,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 		for (UserProfile profile : profileResults) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		}
-		return new PaginatedResults<UserProfile>(
-				request.getServletPath()+UrlHelpers.USER, 
-				profileResults,
-				(int)results.getTotalNumberOfResults(), 
-				offset, 
-				limit,
-				sort, 
-				ascending);
+		return new PaginatedResults<UserProfile>(profileResults,
+				(int)results.getTotalNumberOfResults());
 	}
 	
 	/**

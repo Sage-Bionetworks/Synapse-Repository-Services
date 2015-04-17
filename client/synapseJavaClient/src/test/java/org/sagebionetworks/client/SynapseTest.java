@@ -35,6 +35,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
@@ -46,7 +47,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -289,7 +289,6 @@ public class SynapseTest {
 		PaginatedResults<EntityHeader> paginatedResult = new PaginatedResults<EntityHeader>();
 		paginatedResult.setResults(eHeaderList);
 		paginatedResult.setTotalNumberOfResults(1);
-		paginatedResult.setPaging(new HashMap<String, String>());
 				
 		// setup mock
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();

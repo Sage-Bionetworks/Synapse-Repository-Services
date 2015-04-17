@@ -7,6 +7,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.EntityTypeConverter;
@@ -25,7 +26,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -118,8 +118,7 @@ public class EntityServiceImpl implements EntityService {
 	
 	@Override
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
-			Long userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request)
+			Long userId, Integer offset, Integer limit, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if(offset == null){
 			offset = 1;
@@ -131,9 +130,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
-
-		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults<VersionInfo>(urlPath, versions.getResults(), versions.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*descending*/false);
+		return new PaginatedResults<VersionInfo>(versions.getResults(), versions.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -599,7 +596,7 @@ public class EntityServiceImpl implements EntityService {
 			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
 			entityList.add(entity);
 		}
-		return new PaginatedResults<T>(nodeResults.getTotalNumberOfResults(), paging.getOffset());
+		return new PaginatedResults<T>(entityList, nodeResults.getTotalNumberOfResults());
 	}
 
 	@Override

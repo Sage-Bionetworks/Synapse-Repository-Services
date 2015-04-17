@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -27,7 +28,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
@@ -153,7 +153,6 @@ public class EntityServiceImplAutowiredTest extends AbstractAutowiredControllerT
 		// Basic query
 		PaginatedResults<Study> paginated = entityController.getEntities(adminUserId, new PaginatedParameters(1,100, null, true), mockRequest, Study.class);
 		assertNotNull(paginated);
-		assertNotNull(paginated.getPaging());
 		List<Study> results = paginated.getResults();
 		assertNotNull(results);
 		assertEquals(totalEntities, results.size());
