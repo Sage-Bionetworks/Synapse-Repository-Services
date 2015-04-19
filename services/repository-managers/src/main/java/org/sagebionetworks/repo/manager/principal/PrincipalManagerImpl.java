@@ -41,8 +41,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
@@ -256,7 +256,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException {
 		String validatedEmail = validateNewAccountToken(accountSetupInfo.getEmailValidationToken(), new Date());
@@ -408,7 +408,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		throw new IllegalArgumentException("token does not contain parameter "+paramName);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo,
 			Boolean setAsNotificationEmail) throws NotFoundException {
@@ -426,7 +426,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) notificationEmailDao.update(alias);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void removeEmail(UserInfo userInfo, String email) throws NotFoundException {
 		if (email.equals(notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())))
@@ -453,7 +453,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	 * @param email
 	 * @throws NotFoundException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNotificationEmail(UserInfo userInfo, String email) throws NotFoundException {
 		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email);

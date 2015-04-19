@@ -31,8 +31,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -69,7 +69,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -77,7 +77,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, param);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T create(T dto) throws DatastoreException,
 			InvalidModelException {
@@ -133,7 +133,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return dtos;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {

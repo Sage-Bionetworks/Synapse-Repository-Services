@@ -24,8 +24,6 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;

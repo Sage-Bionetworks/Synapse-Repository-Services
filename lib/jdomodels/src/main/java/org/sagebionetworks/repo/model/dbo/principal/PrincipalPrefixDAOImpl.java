@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_TOKEN;
@@ -15,8 +15,8 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
@@ -55,14 +55,12 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ " FROM "
 			+ TABLE_PRINCIPAL_PREFIX
 			+ " P, "
-			+ TABLE_USER_GROUP
-			+ " G WHERE P."
+			+ TABLE_TEAM
+			+ " T WHERE P."
 			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " = G."
-			+ COL_USER_GROUP_ID
-			+ " AND G."
-			+ COL_USER_GROUP_IS_INDIVIDUAL
-			+ " = 0 AND P."
+			+ " = T."
+			+ COL_TEAM_ID
+			+ " AND P."
 			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ? LIMIT ? OFFSET ?";
 	
 	private static final String SQL_COUNT_TEAMS_FOR_PREFIX = "SELECT COUNT(DISTINCT P."
@@ -70,14 +68,12 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ ") FROM "
 			+ TABLE_PRINCIPAL_PREFIX
 			+ " P, "
-			+ TABLE_USER_GROUP
-			+ " G WHERE P."
+			+ TABLE_TEAM
+			+ " T WHERE P."
 			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " = G."
-			+ COL_USER_GROUP_ID
-			+ " AND G."
-			+ COL_USER_GROUP_IS_INDIVIDUAL
-			+ " = 0 AND P."
+			+ " = T."
+			+ COL_TEAM_ID
+			+ " AND P."
 			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ?";
 
 	private static final String SQL_LIST_PRINCIPALS_FOR_PREFIX = "SELECT DISTINCT "
@@ -128,7 +124,7 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#
 	 * addPrincipalAlias(java.lang.String, java.lang.Long)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addPrincipalAlias(String alias, Long principalId) {
 		String processed = preProcessToken(alias);
@@ -155,7 +151,7 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#
 	 * addPrincipalName(java.lang.String, java.lang.String, java.lang.Long)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addPrincipalName(String firstName, String lastName,
 			Long principalId) {

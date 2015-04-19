@@ -37,8 +37,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
@@ -75,7 +75,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return acl;
 	}
 		
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String rId = acl.getId();
@@ -92,7 +92,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return acl;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String rId = acl.getId();
@@ -116,7 +116,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return acl;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList restoreInheritance(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// check permissions of user to change permissions for the resource
@@ -142,7 +142,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
 	}	
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessControlList applyInheritanceToChildren(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// check permissions of user to change permissions for the resource
@@ -208,13 +208,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(node.getNodeType())) 
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		
 		return certifiedUserHasAccess(parentId, CREATE, userInfo);
 	}
-
-	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
 	
 	/**
 	 * 
@@ -230,7 +228,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
 				(accessType==CREATE ||
-				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))))
+				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, accessType, userInfo);
@@ -387,7 +385,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				!nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))
+				!nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);

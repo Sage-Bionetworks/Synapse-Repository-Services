@@ -731,7 +731,7 @@ public class MessageManagerImplTest {
 		// Make an "entity"
 		Node node = new Node();
 		node.setName(UUID.randomUUID().toString());
-		node.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
+		node.setNodeType(EntityType.project);
 		nodeId = nodeManager.createNewNode(node, testUser);
 		
 		// Case #1 - Creator can share

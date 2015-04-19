@@ -22,15 +22,14 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -280,15 +279,15 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Test
 	public void testGetEffectiveSchema() throws Exception {
-		String resourceId = Study.class.getName();
-		ObjectSchema effective = entityServletHelper.getEffectiveSchema(Study.class.getName());
+		String resourceId = FileEntity.class.getName();
+		ObjectSchema effective = entityServletHelper.getEffectiveSchema(FileEntity.class.getName());
 		assertNotNull(effective);
 		assertEquals(resourceId, effective.getId());
 	}
 	
 	@Test
 	public void testGetFullSchema() throws Exception {
-		ObjectSchema full = entityServletHelper.getFullSchema(Study.class.getName());
+		ObjectSchema full = entityServletHelper.getFullSchema(FileEntity.class.getName());
 		assertNotNull(full);
 		// This class should implement entity.
 		assertNotNull(full.getImplements());
@@ -311,46 +310,17 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		p = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		toDelete.add(p.getId());
 		
-		Study one = new Study();
+		Folder one = new Folder();
 		one.setName("one");
 		one.setParentId(p.getId());
-		one.setEntityType(Study.class.getName());
-		one = (Study) entityServletHelper.createEntity(one, adminUserId, null);
+		one.setEntityType(Folder.class.getName());
+		one = (Folder) entityServletHelper.createEntity(one, adminUserId, null);
 		// Now try to re-use the name
-		Study two = new Study();
+		Folder two = new Folder();
 		two.setName("one");
 		two.setParentId(p.getId());
-		two.setEntityType(Study.class.getName());
-		two = (Study) entityServletHelper.createEntity(two, adminUserId, null);
-	}
-
-	@Test
-	public void testPLFM_1288() throws Exception{
-		Project p = new Project();
-		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
-		p = (Project) entityServletHelper.createEntity(p, adminUserId, null);
-		toDelete.add(p.getId());
-		
-		Study one = new Study();
-		one.setName("one");
-		one.setParentId(p.getId());
-		one.setEntityType(Study.class.getName());
-		one = (Study) entityServletHelper.createEntity(one, adminUserId, null);
-		// Now try to re-use the name
-		Code two = new Code();
-		two.setName("code");
-		two.setParentId(one.getId());
-		two.setEntityType(Code.class.getName());
-		try{
-			two = (Code) entityServletHelper.createEntity(two, adminUserId, null);
-			fail("Code cannot have a parent of type Study");
-		}catch(IllegalArgumentException e){
-			System.out.println(e.getMessage());
-			assertTrue(e.getMessage().indexOf(Code.class.getName()) > 0);
-			assertTrue(e.getMessage().indexOf(Study.class.getName()) > 0);
-		}
-		
+		two.setEntityType(Folder.class.getName());
+		two = (Folder) entityServletHelper.createEntity(two, adminUserId, null);
 	}
 
 	@Test(expected=NotFoundException.class)
@@ -448,28 +418,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals(handleOne.getId(), fhr.getList().get(0).getId());
 		assertEquals(previewOne.getId(), fhr.getList().get(1).getId());
 	}
-	
-	@Test
-	public void testPLFM_1841() throws Exception{
-		// Create a study and then attempt to add a file to the study.
-		Study study = new Study();
-		study.setName("parentStudy-PLFM-1841");
-		study.setEntityType(Study.class.getName());
-		study = (Study) entityServletHelper.createEntity(study, adminUserId, null);
-		toDelete.add(study.getId());
-		// Create a file Entity
-		// Create a file entity
-		FileEntity file = new FileEntity();
-		file.setName("FileName");
-		file.setEntityType(FileEntity.class.getName());
-		file.setParentId(study.getId());
-		file.setDataFileHandleId(handleOne.getId());
-		// Save it
-		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
-		assertNotNull(file);
-		assertNotNull(file.getId());
-		toDelete.add(file.getId());
-	}
+
 
 	@Test
 	public void testGetEntityHeaderByMd5() throws Exception {

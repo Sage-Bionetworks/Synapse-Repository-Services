@@ -16,13 +16,39 @@ import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.BooleanResult;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -999,27 +1025,6 @@ public class ServletTestHelper {
 
 		return objectMapper.readValue(response.getContentAsString(),
 				UserEntityPermissions.class);
-	}
-
-	/**
-	 * Create an attachment token
-	 */
-	public S3AttachmentToken createS3AttachmentToken(Long userId,
-			ServiceConstants.AttachmentType attachentType, String id,
-			S3AttachmentToken token) throws Exception {
-		Assert.assertNotNull(id);
-		Assert.assertNotNull(token);
-
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(attachentType)
-						+ "/" + id + UrlHelpers.ATTACHMENT_S3_TOKEN, userId,
-				token);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), S3AttachmentToken.class);
 	}
 
 	/**

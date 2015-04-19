@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DESCRIPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_UPLOAD_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_LOCATION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,11 +16,11 @@ import java.util.UUID;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
@@ -30,14 +34,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class DBOStorageLocationDAOImpl implements StorageLocationDAO, InitializingBean {
 
@@ -60,6 +64,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	private static final String SELECT_STORAGE_LOCATIONS = "SELECT " + COL_STORAGE_LOCATION_ID + ", " + COL_STORAGE_LOCATION_DESCRIPTION
 			+ ", " + COL_STORAGE_LOCATION_UPLOAD_TYPE + " FROM " + TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_ID + " IN (:"
 			+ STORAGE_LOCATION_IDS_PARAM + ")";
+	private static final String SELECT_STORAGE_LOCATIONS_BY_OWNER = "SELECT * FROM " + TABLE_STORAGE_LOCATION + " WHERE "
+			+ COL_STORAGE_LOCATION_CREATED_BY + " = ?";
 
 	private static final RowMapper<DBOStorageLocation> StorageLocationRowMapper = (new DBOStorageLocation()).getTableMapping();
 
@@ -109,10 +115,9 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		try {
-			basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
-					DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		} catch (NotFoundException e) {
+		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(
+				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+		if (basicDao.getObjectByPrimaryKeyIfExists(DBOStorageLocation.class, params) == null) {
 			try {
 				// make sure we skip the first couple of IDs
 				idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID);
@@ -129,7 +134,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Long create(StorageLocationSetting dto) {
 		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
@@ -144,36 +149,32 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	}
 
 	@SuppressWarnings("unchecked")
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends StorageLocationSetting> T update(T dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {
-		try {
-			DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
-					new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
+		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
 
-			// Check dbo's etag against dto's etag
-			// if different rollback and throw a meaningful exception
-			if (!dbo.getEtag().equals(dto.getEtag())) {
-				throw new ConflictingUpdateException(
-						"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
-			}
-			dbo.setDescription(dto.getDescription());
-			dbo.setData(dto);
-			// Update with a new e-tag
-			dbo.setEtag(UUID.randomUUID().toString());
-
-			boolean success = basicDao.update(dbo);
-			if (!success)
-				throw new DatastoreException("Unsuccessful updating project setting in database.");
-
-			// re-get, so we don't clobber the object we put in the dbo directly with setData
-			dbo = basicDao
-					.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
-			return (T) CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		// Check dbo's etag against dto's etag
+		// if different rollback and throw a meaningful exception
+		if (!dbo.getEtag().equals(dto.getEtag())) {
+			throw new ConflictingUpdateException(
+					"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
+		dbo.setDescription(dto.getDescription());
+		dbo.setData(dto);
+		// Update with a new e-tag
+		dbo.setEtag(UUID.randomUUID().toString());
+
+		boolean success = basicDao.update(dbo);
+		if (!success)
+			throw new DatastoreException("Unsuccessful updating project setting in database.");
+
+		// re-get, so we don't clobber the object we put in the dbo directly with setData
+		dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
+		return (T) CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
 	}
 
 	@Override
@@ -188,7 +189,13 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) {
+	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException {
+		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, StorageLocationRowMapper, id);
+		return Lists.newArrayList(Lists.transform(dboStorageLocations, CONVERT_DBO_TO_STORAGE_LOCATION));
+	}
+
+	@Override
+	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) throws DatastoreException, NotFoundException {
 		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS, Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, locations),
 				new RowMapper<UploadDestinationLocation>() {
 					@Override

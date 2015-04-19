@@ -46,8 +46,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionDAOImpl implements SubmissionDAO {
 
@@ -188,7 +188,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			(new SubmissionContributorDBO()).getTableMapping();
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public String create(Submission dto) {
 		EvaluationUtils.ensureNotNull(dto, "Submission");
 
@@ -230,7 +230,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void addSubmissionContributor(String submissionId, SubmissionContributor dto) {
 		SubmissionContributorDBO dbo = createContributorDbo(
 				dto.getPrincipalId(), dto.getCreatedOn(), submissionId);
@@ -394,7 +394,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);

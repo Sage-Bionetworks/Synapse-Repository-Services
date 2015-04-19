@@ -10,26 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -37,8 +18,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -94,7 +75,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
-		userProfile = convertAttachemtns(userProfile);
 		List<PrincipalAlias> aliases = principalAliasDAO.
 				listPrincipalAliases(Long.parseLong(ownerId));
 		userProfile.setEmails(new ArrayList<String>());
@@ -116,47 +96,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		} else {
 			throw new IllegalStateException("Expected user name, email or open id but found "+alias.getType());
 		}
-	}
-
-	/**
-	 *  Convert old style attachment pictures to files handles as needed.
-	 * @param profiles
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws ConflictingUpdateException
-	 * @throws NotFoundException
-	 */
-	private List<UserProfile> convertAttachemtns(List<UserProfile> profiles) throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException{
-		List<UserProfile> list = new LinkedList<UserProfile>();
-		for(UserProfile profile: profiles){
-			list.add(convertAttachemtns(profile));
-		}
-		return list;
-	}
-	
-	/**
-	 * Convert old style attachment pictures to files handles as needed.
-	 * @param profile
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws ConflictingUpdateException
-	 * @throws NotFoundException
-	 */
-	private UserProfile convertAttachemtns(UserProfile profile) throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException{
-		if(profile.getPic() == null){
-			// nothing do to here.
-			return profile;
-		}
-		// We need to convert from an attachment to an S3FileHandle
-		S3FileHandle handle = fileHandleManager.createFileHandleFromAttachment(profile.getOwnerId(), profile.getOwnerId(), new Date(), profile.getPic());
-		// clear the pic, set the filehandle.
-		profile.setPic(null);
-		if(handle != null){
-			profile.setProfilePicureFileHandleId(handle.getId());
-		}
-		return userProfileDAO.update(profile);
 	}
 	
 	/**
@@ -195,7 +134,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
-		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
@@ -210,14 +148,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 */
 	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
 		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
-		userProfiles = convertAttachemtns(userProfiles);
 		addAliasesToProfiles(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);
 	}
 	/**
 	 * This method is only available to the object owner or an admin
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException {
 		validateProfile(updated);
@@ -270,18 +207,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return projectHeaders;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public UserProfile createUserProfile(UserProfile profile) {
 		validateProfile(profile);
 		clearAliasFields(profile);
 		// Save the profile
 		this.userProfileDAO.create(profile);
-		try {
-			return getUserProfilePrivate(profile.getOwnerId());
-		} catch (NotFoundException e) {
-			throw new DatastoreException(e);
-		}
+		return getUserProfilePrivate(profile.getOwnerId());
 	}
 
 	private void bindUserName(String username, Long principalId) {

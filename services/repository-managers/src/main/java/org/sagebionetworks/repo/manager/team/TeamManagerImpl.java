@@ -32,8 +32,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * @author brucehoff
@@ -232,7 +232,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * Note:  This method must execute within a transaction, since it makes calls to two different DAOs
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Team create(UserInfo userInfo, Team team) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo))
@@ -298,11 +298,7 @@ public class TeamManagerImpl implements TeamManager {
 		alias.setPrincipalId(teamId);
 		alias.setType(AliasType.TEAM_NAME);
 		// bind this alias
-		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
-		} catch (NotFoundException e1) {
-			throw new DatastoreException(e1);
-		}
+		principalAliasDAO.bindAliasToPrincipal(alias);
 	}
 
 	/* (non-Javadoc)
@@ -377,7 +373,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#put(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.Team)
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Team put(UserInfo userInfo, Team team) throws InvalidModelException,
 			DatastoreException, UnauthorizedException, NotFoundException {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -393,7 +389,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#delete(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		try {
@@ -466,7 +462,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#addMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		String principalId = principalUserInfo.getId().toString();
@@ -509,7 +505,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#removeMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void removeMember(UserInfo userInfo, String teamId,
 			String principalId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -573,7 +569,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void setPermissions(UserInfo userInfo, String teamId,
 			String principalId, boolean isAdmin) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -624,7 +620,7 @@ public class TeamManagerImpl implements TeamManager {
 		return tms;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void bootstrapTeams() throws NotFoundException {
 		if (this.teamsToBootstrap == null) {
 			throw new IllegalArgumentException("bootstrapTeams cannot be null");

@@ -36,12 +36,15 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +52,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * @author brucehoff
@@ -63,6 +66,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
@@ -158,7 +164,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#create(org.sagebionetworks.repo.model.Team)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Team create(Team dto) throws DatastoreException,
 	InvalidModelException {
@@ -168,6 +174,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		Team result = TeamUtils.copyDboToDto(dbo);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.CREATE);
 		return result;
 	}
 
@@ -201,7 +208,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<Team> dtos = new ArrayList<Team>();
 		for (Long id : ids) {
 			Team team = map.get(id.toString());
-			if (team==null) throw new NotFoundException(""+id);
+			if (team == null) {
+				throw new NotFoundException("Team with id " + id + " not found");
+			}
 			dtos.add(team);
 		}
 		
@@ -256,6 +265,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#update(org.sagebionetworks.repo.model.Team)
 	 */
+	@WriteTransaction
 	@Override
 	public Team update(Team dto) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -288,19 +298,24 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating Team in database.");
-
+		// update message.
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.UPDATE);
 		Team resultantDto = TeamUtils.copyDboToDto(dbo);
+		
 		return resultantDto;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#delete(java.lang.String)
 	 */
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOTeam.class, param);
+		// update message.
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PRINCIPAL, ChangeType.DELETE);
 	}
 
 	public static class TeamMemberPair {
@@ -361,7 +376,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
 		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
@@ -421,7 +435,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset)
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
@@ -485,7 +498,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
@@ -502,7 +514,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public long getAdminMemberCount(String teamId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);

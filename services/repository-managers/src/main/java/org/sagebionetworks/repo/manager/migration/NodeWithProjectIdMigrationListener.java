@@ -30,13 +30,6 @@ public class NodeWithProjectIdMigrationListener implements MigrationTypeListener
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	private EntityType PROJECT_ENTITY_TYPE;
-
-	@PostConstruct
-	private void getProjectEntityType() {
-		PROJECT_ENTITY_TYPE = EntityType.getNodeTypeForClass(Project.class);
-	}
-
 	@Override
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(MigrationType type, List<D> delta) {
 		if (type != MigrationType.NODE) {
@@ -56,19 +49,14 @@ public class NodeWithProjectIdMigrationListener implements MigrationTypeListener
 				continue;
 			}
 
-			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
+			if (EntityType.project.name().equals(node.getType())) {
 				// project nodes have themselves as the project
 				jdbcTemplate.update(UPDATE_PROJECT_SQL, node.getId(), node.getId());
 			} else {
 				// get the project id of the parent node
-				try {
-					MapSqlParameterSource params = new MapSqlParameterSource("id", node.getParentId());
-					DBONode parentNode = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
-					jdbcTemplate.update(UPDATE_PROJECT_SQL, parentNode.getProjectId(), node.getId());
-				} catch (NotFoundException e) {
-					// this ought not happen. Abort migration if it does
-					throw new RuntimeException(e.getMessage(), e);
-				}
+				MapSqlParameterSource params = new MapSqlParameterSource("id", node.getParentId());
+				DBONode parentNode = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
+				jdbcTemplate.update(UPDATE_PROJECT_SQL, parentNode.getProjectId(), node.getId());
 			}
 		}
 	}

@@ -15,8 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 	
@@ -37,7 +37,7 @@ public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 	private static final RowMapper<SubmissionFileHandleDBO> rowMapper = ((new SubmissionFileHandleDBO()).getTableMapping());
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void create(String submissionId, String fileHandleId) {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
 		EvaluationUtils.ensureNotNull(fileHandleId, "FileHandle ID");
@@ -73,7 +73,7 @@ public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void delete(String submissionId, String fileHandleId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_SUBFILE_SUBMISSION_ID, submissionId);

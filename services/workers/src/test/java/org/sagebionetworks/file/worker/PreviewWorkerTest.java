@@ -180,8 +180,8 @@ public class PreviewWorkerTest {
 		List<Message> processedList = worker.call();
 		assertNotNull(processedList);
 		// The list should be empty
-		assertEquals(0, processedList.size());
-		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
+		assertEquals(1, processedList.size());
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
 	}
 	
 	@Test
@@ -199,39 +199,6 @@ public class PreviewWorkerTest {
 		// The msg should not be re-processed
 		assertEquals(1, processedList.size());
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
-	}
-	
-	@Test
-	public void testRuntimeErrorNotEOF() throws Exception {
-		S3FileHandle meta = new S3FileHandle();
-		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
-		Exception expectedException = new RuntimeException();
-		expectedException.initCause(new ArithmeticException());
-		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
-		// create the worker.
-		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
-		// fire!
-		List<Message> processedList = worker.call();
-		assertNotNull(processedList);
-		// The msg should not be re-processed
-		assertEquals(0, processedList.size());
-		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
-	}
-	
-	@Test
-	public void testRuntimeErrorNoCause() throws Exception {
-		S3FileHandle meta = new S3FileHandle();
-		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
-		Exception expectedException = new RuntimeException();
-		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
-		// create the worker.
-		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
-		// fire!
-		List<Message> processedList = worker.call();
-		assertNotNull(processedList);
-		// The msg should be re-processed
-		assertEquals(0, processedList.size());
-		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
 	}
 	
 	@Test
@@ -289,45 +256,6 @@ public class PreviewWorkerTest {
 		// We should generate 
 		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), anyBoolean());
-	}
-	
-	@Test
-	public void testMixedSuccess() throws Exception{
-		// A failure to process one message should not prevent us from processing another message.
-		inputList = new LinkedList<Message>();
-		// This message will fail to be processed.
-		ChangeMessage toFail = new ChangeMessage();
-		toFail.setObjectType(ObjectType.FILE);
-		toFail.setObjectId("123");
-		toFail.setChangeType(ChangeType.CREATE);
-		Message messageToFail = MessageUtils.createMessage(toFail, "outerId111", "handler");
-		inputList.add(messageToFail);
-		// This massage will be processed successfully.
-		ChangeMessage toPass = new ChangeMessage();
-		toPass.setObjectType(ObjectType.FILE);
-		toPass.setObjectId("345");
-		toPass.setChangeType(ChangeType.CREATE);
-		Message messageToPass = MessageUtils.createMessage(toPass, "outerId0000", "handler");
-		inputList.add(messageToPass);
-		// The first should exist.
-		S3FileHandle failMeta = new S3FileHandle();
-		failMeta.setId("123");
-		S3FileHandle passMeta = new S3FileHandle();
-		passMeta.setId("345");
-		when(mockPreveiwManager.getFileMetadata(toFail.getObjectId())).thenReturn(failMeta);
-		when(mockPreveiwManager.getFileMetadata(toPass.getObjectId())).thenReturn(passMeta);
-		// Set one fail and one pass
-		Exception expectedException = new Exception();
-		when(mockPreveiwManager.generatePreview(failMeta)).thenThrow(expectedException);
-		when(mockPreveiwManager.generatePreview(passMeta)).thenReturn(new PreviewFileHandle());
-		// create the worker.
-		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
-		// fire!
-		List<Message> processedList = worker.call();
-		assertNotNull(processedList);
-		assertFalse("The first messages failed with an unknown error so the message should not be returned so it can stay on the queue", isMessageOnList(processedList, messageToFail));
-		assertTrue("The second message should have been processed successfully and should have been returned so it can be removed from the queue.", isMessageOnList(processedList, messageToPass));
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(PreviewWorker.class, toFail, expectedException, true);
 	}
 	
 	@Test

@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Locationable;
 import org.springframework.beans.factory.InitializingBean;
 
 public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
@@ -31,14 +30,6 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 			EntityType type) {
 
 		List<EntityProvider<Entity>> providers = metadataProviders.get(type.name());
-		if (null == providers) {
-			if (Locationable.class.isAssignableFrom(type.getClassForType())) {
-				providers = new LinkedList<EntityProvider<Entity>>();
-				providers.add(locationableProvider);
-				metadataProviders.put(type.name(), providers);
-			}
-
-		}
 		return providers;
 	}
 
@@ -58,9 +49,6 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 			allProvidersForType.add(providerEntry.getValue());
 
 			EntityType type = EntityType.valueOf(providerEntry.getKey());
-			if (Locationable.class.isAssignableFrom(type.getClassForType())) {
-				allProvidersForType.add(locationableProvider);
-			}
 
 			metadataProviders.put(providerEntry.getKey(), allProvidersForType);
 		}

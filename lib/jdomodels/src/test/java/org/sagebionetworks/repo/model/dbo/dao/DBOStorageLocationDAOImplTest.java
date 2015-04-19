@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +50,9 @@ public class DBOStorageLocationDAOImplTest {
 		StorageLocationSetting clone = storageLocationDAO.get(id);
 		assertEquals(locationSetting.getClass(), clone.getClass());
 		assertEquals(locationSetting.getDescription(), clone.getDescription());
+
+		List<StorageLocationSetting> byOwner = storageLocationDAO.getByOwner(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		assertTrue(byOwner.contains(clone));
 
 		clone.setDescription("new description");
 		StorageLocationSetting updated = storageLocationDAO.update(clone);

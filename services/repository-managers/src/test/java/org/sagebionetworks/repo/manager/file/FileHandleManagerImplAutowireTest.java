@@ -39,7 +39,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -53,7 +52,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -591,46 +589,7 @@ public class FileHandleManagerImplAutowireTest {
 		}
 	}
 	
-	@Test
-	public void testCreateFileHandleFromAttachment()throws Exception{
-		// First create a real file handle
-		String fileContents = "This will be compressed";
-		String userId = ""+userInfo.getId();
-		Date createdOn = new Date(System.currentTimeMillis());
-		String fileName = "sample.txt";
-		String entityId = "syn1234";
-		// Create an attachment from the filehandle
-		AttachmentData ad = fileUploadManager.createAttachmentInS3(fileContents, fileName, userId, entityId, createdOn);
-		S3FileHandle h2 = fileUploadManager.createFileHandleFromAttachment(entityId, userId, createdOn, ad);
-		assertNotNull(h2);
-		assertEquals(StackConfiguration.getS3Bucket(), h2.getBucketName());
-		assertEquals(S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, ad.getTokenId()), h2.getKey());
-		assertNotNull(h2.getContentMd5());
-		assertEquals(new Long(fileContents.getBytes("UTF-8").length), h2.getContentSize());
-		assertEquals("text/plain", h2.getContentType());
-		assertEquals(userId, h2.getCreatedBy());
-		assertNotNull(h2.getCreatedOn());
-		assertEquals(fileName, h2.getFileName());
-		assertNotNull(h2.getId());
-		toDelete.add(h2);	
-	}
-	
-	
-	@Test (expected=NotFoundException.class)
-	public void testCreateFileHandleFromAttachmentNotFound()throws Exception{
-		// Create an attachment from the filehandle
-		String userId = ""+userInfo.getId();
-		String entityId = "syn1234";
-		Date createdOn = new Date(System.currentTimeMillis());
-		AttachmentData ad = new AttachmentData();
-		ad.setContentType("text/plain");
-		ad.setMd5("md5");
-		ad.setName("some name");
-		ad.setPreviewId(null);
-		ad.setTokenId("123/fake-id/does_not_exist.txt");
-		fileUploadManager.createFileHandleFromAttachment(entityId, userId, createdOn, ad);
-	}
-	
+
 	@Test
 	public void testCreateNeverUploadedPlaceHolderFileHandle() throws UnsupportedEncodingException, IOException{
 		String userId = ""+userInfo.getId();

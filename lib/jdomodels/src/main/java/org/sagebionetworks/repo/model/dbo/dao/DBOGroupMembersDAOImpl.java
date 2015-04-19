@@ -16,8 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
@@ -68,7 +68,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		return members;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addMembers(String groupId, List<String> memberIds) 
 			throws DatastoreException, NotFoundException, IllegalArgumentException {
@@ -111,7 +111,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		userGroupDAO.touch(Long.parseLong(groupId));
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void removeMembers(String groupId, List<String> memberIds) 
 			throws DatastoreException, NotFoundException {
@@ -136,7 +136,6 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		userGroupDAO.touch(Long.parseLong(groupId));
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException, NotFoundException {
@@ -165,7 +164,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	/**
 	 * This is called by Spring after all properties are set
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void bootstrapGroups() throws Exception {
 		// in the case that the groups are initialized as Teams this is done in TeamManagerImpl.bootstrapTeams()

@@ -42,7 +42,8 @@ public class NodeUtilsTest {
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
-//		node.setNodeType(ObjectType.project.name());
+		// This is an update round trip and the type cannot be changed on an update.
+//		node.setNodeType(EntityType.project);
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedByPrincipalId(createdById);
 		node.setETag("1013");
@@ -101,7 +102,7 @@ public class NodeUtilsTest {
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId("101");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		node.setCreatedByPrincipalId(createdById);
 		node.setETag("1013");
 		node.setCreatedOn(new Date(10000));
@@ -118,7 +119,7 @@ public class NodeUtilsTest {
 		assertEquals(10000l, (long)dboNode.getCreatedOn());
 		assertEquals(2l, (long)dboNode.getCurrentRevNumber());
 		assertEquals("1013", dboNode.getEtag());
-		assertEquals(EntityType.project.getId(), (short)dboNode.getNodeType());
+		assertEquals(EntityType.project.name(), dboNode.getType());
 		assertEquals(456l, (long)dboNode.getParentId());
 		
 		// Make sure parent ID can be null

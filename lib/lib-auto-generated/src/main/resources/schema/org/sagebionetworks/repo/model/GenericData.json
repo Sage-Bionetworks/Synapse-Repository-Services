@@ -1,9 +1,0 @@
-{
-	"description": "This object is deprecated and will be removed in future versions of Synapse.",
-	"type": "interface",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.Locationable"
-        }
-    ]
-}

@@ -62,7 +62,7 @@ public class DBORevisionTest {
 		node.seteTag("0");
 		node.setName("DBORevisionTest.baseNode");
 		node.setParentId(null);
-		node.setNodeType(EntityType.project.getId());
+		node.setType(EntityType.project.name());
 		dboBasicDao.createNew(node);
 	}
 	

@@ -30,8 +30,8 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class TrashManagerImpl implements TrashManager {
 
@@ -62,7 +62,7 @@ public class TrashManagerImpl implements TrashManager {
 	@Autowired
 	private StackConfiguration stackConfig;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void moveToTrash(final UserInfo currentUser, final String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -124,7 +124,7 @@ public class TrashManagerImpl implements TrashManager {
 		transactionalMessenger.sendModificationMessageAfterCommit( nodeId,ObjectType.ENTITY);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void restoreFromTrash(UserInfo currentUser, String nodeId, String newParentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -254,7 +254,7 @@ public class TrashManagerImpl implements TrashManager {
 		return results;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrashForUser(UserInfo currentUser, String nodeId, PurgeCallback purgeCallback) throws DatastoreException,
 			NotFoundException {
@@ -296,7 +296,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrashForUser(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException {
 
@@ -314,7 +314,7 @@ public class TrashManagerImpl implements TrashManager {
 		purgeTrash(trashList, purgeCallback);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrash(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException,
 			UnauthorizedException {
@@ -334,7 +334,7 @@ public class TrashManagerImpl implements TrashManager {
 		purgeTrash(trashList, purgeCallback);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException {
 		

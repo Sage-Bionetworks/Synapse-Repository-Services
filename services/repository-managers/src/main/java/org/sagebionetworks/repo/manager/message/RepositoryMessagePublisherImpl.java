@@ -12,12 +12,13 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
@@ -236,7 +237,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * 
 	 * @param message
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void publishToTopic(ChangeMessage message) {
 		// Register the message was sent within this transaction.

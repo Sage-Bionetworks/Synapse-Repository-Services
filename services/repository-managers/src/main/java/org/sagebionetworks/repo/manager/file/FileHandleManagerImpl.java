@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.commons.collections.keyvalue.TiedMapEntry;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
@@ -31,7 +30,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -40,12 +38,29 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
-import org.sagebionetworks.repo.model.file.*;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
+import org.sagebionetworks.repo.model.file.State;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -53,22 +68,20 @@ import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
@@ -203,7 +216,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		this.fallbackStrategy = fallbackStrategy;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public FileUploadResults uploadfiles(UserInfo userInfo,
 			Set<String> expectedParams, FileItemIterator itemIterator)
@@ -273,7 +286,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public S3FileHandle uploadFile(String userId, FileItemStream fis)
 			throws IOException, ServiceUnavailableException {
 		// Create a token for this file
@@ -345,7 +358,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return handle;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteFileHandle(UserInfo userInfo, String handleId)
 			throws DatastoreException {
@@ -458,7 +471,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ExternalFileHandle createExternalFileHandle(UserInfo userInfo,
 			ExternalFileHandle fileHandle) {
@@ -596,7 +609,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) throws DatastoreException,
 			NotFoundException {
@@ -837,51 +850,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return externalUploadDestination;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createFileHandleFromAttachment(java.lang.String, java.util.Date, org.sagebionetworks.repo.model.attachment.AttachmentData)
-	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public S3FileHandle createFileHandleFromAttachment(String entityId, String createdBy, Date createdOn,
-			AttachmentData attachment) throws NotFoundException {
-		if (attachment == null) {
-			throw new IllegalArgumentException("AttachmentData cannot be null");
-		}
-		if (attachment.getTokenId() == null) {
-			throw new IllegalArgumentException("AttachmentData.tokenId cannot be null");
-		}
-		// The keys do not start with "/"
-		String key = S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, attachment.getTokenId());
-		// Can we find this object with the key?
-		try {
-			String bucket = StackConfiguration.getS3Bucket();
-			ObjectMetadata meta = s3Client.getObjectMetadata(bucket, key);
-			S3FileHandle handle = new S3FileHandle();
-			handle.setBucketName(bucket);
-			handle.setKey(key);
-			handle.setContentType(meta.getContentType());
-			handle.setContentMd5(meta.getContentMD5());
-			handle.setContentSize(meta.getContentLength());
-			handle.setFileName(extractFileNameFromKey(key));
-			if (attachment.getName() != null) {
-				handle.setFileName(attachment.getName());
-			}
-			if (attachment.getMd5() != null) {
-				handle.setContentMd5(attachment.getMd5());
-			}
-			if (attachment.getContentType() != null) {
-				handle.setContentType(attachment.getContentType());
-			}
-			handle.setCreatedBy(createdBy);
-			handle.setCreatedOn(createdOn);
-			handle = fileHandleDao.createFile(handle);
-			return handle;
-		} catch (AmazonServiceException e) {
-			throw new NotFoundException(e);
-		}
-	}
-
 	/**
 	 * Extract the file name from the keys
 	 * 
@@ -903,7 +871,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
@@ -937,7 +905,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.createFile(handle, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public S3FileHandle createNeverUploadedPlaceHolderFileHandle(
 			String createdBy, Date modifiedOn, String name) throws IOException {
@@ -970,40 +938,5 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
 		return fileHandleDao.createFile(handle, true);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createAttachmentInS3(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.Date)
-	 */
-	@Override
-	public AttachmentData createAttachmentInS3(String fileContents,
-			String fileName, String userId, String entityId, Date createdOn)
-			throws UnsupportedEncodingException, IOException {
-		String tokenId = S3TokenManagerImpl.createTokenId(Long.parseLong(userId), fileName);
-		String key = S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, tokenId);
-		byte[] bytes = fileContents.getBytes("UTF-8");
-		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(bytes);
-		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
-		// Upload the file to S3
-
-		ObjectMetadata meta = new ObjectMetadata();
-		meta.setContentType("text/plain");
-		meta.setContentMD5(hexMd5);
-		meta.setContentLength(bytes.length);
-		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
-		String bucket = StackConfiguration.getS3Bucket();
-		s3Client.putObject(bucket, key, in, meta);
-		// Create the file handle
-		// Create an attachment from the filehandle
-		AttachmentData ad = new AttachmentData();
-		ad.setContentType(meta.getContentType());
-		ad.setMd5(md5);
-		ad.setName(fileName);
-		ad.setPreviewId(tokenId);
-		ad.setTokenId(tokenId);
-		ad.setPreviewState(PreviewState.PREVIEW_EXISTS);
-		return ad;
 	}
 }

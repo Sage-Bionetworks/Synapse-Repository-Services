@@ -54,30 +54,6 @@
 					<module>org.sagebionetworks.repo.SharedSynpaseDTOs</module>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.2.1</version>
-				<executions>
-					<execution>
-						<id>exec-one</id>
-						<phase>generate-resources</phase>
-						<configuration>
-							<!-- This will auto-generate a RegisterConstants.properties file containing
-								the current Register.json -->
-							<mainClass>org.sagebionetworks.ResourceEncoder</mainClass>
-							<arguments>
-								<argument>Register.json</argument>
-								<argument>${project.build.directory}/auto-generated/org/sagebionetworks/repo/model/RegisterConstants.properties</argument>
-								<argument>org.sagebionetworks.entity.register</argument>
-							</arguments>
-						</configuration>
-						<goals>
-							<goal>java</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
 	<dependencies>

@@ -62,7 +62,7 @@ public class NodeManagerAuthorizationTest {
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null, mockActivityManager);
 		// The mocks user for tests
 		mockNode = Mockito.mock(Node.class);
-		when(mockNode.getNodeType()).thenReturn(EntityType.project.name());
+		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("BobTheNode");
 		mockAnnotations = Mockito.mock(Annotations.class);
 		when(mockAnnotations.getEtag()).thenReturn("12");

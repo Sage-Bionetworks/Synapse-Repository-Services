@@ -570,7 +570,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		toCreate.setModifiedByPrincipalId(Long.parseLong(ownerId));
 		toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
 		toCreate.setModifiedOn(toCreate.getCreatedOn());
-		toCreate.setNodeType(EntityType.project.name());
+		toCreate.setNodeType(EntityType.project);
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("1");
     	String id = nodeManager.createNewNode(toCreate, userInfo);

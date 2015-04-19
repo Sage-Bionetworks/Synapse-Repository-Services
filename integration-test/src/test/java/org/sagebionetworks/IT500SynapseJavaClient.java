@@ -8,13 +8,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -52,46 +49,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.downloadtools.FileUtils;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.query.Condition;
 import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
@@ -102,11 +60,15 @@ import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
 import org.sagebionetworks.repo.model.entity.query.EntityType;
 import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
+import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
+import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
+import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -126,7 +88,6 @@ public class IT500SynapseJavaClient {
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
 	
-	private static final int PREVIEW_TIMOUT = 10*1000;
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
 	private List<String> toDelete;
@@ -236,6 +197,7 @@ public class IT500SynapseJavaClient {
 				adminSynapse.deleteTeam(id);
 			} catch (SynapseNotFoundException e) {}
 		}
+		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(true);
 	}
 	
 	@AfterClass
@@ -251,14 +213,14 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
-		JSONObject results = synapseOne.query("select * from dataset limit 10");
+		JSONObject results = synapseOne.query("select * from folder limit 10");
 
 		assertTrue(0 <= results.getInt("totalNumberOfResults"));
 
 		JSONArray datasets = results.getJSONArray("results");
 
 		if (0 < datasets.length()) {
-			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
+			String datasetId = datasets.getJSONObject(0).getString("folder.id");
 
 			Folder aStoredDataset = synapseOne.getEntity(datasetId, Folder.class);
 			assertNotNull(aStoredDataset.getAnnotations());
@@ -1627,5 +1589,28 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, results.getEntities().size());
 		EntityQueryResult projectResult = results.getEntities().get(0);
 		assertEquals(project.getId(), projectResult.getId());
+	}
+
+
+	@Test
+	public void testReturnCodes() throws Exception {
+		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
+		for (TestEntry test : ExceptionHandlers.testEntries) {
+			for (ExceptionType exception : test.exceptions) {
+				String exceptionClassName = exception.concreteClassName != null ? exception.concreteClassName : exception.name;
+
+				int result = adminSynapse.throwException(exceptionClassName, true, false);
+				assertEquals("in transaction: " + exceptionClassName, test.statusCode, result);
+
+				// this test can only handle runtime exceptions, non-runtime exceptions will return
+				if (exception.isRuntimeException) {
+					result = adminSynapse.throwException(exceptionClassName, true, true);
+					assertEquals("after transaction: " + exceptionClassName, test.statusCode, result);
+				}
+
+				result = adminSynapse.throwException(exceptionClassName, false, false);
+				assertEquals("no transaction: " + exceptionClassName, test.statusCode, result);
+			}
+		}
 	}
 }

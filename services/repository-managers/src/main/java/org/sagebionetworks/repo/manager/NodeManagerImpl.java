@@ -39,8 +39,8 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * The Sage business logic for node management.
@@ -93,7 +93,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	/**
 	 * Create a new node
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String createNewNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
@@ -108,7 +108,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, newNode);
 		
 		// What is the object type of this node
-		EntityType type = EntityType.valueOf(newNode.getNodeType());
+		EntityType type = newNode.getNodeType();
 		
 		// By default all nodes inherit their their ACL from their parent.
 		ACL_SCHEME aclSchem = ACL_SCHEME.INHERIT_FROM_PARENT;
@@ -220,7 +220,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First validate the username
@@ -235,7 +235,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// First validate the username
@@ -275,14 +275,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		updateNode(userInfo, updatedNode, null, false, false, changeType);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
@@ -290,7 +290,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return update(userInfo, updated, null, false);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
@@ -372,7 +372,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				// If the node is being moved to right under the root, we need to create a new ACL
 				// The root cannot be the benefactor
 				boolean newAcl = nodeDao.isNodeRoot(parentInUpdate);
-				EntityType type = EntityType.valueOf(updatedNode.getNodeType());
+				EntityType type = updatedNode.getNodeType();
 				String defaultPath = type.getDefaultParentPath();
 				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
@@ -447,7 +447,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getAnnotationsForVersion(nodeId, versionNumber);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, String namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
@@ -513,14 +513,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Node node = get(userInfo, nodeId);
-		return EntityType.valueOf(node.getNodeType());
+		return node.getNodeType();
 	}
 	
 	@Override
 	public EntityType getNodeTypeForDeletion(String nodeId) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		Node node = nodeDao.getNode(nodeId);
-		return EntityType.valueOf(node.getNodeType());
+		return node.getNodeType();
 	}
 
 	@Override
@@ -551,7 +551,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getEntityPath(nodeId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String createNewNode(Node newNode, NamedAnnotations newAnnotations, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
@@ -638,7 +638,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return activityManager.getActivity(userInfo, activityId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setActivityForNode(UserInfo userInfo, String nodeId,
 			String activityId) throws NotFoundException, UnauthorizedException,
@@ -648,7 +648,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		update(userInfo, toUpdate);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
@@ -670,7 +670,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public VersionInfo promoteEntityVersion(UserInfo userInfo, String nodeId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {

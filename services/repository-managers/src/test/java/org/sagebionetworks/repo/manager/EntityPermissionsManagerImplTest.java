@@ -88,7 +88,7 @@ public class EntityPermissionsManagerImplTest {
 		node.setCreatedByPrincipalId(createdBy);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedBy);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
 	}

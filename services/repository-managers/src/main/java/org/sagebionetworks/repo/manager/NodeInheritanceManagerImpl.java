@@ -17,8 +17,8 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * 
@@ -34,14 +34,14 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	@Autowired
 	NodeDAO nodeDao;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void nodeParentChanged(String nodeId, String parentNodeId)
 			throws NotFoundException, DatastoreException {
 		nodeParentChanged(nodeId, parentNodeId, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void nodeParentChanged(String nodeId, String parentNodeId, boolean skipBenefactor) 
 			throws NotFoundException, DatastoreException {
@@ -70,13 +70,13 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException, DatastoreException {
 		setNodeToInheritFromItself(nodeId, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNodeToInheritFromItself(String nodeId, boolean skipBenefactor)
 			throws NotFoundException, DatastoreException {
@@ -98,7 +98,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException, DatastoreException {
 		// First determine who this node is inheriting from.
@@ -171,7 +171,6 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * Get the benefactor of a node.
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String getBenefactor(String nodeId) throws NotFoundException, DatastoreException {
 		return nodeInheritanceDao.getBenefactor(nodeId);
@@ -182,7 +181,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		nodeInheritanceDao.addBeneficiary(beneficiaryId, toBenefactorId);

@@ -33,8 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic database implementation of of PrincipalAliasDAO
@@ -67,7 +67,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	
 	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public PrincipalAlias bindAliasToPrincipal(PrincipalAlias dto) throws NotFoundException {
 		if(dto == null) throw new IllegalArgumentException("PrincipalAlais cannot be null");
@@ -217,7 +217,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void bootstrap(){
 		// Boot strap all users and groups
 		if (this.userGroupDAO.getBootstrapPrincipals() == null) {

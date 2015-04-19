@@ -232,7 +232,7 @@ public class NodeTranslationUtilsTest {
 		link.setLinksToClassName(Folder.class.getName());
 		Node node = NodeTranslationUtils.createFromEntity(link);
 		// Set the type for this object
-		node.setNodeType(EntityType.getNodeTypeForClass(link.getClass()).name());
+		node.setNodeType(EntityType.link);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations(), node.getReferences());

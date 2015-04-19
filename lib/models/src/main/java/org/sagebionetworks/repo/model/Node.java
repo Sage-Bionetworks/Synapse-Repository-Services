@@ -20,7 +20,7 @@ public class Node {
 	private Date createdOn;
 	private Long modifiedByPrincipalId;
 	private Date modifiedOn;
-	private String nodeType;
+	private EntityType nodeType;
 	private String eTag;
 	private Long versionNumber;
 	private String versionComment;
@@ -71,11 +71,11 @@ public class Node {
 		this.modifiedOn = modifiedOn;
 	}
 
-	public String getNodeType() {
+	public EntityType getNodeType() {
 		return nodeType;
 	}
 
-	public void setNodeType(String nodeType) {
+	public void setNodeType(EntityType nodeType) {
 		if(nodeType == null) throw new IllegalArgumentException("Cannot set a Node Type to null");
 		this.nodeType = nodeType;
 	}

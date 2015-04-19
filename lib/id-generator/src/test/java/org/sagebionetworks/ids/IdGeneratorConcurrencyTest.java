@@ -20,7 +20,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:id-generator.spb.xml" })
+@ContextConfiguration(locations = { "classpath:id-generator.spb.xml", "classpath:id-generator-test-context.xml" })
 public class IdGeneratorConcurrencyTest {
 	
 	@Autowired

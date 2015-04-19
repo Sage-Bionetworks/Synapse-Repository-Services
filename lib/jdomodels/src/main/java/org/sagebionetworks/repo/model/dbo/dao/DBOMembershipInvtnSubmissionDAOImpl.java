@@ -36,8 +36,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -111,7 +111,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public MembershipInvtnSubmission create(MembershipInvtnSubmission dto) throws DatastoreException,
 	InvalidModelException {
@@ -250,7 +250,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteByTeamAndUser(long teamId, long inviteeId)
 			throws DatastoreException {

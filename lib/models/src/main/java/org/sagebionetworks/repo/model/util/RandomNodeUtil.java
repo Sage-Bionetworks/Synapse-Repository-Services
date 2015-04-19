@@ -42,7 +42,7 @@ public class RandomNodeUtil {
 		node.setVersionNumber(new Long(rand.nextInt(10)));
 		node.setVersionLabel("0.0"+rand.nextDouble());
 		int typeIndex = rand.nextInt(EntityType.values().length);
-		node.setNodeType(EntityType.values()[typeIndex].name());
+		node.setNodeType(EntityType.values()[typeIndex]);
 		if(rand.nextBoolean()){
 			node.setParentId(""+rand.nextLong());
 		}

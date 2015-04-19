@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 
 import java.util.List;
 
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -236,4 +237,14 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch)
 			throws SynapseException ;
+
+	/**
+	 * Force the server to throw a specific exception and return the status code
+	 * 
+	 * @param exception
+	 * @param inTransaction
+	 * @param inBeforeCommit
+	 * @throws SynapseException
+	 */
+	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException;
 }

@@ -78,7 +78,7 @@ public class DBOAccessControlListDAOScaleTest {
 			node.setCreatedByPrincipalId(createdById);
 			node.setModifiedOn(new Date());
 			node.setModifiedByPrincipalId(createdById);
-			node.setNodeType(EntityType.project.name());
+			node.setNodeType(EntityType.project);
 			String nodeId = nodeDAO.createNew(node);
 			assertNotNull(nodeId);
 			toDelete.add(nodeId);

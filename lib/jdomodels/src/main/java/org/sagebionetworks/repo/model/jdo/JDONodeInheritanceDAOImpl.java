@@ -21,11 +21,12 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
@@ -70,12 +71,12 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
 			return KeyFactory.keyToString(simpleJdbcTemplate.queryForLong(SELECT_BENEFACTOR, KeyFactory.stringToKey(beneficiaryId)));
-		}catch(DataAccessException e){
+		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Entity id: "+beneficiaryId+" not found");
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		// By default we do not want to keep the etag
@@ -83,7 +84,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		addBeneficiary(beneficiaryId, toBenefactorId, keepOldEtag);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId,
 			boolean keepOldEtag) throws NotFoundException, DatastoreException {

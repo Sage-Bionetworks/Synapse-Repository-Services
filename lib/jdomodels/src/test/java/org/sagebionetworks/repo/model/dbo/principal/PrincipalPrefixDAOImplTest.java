@@ -13,6 +13,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -30,6 +32,8 @@ public class PrincipalPrefixDAOImplTest {
 	UserGroupDAO userGroupDAO;
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
+	@Autowired
+	TeamDAO teamDAO;
 
 	Long principalOne;
 	Long principalTwo;
@@ -78,6 +82,9 @@ public class PrincipalPrefixDAOImplTest {
 		ug = new UserGroup();
 		ug.setIsIndividual(false);
 		teamAllId =  Long.parseLong(userGroupDAO.create(ug).toString());
+		Team team = new Team();
+		team.setId(""+teamAllId);
+		teamDAO.create(team);
 		groupMembersDAO.addMembers(teamAllId.toString(), new LinkedList<String>(
 				Arrays.asList(
 						romaneId.toString(),
@@ -90,6 +97,9 @@ public class PrincipalPrefixDAOImplTest {
 						)));
 		// even
 		teamEvenId = Long.parseLong(userGroupDAO.create(ug).toString());
+		team = new Team();
+		team.setId(""+teamEvenId);
+		teamDAO.create(team);
 		groupMembersDAO.addMembers(teamEvenId.toString(), new LinkedList<String>(
 				Arrays.asList(
 						romanusId.toString(),
@@ -98,6 +108,9 @@ public class PrincipalPrefixDAOImplTest {
 						)));
 		// odd
 		teamOddId =  Long.parseLong(userGroupDAO.create(ug).toString());
+		team = new Team();
+		team.setId(""+teamOddId);
+		teamDAO.create(team);
 		groupMembersDAO.addMembers(teamOddId.toString(), new LinkedList<String>(
 				Arrays.asList(
 						romaneId.toString(),

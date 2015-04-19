@@ -54,8 +54,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeDAOImpl implements ChallengeDAO {
 
@@ -163,7 +163,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT =
 			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE;
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Challenge create(Challenge dto) throws DatastoreException {
 		validateChallenge(dto);
@@ -294,19 +294,14 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Challenge update(Challenge dto) throws NotFoundException,
 			DatastoreException {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
 		validateChallenge(dto);
-		DBOChallenge dbo;
-		try {
-			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class, 
-					new SinglePrimaryKeySqlParameterSource(dto.getId()));
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
-		}
+		DBOChallenge dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getId()));
 		if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()))) {
 			throw new IllegalArgumentException(
 					"You cannot change the challenge Project ID.");
@@ -338,7 +333,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		return copyDBOtoDTO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(long id) throws NotFoundException, DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallenge.class, new SinglePrimaryKeySqlParameterSource(id));

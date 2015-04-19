@@ -38,28 +38,43 @@
 	<!-- A profiler that logs performance data for all bean method calls. -->
 	<bean id="poolLogger" class="org.sagebionetworks.repo.model.jdo.ConnectionPoolLogger" />
 
-	<!-- enable the configuration of transactional behavior based on annotations -->
-	<tx:annotation-driven transaction-manager="txManager" />
-
 	<!-- The default behavior of Spring is to only roll-back on RuntimeExceptions 
 		not Exceptions. In the past that is has caused us to commit on IOException 
-		and InterruptedException See PLFM-2108. Currently there is only one exceptions 
-		that we do not want to rollback for and that is NotFoundException. This advice 
-		will ensure that we rollback for all other exceptions -->
-	<tx:advice id="defaultTxRollbackAdvice" transaction-manager="txManager">
+		and InterruptedException See PLFM-2108. This advice 
+		will ensure that we rollback for all exceptions -->
+	<tx:advice id="defaultWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" rollback-for="Throwable"
-				no-rollback-for="org.sagebionetworks.repo.web.NotFoundException" />
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" />
+		</tx:attributes>
+	</tx:advice>
+	<tx:advice id="defaultNewWriteTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" />
+		</tx:attributes>
+	</tx:advice>
+	<tx:advice id="defaultMandatoryWriteTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" />
 		</tx:attributes>
 	</tx:advice>
 
-	<!-- This advisor will be applied to any method with the @Transactional 
-		annotation. This allows us to change the default rollback exception types 
+	<!-- These advisor will be applied to any method with the @WriteTransaction, @NewWriteTransaction and 
+		@MandatoryWriteTransaction annotations. This allows us to change the default rollback exception types 
 		for all of our transactional methods -->
 	<aop:config>
-		<aop:pointcut id="defaultDao"
-			expression="@annotation(org.springframework.transaction.annotation.Transactional)" />
-		<aop:advisor pointcut-ref="defaultDao" advice-ref="defaultTxRollbackAdvice" />
+		<aop:pointcut id="defaultWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransaction)" />
+		<aop:advisor pointcut-ref="defaultWrites" advice-ref="defaultWriteTxRollbackAdvice" />
+	</aop:config>
+	<aop:config>
+		<aop:pointcut id="defaultNewWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.NewWriteTransaction)" />
+		<aop:advisor pointcut-ref="defaultNewWrites" advice-ref="defaultNewWriteTxRollbackAdvice" />
+	</aop:config>
+	<aop:config>
+		<aop:pointcut id="defaultMandatoryWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
+		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
 	</aop:config>
 
 	<!-- Transaction Manager for PMF -->

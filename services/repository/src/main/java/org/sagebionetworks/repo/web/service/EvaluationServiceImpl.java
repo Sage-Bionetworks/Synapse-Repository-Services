@@ -44,7 +44,7 @@ import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationServiceImpl implements EvaluationService {
 
@@ -64,7 +64,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private QueryDAO queryDAO;
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Evaluation createEvaluation(Long userId, Evaluation eval) 
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -154,7 +154,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Evaluation updateEvaluation(Long userId, Evaluation eval)
 			throws DatastoreException, NotFoundException, UnauthorizedException,
 			InvalidModelException, ConflictingUpdateException {
@@ -163,7 +163,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteEvaluation(Long userId, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -171,7 +171,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Participant addParticipant(Long userId, String evalId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantManager.addParticipant(userInfo, evalId);
@@ -185,7 +185,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void removeParticipant(Long userId, String evalId,
 			String idToRemove) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -216,7 +216,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -259,7 +259,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public SubmissionStatus updateSubmissionStatus(Long userId,
 			SubmissionStatus submissionStatus) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -267,7 +267,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public BatchUploadResponse updateSubmissionStatusBatch(Long userId, String evalId,
 			SubmissionStatusBatch batch) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -276,7 +276,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 	@Override
 	@Deprecated
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteSubmission(Long userId, String submissionId)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

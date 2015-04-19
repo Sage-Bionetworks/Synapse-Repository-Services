@@ -35,8 +35,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
@@ -141,7 +141,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Long create(UserGroup dto) throws DatastoreException,
 			InvalidModelException {
 		// The public version unconditionally clears the ID so a new one will be assigned
@@ -201,7 +201,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			dbo = basicDao.getObjectByPrimaryKey(DBOUserGroup.class, param);
 		} catch (NotFoundException e) {
 			// Rethrow the basic DAO's generic error message
-			throw new NotFoundException("Principal (" + id + ") does not exist", e);
+			throw new NotFoundException("Principal (" + id + ") does not exist");
 		}
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto);
@@ -222,7 +222,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		return dtos;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void update(UserGroup dto) throws DatastoreException,
 			InvalidModelException, NotFoundException,
@@ -239,7 +239,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		basicDao.update(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -251,7 +251,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	 * This is called by Spring after all properties are set
 	 */
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void bootstrapUsers() throws Exception {
 		// Reserver an ID well above the current
 		idGenerator.reserveId(3318977l, TYPE.PRINCIPAL_ID);
@@ -280,7 +280,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		}
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String getEtagForUpdate(String id) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -299,7 +299,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void touch(Long principalId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();

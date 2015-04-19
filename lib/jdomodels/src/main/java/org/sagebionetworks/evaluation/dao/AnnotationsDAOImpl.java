@@ -65,8 +65,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AnnotationsDAOImpl implements AnnotationsDAO {
 	
@@ -347,7 +347,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		}, param);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAnnotationsByScope(Long scopeId) {
 		if (scopeId == null) throw new IllegalArgumentException("Owner id cannot be null");

@@ -29,8 +29,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
@@ -85,7 +85,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
@@ -127,7 +127,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
@@ -144,7 +144,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.update(accessApproval);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {

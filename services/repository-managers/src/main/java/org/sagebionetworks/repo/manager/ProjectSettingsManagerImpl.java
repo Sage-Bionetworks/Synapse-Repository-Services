@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -31,15 +32,17 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
@@ -128,12 +131,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) {
+	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations) throws DatastoreException,
+			NotFoundException {
 		return storageLocationDAO.getUploadDestinationLocations(locations);
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		// make sure the project id is a project
 		EntityType nodeType = nodeManager.getNodeType(userInfo, projectSetting.getProjectId());
@@ -149,7 +153,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
@@ -159,7 +163,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
 		if (projectSetting != null
@@ -199,8 +203,23 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException,
+	public List<StorageLocationSetting> getMyStorageLocationSettings(UserInfo userInfo) throws DatastoreException, NotFoundException {
+		return storageLocationDAO.getByOwner(userInfo.getId());
+	}
+
+	@Override
+	public StorageLocationSetting getMyStorageLocationSetting(UserInfo userInfo, Long storageLocationId) throws DatastoreException,
 			NotFoundException {
+		ValidateArgument.required(storageLocationId, "storageLocationId");
+		StorageLocationSetting setting = storageLocationDAO.get(storageLocationId);
+		if (!userInfo.getId().equals(setting.getCreatedBy())) {
+			throw new UnauthorizedException("Only the creator can access storage location settings");
+		}
+		return setting;
+	}
+
+	@Override
+	public StorageLocationSetting getStorageLocationSetting(Long storageLocationId) throws DatastoreException, NotFoundException {
 		if (storageLocationId == null) {
 			return null;
 		}
@@ -253,9 +272,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		try {
 			s3object = s3client.getObject(bucket, key);
 		} catch (AmazonServiceException e) {
-			if ("NoSuchBucket".equals(e.getErrorCode())) {
+			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
-			} else if ("NoSuchKey".equals(e.getErrorCode())) {
+			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket + ". "
 						+ getExplanation(userProfile, bucket, key));
 			} else {

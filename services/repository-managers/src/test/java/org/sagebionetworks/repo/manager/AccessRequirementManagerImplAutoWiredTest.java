@@ -105,24 +105,24 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		Node rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
-		rootProject.setNodeType(EntityType.project.name());
+		rootProject.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(rootProject, adminUserInfo);
 		nodesToDelete.add(rootId); // the deletion of 'rootId' will cascade to its children
 		Node node = new Node();
 		node.setName("A");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.link);
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
 		
 		Node fileNode = new Node();
 		fileNode.setName("File");
-		fileNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
+		fileNode.setNodeType(EntityType.file);
 		fileNode.setParentId(rootId);
 		fileId = nodeManager.createNewNode(fileNode, adminUserInfo);
 
 		Node childNode = new Node();
 		childNode.setName("Child");
-		childNode.setNodeType(EntityType.layer.name());
+		childNode.setNodeType(EntityType.link);
 		childNode.setParentId(entityId);
 		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
@@ -142,12 +142,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 		rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
-		rootProject.setNodeType(EntityType.project.name());
+		rootProject.setNodeType(EntityType.project);
 		String rootId2 = nodeManager.createNewNode(rootProject, adminUserInfo);
 		nodesToDelete.add(rootId2); // the deletion of 'rootId' will cascade to its children
 		node = new Node();
 		node.setName("B");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.link);
 		node.setParentId(rootId2);
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
