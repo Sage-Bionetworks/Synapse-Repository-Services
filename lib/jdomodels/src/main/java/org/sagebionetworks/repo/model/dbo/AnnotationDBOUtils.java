@@ -59,6 +59,35 @@ public class AnnotationDBOUtils {
 	}
 
 	/**
+	 * Create string annotations for any NaN/Infinite double values
+	 * @param ownerId
+	 * @param map
+	 * @return
+	 */
+	public static List<DBOStringAnnotation> createStringAnnotationsForNonFiniteDoubles(Long ownerId, Map<String, List<Double>> map) {
+		List<DBOStringAnnotation> results = new ArrayList<DBOStringAnnotation>();
+		if(map != null){
+			Iterator<String> keyIt = map.keySet().iterator();
+			while(keyIt.hasNext()){
+				String key = keyIt.next();
+				Collection<Double> valueColection = map.get(key);
+				Iterator<Double> valueIt = valueColection.iterator();
+				while(valueIt.hasNext()){
+					Double value = valueIt.next();
+					if (value!=null && Double.isInfinite(value) || Double.isNaN(value)) {
+						DBOStringAnnotation anno = new DBOStringAnnotation();
+						anno.setOwner(ownerId);
+						anno.setAttribute(key);
+						anno.setValue(value.toString());
+						results.add(anno);
+					}
+				}
+			}
+		}
+		return results;
+	}
+
+	/**
 	 * Create a list of DBOLongAnnotation from the given map.
 	 * @param ownerId
 	 * @param map
@@ -86,12 +115,12 @@ public class AnnotationDBOUtils {
 	}
 
 	/**
-	 * Create the double annotations.
+	 * Create the double annotations, skipping any NaN/Infinite values
 	 * @param ownerId
 	 * @param map
 	 * @return
 	 */
-	public static List<DBODoubleAnnotation> createDoubleAnnotations(Long ownerId, Map<String, List<Double>> map) {
+	public static List<DBODoubleAnnotation> createFiniteDoubleAnnotations(Long ownerId, Map<String, List<Double>> map) {
 		List<DBODoubleAnnotation> results = new ArrayList<DBODoubleAnnotation>();
 		if(map != null){
 			Iterator<String> keyIt = map.keySet().iterator();
@@ -101,11 +130,13 @@ public class AnnotationDBOUtils {
 				Iterator<Double> valueIt = valueColection.iterator();
 				while(valueIt.hasNext()){
 					Double value = valueIt.next();
-					DBODoubleAnnotation anno = new DBODoubleAnnotation();
-					anno.setOwner(ownerId);
-					anno.setAttribute(key);
-					anno.setValue(value);
-					results.add(anno);
+					if (!Double.isInfinite(value) && !Double.isNaN(value)) {
+						DBODoubleAnnotation anno = new DBODoubleAnnotation();
+						anno.setOwner(ownerId);
+						anno.setAttribute(key);
+						anno.setValue(value);
+						results.add(anno);
+					}
 				}
 			}
 		}
