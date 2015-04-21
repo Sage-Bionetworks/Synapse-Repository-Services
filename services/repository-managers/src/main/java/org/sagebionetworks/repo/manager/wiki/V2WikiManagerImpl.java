@@ -35,8 +35,8 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * V2 WikiManager implementation.
@@ -79,7 +79,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		this.fileMetadataDao = fileMetadataDao;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiPage createWikiPage(UserInfo user, String objectId, ObjectType objectType, V2WikiPage wikiPage) throws NotFoundException, UnauthorizedException{
 		if(user == null) throw new IllegalArgumentException("user cannot be null");
@@ -210,7 +210,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteWiki(UserInfo user, WikiPageKey key) throws UnauthorizedException, DatastoreException{
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
@@ -228,7 +228,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		wikiPageDao.delete(key);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiPage updateWikiPage(UserInfo user, String objectId, ObjectType objectType, V2WikiPage wikiPage) throws NotFoundException, UnauthorizedException, ConflictingUpdateException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
@@ -315,7 +315,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.getWikiOrderHint(key);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
@@ -356,7 +356,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName, version);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public V2WikiPage restoreWikiPage(UserInfo user, String objectId,
 			ObjectType objectType, Long version, String wikiId) throws NotFoundException,
@@ -417,6 +417,16 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		validateReadAccess(user, wikiPageKey);
 		// Look-up the fileHandle ID
 		return wikiPageDao.getMarkdownHandleId(wikiPageKey, version);
+	}
+
+	@Override
+	public WikiPageKey getRootWikiKey(UserInfo user, String ownerId,
+			ObjectType type) throws NotFoundException {
+		Long rootWikiId = wikiPageDao.getRootWiki(ownerId, type);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, type, rootWikiId.toString());
+		// Validate that the user has read access
+		validateReadAccess(user, key);
+		return key;
 	}
 
 }

@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_LOCK_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_EXCLUSIVE_SEMAPHORE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SHARED_SEMAPHORE;
 
 import java.util.UUID;
 
@@ -17,11 +13,12 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOExclusiveLock;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSharedLock;
 import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic database backed implementation of the ExclusiveOrSharedSemaphoreDao.
@@ -75,7 +72,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		this.maxExclusiveLockTimeoutMS = maxExclusiveLockTimeoutMS;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public String acquireSharedLock(String lockKey, long timeoutMS)	throws LockUnavilableException {
 		if(lockKey == null) throw new IllegalArgumentException("Key cannot be null");
@@ -144,7 +141,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		}
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void releaseSharedLock(String lockKey, String token) throws LockReleaseFailedException {
 		// try to release the lock
@@ -154,7 +151,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public String acquireExclusiveLockPrecursor(String lockKey)
 			throws LockUnavilableException {
@@ -172,7 +169,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		return exclusiveLock.getExclusivePrecursorToken();
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public String acquireExclusiveLock(String lockKey, String exclusiveLockPrecursorToken,
 			long timeoutMS) {
@@ -216,7 +213,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		return this.simpleJdbcTemplate.queryForLong(SQL_COUNT_SHARED_LOCKS_FOR_RESOURCE, lockKey);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void releaseExclusiveLock(String lockKey, String token)
 			throws LockReleaseFailedException {

@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class TrashServiceImpl implements TrashService {
 
@@ -133,7 +133,7 @@ public class TrashServiceImpl implements TrashService {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrashForUser(Long currentUserId, String entityId) throws DatastoreException, NotFoundException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
@@ -141,14 +141,14 @@ public class TrashServiceImpl implements TrashService {
 		trashManager.purgeTrashForUser(currentUser, entityId, new TrashPurgeCallback());
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrashForUser(Long currentUserId) throws DatastoreException, NotFoundException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		trashManager.purgeTrashForUser(currentUser, new TrashPurgeCallback());
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void purgeTrash(Long currentUserId) throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);

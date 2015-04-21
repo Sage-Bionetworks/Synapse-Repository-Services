@@ -51,7 +51,7 @@ public class AccessRequirementUtilTest {
 		
 		testEntityNode = new Node();
 		testEntityNode.setId(NODE_ID);
-		testEntityNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
+		testEntityNode.setNodeType(EntityType.file);
 		//by default, set node created by to current user
 		testEntityNode.setCreatedByPrincipalId(Long.parseLong(currentUserPrincipalId));
 		when(mockNodeDAO.getNode(anyString())).thenReturn(testEntityNode);

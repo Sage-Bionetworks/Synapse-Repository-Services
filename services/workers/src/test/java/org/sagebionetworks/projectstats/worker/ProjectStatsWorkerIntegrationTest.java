@@ -1,65 +1,55 @@
 package org.sagebionetworks.projectstats.worker;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.acl.worker.AclSnapshotWorkerTestUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.TimeUtils;
@@ -67,21 +57,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ProjectStatsWorkerIntegrationTest {
 
-	public static final int MAX_WAIT_MS = 1000 * 60;
+	private static final long WAIT_FOR_STAT_CHANGE_MS = 10000L;
+
 	@Autowired
 	private EntityManager entityManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private TeamManager teamManager;
 	@Autowired
 	private SemaphoreManager semphoreManager;
 	@Autowired
@@ -90,12 +81,22 @@ public class ProjectStatsWorkerIntegrationTest {
 	private FileHandleDao fileMetadataDao;
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
+	@Autowired
+	private TeamDAO teamDAO;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+	@Autowired
+	private NodeInheritanceDAO nodeInheritanceDAO;
+	@Autowired
+	private AccessControlListDAO accessControlListDAO;
 
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
 	private UserInfo adminUserInfo;
 	private List<String> toDelete = Lists.newArrayList();
-	Long userId;
+	private Long userId;
+	private Long[] userIds = new Long[4];
+	private String teamId;
 	private S3FileHandle handleOne;
 	private V2WikiPage v2RootWiki;
 
@@ -108,6 +109,12 @@ public class ProjectStatsWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@xx.com");
 		userId = userManager.createUser(user);
+		for (int i = 0; i < userIds.length; i++) {
+			user = new NewUser();
+			user.setUserName(UUID.randomUUID().toString());
+			user.setEmail(user.getUserName() + "@xx.com");
+			userIds[i] = userManager.createUser(user);
+		}
 		currentUserIdThreadLocal.set(null);
 	}
 
@@ -124,6 +131,14 @@ public class ProjectStatsWorkerIntegrationTest {
 		}
 		if (userId != null) {
 			userManager.deletePrincipal(adminUserInfo, userId);
+		}
+		for (Long userId2 : userIds) {
+			if (userId2 != null) {
+				userManager.deletePrincipal(adminUserInfo, userId2);
+			}
+		}
+		if (teamId != null) {
+			teamDAO.delete(teamId);
 		}
 		if (handleOne != null) {
 			fileMetadataDao.delete(handleOne.getId());
@@ -151,7 +166,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		toDelete.add(project.getId());
 
 		// Wait for the project stat to be added
-		List<ProjectStat> projectStatsForUser = TimeUtils.waitFor(10000L, 200L, new Callable<Pair<Boolean, List<ProjectStat>>>() {
+		List<ProjectStat> projectStatsForUser = TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, new Callable<Pair<Boolean, List<ProjectStat>>>() {
 			@Override
 			public Pair<Boolean, List<ProjectStat>> call() throws Exception {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
@@ -174,7 +189,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		toDelete.add(folderId);
 
-		assertTrue(TimeUtils.waitFor(10000L, 200L, projectStat, new Predicate<ProjectStat>() {
+		assertTrue(TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, projectStat, new Predicate<ProjectStat>() {
 			@Override
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
@@ -189,7 +204,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		subFolder.setParentId(folderId);
 		toDelete.add(entityManager.createEntity(adminUserInfo, subFolder, null));
 
-		assertTrue(TimeUtils.waitFor(10000L, 200L, projectStat, new Predicate<ProjectStat>() {
+		assertTrue(TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, projectStat, new Predicate<ProjectStat>() {
 			@Override
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
@@ -200,7 +215,7 @@ public class ProjectStatsWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testAddUserToProjectChange() throws Exception {
+	public void testAddFolderToProjectChange() throws Exception {
 		ProjectStat projectStat = setupProject();
 
 		// Create an entity
@@ -209,12 +224,105 @@ public class ProjectStatsWorkerIntegrationTest {
 		folder.setParentId(KeyFactory.keyToString(projectStat.getProjectId()));
 		entityManager.createEntity(adminUserInfo, folder, null);
 
-		assertTrue(TimeUtils.waitFor(10000L, 200L, projectStat, new Predicate<ProjectStat>() {
+		assertTrue(TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, projectStat, new Predicate<ProjectStat>() {
 			@Override
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
 				assertEquals("Shouldn't get more than one entry", 1, projectStatsForUser.size());
 				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(input.getLastAccessed());
+			}
+		}));
+	}
+
+	@Test
+	public void testAddUserToProjectChanges() throws Exception {
+		final ProjectStat projectStat = setupProject();
+
+		Team team = new Team();
+		team.setName("team-" + new Random().nextInt());
+		team = teamManager.create(adminUserInfo, team);
+		teamId = team.getId();
+
+		final Long userInitiallyInTeam = userIds[0];
+		final Long userAddedAndRemoveOnTeam = userIds[1];
+		final Long userAddedAndRemovedOnProjectAcl = userIds[2];
+		final Long userAddedToTeamAndNotRemoved = userIds[3];
+
+		teamManager.addMember(adminUserInfo, teamId, userManager.getUserInfo(userInitiallyInTeam));
+
+		for (int i = 0; i < userIds.length; i++) {
+			List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userIds[i]);
+			assertEquals(0, projectStatsForUser.size());
+		}
+
+		applyAndWaitForStatChange(projectStat, userInitiallyInTeam, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				addAcl(projectStat.getProjectId(), Long.parseLong(teamId));
+				return null;
+			}
+		});
+
+		applyAndWaitForStatChange(projectStat, userAddedAndRemoveOnTeam, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				teamManager.addMember(adminUserInfo, teamId, userManager.getUserInfo(userAddedAndRemoveOnTeam));
+				return null;
+			}
+		});
+
+		applyAndWaitForStatChange(projectStat, userAddedAndRemovedOnProjectAcl, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				addAcl(projectStat.getProjectId(), userAddedAndRemovedOnProjectAcl);
+				return null;
+			}
+		});
+
+		applyAndWaitForStatChange(projectStat, userAddedToTeamAndNotRemoved, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				teamManager.addMember(adminUserInfo, teamId, userManager.getUserInfo(userAddedToTeamAndNotRemoved));
+				return null;
+			}
+		});
+
+		applyAndWaitForStatChange(projectStat, userAddedAndRemovedOnProjectAcl, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				removeAcl(projectStat.getProjectId(), userAddedAndRemovedOnProjectAcl);
+				return null;
+			}
+		});
+
+		applyAndWaitForStatChange(projectStat, userAddedAndRemoveOnTeam, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				teamManager.removeMember(adminUserInfo, teamId, userAddedAndRemoveOnTeam.toString());
+				return null;
+			}
+		});
+
+		applyAndWaitForStatChange(projectStat, userAddedToTeamAndNotRemoved, new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				removeAcl(projectStat.getProjectId(), Long.parseLong(teamId));
+				return null;
+			}
+		});
+	}
+
+	private void applyAndWaitForStatChange(ProjectStat projectStat, final Long userId, Callable<Void> action) throws Exception {
+		final Date before = new Date();
+		Thread.sleep(2);
+
+		action.call();
+
+		assertTrue(TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, projectStat, new Predicate<ProjectStat>() {
+			@Override
+			public boolean apply(ProjectStat input) {
+				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
+				return projectStatsForUser.size() == 1 && projectStatsForUser.get(0).getLastAccessed().after(before);
 			}
 		}));
 	}
@@ -243,7 +351,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		v2RootWiki = v2wikiPageDAO.create(v2RootWiki, map, KeyFactory.keyToString(projectStat.getProjectId()), ObjectType.ENTITY,
 				Lists.newArrayList(handleOne.getId()));
 
-		assertTrue(TimeUtils.waitFor(10000L, 200L, projectStat, new Predicate<ProjectStat>() {
+		assertTrue(TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, projectStat, new Predicate<ProjectStat>() {
 			@Override
 			public boolean apply(ProjectStat input) {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
@@ -264,9 +372,10 @@ public class ProjectStatsWorkerIntegrationTest {
 		String id = entityManager.createEntity(adminUserInfo, project, null);
 		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 		toDelete.add(project.getId());
+		addAcl(KeyFactory.stringToKey(id), adminUserInfo.getId(), userId);
 
 		// Wait for the project stat to be added
-		List<ProjectStat> projectStatsForUser = TimeUtils.waitFor(10000L, 200L, new Callable<Pair<Boolean, List<ProjectStat>>>() {
+		List<ProjectStat> projectStatsForUser = TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, new Callable<Pair<Boolean, List<ProjectStat>>>() {
 			@Override
 			public Pair<Boolean, List<ProjectStat>> call() throws Exception {
 				List<ProjectStat> projectStatsForUser = projectStatsDAO.getProjectStatsForUser(userId);
@@ -275,5 +384,28 @@ public class ProjectStatsWorkerIntegrationTest {
 		});
 		ProjectStat projectStat = projectStatsForUser.get(0);
 		return projectStat;
+	}
+
+	private void addAcl(Long project, Long... usersToAdd) throws Exception {
+		AccessControlList acl = accessControlListDAO.get(project.toString(), ObjectType.ENTITY);
+		Set<ResourceAccess> ras = AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), 14, false);
+		acl.getResourceAccess().addAll(ras);
+
+		// update the ACL
+		accessControlListDAO.update(acl, ObjectType.ENTITY);
+	}
+
+	private void removeAcl(Long project, Long userToRemove) throws Exception {
+		AccessControlList acl = accessControlListDAO.get(project.toString(), ObjectType.ENTITY);
+		Iterator<ResourceAccess> iterator = acl.getResourceAccess().iterator();
+		while (iterator.hasNext()) {
+			ResourceAccess ra = iterator.next();
+			if (ra.getPrincipalId().equals(userToRemove)) {
+				iterator.remove();
+			}
+		}
+
+		// update the ACL
+		accessControlListDAO.update(acl, ObjectType.ENTITY);
 	}
 }

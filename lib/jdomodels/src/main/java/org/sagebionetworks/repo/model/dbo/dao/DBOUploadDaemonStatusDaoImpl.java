@@ -5,11 +5,12 @@ import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Simple implementation of the UploadDaemonStatusDao.
@@ -21,7 +22,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 	@Autowired
 	private DBOBasicDao basicDao;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public UploadDaemonStatus create(UploadDaemonStatus status) throws DatastoreException {
 		validate(status);
@@ -53,7 +54,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 		return UploadDaemonStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -61,7 +62,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 		basicDao.deleteObjectByPrimaryKey(DBOUploadDaemonStatus.class, param);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public boolean update(UploadDaemonStatus status) {
 		validate(status);

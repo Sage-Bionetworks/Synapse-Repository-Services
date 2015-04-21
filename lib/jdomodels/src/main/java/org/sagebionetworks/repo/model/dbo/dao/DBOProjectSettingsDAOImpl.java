@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,14 +17,15 @@ import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 
@@ -38,14 +40,14 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String SELECT_SETTING = "SELECT * FROM " + SqlConstants.TABLE_PROJECT_SETTING + " WHERE "
-			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
-	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + SqlConstants.TABLE_PROJECT_SETTING + " WHERE "
+	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_PROJECT_ID
+			+ " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
+	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
 
 	private static final RowMapper<DBOProjectSetting> projectSettingRowMapper = (new DBOProjectSetting()).getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String create(ProjectSetting dto) throws DatastoreException, InvalidModelException {
 		DBOProjectSetting dbo = new DBOProjectSetting();
@@ -61,10 +63,10 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	}
 
 	@Override
-	public ProjectSetting get(String projectId, String type) throws DatastoreException {
+	public ProjectSetting get(String projectId, ProjectSettingsType type) throws DatastoreException {
 		try {
 			DBOProjectSetting projectSetting = jdbcTemplate.queryForObject(SELECT_SETTING, projectSettingRowMapper,
-					KeyFactory.stringToKey(projectId), type);
+					KeyFactory.stringToKey(projectId), type.name());
 			ProjectSetting dto = convertDboToDto(projectSetting);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
@@ -92,49 +94,45 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		basicDao.deleteObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ProjectSetting update(ProjectSetting dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {
-		try {
-			DBOProjectSetting dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-					new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		DBOProjectSetting dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getId()));
 
-			if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()).longValue())) {
-				throw new IllegalArgumentException(
-						"You cannot change the project id with the update project settings call. Create a new project settings instead");
-			}
-			if (!dbo.getType().equals(dto.getSettingsType())) {
-				throw new IllegalArgumentException(
-						"You cannot change the settings type with the update project settings call. Create a new project settings instead");
-			}
-
-			// Check dbo's etag against dto's etag
-			// if different rollback and throw a meaningful exception
-			if (!dbo.getEtag().equals(dto.getEtag())) {
-				throw new ConflictingUpdateException(
-						"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
-			}
-			dbo.setData(dto);
-			// Update with a new e-tag
-			dbo.setEtag(UUID.randomUUID().toString());
-
-			boolean success = basicDao.update(dbo);
-			if (!success)
-				throw new DatastoreException("Unsuccessful updating project setting in database.");
-
-			// re-get, so we don't clobber the object we put in the dbo directly with setData
-			dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
-			return convertDboToDto(dbo);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()).longValue())) {
+			throw new IllegalArgumentException(
+					"You cannot change the project id with the update project settings call. Create a new project settings instead");
 		}
+		if (!dbo.getType().equals(dto.getSettingsType())) {
+			throw new IllegalArgumentException(
+					"You cannot change the settings type with the update project settings call. Create a new project settings instead");
+		}
+
+		// Check dbo's etag against dto's etag
+		// if different rollback and throw a meaningful exception
+		if (!dbo.getEtag().equals(dto.getEtag())) {
+			throw new ConflictingUpdateException(
+					"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
+		}
+		dbo.setData(dto);
+		// Update with a new e-tag
+		dbo.setEtag(UUID.randomUUID().toString());
+
+		boolean success = basicDao.update(dbo);
+		if (!success)
+			throw new DatastoreException("Unsuccessful updating project setting in database.");
+
+		// re-get, so we don't clobber the object we put in the dbo directly with setData
+		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		return convertDboToDto(dbo);
 	}
 
 	private static void copyDtoToDbo(ProjectSetting dto, DBOProjectSetting dbo) {

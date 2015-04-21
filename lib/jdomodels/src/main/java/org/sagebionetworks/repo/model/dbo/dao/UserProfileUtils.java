@@ -31,6 +31,9 @@ public class UserProfileUtils {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+		if(dto.getProfilePicureFileHandleId()!= null){
+			dbo.setPictureId(Long.parseLong(dto.getProfilePicureFileHandleId()));
+		}
 	}
 	
 	public static UserProfile deserialize(byte[] b) {
@@ -63,6 +66,9 @@ public class UserProfileUtils {
 			dto.setOwnerId(dbo.getOwnerId().toString());
 		}
 		dto.setEtag(dbo.geteTag());
+		if(dbo.getPictureId() != null){
+			dto.setProfilePicureFileHandleId(dbo.getPictureId().toString());
+		}
 		return dto;
 	}
 	

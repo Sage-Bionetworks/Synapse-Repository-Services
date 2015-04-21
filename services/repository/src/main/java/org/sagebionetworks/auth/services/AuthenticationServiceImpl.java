@@ -8,6 +8,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -16,13 +17,17 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
+import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
 
@@ -36,18 +41,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
+	private OAuthManager oauthManager;
+	
+	@Autowired
 	private MessageManager messageManager;
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager, OAuthManager oauthManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
 		this.messageManager = messageManager;
+		this.oauthManager = oauthManager;
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session authenticate(LoginCredentials credential, DomainType domain) throws NotFoundException {
 		if (credential.getEmail() == null) {
 			throw new UnauthenticatedException("Username may not be null");
@@ -67,13 +76,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Long revalidate(String sessionToken, DomainType domain) throws NotFoundException {
 		return revalidate(sessionToken, domain, true);
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Long revalidate(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
@@ -82,7 +91,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void invalidateSessionToken(String sessionToken) {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
@@ -91,7 +100,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void createUser(NewUser user, DomainType domain) {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Email must be specified");
@@ -106,7 +115,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void sendPasswordEmail(Long principalId, DomainType domain) throws NotFoundException {
 		if (principalId == null) {
 			throw new IllegalArgumentException("PrincipalId may not be null");
@@ -123,7 +132,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void changePassword(ChangePasswordRequest request, DomainType domain) throws NotFoundException {
 		if (request.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
@@ -138,7 +147,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void signTermsOfUse(Session session, DomainType domain) throws NotFoundException {
 		if (session.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
@@ -162,7 +171,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteSecretKey(Long principalId) throws NotFoundException {
 		authManager.changeSecretKey(principalId);
 	}
@@ -174,7 +183,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException {
 		// Verify that the OpenID request is valid
 		OpenIDInfo openIDInfo;
@@ -196,7 +205,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session processOpenIDInfo(OpenIDInfo info, DomainType domain) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
@@ -260,5 +269,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
 		sendPasswordEmail(pa.getPrincipalId(), domain);
 		
+	}
+
+	@Override
+	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request) {
+		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl());
+		OAuthUrlResponse response = new OAuthUrlResponse();
+		response.setAuthorizationUrl(url);
+		return response;
+	}
+
+	@Override
+	public Session validateOAuthAuthenticationCode(
+			OAuthValidationRequest request) throws NotFoundException {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// This is the ID of the user within the provider's system.
+		PrincipalAlias emailAlais = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
+		if(emailAlais == null){
+			// Let the caller know we did not find the user
+			throw new NotFoundException(providedInfo.getUsersVerifiedEmail());
+		}
+		// Return the user's session token
+		return authManager.getSessionToken(emailAlais.getPrincipalId(), DomainType.SYNAPSE);
 	}
 }

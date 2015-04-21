@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Set;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -143,27 +143,6 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public void removeMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
-	 * 
-	 * @return
-	 */
-	Long millisSinceLastCacheUpdate();
-
-	/**
-	 * For use by Quartz
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void refreshCache() throws DatastoreException, NotFoundException;
-	
-	/**
-	 * For use by TeamController, requests from which must be authenticated
-	 * @param userId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void refreshCache(Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -195,7 +174,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException;
+	ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -205,6 +184,6 @@ public interface TeamService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ListWrapper<TeamMember> listTeamMembers(Set<Long> teamIds, Set<Long> memberIds) throws DatastoreException, NotFoundException;
+	public ListWrapper<TeamMember> listTeamMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException;
 	
 }

@@ -2,7 +2,8 @@ package org.sagebionetworks.dynamo.config;
 
 import org.sagebionetworks.StackConfiguration;
 
-import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 
 // TODO
 // 1. Define a JSON schema for DynamoDB tables
@@ -12,27 +13,36 @@ public final class DynamoTableConfig {
 
 	public final static class DynamoKey {
 
-		DynamoKey(String keyName, ScalarAttributeType keyType) {
+		private final String keyName;
+		private final KeyType keyType;
+		private final ScalarAttributeType attributeType;
+
+		DynamoKey(String keyName, KeyType keyType, ScalarAttributeType attributeType) {
 			if (keyName == null) {
 				throw new IllegalArgumentException("keyName is required");
 			}
 			if (keyType == null) {
 				throw new IllegalArgumentException("keyType is required");
 			}
+			if (attributeType == null) {
+				throw new IllegalArgumentException("attributeType is required");
+			}
 			this.keyName = keyName;
 			this.keyType = keyType;
+			this.attributeType = attributeType;
 		}
 
 		public String getKeyName() {
 			return keyName;
 		}
 
-		public ScalarAttributeType getKeyType() {
+		public KeyType getKeyType() {
 			return keyType;
 		}
 
-		private final String keyName;
-		private final ScalarAttributeType keyType;
+		public ScalarAttributeType getAttributeType() {
+			return attributeType;
+		}
 	}
 
 	public final static class DynamoKeySchema {

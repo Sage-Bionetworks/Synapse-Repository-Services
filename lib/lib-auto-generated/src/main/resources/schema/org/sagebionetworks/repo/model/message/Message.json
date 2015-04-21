@@ -3,6 +3,9 @@
 	"description": "JSON schema for a message",
 	"type": "interface",
 	"properties": {
+		"concreteType":{
+			"type": "string"
+		},
 		"objectId": {
 			"type": "string",
 			"description":"The unique identifier of the object that changed."

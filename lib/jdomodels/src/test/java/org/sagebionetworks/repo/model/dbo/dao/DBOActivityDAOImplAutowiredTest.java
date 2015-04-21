@@ -235,18 +235,6 @@ public class DBOActivityDAOImplAutowiredTest {
 		fail();
 	}
 	
- 	// Calling lockActivityAndIncrementEtag() outside of a transaction in not allowed, and will throw an exception.
-	@Test(expected=IllegalTransactionStateException.class)
-	public void testLockActivityAndIncrementEtagNoTransaction() throws Exception {
-		Activity act = newTestActivity(idGenerator.generateNewId().toString());
-		String id = activityDao.create(act);
-		toDelete.add(id);
-		assertNotNull(id);
-		String eTag = act.getEtag();
-		activityDao.lockActivityAndGenerateEtag(id, eTag, ChangeType.UPDATE);
-		fail("Should have thrown an IllegalTransactionStateException");
-	}
-
 	@Test
 	public void testDoesActivityExist() throws Exception {
 		Activity act = newTestActivity(idGenerator.generateNewId().toString());		

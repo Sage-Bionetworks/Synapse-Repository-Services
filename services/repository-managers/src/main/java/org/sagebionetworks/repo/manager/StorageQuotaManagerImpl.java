@@ -5,8 +5,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class StorageQuotaManagerImpl implements StorageQuotaManager{
 
@@ -15,7 +15,7 @@ public class StorageQuotaManagerImpl implements StorageQuotaManager{
 	@Autowired
 	private StorageQuotaDao storageQuotaDao;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setQuotaForUser(UserInfo currentUser, UserInfo user, int quotaInMb) {
 

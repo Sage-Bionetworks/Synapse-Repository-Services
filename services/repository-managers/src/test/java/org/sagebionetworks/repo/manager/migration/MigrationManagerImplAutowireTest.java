@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.migration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -13,28 +14,41 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -44,6 +58,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -80,6 +95,18 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	ConnectionFactory connectionFactory;
 
+	@Autowired
+	ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private ProjectSettingsDAO projectSettingsDao;
+
+	@Autowired
+	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+	@Autowired
+	FileHandleManager fileHandleManager;
+
 	private List<String> toDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
@@ -87,8 +114,9 @@ public class MigrationManagerImplAutowireTest {
 	private PreviewFileHandle preview;
 	private long startCount;
 	private String tableId;
+	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
-	
+
 	@Before
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
@@ -113,6 +141,12 @@ public class MigrationManagerImplAutowireTest {
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		// The etag should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+
+		for (int i = 0; i < projectIds.length; i++) {
+			Project project = new Project();
+			project.setName(UUID.randomUUID().toString());
+			projectIds[i] = entityManager.createEntity(adminUser, project, null);
+		}
 
 		// Do this only if table enabled
 		if (StackConfiguration.singleton().getTableEnabled()) {
@@ -153,6 +187,12 @@ public class MigrationManagerImplAutowireTest {
 		try {
 			entityManager.deleteEntity(adminUser, tableId);
 		} catch (Exception e) {
+		}
+		for (String projectId : projectIds) {
+			try {
+				entityManager.deleteEntity(adminUser, projectId);
+			} catch (Exception e) {
+			}
 		}
 	}
 	
@@ -294,5 +334,4 @@ public class MigrationManagerImplAutowireTest {
 			}
 		}
 	}
-	
 }

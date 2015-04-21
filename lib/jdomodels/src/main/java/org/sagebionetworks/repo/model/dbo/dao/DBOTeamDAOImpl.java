@@ -36,12 +36,15 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +52,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * @author brucehoff
@@ -63,6 +66,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 	
@@ -158,7 +164,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#create(org.sagebionetworks.repo.model.Team)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Team create(Team dto) throws DatastoreException,
 	InvalidModelException {
@@ -168,6 +174,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		Team result = TeamUtils.copyDboToDto(dbo);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.CREATE);
 		return result;
 	}
 
@@ -184,15 +191,29 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	public ListWrapper<Team> list(Set<Long> ids) throws DatastoreException, NotFoundException {
+	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException {
 		if (ids==null || ids.size()<1) {
 			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID, ids);
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, TEAM_ROW_MAPPER, param);
+		
+		Map<String,Team> map = new HashMap<String,Team>();
+		for (DBOTeam dbo : dbos) {
+			Team team = TeamUtils.copyDboToDto(dbo);
+			map.put(team.getId(), team);
+		}
+		
 		List<Team> dtos = new ArrayList<Team>();
-		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
+		for (Long id : ids) {
+			Team team = map.get(id.toString());
+			if (team == null) {
+				throw new NotFoundException("Team with id " + id + " not found");
+			}
+			dtos.add(team);
+		}
+		
 		return ListWrapper.wrap(dtos, Team.class);
 	}
 	
@@ -244,6 +265,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#update(org.sagebionetworks.repo.model.Team)
 	 */
+	@WriteTransaction
 	@Override
 	public Team update(Team dto) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -276,19 +298,24 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating Team in database.");
-
+		// update message.
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.UPDATE);
 		Team resultantDto = TeamUtils.copyDboToDto(dbo);
+		
 		return resultantDto;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#delete(java.lang.String)
 	 */
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOTeam.class, param);
+		// update message.
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PRINCIPAL, ChangeType.DELETE);
 	}
 
 	public static class TeamMemberPair {
@@ -349,7 +376,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
 		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
@@ -409,7 +435,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset)
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
@@ -423,10 +448,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	// update the 'isAdmin' field for those members that are admins on their teams
-	private void setAdminStatus(List<TeamMember> teamMembers) {
-		if (teamMembers.isEmpty()) return;
+	private Map<TeamMemberId, TeamMember> setAdminStatus(List<TeamMember> teamMembers) {
 		Set<String> teamIds = new HashSet<String>();
 		Map<TeamMemberId, TeamMember> teamMemberMap = new HashMap<TeamMemberId, TeamMember>();
+		if (teamMembers.isEmpty()) return teamMemberMap;
 		for (TeamMember tm : teamMembers) {
 			teamIds.add(tm.getTeamId());
 			TeamMemberId tmi = new TeamMemberId(Long.parseLong(tm.getTeamId()), 
@@ -441,10 +466,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			TeamMember tm = teamMemberMap.get(tmi);
 			if (tm!=null) tm.setIsAdmin(true);
 		}	
+		
+		return teamMemberMap;
 	}
 	
 	@Override
-	public ListWrapper<TeamMember> listMembers(Set<Long> teamIds, Set<Long> principalIds) throws NotFoundException, DatastoreException {
+	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException {
 		if (teamIds==null || teamIds.size()<1 || principalIds==null || principalIds.size()<1) {
 			return ListWrapper.wrap(Collections.EMPTY_LIST, TeamMember.class);
 		}
@@ -455,12 +482,22 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				TEAM_MEMBER_ROW_MAPPER, param);
 		
 		setAdminStatus(teamMembers);
+		
+		Map<TeamMemberId,TeamMember> map = setAdminStatus(teamMembers);
 
-		return ListWrapper.wrap(teamMembers, TeamMember.class);
+		List<TeamMember> result = new ArrayList<TeamMember>();
+		for (Long teamId : teamIds) {
+			for (Long principalId : principalIds) {
+				TeamMemberId key = new TeamMemberId(teamId, principalId);
+				TeamMember tm = map.get(key);
+				if (tm==null) throw new NotFoundException("teamId: "+teamId+" memberId: "+principalId);
+				result.add(tm);
+			}
+		}
+		return ListWrapper.wrap(result, TeamMember.class);
 	}
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
@@ -477,7 +514,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public long getAdminMemberCount(String teamId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);

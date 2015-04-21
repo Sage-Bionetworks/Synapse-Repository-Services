@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleInstanceFactory;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -15,12 +17,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * Low-level bundle to transport an Entity and related data objects between the 
  * Synapse platform and external clients.
  */
-public class EntityBundle implements JSONEntity {
+public class EntityBundle implements JSONEntity, Serializable {
 	
 	/**
 	 * Masks for requesting what should be included in the bundle.
 	 */
-	
 	public static int ENTITY 		      		= 0x1;
 	public static int ANNOTATIONS	      		= 0x2;
 	public static int PERMISSIONS	     		= 0x4;
@@ -32,8 +33,11 @@ public class EntityBundle implements JSONEntity {
 	public static int UNMET_ACCESS_REQUIREMENTS	= 0x400;
 	public static int FILE_HANDLES				= 0x800;
 	public static int TABLE_DATA				= 0x1000;
+	public static int ROOT_WIKI_ID				= 0x2000;
+	public static int BENEFACTOR_ACL			= 0x4000;
 	
-	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
+	private static FileHandleInstanceFactory fileHandleInstanceFactory = new FileHandleInstanceFactory();
+	private static EntityInstanceFactory entityInstanceFactory = new EntityInstanceFactory();
 	
 	public static final String JSON_ENTITY = "entity";
 	public static final String JSON_ENTITY_TYPE = "entityType";
@@ -44,10 +48,12 @@ public class EntityBundle implements JSONEntity {
 	public static final String JSON_HAS_CHILDREN 	= "hasChildren";
 
 	public static final String JSON_ACL = "accessControlList";
+	public static final String JSON_BENEFACTOR_ACL = "benefactorAcl";
 	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
 	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
 	public static final String JSON_FILE_HANDLES = "fileHandles";
 	public static final String JSON_TABLE_DATA = "tableBundle";
+	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
@@ -60,7 +66,8 @@ public class EntityBundle implements JSONEntity {
 	private List<AccessRequirement> unmetAccessRequirements;
 	private List<FileHandle> fileHandles;
 	private TableBundle tableBundle;
-	
+	private String rootWikiId;
+	private AccessControlList benefactorAcl;
 	/**
 	 * Create a new EntityBundle
 	 */
@@ -86,7 +93,7 @@ public class EntityBundle implements JSONEntity {
 		if (toInitFrom.has(JSON_ENTITY)) {
 			entityType = toInitFrom.getString(JSON_ENTITY_TYPE);
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ENTITY);
-			entity = (Entity) autoGenFactory.newInstance(entityType);
+			entity = entityInstanceFactory.newInstance(entityType);
 			entity.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ANNOTATIONS)) {
@@ -98,13 +105,13 @@ public class EntityBundle implements JSONEntity {
 		if (toInitFrom.has(JSON_PERMISSIONS)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_PERMISSIONS);
 			if (permissions == null)
-				permissions = (UserEntityPermissions) autoGenFactory.newInstance(UserEntityPermissions.class.getName());
+				permissions = new UserEntityPermissions();
 			permissions.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_PATH)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_PATH);
 			if (path == null)
-				path = (EntityPath) autoGenFactory.newInstance(EntityPath.class.getName());
+				path = new EntityPath();
 			path.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_REFERENCED_BY)) {
@@ -123,8 +130,15 @@ public class EntityBundle implements JSONEntity {
 		if (toInitFrom.has(JSON_ACL)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACL);
 			if (acl == null)
-				acl = (AccessControlList) autoGenFactory.newInstance(AccessControlList.class.getName());
+				acl = new AccessControlList();
 			acl.initializeFromJSONObject(joa);
+		}
+		if (toInitFrom.has(JSON_BENEFACTOR_ACL)) {
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_BENEFACTOR_ACL);
+			if (benefactorAcl == null){
+				benefactorAcl = new AccessControlList();
+			}
+			benefactorAcl.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ACCESS_REQUIREMENTS)) {
 			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_ACCESS_REQUIREMENTS);
@@ -148,7 +162,7 @@ public class EntityBundle implements JSONEntity {
 			for (int i=0; i<a.length(); i++) {
 				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
 				String type = joa.getString("concreteType");
-				FileHandle handle = (FileHandle) autoGenFactory.newInstance(type);
+				FileHandle handle = fileHandleInstanceFactory.newInstance(type);
 				handle.initializeFromJSONObject(joa);
 				fileHandles.add(handle);
 			}
@@ -156,8 +170,11 @@ public class EntityBundle implements JSONEntity {
 		if(toInitFrom.has(JSON_TABLE_DATA)){
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_TABLE_DATA);
 			if (tableBundle == null)
-				tableBundle = (TableBundle) autoGenFactory.newInstance(TableBundle.class.getName());
+				tableBundle = new TableBundle();
 			tableBundle.initializeFromJSONObject(joa);
+		}
+		if(toInitFrom.has(JSON_ROOT_WIKI_ID)){
+			rootWikiId = toInitFrom.getString(JSON_ROOT_WIKI_ID);
 		}
 		return toInitFrom;
 	}
@@ -206,6 +223,11 @@ public class EntityBundle implements JSONEntity {
 			acl.writeToJSONObject(joa);
 			writeTo.put(JSON_ACL, joa);
 		}
+		if(benefactorAcl != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			benefactorAcl.writeToJSONObject(joa);
+			writeTo.put(JSON_BENEFACTOR_ACL, joa);
+		}
 		if (accessRequirements != null) {
 			JSONArrayAdapter arArray = writeTo.createNewArray();
 			for (int i=0; i<accessRequirements.size(); i++) {
@@ -237,6 +259,9 @@ public class EntityBundle implements JSONEntity {
 			JSONObjectAdapter joa = writeTo.createNew();
 			tableBundle.writeToJSONObject(joa);
 			writeTo.put(JSON_TABLE_DATA, joa);
+		}
+		if(rootWikiId != null){
+			writeTo.put(JSON_ROOT_WIKI_ID, rootWikiId);
 		}
 		return writeTo;
 	}
@@ -387,6 +412,30 @@ public class EntityBundle implements JSONEntity {
 		this.tableBundle = tableBundle;
 	}
 
+	public AccessControlList getAcl() {
+		return acl;
+	}
+
+	public void setAcl(AccessControlList acl) {
+		this.acl = acl;
+	}
+
+	public String getRootWikiId() {
+		return rootWikiId;
+	}
+
+	public void setRootWikiId(String rootWikiId) {
+		this.rootWikiId = rootWikiId;
+	}
+
+	public AccessControlList getBenefactorAcl() {
+		return benefactorAcl;
+	}
+
+	public void setBenefactorAcl(AccessControlList benefactorAcl) {
+		this.benefactorAcl = benefactorAcl;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -398,6 +447,8 @@ public class EntityBundle implements JSONEntity {
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
 		result = prime * result
 				+ ((entityType == null) ? 0 : entityType.hashCode());
@@ -410,6 +461,8 @@ public class EntityBundle implements JSONEntity {
 				+ ((permissions == null) ? 0 : permissions.hashCode());
 		result = prime * result
 				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime * result
+				+ ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
 		result = prime * result
 				+ ((tableBundle == null) ? 0 : tableBundle.hashCode());
 		result = prime
@@ -442,6 +495,11 @@ public class EntityBundle implements JSONEntity {
 			if (other.annotations != null)
 				return false;
 		} else if (!annotations.equals(other.annotations))
+			return false;
+		if (benefactorAcl == null) {
+			if (other.benefactorAcl != null)
+				return false;
+		} else if (!benefactorAcl.equals(other.benefactorAcl))
 			return false;
 		if (entity == null) {
 			if (other.entity != null)
@@ -478,6 +536,11 @@ public class EntityBundle implements JSONEntity {
 				return false;
 		} else if (!referencedBy.equals(other.referencedBy))
 			return false;
+		if (rootWikiId == null) {
+			if (other.rootWikiId != null)
+				return false;
+		} else if (!rootWikiId.equals(other.rootWikiId))
+			return false;
 		if (tableBundle == null) {
 			if (other.tableBundle != null)
 				return false;
@@ -501,7 +564,8 @@ public class EntityBundle implements JSONEntity {
 				+ acl + ", accessRequirements=" + accessRequirements
 				+ ", unmetAccessRequirements=" + unmetAccessRequirements
 				+ ", fileHandles=" + fileHandles + ", tableBundle="
-				+ tableBundle + "]";
+				+ tableBundle + ", rootWikiId=" + rootWikiId
+				+ ", benefactorAcl=" + benefactorAcl + "]";
 	}
 
 }

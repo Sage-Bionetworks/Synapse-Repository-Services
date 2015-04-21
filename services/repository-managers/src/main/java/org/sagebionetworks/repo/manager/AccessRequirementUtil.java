@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -22,8 +21,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class AccessRequirementUtil {
 	
 	private static final List<Long> EMPTY_LIST = Arrays.asList(new Long[]{});
-	
-	private static final String FILE_TYPE_NAME = EntityType.getNodeTypeForClass(FileEntity.class).name();
+
 	
 	public static List<Long> unmetDownloadAccessRequirementIdsForEntity(
 			UserInfo userInfo, 
@@ -39,7 +37,7 @@ public class AccessRequirementUtil {
 		// has access to the object and therefore has no unmet access requirements
 		Long principalId = userInfo.getId();
 		Node node = nodeDao.getNode(entityId);
-		if (node.getCreatedByPrincipalId().equals(principalId) && node.getNodeType().equals(FILE_TYPE_NAME)) {
+		if (node.getCreatedByPrincipalId().equals(principalId) && EntityType.file.equals(node.getNodeType())) {
 			return EMPTY_LIST;
 		}
 		// per PLFM-2477, we inherit the restrictions of the node's ancestors

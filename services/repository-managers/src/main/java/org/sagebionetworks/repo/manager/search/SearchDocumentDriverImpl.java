@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
-import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
@@ -74,9 +73,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	// private static final String INVESTIGATOR = "investigator";
 	// private static final String INSTITUTION = "institution";
 	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
-
-	@Autowired
-	NodeAliasCache aliasCache;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -214,7 +210,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			fields.setAncestors(ancestors);
 		}
 
-		fields.setNode_type(aliasCache.getPreferredAlias(node.getNodeType()));
+		fields.setNode_type(node.getNodeType().name());
 
 		// The description contains the entity description and all wiki page
 		// text

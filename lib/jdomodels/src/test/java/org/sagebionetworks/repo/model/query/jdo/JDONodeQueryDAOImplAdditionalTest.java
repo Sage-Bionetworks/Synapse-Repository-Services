@@ -160,6 +160,6 @@ public class JDONodeQueryDAOImplAdditionalTest {
 		node.setCreatedOn(new Date());
 		node.setModifiedByPrincipalId(adminId);
 		node.setModifiedOn(new Date());
-		node.setNodeType(type.name());
+		node.setNodeType(type);
 	}
 }

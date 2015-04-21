@@ -7,14 +7,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
@@ -22,7 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -40,8 +37,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ProgressEvent;
-import com.amazonaws.services.s3.model.ProgressListener;
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressListener;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -81,11 +78,10 @@ public class MultipartManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testChunckedFileUploadV1() throws ClientProtocolException, IOException{
+	public void testChunckedFileUploadV1() throws Exception {
 		String fileBody = "This is the body of the file!!!!!";
 		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
 		String md5 = TransferUtils.createMD5(fileBodyBytes);
-		String bucket = StackConfiguration.getS3Bucket();
 		// First create a chunked file token
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		String userId = adminUserInfo.getId().toString();
@@ -93,7 +89,7 @@ public class MultipartManagerImplAutowireTest {
 		ccftr.setFileName(fileName);
 		ccftr.setContentType("text/plain");
 		ccftr.setContentMD5(md5);
-		ChunkedFileToken token = multipartManager.createChunkedFileUploadToken(ccftr, bucket, userId);
+		ChunkedFileToken token = multipartManager.createChunkedFileUploadToken(ccftr, null, userId);
 		assertNotNull(token);
 		assertNotNull(token.getKey());
 		assertNotNull(token.getUploadId());
@@ -104,14 +100,14 @@ public class MultipartManagerImplAutowireTest {
 		ChunkRequest cpr = new ChunkRequest();
 		cpr.setChunkedFileToken(token);
 		cpr.setChunkNumber(1l);
-		URL preSigned = multipartManager.createChunkedFileUploadPartURL(cpr, bucket);
+		URL preSigned = multipartManager.createChunkedFileUploadPartURL(cpr, null);
 		assertNotNull(preSigned);
 		String urlString = preSigned.toString();
 		// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
 		// both file upload and download.
 		assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
 		// Before we put data to the URL the part should not exist
-		assertFalse(multipartManager.doesPartExist(token, 1, bucket));
+		assertFalse(multipartManager.doesPartExist(token, 1, null));
 		// Now upload the file to the URL
 		// Use the URL to upload a part.
 		HttpPut httppost = new HttpPut(preSigned.toString());
@@ -123,14 +119,14 @@ public class MultipartManagerImplAutowireTest {
 		assertEquals(200, response.getStatusLine().getStatusCode());
 		System.out.println(text);
 		// The part should now exist
-		assertTrue(multipartManager.doesPartExist(token, 1, bucket));
+		assertTrue(multipartManager.doesPartExist(token, 1, null));
 	
 		// Make sure we can get the pre-signed url again if we need to.
-		preSigned = multipartManager.createChunkedFileUploadPartURL(cpr, bucket);
+		preSigned = multipartManager.createChunkedFileUploadPartURL(cpr, null);
 		assertNotNull(preSigned);
 		
 		// Next add the part
-		ChunkResult part = multipartManager.copyPart(token, 1, bucket);
+		ChunkResult part = multipartManager.copyPart(token, 1, null);
 		
 		// We need a list of parts
 		List<ChunkResult> partList = new LinkedList<ChunkResult>();
@@ -139,7 +135,7 @@ public class MultipartManagerImplAutowireTest {
 		ccfr.setChunkedFileToken(token);
 		ccfr.setChunkResults(partList);
 		// We are now read to create our file handle from the parts
-		S3FileHandle multiPartHandle = multipartManager.completeChunkFileUpload(ccfr, bucket, userId);
+		S3FileHandle multiPartHandle = multipartManager.completeChunkFileUpload(ccfr, null, userId);
 		assertNotNull(multiPartHandle);
 		assertNotNull(multiPartHandle.getId());
 		fileHandlesToDelete.add(multiPartHandle.getId());
@@ -152,7 +148,8 @@ public class MultipartManagerImplAutowireTest {
 		assertNotNull(multiPartHandle.getCreatedBy());
 		assertEquals(md5, multiPartHandle.getContentMd5());
 		// The part should be deleted
-		assertFalse("The part should have been deleted upon completion of the multi-part upload", multipartManager.doesPartExist(token, 1, bucket));
+		assertFalse("The part should have been deleted upon completion of the multi-part upload",
+				multipartManager.doesPartExist(token, 1, null));
 	}
 	
 	/**
@@ -166,14 +163,14 @@ public class MultipartManagerImplAutowireTest {
 			String fileBody = "This is the body of the file!!!!!";
 			byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
 			String md5 = TransferUtils.createMD5(fileBodyBytes);
-			String bucket = StackConfiguration.getS3Bucket();
 			FileUtils.writeStringToFile(temp, fileBody);
 			String contentType = "text/plain";
 			// Now upload the file to S3
-			S3FileHandle handle = multipartManager.multipartUploadLocalFile(bucket, adminUserInfo.getId().toString(), temp, contentType, new ProgressListener(){
+			S3FileHandle handle = multipartManager.multipartUploadLocalFile(null, adminUserInfo.getId().toString(), temp, contentType,
+					new ProgressListener() {
 				@Override
 				public void progressChanged(ProgressEvent progressEvent) {
-					System.out.println("FileUpload bytesTransfered: : "+progressEvent.getBytesTransfered());
+					System.out.println("FileUpload bytesTransfered: : "+progressEvent.getBytesTransferred());
 					
 				}});
 			assertNotNull(handle);

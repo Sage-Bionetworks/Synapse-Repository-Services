@@ -15,8 +15,7 @@
 			"description": "The ID for the project this setting applies to"
 		},
 		"settingsType": {
-			"type": "string",
-			"description": "the type of project setting"
+			"$ref": "org.sagebionetworks.repo.model.project.ProjectSettingsType"
 		},
 		"etag": {
 			"type": "string",

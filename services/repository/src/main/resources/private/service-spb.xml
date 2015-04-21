@@ -49,9 +49,6 @@
 
 	<!-- The Node Query Service -->
 	<bean id="nodeQueryService" class="org.sagebionetworks.repo.web.service.NodeQueryServiceImpl" />
-
-	<!-- The S3Token Service -->
-	<bean id="s3TokenService" class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />
 	
 	<!-- The Messaging Service -->
 	<bean id="messageService" class="org.sagebionetworks.repo.web.service.MessageServiceImpl" />
@@ -128,38 +125,14 @@
 		class="org.sagebionetworks.repo.web.service.metadata.AllTypesValidatorImpl"
 		scope="singleton" />
 
-	<bean id="datasetMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.DatasetMetadataProvider"
-		scope="singleton" />
-	<bean id="inputDataLayerProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.LayerMetadataProvider"
-		scope="singleton" />
 	<bean id="projectMetadataProvider"
 		class="org.sagebionetworks.repo.web.service.metadata.ProjectMetadataProvider"
-		scope="singleton" />
-	<bean id="storedLayerPreviewMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.PreviewMetadataProvider"
 		scope="singleton" />
 	<bean id="folderMetadataProvider"
 		class="org.sagebionetworks.repo.web.service.metadata.FolderMetadataProvider"
 		scope="singleton" />
-	<bean id="analysisMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.AnalysisMetadataProvider"
-		scope="singleton" />
-	<bean id="stepMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.StepMetadataProvider"
-		scope="singleton" />
-	<bean id="codeMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.CodeMetadataProvider"
-		scope="singleton" />
-	<bean id="locationableMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.LocationableMetadataProvider"
-		scope="singleton" />
 	<bean id="tableEntityMetadataProvider"
 		class="org.sagebionetworks.repo.web.service.metadata.TableEntityMetadataProvider"
-		scope="singleton" />
-	<bean id="communityMetadataProvider"
-		class="org.sagebionetworks.bridge.service.metadata.CommunityMetadataProvider"
 		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
@@ -169,41 +142,17 @@
 		scope="singleton">
 		<property name="metadataProviderMap">
 			<map>
-				<entry key="dataset">
-					<ref bean="datasetMetadataProvider" />
-				</entry>
-				<entry key="layer">
-					<ref bean="inputDataLayerProvider" />
-				</entry>
 				<entry key="project">
 					<ref bean="projectMetadataProvider" />
 				</entry>
-				<entry key="preview">
-					<ref bean="storedLayerPreviewMetadataProvider" />
-				</entry>
 				<entry key="folder">
 					<ref bean="folderMetadataProvider" />
-				</entry>
-				<entry key="analysis">
-					<ref bean="analysisMetadataProvider" />
-				</entry>
-				<entry key="step">
-					<ref bean="stepMetadataProvider" />
-				</entry>
-				<entry key="code">
-					<ref bean="codeMetadataProvider" />
-				</entry>
-				<entry key="locationable">
-					<ref bean="locationableMetadataProvider" />
 				</entry>
 				<entry key="file">
 					<bean class= "org.sagebionetworks.repo.web.service.metadata.FileEntityMetadataProvider"/> 
 				</entry>
 				<entry key="table">
 					<ref bean="tableEntityMetadataProvider"/>
-				</entry>
-				<entry key="community">
-					<ref bean="communityMetadataProvider"/>
 				</entry>
 			</map>
 		</property>

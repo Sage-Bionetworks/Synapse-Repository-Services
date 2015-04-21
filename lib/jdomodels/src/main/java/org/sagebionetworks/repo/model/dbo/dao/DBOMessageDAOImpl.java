@@ -26,14 +26,15 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
@@ -201,7 +202,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		try {
 			bundle = simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Message (" + messageId + ") not found", e);
+			throw new NotFoundException("Message (" + messageId + ") not found");
 		}
 		
 		// Then get the recipients
@@ -211,7 +212,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public MessageToUser createMessage(MessageToUser dto) {
 		DBOMessageContent content = new DBOMessageContent();
 		DBOMessageToUser info = new DBOMessageToUser();
@@ -267,7 +268,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void touch(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
@@ -276,7 +277,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void updateMessageTransmissionAsComplete(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
@@ -382,13 +383,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
 		createMessageStatus(messageId, userId, status);
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
 		createMessageStatus(messageId, userId, status);
 	}
@@ -412,13 +413,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	public boolean updateMessageStatus_NewTransaction(MessageStatus status) {
 		return updateMessageStatus(status);
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public boolean updateMessageStatus_SameTransaction(MessageStatus status) {
 		return updateMessageStatus(status);
 	}

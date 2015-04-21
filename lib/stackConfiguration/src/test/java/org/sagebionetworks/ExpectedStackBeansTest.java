@@ -36,6 +36,9 @@ public class ExpectedStackBeansTest {
 			// Migration
 			"stackConfiguration.migrationBackupBatchMax",
 			"stackConfiguration.migrationMaxAllowedPacketBytes",
+			
+			"stackConfiguration.oAuth2GoogleClientId",
+			"stackConfiguration.oAuth2GoogleClientSecret",			
 
 			"stackConfiguration.tableRowChangeBucketName",
 			"stackConfiguration.tableMaxBytesPerRequest",
@@ -70,7 +73,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.stackInstanceNumber",
 			
 			"stackConfiguration.logBucketName",
-			"stackConfiguration.participantDataBucketName",
 	};
 	
 	@Before

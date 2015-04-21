@@ -115,6 +115,10 @@
 	<bean id="principalHeaderDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOPrincipaHeaderDAOImpl" />
 
+	<bean id="principalPrefixDao"
+		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAOImpl" />
+
+
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
 		depends-on="userGroupDAO" 
@@ -123,6 +127,9 @@
 	
 	<bean id="projectSettingsDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectSettingsDAOImpl"/>
+	
+	<bean id="storageLocationDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl"/>
 	
 	<bean id="projectStatsDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectStatsDAOImpl"/>
@@ -172,9 +179,13 @@
 		<constructor-arg index="0" ref="accessKey" />
 		<constructor-arg index="1" ref="secretKey" />
 	</bean>
+	<bean name="s3ClientOptions" class="com.amazonaws.services.s3.S3ClientOptions" scope="singleton">
+		<property name="pathStyleAccess" value="true"/>
+	</bean>
 	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
+		<property name="s3ClientOptions" ref="s3ClientOptions"/>
 	</bean>
 	<bean id="transferManager" class="com.amazonaws.services.s3.transfer.TransferManager"
 		scope="singleton">
@@ -252,18 +263,6 @@
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
-	<bean id="communityTeamDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOCommunityTeamDAOImpl" scope="singleton"/>
-
-	<bean id="participantDataDAO"
-		class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDAOImpl"
-		scope="singleton" init-method="initialize">
-		<property name="s3Bucket" ref="stackConfiguration.participantDataBucketName"/>
-	</bean>
-	<bean id="bridgeParticipantDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeParticipantDAOImpl" scope="singleton"/>
-	<bean id="bridgeUserParticipantMappingDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeUserParticipantMappingDAOImpl" scope="singleton"/>
-	<bean id="participantDataDescriptorDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDescriptorDAOImpl" scope="singleton"/>
-	<bean id="participantDataStatusDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataStatusDAOImpl" scope="singleton"/>
-
 	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
 
 		<bean id="membershipInvtnSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipInvtnSubmissionDAOImpl" scope="singleton"/>
@@ -279,11 +278,6 @@
 			</list>
 		</property>
 	</bean>
-
-	<!-- The alias cache singleton -->
-	<bean id="alaisCache"
-		class="org.sagebionetworks.repo.model.query.jdo.NodeAliasCacheImpl"
-		depends-on="entityBootstrapper" />
 
 	<!-- The node query dao singleton -->
 	<bean id="nodeQueryDao"

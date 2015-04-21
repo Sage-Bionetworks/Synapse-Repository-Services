@@ -48,7 +48,7 @@ public class EntityQueryManagerImplTest {
 		result.setCreatedOn(new Date(1L));
 		result.setModifiedByPrincipalId(456L);
 		result.setModifiedOn(new Date(2));
-		result.setEntityType(TableEntity.class.getName());
+		result.setEntityType(EntityType.table.name());
 		result.setEtag("etag");
 		result.setName("aName");
 		result.setParentId("syn99");
@@ -141,8 +141,8 @@ public class EntityQueryManagerImplTest {
 		map.put(EntityFieldName.benefactorId.name(), results.getBenefactorId());
 		map.put(EntityFieldName.projectId.name(), results.getProjectId());
 		
-		EntityType type = EntityType.getEntityType(results.getEntityType());
-		map.put("nodeType", new Integer( type.getId()));
+		EntityType type = EntityType.valueOf(results.getEntityType());
+		map.put("nodeType", type.name());
 		return map;
 	}
 }

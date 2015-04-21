@@ -2,14 +2,12 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.AttachmentManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -22,8 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AllTypesValidatorImpl implements AllTypesValidator{
 	
 	private static final String PARENT_RETRIEVAL_ERROR = "Parent entity could not be resolved";
-	@Autowired
-	AttachmentManager attachmentManager;
 	@Autowired
 	NodeDAO nodeDAO;
 
@@ -67,21 +63,11 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		// Is this a create or update?
 		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType()){
 			// Verify that path is acyclic
-			if (parentPath != null)
-				for (EntityHeader eh : parentPath)
-					if (entity.getId().equals(eh.getId()))
+			if (parentPath != null){
+				for (EntityHeader eh : parentPath){
+					if (entity.getId().equals(eh.getId())){
 						throw new IllegalArgumentException("Invalid hierarchy: an entity cannot be an ancestor of itself");
-			
-			// Create any previews as needed
-			if(entity.getAttachments() != null){				
-				try {
-					attachmentManager.checkAttachmentsForPreviews(entity);
-				} catch (NotFoundException e) {
-					throw new InvalidModelException(e);
-				} catch (DatastoreException e) {
-					throw new InvalidModelException(e);
-				} catch (UnauthorizedException e) {
-					throw new InvalidModelException(e);
+					}
 				}
 			}
 		}

@@ -18,7 +18,6 @@
     <module>synapseJavaClient</module>
     <module>commandLineInterface</module>
     <module>fileUploadClient</module>
-    <module>bridgeJavaClient</module>
   </modules>
 
 </project>

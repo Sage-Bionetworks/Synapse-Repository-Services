@@ -3,11 +3,13 @@ package org.sagebionetworks.client;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.util.List;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -66,8 +69,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		super();
 	}
 	
-	public SynapseAdminClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
-		super(new SharedClientConnection(clientProvider), dataUploader);
+	public SynapseAdminClientImpl(HttpClientProvider clientProvider) {
+		super(new SharedClientConnection(clientProvider));
 	}
 	
 	/**
@@ -363,6 +366,26 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			return doCreateJSONEntity(ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException {
+		String url = ADMIN + "/exception?exception=" + exceptionClassName + "&inTransaction=" + inTransaction + "&inBeforeCommit="
+				+ inBeforeCommit;
+		try {
+			getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), new SharedClientConnection.ErrorHandler() {
+				@Override
+				public void handleError(int code, String responseBody) throws SynapseException {
+					if (code >= 200 && code < 300) {
+						// client code handles these as non-errors
+						throw new SynapseServerException(code);
+					}
+				}
+			});
+			return -1;
+		} catch (SynapseServerException e) {
+			return e.getStatusCode();
 		}
 	}
 }

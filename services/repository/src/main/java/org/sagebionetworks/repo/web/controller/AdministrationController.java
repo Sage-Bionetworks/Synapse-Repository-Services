@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -322,5 +323,35 @@ public class AdministrationController extends BaseController {
 	public void waitForTesting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean release) throws Exception {
 		serviceProvider.getAdministrationService().waitForTesting(userId, BooleanUtils.isTrue(release));
+	}
+
+	/**
+	 * throw an expected exception
+	 * 
+	 * @throws Throwable
+	 */
+	@RequestMapping(value = { UrlHelpers.ADMIN_EXCEPTION }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	public void throwException(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String exception, @RequestParam(required = true) Boolean inTransaction,
+			@RequestParam(required = true) Boolean inBeforeCommit) throws Throwable {
+		try {
+			if (inTransaction) {
+				if (inBeforeCommit) {
+					serviceProvider.getAdministrationService().throwExceptionTransactionalBeforeCommit(exception);
+				} else {
+					serviceProvider.getAdministrationService().throwExceptionTransactional(exception);
+				}
+			} else {
+				serviceProvider.getAdministrationService().throwException(exception);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+			if (!t.getClass().getName().equals(exception)) {
+				// this is an error, so return 200 which will make the test fail
+				return;
+			}
+			throw t;
+		}
 	}
 }

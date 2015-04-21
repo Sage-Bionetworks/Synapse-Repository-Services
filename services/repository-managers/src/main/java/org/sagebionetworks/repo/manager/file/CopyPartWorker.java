@@ -25,7 +25,6 @@ public class CopyPartWorker implements Callable<ChunkResult> {
 	MultipartManager multipartManager;
 	ChunkedFileToken token;
 	int partNumber;
-	String bucket;
 	long maxWaitMS;
 	
 	/**
@@ -36,14 +35,11 @@ public class CopyPartWorker implements Callable<ChunkResult> {
 	 * @param bucket
 	 * @param maxWaitMS
 	 */
-	public CopyPartWorker(MultipartManager multipartManager,
-			ChunkedFileToken token, int partNumber, String bucket,
-			long maxWaitMS) {
+	public CopyPartWorker(MultipartManager multipartManager, ChunkedFileToken token, int partNumber, long maxWaitMS) {
 		super();
 		this.multipartManager = multipartManager;
 		this.token = token;
 		this.partNumber = partNumber;
-		this.bucket = bucket;
 		this.maxWaitMS = maxWaitMS;
 	}
 
@@ -55,15 +51,17 @@ public class CopyPartWorker implements Callable<ChunkResult> {
 		// So there can be a lag between when the caller uploads the file to S3 and when it
 		// is visible to be added to the multi-part.
 		long start = System.currentTimeMillis();
-		while(!multipartManager.doesPartExist(token, partNumber, bucket)){
-			log.debug("Waiting for S3 key to become visible.  Key: "+token.getKey()+"/"+partNumber+" bucket: "+bucket);
+		while (!multipartManager.doesPartExist(token, partNumber, token.getStorageLocationId())) {
+			log.debug("Waiting for S3 key to become visible.  Key: " + token.getKey() + "/" + partNumber + " storageLocationId: "
+					+ token.getStorageLocationId());
 			Thread.sleep(1000);
 			if(System.currentTimeMillis() - start > maxWaitMS){
-				throw new RuntimeException("Timed out waiting for S3 object to become visible:  Key: "+token.getKey()+"/"+partNumber+" bucket: "+bucket+" token: "+token.toString());
+				throw new RuntimeException("Timed out waiting for S3 object to become visible:  Key: " + token.getKey() + "/" + partNumber
+						+ " storageLocationId: " + token.getStorageLocationId() + " token: " + token.toString());
 			}
 		}
 		// Add the part to the multi-part upload.
-		return multipartManager.copyPart(token, partNumber, bucket);
+		return multipartManager.copyPart(token, partNumber, token.getStorageLocationId());
 	}
 
 }

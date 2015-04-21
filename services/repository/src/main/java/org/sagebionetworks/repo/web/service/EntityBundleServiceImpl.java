@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,10 +18,12 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -30,7 +33,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
 	
@@ -93,12 +96,21 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if ((mask & EntityBundle.ACL) > 0) {
 			try {
-				eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId, request));
+				eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId));
 			} catch (ACLInheritanceException e) {
 				// ACL is inherited from benefactor. Set ACL to null.
 				eb.setAccessControlList(null);
 			}
-		}		
+		}
+		if ((mask & EntityBundle.BENEFACTOR_ACL) > 0) {
+			try {
+				// If this entity is its own benefactor then we just get the ACL
+				eb.setBenefactorAcl(serviceProvider.getEntityService().getEntityACL(entityId, userId));
+			} catch (ACLInheritanceException e) {
+				// ACL is inherited from benefactor. So get the benefactor's ACL
+				eb.setBenefactorAcl(serviceProvider.getEntityService().getEntityACL(e.getBenefactorId(), userId));
+			}
+		}
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
@@ -129,10 +141,19 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			tableBundle.setMaxRowsPerPage(serviceProvider.getTableServices().getMaxRowsPerPage(paginated.getResults()));
 			eb.setTableBundle(tableBundle);
 		}
+		if((mask & EntityBundle.ROOT_WIKI_ID) > 0 ){
+			 try {
+				WikiPageKey rootKey = serviceProvider.getWikiService().getRootWikiKey(userId, entityId, ObjectType.ENTITY);
+				eb.setRootWikiId(rootKey.getWikiPageId());
+			} catch (NotFoundException e) {
+				// does not exist
+				eb.setRootWikiId(null);
+			}
+		}
 		return eb;
 	}	
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
@@ -165,7 +186,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		return getEntityBundle(userId, entity.getId(), partsMask, request);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public EntityBundle updateEntityBundle(Long userId, String entityId,
 			EntityBundleCreate ebc, String activityId, HttpServletRequest request)

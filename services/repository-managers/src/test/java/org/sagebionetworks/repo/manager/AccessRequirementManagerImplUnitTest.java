@@ -167,7 +167,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Node mockNode = new Node();
 		mockNode.setId(KeyFactory.stringToKey(TEST_ENTITY_ID).toString());
 		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
-		mockNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
+		mockNode.setNodeType(EntityType.file);
 		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
 		when(accessRequirementDAO.unmetAccessRequirements(
 				Collections.singletonList(TEST_ENTITY_ID), 

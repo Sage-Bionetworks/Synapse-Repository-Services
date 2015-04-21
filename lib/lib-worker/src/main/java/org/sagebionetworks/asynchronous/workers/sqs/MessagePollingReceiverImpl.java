@@ -279,7 +279,7 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 													lastExtension = clock.currentTimeMillis();
 												} catch (NotFoundException e) {
 													// the lock no longer exists. We should abort the work
-													throw new RuntimeException("Abort worker because lock no longer exists: "
+													throw new NotFoundException("Abort worker because lock no longer exists: "
 															+ e.getMessage());
 												}
 											}

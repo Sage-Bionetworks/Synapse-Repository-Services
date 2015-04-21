@@ -24,17 +24,14 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Autowired
@@ -105,7 +102,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	private static TableMapping<DBOChallengeTeam> DBO_CHALLENGE_TEAM_TABLE_MAPPING =
 			(new DBOChallengeTeam()).getTableMapping();
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
 		validateChallengeTeam(dto);
@@ -168,20 +165,14 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		return dto;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ChallengeTeam update(ChallengeTeam dto) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
 		validateChallengeTeam(dto);
-		DBOChallengeTeam dbo;
-		try {
-			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class, 
-					new SinglePrimaryKeySqlParameterSource(dto.getId()));
-			
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found.", e);
-		}
+		DBOChallengeTeam dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(
+				dto.getId()));
 		if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
 			throw new IllegalArgumentException(
 					"You cannot change the challenge ID.");
@@ -231,7 +222,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		return jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_COUNT, Long.class, challengeId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(long id) throws DatastoreException {
 		basicDao.deleteObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(id));

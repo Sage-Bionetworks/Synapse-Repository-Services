@@ -9,14 +9,13 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public class NamedIdGeneratorImpl implements NamedIdGenerator {
 	// Create table template
@@ -41,13 +40,11 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 	JdbcTemplate idGeneratorJdbcTemplate;
 	@Autowired
 	StackConfiguration stackConfiguration;
-	@Autowired
-	DataSourceTransactionManager idGeneratorTransactionManager;
 	
 	/**
 	 * This call occurs in its own transaction.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public Long generateNewId(String name, NamedType type) {
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
@@ -69,7 +66,7 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public void unconditionallyAssignIdToName(final Long idToLock, String name, NamedType type) {
 		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
@@ -101,7 +98,7 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 	 */
 	public void initialize() throws SQLException {
 		// Validate that the transaction manager is using auto-commit
-		DataSource ds = idGeneratorTransactionManager.getDataSource();
+		DataSource ds = idGeneratorJdbcTemplate.getDataSource();
 		if(ds == null) throw new RuntimeException("Failed to get the datasource from the transaction manager");
 		Connection con = ds.getConnection();
 		if(con == null) throw new RuntimeException("Failed get a connecion from the datasource");

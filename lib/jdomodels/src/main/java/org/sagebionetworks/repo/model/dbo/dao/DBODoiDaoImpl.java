@@ -20,13 +20,14 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBODoiDaoImpl implements DoiDao {
 
@@ -58,7 +59,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
 	 * avoid race conditions.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public Doi createDoi(final String userGroupId, final String objectId,
 			final ObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
@@ -101,7 +102,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	 * DOI client updating the DOI is an asynchronous call and must happen outside the transaction to
 	 * avoid race conditions.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public Doi updateDoiStatus(final String objectId, final ObjectType objectType,
 			final Long versionNumber, final DoiStatus doiStatus, String etag)

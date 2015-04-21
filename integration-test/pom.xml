@@ -20,8 +20,6 @@
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
 		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-file-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
-		<org.sagebionetworks.bridgeservice.endpoint>http://localhost:8080/services-bridge-${project.version}/bridge/v1</org.sagebionetworks.bridgeservice.endpoint>
-		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/repository-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
 		<!-- This is where the repository war will be deployed -->
 		<org.sagebionetworks.auth.context>services-authentication-${project.version}</org.sagebionetworks.auth.context>
@@ -235,11 +233,6 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-id-generator</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-dynamo</artifactId>
 		</dependency>
 
@@ -258,11 +251,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>bridgeJavaClient</artifactId>
 		</dependency>
 
 		<dependency>

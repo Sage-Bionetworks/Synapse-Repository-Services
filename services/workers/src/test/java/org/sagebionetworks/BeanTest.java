@@ -9,11 +9,16 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 
@@ -47,5 +52,13 @@ public class BeanTest implements ApplicationContextAware {
 				"Found beans without name/id. Either give the bean a name/id or add to exceptions in the test, otherwise Spring will not guarantee that the bean is a singleton",
 				"",
 				StringUtils.join(foundBeans, ","));
+	}
+
+	@Test
+	public void testTransactionalNotUsed() {
+		// Transactional is not used anymore, use @WriteTransaction, @NewWriteTransaction or @MandatoryWriteTransaction
+		Reflections reflections = new Reflections("org.sagebionetworks", new MethodAnnotationsScanner(), new TypeAnnotationsScanner());
+		assertEquals(0, reflections.getTypesAnnotatedWith(Transactional.class).size());
+		assertEquals(0, reflections.getMethodsAnnotatedWith(Transactional.class).size());
 	}
 }

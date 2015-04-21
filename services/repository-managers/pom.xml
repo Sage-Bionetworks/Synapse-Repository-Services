@@ -74,6 +74,12 @@
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
+		
+		<!-- Oauth support -->
+		<dependency>
+			<groupId>org.scribe</groupId>
+			<artifactId>scribe</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -130,13 +136,6 @@
 		<dependency>
 			<groupId>org.imgscalr</groupId>
 			<artifactId>imgscalr-lib</artifactId>
-		</dependency>
-
-		<!-- Trie library -->
-		<dependency>
-			<groupId>org.ardverk</groupId>
-			<artifactId>patricia-trie</artifactId>
-			<version>0.6</version>
 		</dependency>
 
 		<!-- file upload -->

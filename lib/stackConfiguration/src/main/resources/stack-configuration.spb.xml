@@ -22,6 +22,7 @@
 	<bean name="stackConfiguration.asyncQueueName[QUERY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[PRINCIPAL_PREFIX]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
@@ -30,6 +31,9 @@
 	<bean id="stackConfiguration.idGeneratorDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabaseUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabasePassword" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<bean id="stackConfiguration.oAuth2GoogleClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2GoogleClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Map used for JDO config  -->
 	<bean id="stackConfiguration.repositoryJDOConfigurationMap" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -48,6 +52,7 @@
 	<bean id="stackConfiguration.controllerLoggingEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.allowCreationOfOldEntities" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.allowCreationOfOldAttachments" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean id="stackConfiguration.cloudWatchOnOff" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.cloudWatchTriggerTime" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -91,9 +96,6 @@
 	<bean id="stackConfiguration.tableReadTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
 		
-	<!-- Bridge participant data -->
-	<bean id="stackConfiguration.participantDataBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	
 	<!-- Semaphore gated runner configuration -->
 	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersRds" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

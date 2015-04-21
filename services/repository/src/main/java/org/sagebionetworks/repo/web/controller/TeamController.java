@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -151,9 +151,9 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.TEAM_LIST, method = RequestMethod.POST)
 	public @ResponseBody
 	ListWrapper<Team> listTeams(
-			@RequestBody IdSet ids
+			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		ListWrapper<Team> result = serviceProvider.getTeamService().list(ids.getSet());
+		ListWrapper<Team> result = serviceProvider.getTeamService().list(ids.getList());
 		return result;
 	}
 	
@@ -340,9 +340,9 @@ public class TeamController extends BaseController {
 	public @ResponseBody
 	ListWrapper<TeamMember> listTeamMembersGivenTeamandUserList(
 			@PathVariable Long id,
-			@RequestBody IdSet ids
+			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().listTeamMembers(Collections.singleton(id), ids.getSet());
+		return serviceProvider.getTeamService().listTeamMembers(Collections.singletonList(id), ids.getList());
 	}
 	
 	/**
@@ -362,9 +362,9 @@ public class TeamController extends BaseController {
 	public @ResponseBody
 	ListWrapper<TeamMember> listTeamMembersGivenUserandTeamList(
 			@PathVariable Long id,
-			@RequestBody IdSet ids
+			@RequestBody IdList ids
 			) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTeamService().listTeamMembers(ids.getSet(), Collections.singleton(id));
+		return serviceProvider.getTeamService().listTeamMembers(ids.getList(), Collections.singletonList(id));
 	}
 	
 	/**
@@ -385,19 +385,4 @@ public class TeamController extends BaseController {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
 	}	
 	
-	/**
-	 * Refresh the cached prefix tree of Team and member names.  Note:  This is for testing only and
-	 * may only be invoked by a Synapse administrator.
-	 * @param userId
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.TEAM_UPDATE_SEARCH_CACHE, method = RequestMethod.POST)
-	public void refreshCache(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
-			) throws NotFoundException, DatastoreException, UnauthorizedException {
-		serviceProvider.getTeamService().refreshCache(userId);
-	}	
 }

@@ -99,11 +99,6 @@ public class StackConstants {
 	public static final String TABLE_ROW_CHANGE_BUCKET = "%1$s.table.row.changes";
 	
 	/**
-	 * The bucket containing all participant data.
-	 */
-	public static final String PARTICIPANT_DATA_BUCKET = "%1$s.ptdata";
-
-	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String ACCESS_RECORD_BUCKET = "%1$s.access.record.sagebase.org";
@@ -123,4 +118,8 @@ public class StackConstants {
 	 */
 	public static final String STACK_LOG_BUCKET = "%1$s.log.sagebase.org";
 
+	/**
+	 * External S3 location test bucket.
+	 */
+	public static final String EXTERNAL_S3_TEST_BUCKET = "%1$s.external.s3.test.sagebase.org";
 }

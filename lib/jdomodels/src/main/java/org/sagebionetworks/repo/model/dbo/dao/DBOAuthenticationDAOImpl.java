@@ -39,9 +39,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
@@ -159,7 +158,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public boolean revalidateSessionTokenIfNeeded(long principalId, DomainType domain) {
 		if (domain == null) {
 			throw new UnauthenticatedException("Domain must be declared to revalidate session token");
@@ -183,7 +182,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public String changeSessionToken(long principalId, String sessionToken, DomainType domain) {
 		userGroupDAO.touch(principalId);
 		
@@ -217,7 +216,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteSessionToken(String sessionToken) {
 		Long principalId = getPrincipal(sessionToken);
 		if (principalId != null) {
@@ -260,7 +259,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public void changePassword(long principalId, String passHash) {
 		userGroupDAO.touch(principalId);
 		jdbcTemplate.update(UPDATE_PASSWORD, passHash, principalId);
@@ -271,18 +270,18 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_SECRET_KEY, new SingleColumnRowMapper<String>(), principalId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(e);
+			throw new NotFoundException("");
 		}
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public void changeSecretKey(long principalId) {
 		changeSecretKey(principalId, HMACUtils.newHMACSHA1Key());
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public void changeSecretKey(long principalId, String secretKey) {
 		userGroupDAO.touch(principalId);
 		jdbcTemplate.update(UPDATE_SECRET_KEY, secretKey, principalId);
@@ -305,7 +304,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public void setTermsOfUseAcceptance(long principalId, DomainType domain, Boolean acceptance) {
 		if (acceptance == null) {
 			acceptance = Boolean.FALSE;
@@ -320,7 +319,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	@WriteTransaction
 	public void bootstrapCredentials() throws NotFoundException {
 		if(this.userGroupDAO.getBootstrapPrincipals() == null) throw new IllegalStateException("bootstrapPrincipals must be initialized");
 		for (BootstrapPrincipal abs : this.userGroupDAO.getBootstrapPrincipals()) {
@@ -338,7 +337,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
 			if (!AuthorizationUtils.isUserAnonymous(abs.getId())) {
 				setTermsOfUseAcceptance(abs.getId(), DomainType.SYNAPSE, true);
-				setTermsOfUseAcceptance(abs.getId(), DomainType.BRIDGE, true);
 			}
 		}
 		// The migration admin should only be used in specific, non-development stacks

@@ -23,8 +23,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionStatusAnnotationsAsyncManager {
 
@@ -44,19 +44,15 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		this.evaluationSubmissionsDAO=evaluationSubmissionsDAO;
 	}
 
-	private boolean isSubmissionsEtagValid(String evalId, String submissionsEtag) 
-			throws NumberFormatException, NotFoundException {
-		EvaluationSubmissions evalSubs;
-		try {
-			evalSubs = evaluationSubmissionsDAO.getForEvaluation(Long.parseLong(evalId));
-		} catch (NotFoundException e) {
+	private boolean isSubmissionsEtagValid(String evalId, String submissionsEtag) throws NumberFormatException {
+		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.getForEvaluationIfExists(Long.parseLong(evalId));
+		if (evalSubs == null) {
 			return false;
 		}
-		if (evalSubs==null) return false;
 		return evalSubs.getEtag()!=null && evalSubs.getEtag().equals(submissionsEtag);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
@@ -64,7 +60,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
@@ -96,7 +92,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		annotationsDAO.replaceAnnotations(annoList);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
 		if (evalIdString == null) throw new IllegalArgumentException("Id cannot be null");

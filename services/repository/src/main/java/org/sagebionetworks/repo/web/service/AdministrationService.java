@@ -204,4 +204,9 @@ public interface AdministrationService {
 	 * @throws Exception
 	 */
 	public void waitForTesting(Long userId, boolean release) throws Exception;
+
+	public void throwExceptionTransactional(String exception) throws Throwable;
+	public void doNothing() throws Throwable;
+	public void throwException(String exception) throws Throwable;
+	public void throwExceptionTransactionalBeforeCommit(String exception);
 }

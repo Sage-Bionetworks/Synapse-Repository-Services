@@ -71,7 +71,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class SynapseTest {
 	
 	HttpClientProvider mockProvider;
-	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	SynapseClientImpl synapse;
@@ -81,10 +80,9 @@ public class SynapseTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider));
 		// mock the session token returned when logging in
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
 		synapse.login("foo", "bar");
@@ -93,12 +91,9 @@ public class SynapseTest {
 	@Test
 	public void testOriginatingClient() throws Exception {
 		SharedClientConnection connection = synapse.getSharedClientConnection();
-		connection.setDomain(DomainType.BRIDGE);
-		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
-		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=BRIDGE", url);
 
 		connection.setDomain(DomainType.SYNAPSE);
-		url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
+		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=SYNAPSE", url);
 	}
 	
@@ -510,7 +505,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Make a call and ensure 
 		synapse.getVersionInfo();
 		// Validate that the User-Agent was sent
@@ -527,7 +522,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
 		synapse.appendUserAgent(appended);
@@ -606,10 +601,6 @@ public class SynapseTest {
 		// One variation of the parameters that can be passed in
 		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, DomainType.SYNAPSE);
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&domain=SYNAPSE"));
-		
-		// Another variation
-		synapse.passThroughOpenIDParameters("blah=fun", false, DomainType.BRIDGE);
-		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&domain=BRIDGE"));
 	}
 	
 	

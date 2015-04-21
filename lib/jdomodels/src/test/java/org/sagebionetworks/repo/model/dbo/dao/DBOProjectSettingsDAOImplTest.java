@@ -19,13 +19,19 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -37,6 +43,9 @@ public class DBOProjectSettingsDAOImplTest {
 	@Autowired
 	ProjectSettingsDAO projectSettingsDao;
 
+	@Autowired
+	StorageLocationDAO storageLocationDAO;
+
 	private String projectId;
 
 	@Before
@@ -45,7 +54,7 @@ public class DBOProjectSettingsDAOImplTest {
 
 		Node project = new Node();
 		project.setName("project");
-		project.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
+		project.setNodeType(EntityType.project);
 		project.setCreatedByPrincipalId(userId);
 		project.setCreatedOn(new Date());
 		project.setModifiedByPrincipalId(userId);
@@ -67,10 +76,10 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setEtag("etag");
 		setting.setId(null);
 		setting.setProjectId(projectId);
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 
 		// there should not be a settings to begin with
-		assertNull(projectSettingsDao.get(projectId, "upload"));
+		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 
 		// Create it
@@ -79,7 +88,7 @@ public class DBOProjectSettingsDAOImplTest {
 		assertNotNull(id);
 
 		// Fetch it
-		ProjectSetting clone = projectSettingsDao.get(projectId, "upload");
+		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
 		assertNotNull(clone);
 		assertEquals(setting, clone);
 
@@ -106,7 +115,7 @@ public class DBOProjectSettingsDAOImplTest {
 		// Delete it
 		projectSettingsDao.delete(id);
 
-		assertNull(projectSettingsDao.get(projectId, "upload"));
+		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 	}
 
@@ -116,7 +125,7 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setEtag("etag");
 		setting.setId(null);
 		setting.setProjectId(projectId);
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 		projectSettingsDao.create(setting);
 		assertEquals(1, projectSettingsDao.getAllForProject(projectId).size());
 
@@ -129,7 +138,7 @@ public class DBOProjectSettingsDAOImplTest {
 	public void testProjectIdMustBeSet() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(null);
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 		projectSettingsDao.create(setting);
 	}
 
@@ -137,7 +146,7 @@ public class DBOProjectSettingsDAOImplTest {
 	public void testProjectIdMustBeValid() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId("123");
-		setting.setSettingsType("upload");
+		setting.setSettingsType(ProjectSettingsType.upload);
 		projectSettingsDao.create(setting);
 	}
 
@@ -147,5 +156,30 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setProjectId(projectId);
 		setting.setSettingsType(null);
 		projectSettingsDao.create(setting);
+	}
+
+	@Test
+	public void testGetUploadLocations() {
+		ExternalStorageLocationSetting locationSetting1 = new ExternalStorageLocationSetting();
+		locationSetting1.setUploadType(UploadType.SFTP);
+		locationSetting1.setUrl("sftp://");
+		locationSetting1.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		locationSetting1.setCreatedOn(new Date());
+		ExternalS3StorageLocationSetting locationSetting2 = new ExternalS3StorageLocationSetting();
+		locationSetting2.setUploadType(UploadType.S3);
+		locationSetting2.setBucket("bucket");
+		locationSetting2.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		locationSetting2.setCreatedOn(new Date());
+		Long l1 = storageLocationDAO.create(locationSetting1);
+		Long l2 = storageLocationDAO.create(locationSetting2);
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId(projectId);
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayList(l1, l2));
+		projectSettingsDao.create(setting);
+
+		ProjectSetting projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
+		assertEquals(l1, ((UploadDestinationListSetting) projectSetting).getLocations().get(0));
+		assertEquals(l2, ((UploadDestinationListSetting) projectSetting).getLocations().get(1));
 	}
 }

@@ -14,14 +14,15 @@ import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
 import org.sagebionetworks.util.Pair;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.ConsistentReads;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.SaveBehavior;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.TableNameOverride;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig.ConsistentReads;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig.SaveBehavior;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig.TableNameOverride;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 
 public class DynamoConfig {
 
@@ -49,7 +50,7 @@ public class DynamoConfig {
 			if (hashKeyName == null) {
 				throw new IllegalArgumentException(clazz.getName() + " has no hashKey name defined in the @DynamoDBHashKey annotation");
 			}
-			DynamoKey hashKey = new DynamoKey(hashKeyName, hashAnnotationAndType.getSecond());
+			DynamoKey hashKey = new DynamoKey(hashKeyName, KeyType.HASH, hashAnnotationAndType.getSecond());
 
 			DynamoKey rangeKey = null;
 			Pair<DynamoDBRangeKey, ScalarAttributeType> rangeAnnotationAndType = getMethodAnnotation(clazz, DynamoDBRangeKey.class);
@@ -58,7 +59,7 @@ public class DynamoConfig {
 				if (rangeKeyName == null) {
 					throw new IllegalArgumentException(clazz.getName() + " has no rangeKey name defined in the @DynamoDBRangeKey annotation");
 				}
-				rangeKey = new DynamoKey(rangeKeyName, rangeAnnotationAndType.getSecond());
+				rangeKey = new DynamoKey(rangeKeyName, KeyType.RANGE, rangeAnnotationAndType.getSecond());
 			}
 
 			DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);

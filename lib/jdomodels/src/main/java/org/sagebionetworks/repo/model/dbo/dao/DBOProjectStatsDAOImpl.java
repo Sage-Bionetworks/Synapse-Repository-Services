@@ -13,8 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -39,7 +39,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 
 	private static TableMapping<DBOProjectStat> rowMapper = new DBOProjectStat().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void update(ProjectStat projectStat) {
 		ValidateArgument.required(projectStat.getLastAccessed(), "ProjectStat.lastAccessed");
@@ -47,8 +47,10 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 		DBOProjectStat dbo;
 		try {
 			dbo = jdbcTemplate.queryForObject(SQL_GET_STATS, rowMapper, projectStat.getProjectId(), projectStat.getUserId());
-			dbo.setLastAccessed(projectStat.getLastAccessed());
-			basicDAO.update(dbo);
+			if (projectStat.getLastAccessed().after(dbo.getLastAccessed())) {
+				dbo.setLastAccessed(projectStat.getLastAccessed());
+				basicDAO.update(dbo);
+			}
 		} catch (EmptyResultDataAccessException e) {
 			dbo = new DBOProjectStat();
 			dbo.setId(idGenerator.generateNewId());

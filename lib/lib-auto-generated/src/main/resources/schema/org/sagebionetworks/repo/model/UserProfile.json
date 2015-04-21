@@ -147,7 +147,18 @@
 		},
 		"pic": {
 			"type": "object",
+			"description": "This field is deprecated and will be removed.  It will always be null. Replaced with 'profilePicureFileHandleId'",
 			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"
+		},
+		"profilePicureFileHandleId": {
+			"type": "string",
+			"description": "The FileHandle.id of the user's profile picture.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"url": {
 			"type": "string",

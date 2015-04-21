@@ -24,9 +24,10 @@ public interface IdGenerator {
 		ASYNCH_JOB_STATUS_ID,
 		CHALLENGE_ID,
 		CHALLENGE_TEAM_ID,
-		SUBMISSION_CONTRIBUTOR_ID
+		SUBMISSION_CONTRIBUTOR_ID,
+		STORAGE_LOCATION_ID
 	}
-	
+
 
 	/**
 	 * Generate a new Id.

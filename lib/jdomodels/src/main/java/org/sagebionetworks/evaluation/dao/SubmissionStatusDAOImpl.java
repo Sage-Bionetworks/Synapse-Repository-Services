@@ -34,8 +34,8 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
@@ -59,7 +59,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			" s WHERE s."+COL_SUBMISSION_ID+" IN (:"+COL_SUBMISSION_ID+")";
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public String create(SubmissionStatus dto) throws DatastoreException {
 		// Convert to DBO
 		dto.setStatusVersion(DBOConstants.SUBSTATUS_INITIAL_VERSION_NUMBER);
@@ -89,7 +89,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void update(List<SubmissionStatus> batch)
 			throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException {
@@ -120,8 +120,8 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	@WriteTransaction
+	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
@@ -188,7 +188,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		try {
 			return simpleJdbcTemplate.queryForLong(SELECT_EVALUATION_FOR_IDS, param);
 		} catch (EmptyResultDataAccessException erda) {
-			throw new IllegalArgumentException("Submissions are not found in the system.", erda);
+			throw new NotFoundException("Submissions are not found in the system.");
 		} catch (IncorrectResultSizeDataAccessException irsdae) {
 			throw new IllegalArgumentException("Submission batch must be for a single Evaluation queue.", irsdae);
 			

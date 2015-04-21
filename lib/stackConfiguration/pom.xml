@@ -80,7 +80,6 @@
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-repository-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
 		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-repository-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
-		<org.sagebionetworks.bridgeservice.endpoint>http://localhost:8080/services-repository-${project.version}/bridge/v1</org.sagebionetworks.bridgeservice.endpoint>
 	</properties>
 
 	<build>

@@ -1,130 +1,148 @@
 package org.sagebionetworks.repo.manager;
 
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import org.apache.commons.lang.RandomStringUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-/**
- * Tests message access requirement checking and the sending of messages Note: only the logic for sending messages is
- * tested, a separate test handles tests of sending emails
- * 
- * Sorting of messages is not tested. All tests order their results as most recent first.
- */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ProjectSettingsImplTest {
 
-	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
+	private StorageLocationDAO mockDao = mock(StorageLocationDAO.class);
+	private UserProfileManager mockUserProfileManager = mock(UserProfileManager.class);
 
-	@Autowired
-	private EntityManager entityManager;
-
-	@Autowired
-	private UserManager userManager;
-
-	private UserInfo adminUserInfo;
-	private String projectId;
-	private String childId;
-	private String childChildId;
+	private ProjectSettingsManagerImpl projectSettingsManager = new ProjectSettingsManagerImpl();
 
 	@Before
-	public void setUp() throws Exception {
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		Project project = new Project();
-		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));
-		projectId = entityManager.createEntity(adminUserInfo, project, null);
-
-		Folder child = new Folder();
-		child.setName("child");
-		child.setParentId(projectId);
-		childId = entityManager.createEntity(adminUserInfo, child, null);
-
-		Folder childChild = new Folder();
-		childChild.setName("child");
-		childChild.setParentId(childId);
-		childChildId = entityManager.createEntity(adminUserInfo, childChild, null);
-	}
-
-	@After
-	public void tearDown() throws Exception {
-		entityManager.deleteEntity(adminUserInfo, childChildId);
-		entityManager.deleteEntity(adminUserInfo, childId);
-		entityManager.deleteEntity(adminUserInfo, projectId);
+	public void setup() {
+		ReflectionTestUtils.setField(projectSettingsManager, "storageLocationDAO", mockDao);
+		ReflectionTestUtils.setField(projectSettingsManager, "userProfileManager", mockUserProfileManager);
 	}
 
 	@Test
-	public void testCRUD() throws Exception {
-		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
-		toCreate.setProjectId(projectId);
-		toCreate.setSettingsType("upload");
-		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-		ExternalUploadDestinationSetting s1 = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
-		s1.setUrl("sftp://url");
-		s1.setUploadType(UploadType.SFTP);
-		ProjectSetting settings = projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
-		assertTrue(settings instanceof UploadDestinationListSetting);
+	public void testValid() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayList(1L, 2L));
 
-		ProjectSetting copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
-		assertEquals(settings, copy);
+		projectSettingsManager.validateProjectSetting(setting, null);
 
-		ExternalUploadDestinationSetting s2 = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) settings).getDestinations().get(0));
-		s2.setUrl("sftp://url");
-		s2.setUploadType(UploadType.SFTP);
-		projectSettingsManager.updateProjectSetting(adminUserInfo, settings);
-		copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
-		assertNotSame(settings, copy);
-		settings.setEtag(copy.getEtag());
-		assertEquals(settings, copy);
-
-		projectSettingsManager.deleteProjectSetting(adminUserInfo, settings.getId());
+		verify(mockDao).get(1L);
+		verify(mockDao).get(2L);
 	}
 
 	@Test
-	public void testFind() throws Exception {
-		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
-		toCreate.setProjectId(projectId);
-		toCreate.setSettingsType("upload");
-		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
-		s.setUrl("https://url");
-		s.setUploadType(UploadType.HTTPS);
-		projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
+	public void testValidWithEmptyDestination() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayList(1L));
+		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList());
 
-		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, projectId, "upload",
-				UploadDestinationListSetting.class);
-		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+		projectSettingsManager.validateProjectSetting(setting, null);
+	}
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, "upload", UploadDestinationListSetting.class);
-		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+	@Test(expected = IllegalArgumentException.class)
+	public void testNoProjectId() {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId(null);
+		setting.setSettingsType(ProjectSettingsType.upload);
 
-		setting = projectSettingsManager
-				.getProjectSettingForParent(adminUserInfo, childChildId, "upload", UploadDestinationListSetting.class);
-		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+		projectSettingsManager.validateProjectSetting(setting, null);
+	}
 
-		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, "upload-not",
-				UploadDestinationListSetting.class);
-		assertNull(setting);
+	@Test(expected = IllegalArgumentException.class)
+	public void testNoSettingsType() {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(null);
+
+		projectSettingsManager.validateProjectSetting(setting, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testHasNonEmptyDestination() {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
+
+		projectSettingsManager.validateProjectSetting(setting, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testEmptyLocations() {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.<Long> newArrayList());
+
+		projectSettingsManager.validateProjectSetting(setting, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNotFoundLocation() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayList(1L, 2L));
+
+		when(mockDao.get(2L)).thenThrow(new NotFoundException("dummy"));
+
+		projectSettingsManager.validateProjectSetting(setting, null);
+	}
+
+	@Test
+	public void testValidExternalS3() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayList(1L));
+
+
+		UserInfo currentUser = new UserInfo(false, 11L);
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setCreatedBy(11L);
+		when(mockDao.get(1L)).thenReturn(externalS3StorageLocationSetting);
+
+		projectSettingsManager.validateProjectSetting(setting, currentUser);
+
+		verify(mockDao).get(1L);
+	}
+
+	@Test(expected = UnauthorizedException.class)
+	public void testExternalS3WrongOwner() throws Exception {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId("projectId");
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.newArrayList(1L));
+
+		UserInfo currentUser = new UserInfo(false, 11L);
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setCreatedBy(12L);
+		when(mockDao.get(1L)).thenReturn(externalS3StorageLocationSetting);
+
+		UserProfile profile = new UserProfile();
+		when(mockUserProfileManager.getUserProfile(currentUser, "12")).thenReturn(profile);
+
+		projectSettingsManager.validateProjectSetting(setting, currentUser);
+
+		verify(mockDao).get(1L);
+		verify(mockUserProfileManager).getUserProfile(currentUser, "12");
 	}
 }

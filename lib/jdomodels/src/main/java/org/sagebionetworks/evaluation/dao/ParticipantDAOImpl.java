@@ -21,8 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class ParticipantDAOImpl implements ParticipantDAO {
 	
@@ -56,7 +56,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public long create(Participant dto) throws DatastoreException {		
 		// Convert to DBO
 		ParticipantDBO dbo = new ParticipantDBO();
@@ -126,7 +126,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void delete(String userId, String evalId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);

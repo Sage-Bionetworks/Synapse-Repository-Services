@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic implementation of migration manager.
@@ -100,7 +100,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@SuppressWarnings("unchecked")
 	@Override
 	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer writer) {
@@ -127,7 +127,7 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public int deleteObjectsById(final UserInfo user, final MigrationType type, final List<Long> idList) throws Exception {
 		validateUser(user);
@@ -310,7 +310,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		return null;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAllData(UserInfo user) throws Exception {
 		validateUser(user);

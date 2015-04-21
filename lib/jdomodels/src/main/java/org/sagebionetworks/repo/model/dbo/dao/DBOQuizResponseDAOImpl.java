@@ -26,8 +26,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	
@@ -73,7 +73,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 
 	private static final String SELECT_RESPONSES_FOR_USER_AND_QUIZ_COUNT = "SELECT COUNT(ID) "+SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public QuizResponse create(QuizResponse dto, PassingRecord passingRecord) throws DatastoreException {
 		
@@ -97,7 +97,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		return dto;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(Long id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -169,7 +169,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			passingRecord.setResponseId(dbo.getId());
 			return passingRecord;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+			throw new NotFoundException("No quiz results for quiz " + quizId + " and user " + principalId);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -192,7 +192,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			}
 			return dtos;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+			throw new NotFoundException("No quiz results for quiz " + quizId + " and user " + principalId);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

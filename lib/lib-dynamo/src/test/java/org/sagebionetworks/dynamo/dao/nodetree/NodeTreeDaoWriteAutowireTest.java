@@ -25,10 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -276,16 +276,14 @@ public class NodeTreeDaoWriteAutowireTest {
 		nodeTreeUpdateDao.create(f, d, timestamp);
 
 		// Verify d first
-		String hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		DboNodeLineage hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.ANCESTOR);
+		DynamoDBQueryExpression<DboNodeLineage> queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		List<DboNodeLineage> dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(b, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		Set<String> descSet = new HashSet<String>();
@@ -299,16 +297,14 @@ public class NodeTreeDaoWriteAutowireTest {
 
 		// Now update(d, b) should have no effect
 		nodeTreeUpdateDao.update(d, b, new Date());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(b, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		descSet = new HashSet<String>();
@@ -323,15 +319,13 @@ public class NodeTreeDaoWriteAutowireTest {
 		// Move d under a
 		nodeTreeUpdateDao.update(d, a, new Date());
 		// Test d
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(1, dboList.size());
 		assertEquals(a, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		descSet = new HashSet<String>();
@@ -343,24 +337,21 @@ public class NodeTreeDaoWriteAutowireTest {
 		assertTrue(descSet.contains(e));
 		assertTrue(descSet.contains(f));
 		// Test b
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(b, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(1, dboList.size());
 		assertEquals(c, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		// Test e
-		hashKey = DboNodeLineage.createHashKey(e, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(e, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(d, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
 		// Test f
-		hashKey = DboNodeLineage.createHashKey(f, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(f, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(d, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
@@ -369,15 +360,13 @@ public class NodeTreeDaoWriteAutowireTest {
 		// Move c under d
 		nodeTreeUpdateDao.update(c, d, new Date());
 		// Test d
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(1, dboList.size());
 		assertEquals(a, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(3, dboList.size());
 		descSet = new HashSet<String>();
@@ -390,40 +379,35 @@ public class NodeTreeDaoWriteAutowireTest {
 		assertTrue(descSet.contains(e));
 		assertTrue(descSet.contains(f));
 		// Test b
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(b, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
 		// Test c
-		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(c, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(d, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
 		// Test e
-		hashKey = DboNodeLineage.createHashKey(e, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(e, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(d, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
 		// Test f
-		hashKey = DboNodeLineage.createHashKey(f, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(f, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(2, dboList.size());
 		assertEquals(d, (new NodeLineage(dboList.get(0))).getAncestorOrDescendantId());
 		assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
 		
 		// After all the change, a's descendants should remain unchanged
-		hashKey = DboNodeLineage.createHashKey(a, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(a, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(5, dboList.size());
 		descSet = new HashSet<String>();
@@ -476,22 +460,19 @@ public class NodeTreeDaoWriteAutowireTest {
 		} catch (Throwable t) {
 			fail();
 		}
-		String hashKey = DboNodeLineage.createHashKey(e, LineageType.ANCESTOR);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		DboNodeLineage hashKey = DboNodeLineage.createHashKeyValue(e, LineageType.ANCESTOR);
+		DynamoDBQueryExpression<DboNodeLineage> queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		List<DboNodeLineage> dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(3, dboList.size());
 
 		// Now delete with a newer time stamp
 		nodeTreeUpdateDao.delete(e, new Date());
-		hashKey = DboNodeLineage.createHashKey(e, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(e, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(b, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		Set<String> idSet = new HashSet<String>();
 		for (DboNodeLineage dbo : dboList) {
@@ -501,29 +482,24 @@ public class NodeTreeDaoWriteAutowireTest {
 
 		// Delete an internal node d
 		nodeTreeUpdateDao.delete(d, new Date());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(d, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(f, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(f, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(f, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(f, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(b, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		idSet = new HashSet<String>();
 		for (DboNodeLineage dbo : dboList) {
@@ -535,24 +511,20 @@ public class NodeTreeDaoWriteAutowireTest {
 
 		// Now delete the root
 		nodeTreeUpdateDao.delete(a, new Date());
-		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(c, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(b, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.createHashKey(a, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(a, LineageType.ANCESTOR);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
-		hashKey = DboNodeLineage.ROOT_HASH_KEY;
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		hashKey = DboNodeLineage.createHashKeyValue(DboNodeLineage.ROOT, LineageType.DESCENDANT);
+		queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertEquals(0, dboList.size());
 	}
@@ -597,9 +569,8 @@ public class NodeTreeDaoWriteAutowireTest {
 
 	private void verifyPair(final String child, final String parent, final Date timestamp) {
 		// Verify the ancestor pointer
-		String hashKey = DboNodeLineage.createHashKey(child, LineageType.ANCESTOR);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		DboNodeLineage hashKey = DboNodeLineage.createHashKeyValue(child, LineageType.ANCESTOR);
+		DynamoDBQueryExpression<DboNodeLineage> queryExpression = new DynamoDBQueryExpression<DboNodeLineage>().withHashKeyValues(hashKey);
 		List<DboNodeLineage> dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		assertTrue(dboList.size() > 0);
 		NodeLineage lineage = new NodeLineage(dboList.get(0));
@@ -610,9 +581,9 @@ public class NodeTreeDaoWriteAutowireTest {
 		assertEquals(timestamp, lineage.getTimestamp());
 		assertEquals(1L, lineage.getVersion().longValue());
 		// Verify the descendant pointer
-		hashKey = DboNodeLineage.createHashKey(parent, LineageType.DESCENDANT);
+		String hashKeyString = DboNodeLineage.createHashKey(parent, LineageType.DESCENDANT);
 		String rangeKey = DboNodeLineage.createRangeKey(1, child);
-		DboNodeLineage dbo = dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		DboNodeLineage dbo = dynamoMapper.load(DboNodeLineage.class, hashKeyString, rangeKey);
 		lineage = new NodeLineage(dbo);
 		assertEquals(parent, lineage.getNodeId());
 		assertEquals(child, lineage.getAncestorOrDescendantId());

@@ -30,14 +30,15 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -81,7 +82,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		this.simpleJdbcTemplate = simpleJdbcTemplate;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String create(Activity dto) throws DatastoreException, InvalidModelException {
 		DBOActivity dbo = new DBOActivity();
@@ -95,7 +96,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return dbo.getIdString();		
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Activity update(Activity dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {		
@@ -116,7 +117,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return ActivityUtils.copyDboToDto(dbo);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException {				
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -129,7 +130,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return basicDao.getCount(DBOActivity.class);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@WriteTransaction
 	@Override
 	public String lockActivityAndGenerateEtag(String id, String eTag, ChangeType changeType)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
@@ -145,7 +146,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return dbo.getEtag();
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@WriteTransaction
 	@Override
 	public void sendDeleteMessage(String id) {
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ACTIVITY, ChangeType.DELETE);

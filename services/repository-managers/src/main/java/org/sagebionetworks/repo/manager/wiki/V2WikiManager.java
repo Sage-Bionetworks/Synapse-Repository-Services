@@ -161,5 +161,15 @@ public interface V2WikiManager {
 	 * @throws NotFoundException
 	 */
 	V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException;
+
+	/**
+	 * Get the root wiki page key.
+	 * @param user
+	 * @param ownerId
+	 * @param type
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	WikiPageKey getRootWikiKey(UserInfo user, String ownerId, ObjectType type) throws NotFoundException;
 	
 }

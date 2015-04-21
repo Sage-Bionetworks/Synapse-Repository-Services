@@ -18,8 +18,8 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 
@@ -122,7 +122,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 
 	@Override
 	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
-		ModificationMessage message = new ModificationMessage();
+		DefaultModificationMessage message = new DefaultModificationMessage();
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
 		sendModificationMessageAfterCommit(message);
@@ -182,19 +182,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private void registerHandlerIfNeeded(){
 		// Inspect the current handlers.
 		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
-		if(currentList.size() < 1){
-			// Add a new handler
-			transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
-		}else if(currentList.size() == 1){
-			// Validate that the handler is what we expected
-			TransactionSynchronization ts = currentList.get(0);
-			if(ts == null) throw new IllegalStateException("TransactionSynchronization cannot be null");
-			if(!(ts instanceof SynchronizationHandler)){
-				throw new IllegalStateException("Found an unknow TransactionSynchronization: "+ts.getClass().getName());
+		for (TransactionSynchronization sync : currentList) {
+			if (sync instanceof SynchronizationHandler) {
+				return;
 			}
-		}else{
-			throw new IllegalStateException("Expected one and only one TransactionSynchronization for this therad but found: "+currentList.size());
 		}
+		transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
 	}
 	
 	/**
@@ -294,7 +287,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean registerMessageSent(ChangeMessage message){
 		try {

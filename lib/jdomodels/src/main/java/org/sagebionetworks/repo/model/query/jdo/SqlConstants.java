@@ -4,10 +4,8 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.query.Comparator;
  
@@ -72,6 +70,7 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_ID				= "OWNER_ID";
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
+	public static final String COL_USER_PROFILE_PICTURE_ID		= "PICTURE_ID";
 	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
 
 	// The Project Settings table
@@ -82,12 +81,27 @@ public class SqlConstants {
 	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
 	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
 
+	// The Upload Destination Location table
+	public static final String TABLE_STORAGE_LOCATION				= "STORAGE_LOCATION";
+	public static final String COL_STORAGE_LOCATION_ID				= "ID";
+	public static final String COL_STORAGE_LOCATION_DESCRIPTION		= "DESCRIPTION";
+	public static final String COL_STORAGE_LOCATION_UPLOAD_TYPE		= "UPLOAD_TYPE";
+	public static final String COL_STORAGE_LOCATION_ETAG			= "ETAG";
+	public static final String COL_STORAGE_LOCATION_DATA			= "DATA";
+	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
+	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
+
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";
 	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
+	
+	// Principal Prefix table
+	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
+	public static final String COL_PRINCIPAL_PREFIX_TOKEN			= "TOKEN";
+	public static final String COL_PRINCIPAL_PREFIX_PRINCIPAL_ID 	= "PRINCIPAL_ID";
 
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";
@@ -208,9 +222,11 @@ public class SqlConstants {
 	public static final String COL_FILES_BUCKET_NAME				= "BUCKET_NAME";
 	public static final String COL_FILES_KEY						= "KEY";
 	public static final String COL_FILES_NAME						= "NAME";
+	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 
 	// 
+	public static final String COL_STACK_STATUS_ID					= "ID";
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
 	public static final String COL_STACK_STATUS_CURRENT_MESSAGE		= "CURRENT_MESSAGE";
 	public static final String COL_STACK_STATUS_PENDING_MESSAGE		= "PENDING_MESSAGE";
@@ -227,19 +243,8 @@ public class SqlConstants {
 	public static final String DDL_FILE_LONG_ANNOTATION			= "schema/LongAnnotation-ddl.sql";
 	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
 	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
-
-	// The name of the node type table.
-	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
-	public static final String COL_NODE_TYPE_NAME 			= "NAME";
-	public static final String COL_NODE_TYPE_ID 			= "ID";
-	public static final String DDL_FILE_NODE_TYPE			= "schema/NodeType-ddl.sql";
 	
-	// The name of the node type table.
-	public static final String TABLE_NODE_TYPE_ALIAS		= "NODE_TYPE_ALIAS";
-	public static final String COL_OWNER_TYPE	 			= "OWNER_TYPE";
-	public static final String COL_NODE_TYPE_ALIAS 			= "ALIAS";
-	public static final String DDL_FILE_NODE_TYPE_ALIAS		= "schema/NodeTypeAlias-ddl.sql";
-	
+	public static final String COL_OWNER_TYPE	 			= "OWNER_TYPE";	
 	
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
@@ -656,51 +661,6 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
 
-	// The community team table
-	public static final String TABLE_COMMUNITY_TEAM = "COMMUNITY_TEAM";
-	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
-	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
-
-	// User to participant mapping
-	public static final String TABLE_USER_PARTICIPANT_MAP = "USER_PARTICIPANT_MAP";
-	public static final String COL_USER_PARTICIPANT_MAP_USER_ID = "ID";
-	public static final String COL_USER_PARTICIPANT_MAP_MAP = "MAP";
-
-	// Participant
-	public static final String TABLE_PARTICIPANT = "PARTICIPANT";
-	public static final String COL_PARTICIPANT_ID = "ID";
-
-	// Participant data sets descriptor
-	public static final String TABLE_PARTICIPANT_DATA_DESCRIPTOR = "PARTICIPANT_DATA_DESCRIPTOR";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_TYPE = "TYPE";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME = "DATETIME_START_COLUMN_NAME";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_EVENT_COLUMN_NAME = "EVENT_COLUMN_NAME";
-
-	// Participant data sets column descriptor
-	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID = "ID";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME = "NAME";
-	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES = "PROPERTIES";
-
-	// Participant data sets
-	public static final String TABLE_PARTICIPANT_DATA = "PARTICIPANT_DATA";
-	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
-	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
-	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
-	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
-
-	// Participant data set statuses
-	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
-	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
-	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
-	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
-	
 	// QuizResponse data set
 	public static final String TABLE_QUIZ_RESPONSE = "QUIZ_RESPONSE";
 	public static final String COL_QUIZ_RESPONSE_ID = "ID";
@@ -757,10 +717,6 @@ public class SqlConstants {
 		SqlConstants.addAllFields(Node.class, primaryFieldColumns);
 		// This is a special case for nodes.
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID_OID");
-		
-		// These will be deleted once we move to NodeDao
-		SqlConstants.addAllFields(Study.class, primaryFieldColumns);
-		SqlConstants.addAllFields(Data.class, primaryFieldColumns);
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 				

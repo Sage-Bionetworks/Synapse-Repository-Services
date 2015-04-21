@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.IdSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -54,8 +54,8 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerTest
 
 	@Test
 	public void testListTeams() throws Exception {
-		IdSet idSet = new IdSet();
-		idSet.setSet(Collections.EMPTY_SET);
-		List<Team> teams = servletTestHelper.listTeams(dispatchServlet, idSet);
+		IdList idList = new IdList();
+		idList.setList(Collections.EMPTY_LIST);
+		List<Team> teams = servletTestHelper.listTeams(dispatchServlet, idList);
 	}
 }

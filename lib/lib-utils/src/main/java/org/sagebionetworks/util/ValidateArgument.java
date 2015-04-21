@@ -18,6 +18,10 @@ public class ValidateArgument {
 		}
 	}
 
+	public static void failRequirement(String message) {
+		throw new IllegalArgumentException(message);
+	}
+
 	public static void optional(String description, String string) {
 	}
 

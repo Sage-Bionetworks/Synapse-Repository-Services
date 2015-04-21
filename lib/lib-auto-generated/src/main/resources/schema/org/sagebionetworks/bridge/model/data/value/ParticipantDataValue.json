@@ -1,9 +1,0 @@
-{
-	"description": "This is the base interface for all value types.",
-	"type": "interface",
-	"properties": {
-		"concreteType":{
-			"type": "string"
-		}
-	}
-}

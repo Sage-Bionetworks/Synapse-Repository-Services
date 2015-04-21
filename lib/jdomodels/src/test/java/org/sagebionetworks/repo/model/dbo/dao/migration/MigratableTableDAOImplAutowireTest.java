@@ -265,6 +265,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL_ALIAS);
 		expectedPrimaryTypes.add(MigrationType.NOTIFICATION_EMAIL);
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
+		expectedPrimaryTypes.add(MigrationType.STORAGE_LOCATION);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
@@ -290,13 +291,6 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.DOI);
 		expectedPrimaryTypes.add(MigrationType.CHALLENGE);
 		expectedPrimaryTypes.add(MigrationType.CHALLENGE_TEAM);
-		expectedPrimaryTypes.add(MigrationType.COMMUNITY_TEAM);
-		expectedPrimaryTypes.add(MigrationType.BRIDGE_PARTICIPANT);
-		expectedPrimaryTypes.add(MigrationType.BRIDGE_USER_PARTICIPANT_MAP);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_DESCRIPTOR);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_COLUMN_DESCRIPTOR);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_STATUS);
 		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
 		expectedPrimaryTypes.add(MigrationType.BOUND_COLUMN_OWNER);
 		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);

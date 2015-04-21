@@ -6,15 +6,12 @@
             "type": "string",
             "description": "Indicates which implementation this object represents."
         },
+		"storageLocationId": {
+			"type": "integer",
+			"description": "the unique id for the storage location"
+		},
 		"uploadType": {
-			"type": "string",
-			"name": "UploadType",
-			"id": "org.sagebionetworks.repo.model.file.UploadType",
-			"enum": [
-				"S3",
-				"SFTP",
-				"HTTPS"
-			]
+			"$ref": "org.sagebionetworks.repo.model.file.UploadType"
 		},
 		"banner": {
 			"type": "string",

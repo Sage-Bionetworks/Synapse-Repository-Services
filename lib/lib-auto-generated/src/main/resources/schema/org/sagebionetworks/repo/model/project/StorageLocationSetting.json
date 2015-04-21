@@ -1,0 +1,44 @@
+{
+	"description": "The upload destinations setting",
+	"type": "interface",
+	"properties": {
+        "concreteType": {
+            "type": "string",
+            "description": "Indicates which implementation this object represents."
+        },
+		"storageLocationId": {
+			"type": "integer",
+			"description": "the unique id for this storage location"
+		},
+		"uploadType": {
+			"name": "UploadType",
+			"$ref": "org.sagebionetworks.repo.model.file.UploadType"
+		},
+		"banner": {
+			"type": "string",
+			"description": "The optional banner to show every time a file is uploaded"
+		},
+		"description": {
+			"type": "string",
+			"description": "The description to show the user when the user has to choose which upload destination to use"
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a Project Setting is updated it is used to detect when a client's current representation of a Project Setting is out-of-date.",
+			"transient": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this upload destinations setting was created.",
+			"title": "Created On",
+			"transient": true
+		},
+		"createdBy": {
+			"type": "integer",
+			"description": "The ID of the user that created this upload destinations setting.",
+			"title": "Created By",
+			"transient": true
+		}
+	}
+}

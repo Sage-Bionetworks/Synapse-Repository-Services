@@ -219,7 +219,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 			usageList.add(su);
 			su.setId(dbo.getId().toString());
 			su.setName(dbo.getName());
-			su.setStorageProvider(dbo.getMetadataType());
+			su.setStorageProvider(dbo.getMetadataTypeEnum().name());
 			su.setLocation(dbo.getKey());
 			su.setUserId(dbo.getCreatedBy().toString());
 			su.setCreatedOn(dbo.getCreatedOn());

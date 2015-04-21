@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_DESCRIPTION;
@@ -10,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -46,7 +47,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
-			new FieldColumn("nodeType", COL_NODE_TYPE),
+			new FieldColumn("type", COL_NODE_TYPE),
 			new FieldColumn("benefactorId", COL_NODE_BENEFACTOR_ID),
 			new FieldColumn("projectId", COL_NODE_PROJECT_ID),
 			};
@@ -75,7 +76,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				node.seteTag(rs.getString(COL_NODE_ETAG));
 				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
-				node.setNodeType(rs.getShort(COL_NODE_TYPE));
+				node.setType(rs.getString(COL_NODE_TYPE));
 				node.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
 				// If the value was null we must set it to null
 				if(rs.wasNull()){
@@ -119,7 +120,9 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	private String eTag;
 	private Long createdBy;
 	private Long createdOn;
+	@Deprecated // will be removed after stack-87
 	private Short nodeType;	
+	private String type;
 	private Long benefactorId;
 	private Long projectId;
 
@@ -171,6 +174,13 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	public void setNodeType(Short nodeType) {
 		this.nodeType = nodeType;
 	}
+	
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
 	public Long getBenefactorId() {
 		return benefactorId;
 	}
@@ -201,6 +211,28 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 
 			@Override
 			public DBONode createDatabaseObjectFromBackup(DBONode backup) {
+				// This switch will be removed after stack-87
+				if (backup.getNodeType() != null) {
+					switch (backup.getNodeType()) {
+					case 2:
+						backup.setType(EntityType.project.name());
+						break;
+					case 4:
+						backup.setType(EntityType.folder.name());
+						break;
+					case 8:
+						backup.setType(EntityType.link.name());
+						break;
+					case 16:
+						backup.setType(EntityType.file.name());
+						break;
+					case 17:
+						backup.setType(EntityType.table.name());
+						break;
+					default:
+						throw new IllegalArgumentException("Unknown old type: "+backup.getNodeType());
+					}
+				}
 				return backup;
 			}
 

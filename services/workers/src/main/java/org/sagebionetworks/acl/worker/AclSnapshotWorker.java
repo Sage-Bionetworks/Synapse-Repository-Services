@@ -1,5 +1,6 @@
 package org.sagebionetworks.acl.worker;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -74,7 +75,7 @@ public class AclSnapshotWorker implements Worker{
 		return toDelete;
 	}
 
-	private Message process(Message message) throws Throwable {
+	private Message process(Message message) throws IOException {
 		// Keep this message invisible
 		workerProgress.progressMadeForMessage(message);
 

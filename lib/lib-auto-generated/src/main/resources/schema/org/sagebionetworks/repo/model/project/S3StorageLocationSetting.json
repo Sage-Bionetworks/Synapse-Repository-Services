@@ -1,0 +1,10 @@
+{
+	"description": "The S3 upload destination setting contains information to generate an S3 upload destination.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+		}
+	],
+	"properties": {
+	}
+}

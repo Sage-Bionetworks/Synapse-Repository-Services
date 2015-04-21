@@ -21,14 +21,14 @@ import org.sagebionetworks.util.csv.CsvNullReader;
  */
 public class CSVToRowIterator implements Iterator<Row> {
 
-	List<ColumnModel> resultSchema;
-	List<Long> ids;
-	CsvNullReader reader;
-	String[] lastRow;
-	int rowsProcessed;
-	Integer rowIdIndex;
-	Integer rowVersionIndex;
-	int[] indexMapping;
+	private List<ColumnModel> resultSchema;
+	private List<Long> ids;
+	private CsvNullReader reader;
+	private String[] lastRow;
+	private int rowLineNumber;
+	private Integer rowIdIndex;
+	private Integer rowVersionIndex;
+	private int[] indexMapping;
 
 	/**
 	 * Create a new object for each use.
@@ -47,7 +47,7 @@ public class CSVToRowIterator implements Iterator<Row> {
 		this.resultSchema = resultSchema;
 		this.reader = reader;
 		this.ids = TableModelUtils.getIds(resultSchema);
-		this.rowsProcessed = 0;
+		this.rowLineNumber = 1;
 		// We need to read the first row to determine if it a header
 		lastRow = reader.readNext();
 		// We need a map of column ID to index.
@@ -61,6 +61,7 @@ public class CSVToRowIterator implements Iterator<Row> {
 			}
 			// Since the first row was a header, we need to next row to start.
 			lastRow = reader.readNext();
+			rowLineNumber++;
 		} else {
 			// This means the row is not a header. So just map from the schema
 			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(this.ids);
@@ -109,15 +110,21 @@ public class CSVToRowIterator implements Iterator<Row> {
 		List<String> values = new ArrayList<String>(this.resultSchema.size());
 		// Copy over the values according to the mapping
 		for(int i=0; i<this.resultSchema.size(); i++){
-			values.add(lastRow[this.indexMapping[i]]);
+			int index = this.indexMapping[i];
+			if (index >= lastRow.length) {
+				throw new IllegalArgumentException("Line number " + rowLineNumber + ": column index " + index + " out of bounds for row "
+						+ lastRow);
+			}
+			values.add(lastRow[index]);
 		}
 		row.setValues(values);
 
 		// Net the next row
 		try {
 			lastRow = this.reader.readNext();
+			rowLineNumber++;
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException("Line number " + rowLineNumber + ": " + e.getMessage(), e);
 		}
 		return row;
 	}

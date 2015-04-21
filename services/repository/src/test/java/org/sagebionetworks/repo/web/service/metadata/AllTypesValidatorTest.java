@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.mail.Folder;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,15 +18,10 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
-import org.sagebionetworks.repo.web.service.metadata.EntityEvent;
-import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
@@ -53,11 +50,6 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		allTypesValidator.validateEntity(null, mockEvent);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testNullEvent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
-		Study mockDataset =  mock(Study.class);
-		allTypesValidator.validateEntity(mockDataset, null);
-	}
 	
 	@Test
 	public void testNullList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
@@ -82,7 +74,7 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("name");
-		parentHeader.setType(EntityType.project.getEntityType());
+		parentHeader.setType(Project.class.getName());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
 		
@@ -92,28 +84,7 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		// This should be valid
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testProjectWithDatasetParent() throws Exception {
-		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
-		
-		String parentId = "123";
-		String childId = "456";
-		// This is our parent header
-		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(parentId);
-		parentHeader.setName("name");
-		parentHeader.setType(EntityType.dataset.getEntityType());
-		List<EntityHeader> path = new ArrayList<EntityHeader>();
-		path.add(parentHeader);
-		
-		Project project = new Project();
-		project.setParentId(parentId);
-		project.setId(childId);
-		// This should not be valid
-		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
-	}
+
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testFolderWithSelfParent() throws Exception {
@@ -124,7 +95,7 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("name");
-		parentHeader.setType(EntityType.folder.getEntityType());
+		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
 		
@@ -146,7 +117,7 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		EntityHeader grandparentHeader = new EntityHeader();
 		grandparentHeader.setId(grandparentId);
 		grandparentHeader.setName("gp");
-		grandparentHeader.setType(EntityType.folder.getEntityType());
+		grandparentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(grandparentHeader);
 		
@@ -154,7 +125,7 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("p");
-		parentHeader.setType(EntityType.folder.getEntityType());
+		parentHeader.setType(Folder.class.getName());
 		path.add(parentHeader);
 				
 		Project project = new Project();

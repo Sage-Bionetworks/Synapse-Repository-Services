@@ -21,10 +21,10 @@ public class QueryTranslatorTest {
 	
 	@Test
 	public void testFrom() throws Exception{
-		QueryStatement stmt = new QueryStatement("select * from dataset");
+		QueryStatement stmt = new QueryStatement("select * from folder");
 		assertNotNull(stmt);
 		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
-		assertEquals(EntityType.dataset.name(), results.getFrom());
+		assertEquals(EntityType.folder.name(), results.getFrom());
 	}
 	
 	@Test

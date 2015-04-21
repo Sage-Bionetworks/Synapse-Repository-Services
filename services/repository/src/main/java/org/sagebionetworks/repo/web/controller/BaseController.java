@@ -569,10 +569,7 @@ public abstract class BaseController {
 		// Build and set the redirect URL
 		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
 				+ UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
-		response.sendError(HttpStatus.NOT_FOUND.value(), message);
-		ErrorResponse er = new ErrorResponse();
-		er.setReason(message);
-		return er;
+		return handleException(ex, request, message, false);
 	}
 
 	/**
@@ -634,7 +631,7 @@ public abstract class BaseController {
 	@ExceptionHandler(TransientDataAccessException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleDeadlockExceptions(TransientDataAccessException ex,
+	ErrorResponse handleTransientDataAccessExceptions(TransientDataAccessException ex,
 			HttpServletRequest request) {
 		log.error("Handling " + request.toString(), ex);
 		ErrorResponse er = new ErrorResponse();
@@ -655,8 +652,33 @@ public abstract class BaseController {
 	 * @return an ErrorResponse object containing the exception reason or some
 	 *         other human-readable response
 	 */
-	protected ErrorResponse handleException(Throwable ex,
+	ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullTrace) {
+
+		String message = ex.getMessage();
+		if (message == null) {
+			message = ex.getClass().getName();
+		} else {
+			// Some HTTPClient exceptions include the host to which it was trying to
+			// connect, just unilaterally find and replace any references to
+			// cloudsearch in error messages PLFM-977
+			if (0 <= message.toLowerCase().indexOf("cloudsearch")) {
+				message = "search failed, try again";
+			}
+		}
+		return handleException(ex, request, message, fullTrace);
+	}
+
+	/**
+	 * Log the exception at the warning level and return an ErrorResponse object. Child classes should override this
+	 * method if they want to change the behavior for all exceptions.
+	 * 
+	 * @param ex the exception to be handled
+	 * @param request the client request
+	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 * @return an ErrorResponse object containing the exception reason or some other human-readable response
+	 */
+	private ErrorResponse handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace) {
 		// Always log the stack trace on develop stacks
 		if (fullTrace || StackConfiguration.isDevelopStack()) {
 			// Print the full stack trace
@@ -666,14 +688,6 @@ public abstract class BaseController {
 			log.error("Handling " + request.toString());
 		}
 
-		// Some HTTPClient exceptions include the host to which it was trying to
-		// connect, just unilaterally find and replace any references to
-		// cloudsearch in error messages PLFM-977
-		String message = ex.getMessage();
-		String normalizedMessage = message.toLowerCase();
-		if (0 <= normalizedMessage.indexOf("cloudsearch")) {
-			message = "search failed, try again";
-		}
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(message);
 		return er;
@@ -699,11 +713,13 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
 	ErrorResponse handleExceptionHttpClientHelperExceptio(HttpClientHelperException ex, HttpServletRequest request) {
-		// Convert to a DatastoreException
-		int index = ex.getMessage().indexOf("\"message\":");
+		// Convert to a IllegalArgumentException
 		String message = "Unknown";
-		if(index > 0){
-			message = ex.getMessage().substring(index, ex.getMessage().length());
+		if (ex.getMessage() != null) {
+			int index = ex.getMessage().indexOf("\"message\":");
+			if (index > 0) {
+				message = ex.getMessage().substring(index, ex.getMessage().length());
+			}
 		}
 		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
 		return handleException(ds, request, true);
@@ -749,13 +765,10 @@ public abstract class BaseController {
 	 * When the number of requests made to a particular service exceeds a threshold rate
 	 */
 	@ExceptionHandler(TooManyRequestsException.class)
+	@ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
 	public @ResponseBody
 	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
 			HttpServletRequest request, HttpServletResponse response) {
-		// Note: This older version of Spring lacks HttpStatus.TOO_MANY_REQUESTS
-		// Therefore, the status must be set manually
-		//TODO Change this method to match the other exception handlers when Spring is updated 
-		response.setStatus(429);
 		return handleException(ex, request, false);
 	}
 	

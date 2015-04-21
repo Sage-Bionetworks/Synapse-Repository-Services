@@ -25,8 +25,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * A very basic DAO to tack table status.
@@ -63,7 +63,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		return TableStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String resetTableStatusToProcessing(String tableIdString) {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
@@ -79,7 +79,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		return resetToken;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableIdString,
 			String resetToken, String errorMessage, String errorDetails)
@@ -89,7 +89,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	}
 
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableIdString,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException, NotFoundException {
@@ -148,7 +148,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void clearAllTableState() {
 		jdbcTemplate.update(SQL_DELETE_ALL_STATE);

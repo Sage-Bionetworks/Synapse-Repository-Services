@@ -276,10 +276,6 @@ public class StackConfiguration {
 		return configuration.getFileServiceEndpoint();
 	}
 
-	public static String getBridgeServiceEndpoint() {
-		return configuration.getBridgeServiceEndpoint();
-	}
-
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own
@@ -724,11 +720,6 @@ public class StackConfiguration {
 	public static String getBCCSignupEnabled() {
 		return configuration
 				.getProperty("org.sagebionetworks.bcc.signup.enabled");
-	}
-
-	public static String getBridgeSpreadsheetTitle() {
-		return configuration
-				.getProperty("org.sagebionetworks.bridge.spreadsheet.title");
 	}
 
 	/**
@@ -1342,16 +1333,6 @@ public class StackConfiguration {
 				.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
 	}
 
-	public static String getBridgeDataMappingEncryptionKey() {
-		return "::TODO::";
-		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.mapping.encryptionkey");
-	}
-
-	public static String getBridgeDataEncryptionKey() {
-		return "::TODO::";
-		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.encryptionkey");
-	}
-
 	/**
 	 * Entity path for the root folder. This is to be bootstrapped.
 	 */
@@ -1427,14 +1408,23 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * Get the name of the participant data bucket.
 	 * 
 	 * @return
 	 */
-	public String getParticipantDataBucketName() {
-		return String.format(StackConstants.PARTICIPANT_DATA_BUCKET, StackConfiguration.getStack());
+	public String getOAuth2GoogleClientId() {
+		return configuration
+				.getProperty("org.sagebionetworks.oauth2.google.client.id");
 	}
-
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String getOAuth2GoogleClientSecret() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
+	}
+	
 	/**
 	 * Get the max bytes per HTTP request for a table.
 	 * 
@@ -1539,6 +1529,15 @@ public class StackConfiguration {
 	}
 	
 	/**
+	 * Get the name of the stack test bucket.
+	 * 
+	 * @return
+	 */
+	public String getExternalS3TestBucketName() {
+		return String.format(StackConstants.EXTERNAL_S3_TEST_BUCKET, StackConfiguration.getStack());
+	}
+
+	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to a file (the default)
 	 */
 	public static boolean getDeliverEmail() {
@@ -1568,6 +1567,15 @@ public class StackConfiguration {
 		return Boolean.parseBoolean(configuration
 						.getProperty("org.sagebionetworks.allow.create.old.entities"));
 	}
+	
+	/**
+	 * Are users allowed to create old attachments (entity attachments and user profile attachments?)
+	 */
+	public boolean getAllowCreationOfOldAttachments() {
+		return Boolean.parseBoolean(configuration
+						.getProperty("org.sagebionetworks.allow.create.old.attachments"));
+	}
+
 
 	private static StackConfiguration singleton = new StackConfiguration();
 	/**

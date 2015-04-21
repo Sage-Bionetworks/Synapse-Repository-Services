@@ -12,13 +12,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LocationableTypeConversionResult;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -399,8 +397,7 @@ public interface EntityService {
 	 *             inherits its permissions. The exception will include the
 	 *             benefactor's ID.
 	 */
-	public AccessControlList getEntityACL(String entityId, Long userId,
-			HttpServletRequest request) throws NotFoundException,
+	public AccessControlList getEntityACL(String entityId, Long userId) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException;
 
 	/**
@@ -577,38 +574,6 @@ public interface EntityService {
 			String entityId) throws NotFoundException, DatastoreException;
 
 	/**
-	 * Create a S3 token for an entity attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @return
-	 * @throws InvalidModelException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	public S3AttachmentToken createS3AttachmentToken(Long userId, String id,
-			S3AttachmentToken token) throws UnauthorizedException,
-			NotFoundException, DatastoreException, InvalidModelException;
-
-	/**
-	 * Generate a presigned URL for an entity attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param tokenID
-	 * @return
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public PresignedUrl getAttachmentUrl(Long userId, String id,
-			String tokenID) throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException;
-
-	/**
 	 * Get the number of children that this entity has.
 	 * 
 	 * @param userId
@@ -748,13 +713,5 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 */
 	public FileHandleResults getEntityFileHandlesForVersion(Long userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Convert a locationable entity to its matching new type.
-	 * @param toConvert
-	 * @return
-	 * @throws NotFoundException 
-	 */
-	public LocationableTypeConversionResult convertLocationable(Long userId, String entityId) throws NotFoundException;
 
 }

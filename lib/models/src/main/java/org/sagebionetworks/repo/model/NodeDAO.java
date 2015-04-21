@@ -68,7 +68,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean delete(String id) throws NotFoundException, DatastoreException;
+	public boolean delete(String id) throws DatastoreException;
 	
 	/**
 	 * Delete a specific version.
@@ -188,16 +188,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 */
 	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Change the type of a node.
-	 * @param nodeId
-	 * @param newEtag
-	 * @param newType
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public void changeNodeType(String nodeId, String newEtag, String newType) throws DatastoreException, NotFoundException;
 
 	
 	/**
@@ -242,12 +232,6 @@ public interface NodeDAO {
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Bootstrap all node types.
-	 * @throws DatastoreException 
-	 */
-	public void boostrapAllNodeTypes() throws DatastoreException;
-	
-	/**
 	 * Lookup a node id using its unique path.
 	 * @param path
 	 * @return the node id
@@ -283,17 +267,19 @@ public interface NodeDAO {
 	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException;
 	
 	/**
-	 * Handles change to a parentId for a node and saves reference to new parent in 
-	 * database.
+	 * Handles change to a parentId for a node and saves reference to new parent in database.
+	 * 
 	 * @param nodeId
 	 * @param newParentId
-	 * @return returns true if the parent was actually changed, false if not.  So, if parent was
-	 * already set to the parameter newParentId then it will return false.
-	 * @throws NotFoundException 
-	 * @throws NumberFormatException 
-	 * @throws DatastoreException 
+	 * @param isMoveToTrash
+	 * @return returns true if the parent was actually changed, false if not. So, if parent was already set to the
+	 *         parameter newParentId then it will return false.
+	 * @throws NotFoundException
+	 * @throws NumberFormatException
+	 * @throws DatastoreException
 	 */
-	public boolean changeNodeParent(String nodeId, String newParentId) throws NumberFormatException, NotFoundException, DatastoreException;
+	public boolean changeNodeParent(String nodeId, String newParentId, boolean isMoveToTrash) throws NumberFormatException,
+			NotFoundException, DatastoreException;
 	
 	/**
 	 * Get the current revision number for a node.
@@ -324,13 +310,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException;
-
-	/**
-	 * Get all of the node types for a given alias.
-	 * @param alias
-	 * @return
-	 */
-	public List<Short> getAllNodeTypesForAlias(String alias);
 	
 	/**
 	 * returns true iff the given node is root

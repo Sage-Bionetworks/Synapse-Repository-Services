@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -164,6 +165,42 @@ public interface FileUploadService {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
+	@Deprecated
 	List<UploadDestination> getUploadDestinations(Long userId, String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException;
+
+	/**
+	 * Get the list of upload locations for a parent
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	List<UploadDestinationLocation> getUploadDestinationLocations(Long userId, String parentId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the upload location for an upload id
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the default upload location for a parent
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException;
 }

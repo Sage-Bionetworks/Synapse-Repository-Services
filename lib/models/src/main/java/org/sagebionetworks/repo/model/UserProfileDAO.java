@@ -49,7 +49,7 @@ public interface UserProfileDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<UserProfile> list(Set<Long> ids) throws DatastoreException, NotFoundException;
+	public List<UserProfile> list(List<Long> ids) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total count of UserProfiles in the system
@@ -86,4 +86,12 @@ public interface UserProfileDAO {
 	 * Ensure the bootstrap user's profiles exist
 	 */
 	public void bootstrapProfiles();
+
+	/**
+	 * Get the picture FileHandleId for a user.
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getPictureFileHandleId(String userId) throws NotFoundException;
 }

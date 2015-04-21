@@ -23,7 +23,7 @@ public class NodeTestUtils {
 		node.setModifiedByPrincipalId(modifierGroupId);
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		return node;
 	}
 
@@ -34,7 +34,7 @@ public class NodeTestUtils {
 		node.setModifiedByPrincipalId(creatorUserGroupId);
 		node.setCreatedOn(new Date());
 		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType(EntityType.folder.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(parentId);
 		return node;
 	}
