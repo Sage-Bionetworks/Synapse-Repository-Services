@@ -9,9 +9,11 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREVIEW;
+import static org.sagebionetworks.client.SynapseClientImpl.S3_FILE_COPY;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.HasEntityId;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -33,8 +35,9 @@ public enum AsynchJobType {
 	TableQueryNextPage(TABLE_QUERY_NEXTPAGE, QueryResult.class),
 	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class),
 	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class),
-	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class);
-	
+	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class), 
+	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class);
+
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
 	
@@ -86,6 +89,18 @@ public enum AsynchJobType {
 
 	/**
 	 * Get the URL used to get the results for this job type.
+	 * 
+	 * @param token
+	 * @param request
+	 * @return
+	 */
+	public String getResultUrl(String token) {
+		return getResultUrl(token, (String) null);
+	}
+
+	/**
+	 * Get the URL used to get the results for this job type.
+	 * 
 	 * @param token
 	 * @param entityId
 	 * @return

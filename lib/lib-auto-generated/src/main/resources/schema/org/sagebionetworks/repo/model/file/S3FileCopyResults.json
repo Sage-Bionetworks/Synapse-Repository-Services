@@ -1,0 +1,25 @@
+{
+	"description": "Response of an asynchronous s3 file copy operation",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "List of resulting keys.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.S3FileCopyResult"
+			}
+		},
+		"successCount": {
+			"type": "integer",
+			"description": "Count of successful copied or skipped files"
+		},
+		"errorCount": {
+			"type": "integer",
+			"description": "Count of failed file copies"
+		}
+	}
+}

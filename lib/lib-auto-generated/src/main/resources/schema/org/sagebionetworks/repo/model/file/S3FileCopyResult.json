@@ -1,0 +1,32 @@
+{
+	"description": "Response of an asynchronous s3 file copy operation",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"file": {
+			"type": "string",
+			"description": "The file handle id"
+		},
+		"resultType": {
+			"name": "S3FileCopyResultType",
+			"type": "string",
+			"description": "Result type of file copy operation",
+			"enum": [
+				"ERROR",
+				"UPTODATE",
+				"COPIED"
+			]
+		},
+		"errorMessage": {
+			"type": "string",
+			"description": "Error message if result type is ERROR"
+		},
+		"resultKey": {
+			"type": "string",
+			"description": "The key of the resulting file if result type is SKIPPED or COPIED"
+		}
+	}
+}
