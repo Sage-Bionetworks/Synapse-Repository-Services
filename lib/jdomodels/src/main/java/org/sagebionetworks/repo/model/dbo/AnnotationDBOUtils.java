@@ -130,7 +130,7 @@ public class AnnotationDBOUtils {
 				Iterator<Double> valueIt = valueColection.iterator();
 				while(valueIt.hasNext()){
 					Double value = valueIt.next();
-					if (!Double.isInfinite(value) && !Double.isNaN(value)) {
+					if (value==null || (!Double.isInfinite(value) && !Double.isNaN(value))) {
 						DBODoubleAnnotation anno = new DBODoubleAnnotation();
 						anno.setOwner(ownerId);
 						anno.setAttribute(key);

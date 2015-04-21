@@ -125,7 +125,7 @@ public class AnnotationDBOUtilsTest {
 		
 		List<DBOStringAnnotation> results = AnnotationDBOUtils.createStringAnnotationsForNonFiniteDoubles(owner, annos.getDoubleAnnotations());
 		assertNotNull(results);
-		assertEquals(2, results.size());
+		assertEquals(3, results.size());
 		
 		DBOStringAnnotation toCheck = results.get(0);
 		assertEquals(owner, toCheck.getOwner());
