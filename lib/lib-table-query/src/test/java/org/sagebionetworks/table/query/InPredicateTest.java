@@ -16,9 +16,7 @@ public class InPredicateTest {
 		Boolean not = null;
 		InPredicateValue inPredicateValue =  SqlElementUntils.createInPredicateValue("(1)");
 		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar IN ( 1 )", builder.toString());
+		assertEquals("bar IN ( 1 )", element.toString());
 	}
 	
 	@Test
@@ -27,8 +25,6 @@ public class InPredicateTest {
 		Boolean not = Boolean.TRUE;
 		InPredicateValue inPredicateValue =  SqlElementUntils.createInPredicateValue("(1, 2)");
 		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar NOT IN ( 1, 2 )", builder.toString());
+		assertEquals("bar NOT IN ( 1, 2 )", element.toString());
 	}
 }

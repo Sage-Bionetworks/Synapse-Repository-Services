@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
@@ -51,9 +52,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
-	private static final long QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS = 60*1000L; // one minute
-	private volatile Long quizGeneratorCacheLastUpdated = 0L;
-	private volatile QuizGenerator quizGeneratorCache;
 	
 	@Autowired
 	private AmazonS3Utility s3Utility;	
@@ -81,13 +79,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		this.s3Utility=s3Utility;
 		this.groupMembersDao=groupMembersDao;
 		this.quizResponseDao=quizResponseDao;
-	}
-	
-	/**
-	 * for testing only
-	 */
-	public void expireQuizGeneratorCache() {
-		quizGeneratorCache = null;
 	}
 	
 	/**
@@ -181,10 +172,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	 * @return
 	 */
 	public QuizGenerator retrieveCertificationQuizGenerator() {
-		if ((System.currentTimeMillis() - quizGeneratorCacheLastUpdated < QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS) 
-				&& quizGeneratorCache!=null) {
-			return quizGeneratorCache;
-		}
 		// pull this from an S-3 File (if it's there) otherwise read from the default file on the classpath
 		String quizGeneratorAsString;
 		if (s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
@@ -203,8 +190,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		List<String> errorMessages = validateQuizGenerator(quizGenerator);
 		if (!errorMessages.isEmpty()) throw new RuntimeException(errorMessages.toString());
 		
-		quizGeneratorCacheLastUpdated = System.currentTimeMillis();
-		quizGeneratorCache = quizGenerator;
 		return quizGenerator;
 	}
 	
@@ -218,7 +203,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		for (QuestionVariety v : quizGenerator.getQuestions()) {
 			List<Question> questionOptions = v.getQuestionOptions();
 			// pick a random question from the variety of questions in the QuizGenerator
-			questions.add(questionOptions.get(random.nextInt(questionOptions.size())));
+			questions.add(cloneAndScrubPrivateFields(
+					questionOptions.get(
+							random.nextInt(questionOptions.size()))));
 		}
 		quiz.setQuestions(questions);
 		PrivateFieldUtils.clearPrivateFields(quiz);
@@ -345,6 +332,17 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	public PassingRecord submitCertificationQuizResponse(
 			UserInfo userInfo, QuizResponse response) throws NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		
+		// don't let someone take the test twice
+		try {
+			PassingRecord passingRecord = quizResponseDao.getPassingRecord(quizGenerator.getId(), userInfo.getId());
+			if(passingRecord.getPassed()) {
+				throw new UnauthorizedException("You have already passed the certification test.");
+			}
+		} catch (NotFoundException e) {
+			// OK
+		}
+		
 		Date now = new Date();
 		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
 		// grade the submission:  pass or fail?
@@ -361,6 +359,21 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 
 		return passingRecord;
 	}
+	
+	@Override
+	public void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException {
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("You are not a Synapse Administrator.");
+		if (isCertified) {
+			groupMembersDao.addMembers(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					Collections.singletonList(principalId.toString()));
+		} else {
+			groupMembersDao.removeMembers(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					Collections.singletonList(principalId.toString()));
+		}
+	}
+	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getQuizResponses(org.sagebionetworks.repo.model.UserInfo, java.lang.Long, java.lang.Long, long, long)
@@ -399,4 +412,15 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		return quizResponseDao.getPassingRecord(quizId, principalId);
 	}
 
+	@Override
+	public PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException {
+		if (!userInfo.isAdmin()) 
+			throw new ForbiddenException("Only Synapse administrators may make this request.");
+		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		long quizId = quizGenerator.getId();
+		PaginatedResults<PassingRecord> result = new PaginatedResults<PassingRecord>();
+		result.setResults(quizResponseDao.getAllPassingRecords(quizId, principalId, limit, offset));
+		result.setTotalNumberOfResults(quizResponseDao.getAllPassingRecordsCount(quizId, principalId));
+		return result;
+	}
 }

@@ -147,7 +147,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
+		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
@@ -163,7 +163,7 @@ public class DBOAccessRequirementDAOImplTest {
 		RestrictableObjectDescriptor erod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
 		RestrictableObjectDescriptor nrod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod, nrod, erod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
+		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}

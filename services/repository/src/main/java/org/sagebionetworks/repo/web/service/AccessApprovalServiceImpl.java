@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -19,7 +17,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessApprovalServiceImpl implements AccessApprovalService {
 
@@ -30,7 +28,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public AccessApproval createAccessApproval(Long userId,
 			AccessApproval accessApproval) throws DatastoreException, UnauthorizedException, 
@@ -38,10 +36,18 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
+	@Override
+	public AccessApproval getAccessApproval(
+			Long userId, String approvalId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessApprovalManager.getAccessApproval(userInfo, approvalId);
+	}
 
 	@Override
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId, 
-			RestrictableObjectDescriptor subjectId, HttpServletRequest request) throws DatastoreException,
+			RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
@@ -49,7 +55,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessApproval>(
-				request.getServletPath()+UrlHelpers.ACCESS_APPROVAL, 
+				UrlHelpers.ACCESS_APPROVAL, 
 				results.getResults(),
 				(int)results.getTotalNumberOfResults(), 
 				1, 
@@ -58,7 +64,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 				false);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAccessApprovals(Long userId, String approvalId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {

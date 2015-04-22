@@ -17,9 +17,7 @@ public class BetweenPredicateTest {
 		RowValueConstructor betweenRowValueConstructor = SqlElementUntils.createRowValueConstructor("1.0");
 		RowValueConstructor andRowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("2.0");
 		BetweenPredicate element = new BetweenPredicate(columnReferenceLHS, not, betweenRowValueConstructor, andRowValueConstructorRHS);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar BETWEEN 1.0 AND 2.0", builder.toString());
+		assertEquals("bar BETWEEN 1.0 AND 2.0", element.toString());
 	}
 	
 	@Test
@@ -29,9 +27,7 @@ public class BetweenPredicateTest {
 		RowValueConstructor betweenRowValueConstructor = SqlElementUntils.createRowValueConstructor("1.0");
 		RowValueConstructor andRowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("2.0");
 		BetweenPredicate element = new BetweenPredicate(columnReferenceLHS, not, betweenRowValueConstructor, andRowValueConstructorRHS);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar NOT BETWEEN 1.0 AND 2.0", builder.toString());
+		assertEquals("bar NOT BETWEEN 1.0 AND 2.0", element.toString());
 	}
 
 }

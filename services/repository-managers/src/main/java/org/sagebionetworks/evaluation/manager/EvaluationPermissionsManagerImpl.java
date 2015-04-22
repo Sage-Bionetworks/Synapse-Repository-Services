@@ -10,11 +10,14 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -22,14 +25,16 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -96,10 +101,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		final Evaluation eval = getEvaluation(evalId);
-		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
-			throw new UnauthorizedException("User " + userInfo.getId().toString()
-					+ " not authorized to change permissions on evaluation " + evalId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS));
 
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
@@ -118,7 +120,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation Id cannot be null or empty.");
 		}
-		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
+		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
@@ -139,24 +141,13 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		return acl;
 	}
 
-	@Override
-	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
-			throws NotFoundException, DatastoreException {
-		try {
-			validateHasAccess(userInfo, evalId, accessType);
-		} catch (UnauthorizedException e) {
-			return false;
-		}
-		return true;
-	}
-
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
 	 */
 	@Override
-	public void validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+			throws NotFoundException, DatastoreException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
@@ -166,16 +157,18 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (accessType == null) {
 			throw new IllegalArgumentException("Access type cannot be null.");
 		}
-		if (userInfo.isAdmin()) return;
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 
 		if (isAnonymousWithNonReadAccess(userInfo, accessType))
-			throw new UnauthorizedException("Anonymous user is not allowed to access Evaluation.");
+			return AuthorizationManagerUtil.accessDenied("Anonymous user is not allowed to access Evaluation.");
 		
 		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
-			throw new UnauthorizedException("User lacks "+accessType+" access to Evaluation "+evalId);
+			return AuthorizationManagerUtil.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
 		
 		if (hasUnmetAccessRequirements(userInfo, evalId, accessType))
-			throw new UnauthorizedException("User has unmet access restrictions for Evaluation "+evalId);
+			return AuthorizationManagerUtil.accessDenied("User has unmet access restrictions for Evaluation "+evalId);
+		
+		return AuthorizationManagerUtil.AUTHORIZED;
 	}
 
 	@Override
@@ -196,18 +189,18 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ));
+		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).getAuthorized());
 
 		// Other permissions
-		permission.setCanView(hasAccess(userInfo, evalId, READ));
-		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE));
-		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE));
-		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS));
-		permission.setCanParticipate(hasAccess(userInfo, evalId, PARTICIPATE));
-		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT));
-		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION));
-		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION));
-		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION));
+		permission.setCanView(hasAccess(userInfo, evalId, READ).getAuthorized());
+		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE).getAuthorized());
+		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE).getAuthorized());
+		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized());
+		permission.setCanParticipate(hasAccess(userInfo, evalId, PARTICIPATE).getAuthorized());
+		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT).getAuthorized());
+		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION).getAuthorized());
+		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION).getAuthorized());
+		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION).getAuthorized());
 
 		return permission;
 	}
@@ -218,8 +211,11 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	
 	private boolean hasUnmetAccessRequirements(UserInfo userInfo, String evalId, ACCESS_TYPE accessType) throws NotFoundException {
 		if ((PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
-			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
-					userInfo, evalId, accessRequirementDAO);
+			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+			rod.setId(evalId);
+			rod.setType(RestrictableObjectType.EVALUATION);
+			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
+					userInfo, rod, accessRequirementDAO, Collections.singletonList(accessType));
 			if (!unmetRequirements.isEmpty()) return true;
 		}
 		return false;
@@ -243,5 +239,23 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			// Rethrow with a more specific message
 			throw new NotFoundException("Evaluation of ID " + evalId + " does not exist yet.");
 		}
+	}
+	
+	/**
+	 * User must have submit permission and be a member of the given team
+	 * 
+	 * @param userInfo
+	 * @param evaluationId
+	 * @param teamId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	@Override
+	public AuthorizationStatus canCheckTeamSubmissionEligibility(UserInfo userInfo, String evaluationId, String teamId) throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (!userInfo.getGroups().contains(Long.parseLong(teamId))) {
+			return new AuthorizationStatus(false, "Requester is not a member of the Submission Team.");
+		}
+		return hasAccess(userInfo, evaluationId, ACCESS_TYPE.SUBMIT);
 	}
 }

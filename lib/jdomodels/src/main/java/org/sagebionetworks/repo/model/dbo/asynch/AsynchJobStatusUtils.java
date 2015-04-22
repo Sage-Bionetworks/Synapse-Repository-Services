@@ -27,7 +27,9 @@ public class AsynchJobStatusUtils {
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
 		try {
 			// The compressed body contains the truth data for all type specific data.
-			dto.setRequestBody((AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getRequestBody(), dbo.getJobType().name(), dbo.getJobType().getRequestClass()));
+			AsynchronousRequestBody asynchronousRequestBody = (AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getRequestBody(), dbo.getJobType().name(), dbo.getJobType().getRequestClass());
+			asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
+			dto.setRequestBody(asynchronousRequestBody);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

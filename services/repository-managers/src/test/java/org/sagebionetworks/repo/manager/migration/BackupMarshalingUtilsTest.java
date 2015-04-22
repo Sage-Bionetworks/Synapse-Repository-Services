@@ -5,7 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,7 +22,7 @@ import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 public class BackupMarshalingUtilsTest {
 
 	@Test
-	public void testRoundTrip() throws UnsupportedEncodingException{
+	public void testRoundTrip() throws Exception {
 		String alias = "files";
 		List<FileHandleBackup> list = new LinkedList<FileHandleBackup>();
 		for(int i=0; i<5; i++){
@@ -33,7 +34,9 @@ public class BackupMarshalingUtilsTest {
 		}
 		// Mashal it
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BackupMarshalingUtils.writeBackupToStream(list, alias, out);
+		Writer writer = new OutputStreamWriter(out, "UTF-8");
+		BackupMarshalingUtils.writeBackupToWriter(list, alias, writer);
+		writer.flush();
 		String xml = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml);
 		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));

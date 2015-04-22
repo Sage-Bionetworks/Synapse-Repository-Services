@@ -23,7 +23,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
-import org.sagebionetworks.util.ClockProvider;
+import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -33,7 +33,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class SemaphoreGatedRunnerImplTest {
 	
 	SemaphoreDao mockSemaphoreDao;
-	ClockProvider mockClock;
+	TestClock testClock = new TestClock();
 	String semaphoreKey;
 	int maxNumberRunners;
 	Runnable mockRunner;
@@ -45,7 +45,6 @@ public class SemaphoreGatedRunnerImplTest {
 	public void before(){
 		mockSemaphoreDao = Mockito.mock(SemaphoreDao.class);
 		mockRunner = Mockito.mock(Runnable.class);
-		mockClock = Mockito.mock(ClockProvider.class);
 		semaphoreKey = "someKey";
 		maxNumberRunners = 1;
 		timeoutMS = 10*1000+1;
@@ -54,9 +53,9 @@ public class SemaphoreGatedRunnerImplTest {
 		semaphoreGatedRunner.setSemaphoreKey(semaphoreKey);
 		semaphoreGatedRunner.setMaxNumberRunners(maxNumberRunners);
 		semaphoreGatedRunner.setTimeoutMS(timeoutMS);
-		semaphoreGatedRunner.setClockProvider(mockClock);
+		ReflectionTestUtils.setField(semaphoreGatedRunner, "clock", testClock);
 	}
-	
+
 	@After
 	public void after(){
 		semaphoreGatedRunner.clearKeys();
@@ -246,24 +245,24 @@ public class SemaphoreGatedRunnerImplTest {
 		String key = semaphoreKey+"-0";
 		String token = "someToken";
 		when(mockSemaphoreDao.attemptToAcquireLock(key, timeoutMS)).thenReturn(token);
-		// Each time the clock is called half of the timeout expires.
-		when(mockClock.currentTimeMillis()).thenAnswer(new Answer<Long>() {
-			@Override
-			public Long answer(InvocationOnMock invocation) throws Throwable {
-				return currentTime+=timeoutMS/3L;
-			}
-		});
 		// run
 		semaphoreGatedRunner.setRunner(new ProgressingRunner() {
 			@Override
 			public void run(ProgressCallback callback) throws Exception {
 				// Not every call should result in a lock-refresh, only if enough time has expired
+				testClock.warpForward(timeoutMS / 4);
 				callback.progressMade();
+				testClock.warpForward(timeoutMS / 4 - 1);
+				callback.progressMade();
+
+				// This should trigger a refresh
+				testClock.warpForward(2);
+				callback.progressMade();
+
+				testClock.warpForward(timeoutMS / 2);
 				callback.progressMade();
 				// This should trigger a refresh
-				callback.progressMade();
-				callback.progressMade();
-				// This should trigger a refresh
+				testClock.warpForward(timeoutMS / 2);
 				callback.progressMade();
 			}
 		});

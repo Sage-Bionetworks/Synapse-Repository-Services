@@ -9,7 +9,7 @@ public class InstanceUtils {
 
 	public static final String DATABASE_INSTANCE_NAME_TEMPALTE = "%1$s-%2$s-table-%3$d";
 	public static final String DATABASE_SCHEMA_NAME_TEMPALTE = "%1$s%2$s";
-	public static final String DATABASE_URL_NAME_TEMPALTE = "jdbc:mysql://%1$s/%2$s";
+	public static final String DATABASE_URL_NAME_TEMPALTE = "jdbc:mysql://%1$s/%2$s?rewriteBatchedStatements=true";
 	
 
 	/**

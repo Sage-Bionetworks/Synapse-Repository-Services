@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,20 +56,22 @@ public interface MigrationManager {
 	 * @param rowIds
 	 * @return
 	 */
-	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, OutputStream out);
+	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer out);
 
 	/**
 	 * Create or update a batch.
 	 * @param batch - batch of objects to create or update.
+	 * @throws Exception 
 	 */
-	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in);
+	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in) throws Exception;
 	
 	/**
 	 * Delete objects by their IDs
 	 * @param type
 	 * @param idList
+	 * @throws Exception 
 	 */
-	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList);
+	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) throws Exception;
 	
 	/**
 	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.

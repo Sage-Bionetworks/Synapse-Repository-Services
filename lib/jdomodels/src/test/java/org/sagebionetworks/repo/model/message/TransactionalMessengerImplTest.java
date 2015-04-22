@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.message;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -12,13 +12,18 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
@@ -33,6 +38,7 @@ public class TransactionalMessengerImplTest {
 	TransactionSynchronizationProxy stubProxy;
 	TransactionalMessengerObserver mockObserver;
 	private TransactionalMessengerImpl messenger;
+	private TestClock testClock = new TestClock();
 	
 	@Before
 	public void before(){
@@ -40,55 +46,73 @@ public class TransactionalMessengerImplTest {
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy);
+		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
+	}
+
+	@After
+	public void after() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testChangeMessageKeyNull(){
-		new ChangeMessageKey(null);
+	public void testMessageKeyNull() {
+		new MessageKey(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testChangeMessageKeyNullId(){
-		new ChangeMessageKey(new ChangeMessage());
+	public void testMessageKeyNullId() {
+		new MessageKey(new ChangeMessage());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testChangeMessageKeyNullType(){
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectId("notNull");
-		new ChangeMessageKey(message);
+		new MessageKey(message);
 	}
 	
 	@Test
-	public void testChangeMessageKeyEquals(){
+	public void testMessageKeyEquals() {
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
 		// Create the first key
-		ChangeMessageKey one =  new ChangeMessageKey(message);
+		MessageKey one = new MessageKey(message);
 		// Create the second key
 		message = new ChangeMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
-		ChangeMessageKey two =  new ChangeMessageKey(message);
+		MessageKey two = new MessageKey(message);
 		assertEquals(one, two);
 		// Third is not equals
 		message = new ChangeMessage();
 		message.setObjectId("456");
 		message.setObjectType(ObjectType.ENTITY);
-		ChangeMessageKey thrid =  new ChangeMessageKey(message);
-		assertFalse(thrid.equals(two));
-		assertFalse(two.equals(thrid));
+		MessageKey thrid = new MessageKey(message);
+		assertNotSame(thrid, two);
+		assertNotSame(two, thrid);
 		
 		// fourth is not equals
 		message = new ChangeMessage();
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ACTIVITY);
-		ChangeMessageKey forth =  new ChangeMessageKey(message);
-		assertFalse(forth.equals(two));
-		assertFalse(two.equals(forth));
+		MessageKey fourth = new MessageKey(message);
+		assertNotSame(fourth, two);
+		assertNotSame(two, fourth);
+
+		ModificationMessage modificationMessage = new DefaultModificationMessage();
+		modificationMessage.setObjectId("123");
+		modificationMessage.setObjectType(ObjectType.ACTIVITY);
+		MessageKey fifth = new MessageKey(modificationMessage);
+		assertNotSame(fourth, fifth);
+
+		modificationMessage = new DefaultModificationMessage();
+		modificationMessage.setObjectId("123");
+		modificationMessage.setObjectType(ObjectType.ACTIVITY);
+		MessageKey sixth = new MessageKey(modificationMessage);
+		assertEquals(fifth, sixth);
 	}
 	
 	@Test
@@ -199,7 +223,7 @@ public class TransactionalMessengerImplTest {
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy);
+		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
 		
 		ChangeMessage message = new ChangeMessage();
@@ -223,5 +247,45 @@ public class TransactionalMessengerImplTest {
 		// It should only be called once total!
 		verify(mockObserver, times(1)).fireChangeMessage(any(ChangeMessage.class));
 		
+	}
+
+	@Test
+	public void testSendModificationMessageNothingHappensWithoutId() {
+		// Send the message
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(0, stubProxy.getSynchronizations().size());
+	}
+
+	@Test
+	public void testSendModificationMessageNothingHappensWithAnonymous() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(
+				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		// Send the message
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(0, stubProxy.getSynchronizations().size());
+	}
+
+	@Test
+	public void testSendModificationMessage() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
+		// Send the message
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		ModificationMessage message = new DefaultModificationMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.ENTITY);
+		message.setTimestamp(testClock.now());
+		message.setUserId(100L);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// Verify that the one message was fired.
+		verify(mockObserver, times(1)).fireModificationMessage(message);
+		// It should only be called once total!
+		verify(mockObserver, times(1)).fireModificationMessage(any(ModificationMessage.class));
 	}
 }

@@ -12,13 +12,17 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -63,6 +67,19 @@ public interface UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Return UserProfiles for the given ids
+	 * @param userId
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdList ids)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+
+	/**
 	 * Get a user profile
 	 * @param userId - The user that is making the request.
 	 * @param request
@@ -71,43 +88,6 @@ public interface UserProfileService {
 	 */
 	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException;
-
-	/**
-	 * Create a security token for use for a particular with a particular
-	 * locationable user profile picture to be stored in AWS S3
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param etag
-	 * @param s3Token
-	 * @param request
-	 * @return a filled-in S3Token
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId,
-			String profileId, S3AttachmentToken token,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException;
-	/**
-	 * Create a token used to upload an attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId, 
-			String profileId, PresignedUrl url, HttpServletRequest request)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Batch get headers for users matching a list of supplied Synapse IDs.
@@ -136,22 +116,6 @@ public interface UserProfileService {
 			String prefixFilter, Integer offset, Integer limit,
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Populate a cache of headers for all Synapse users.
-	 * 
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public void refreshCache() throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the time (in milliseconds) since the user/group header cache was last
-	 * updated. Returns null if the cache has not yet been populated.
-	 * 
-	 * @return
-	 */
-	public Long millisSinceLastCacheUpdate();
 
 	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer);
 
@@ -193,7 +157,43 @@ public interface UserProfileService {
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
 
+	/**
+	 * Retrieve sorted list of projects, paginated
+	 * 
+	 * @param userId
+	 * @param otherUserId optional other user id required when retrieving projects of other user
+	 * @param teamId optional team id required when retrieving projects for a team
+	 * @param type type of project list
+	 * @param sortColumn optional sort column. default sort by last activity
+	 * @param sortDirection optional sort direction. default sort descending
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
-	
+	/**
+	 * Get the pre-signed URL for a user's profile image.
+	 * 
+	 * @param profileId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getUserProfileImage(String profileId) throws NotFoundException;
+
+	/**
+	 * Get a pre-signed URL for a user's profile image preview.
+	 * @param profileId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getUserProfileImagePreview(String profileId) throws NotFoundException;
+
 }

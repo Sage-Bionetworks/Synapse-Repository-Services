@@ -16,17 +16,13 @@ public class GroupingColumnReferenceListTest {
 	public void testToSQLOne() throws ParseException{
 		List<GroupingColumnReference> list = SqlElementUntils.createGroupingColumnReferences("lhs.rhs");
 		GroupingColumnReferenceList element = new GroupingColumnReferenceList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("lhs.rhs", builder.toString());
+		assertEquals("lhs.rhs", element.toString());
 	}
 	
 	@Test
 	public void testToSQLMore() throws ParseException{
 		List<GroupingColumnReference> list = SqlElementUntils.createGroupingColumnReferences("lhs.rhs","mid","\"last\"");
 		GroupingColumnReferenceList element = new GroupingColumnReferenceList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("lhs.rhs, mid, \"last\"", builder.toString());
+		assertEquals("lhs.rhs, mid, \"last\"", element.toString());
 	}
 }

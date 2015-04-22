@@ -10,11 +10,35 @@
 
   <context:annotation-config />
   
+  <import resource="classpath:jdomodels-import.xml" />
+  <import resource="classpath:dynamo-import.xml" />
+  <import resource="classpath:search-import.xml" />
+  <import resource="classpath:audit-dao.spb.xml" />
+  <import resource="classpath:id-generator.spb.xml" />
+  <import resource="classpath:concept-dao-beans.spb.xml" />
+  <import resource="classpath:table-cluster-spb.xml" />
   <!-- Load the authFilter -->
-  <import resource="classpath:authentication-services-spb.xml" />
+  <import resource="classpath:stack-configuration.spb.xml" />
   <!-- Load the single cloudwatch consumer -->
   <import resource="classpath:cloudwatch-spb.xml" />
-  <!-- Load the userThrottleFilter -->
-  <import resource="classpath:throttle-services-spb.xml" />
-  
+  <!-- Load the loggers -->
+  <import resource="classpath:log-sweeper.spb.xml" />
+  <!-- Load the managers -->
+  <import resource="classpath:managers-import.xml" />
+  <import resource="classpath:managers-topic-publisher-import.xml" />
+
+  <import resource="classpath:repository-shared-import.xml" />
+
+	<!-- Load the triggers and the scheduler -->
+	<import resource="classpath:stack-configuration-trigger.spb.xml" />
+	<import resource="classpath:performance-logging-trigger-spb.xml" />
+  	<import resource="classpath:cloudwatch-trigger-spb.xml" />
+	<import resource="classpath:search-triggers-import.xml" />
+
+	<import resource="classpath:managers-triggers-import.xml" />
+	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
+	<import resource="classpath:repository-triggers-import.xml" />
+
+	<import resource="classpath:repository-scheduler.xml" />
+
 </beans>

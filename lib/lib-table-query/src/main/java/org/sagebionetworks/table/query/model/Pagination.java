@@ -1,31 +1,57 @@
 package org.sagebionetworks.table.query.model;
+
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+import org.sagebionetworks.util.ValidateArgument;
+
 /**
- * Unlike most SQLElements, pagination is not defined in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>  *
+ * Unlike most SQLElements, pagination is not defined in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a> *
  */
-public class Pagination implements SQLElement{
-	
+public class Pagination extends SQLElement {
+
 	Long limit;
 	Long offset;
+
 	public Pagination(String limit, String offset) {
-		super();
+		ValidateArgument.required(limit, "limit");
 		this.limit = Long.parseLong(limit);
-		if(offset != null){
+		if (offset != null) {
 			this.offset = Long.parseLong(offset);
 		}
 	}
+
+	public Pagination(Long limit, Long offset) {
+		this.limit = limit;
+		this.offset = offset;
+	}
+
 	public Long getLimit() {
 		return limit;
 	}
+
 	public Long getOffset() {
 		return offset;
 	}
-	@Override
-	public void toSQL(StringBuilder builder) {
-		builder.append("LIMIT ");
-		builder.append(limit);
-		if(offset != null){
-			builder.append(" OFFSET ");
-			builder.append(offset);			
+
+	public void visit(Visitor visitor) {
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("LIMIT ");
+		visitor.append(limit.toString());
+		if (offset != null) {
+			visitor.append(" OFFSET ");
+			visitor.append(offset.toString());
+		}
+	}
+
+	public void visit(ToTranslatedSqlVisitor visitor) {
+		visitor.append("LIMIT ");
+		visitor.convertParam(limit);
+		if (offset != null) {
+			visitor.append(" OFFSET ");
+			visitor.convertParam(offset);
 		}
 	}
 }

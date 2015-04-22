@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -112,6 +109,28 @@ public class TableStatusDAOImplTest {
 		assertEquals(lastTableChangeEtag, status.getLastTableChangeEtag());
 	}
 	
+	@Test
+	public void testDeleteTableStatus() throws NotFoundException {
+		String tableId1 = "syn1";
+		String tableId2 = "syn2";
+		// This should insert a row for this table.
+		tableStatusDAO.resetTableStatusToProcessing(tableId1);
+		tableStatusDAO.resetTableStatusToProcessing(tableId2);
+		TableStatus status = tableStatusDAO.getTableStatus(tableId1);
+		assertNotNull(status);
+		status = tableStatusDAO.getTableStatus(tableId2);
+		assertNotNull(status);
+
+		tableStatusDAO.deleteTableStatus(tableId2);
+		status = tableStatusDAO.getTableStatus(tableId1);
+		assertNotNull(status);
+		try {
+			tableStatusDAO.getTableStatus(tableId2);
+			fail("Should have been deleted");
+		} catch (NotFoundException e) {
+		}
+	}
+
 	/**
 	 * This is a test for PLFM-2634 and PLFM-2636
 	 * @throws NotFoundException

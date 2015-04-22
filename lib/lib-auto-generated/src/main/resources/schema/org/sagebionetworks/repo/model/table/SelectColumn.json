@@ -1,0 +1,18 @@
+{
+    "title":"Column Model",
+    "description":"A column model contains the metadata of a single column of a TableEntity",
+    "properties":{
+        "name":{
+            "type":"string",
+            "description":"The display name of the column"
+        },
+        "columnType": {
+			"description": "The type of the select column or null if the type cannot be determined.",
+			"$ref": "org.sagebionetworks.repo.model.table.ColumnType"
+		},
+        "id":{
+            "type":"string",
+            "description":"The ID of the select column, if this is a direct column selected"
+        }
+    }
+}

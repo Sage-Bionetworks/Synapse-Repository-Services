@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -275,7 +274,7 @@ public class DBOReferenceDaoImplTest {
 		node0.setId(KeyFactory.stringToKey(node0Id));
 		Node temp = nodeDAO.getNode(node0Id);
 		node0.setName(temp.getName());
-		node0.setNodeType(EntityType.valueOf(temp.getNodeType()).getId());
+		node0.setType(temp.getNodeType().name());
 		
 		DBONode node1 = new DBONode();
 		node1.setId(KeyFactory.stringToKey(it.next()));
@@ -335,7 +334,7 @@ public class DBOReferenceDaoImplTest {
 		assertEquals(expected, justIds(referrers));
 		EntityHeader eh = referrers.iterator().next();
 		assertEquals(node0.getName(), eh.getName());
-		assertEquals(EntityType.getTypeForId(node0.getNodeType()).name(), eh.getType());
+		assertEquals(node0.getType(), eh.getType());
 		
 		
 		// now make the second node refer to a different revision of 123
@@ -353,7 +352,7 @@ public class DBOReferenceDaoImplTest {
 		}
 		
 		// only the first node refers to revision 1
-		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
+		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getResults();
 		expected = new HashSet<String>(); 
@@ -473,7 +472,7 @@ public class DBOReferenceDaoImplTest {
 			// Now save to the DB
 			dboReferenceDao.replaceReferences(node1.getId(), references);
 		}
-		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
+		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getResults();
 		assertEquals(expected, justIds(referrers));

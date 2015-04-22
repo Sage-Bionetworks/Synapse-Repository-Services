@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -40,6 +41,15 @@ public interface UserProfileDAO {
 	 * @throws NotFoundException
 	 */
 	public List<UserProfile> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<UserProfile> list(List<Long> ids) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total count of UserProfiles in the system
@@ -76,4 +86,12 @@ public interface UserProfileDAO {
 	 * Ensure the bootstrap user's profiles exist
 	 */
 	public void bootstrapProfiles();
+
+	/**
+	 * Get the picture FileHandleId for a user.
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getPictureFileHandleId(String userId) throws NotFoundException;
 }

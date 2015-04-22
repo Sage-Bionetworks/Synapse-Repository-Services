@@ -1,9 +1,13 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
+
 /**
  * This matches &ltfrom clause&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class FromClause implements SQLElement {
+public class FromClause extends SQLElement {
 
 	private TableReference tableReference;
 
@@ -16,11 +20,12 @@ public class FromClause implements SQLElement {
 		return tableReference;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		builder.append("FROM ");
-		tableReference.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(tableReference, visitor);
 	}
-	
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("FROM ");
+		visit(tableReference, visitor);
+	}
 }

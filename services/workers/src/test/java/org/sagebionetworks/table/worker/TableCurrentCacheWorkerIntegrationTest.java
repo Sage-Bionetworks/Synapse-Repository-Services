@@ -15,7 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -26,11 +26,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -39,6 +37,7 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -69,7 +68,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	MessageReceiver tableCurrentCacheQueueMessageReveiver;
+	MessagePollingReceiverImpl tableCurrentCacheQueueMessageReveiver;
 	@Autowired
 	TableRowCache tableRowCache;
 	@Autowired
@@ -99,13 +98,13 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	
 	@After
 	public void after(){
-		if(config.getTableEnabled()){
+		if (config.getTableEnabled()) {
 			// cleanup
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
+			tableRowCache.truncateAllData();
 		}
-		tableRowCache.truncateAllData();
 	}
 
 	@Test
@@ -117,14 +116,14 @@ public class TableCurrentCacheWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<String> headers = TableModelUtils.getHeaders(schema);
+		List<Long> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
+		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		columnManager.bindColumnToObject(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// Add null rows
@@ -133,18 +132,19 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 2));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(headers);
+		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
 
 		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 1000L).size());
 
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				rowSet);
 
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override
 			public boolean apply(String input) {
-				CurrentRowCacheStatus status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
-				return status.getLatestCachedVersionNumber() != null && status.getLatestCachedVersionNumber() == 0L;
+				long status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
+				return status == 0;
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long>builder().put(0L, 0L).put(1L, 0L).put(2L, 0L).put(3L, 0L).put(4L, 0L).put(5L, 0L).build();
@@ -171,21 +171,22 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
 
-		List<String> headers = TableModelUtils.getHeaders(schema);
+		List<Long> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
+		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		columnManager.bindColumnToObject(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setHeaders(headers);
+		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
+				rowSet);
 
 		rowSet.setEtag(referenceSet.getEtag());
 		for (int i = 0; i < 4; i++) {
@@ -200,26 +201,26 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		TableModelTestUtils.updateRow(schema, updateRows.get(1), 444);
 		TableModelTestUtils.updateRow(schema, updateRows.get(2), 555);
 		rowSet.setRows(updateRows);
-		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId,
+				TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet);
 		assertEquals(3, referenceSet2.getRows().size());
 
 		RowSelection rowsToDelete = new RowSelection();
 		rowsToDelete.setEtag(referenceSet2.getEtag());
 		rowsToDelete.setRowIds(Lists.newArrayList(referenceSet2.getRows().get(1).getRowId(), referenceSet.getRows().get(3).getRowId()));
 
-		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, schema, rowsToDelete);
+		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, rowsToDelete);
 
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override
 			public boolean apply(String input) {
-				CurrentRowCacheStatus status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
-				return status.getLatestCachedVersionNumber() != null && status.getLatestCachedVersionNumber() == 2L;
+				long status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
+				return status == 2L;
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long> builder().put(0L, 1L).put(1L, 2L).put(2L, 1L).put(3L, 2L).build();
 		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 100L);
 		assertEquals(expected, actual);
-		assertEquals(2L, tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId)).getLatestCachedVersionNumber()
-				.longValue());
+		assertEquals(2L, tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId)));
 	}
 }

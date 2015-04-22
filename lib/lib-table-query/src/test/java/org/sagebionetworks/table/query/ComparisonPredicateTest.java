@@ -17,8 +17,6 @@ public class ComparisonPredicateTest {
 		CompOp compOp = CompOp.NOT_EQUALS_OPERATOR;
 		RowValueConstructor rowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("1");
 		ComparisonPredicate element = new ComparisonPredicate(columnReferenceLHS, compOp, rowValueConstructorRHS);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo <> 1", builder.toString());
+		assertEquals("foo <> 1", element.toString());
 	}
 }

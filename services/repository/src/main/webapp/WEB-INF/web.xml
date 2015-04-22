@@ -16,6 +16,20 @@
 		<param-value>/WEB-INF/shared-context.xml</param-value>
 	</context-param>
 
+	<!-- This must remain the top-most filter in the filter chain.
+	 It is our last chance to capture and log unexpected exceptions.  
+	 Without it, users could see errors that never make it into our logs.
+	 See PLFM-3205 & PLFM-3206  -->
+	<filter>
+		<filter-name>unexpectedExceptionFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.UnexpectedExceptionFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>unexpectedExceptionFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+
 	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
 	<listener>
 		<listener-class>org.apache.logging.log4j.core.web.Log4jServletContextListener</listener-class>
@@ -41,6 +55,22 @@
 	<listener>
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
+
+	<!-- Python Client Filter -->
+
+	<filter>
+		<filter-name>pythonClientFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.PythonClientFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>pythonClientFilter</filter-name>
+		<url-pattern>/auth/v1/*</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+
+	<!-- END Python Client Filter -->
 
 	<!-- Some browsers do not support PUT and DELETE methods, this filter will 
 		examine the form field parameter _method -->
@@ -85,7 +115,20 @@
 		<url-pattern>/auth/v1/secretKey</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
-		<url-pattern>/bridge/v1/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>profileFilter</filter-name>
+		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
+		<init-param>
+			<param-name>default_value</param-name>
+			<param-value>false</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>profileFilter</filter-name>
+		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -102,21 +145,6 @@
 		<filter-name>userThrottleFilter</filter-name>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
-		<url-pattern>/bridge/v1/*</url-pattern>
-	</filter-mapping>
-
-	<filter>
-		<filter-name>profileFilter</filter-name>
-		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
-		<init-param>
-			<param-name>default_value</param-name>
-			<param-value>false</param-value>
-		</init-param>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>profileFilter</filter-name>
-		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -143,16 +171,16 @@
 		<!-- This filter should only be used on publicly accessible methods to 
 			minimize the risks of Cross-site request forgery (CSRF) associated with JSONP. 
 			Only add patterns that are public! -->
-			
+
 		<url-pattern>/repo/v1/userGroupHeaders/*</url-pattern>
-		<!--  This is the uri for looking up teams by name fragment -->
+		<!-- This is the uri for looking up teams by name fragment -->
 		<url-pattern>/repo/v1/teams</url-pattern>
-		<!--  This is the uri for looking up team members by name fragment -->
+		<!-- This is the uri for looking up team members by name fragment -->
 		<url-pattern>/repo/v1/teamMembers/*</url-pattern>
 	</filter-mapping>
 
-	<!-- Rather than using multiple DispatcherServlet each with their own Spring context
-	 we are now using a singleton DispatcherServlet.  See: PLFM-2530  -->
+	<!-- Rather than using multiple DispatcherServlet each with their own Spring 
+		context we are now using a singleton DispatcherServlet. See: PLFM-2530 -->
 	<servlet>
 		<servlet-name>singleton</servlet-name>
 		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
@@ -180,7 +208,6 @@
 	<servlet-mapping>
 		<servlet-name>tomcatDefaultServlet</servlet-name>
 		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
-        <url-pattern>/auth/v1/bridgeTermsOfUse.html</url-pattern>
 	</servlet-mapping>
 
 

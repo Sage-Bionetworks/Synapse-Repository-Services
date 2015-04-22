@@ -23,9 +23,10 @@ import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
@@ -40,6 +41,8 @@ public class AuthenticationFilter implements Filter {
 	
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
 	
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+
 	@Autowired
 	private AuthenticationService authenticationService;
 	
@@ -92,7 +95,7 @@ public class AuthenticationFilter implements Filter {
 			String failureReason = "Invalid session token";
 			try {
 				userId = authenticationService.revalidate(sessionToken, domain, false);
-			} catch (UnauthorizedException e) {
+			} catch (UnauthenticatedException e) {
 				reject(req, (HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
 				return;
@@ -110,7 +113,7 @@ public class AuthenticationFilter implements Filter {
 				userId = authenticationService.getUserId(username);
 				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
-			} catch (UnauthorizedException e) {
+			} catch (UnauthenticatedException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
 				log.warn(failureReason, e);
 				return;
@@ -150,12 +153,18 @@ public class AuthenticationFilter implements Filter {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		}
 
-		// Pass along, including the user ID
-		@SuppressWarnings("unchecked")
-		Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
-		filterChain.doFilter(modRqst, servletResponse);
+		// Put the userId on thread local, so this thread always knows who is calling
+		currentUserIdThreadLocal.set(userId);
+		try {
+			// Pass along, including the user ID
+			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
+			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
+			filterChain.doFilter(modRqst, servletResponse);
+		} finally {
+			// not strictly necessary, but just in case
+			currentUserIdThreadLocal.set(null);
+		}
 	}
 
 	/**
@@ -182,7 +191,7 @@ public class AuthenticationFilter implements Filter {
 	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
 	 * passed in then an UnauthorizedException is thrown.
 	 */
-	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws UnauthorizedException {
+	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws UnauthenticatedException {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
 		String uri = request.getRequestURI();
 		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
@@ -194,12 +203,12 @@ public class AuthenticationFilter implements Filter {
     	int timeDiff = Minutes.minutesBetween(new DateTime(), timeStamp).getMinutes();
 
     	if (Math.abs(timeDiff) > MAX_TIMESTAMP_DIFF_MIN) {
-    		throw new UnauthorizedException("Timestamp in request, " + date + ", is out of date");
+    		throw new UnauthenticatedException("Timestamp in request, " + date + ", is out of date");
     	}
 
     	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, uri, date, secretKey);
     	if (!expectedSignature.equals(signature)) {
-       		throw new UnauthorizedException("Invalid digital signature: " + signature);
+       		throw new UnauthenticatedException("Invalid digital signature: " + signature);
     	}
 	}
 

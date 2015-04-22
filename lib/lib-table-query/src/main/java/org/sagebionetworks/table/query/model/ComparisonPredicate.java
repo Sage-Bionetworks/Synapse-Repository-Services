@@ -1,9 +1,13 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
+
 /**
  * This matches &ltcomparison predicate&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ComparisonPredicate implements SQLElement {
+public class ComparisonPredicate extends SQLElement {
 
 	ColumnReference columnReferenceLHS;
 	CompOp compOp;
@@ -27,11 +31,18 @@ public class ComparisonPredicate implements SQLElement {
 		return columnReferenceLHS;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		columnReferenceLHS.toSQL(builder);
-		builder.append(" ").append(compOp.toSQL()).append(" ");
-		rowValueConstructorRHS.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visit(rowValueConstructorRHS, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visitor.setLHSColumn(columnReferenceLHS);
+		visitor.append(" ");
+		visitor.append(compOp.toSQL());
+		visitor.append(" ");
+		visit(rowValueConstructorRHS, visitor);
+		visitor.setLHSColumn(null);
+	}
 }

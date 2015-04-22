@@ -14,14 +14,13 @@ import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 
 public class SynapseAdministrationTest {
 	HttpClientProvider mockProvider = null;
-	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	SynapseAdminClientImpl synapse;
@@ -30,10 +29,9 @@ public class SynapseAdministrationTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseAdminClientImpl(mockProvider, mockUploader);
+		synapse = new SynapseAdminClientImpl(mockProvider);
 	}
 	
 	@Test
@@ -113,5 +111,4 @@ public class SynapseAdministrationTest {
 		String url = SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, null);
 		assertEquals(expected, url);
 	}
-	
 }

@@ -11,9 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:dao-beans.spb.xml" />
-	<import resource="aws-worker.spb.xml"/>
-
+ 
 	<!-- Sets up the message queue. -->
 	<bean id="annotationsMessageQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"

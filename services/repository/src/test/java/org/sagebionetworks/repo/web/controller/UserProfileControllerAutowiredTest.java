@@ -14,33 +14,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserPreference;
 import org.sagebionetworks.repo.model.UserPreferenceBoolean;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
@@ -49,8 +44,11 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	
 	@Autowired 
 	private EntityService entityService;
+	@Autowired
+	private PrincipalPrefixDAO principalPrefixDao;
 
 	private Long adminUserId;
+	String oldLocation;
 
 	private List<String> favoritesToDelete;
 	private List<String> entityIdsToDelete;
@@ -67,10 +65,13 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+
+		oldLocation = servletTestHelper.getUserProfile(dispatchServlet, adminUserId).getLocation();
+		principalPrefixDao.truncateTable();
 	}
 	
 	@After
-	public void after() throws UnauthorizedException {
+	public void after() throws Exception {
 		if (userProfileService != null && favoritesToDelete != null) {
 			for (String entityId : favoritesToDelete) {
 				try {
@@ -93,11 +94,28 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 				}
 			}
 		}		
+		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		userProfile.setLocation(oldLocation);
+		servletTestHelper.updateUserProfile(adminUserId, userProfile);
+	}
+	
+	@Test
+	public void testSpecialCharacters() throws Exception {
+		String location = "Zürich"; 
+		String firstName = "Sławomir";
+		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		userProfile.setLocation(location);
+		userProfile.setFirstName(firstName);
+		servletTestHelper.updateUserProfile(adminUserId, userProfile);
+		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		assertEquals(location, userProfile.getLocation());
+		assertEquals(firstName, userProfile.getFirstName());
 	}
 	
 	
 	@Test
 	public void testGetUserGroupHeadersNoFilter() throws Exception {
+		principalPrefixDao.addPrincipalAlias("AUTHENTICATED_USERS", AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		String prefix = "";
 		int limit = 15;
 		int offset = 0;
@@ -120,7 +138,8 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	
 	@Test
 	public void testGeUserGroupHeadersWithFilter() throws Exception {
-		String prefix = "dev";
+		principalPrefixDao.addPrincipalAlias("AUTHENTICATED_USERS", AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		String prefix = "auth";
 		int limit = 10;
 		int offset = 0;
 		
@@ -129,6 +148,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		assertNotNull(response);
 		List<UserGroupHeader> children = response.getChildren();
 		assertNotNull(children);
+		assertTrue(children.size() > 0);
 		
 		// Verify prefix filtering.
 		for (UserGroupHeader ugh : children) {

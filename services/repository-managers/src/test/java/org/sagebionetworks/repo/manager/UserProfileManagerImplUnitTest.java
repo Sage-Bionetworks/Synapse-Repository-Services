@@ -2,8 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,18 +17,16 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
-import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -38,24 +35,25 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+
 public class UserProfileManagerImplUnitTest {
 
 	LocationHelper mocKLocationHelper;
 	UserProfileDAO mockProfileDAO;
 	UserGroupDAO mockUserGroupDAO;
-	S3TokenManager mockS3TokenManager;
 	UserManager mockUserManager;
 	FavoriteDAO mockFavoriteDAO;
-	AttachmentManager mockAttachmentManager;
 	PrincipalAliasDAO mockPrincipalAliasDAO;
-	
+	AuthorizationManager mockAuthorizationManager;
+	AmazonS3Client mockS3Client;
+	FileHandleManager mockFileHandleManager;
 	
 	UserProfileManager userProfileManager;
 	
 	UserInfo userInfo;
 	UserInfo adminUserInfo;
 	UserProfile userProfile;
-	S3AttachmentToken testToken;
 	
 	private static final Long userId = 9348725L;
 	private static final Long adminUserId = 823746L;
@@ -63,19 +61,19 @@ public class UserProfileManagerImplUnitTest {
 	private static final String USER_OPEN_ID = "http://myspace.com/foo";
 	
 	private Random rand = new Random();
-	private static final String TEST_USER_NAME = "TruncatableName@test.com";
 	
 	@Before
 	public void before() throws Exception {
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
 		mockProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		mockS3TokenManager = Mockito.mock(S3TokenManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockFavoriteDAO = Mockito.mock(FavoriteDAO.class);
-		mockAttachmentManager = Mockito.mock(AttachmentManager.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockS3TokenManager, mockFavoriteDAO, mockAttachmentManager, mockPrincipalAliasDAO);
+		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
+		mockS3Client = Mockito.mock(AmazonS3Client.class);
+		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
+		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockFavoriteDAO, mockPrincipalAliasDAO, mockAuthorizationManager, mockS3Client,mockFileHandleManager);
 		
 		
 		userInfo = new UserInfo(false, userId);
@@ -115,9 +113,6 @@ public class UserProfileManagerImplUnitTest {
 			}
 		}).when(mockProfileDAO).update((UserProfile) Mockito.any());
 		
-		testToken = new S3AttachmentToken();
-		testToken.setFileName("testonly.jpg");
-		
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(USER_EMAIL);
 		alias.setPrincipalId(userId);
@@ -134,63 +129,28 @@ public class UserProfileManagerImplUnitTest {
 		
 	}
 	
+	@Test
+	public void testUpdateProfileFileHandleAuthrorized() throws NotFoundException{
+		String fileHandleId = "123";
+		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(new AuthorizationStatus(true, null));
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+userInfo.getId());
+		profile.setUserName("some username");
+		profile.setProfilePicureFileHandleId(fileHandleId);
+		userProfileManager.updateUserProfile(userInfo, profile);
+		verify(mockProfileDAO).update(any(UserProfile.class));
+	}
+	
 	@Test (expected=UnauthorizedException.class)
-	public void testCreateS3URLNonAdminNonOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManager.createS3UserProfileAttachmentToken(userInfo, "222", testToken);
+	public void testUpdateProfileFileHandleUnAuthrorized() throws NotFoundException{
+		String fileHandleId = "123";
+		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(new AuthorizationStatus(false, "User does not own the file handle"));
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+userInfo.getId());
+		profile.setUserName("some username");
+		profile.setProfilePicureFileHandleId(fileHandleId);
+		userProfileManager.updateUserProfile(userInfo, profile);
 	}
-	@Test
-	public void testIsOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId.toString(), testToken);			
-	}
-	@Test
-	public void testIsAdmin() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManager.createS3UserProfileAttachmentToken(adminUserInfo, "Superman", testToken);
-	}	
-	@Test
-	public void testAdminGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		// Simulate an admin trying to access a presigned url
-		Long tokenId = new Long(456);
-		String profileId = "132";
-		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
-		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
-		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-		when(mockS3TokenManager.getAttachmentUrl(userId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
-		// Make the actual call
-		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userId, profileId, tokenId.toString());
-		assertNotNull(url);
-		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
-	}	
-	@Test
-	public void testOwnerGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		// Simulate an normal user trying to access a presigned url
-		Long tokenId = new Long(456);
-		String profileId = "132";
-		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
-		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
-		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-		when(mockS3TokenManager.getAttachmentUrl(adminUserId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
-		// Make the actual call
-		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(adminUserId, profileId, tokenId.toString());
-		assertNotNull(url);
-		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
-	}
-	@Test
-	public void testNonOwnerGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		// Simulate an normal user trying to access a presigned url
-		Long tokenId = new Long(456);
-		String profileId = "132";
-		Long otherUserId = 209384L;
-		
-		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
-		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
-		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-		when(mockS3TokenManager.getAttachmentUrl(otherUserId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
-		
-		// Make the actual call
-		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(otherUserId, profileId, tokenId.toString());
-		assertNotNull(url);
-		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
-	}	
 	
 	@Test
 	public void testAddFavorite() throws Exception {
@@ -206,7 +166,7 @@ public class UserProfileManagerImplUnitTest {
 	/* Tests moved and mocked from UserProfileManagerImplTest */
 	
 	@Test
-	public void testGetOwnUserProfle() throws Exception {
+	public void testGetOwnUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertEquals(userProfile, upClone);
@@ -225,16 +185,22 @@ public class UserProfileManagerImplUnitTest {
 		List<UserProfile> upList = Collections.singletonList(upForList);
 		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
 		when(mockProfileDAO.getCount()).thenReturn(1L);
+		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).
+			thenReturn(upList);
 
 		QueryResults<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
 		assertFalse(upForList.getEmails().isEmpty());
 		assertFalse(upForList.getOpenIds().isEmpty());
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(upList, results.getResults());
+		
+		IdList ids = new IdList();
+		ids.setList(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())));
+		assertEquals(results.getResults(), userProfileManager.list(ids).getList());
 	}
 		
 	@Test
-	public void testGetOthersUserProfleByAdmin() throws Exception {
+	public void testGetOthersUserProfileByAdmin() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(adminUserInfo, ownerId);
 		assertEquals(userProfile, upClone);
@@ -242,7 +208,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Ignore
 	@Test
-	public void testUpdateOwnUserProfle() throws Exception {
+	public void testUpdateOwnUserProfile() throws Exception {
 		// Get a copy of a UserProfile to update
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
@@ -256,7 +222,7 @@ public class UserProfileManagerImplUnitTest {
 	}
 	
 	@Test(expected=UnauthorizedException.class)
-	public void testUpdateOthersUserProfle() throws Exception {
+	public void testUpdateOthersUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		userInfo.setId(-100L);
 		

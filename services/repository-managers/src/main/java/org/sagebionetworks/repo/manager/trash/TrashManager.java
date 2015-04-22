@@ -15,6 +15,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public interface TrashManager {
 
+	public interface PurgeCallback {
+		void startPurge(String id);
+
+		void endPurge();
+	}
+
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 */
@@ -57,21 +63,20 @@ public interface TrashManager {
 	 * Purges the specified entity from the trash can. After purging, the entity
 	 * will be permanently deleted.
 	 */
-	void purgeTrashForUser(UserInfo currentUser, String nodeId)
+	void purgeTrashForUser(UserInfo currentUser, String nodeId, PurgeCallback purgeCallback)
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeTrashForUser(UserInfo currentUser) throws DatastoreException, NotFoundException;
+	void purgeTrashForUser(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeTrash(UserInfo currentUser) throws DatastoreException,
-	NotFoundException, UnauthorizedException;
+	void purgeTrash(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	// The following two methods are for the trash worker to clean trash older than a month
 
@@ -84,5 +89,5 @@ public interface TrashManager {
 	/**
 	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.
 	 */
-	void purgeTrash(List<TrashedEntity> trashList) throws DatastoreException, NotFoundException;
+	void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
 }

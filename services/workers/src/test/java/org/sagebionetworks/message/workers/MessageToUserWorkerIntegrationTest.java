@@ -57,7 +57,8 @@ public class MessageToUserWorkerIntegrationTest {
 	@Autowired
 	private SemaphoreManager semphoreManager;
 	
-	private UserInfo userInfo;
+	private UserInfo fromUserInfo;
+	private UserInfo toUserInfo;
 	private UserInfo adminUserInfo;
 	
 	private String fileHandleId;
@@ -72,7 +73,11 @@ public class MessageToUserWorkerIntegrationTest {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		fromUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		toUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
@@ -105,21 +110,21 @@ public class MessageToUserWorkerIntegrationTest {
 			}
 			
 		};
-		S3FileHandle handle = fileHandleManager.uploadFile(userInfo.getId().toString(), fis);
+		S3FileHandle handle = fileHandleManager.uploadFile(fromUserInfo.getId().toString(), fis);
 		fileHandleId = handle.getId();
 		
 		message = new MessageToUser();
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(new HashSet<String>() {
 			{
-				add(adminUserInfo.getId().toString());
+				add(toUserInfo.getId().toString());
 				
 				// Note: this causes the worker to send a delivery failure notification too
 				// Which can be visually confirmed by the tester (appears in STDOUT)
 				add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString());
 			}
 		});
-		message = messageManager.createMessage(userInfo, message);
+		message = messageManager.createMessage(fromUserInfo, message);
 	}
 
 	/**
@@ -146,7 +151,8 @@ public class MessageToUserWorkerIntegrationTest {
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
 		
-		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		userManager.deletePrincipal(adminUserInfo, fromUserInfo.getId());
+		userManager.deletePrincipal(adminUserInfo, toUserInfo.getId());
 	}
 	
 	
@@ -158,7 +164,7 @@ public class MessageToUserWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while (messages == null || messages.getResults().size() < 1) {
 			// Check the inbox of the recipient
-			messages = messageManager.getInbox(adminUserInfo, new ArrayList<MessageStatusType>() {
+			messages = messageManager.getInbox(toUserInfo, new ArrayList<MessageStatusType>() {
 				{
 					add(MessageStatusType.UNREAD);
 				}

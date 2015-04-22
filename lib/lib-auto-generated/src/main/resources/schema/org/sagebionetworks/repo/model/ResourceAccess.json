@@ -9,6 +9,7 @@
 		},
 		"accessType": {
 			"type": "array",
+			"description": "A list of types of access granted to the given principal",
 			"uniqueItems": true,
 			"items": {
 				"type": "object",

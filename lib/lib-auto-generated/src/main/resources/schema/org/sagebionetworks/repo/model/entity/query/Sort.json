@@ -1,0 +1,19 @@
+{
+    "description":"Defines an entity query sort.",
+    "properties":{
+        "columnName": {
+			"type": "string",
+			"description": "The name of the column to sort by. The value can either be an annotation name or an EntityFieldName"
+		},
+        "direction": {
+			"type": "string",
+			"description": "Direction of the sort",
+			"name": "SortDirection",
+			"id": "org.sagebionetworks.repo.model.entity.query.SortDirection",
+			"enum": [
+				"ASC",
+				"DESC"
+			]
+		}
+    }
+}

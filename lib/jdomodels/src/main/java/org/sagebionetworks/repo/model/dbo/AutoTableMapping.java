@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -103,7 +104,10 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 			}
 		};
 		for (Entry<String, ParamTypeMapper> entry : paramTypeMappers.entrySet()) {
-			parameterSource.registerSqlType(entry.getKey(), entry.getValue().getSqlType());
+			Integer sqlType = entry.getValue().getSqlType();
+			if (sqlType != null) {
+				parameterSource.registerSqlType(entry.getKey(), sqlType);
+			}
 		}
 		return parameterSource;
 	}

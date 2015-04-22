@@ -11,25 +11,19 @@ public class DerivedColumnTest {
 	@Test
 	public void testDerivedColumnToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("james");
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("james", builder.toString());
+		assertEquals("james", element.toString());
 	}
 	
 	@Test
 	public void testDerivedColumnWithASToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("james as bond");
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("james AS bond", builder.toString());
+		assertEquals("james AS bond", element.toString());
 	}
 	
 	@Test
 	public void testDerivedColumnWithFunctionToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("min(bar)");
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("MIN(bar)", builder.toString());
+		assertEquals("MIN(bar)", element.toString());
 	}
 
 }

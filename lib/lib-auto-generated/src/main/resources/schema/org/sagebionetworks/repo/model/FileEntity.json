@@ -1,6 +1,6 @@
 {
     "title":"File",
-    "description":"JSON schema for Folder POJO",
+    "description":"JSON schema for File POJO",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Versionable"
@@ -9,7 +9,7 @@
     "properties":{
         "dataFileHandleId":{
             "type":"string",
-            "description":"Type of Media"
+            "description":"ID of the file associated with this entity."
         }
     }
 }

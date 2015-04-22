@@ -1,0 +1,13 @@
+{
+	"description": "Abstraction for a set of rows that can be appended to a table.",
+	"type": "interface",
+	"properties": {
+		"concreteType":{
+			"type": "string"
+		},
+		"tableId":{
+			"description":"The ID of the TableEntity than owns these rows",
+			"type": "string"
+		}
+	}
+}

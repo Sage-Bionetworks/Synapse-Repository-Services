@@ -1,25 +1,40 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -42,7 +57,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * model object represents the metadata of a table. Each TableEntity is defined
  * by a list of <a
  * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
- * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModle
+ * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModel
  * objects. Each ColumnModel object is immutable, so to change a column of a
  * table a new column must be added and the old column must be removed.
  * TableEntities can be created, updated, read and deleted like any other
@@ -57,14 +72,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * <p>
  * All ColumnModel objects are publicly viewable and usable. Since each
- * ColumnModel is immutable it is safe to re-use ColumModels created by other
+ * ColumnModel is immutable it is safe to re-use ColumnModels created by other
  * users. Use the <a href="${GET.column}">GET /column</a> services to list all
  * of the existing ColumnModels that are currently in use.
  * </p>
  * 
  * Once the columns for a TableEntity have been created and assigned to the
  * TableEntity, rows can be added to the table using <a
- * href="${POST.entity.id.table}">POST /entity/{id}/table</a>. Each <a
+ * href="${POST.entity.id.table.append.async.start}">POST /entity/{id}/table/append/async/start</a>. Each <a
  * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
  * table will automatically be assigned a rowId and a versionNumber and can be
  * found in the resulting <a
@@ -75,14 +90,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * new versionNumber will automatically be assigned the Row. While previous
  * versions of any row are kept, only the current version of any row will appear
  * in the table index used to support the query service: <a
- * href="${POST.table.query}">POST /table/query</a> </p>
+ * href="${POST.entity.id.table.query.async.start}">POST /entity/{id}/table/query/async/start</a> </p>
  * <p>
- * Use the <a href="${POST.table.query}">POST /table/query</a> services to query
- * for the current rows of a table. The returned <a
+ * Use the <a href="${POST.entity.id.table.query.async.start}">POST
+ * /entity/{id}/table/query/async/start</a> services to query for the current rows of a
+ * table. The returned <a
  * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
  * query can be modified and returned to update the rows of a table using <a
- * href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
+ * href="${POST.entity.id.table.append.async.start}">POST /entity/{id}/table/append/async/start</a>.
  * </p>
+ * <p>
+ * There is also an <a
+ * href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}"
+ * >asynchronous service</a> to <a
+ * href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}"
+ * >upload</a> and <a
+ * href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}"
+ * >download</a> csv files, suitable for large datasets.
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
@@ -122,6 +146,41 @@ public class TableController extends BaseController {
 			NotFoundException {
 		return serviceProvider.getTableServices().createColumnModel(userId,
 				toCreate);
+	}
+
+	/**
+	 * Create a batch of <a
+	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel
+	 * </a> that can be used as columns of a <a
+	 * href="${org.sagebionetworks.repo.model.table.TableEntity}"
+	 * >TableEntity</a>. Unlike other objects in Synapse ColumnModels are
+	 * immutable and reusable and do not have an "owner" or "creator". This
+	 * method is idempotent, so if the same ColumnModel is passed multiple time
+	 * a new ColumnModel will not be created. Instead the existing ColumnModel
+	 * will be returned. This also means if two users create identical
+	 * ColumnModels for their tables they will both receive the same
+	 * ColumnModel.
+	 * 
+	 * This call will either create all column models or create none
+	 * 
+	 * @param userId
+	 *            The user's id.
+	 * @param toCreate
+	 *            The ColumnModel to create.
+	 * @return -
+	 * @throws DatastoreException
+	 *             - Synapse error.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.COLUMN_BATCH, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<ColumnModel> createColumnModels(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ListWrapper<ColumnModel> toCreate)
+			throws DatastoreException, NotFoundException {
+		List<ColumnModel> results = serviceProvider.getTableServices()
+				.createColumnModels(userId, toCreate.getList());
+		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 
 	/**
@@ -178,7 +237,7 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}"
 	 * >ColumnModels</a> that have been created in Synapse.
 	 * </p>
-	 * Since each ColumnModel is immutable it is safe to re-use ColumModels
+	 * Since each ColumnModel is immutable it is safe to re-use ColumnModels
 	 * created by other users.
 	 * 
 	 * @param userId
@@ -209,34 +268,128 @@ public class TableController extends BaseController {
 		return serviceProvider.getTableServices().listColumnModels(userId,
 				prefix, limit, offset);
 	}
+	
+	@Deprecated // This is now asynchronous
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE, method = RequestMethod.POST)
+	public @ResponseBody
+	RowReferenceSet appendRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody RowSet rows)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		rows.setTableId(id);
+		return serviceProvider.getTableServices().appendRows(userId, rows);
+	}
+	
+	@Deprecated // this is now asynchronous
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_PARTIAL, method = RequestMethod.POST)
+	public @ResponseBody
+	RowReferenceSet appendPartialRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody PartialRowSet rows)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		rows.setTableId(id);
+		return serviceProvider.getTableServices().appendPartialRows(userId,
+				rows);
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId startAppendRowsJob(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AppendableRowSetRequest request) throws DatastoreException,
+			NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	RowReferenceSetResults getAppendRowsResult(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws NotReadyException,
+			NotFoundException, AsynchJobFailedException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (RowReferenceSetResults) jobStatus.getResponseBody();
+	}
 
 	/**
 	 * <p>
-	 * This method is used to both add and update rows to a TableEntity. The
-	 * passed RowSet will contain all data for the rows to be added or updated.
-	 * The RowSet.rows is a list of Rows, one of each row to add or update. If
-	 * the Row.rowId is null, then a row will be added for that request, if a
-	 * rowId is provided then the row with that ID will be updated (a 400 will
-	 * be returned if a row ID is provided that does not actually exist). The
-	 * Row.values list should contain a value for each column of the row. The
-	 * RowSet.headers identifies the columns (by ID) that are to be updated by
-	 * this request. Each Row.value list must be the same size as the
+	 * Asynchronously start a job to append row data to a table. This method is
+	 * used to both add and update rows to a TableEntity. This method accepts
+	 * either a <a href="${org.sagebionetworks.repo.model.table.RowSet}"
+	 * >RowSet</a> for setting an entire row or a <a
+	 * href="${org.sagebionetworks.repo.model.table.PartialRowSet}"
+	 * >PartialRowSet</a> for setting a sub-set of the cells of a row.
+	 * </p>
+	 * <p>
+	 * <B>PartialRowSet:</B> The passed PartialRowSet will contain some or all data for
+	 * the rows to be added or updated. The PartialRowSet.rows is a list of
+	 * PartialRows, one of each row to add or update. If the PartialRow.rowId is
+	 * null, then a row will be added for that request, if a rowId is provided
+	 * then the row with that ID will be updated (a 400 will be returned if a
+	 * row ID is provided that does not actually exist). For inserts, the
+	 * PartialRow.values should contain all the values the user wants to set
+	 * explicitly. A null value will be replaced with the default value if
+	 * appropriate. For updates, only the columns represented in
+	 * PartialRow.values will be updated. Updates will always overwrite the
+	 * current value of the cell. A null value for a column that has a default
+	 * value, will be changed to the default value. A PartialRow.values
+	 * identifies the column by ID in the key. When a row is added it will be
+	 * issued both a rowId and a version number. When a row is updated it will
+	 * be issued a new version number (each row version is immutable). If
+	 * PartialRow.values is null, the corresponding row will be deleted. If
+	 * PartialRow.values is an empty map, then no change will be made to that
+	 * row.
+	 * </p>
+	 * <p>
+	 * <B>RowSet</B>: The passed RowSet will contain all data for the rows to be added
+	 * or updated. The RowSet.rows is a list of Rows, one of each row to add or
+	 * update. If the Row.rowId is null, then a row will be added for that
+	 * request, if a rowId is provided then the row with that ID will be updated
+	 * (a 400 will be returned if a row ID is provided that does not actually
+	 * exist). The Row.values list should contain a value for each column of the
+	 * row. The RowSet.headers identifies the columns (by ID) that are to be
+	 * updated by this request. Each Row.value list must be the same size as the
 	 * RowSet.headers, as each value is mapped to a column by the index of these
 	 * two arrays. When a row is added it will be issued both a rowId and a
 	 * version number. When a row is updated it will be issued a new version
-	 * number (each row version is immutable). The resulting TableRowReference
+	 * number (each row version is immutable). The resulting RowReferenceSet
 	 * will enumerate all rowIds and versionNumbers for this update. The
-	 * resulting RowReferecnes will be listed in the same order as the passed
-	 * result set. A single POST to this services will be treated as a single
+	 * resulting RowReferences will be listed in the same order as the passed
+	 * result set. A single POST to this service will be treated as a single
 	 * transaction, meaning either all of the rows will be added/updated or none
 	 * of the rows will be added/updated. If this web-services fails for any
 	 * reason all changes will be "rolled back".
 	 * </p>
 	 * <p>
-	 * There is a limit to the size of a RowSet that can be passed in a single
+	 * The resulting RowReferenceSet will enumerate all rowIds and
+	 * versionNumbers for this update. The resulting RowReferences will be
+	 * listed in the same order as the passed result set. A single POST to this
+	 * services will be treated as a single transaction, meaning either all of
+	 * the rows will be added/updated or none of the rows will be added/updated.
+	 * If this web-services fails for any reason all changes will be
+	 * "rolled back".
+	 * </p>
+	 * <p>
+	 * There is a limit to the size of a request that can be passed in a single
 	 * web-services call. Currently, that limit is set to a maximum size of 2 MB
 	 * per call. The maximum size is calculated based on the maximum possible
-	 * size of a the ColumModel definition, NOT on the size of the actual passed
+	 * size of the ColumnModel definition, NOT on the size of the actual passed
 	 * data. For example, the maximum size of an integer column is 20
 	 * characters. Since each integer is represented as a UTF-8 string (not a
 	 * binary representation) with 1 byte per character (for numbers), a single
@@ -255,92 +408,84 @@ public class TableController extends BaseController {
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to append rows to.
-	 * @param rows
-	 *            The set of rows to add/update.
+	 * @param request
+	 *            Contains the set of rows to add/update.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
-	RowReferenceSet appendRows(
+	AsyncJobId startAppendRowsJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @RequestBody RowSet rows)
+			@PathVariable String id, @RequestBody AppendableRowSetRequest request)
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
-		rows.setTableId(id);
-		return serviceProvider.getTableServices().appendRows(userId, rows);
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
 	}
 
 	/**
+	 * Asynchronously get the results of a PartialRowSet update to a table
+	 * started with <a href="${POST.entity.id.table.append.async.start}">POST
+	 * /entity/{id}/table/partial/async/start</a>
 	 * <p>
-	 * This method is used to both add and update rows to a TableEntity. The passed PartialRowSet will contain some or
-	 * all data for the rows to be added or updated. The PartialRowSet.rows is a list of PartialRows, one of each row to
-	 * add or update. If the PartialRow.rowId is null, then a row will be added for that request, if a rowId is provided
-	 * then the row with that ID will be updated (a 400 will be returned if a row ID is provided that does not actually
-	 * exist). For inserts, the PartialRow.values should contain all the values the user wants to set explicitly. A null
-	 * value will be replaced with the default value if appropriate. For updates, only the columns represented in
-	 * PartialRow.values will be updated. Updates will always overwrite the current value of the cell. A null value for
-	 * a column that has a default value, will be changed to the default value. A PartialRow.values identifies the
-	 * column by ID in the key. When a row is added it will be issued both a rowId and a version number. When a row is
-	 * updated it will be issued a new version number (each row version is immutable). The resulting TableRowReference
-	 * will enumerate all rowIds and versionNumbers for this update. The resulting RowReferecnes will be listed in the
-	 * same order as the passed result set. A single POST to this services will be treated as a single transaction,
-	 * meaning either all of the rows will be added/updated or none of the rows will be added/updated. If this
-	 * web-services fails for any reason all changes will be "rolled back".
-	 * </p>
-	 * <p>
-	 * There is a limit to the size of a partialRowSet that can be passed in a single web-services call. Currently, that
-	 * limit is set to a maximum size of 2 MB per call. The maximum size is calculated based on the maximum possible
-	 * size of a the ColumModel definition, NOT on the size of the actual passed data. For example, the maximum size of
-	 * an integer column is 20 characters. Since each integer is represented as a UTF-8 string (not a binary
-	 * representation) with 1 byte per character (for numbers), a single integer has a maximum size of 20 bytes (20
-	 * chars * 1 bytes/char). Since the page size limits are based on the maximum size and not the actual size of the
-	 * data it will be consistent from page to page. This means a valid page size will work for a all pages even if some
-	 * pages have more data that others.
-	 * </p>
-	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to add/update.
+	 * @param asyncToken
 	 * @return
-	 * @throws DatastoreException
+	 * @throws NotReadyException
 	 * @throws NotFoundException
-	 * @throws IOException
+	 * @throws AsynchJobFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_PARTIAL, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	RowReferenceSet appendPartialRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody PartialRowSet rows) throws DatastoreException, NotFoundException, IOException {
+	RowReferenceSetResults getAppendRowsResult(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@PathVariable String asyncToken) throws NotReadyException,
+			NotFoundException, AsynchJobFailedException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
-		rows.setTableId(id);
-		return serviceProvider.getTableServices().appendPartialRows(userId, rows);
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (RowReferenceSetResults) jobStatus.getResponseBody();
 	}
 
 	/**
 	 * <p>
-	 * This method is used to delete rows in a TableEntity. The rows in the passed in RowReferenceSet will be deleted if
-	 * they exists (a 400 will be returned if a row ID is provided that does not actually exist). A single POST to this
-	 * services will be treated as a single transaction, meaning either all of the rows will be deleted or none of the
-	 * rows will be deleted. If this web-services fails for any reason all changes will be "rolled back".
+	 * This method is used to delete rows in a TableEntity. The rows in the
+	 * passed in RowSelection will be deleted if they exist (a 400 will be
+	 * returned if a row ID is provided that does not actually exist). A single
+	 * POST to this service will be treated as a single transaction, meaning
+	 * either all of the rows will be deleted or none of the rows will be
+	 * deleted. If this web-services fails for any reason all changes will be
+	 * "rolled back".
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to delete.
+	 * @param id
+	 *            The ID of the TableEntity from which to delete rows.
+	 * @param rows
+	 *            The set of rows to delete.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -348,27 +493,34 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
-	RowReferenceSet deleteRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException {
+	RowReferenceSet deleteRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody RowSelection rowsToDelete)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToDelete.setTableId(id);
-		return serviceProvider.getTableServices().deleteRows(userId, rowsToDelete);
+		return serviceProvider.getTableServices().deleteRows(userId,
+				rowsToDelete);
 	}
 
 	/**
 	 * <p>
-	 * This method is used to get specific versions of rows in a TableEntity. The rows are in the passed in as a
-	 * RowReferenceSet. (a 400 will be returned if a row ID is provided that does not actually exist).
+	 * This method is used to get specific versions of rows in a TableEntity.
+	 * The rows are passed in as a RowReferenceSet (a 400 will be returned if a
+	 * row ID is provided that does not actually exist).
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to get.
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows to get.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -376,30 +528,39 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_GET_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
-	RowSet getRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException {
+	RowSet getRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody RowReferenceSet rowsToGet)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToGet.setTableId(id);
-		return serviceProvider.getTableServices().getReferenceSet(userId, rowsToGet);
+		return serviceProvider.getTableServices().getReferenceSet(userId,
+				rowsToGet);
 	}
 
 	/**
 	 * <p>
-	 * This method is used to get file handle information for rows in a TableEntity. The columns in the passed in
-	 * RowReferenceSet need to be FILEHANDLEID columns and the rows in the passed in RowReferenceSet need to exists (a
-	 * 400 will be returned if a row ID is provided that does not actually exist). The order of the returned rows of
-	 * file handles is the same as the order of the rows requested, and the order of the file handles in each row is the
-	 * same as the order of the columns requested.
+	 * This method is used to get file handle information for rows in a
+	 * TableEntity. The columns in the passed in RowReferenceSet need to be
+	 * FILEHANDLEID columns and the rows in the passed in RowReferenceSet need
+	 * to exists (a 400 will be returned if a row ID is provided that does not
+	 * actually exist). The order of the returned rows of file handles is the
+	 * same as the order of the rows requested, and the order of the file
+	 * handles in each row is the same as the order of the columns requested.
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows and columns for which to return the file handles.
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows and columns for which to return the file
+	 *            handles.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -407,27 +568,35 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_HANDLES, method = RequestMethod.POST)
 	public @ResponseBody
-	TableFileHandleResults getFileHandles(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowReferenceSet fileHandlesToFind) throws DatastoreException, NotFoundException, IOException {
+	TableFileHandleResults getFileHandles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestBody RowReferenceSet fileHandlesToFind)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		fileHandlesToFind.setTableId(id);
-		return serviceProvider.getTableServices().getFileHandles(userId, fileHandlesToFind);
+		return serviceProvider.getTableServices().getFileHandles(userId,
+				fileHandlesToFind);
 	}
 
 	/**
-	 * Get the actual URL of the file associated with a specific version of a row and file handle column.
+	 * Get the actual URL of the file associated with a specific version of a
+	 * row and file handle column.
 	 * <p>
-	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
-	 * the download requirements.
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the FileEntity to get.
+	 * @param id
+	 *            The ID of the FileEntity to get.
 	 * @param columnId
 	 * @param rowId
 	 * @param versionNumber
-	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -435,31 +604,39 @@ public class TableController extends BaseController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE, method = RequestMethod.GET)
 	public @ResponseBody
-	void fileRedirectURLForRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@PathVariable String columnId, @PathVariable Long rowId, @PathVariable Long versionNumber,
-			@RequestParam(required = false) Boolean redirect, HttpServletResponse response) throws DatastoreException, NotFoundException,
-			IOException {
+	void fileRedirectURLForRow(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String columnId,
+			@PathVariable Long rowId, @PathVariable Long versionNumber,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(versionNumber);
-		URL redirectUrl = serviceProvider.getTableServices().getFileRedirectURL(userId, id, ref, columnId);
+		String redirectUrl = serviceProvider.getTableServices()
+				.getFileRedirectURL(userId, id, ref, columnId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
 	/**
-	 * Get the preview URL of the file associated with a specific version of a row and file handle column.
+	 * Get the preview URL of the file associated with a specific version of a
+	 * row and file handle column.
 	 * <p>
-	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
-	 * the download requirements.
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the FileEntity to get.
+	 * @param id
+	 *            The ID of the FileEntity to get.
 	 * @param columnId
 	 * @param rowId
 	 * @param versionNumber
-	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -467,25 +644,62 @@ public class TableController extends BaseController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
-	void filePreviewRedirectURLForRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@PathVariable String columnId, @PathVariable Long rowId, @PathVariable Long versionNumber,
-			@RequestParam(required = false) Boolean redirect, HttpServletResponse response) throws DatastoreException, NotFoundException,
-			IOException {
+	void filePreviewRedirectURLForRow(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String columnId,
+			@PathVariable Long rowId, @PathVariable Long versionNumber,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(versionNumber);
-		URL redirectUrl = serviceProvider.getTableServices().getFilePreviewRedirectURL(userId, id, ref, columnId);
+		String redirectUrl = serviceProvider.getTableServices()
+				.getFilePreviewRedirectURL(userId, id, ref, columnId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody QueryBundleRequest query) throws DatastoreException,
+			NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, query);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResultBundle queryAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws NotReadyException,
+			NotFoundException, AsynchJobFailedException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (QueryResultBundle) jobStatus.getResponseBody();
+	}
+
 	/**
+	 * Asynchronously start a query. Use the returned job id and <a
+	 * href="${GET.entity.id.table.query.async.get.asyncToken}">GET
+	 * /entity/{id}/table/query/async/get</a> to get the results of the query
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a
 	 * single table. The following pseudo-syntax is the basic supported format:
 	 * </p>
 	 * SELECT <br>
 	 * [ALL | DISTINCT] select_expr [, select_expr ...] <br>
-	 * FROM table_references <br>
+	 * FROM synapse_table_id <br>
 	 * [WHERE where_condition] <br>
 	 * [GROUP BY {col_name [, [col_name * ...] } <br>
 	 * [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}<br>
@@ -511,12 +725,37 @@ public class TableController extends BaseController {
 	 * is consistent with the truth of the table.
 	 * </p>
 	 * <p>
+	 * isConsistent Defaults to true. When true, a query will be run only if the
+	 * index is up-to-date with all changes to the table and a read-lock is
+	 * successfully acquired on the index. When set to false, the query will be
+	 * run against the index regardless of the state of the index and without
+	 * attempting to acquire a read-lock. When isConsistent is set to false the
+	 * query results will not contain an etag so the results cannot be used as
+	 * input to a table update.
+	 * </p>
+	 * <p>
+	 * The 'partsMask' is an integer "mask" that can be combined into to request
+	 * any desired part. As of this writing, the mask is defined as follows:
+	 * <ul>
+	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
+	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
+	 * <li>Select Columns <i>(selectColumns)</i> = 0x4</li>
+	 * <li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li>
+	 * </ul>
+	 * </p>
+	 * <p>
+	 * For example, to request all parts, the request mask value should be: <br>
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0xF.
+	 * </p>
+	 * <p>
 	 * Note: The caller must have the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
 	 * @param query
 	 * @param isConsistent
 	 *            Defaults to true. When true, a query will be run only if the
@@ -539,29 +778,424 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
-	RowSet query(
+	AsyncJobId queryAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Query query,
-			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.COUNT_ONLY, required = false) Boolean countOnly)
-			throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException {
-		// By default isConsistent is true.
-		boolean isConsistentValue = true;
-		if (isConsistent != null) {
-			isConsistentValue = isConsistent;
-		}
-		// Count only is false by default
-		boolean countOnlyValue = false;
-		if (countOnly != null) {
-			countOnlyValue = countOnly;
-		}
-		return serviceProvider.getTableServices().query(userId, query,
-				isConsistentValue, countOnlyValue);
+			@PathVariable String id, @RequestBody QueryBundleRequest query)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, query);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
 	}
 
+	/**
+	 * Asynchronously get the results of a query started with <a
+	 * href="${POST.entity.id.table.query.async.start}">POST /entity/{id}/table/query/async/start</a>.
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws NotReadyException
+	 *             when the result is not ready yet
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 *             when the asynchronous job failed
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResultBundle queryAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws NotReadyException, NotFoundException, AsynchJobFailedException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (QueryResultBundle) jobStatus.getResponseBody();
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryNextPageAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody QueryNextPageToken nextPageToken)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, nextPageToken);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResult queryNextPageAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException,
+			NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (QueryResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Asynchronously get a next page of a query. Use the returned job id and <a
+	 * href="${POST.entity.id.table.query.nextPage.async.start}">POST
+	 * /entity/{id}/table/query/nextPage/async/start</a> to get the results of the query.
+	 * The page token comes from the query result of a <a
+	 * href="${GET.entity.id.table.query.async.get.asyncToken}">GET
+	 * /entity/{id}/table/query/async/get</a>.
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param nextPageToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryNextPageAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody QueryNextPageToken nextPageToken)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, nextPageToken);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a nextPage query started with <a
+	 * href="${POST.entity.id.table.query.nextPage.async.start}">POST
+	 * /entity/{id}/table/query/nextPage/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResult queryNextPageAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (QueryResult) jobStatus.getResponseBody();
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvDownloadAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DownloadFromTableRequest downloadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, downloadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	DownloadFromTableResult csvDownloadAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException,
+			NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (DownloadFromTableResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Asynchronously start a csv download. Use the returned job id and <a
+	 * href="${GET.entity.id.table.download.csv.async.get.asyncToken}">GET
+	 * /entity/{id}/table/download/csv/async/get</a> to get the results of the query
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param downloadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvDownloadAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody DownloadFromTableRequest downloadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, downloadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a csv download started with <a
+	 * href="${POST.entity.id.table.download.csv.async.start}">POST
+	 * /entity/{id}/table/download/csv/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	DownloadFromTableResult csvDownloadAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (DownloadFromTableResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * <p>
+	 * The method can be used to test both the parameters for reading an upload
+	 * CSV file and the required table schema. The caller can then adjust both
+	 * parameters and schema before applying the CSV to that table.
+	 * </p>
+	 * Asynchronously start a csv upload preview. Use the returned job id and <a
+	 * href="${GET.table.upload.csv.preview.async.get.asyncToken}">GET
+	 * /table/upload/csv/preview/async/get/{asyncToken}</a> to get the results.
+	 * 
+	 * @param userId
+	 * @param uploadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadPreviewAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody UploadToTablePreviewRequest uploadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}	
+
+	/**
+	 * Asynchronously get the results of a csv upload preview started with <a
+	 * href="${POST.table.upload.csv.preview.async.start}">POST
+	 * /table/upload/csv/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTablePreviewResult csvUploadPreviewAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException,
+			NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (UploadToTablePreviewResult) jobStatus.getResponseBody();
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody UploadToTableRequest uploadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTableResult csvUploadAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException,
+			NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (UploadToTableResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Asynchronously start a csv upload. Use the returned job id and <a
+	 * href="${GET.entity.id.table.upload.csv.async.get.asyncToken}">GET
+	 * /entity/{id}/table/upload/csv/async/get</a> to get the results of the query
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param uploadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadAsyncStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody UploadToTableRequest uploadRequest)
+			throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a csv upload started with <a
+	 * href="${POST.entity.id.table.upload.csv.async.start}">POST
+	 * /entity/{id}/table/upload/csv/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity.
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTableResult csvUploadAsyncGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException,
+			AsynchJobFailedException, NotReadyException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (UploadToTableResult) jobStatus.getResponseBody();
+	}
 }

@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -13,6 +15,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.query.EntityType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -35,14 +38,20 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 @SuppressWarnings("rawtypes")
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
+	private static final String VERSIONABLE = "versionable";
+	
+	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name());
+
+	private static final String ENTITY = "entity";
+
 	static private Logger log = LogManager.getLogger(JDONodeQueryDaoImpl.class);
+	
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 	
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
-	@Autowired
-	private NodeAliasCache aliasCache;
+
 
 	/**
 	 * The maximum number of bytes allowed per query.
@@ -156,13 +165,22 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws DatastoreException
 	 * @return True, if the query is valid and can be run, else false.
 	 */
-	private boolean buildQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery, Map parameters) throws DatastoreException{
+	private boolean buildQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery,
+			Map<String, Object> parameters) throws DatastoreException {
 		// Add a filter on type if needed
 		if(in.getFrom() != null){
 			// Add the type to the filter
-			List<Short> ids = aliasCache.getAllNodeTypesForAlias(in.getFrom());
-			in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, ids));
+			if(!ENTITY.equals(in.getFrom().toLowerCase())){
+				if(VERSIONABLE.equals(in.getFrom().toLowerCase())){
+					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, VERSIONABLE_TYPES));
+				}else{
+					EntityType type = EntityType.valueOf(in.getFrom().toLowerCase());
+					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, type.name()));
+				}
+			}
 		}
+		// Filter out nodes in the trash can
+		in.addExpression(new Expression(new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName()), Comparator.NOT_EQUALS, TRASH_FOLDER_ID));
 		
 		// A count query is composed of the following parts
 		// <select> + <from> + <authorization_filter> + <where>
@@ -177,11 +195,17 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		StringBuilder where = new StringBuilder();
 		StringBuilder orderByClause = new StringBuilder();
 
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
+
+		// Build the authorization filter
+		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo.isAdmin(), userInfo.getGroups(), parameters,
+				SqlConstants.NODE_ALIAS, 0);
+
 		try {
 			// Build the from
 			Map<String, FieldType> aliasMap = buildFrom(from, in);
 			// Build the where
-			buildWhere(where, aliasMap, parameters, in);
+			buildWhere(where, authorizationFilter, aliasMap, parameters, in);
 			
 			// These two get built at the same time
 			if (in.getSort() != null) {
@@ -195,9 +219,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			// Return an empty result
 			return false;
 		}
-		// Build the authorization filter
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, parameters);
 		// Build the paging
 		String paging = QueryUtils.buildPaging(in.getOffset(), in.getLimit(), parameters);
 
@@ -207,16 +228,12 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		countQuery.append(" ");
 		countQuery.append(from);
 		countQuery.append(" ");
-		countQuery.append(authorizationFilter);
-		countQuery.append(" ");
 		countQuery.append(where);
 
 		// Now build the full query
 		fullQuery.append(selectId);
 		fullQuery.append(" ");
 		fullQuery.append(from);
-		fullQuery.append(" ");
-		fullQuery.append(authorizationFilter);
 		fullQuery.append(" ");
 		fullQuery.append(where);
 		fullQuery.append(" ");
@@ -456,12 +473,16 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws AttributeDoesNotExistException 
 	 * @throws DatastoreException 
 	 */
-	private void buildWhere(StringBuilder whereBuilder, Map<String, FieldType> aliasMap, Map parameters, BasicQuery in) throws AttributeDoesNotExistException, DatastoreException {
+	private void buildWhere(StringBuilder whereBuilder, String authorizationFilter, Map<String, FieldType> aliasMap, Map parameters,
+			BasicQuery in) throws AttributeDoesNotExistException, DatastoreException {
 		// We need a where clause if there is more than one table in this query or if there are any filters.
 		int conditionCount = 0;
 		// Add the join from node to node to node revision
-		whereBuilder.append("where");
-		whereBuilder.append(" ");
+		whereBuilder.append("where ");
+		if (!StringUtils.isBlank(authorizationFilter)) {
+			whereBuilder.append(authorizationFilter);
+			whereBuilder.append(" and ");
+		}
 		whereBuilder.append(SqlConstants.NODE_ALIAS);
 		whereBuilder.append(".");
 		whereBuilder.append(SqlConstants.COL_NODE_ID);
@@ -550,7 +571,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 						String bindKey = "expKey" + i;
 						whereBuilder.append(bindKey);
 						// Bind the value to the parameters
-						if((NodeField.PARENT_ID == nodeField) || (NodeField.ID == nodeField) || (NodeField.BENEFACTOR_ID == nodeField)) {
+						if((NodeField.PARENT_ID == nodeField) || (NodeField.ID == nodeField) || (NodeField.BENEFACTOR_ID == nodeField) || (NodeField.PROJECT_ID == nodeField)) {
 							parameters.put(bindKey, KeyFactory.stringToKey(exp.getValue().toString()));
 						}
 						else {

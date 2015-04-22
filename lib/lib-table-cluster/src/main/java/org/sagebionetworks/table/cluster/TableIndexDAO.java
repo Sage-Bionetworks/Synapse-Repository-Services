@@ -1,14 +1,13 @@
 package org.sagebionetworks.table.cluster;
 
-import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionCallback;
 
 /**
  * This is an abstraction for table index CRUD operations.
@@ -16,7 +15,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
  *
  */
 public interface TableIndexDAO {
-	
+
+	public static class ColumnDefinition {
+		public String name;
+		public ColumnType columnType;
+		public Long maxSize;
+	}
+
 	/**
 	 * Create or update a table with the given schema.
 	 * 
@@ -39,7 +44,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<String> getCurrentTableColumns(String tableId);
+	public List<ColumnDefinition> getCurrentTableColumns(String tableId);
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -107,4 +112,28 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public JdbcTemplate getConnection();
+
+	/**
+	 * run calls within a read transaction
+	 * 
+	 * @param callable
+	 * @return
+	 */
+	public <T> T executeInReadTransaction(TransactionCallback<T> callable);
+
+	/**
+	 * add indexes to all columns in table
+	 * 
+	 * @param tableId
+	 */
+	public void addIndexes(String tableId);
+
+	/**
+	 * remove indexes from all columns in table
+	 * 
+	 * @param tableId
+	 */
+	public void removeIndexes(String tableId);
+
+	public void addIndex(String tableId, ColumnModel columnModel);
 }

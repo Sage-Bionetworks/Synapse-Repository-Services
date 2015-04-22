@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -24,6 +25,15 @@ public interface TeamDAO {
 	 * @throws NotFoundException
 	 */
 	public Team get(String id) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the Teams in the system
@@ -51,6 +61,15 @@ public interface TeamDAO {
 	 */
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
 	
+	/**
+	 * 
+	 * @param teamIds
+	 * @param principalIds
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException;
 	/**
 	 * 
 	 * @param teamId

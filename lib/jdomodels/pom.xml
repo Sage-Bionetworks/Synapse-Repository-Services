@@ -47,6 +47,11 @@
 		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-table-cluster</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
 
@@ -78,10 +83,6 @@
 			<version>${jackson.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-core</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>com.thoughtworks.xstream</groupId>
 			<artifactId>xstream</artifactId>
@@ -120,6 +121,10 @@
 			<artifactId>spring-aspects</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context-support</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjlib</artifactId>
 		</dependency>
@@ -137,6 +142,10 @@
 			<version>${org.apache.commons.commons-dbcp.version}</version>
 			<type>jar</type>
 			<scope>compile</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.quartz-scheduler</groupId>
+			<artifactId>quartz</artifactId>
 		</dependency>
 
 		<dependency>

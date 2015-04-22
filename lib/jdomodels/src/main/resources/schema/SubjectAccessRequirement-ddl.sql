@@ -1,7 +1,7 @@
 # Note, the table name should be 'SUBJECT_ACCESS_REQUIREMENT' but migration issues prevent 
 # us from using that name at this time.
 
-CREATE TABLE `NODE_ACCESS_REQUIREMENT` (
+CREATE TABLE IF NOT EXISTS `NODE_ACCESS_REQUIREMENT` (
   	`SUBJECT_ID` bigint(20)  NOT NULL,
 	`SUBJECT_TYPE` ENUM('ENTITY', 'EVALUATION', 'TEAM') NOT NULL,
     `REQUIREMENT_ID` bigint(20) NOT NULL,

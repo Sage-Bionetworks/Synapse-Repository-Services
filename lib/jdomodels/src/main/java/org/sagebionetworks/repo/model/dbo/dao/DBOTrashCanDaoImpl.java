@@ -22,8 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOTrashCanDaoImpl implements TrashCanDao {
 
@@ -34,14 +34,27 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY;
 
+	private static final String LIMIT_OFFSET = " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
+
 	private static final String SELECT_TRASH =
 			"SELECT * FROM " + TABLE_TRASH_CAN
-			+ " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
+			+ LIMIT_OFFSET;
+
+	private static final String SELECT_TRASH_ORDER_BY_ID =
+			"SELECT * FROM " + TABLE_TRASH_CAN
+			+ " ORDER BY " + COL_TRASH_CAN_NODE_ID
+			+ LIMIT_OFFSET;
 
 	private static final String SELECT_TRASH_FOR_USER =
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
-			+ " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
+			+ LIMIT_OFFSET;
+
+	private static final String SELECT_TRASH_FOR_USER_ORDER_BY_ID =
+			"SELECT * FROM " + TABLE_TRASH_CAN
+			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
+			+ " ORDER BY " + COL_TRASH_CAN_NODE_ID
+			+ LIMIT_OFFSET;
 
 	private static final String SELECT_TRASH_BY_NODE_ID_FOR_USER =
 			"SELECT * FROM " + TABLE_TRASH_CAN
@@ -54,7 +67,8 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 
 	private static final String SELECT_TRASCH_BEFORE_TIMESTAMP =
 			"SELECT * FROM " + TABLE_TRASH_CAN +
-			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON;
+			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
+			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
 
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 
@@ -64,7 +78,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void create(String userGroupId, String nodeId, String nodeName, String parentId) throws DatastoreException {
 
@@ -165,8 +179,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 
 	@Override
-	public List<TrashedEntity> getInRangeForUser(String userGroupId, long offset,
-			long limit) throws DatastoreException {
+	public List<TrashedEntity> getInRangeForUser(String userGroupId, boolean sortById, long offset, long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
@@ -182,12 +195,13 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
-		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(sortById ? SELECT_TRASH_FOR_USER_ORDER_BY_ID : SELECT_TRASH_FOR_USER,
+				rowMapper, paramMap);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
 	@Override
-	public List<TrashedEntity> getInRange(long offset, long limit) throws DatastoreException {
+	public List<TrashedEntity> getInRange(boolean sortById, long offset, long limit) throws DatastoreException {
 
 		if (offset < 0) {
 			throw new IllegalArgumentException("offset " + offset + " is < 0.");
@@ -199,7 +213,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
-		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH, rowMapper, paramMap);
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(sortById ? SELECT_TRASH_ORDER_BY_ID : SELECT_TRASH, rowMapper, paramMap);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
@@ -218,7 +232,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String userGroupId, String nodeId)
 			throws DatastoreException, NotFoundException {

@@ -1,0 +1,18 @@
+{
+	"description": "The result of a CSV table upload job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"rowsProcessed": {
+			"type": "integer",
+			"description": "The number of rows that were read from the provided file and applied to the table."
+		},
+		"etag": {
+			"type": "string",
+			"description": "The new etag of the version applied to the table."
+		}
+	}
+}

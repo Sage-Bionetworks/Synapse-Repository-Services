@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 
 import junit.framework.Assert;
 
@@ -38,7 +38,6 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
@@ -51,7 +50,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -73,7 +71,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class SynapseTest {
 	
 	HttpClientProvider mockProvider;
-	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	SynapseClientImpl synapse;
@@ -83,21 +80,20 @@ public class SynapseTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider));
+		// mock the session token returned when logging in
+		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
+		synapse.login("foo", "bar");
 	}
 	
 	@Test
 	public void testOriginatingClient() throws Exception {
 		SharedClientConnection connection = synapse.getSharedClientConnection();
-		connection.setDomain(DomainType.BRIDGE);
-		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
-		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=BRIDGE", url);
 
 		connection.setDomain(DomainType.SYNAPSE);
-		url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
+		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=SYNAPSE", url);
 	}
 	
@@ -154,12 +150,12 @@ public class SynapseTest {
 	
 	@Test
 	public void testCreateStudyEntity() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 		configureMockHttpResponse(201, jsonString);
 		// Now create an entity
-		Study clone = synapse.createEntity(ds);
+		Folder clone = synapse.createEntity(ds);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -182,7 +178,7 @@ public class SynapseTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetEntityNullId() throws Exception{
-		synapse.getEntity(null, Study.class);
+		synapse.getEntity(null, Folder.class);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -192,12 +188,12 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetEntity() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 
 		configureMockHttpResponse(200, jsonString);
-		Study clone = synapse.getEntity(ds.getId(), Study.class);
+		Folder clone = synapse.getEntity(ds.getId(), Folder.class);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -220,7 +216,7 @@ public class SynapseTest {
 	
 	@Test
 	public void testCanAccess() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		String jsonString = "{\"result\":true}";
 		configureMockHttpResponse(201, jsonString);
 		assertTrue(synapse.canAccess(ds.getId(), ACCESS_TYPE.READ));
@@ -233,11 +229,11 @@ public class SynapseTest {
 	
 	@Test
 	public void testPutEntity() throws Exception {
-		Study ds = EntityCreator.createNewDataset();
+		Folder ds = EntityCreator.createNewFolder();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 		configureMockHttpResponse(201, jsonString);
-		Study clone = synapse.putEntity(ds);
+		Folder clone = synapse.putEntity(ds);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -251,13 +247,13 @@ public class SynapseTest {
 
 	@Test
 	public void testGetEntityPath() throws Exception {
-		Data layer = new Data();
+		Folder folder = new Folder();
 		// create test hierarchy
 		
 		EntityHeader layerHeader = new EntityHeader();
 		layerHeader.setId("layerid");
 		layerHeader.setName("layer name");
-		layerHeader.setType("/layer");	
+		layerHeader.setType("/folder");	
 		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
 		entityHeaders.add(layerHeader);
 		EntityPath entityPath = new EntityPath();
@@ -269,7 +265,7 @@ public class SynapseTest {
 		configureMockHttpResponse(200, adapter.toJSONString());
 		
 		// execute and verify
-		EntityPath returnedEntityPath = synapse.getEntityPath(layer);
+		EntityPath returnedEntityPath = synapse.getEntityPath(folder);
 		List<EntityHeader> returnedHeaders = returnedEntityPath.getPath();
 		
 		assertEquals(1, returnedHeaders.size());
@@ -311,7 +307,7 @@ public class SynapseTest {
 	@Test
 	public void testCreateAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
@@ -324,7 +320,7 @@ public class SynapseTest {
 	@Test
 	public void updateAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
@@ -338,7 +334,7 @@ public class SynapseTest {
 	@Test
 	public void testCreateAccessApproval() throws Exception {
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
-		aa.setEntityType(aa.getClass().getName());
+		aa.setConcreteType(aa.getClass().getName());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		aa.writeToJSONObject(adapter);
 		configureMockHttpResponse(201, adapter.toJSONString());
@@ -359,7 +355,7 @@ public class SynapseTest {
 	@Test
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, IOException, NotFoundException, DatastoreException, SynapseException {
 		// Create an entity
-		Study s = EntityCreator.createNewDataset();
+		Folder s = EntityCreator.createNewFolder();
 		
 		// Get/add/update annotations for this entity
 		Annotations a = new Annotations();
@@ -387,7 +383,7 @@ public class SynapseTest {
 		int mask =  EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
 		EntityBundle eb2 = synapse.getEntityBundle(s.getId(), mask);
 		
-		Study s2 = (Study) eb2.getEntity();
+		Folder s2 = (Folder) eb2.getEntity();
 		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);
 		
 		Annotations a2 = eb2.getAnnotations();
@@ -426,7 +422,7 @@ public class SynapseTest {
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		subjectId.setId("12345");
 		VariableContentPaginatedResults<AccessRequirement> clone = 
-			synapse.getUnmetAccessRequirements(subjectId);
+			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
 		assertNotNull(clone);
 		assertEquals(result, clone);
 	}	
@@ -448,7 +444,7 @@ public class SynapseTest {
 		String id = "123";
 		configureMockHttpResponse(204, "");
 		synapse.deleteActivity(id);		
-		verify(mockResponse).getEntity();
+		verify(mockResponse, times(2)).getEntity();
 	}		
 	
 	@Test
@@ -509,7 +505,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Make a call and ensure 
 		synapse.getVersionInfo();
 		// Validate that the User-Agent was sent
@@ -526,7 +522,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider), mockUploader);
+		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
 		synapse.appendUserAgent(appended);
@@ -605,10 +601,6 @@ public class SynapseTest {
 		// One variation of the parameters that can be passed in
 		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, DomainType.SYNAPSE);
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&domain=SYNAPSE"));
-		
-		// Another variation
-		synapse.passThroughOpenIDParameters("blah=fun", false, DomainType.BRIDGE);
-		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&domain=BRIDGE"));
 	}
 	
 	

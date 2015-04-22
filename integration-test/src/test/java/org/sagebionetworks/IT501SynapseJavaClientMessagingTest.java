@@ -23,12 +23,10 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -56,7 +54,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static String oneId;
 	private static String twoId;
 
-	private static S3FileHandle oneToRuleThemAll;
+	private static FileHandle oneToRuleThemAll;
 	
 	private String fileHandleIdWithExtendedChars;
 
@@ -64,7 +62,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private MessageToUser twoToOne;
 	
 	private List<String> cleanup;
-	private Project project;
+	private static Project project;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -97,7 +95,9 @@ public class IT501SynapseJavaClientMessagingTest {
 				pw.close();
 			}
 		}
-		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false);
+		project = synapseOne.createEntity(new Project());
+
+		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false, project.getId());
 	}
 	
 	@SuppressWarnings("serial")
@@ -141,12 +141,6 @@ public class IT501SynapseJavaClientMessagingTest {
 			}
 			fileHandleIdWithExtendedChars = null;
 		} catch (SynapseException e) { }
-		
-		if (project != null) {
-			try {
-				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (SynapseException e) { }
-		}
 	}
 	
 	@AfterClass
@@ -161,6 +155,9 @@ public class IT501SynapseJavaClientMessagingTest {
 		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
+		} catch (SynapseException e) { }
+		try {
+			adminSynapse.deleteAndPurgeEntityById(project.getId());
 		} catch (SynapseException e) { }
 	}
 
@@ -309,8 +306,6 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 	@Test
 	public void testSendMessageToEntityOwner() throws Exception {
-		project = synapseOne.createEntity(new Project());
-		
 		// Send a message from two to one in a different way
 		twoToOne.setRecipients(null);
 		MessageToUser message = synapseTwo.sendMessage(twoToOne, project.getId());

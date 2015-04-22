@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -11,8 +12,10 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
+import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 /**
  * Utility for translating to/from V2 DTO/DBO
@@ -89,6 +92,76 @@ public class V2WikiTranslationUtils {
 		page.setMarkdownFileHandleId(dtoMarkdown.getFileHandleId().toString());
 		
 		return page;
+	}
+	
+	/**
+	 * Create a wiki order hint DTO from the DBO.
+	 * @param page
+	 * @param attachments
+	 * @return
+	 */
+	public static V2WikiOrderHint createWikiOrderHintDTOfromDBO(V2DBOWikiOwner dbo){
+		if(dbo == null) throw new IllegalArgumentException("WikiOwner dbo cannot be null");
+		
+		V2WikiOrderHint dto = new V2WikiOrderHint();
+		dto.setOwnerId(dbo.getOwnerId().toString());
+		dto.setOwnerObjectType(dbo.getOwnerType());
+		dto.setEtag(dbo.getEtag());
+		
+		// Set order hint
+		byte[] orderHintBytes = dbo.getOrderHint();
+		if (orderHintBytes != null) {
+			try {
+				dto.setIdList(getOrderHintIdListFromBytes(dbo.getOrderHint()));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
+		return dto;
+	}
+	
+	/**
+	 * Create a wiki owner DBO from the DTO
+	 * @param page
+	 * @param attachments
+	 * @return
+	 */
+	public static V2DBOWikiOwner createWikiOwnerDBOfromOrderHintDTO(V2WikiOrderHint dto, String rootWikiId){
+		if(dto == null) throw new IllegalArgumentException("Order Hint dto cannot be null");
+		if(rootWikiId == null) throw new IllegalArgumentException("Root Wiki Id rootWikiId cannot be null");
+		
+		V2DBOWikiOwner dbo = new V2DBOWikiOwner();
+		dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
+		dbo.setOwnerType(dto.getOwnerObjectType());
+		dbo.setRootWikiId(Long.parseLong(rootWikiId));
+		dbo.setEtag(dto.getEtag());
+
+		if (dto.getIdList() == null) {
+			dbo.setOrderHint(null);
+		} else {
+			StringBuffer orderHintCSV = new StringBuffer();
+			for (int i = 0; i < dto.getIdList().size(); i++) {
+				if (i > 0) {
+					orderHintCSV.append(',');
+				}
+				orderHintCSV.append(dto.getIdList().get(i));
+			}
+			String listString = orderHintCSV.toString();
+			try {
+				dbo.setOrderHint(listString.getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
+		return dbo;
+	}
+	
+	private static List<String> getOrderHintIdListFromBytes(byte[] orderHintBytes) throws UnsupportedEncodingException {
+		String idHintString = new String(orderHintBytes, "UTF-8");
+		String[] idHintArray = idHintString.split(",");
+		return Arrays.asList(idHintArray);
 	}
 	
 	/**

@@ -12,8 +12,28 @@
 
 	<aop:aspectj-autoproxy />
 
+	<import resource="classpath:jdomodels-import.xml" />
+	<import resource="classpath:dynamo-import.xml" />
+	<import resource="classpath:managers-import.xml" />
+	<import resource="classpath:managers-topic-publisher-import.xml" />
+    <import resource="classpath:cloudwatch-spb.xml" />
+	<import resource="classpath:audit-dao.spb.xml" />
+	<import resource="classpath:aws-spb.xml" />
+	<import resource="classpath:search-import.xml" />
+	<import resource="classpath:table-cluster-spb.xml" />
+	<import resource="classpath:log-sweeper.spb.xml" />
+	<import resource="classpath:id-generator.spb.xml" />
+	<import resource="classpath:concept-dao-beans.spb.xml" />
+
+	<!-- non worker triggers -->
+	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
+	<import resource="classpath:stack-configuration-trigger.spb.xml" />
+	<import resource="classpath:cloudwatch-trigger-spb.xml" />
+	<import resource="classpath:search-triggers-import.xml" />
+
 	<import resource="classpath:dynamo-spb.xml" />
 	<import resource="classpath:rds-sqs-manager-spb.xml" />
+	<import resource="classpath:aws-worker.spb.xml" />
 	<import resource="classpath:search-sqs-spb.xml" />
 	<import resource="classpath:file-sqs-spb.xml" />	
 	<import resource="classpath:annotations-sqs-spb.xml" />
@@ -24,16 +44,28 @@
 	<import resource="classpath:message-to-user-sqs-spb.xml" />
     <import resource="classpath:table-cluster-sqs-spb.xml" />
     <import resource="classpath:table-current-cache-sqs-spb.xml" />
-    <import resource="classpath:cloudwatch-spb.xml" />
+    <import resource="classpath:table-append-rowset-sqs-spb.xml" />
     <import resource="classpath:table-csv-appender-sqs-spb.xml" />
+    <import resource="classpath:table-csv-appender-preview-sqs-spb.xml" />
     <import resource="classpath:table-csv-downloader-sqs-spb.xml" />
+    <import resource="classpath:table-query-sqs-spb.xml" />
     <import resource="classpath:change-synch-worker-spb.xml" />
+    <import resource="classpath:project-stats-sqs-spb.xml" />
+    <import resource="classpath:acl-snapshot-sqs-spb.xml"/>
+    <import resource="classpath:principal-prefix-sqs-spb.xml"/>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
 			scope="singleton">
+		<property name="quartzProperties">
+			<props>
+				<prop key="org.quartz.threadPool.threadCount">25</prop>
+			</props>
+		</property>
 		<property name="triggers">
 			<list>
+				<!-- workers -->
+				<ref bean="principalPrefixQueueMessageReveiverTrigger" />
 				<ref bean="dynamoQueueMessageRetrieverTrigger" />
  				<ref bean="dynamoRdsSynchronizerTrigger" />
 				<ref bean="rdsQueueMessageReveiverTrigger" />
@@ -45,12 +77,24 @@
 				<ref bean="trashWorkerTrigger" />
 				<ref bean="workersLogSweeperTrigger" />
 				<ref bean="messageToUserQueueMessageReceiverTrigger" />
-                <ref bean="tableQueueMessageReveiverTrigger" />
-                <ref bean="tableCurrentCacheQueueMessageReveiverTrigger" />
-                <ref bean="cloudwatchTrigger" />
-                <ref bean="tableCSVAppenderQueueMessageReveiverTrigger" />
-                <ref bean="tableCSVDownloaderQueueMessageReveiverTrigger" />
-                <ref bean="changeSentMessageSynchTrigger" />
+				<ref bean="tableQueueMessageReveiverTrigger" />
+				<ref bean="tableCurrentCacheQueueMessageReveiverTrigger" />
+				<ref bean="cloudwatchTrigger" />
+				<ref bean="tableAppendRowSetMessageReveiverTrigger" />
+				<ref bean="tableCSVAppenderQueueMessageReveiverTrigger" />
+				<ref bean="tableCSVAppenderPreviewQueueMessageReveiverTrigger" />
+				<ref bean="tableCSVDownloaderQueueMessageReveiverTrigger" />
+				<ref bean="tableQueryQueueMessageReveiverTrigger" />
+				<ref bean="tableQueryNextPageQueueMessageReveiverTrigger" />
+				<ref bean="projectStatsQueueMessageReveiverTrigger" />
+				<ref bean="aclQueueMessageReveiverTrigger"/>
+				<!-- initializers -->
+				<ref bean="cloudSearchInitializerTrigger" />
+				<!-- others -->
+				<ref bean="changeSentMessageSynchTrigger" />
+				<ref bean="stackConfigurationReloadTrigger" />
+				<!-- workers publish messages too -->
+				<ref bean="messagePublisherTrigger" />
 			</list>
 		</property>
 	</bean>

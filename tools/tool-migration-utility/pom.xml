@@ -13,6 +13,11 @@
 	<name>tool-migration-utility</name>
 	<description>A Utility for migrating Synapse data from one stack to another</description>
 	<dependencies>
+	
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-utils</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>

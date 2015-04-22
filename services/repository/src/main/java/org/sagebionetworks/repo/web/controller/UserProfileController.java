@@ -7,19 +7,24 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -125,37 +130,6 @@ public class UserProfileController extends BaseController {
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
-
-	/**
-	 * Create a filled-in <a href="${org.sagebionetworks.repo.model.attachment.S3AttachmentToken}">S3AttachmentToken</a> for use with a particular
-	 * locationable user profile picture to be stored in AWS S3.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.USER_PROFILE_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
-	public @ResponseBody
-	S3AttachmentToken createUserProfileS3AttachmentToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.getUserProfileService().createUserProfileS3AttachmentToken(userId, profileId, token, request);
-	}
-	/**
-	 * Create a new PresignedUrl for a profile picture attachment.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.USER_PROFILE_ATTACHMENT_URL }, method = RequestMethod.POST)
-	public @ResponseBody
-	PresignedUrl getUserProfileAttachmentUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String profileId,
-			@RequestBody PresignedUrl url,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.getUserProfileService().getUserProfileAttachmentUrl(userId, profileId, url, request);
-	}
 	
 	/**
 	 * Batch get UserGroupHeaders.
@@ -183,9 +157,24 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Get Users and Groups by name or email.
+	 * Batch get UserGroupHeaders.
+	 * This fetches information about a collection of users or groups, specified by Synapse IDs.
+	 *
+	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas. <p>For example: <pre class="prettyprint">ids=1001,819</pre></p>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<UserProfile> listUserProfiles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody IdList ids) throws DatastoreException, NotFoundException {
+		return serviceProvider.getUserProfileService().listUserProfiles(userId, ids);
+	}
+
+	/**
+	 * Get Users and Groups by name.
 	 * 
-	 * @param prefixFilter The name or email to search for.
+	 * @param prefixFilter The name to search for.
 	 * @param offset
 	 *         The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p> 
 	 * @param limit
@@ -201,6 +190,66 @@ public class UserProfileController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, offset, limit, header, request);
+	}
+	
+	/**
+	 * Get the actual URL of the image file associated with a user's profile.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the FileEntity to get.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE, method = RequestMethod.GET)
+	public @ResponseBody
+	void imageRedirectURLForUser(
+			@PathVariable String profileId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = serviceProvider.getUserProfileService().getUserProfileImage(profileId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Get the actual URL of the image file associated with a user's profile.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the FileEntity to get.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody
+	void imagePreviewRedirectURLForUser(
+			@PathVariable String profileId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = serviceProvider.getUserProfileService().getUserProfileImagePreview(profileId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
 	/**
@@ -262,4 +311,134 @@ public class UserProfileController extends BaseController {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
 	}
 
+	/**
+	 * Get a paginated result that contains the caller's <a
+	 * href="${org.sagebionetworks.repo.model.Project}">projects</a>. The list is ordered by most recent interacted with
+	 * project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MY_PROJECTS }, method = RequestMethod.GET)
+	@Deprecated
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getMyProjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, null, null, ProjectListType.MY_PROJECTS,
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.Project}">projects</a> from a
+	 * user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_FOR_USER }, method = RequestMethod.GET)
+	@Deprecated
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsForUser(
+			@PathVariable Long principalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, ProjectListType.OTHER_USER_PROJECTS,
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.Project}">projects</a> from a
+	 * user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_FOR_TEAM }, method = RequestMethod.GET)
+	public @ResponseBody
+	@Deprecated
+	PaginatedResults<ProjectHeader> getProjectsForTeam(
+			@PathVariable Long teamId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, null, teamId, ProjectListType.TEAM_PROJECTS,
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
+	 * headers</a> from a user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param type The type of project list
+	 * @param sortColumn The optional column to sort on. <i>Default sort by last activity</i>
+	 * @param sortDirection The optional sort direction. <i>Default sort descending</i>
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjects(
+			@PathVariable ProjectListType type,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, null, null, type, sortColumn, sortDirection, limit, offset);
+	}
+
+	/**
+	 * Same as getProjects, but has team parameter
+	 * 
+	 * @param teamId The team ID to list projects for, when showing ProjectListType.TEAM_PROJECTS
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_TEAM }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsTeam(
+			@PathVariable ProjectListType type,
+			@PathVariable Long teamId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, null, teamId, type, sortColumn, sortDirection, limit, offset);
+	}
+
+	/**
+	 * Same as getProjects, but has other user id parameter
+	 * 
+	 * @param principalId The user ID to list projects for, when showing ProjectListType.OTHER_USER_PROJECTS
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsUser(
+			@PathVariable ProjectListType type,
+			@PathVariable Long principalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, type, sortColumn, sortDirection, limit, offset);
+	}
 }

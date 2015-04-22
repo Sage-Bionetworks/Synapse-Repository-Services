@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.model.evaluation;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -16,6 +20,9 @@ public interface SubmissionDAO {
 	 * @return ID of the created Submission
 	 */
 	public String create(Submission dto);
+
+
+	void addSubmissionContributor(String submissionId, SubmissionContributor dto);
 
 	/**
 	 * Get a Submission by ID
@@ -120,5 +127,52 @@ public interface SubmissionDAO {
 
 	public long getCountByEvaluationAndUser(String evalId, String userId)
 			throws DatastoreException, NotFoundException;
+
+
+	/*
+	 * Find the number of Team submissions in the given evaluation queue and time interval
+	 * optionally filtering by submission status.  Caller may also omit start or end
+	 * dates to create open ended time segments.
+	 * 
+	 */
+	long countSubmissionsByTeam(long evaluationId, long teamId,
+			Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
+
+	/*
+	 * Find the number of submissions in a given evaluation queue contributed to by each member of a given team
+	 * and time interval, optionally filtering by submission status.  Caller may also omit start or end
+	 * dates to create open ended time segments.
+	 * 
+	 */
+	Map<Long, Long> countSubmissionsByTeamMembers(long evaluationId,
+			long teamId, Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
+
+	/*
+	 * return the number of submissions involving the given contributor in the given evaluation queue,
+	 * optionally filtered by time segment and/or sub-statuses
+	 */
+	long countSubmissionsByContributor(long evaluationId,
+			long contributorId, Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
+
+	/*
+	 * list the team members in the given team who have submitted individually or on another team
+	 * in the specified time interval (optional), filtered by the given sub-statues (optional)
+	 * 
+	 */
+	List<Long> getTeamMembersSubmittingElsewhere(long evaluationId, long teamId,
+			Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
+
+	/*
+	 * Determine whether the given user has contributed to any team submission in the given
+	 * evaluation, in the specified time interval (optional), filtered by the given sub-statues (optional)
+	 */
+	boolean hasContributedToTeamSubmission(long evaluationId,
+			long contributorId, Date startDateIncl, Date endDateExcl,
+			Set<SubmissionStatusEnum> statuses);
+
 
 }

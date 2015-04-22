@@ -1,4 +1,4 @@
-CREATE TABLE `ANNOTATED_EXAMPLE_TEST` (
+CREATE TABLE IF NOT EXISTS `ANNOTATED_EXAMPLE_TEST` (
 	`ID` bigint(20) not null AUTO_INCREMENT,
 	`NUMBER` bigint(20) not null,
 	`NUMBER_OR_NULL` bigint(20),
@@ -11,5 +11,7 @@ CREATE TABLE `ANNOTATED_EXAMPLE_TEST` (
 	`ETAG` CHAR(36) default null,
 	`MODIFIED_BY` VARCHAR(256) CHARACTER SET latin1 COLLATE latin1_bin not null,
 	`MODIFIED_ON` bigint(20) not null,
-	PRIMARY KEY (`ID`)
+	`PARENT_ID` bigint(20),
+	PRIMARY KEY (`ID`),
+	constraint PARENT_FK foreign key (`PARENT_ID`) references `ANNOTATED_EXAMPLE_TEST` (`ID`) on delete cascade
 )

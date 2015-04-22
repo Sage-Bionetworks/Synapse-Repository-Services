@@ -16,15 +16,11 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -33,7 +29,6 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -41,13 +36,10 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -67,8 +59,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * This is a an integration test for the default controller.
@@ -126,7 +116,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		try {
 			testTeam = teamManager.create(testUser, team);
 		} catch (NameConflictException e) {
-			Map<Team, Collection<TeamMember>> allTeamsAndMembers = teamManager.getAllTeamsAndMembers();
+			Map<Team, Collection<TeamMember>> allTeamsAndMembers = teamManager.listAllTeamsAndMembers();
 			for (Team t : allTeamsAndMembers.keySet()) {
 				if (t.getName().equals(team.getName())) {
 					testTeam = t;
@@ -219,14 +209,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(project);
 		toDelete.add(project.getId());
-		// Create a dataset
-		Study datasetParent = (Study) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, project.getId());
-		datasetParent = servletTestHelper.createEntity(dispatchServlet, datasetParent, userId);
-		// Create a layer parent
-		Data layerParent = (Data) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
-		layerParent = servletTestHelper.createEntity(dispatchServlet, layerParent, userId);
 		// Now get the path of the layer
-		List<EntityHeader> path = entityController.getEntityPath(userId, layerParent.getId());
+		List<EntityHeader> path = entityController.getEntityPath(userId, project.getId());
 		
 		// This is the list of entities that will be created.
 		List<Entity> newChildren = new ArrayList<Entity>();
@@ -234,7 +218,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		EntityType[] types = EntityType.values();
 		for(int i=0; i<countPerType; i++){
 			int index = i;
-			Study dataset = null;
 			for(EntityType type: types){
 				String name = type.name()+index;
 				// use the correct parent type.
@@ -250,10 +233,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					idList.add(columnModelOne.getId());
 					table.setColumnIds(idList);
 				}
-				if (object instanceof Community) {
-					Community community = (Community) object;
-					community.setTeamId(testTeam.getId());
-				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
@@ -261,11 +240,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				
 				// Mark entities for deletion after the current test completes
 				toDelete.add(clone.getId());
-				
-				// Stash these for later use
-				if (EntityType.dataset == type) {
-					dataset = (Study) clone;
-				}
 				
 				// Check the base urls
 				UrlHelpers.validateAllUrls(clone);
@@ -288,7 +262,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		if(type.isValidParentType(null)) return null;
 		// Try each entry in the list
 		for(EntityHeader header: path){
-			EntityType parentType = EntityType.getEntityType(header.getType());
+			EntityType parentType = EntityType.valueOf(header.getType());
 			if(type.isValidParentType(parentType)){
 				return header.getId();
 			}
@@ -753,39 +727,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			}
 		}
 	}
-
-	/**
-	 * This test should help ensure that if a new locationable entity is created, its url mapping 
-	 * gets added to the S3TokenController
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testLocationableS3Token() throws Exception {
-		servletTestHelper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		
-		// First create one of each type
-		List<Entity> created = createEntitesOfEachType(1);
-		assertNotNull(created);
-		assertTrue(created.size() >= EntityType.values().length);
-		// Now update each
-		for(Entity entity: created){
-			// We can only create S3Tokens for locationable entities.
-			if(entity instanceof Locationable) {
-				Locationable locationableEntity = (Locationable) entity;
-				
-				// Now create a new S3Token
-				S3Token token = new S3Token();
-				token.setPath("20111204/data.tsv");
-				token.setMd5("76af51ccdd0aabacca67d083d0b422e6");
-				token = servletTestHelper.createObject(locationableEntity.getS3Token(), token);
-				assertNotNull(token.getSecretAccessKey());
-				assertNotNull(token.getAccessKeyId());
-				assertNotNull(token.getSessionToken());
-				assertNotNull(token.getPresignedUrl());
-			}
-		}
-	}
 	
 	@Test
 	public void testGetUserEntityPermissions() throws Exception {
@@ -800,6 +741,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			UserEntityPermissions uep = servletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userId);
 			assertNotNull(uep);
 			assertEquals(true, uep.getCanDownload());
+			assertEquals(true, uep.getCanUpload());
 			assertEquals(true, uep.getCanEdit());
 			assertEquals(true, uep.getCanChangePermissions());
 			assertEquals(true, uep.getCanDelete());

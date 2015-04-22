@@ -1,5 +1,5 @@
 {
-	"description": "The body of an Asynchronous job status.",
+	"description": "The body of an Asynchronous job response.",
 	"type": "interface",
 	"properties": {
 		"concreteType":{

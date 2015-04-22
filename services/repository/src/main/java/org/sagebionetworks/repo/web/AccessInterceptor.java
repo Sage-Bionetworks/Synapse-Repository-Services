@@ -15,6 +15,7 @@ import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -38,6 +39,9 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	@Autowired
 	AccessRecorder accessRecorder;
 	
+	@Autowired
+	Clock clock;
+
 	private String instancePrefix = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
 	private String stack = StackConfiguration.getStack();
 
@@ -55,7 +59,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 			Long userId = Long.parseLong(userIdString); 
 			data.setUserId(userId);
 		}
-		data.setTimestamp(System.currentTimeMillis());
+		data.setTimestamp(clock.currentTimeMillis());
 		data.setRequestURL(request.getRequestURI());
 		data.setMethod(request.getMethod());
 		data.setThreadId(Thread.currentThread().getId());
@@ -101,7 +105,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 					"Failed to get the access record for this thread: "
 							+ Thread.currentThread().getId());
 		// Calculate the elapse time
-		data.setElapseMS(System.currentTimeMillis() - data.getTimestamp());
+		data.setElapseMS(clock.currentTimeMillis() - data.getTimestamp());
 		// If there is an exception then it failed.
 		int status = response.getStatus();
 		data.setSuccess(exception == null && status >= 200 && status <= 299);

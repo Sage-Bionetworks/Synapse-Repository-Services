@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltescape character&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class EscapeCharacter implements SQLElement {
+public class EscapeCharacter extends SQLElement {
 
 	CharacterValueExpression characterValueExpression;
 
@@ -16,8 +18,7 @@ public class EscapeCharacter implements SQLElement {
 		return characterValueExpression;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder) {
-		characterValueExpression.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(characterValueExpression, visitor);
 	}
 }

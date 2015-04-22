@@ -33,10 +33,10 @@ public class StackConstants {
 	
 	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
 		
-	public static final String TABLE_CSV_UPLOAD_QUEUE_TEMPLATE = "%1$s-%2$s-table-csv-upload-queue";
-	
-	public static final String TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE = "%1$s-%2$s-table-csv-download-queue";
-	
+	public static final String ASYNC_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-async-queue";
+
+	public static final String WORKER_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-worker-queue";
+
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.
 	 */
@@ -99,18 +99,27 @@ public class StackConstants {
 	public static final String TABLE_ROW_CHANGE_BUCKET = "%1$s.table.row.changes";
 	
 	/**
-	 * The bucket containing all participant data.
-	 */
-	public static final String PARTICIPANT_DATA_BUCKET = "%1$s.ptdata";
-
-	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String ACCESS_RECORD_BUCKET = "%1$s.access.record.sagebase.org";
+	
+	/**
+	 * The bucket containing all Access Control List record data.
+	 */
+	public static final String ACL_RECORD_BUCKET = "%1$s.acl.record.sagebase.org";
+	
+	/**
+	 * The bucket containing all ACL's Resource Access record data.
+	 */
+	public static final String RESOURCE_ACCESS_RECORD_BUCKET = "%1$s.resource.access.record.sagebase.org";
 	
 	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String STACK_LOG_BUCKET = "%1$s.log.sagebase.org";
 
+	/**
+	 * External S3 location test bucket.
+	 */
+	public static final String EXTERNAL_S3_TEST_BUCKET = "%1$s.external.s3.test.sagebase.org";
 }

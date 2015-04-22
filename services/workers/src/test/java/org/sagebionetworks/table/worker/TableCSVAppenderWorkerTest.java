@@ -27,10 +27,12 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -78,7 +80,7 @@ public class TableCSVAppenderWorkerTest {
 		status.setChangedOn(new Date());
 		status.setJobId("123");
 		status.setStartedByUserId(user.getId());
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("789");
 		status.setRequestBody(body);
@@ -95,7 +97,13 @@ public class TableCSVAppenderWorkerTest {
 		s3Object = new S3Object();
 		// schema
 		tableSchema = TableModelTestUtils.createColumsWithNames("a","b","c");
-		worker = new TableCSVAppenderWorker(mockAasynchJobStatusManager, mockTableRowManager, mockFileHandleManger, mockUserManager, mockS3Client, messageList);
+		worker = new TableCSVAppenderWorker();
+		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAasynchJobStatusManager);
+		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManger);
+		ReflectionTestUtils.setField(worker, "userManger", mockUserManager);
+		ReflectionTestUtils.setField(worker, "s3Client", mockS3Client);
+		worker.setMessages(messageList);
 		// Create the CSV
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -144,9 +152,9 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderAllDefaults(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
+		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
 		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
@@ -157,10 +165,11 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderTabSeperator(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
-		body.setSeparator("\t");
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setCsvTableDescriptor(new CsvTableDescriptor());
+		body.getCsvTableDescriptor().setSeparator("\t");
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
+		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals('\t', csvReader.getSeparator());
 		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
@@ -171,10 +180,11 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderEscapse(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
-		body.setEscapeCharacter("\n");
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setCsvTableDescriptor(new CsvTableDescriptor());
+		body.getCsvTableDescriptor().setEscapeCharacter("\n");
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
+		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
 		assertEquals('\n', csvReader.getEscape());
@@ -185,10 +195,11 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderQuote(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
-		body.setQuoteCharacter("'");
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setCsvTableDescriptor(new CsvTableDescriptor());
+		body.getCsvTableDescriptor().setQuoteCharacter("'");
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
+		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
 		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
@@ -199,10 +210,10 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderSkipLine(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setLinesToSkip(101L);
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
+		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals(CsvNullReader.DEFAULT_SEPARATOR, csvReader.getSeparator());
 		assertEquals(CsvNullReader.DEFAULT_ESCAPE_CHARACTER, csvReader.getEscape());
@@ -213,13 +224,14 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderAllOverride(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
-		body.setSeparator("-");
-		body.setEscapeCharacter("?");
-		body.setQuoteCharacter(":");
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setCsvTableDescriptor(new CsvTableDescriptor());
+		body.getCsvTableDescriptor().setSeparator("-");
+		body.getCsvTableDescriptor().setEscapeCharacter("?");
+		body.getCsvTableDescriptor().setQuoteCharacter(":");
 		body.setLinesToSkip(12L);
 		StringReader reader = new StringReader("1,2,3");
-		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
+		CsvNullReader csvReader = CSVUtils.createCSVReader(reader, body.getCsvTableDescriptor(), body.getLinesToSkip());
 		assertNotNull(csvReader);
 		assertEquals('-', csvReader.getSeparator());
 		assertEquals('?', csvReader.getEscape());

@@ -4,7 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 

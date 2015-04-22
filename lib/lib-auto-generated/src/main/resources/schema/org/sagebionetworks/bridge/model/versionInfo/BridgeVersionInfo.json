@@ -1,9 +1,0 @@
-{
-    "description":"The Version of the stack",
-    "properties":{
-        "version":{
-            "type":"string",
-            "description":"The version of this stack"
-        }  
-    }
-}

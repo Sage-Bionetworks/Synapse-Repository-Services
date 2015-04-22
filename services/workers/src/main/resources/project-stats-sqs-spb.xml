@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<!-- provides project stats queue workers -->
+	<bean id="projectStatsWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.projectstats.worker.ProjectStatsWorker" />
+	</bean>
+	
+	<bean id="projectStatsQueue"
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
+			depends-on="stackConfiguration">
+		<constructor-arg index="0" ref="stackConfiguration.workerQueueName[ProjectStatsWorker]" />
+		<constructor-arg index="1" ref="stackConfiguration.repositoryModificationTopicName" />
+		<constructor-arg index="2"><null /></constructor-arg>
+		<constructor-arg index="3" value="true" />
+	</bean>
+
+	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+	<bean id="projectStatsSemaphore"
+			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
+			scope="singleton">
+		<property name="lockTimeoutMS" value="60000" />
+		<property name="maxCount" value="4" />
+	</bean>
+
+	<bean id="projectStatsQueueMessageReveiver"
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
+			depends-on="stackConfiguration"
+			scope="singleton">
+		<property name="messageQueue" ref="projectStatsQueue" />
+		<property name="workerFactory" ref="projectStatsWorkerFactory" />
+		<property name="workerSemaphore" ref="projectStatsSemaphore" />
+		<property name="maxNumberOfWorkerThreads" value="1" />
+		<property name="maxMessagePerWorker" value="30" />
+		<property name="visibilityTimeoutSec" value="60" />
+	</bean>
+
+	<!-- This trigger is used to process messages from the search queue. -->
+	<bean id="projectStatsQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="projectStatsQueueMessageReveiver" />
+				<property name="targetMethod" value="triggerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="43" />
+		<property name="repeatInterval" value="927" />
+	</bean>
+</beans>

@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -35,20 +37,23 @@ public class AsynchronousJobController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method is used to launch new jobs.  The type of job that will be launched
-	 * is determined by the passed AsynchronousJobBody.
+	 * This method is used to launch new jobs. The type of job that will be launched is determined by the passed
+	 * AsynchronousJobBody.
 	 * </p>
 	 * The following are the currently supported job types:
 	 * <ul>
-	 * <li><a href="${org.sagebionetworks.repo.model.table.AsynchUploadRequestBody}">AsynchUploadJobBody</a></li>
+	 * <li><a href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}">UploadToTableRequest</a></li>
+	 * <li><a href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}">DownloadFromTableRequest</a></li>
 	 * </ul>
 	 * <p>
 	 * Note: Each job types has different access requirements.
 	 * </p>
+	 * 
 	 * @param userId
-	 * @param body There is a AsynchronousJobBody implementation for each job type.  This body determines the type of job that will be launched.
-	 * @return Each new job launched will have a unique jobId that can be use to monitor the status of the job with 
-	 * @throws NotFoundException 
+	 * @param body There is a AsynchronousJobBody implementation for each job type. This body determines the type of job
+	 *        that will be launched.
+	 * @return Each new job launched will have a unique jobId that can be use to monitor the status of the job with
+	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB, method = RequestMethod.POST)
@@ -61,17 +66,20 @@ public class AsynchronousJobController extends BaseController {
 	
 	/**
 	 * Once a job is launched its progress can be monitored by getting its status with this method.
+	 * 
 	 * @param userId
-	 * @param jobId The jobId issued to a job that has been launched with <a href="${POST.asynchronous.job}">POST /asynchronous/job</a>
+	 * @param jobId The jobId issued to a job that has been launched with <a href="${POST.asynchronous.job}">POST
+	 *        /asynchronous/job</a>
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
+	 * @throws NotReadyException
+	 * @throws AsynchJobFailedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	AsynchronousJobStatus launchNewJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String jobId) throws NotFoundException {
+	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
 

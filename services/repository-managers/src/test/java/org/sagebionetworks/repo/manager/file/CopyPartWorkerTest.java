@@ -13,31 +13,32 @@ public class CopyPartWorkerTest {
 	MultipartManager mockManger;
 	ChunkedFileToken token;
 	int partNumber;
-	String bucket;
+	Long storageId;
 			
 	@Before
 	public void before(){
 		mockManger = Mockito.mock(MultipartManager.class);
+		storageId = 11L;
 		token = new ChunkedFileToken();
 		token.setKey("key");
 		token.setUploadId("uploadId");
+		token.setStorageLocationId(storageId);
 		partNumber = 1;
-		bucket = "bucket";
 	}
 	
 	@Test (expected=RuntimeException.class)
 	public void testTimeout() throws Exception{
 		// This should trigger a timeout.
-		when(mockManger.doesPartExist(token, partNumber, bucket)).thenReturn(false);
-		CopyPartWorker cpw = new CopyPartWorker(mockManger, token, 1, "bucket", 100);
+		when(mockManger.doesPartExist(token, partNumber, storageId)).thenReturn(false);
+		CopyPartWorker cpw = new CopyPartWorker(mockManger, token, 1, 100);
 		cpw.call();
 	}
 	
 	@Test
 	public void testHappyCase() throws Exception{
-		when(mockManger.doesPartExist(token, partNumber, bucket)).thenReturn(true);
-		CopyPartWorker cpw = new CopyPartWorker(mockManger, token, 1, "bucket", 100);
+		when(mockManger.doesPartExist(token, partNumber, storageId)).thenReturn(true);
+		CopyPartWorker cpw = new CopyPartWorker(mockManger, token, 1, 100);
 		cpw.call();
-		verify(mockManger).copyPart(token, partNumber, bucket);
+		verify(mockManger).copyPart(token, partNumber, storageId);
 	}
 }

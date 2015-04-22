@@ -25,25 +25,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
-import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
-import org.sagebionetworks.bridge.model.Community;
-import org.sagebionetworks.bridge.model.CommunityTeamDAO;
-import org.sagebionetworks.bridge.model.ParticipantDataDAO;
-import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
-import org.sagebionetworks.bridge.model.ParticipantDataId;
-import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
-import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
-import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
-import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
-import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
-import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
-import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -60,13 +45,12 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.dbo.principal.PrincipalAliasDaoImpl;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -79,18 +63,23 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 
@@ -155,24 +144,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private TeamDAO teamDAO;
 
 	@Autowired
-	private CommunityTeamDAO communityTeamDAO;
-
-	@Autowired
-	private BridgeParticipantDAO bridgeParticipantDAO;
-
-	@Autowired
-	private BridgeUserParticipantMappingDAO bridgeUserParticipantMappingDAO;
-
-	@Autowired
-	private ParticipantDataDAO participantDataDAO;
-
-	@Autowired
-	private ParticipantDataDescriptorDAO participantDataDescriptorDAO;
-
-	@Autowired
-	private ParticipantDataStatusDAO participantDataStatusDAO;
-
-	@Autowired
 	private AuthenticationDAO authDAO;
 
 	@Autowired
@@ -199,6 +170,23 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private QuizResponseDAO quizResponseDAO;
 
+	@Autowired
+	private ProjectSettingsDAO projectSettingsDAO;
+
+	@Autowired
+	private StorageLocationDAO storageLocationDAO;
+
+	@Autowired
+	private ProjectStatsDAO projectStatsDAO;
+	
+	@Autowired
+	private ChallengeDAO challengeDAO;
+	
+	@Autowired
+	private ChallengeTeamDAO challengeTeamDAO;
+	
+	private Team team;
+
 	private Long adminUserId;
 	private String adminUserIdString;
 	private UserInfo adminUserInfo;
@@ -209,7 +197,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	// Entities
 	private Project project;
 	private FileEntity fileEntity;
-	private Community community;
 	private Folder folderToTrash;
 
 	// requirement
@@ -232,6 +219,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private Submission submission;
 
 	private HttpServletRequest mockRequest;
+	
+	private Challenge challenge;
+	private ChallengeTeam challengeTeam;
 
 	@Before
 	public void before() throws Exception {
@@ -249,6 +239,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createActivity();
 		createEntities();
 		createFavorite();
+		createProjectSetting();
+		createProjectStat();
 		createEvaluation();
 		createAccessRequirement();
 		createAccessApproval();
@@ -263,11 +255,45 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
 		UserGroup sampleGroup2 = createUserGroups(2);
-		createCommunity(sampleGroup2);
-		createParticipantData(sampleGroup);
 		createQuizResponse();
+		createChallengeAndRegisterTeam();
 	}
 	
+	private void createChallengeAndRegisterTeam() {
+		challenge = new Challenge();
+		challenge.setParticipantTeamId(team.getId());
+		challenge.setProjectId(project.getId());
+		challenge = challengeDAO.create(challenge);
+		
+		challengeTeam = new ChallengeTeam();
+		challengeTeam.setChallengeId(challenge.getId());
+		// this is nonsensical:  We are registering a team which is the challenge 
+		// participant team.  However it does the job of exercising object migration.
+		challengeTeam.setTeamId(team.getId());
+		challengeTeam = challengeTeamDAO.create(challengeTeam);
+	}
+	
+	private void createProjectSetting() {
+		S3StorageLocationSetting destination = new S3StorageLocationSetting();
+		destination.setDescription("upload normal");
+		destination.setUploadType(UploadType.S3);
+		destination.setBanner("warning");
+		destination.setCreatedOn(new Date());
+		destination.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		Long uploadId = storageLocationDAO.create(destination);
+
+		UploadDestinationListSetting settings = new UploadDestinationListSetting();
+		settings.setProjectId(project.getId());
+		settings.setSettingsType(ProjectSettingsType.upload);
+		settings.setLocations(Collections.singletonList(uploadId));
+		projectSettingsDAO.create(settings);
+	}
+
+	private void createProjectStat() {
+		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(project.getId()), adminUserId, new Date());
+		projectStatsDAO.update(projectStat);
+	}
+
 	private void createQuizResponse() {
 		QuizResponse dto = new QuizResponse();
 		PassingRecord passingRecord = new PassingRecord();
@@ -293,23 +319,21 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		for (ColumnModel cm : start) {
 			models.add(columnModelDao.createColumnModel(cm));
 		}
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 
-		List<String> header = TableModelUtils.getHeaders(models);
+		List<Long> headers = TableModelUtils.getIds(models);
 		// bind the columns to the entity
-		columnModelDao.bindColumnToObject(header, tableId);
+		columnModelDao.bindColumnToObject(Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId);
 
 		// create some test rows.
 		List<Row> rows = TableModelTestUtils.createRows(models, 5);
-		RowSet set = new RowSet();
-		set.setHeaders(TableModelUtils.getHeaders(models));
-		set.setRows(rows);
-		set.setTableId(tableId);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set, false);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
-		set.setRows(rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set, false);
+		set = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, mapper, set);
 	}
 
 	public void createNewUser() throws NotFoundException {
@@ -373,6 +397,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setEntityId(fileEntity.getId());
 		submission.setUserId(adminUserIdString);
 		submission.setEvaluationId(evaluation.getId());
+		SubmissionContributor contributor = new SubmissionContributor();
+		contributor.setPrincipalId(adminUserIdString);
+		submission.setContributors(Collections.singleton(contributor));
 		submission = entityServletHelper.createSubmission(submission, adminUserId, fileEntity.getEtag());
 	}
 
@@ -403,7 +430,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setAccessorId(accessorId);
-		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
+		aa.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
 		return aa;
 	}
@@ -471,7 +498,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private AccessRequirement newAccessRequirement() {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
-		dto.setEntityType(dto.getClass().getName());
+		dto.setConcreteType(dto.getClass().getName());
 		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		dto.setTermsOfUse("foo");
 		return dto;
@@ -601,11 +628,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private void createTeamsRequestsAndInvitations(UserGroup group) {
 		String otherUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
 
-		Team team = new Team();
+		team = new Team();
 		team.setId(group.getId());
 		team.setName(UUID.randomUUID().toString());
 		team.setDescription("test team");
-		teamDAO.create(team);
+		team = teamDAO.create(team);
 
 		// create a MembershipRqstSubmission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
@@ -632,65 +659,40 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		membershipInvtnSubmissionDAO.create(mis);
 	}
 
-	private void createCommunity(UserGroup group) throws Exception {
-		Team team = new Team();
-		team.setId(group.getId());
-		team.setName(UUID.randomUUID().toString());
-		team.setDescription("test team");
-		team = teamDAO.create(team);
-
-		// Create a community
-		community = new Community();
-		community.setName("MigrationIntegrationAutowireTest.Community");
-		community.setEntityType(Community.class.getName());
-		community.setTeamId(team.getId());
-		community = serviceProvider.getEntityService().createEntity(adminUserId, community, null, mockRequest);
-
-		communityTeamDAO.create(KeyFactory.stringToKey(community.getId()), Long.parseLong(team.getId()));
-	}
-
-	private void createParticipantData(UserGroup sampleGroup) throws Exception {
-		Long participantId = Long.parseLong(sampleGroup.getId()) ^ -1L;
-		bridgeParticipantDAO.create(participantId);
-		bridgeUserParticipantMappingDAO.setParticipantIdsForUser(Long.parseLong(sampleGroup.getId()),
-				Collections.<ParticipantDataId> singletonList(new ParticipantDataId(participantId)));
-		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName(participantId.toString() + "desc");
-		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
-		participantDataDescriptor.setRepeatFrequency("0 0 4 * * ? *");
-		participantDataDescriptor = participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor.setName("a");
-		participantDataColumnDescriptor.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor2.setName("b");
-		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
-		ParticipantDataRow dataRow = new ParticipantDataRow();
-		ParticipantDataStringValue stringValue1 = new ParticipantDataStringValue();
-		stringValue1.setValue("1");
-		ParticipantDataStringValue stringValue2 = new ParticipantDataStringValue();
-		stringValue2.setValue("2");
-		dataRow.setData(ImmutableMap.<String, ParticipantDataValue> builder().put("a", stringValue1).put("b", stringValue2).build());
-		List<ParticipantDataRow> data = Lists.newArrayList(dataRow);
-		participantDataDAO.append(new ParticipantDataId(participantId), participantDataDescriptor.getId(), data,
-				Lists.newArrayList(participantDataColumnDescriptor, participantDataColumnDescriptor2));
-		ParticipantDataStatus status = new ParticipantDataStatus();
-		status.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		status.setLastEntryComplete(false);
-		status.setLastPrompted(new Date());
-		status.setLastStarted(new Date());
-		participantDataStatusDAO.update(Collections.<ParticipantDataStatus> singletonList(status), ImmutableMap
-				.<String, ParticipantDataId> builder().put(participantDataDescriptor.getId(), new ParticipantDataId(participantId)).build());
-	}
-
 	@After
 	public void after() throws Exception {
 		// to cleanup for this test we delete all in the database
 		resetDatabase();
+	}
+	
+	// test that if we create a group with members, back it up, 
+	// add members, and restore, the extra members are removed
+	// (This was broken in PLFM-2757)
+	@Test
+	public void testCertifiedUsersGroupMigration() throws Exception {
+		String groupId = BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
+		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
+		
+		List<BackupInfo> backupList = backupAllOfType(MigrationType.PRINCIPAL);
+		
+		// add new member(s)
+		UserGroup yetAnotherUser = new UserGroup();
+		yetAnotherUser.setIsIndividual(true);
+		yetAnotherUser.setId(userGroupDAO.create(yetAnotherUser).toString());
+		groupMembersDAO.addMembers(groupId, Collections.singletonList(yetAnotherUser.getId()));
+
+		// membership is different because new user has been added
+		assertFalse(members.equals(groupMembersDAO.getMembers(groupId)));
+		
+		// Now restore all of the data
+		for (BackupInfo info : backupList) {
+			String fileName = info.getFileName();
+			assertNotNull("Did not find a backup file name for type: " + info.getType(), fileName);
+			restoreFromBackup(info.getType(), fileName);
+		}
+		
+		// should be back to normal
+		assertEquals(members, groupMembersDAO.getMembers(groupId));
 	}
 
 	/**
@@ -732,9 +734,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 			// Special cases for the not-deleted migration admin
 			if (afterDelete.getType() == MigrationType.PRINCIPAL) {
-				assertEquals("There should be 6 UserGroups remaining after the delete: " + BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER + ", "
+				assertEquals("There should be 4 UserGroups remaining after the delete: " + BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER + ", "
 						+ "Administrators" + ", " + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP + ", and "
-						+ BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP, new Long(6), afterDelete.getCount());
+						+ BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP, new Long(4), afterDelete.getCount());
 			} else if (afterDelete.getType() == MigrationType.GROUP_MEMBERS || afterDelete.getType() == MigrationType.CREDENTIAL) {
 				assertEquals("Counts do not match for: " + afterDelete.getType().name(), new Long(1), afterDelete.getCount());
 

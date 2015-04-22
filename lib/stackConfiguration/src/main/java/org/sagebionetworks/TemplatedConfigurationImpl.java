@@ -91,16 +91,26 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 
 	@Override
 	public String getProperty(String propertyName) {
+		return getProperty(propertyName, true);
+	}
+
+	@Override
+	public String getPropertyRepeatedly(String propertyName) {
+		return getProperty(propertyName, false);
+	}
+
+	private String getProperty(String propertyName, boolean logit) {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.debug(propertyName + "=" + propertyValue
-					+ " from stack property overrides " + propertyFileUrl);
+			if (logit) {
+				log.debug(propertyName + "=" + propertyValue + " from stack property overrides " + propertyFileUrl);
+			}
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			log.debug(propertyName + "=" + propertyValue
-					+ " from default stack properties "
-					+ defaultPropertiesFilename);
+			if (logit) {
+				log.debug(propertyName + "=" + propertyValue + " from default stack properties " + defaultPropertiesFilename);
+			}
 		}
 		// NullPointerExceptions further downstream are not very helpful, throw
 		// here
@@ -312,10 +322,6 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	
 	public String getFileServiceEndpoint() {
 		return getProperty("org.sagebionetworks.fileservice.endpoint");
-	}
-	
-	public String getBridgeServiceEndpoint() {
-		return getProperty("org.sagebionetworks.bridgeservice.endpoint");
 	}
 	
 	@Override

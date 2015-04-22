@@ -62,9 +62,8 @@ public class AuthorizationConstants {
 	public static final String USER_ID_PARAM = "userId";
 	
 	/**
-	 * The name of the client make the REST call. For a few calls, behavior will 
-	 * change depending on whether this is Bridge or a Synapse client (at the least, 
-	 * email contents change).
+	 * The name of the client make the REST call. For a few calls, behavior will change depending on domain (at the
+	 * least, email contents change).
 	 */
 	public static final String DOMAIN_PARAM = "domain";
 	
@@ -105,5 +104,29 @@ public class AuthorizationConstants {
 	 */
 	@Deprecated
 	public static final String ETAG_PARAM = "etag";
+	
+	/**
+	 * Request parameter giving the hash of the TeamSubmissionEligibility object which was
+	 * referenced by the client when crafting the associated Submission.
+	 */
+	public static final String SUBMISSION_ELIGIBILITY_HASH_PARAM = "submissionEligibilityHash";
+	
+	/**
+	 * A request parameter to the setUserCertification service, saying whether to set or clear certification.
+	 */
+	public static final String IS_CERTIFIED = "isCertified";
+	
+	/**
+	 * A request parameter used in the AccessRequirementController to filter unmet access requirements on access type.
+	 */
+	public static final String ACCESS_TYPE_PARAM = "accessType";
+	/**
+	 * Response message for 503.
+	 */
+	public static final String REASON_TOO_MANY_CONCURRENT_REQUESTS = "{\"reason\": \"Too many concurrent requests\"}";
+	/**
+	 * Response message for 500.
+	 */
+	public static final String REASON_SERVER_ERROR = "{\"reason\": \"Server Error. Error logged.\"}";
 	
 }

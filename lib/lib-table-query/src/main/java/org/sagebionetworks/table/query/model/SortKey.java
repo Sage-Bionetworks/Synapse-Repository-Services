@@ -1,25 +1,23 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltsort key&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SortKey implements SQLElement {
+public class SortKey extends SQLElement {
 	
-	ColumnReference columnReference;
+	ValueExpressionPrimary valueExpressionPrimary;
 
-	public SortKey(ColumnReference columnReference) {
-		super();
-		this.columnReference = columnReference;
+	public SortKey(ValueExpressionPrimary valueExpressionPrimary) {
+		this.valueExpressionPrimary = valueExpressionPrimary;
 	}
 
-	public ColumnReference getColumnReference() {
-		return columnReference;
+	public ValueExpressionPrimary getValueExpressionPrimary() {
+		return valueExpressionPrimary;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		columnReference.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(valueExpressionPrimary, visitor);
 	}
-	
-
 }

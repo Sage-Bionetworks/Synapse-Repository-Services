@@ -44,6 +44,15 @@ public interface TemplatedConfiguration {
 	public String getProperty(String propertyName);
 
 	/**
+	 * Use this if you want to get the property repeatedly (cuts down on loggin noise)
+	 * 
+	 * @param propertyName
+	 * @return the property value or a NullPointerException will be thrown (throwing it preemptively here so as to
+	 *         provide a better error message)
+	 */
+	public String getPropertyRepeatedly(String propertyName);
+
+	/**
 	 * @return all property names
 	 */
 	public Set<String> getAllPropertyNames();
@@ -123,13 +132,6 @@ public interface TemplatedConfiguration {
 	 */
 	public String getFileServiceEndpoint();
 	
-	/**
-	 * Get the bridge service Endpoint.
-	 * 
-	 * @return
-	 */
-	public String getBridgeServiceEndpoint();
-
 	/**
 	 * 
 	 * @return search service endpoint

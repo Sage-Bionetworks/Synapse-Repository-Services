@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -45,6 +47,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -111,6 +114,7 @@ public class NodeManagerImplAutoWiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
 	@After
@@ -146,7 +150,7 @@ public class NodeManagerImplAutoWiredTest {
 		for(EntityType type: array){
 			Node newNode = new Node();
 			newNode.setName("NodeManagerImplAutoWiredTest."+type.name());
-			newNode.setNodeType(type.name());
+			newNode.setNodeType(type);
 			String id = nodeManager.createNewNode(newNode, userInfo);
 			assertNotNull(id);
 			nodesToDelete.add(id);
@@ -172,7 +176,7 @@ public class NodeManagerImplAutoWiredTest {
 				// Make sure the user can do everything
 				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
 				for(ACCESS_TYPE accessType : acessTypes){
-					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType));
+					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).getAuthorized());
 				}
 			}else{
 				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);
@@ -188,7 +192,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
 		// We are using an agreement because the user should have permission to create it but not update it
-		newNode.setNodeType(EntityType.project.name());
+		newNode.setNodeType(EntityType.project);
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "stringValue");
@@ -213,7 +217,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType(EntityType.project.name());
+		newNode.setNodeType(EntityType.project);
 		String id = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -249,7 +253,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType(EntityType.project.name());
+		newNode.setNodeType(EntityType.project);
 		String id = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -267,7 +271,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(EntityType.project.name());
+		newNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
@@ -300,7 +304,7 @@ public class NodeManagerImplAutoWiredTest {
 	public void testAnnotationsUpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(EntityType.project.name());
+		newNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
@@ -322,7 +326,7 @@ public class NodeManagerImplAutoWiredTest {
 		// First create a node with 
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(EntityType.code.name());
+		newNode.setNodeType(EntityType.table);
 		newNode.setVersionLabel("0.0.1");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = adminUserInfo;
@@ -436,7 +440,7 @@ public class NodeManagerImplAutoWiredTest {
 		// First create a node with 
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(EntityType.code.name());
+		newNode.setNodeType(EntityType.table);
 		newNode.setVersionLabel("0.0.0");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = adminUserInfo;
@@ -479,7 +483,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -487,7 +491,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.table);
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
@@ -496,7 +500,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a newProject node
 		node = new Node();
 		node.setName("newProject");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String newProjectId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(newProjectId);
 		nodesToDelete.add(newProjectId);
@@ -531,7 +535,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -539,7 +543,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.table);
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
@@ -548,7 +552,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a newProject node
 		node = new Node();
 		node.setName("newProject");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String newProjectId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(newProjectId);
 		nodesToDelete.add(newProjectId);
@@ -572,7 +576,7 @@ public class NodeManagerImplAutoWiredTest {
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
 		nodeManagerWMocks.update(adminUserInfo, fetchedChild);
-		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId);
+		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId, false);
 		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId);
 	}
 	
@@ -586,7 +590,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -594,7 +598,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.table);
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
@@ -613,7 +617,7 @@ public class NodeManagerImplAutoWiredTest {
 		fetchedNode.setName("notTheChildName");
 		when(mockNodeDao.getParentId(anyString())).thenReturn(new String(fetchedNode.getParentId()));
 		nodeManagerWMocks.update(adminUserInfo, fetchedNode);
-		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString());
+		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString(), anyBoolean());
 		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString(), anyBoolean());
 	}
 	
@@ -623,7 +627,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -631,7 +635,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a folder
 		node = new Node();
 		node.setName("folder");
-		node.setNodeType(EntityType.folder.name());
+		node.setNodeType(EntityType.folder);
 		node.setParentId(rootId);
 		String folderId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(folderId);
@@ -640,7 +644,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.table);
 		node.setParentId(folderId);
 		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
@@ -678,7 +682,7 @@ public class NodeManagerImplAutoWiredTest {
 		
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testSetActivityForNode");
-		newNode.setNodeType(EntityType.dataset.name());
+		newNode.setNodeType(EntityType.table);
 		newNode.setActivityId(actId);
 		
 		

@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -87,7 +86,20 @@ public interface EntityManager {
 	public EntityType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Get the type of an entity for purposes of a delete action
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException,
+			UnauthorizedException;
+
+	/**
 	 * Get the entity header.
+	 * 
 	 * @param userInfo
 	 * @param entityId
 	 * @param versionNumber (optional) null means current version.
@@ -250,32 +262,6 @@ public interface EntityManager {
 	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) throws NotFoundException, DatastoreException;
 
 	/**
-	 * create a s3 attachment token for this entity
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws InvalidModelException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public S3AttachmentToken createS3AttachmentToken(Long userId, String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException;
-
-	/**
-	 * Create a new pre-signed URL for an attachment.
-	 * @param userId
-	 * @param entityId
-	 * @param tokenId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	public PresignedUrl getAttachmentUrl(Long userId, String entityId,String tokenId) throws NotFoundException,	DatastoreException, UnauthorizedException, InvalidModelException;
-
-	/**
 	 * Validate that the user has read access.
 	 * 
 	 * @param userId
@@ -382,5 +368,16 @@ public interface EntityManager {
 	 * @return list of References with the current version filled in
 	 */
 	public List<Reference> getCurrentRevisionNumbers(List<String> entityIds);
+
+	/**
+	 * Get an entity with just the ID.
+	 * @param user
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 */
+	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 }

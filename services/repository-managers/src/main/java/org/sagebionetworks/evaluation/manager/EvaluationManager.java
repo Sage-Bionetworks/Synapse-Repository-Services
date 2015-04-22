@@ -3,6 +3,7 @@ package org.sagebionetworks.evaluation.manager;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -80,4 +81,8 @@ public interface EvaluationManager {
 	 * @throws NotFoundException
 	 */
 	void updateEvaluationEtag(String evalId) throws NotFoundException;
+	
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException;
+	
+
 }

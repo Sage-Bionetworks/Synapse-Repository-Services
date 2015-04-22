@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,8 +31,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -68,7 +69,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -76,10 +77,19 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, param);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T create(T dto) throws DatastoreException,
 			InvalidModelException {
+		
+		// don't create if it already exists
+		List<AccessApproval> existingApprovals = getForAccessRequirementsAndPrincipals(
+				Collections.singletonList(dto.getRequirementId().toString()),
+				Collections.singletonList(dto.getAccessorId()));
+		if (!existingApprovals.isEmpty()) {
+			return (T)existingApprovals.get(0);
+		}
+		
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId() == null) {
@@ -123,7 +133,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return dtos;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {

@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
@@ -25,9 +26,14 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import arq.uparse;
 
 /**
  * Basic implementation of the file upload service.
@@ -147,9 +153,36 @@ public class FileUploadServiceImpl implements FileUploadService {
 	}
 
 	@Override
-	public URL getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
+	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
 	}
 
+	@Override
+	@Deprecated
+	public List<UploadDestination> getUploadDestinations(Long userId, String parentId) throws DatastoreException, UnauthorizedException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getUploadDestinations(userInfo, parentId);
+	}
+
+	@Override
+	public List<UploadDestinationLocation> getUploadDestinationLocations(Long userId, String parentId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getUploadDestinationLocations(userInfo, parentId);
+	}
+
+	@Override
+	public UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getUploadDestination(userInfo, parentId, storageLocationId);
+	}
+
+	@Override
+	public UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getDefaultUploadDestination(userInfo, parentId);
+	}
 }

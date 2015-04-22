@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -10,9 +9,11 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -207,9 +208,19 @@ public interface EvaluationService {
 	 * @throws ParseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, HttpServletRequest request)
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
+	/**
+	 * 
+	 * @param userId
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public SubmissionContributor addSubmissionContributor(Long userId, String submissionId, SubmissionContributor submissionContributor) throws NotFoundException;
+	
 	/**
 	 * Get a Submission.
 	 * 
@@ -386,7 +397,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public URL getRedirectURLForFileHandle(Long userId, String submissionId,
+	public String getRedirectURLForFileHandle(Long userId, String submissionId,
 			String fileHandleId) throws DatastoreException, NotFoundException;
 
 	////// Methods for managing ACLs //////
@@ -454,4 +465,6 @@ public interface EvaluationService {
 	public QueryTableResults query(String userQuery, Long userId)
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, ParseException;
 
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException;
+	
 }

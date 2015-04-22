@@ -1,14 +1,15 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltcharacter factor&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class CharacterFactor implements SQLElement {
+public class CharacterFactor extends SQLElement {
 
 	CharacterPrimary characterPrimary;
 
 	public CharacterFactor(CharacterPrimary characterPrimary) {
-		super();
 		this.characterPrimary = characterPrimary;
 	}
 
@@ -16,9 +17,8 @@ public class CharacterFactor implements SQLElement {
 		return characterPrimary;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		this.characterPrimary.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(this.characterPrimary, visitor);
 	}
 	
 }

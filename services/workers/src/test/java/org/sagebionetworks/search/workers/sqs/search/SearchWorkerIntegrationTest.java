@@ -12,7 +12,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -37,9 +36,10 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +47,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.base.Predicate;
 
 /**
  * This test validates that entity messages pushed to the topic propagate to the search queue,
@@ -103,8 +104,24 @@ public class SearchWorkerIntegrationTest {
 		Assume.assumeTrue(searchDao.isSearchEnabled());
 		// Before we start, make sure the search queue is empty
 		emptySearchQueue();
+
 		// Now delete all documents in the search index.
-		searchDao.deleteAllDocuments();
+		// wait for the searchindex to become available (we assume the queue is already there and only needs to be
+		// checked once). It should go through within .5 seconds, but if not (aws no ready), it can take 30 seconds for
+		// a retry
+		assertTrue(TimeUtils.waitFor(65000, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					searchDao.deleteAllDocuments();
+					return true;
+				} catch (ServiceUnavailableException e) {
+					return false;
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 		
 		// Create a project
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -118,34 +135,7 @@ public class SearchWorkerIntegrationTest {
 		
 		// Zip up the markdown into a file with UUID
 		String markdown = "markdown contents " + uuid;
-		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
-		FileUtils.writeStringToCompressedFile(markdownTemp, markdown);
-		String contentType = "application/x-gzip";
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setContentType(contentType);
-		ccftr.setFileName(markdownTemp.getName());
-		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
-		ccftr.setContentMD5(md5);
-		// Start the upload
-		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(adminUserInfo, ccftr);
-
-		S3FileHandle handle = new S3FileHandle();
-		handle.setContentType(token.getContentType());
-		handle.setContentMd5(token.getContentMD5());
-		handle.setContentSize(markdownTemp.length());
-		handle.setFileName("markdown.txt");
-		// Creator of the wiki page may not have been set to the user yet
-		// so do not use wiki's createdBy
-		handle.setCreatedBy(adminUserInfo.getId().toString());
-		long currentTime = System.currentTimeMillis();
-		handle.setCreatedOn(new Date(currentTime));
-		handle.setKey(token.getKey());
-		handle.setBucketName(StackConfiguration.getS3Bucket());
-		// Upload this to S3
-		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
-		// Save the metadata
-		markdownOne = fileMetadataDao.createFile(handle);
+		markdownOne = fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdown);
 	}
 
 	private V2WikiPage createWikiPage(UserInfo info){
@@ -209,8 +199,7 @@ public class SearchWorkerIntegrationTest {
 		waitForQuery("q="+uuid);
 	}
 
-	public void waitForPojectToAppearInSearch() throws ClientProtocolException,
-			IOException, HttpClientHelperException, InterruptedException {
+	public void waitForPojectToAppearInSearch() throws Exception {
 		long start = System.currentTimeMillis();
 		while(!searchDao.doesDocumentExist(project.getId(), project.getEtag())){
 			System.out.println("Waiting for entity "+project.getId()+" to appear in the search index...");
@@ -220,8 +209,7 @@ public class SearchWorkerIntegrationTest {
 		}
 	}
 	
-	public void waitForQuery(String query) throws ClientProtocolException,
-			IOException, HttpClientHelperException, InterruptedException {
+	public void waitForQuery(String query) throws Exception {
 		long start = System.currentTimeMillis();
 		while (searchDao.executeSearch(query).getHits().size() < 1) {
 			System.out.println("Waiting for search query: "+query);

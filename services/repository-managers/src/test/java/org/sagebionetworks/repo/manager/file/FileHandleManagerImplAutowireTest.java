@@ -4,21 +4,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPut;
@@ -30,10 +36,21 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.downloadtools.FileUtils;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -43,9 +60,17 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
@@ -54,11 +79,16 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -67,6 +97,7 @@ public class FileHandleManagerImplAutowireTest {
 	public static final long MAX_UPLOAD_WORKER_TIME_MS = 20*1000;
 	
 	private List<S3FileHandle> toDelete;
+	private final List<String> entitiesToDelete = Lists.newArrayList();
 	
 	@Autowired
 	private FileHandleManager fileUploadManager;
@@ -79,8 +110,19 @@ public class FileHandleManagerImplAutowireTest {
 	
 	@Autowired
 	public UserManager userManager;
+
+	@Autowired
+	private EntityManager entityManager;
+
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private AccessControlListDAO accessControlListDAO;
 	
 	private UserInfo userInfo;
+	private UserInfo userInfo2;
+	private String username;
 	
 	/**
 	 * This is the metadata about the files we uploaded.
@@ -88,14 +130,47 @@ public class FileHandleManagerImplAutowireTest {
 	private List<S3FileHandle> expectedMetadata;
 	private String[] fileContents;
 	private List<FileItemStream> fileStreams;
+
+	private String projectId;
+	private String uploadFolder;
+
+	private String projectName;
 	
 	@Before
 	public void before() throws Exception{
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@test.com");
-		user.setUserName(UUID.randomUUID().toString());
+		username = UUID.randomUUID().toString();
+		user.setEmail(username + "@test.com");
+		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		user = new NewUser();
+		String username2 = UUID.randomUUID().toString();
+		user.setEmail(username2 + "@test.com");
+		user.setUserName(username2);
+		userInfo2 = userManager.getUserInfo(userManager.createUser(user));
+		userInfo2.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		
+		Project project = new Project();
+		projectName = "project" + new Random().nextInt();
+		project.setName(projectName);
+		projectId = entityManager.createEntity(userInfo, project, null);
+		entitiesToDelete.add(projectId);
+
+		addAcl(projectId, userInfo2.getId());
+
+		Folder child = new Folder();
+		child.setName("child");
+		child.setParentId(projectId);
+		String childId = entityManager.createEntity(userInfo, child, null);
+		entitiesToDelete.add(childId);
+		Folder child2 = new Folder();
+		child2.setName("child2  a_-nd.+more()");
+		child2.setParentId(childId);
+		uploadFolder = entityManager.createEntity(userInfo, child2, null);
+		entitiesToDelete.add(uploadFolder);
+
 		toDelete = new LinkedList<S3FileHandle>();
 		// Setup the mock file to upload.
 		int numberFiles = 2;
@@ -129,13 +204,19 @@ public class FileHandleManagerImplAutowireTest {
 			for(S3FileHandle meta: toDelete){
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
-				// We also need to delete the data from the database
-				fileHandleDao.delete(meta.getId());
+				if (meta.getId() != null) {
+					// We also need to delete the data from the database
+					fileHandleDao.delete(meta.getId());
+				}
 			}
+		}
+		for (String id : Lists.reverse(entitiesToDelete)) {
+			entityManager.deleteEntity(userInfo, id);
 		}
 		
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo2.getId().toString()));
 	}
 	
 
@@ -174,12 +255,12 @@ public class FileHandleManagerImplAutowireTest {
 			S3FileHandle fromDB = (S3FileHandle) fileHandleDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
 			// Test the Pre-Signed URL
-			URL presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
+			String presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
 			assertNotNull(presigned);
-			String urlString = presigned.toString();
 			// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
 			// both file upload and download.
-			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
+			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",
+					presigned.startsWith("https://s3.amazonaws.com", 0));
 		}
 	}
 	
@@ -212,7 +293,7 @@ public class FileHandleManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testChunckedFileUpload() throws ClientProtocolException, IOException{
+	public void testChunckedFileUpload() throws Exception {
 		String fileBody = "This is the body of the file!!!!!";
 		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
 		String md5 = TransferUtils.createMD5(fileBodyBytes);
@@ -336,6 +417,192 @@ public class FileHandleManagerImplAutowireTest {
 		
 	}
 
+	@Test
+	public void testExternalUploadDestinationOld() throws Exception {
+		final String URL = "sftp://www.sftpsite.com/base/basefolder";
+
+		ExternalStorageLocationSetting externalLocationSetting = new ExternalStorageLocationSetting();
+		externalLocationSetting.setBanner("upload here");
+		externalLocationSetting.setSupportsSubfolders(true);
+		externalLocationSetting.setUploadType(UploadType.SFTP);
+		externalLocationSetting.setUrl(URL);
+		externalLocationSetting.setDescription("external");
+		externalLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
+
+		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
+		uploadDestinationListSetting.setProjectId(projectId);
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
+
+		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
+
+		@SuppressWarnings("deprecation")
+		List<UploadDestination> uploadDestinations = fileUploadManager.getUploadDestinations(userInfo, uploadFolder);
+
+		assertEquals(1, uploadDestinations.size());
+		assertEquals(ExternalUploadDestination.class, uploadDestinations.get(0).getClass());
+		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestinations.get(0);
+		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
+		assertEquals("upload here", externalUploadDestination.getBanner());
+		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
+		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
+	}
+
+	@Test
+	public void testExternalUploadDestination() throws Exception {
+		final String URL = "sftp://www.sftpsite.com/base/basefolder";
+
+		ExternalStorageLocationSetting externalLocationSetting = new ExternalStorageLocationSetting();
+		externalLocationSetting.setBanner("upload here");
+		externalLocationSetting.setSupportsSubfolders(true);
+		externalLocationSetting.setUploadType(UploadType.SFTP);
+		externalLocationSetting.setUrl(URL);
+		externalLocationSetting.setDescription("external");
+		externalLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
+
+		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
+		uploadDestinationListSetting.setProjectId(projectId);
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
+
+		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
+
+		List<UploadDestinationLocation> uploadDestinationLocations = fileUploadManager.getUploadDestinationLocations(userInfo, uploadFolder);
+		assertEquals(1, uploadDestinationLocations.size());
+		assertEquals("external", uploadDestinationLocations.get(0).getDescription());
+		assertEquals(UploadType.SFTP, uploadDestinationLocations.get(0).getUploadType());
+
+		UploadDestination uploadDestination = fileUploadManager.getUploadDestination(userInfo, uploadFolder, uploadDestinationLocations
+				.get(0).getStorageLocationId());
+		assertEquals(ExternalUploadDestination.class, uploadDestination.getClass());
+		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestination;
+		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
+		assertEquals("upload here", externalUploadDestination.getBanner());
+		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
+		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
+	}
+	
+	@Test
+	public void testExternalS3UploadDestinationSecurityCheck() throws Exception {
+		String testBase = "test-base-" + UUID.randomUUID();
+		ExternalS3StorageLocationSetting externalS3LocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3LocationSetting.setBanner("upload here");
+		externalS3LocationSetting.setDescription("external");
+		externalS3LocationSetting.setUploadType(UploadType.S3);
+		externalS3LocationSetting.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
+		externalS3LocationSetting.setBaseKey(testBase);
+
+		s3Client.createBucket(externalS3LocationSetting.getBucket());
+
+		externalS3LocationSetting.setEndpointUrl("https://someurl");
+		try {
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+			fail();
+		} catch (NotImplementedException e) {
+		}
+
+		// null, empty or us-east-1 should all not give NotImplementedException
+		for (String host : new String[] { null, "", "https://" + Constants.S3_HOSTNAME }) {
+			externalS3LocationSetting.setEndpointUrl(host);
+
+			try {
+				projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+				fail();
+			} catch (IllegalArgumentException e) {
+				assertTrue(e.getMessage().indexOf("Did not find S3 object") != -1);
+			}
+		}
+
+		String nothing = "";
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(nothing.length());
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(nothing), metadata);
+		
+		S3FileHandle fauxHandle = new S3FileHandle();
+		fauxHandle.setBucketName(externalS3LocationSetting.getBucket());
+		fauxHandle.setKey(testBase + "owner.txt");
+		toDelete.add(fauxHandle);
+
+		try {
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().indexOf("No username found") != -1);
+		}
+
+		String wrongName = "not me";
+		metadata.setContentLength(wrongName.length());
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(wrongName), metadata);
+
+		try {
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().indexOf("is not what was expected") != -1);
+		}
+
+		metadata.setContentLength(username.length());
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(username), metadata);
+
+		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+
+		// make sure only owner can use this s3 setting
+		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
+		uploadDestinationListSetting.setProjectId(projectId);
+		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalS3LocationSetting.getStorageLocationId()));
+
+		try {
+			projectSettingsManager.createProjectSetting(userInfo2, uploadDestinationListSetting);
+			fail();
+		} catch (UnauthorizedException e) {
+			assertTrue(e.getMessage().indexOf("Only the owner") != -1);
+		}
+
+		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
+	}
+
+	@Test
+	public void testCreateCompressedFileFromString() throws Exception{
+		String fileContents = "This will be compressed";
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
+		assertNotNull(handle);
+		toDelete.add(handle);
+		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
+		assertEquals("compressed.txt.gz", handle.getFileName());
+		assertNotNull(handle.getContentMd5());
+		assertTrue(handle.getContentSize() > 1);
+		assertNotNull(handle.getId());
+		assertTrue(handle.getKey().contains(userId));
+		
+		// Read back the file and confirm the contents
+		S3Object s3Object =s3Client.getObject(handle.getBucketName(), handle.getKey());
+		assertNotNull(s3Object);
+		InputStream input = s3Object.getObjectContent();
+		try{
+			String back = FileUtils.readCompressedStreamAsString(input);
+			assertEquals(fileContents, back);
+		}finally{
+			input.close();
+		}
+	}
+	
+
+	@Test
+	public void testCreateNeverUploadedPlaceHolderFileHandle() throws UnsupportedEncodingException, IOException{
+		String userId = ""+userInfo.getId();
+		Date createdOn = new Date(System.currentTimeMillis());
+		String name = "archive.zip";
+		S3FileHandle handle = fileUploadManager.createNeverUploadedPlaceHolderFileHandle(userId, createdOn, name);
+		assertNotNull(handle);
+		toDelete.add(handle);
+		assertEquals("text/plain", handle.getContentType());
+		assertEquals("archive_zip_placeholder.txt", handle.getFileName());
+		assertNotNull(handle.getContentMd5());
+	}
+
 	/**
 	 * Helper to wait for an upload deamon to finish.
 	 * @param daemonStatus
@@ -380,4 +647,13 @@ public class FileHandleManagerImplAutowireTest {
 		return text;
 	}
 	
+	private void addAcl(String projectId, Long principalId) throws Exception {
+		AccessControlList acl = accessControlListDAO.get(projectId, ObjectType.ENTITY);
+		Set<ACCESS_TYPE> accessTypes = Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.UPLOAD);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		ra.setAccessType(accessTypes);
+		acl.getResourceAccess().add(ra);
+		accessControlListDAO.update(acl, ObjectType.ENTITY);
+	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,14 +28,19 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class EntityBundleServiceImplTest {
@@ -44,10 +51,12 @@ public class EntityBundleServiceImplTest {
 	
 	private ServiceProvider mockServiceProvider;
 	private EntityService mockEntityService;
+	private TableServices mockTableService;
+	private WikiService mockWikiService;
 	
 	private Project project;
-	private Study study;
-	private Study studyWithId;
+	private Folder study;
+	private Folder studyWithId;
 	private Annotations annos;
 	private AccessControlList acl;
 	
@@ -65,20 +74,25 @@ public class EntityBundleServiceImplTest {
 		// Mocks
 		mockServiceProvider = mock(ServiceProvider.class);
 		mockEntityService = mock(EntityService.class);
+		mockWikiService = mock(WikiService.class);
 		
 		entityBundleService = new EntityBundleServiceImpl(mockServiceProvider);
+		mockTableService = mock(TableServices.class);
+		when(mockServiceProvider.getTableServices()).thenReturn(mockTableService);
+		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
+		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		
 		// Entities
 		project = new Project();
 		project.setName(DUMMY_PROJECT);
 		project.setEntityType(project.getClass().getName());
 		
-		study = new Study();
+		study = new Folder();
 		study.setName(DUMMY_STUDY_1);
 		study.setEntityType(study.getClass().getName());
 		study.setParentId(project.getId());
 		
-		studyWithId = new Study();
+		studyWithId = new Folder();
 		studyWithId.setName(DUMMY_STUDY_1);
 		studyWithId.setEntityType(study.getClass().getName());
 		studyWithId.setParentId(project.getId());
@@ -112,7 +126,7 @@ public class EntityBundleServiceImplTest {
 		String activityId = "123";
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(studyWithId);
 		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId), any(HttpServletRequest.class))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1), any(HttpServletRequest.class))).thenReturn(acl);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(new Annotations());
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class))).thenReturn(annos);
@@ -126,7 +140,7 @@ public class EntityBundleServiceImplTest {
 		ebc.setAccessControlList(acl);
 		
 		EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, activityId, null);		
-		Study s2 = (Study) eb.getEntity();
+		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
 		
@@ -152,7 +166,7 @@ public class EntityBundleServiceImplTest {
 			
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(studyWithId);
 		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId), any(HttpServletRequest.class))).thenReturn(studyWithId);
-		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1), any(HttpServletRequest.class))).thenReturn(acl);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(annosWithId);
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class))).thenReturn(annos);
@@ -169,7 +183,7 @@ public class EntityBundleServiceImplTest {
 
 		EntityBundle eb = entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, ebc, activityId, null);
 		
-		Study s2 = (Study) eb.getEntity();
+		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
 		
@@ -187,4 +201,76 @@ public class EntityBundleServiceImplTest {
 		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class));
 	}
 	
+	@Test
+	public void testTableData() throws Exception {
+		String entityId = "syn123";
+		PaginatedColumnModels page = new PaginatedColumnModels();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("9999");
+		page.setResults(Arrays.asList(cm));
+		when(mockTableService.getColumnModelsForTableEntity(TEST_USER1, entityId)).thenReturn(page);
+		when(mockTableService.getMaxRowsPerPage(page.getResults())).thenReturn(12345L);
+		int mask = EntityBundle.TABLE_DATA;
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getTableBundle());
+		assertEquals(page.getResults(), bundle.getTableBundle().getColumnModels());
+		assertEquals(new Long(12345), bundle.getTableBundle().getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testRootWikiId() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.ROOT_WIKI_ID;
+		String rootWikiId = "456";
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		key.setWikiPageId(rootWikiId);
+		when(mockWikiService.getRootWikiKey(TEST_USER1, entityId, ObjectType.ENTITY)).thenReturn(key);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(rootWikiId, bundle.getRootWikiId());
+	}
+	
+	@Test
+	public void testRootWikiIdNotFound() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.ROOT_WIKI_ID;
+		when(mockWikiService.getRootWikiKey(TEST_USER1, entityId, ObjectType.ENTITY)).thenThrow(new NotFoundException("does not exist"));
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals("ID should be null when it does not exist",null, bundle.getRootWikiId());
+	}
+	
+	/**
+	 * For this case, the entity is its own benefactor.
+	 */
+	@Test
+	public void testGetBenefactorAclOwnBenefactor() throws Exception {
+		AccessControlList acl = new AccessControlList();
+		acl.setId("123");
+		String entityId = "syn123";
+		int mask = EntityBundle.BENEFACTOR_ACL;
+		when(mockEntityService.getEntityACL(anyString(), anyLong())).thenReturn(acl);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(acl, bundle.getBenefactorAcl());
+	}
+	
+	@Test
+	public void testGetBenefactorAclInheritied() throws Exception {
+		AccessControlList acl = new AccessControlList();
+		acl.setId("456");
+		String entityId = "syn123";
+		String benefactorId = "syn456";
+		int mask = EntityBundle.BENEFACTOR_ACL;
+		// this entity inherits its permissions.
+		when(mockEntityService.getEntityACL(entityId, TEST_USER1)).thenThrow(new ACLInheritanceException("Has a benefactor", benefactorId));
+		// return the benefactor ACL.
+		when(mockEntityService.getEntityACL(benefactorId, TEST_USER1)).thenReturn(acl);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(acl, bundle.getBenefactorAcl());
+	}
 }

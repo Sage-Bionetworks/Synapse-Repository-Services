@@ -1,0 +1,26 @@
+{
+	"description": "A project based setting",
+	"type": "interface",
+	"properties": {
+        "concreteType": {
+            "type": "string",
+            "description": "Indicates which implementation this object represents."
+        },
+		"id": {
+			"type": "string",
+			"description": "The unique ID assigned to this setting"
+		},
+		"projectId": {
+			"type": "string",
+			"description": "The ID for the project this setting applies to"
+		},
+		"settingsType": {
+			"$ref": "org.sagebionetworks.repo.model.project.ProjectSettingsType"
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a Project Setting is updated it is used to detect when a client's current representation of a Project Setting is out-of-date.",
+			"transient": true
+		}
+	}
+}

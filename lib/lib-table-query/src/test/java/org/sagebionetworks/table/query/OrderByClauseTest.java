@@ -13,9 +13,7 @@ public class OrderByClauseTest {
 	public void testToSQl() throws ParseException{
 		SortSpecificationList list = SqlElementUntils.createSortSpecificationList("foo, bar");
 		OrderByClause element= new OrderByClause(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("ORDER BY foo, bar", builder.toString());
+		assertEquals("ORDER BY foo, bar", element.toString());
 	}
 
 }

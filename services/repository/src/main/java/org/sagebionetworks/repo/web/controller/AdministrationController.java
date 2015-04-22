@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -220,6 +221,19 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAdministrationService().getCurrentChangeNumber(userId);
 	}
 	
+	/**
+	 * Create or update change messages
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.CREATE_OR_UPDATE }, method = RequestMethod.POST)
+	public @ResponseBody
+	ChangeMessages createOrUpdateChangeMessages(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ChangeMessages batch) throws UnauthorizedException, NotFoundException {
+				return serviceProvider.getAdministrationService().createOrUpdateChangeMessages(userId, batch);
+	}
 	
 	/**
 	 * Clears the Synapse DOI table.
@@ -270,6 +284,27 @@ public class AdministrationController extends BaseController {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
 	
+	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REBUILD }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void rebuildTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
+		serviceProvider.getAdministrationService().rebuildTable(userId, tableId);
+	}
+	
+	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_ADD_INDEXES }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void addIndexesToTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
+		serviceProvider.getAdministrationService().addIndexesToTable(userId, tableId);
+	}
+
+	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REMOVE_INDEXES }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void removeIndexesFromTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
+		serviceProvider.getAdministrationService().removeIndexesFromTable(userId, tableId);
+	}
+
 	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void clearLocks(
@@ -288,5 +323,35 @@ public class AdministrationController extends BaseController {
 	public void waitForTesting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean release) throws Exception {
 		serviceProvider.getAdministrationService().waitForTesting(userId, BooleanUtils.isTrue(release));
+	}
+
+	/**
+	 * throw an expected exception
+	 * 
+	 * @throws Throwable
+	 */
+	@RequestMapping(value = { UrlHelpers.ADMIN_EXCEPTION }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	public void throwException(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String exception, @RequestParam(required = true) Boolean inTransaction,
+			@RequestParam(required = true) Boolean inBeforeCommit) throws Throwable {
+		try {
+			if (inTransaction) {
+				if (inBeforeCommit) {
+					serviceProvider.getAdministrationService().throwExceptionTransactionalBeforeCommit(exception);
+				} else {
+					serviceProvider.getAdministrationService().throwExceptionTransactional(exception);
+				}
+			} else {
+				serviceProvider.getAdministrationService().throwException(exception);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+			if (!t.getClass().getName().equals(exception)) {
+				// this is an error, so return 200 which will make the test fail
+				return;
+			}
+			throw t;
+		}
 	}
 }

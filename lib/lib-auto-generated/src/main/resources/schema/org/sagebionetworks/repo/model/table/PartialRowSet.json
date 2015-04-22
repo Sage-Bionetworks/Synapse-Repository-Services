@@ -1,10 +1,11 @@
 {
-	"description":"Represents a set of row of a TablEntity",
+	"description":"Represents a set of row of a TableEntity",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.AppendableRowSet"
+		}
+	],
 	"properties":{
-		"tableId":{
-			"description":"The ID of the TableEntity than owns these rows",
-			"type": "string"
-		},
 		"rows": {
 			"description":"The partial rows of this set.",
 			"type": "array",

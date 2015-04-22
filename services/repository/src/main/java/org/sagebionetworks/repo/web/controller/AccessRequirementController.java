@@ -3,8 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
-import javax.servlet.http.HttpServletRequest;
-
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -27,6 +26,38 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * These services manage the Access Requirements/Restrictions (ARs) which may be placed on Entities,
+ * Evaluation queues, or Teams.  An Access Requirement specifies the type of access being restricted as well
+ * as how the requirement is fulfilled. 
+ * <p>
+ * ARs complement Access Control Lists (ACLs) for managing access to Synapse objects.
+ * While ACLs are managed by entity owners, ARs are managed by the Synapse Access and Compliance Team (ACT), which is
+ * responsible for governance of sensitive data.  Before one may access data associated with an 
+ * AR, there must be a corresponding Access Approval.  For certain ARs --
+ * of the "self-sign" variety -- one may grant ones own approval by agreeing to associated
+ * 'terms of use.'  For other Access Requirements -- of the 'ACT' variety -- approval may be granted
+ * only by the ACT.
+ * </p>
+ * <p>
+ * As stated above, an AR specifies the type of access being controlled.  Generally
+ * entities are restricted with DOWNLOAD access.  A Synapse user may be able to see that a Synapse
+ * File exists, but be unable to download the content due to such an AR.  Teams are
+ * restricted using the PARTICIPATE access type:  Prior to joining a Team a user must fulfill any
+ * associated ARs controlling this type of access.
+ * </p>
+ * <p>
+ * Entity ARs are inherited from ancestors.  E.g. an AR applied to a Folder will control all Files in the Folder, 
+ * or within sub-folders of the Folder.  Access Requirements are cumulative:  A File will be controlled both
+ * by ARs applied to it directly and by ARs applied to any and all of its ancestors.
+ * </p>
+ * <p>
+ * Access Requirements are fulfilled on a per-user basis using the <a href="#org.sagebionetworks.repo.web.controller.AccessApprovalController">
+ * Access Approval Services</a>.
+ * </p>
+ * 
+ *
+ */
 @ControllerInfo(displayName="Access Requirement Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
@@ -35,17 +66,52 @@ public class AccessRequirementController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
 
+	/**
+	 * Add an Access Requirement to an Entity, Evaluation queue, or Team.  
+	 * This service may only be used by the Synapse Access and Compliance Team.
+	 * @param userId
+	 * @param accessRequirement the Access Requirement to create
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessRequirement createAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AccessRequirement accessRequirement
-			) throws Exception {
+			@RequestBody AccessRequirement accessRequirement) throws Exception {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
+	}	
+	/**
+	 * Get an Access Requirement to an Entity, Evaluation queue, or Team based on its ID.  
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessRequirement 
+	getAccessRequirement(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {	
+		return serviceProvider.getAccessRequirementService().getAccessRequirement(userId, requirementId);
 	}
-	
 
+	/**
+	 * Modify an existing Access Requirement.
+	 * This service may only be used by the Synapse Access and Compliance Team.
+	 * @param userId
+	 * @param requirementId the ID of the Access Requirement to be modified.
+	 * @param accessRequirement  The modified Access Requirement.
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -58,6 +124,14 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 
+	/**
+	 * Add a temporary access restriction that prevents access pending review by the Synapse Access and Compliance Team.  
+	 * This service may be used only by an administrator of the specified entity.
+	 * @param userId
+	 * @param id the ID of the entity to which an Access Requirement will be applied
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_LOCK_ACCESS_REQURIEMENT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -70,10 +144,10 @@ public class AccessRequirementController extends BaseController {
 	
 
 	/**
-	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity
+	 * Retrieve paginated list of unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
 	 * @param userId
-	 * @param entityId
-	 * @param request
+	 * @param entityId the id of the entity whose unmet Access Requirements are retrieved
+	 * @param accessType the type of access to filter on
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -84,24 +158,32 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEntityAccessRequirement(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			HttpServletRequest request
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
 	}
 
+	/**
+	 * Retrieve paginated list of ALL Access Requirements associated with an entity.
+	 * @param userId
+	 * @param entityId the id of the entity whose Access Requirements are retrieved
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getEntityAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			HttpServletRequest request
+				@PathVariable(value = ID_PATH_VARIABLE) String entityId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
@@ -110,10 +192,10 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 	/**
-	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for an evaluation
+	 * Retrieve a paginated list of unfulfilled Access Requirements (of type DOWNLOAD or PARTICIPATE) for an Evaluation queue.
 	 * @param userId
-	 * @param evaluationId
-	 * @param request
+	 * @param evaluationId the id of the Evaluation whose unmet Access Requirements are retrieved
+	 * @param accessType the type of access to filter on
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -124,24 +206,32 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEvaluationAccessRequirement(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			HttpServletRequest request
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
 		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
 	}
 
+	/**
+	 * Retrieve paginated list of ALL Access Requirements associated with an Evaluation queue.
+	 * @param userId
+	 * @param evaluationId the id of the Evaluation whose Access Requirements are retrieved
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_EVALUATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getEvaluationAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			HttpServletRequest request
+				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
@@ -150,9 +240,10 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	/**
-	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for a Team
+	 * Retrieve a paginated list of unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
 	 * @param userId
-	 * @param evaluationId
+	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
+	 * @param accessType the type of access to filter on
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -164,37 +255,54 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledTeamAccessRequirement(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = true) ACCESS_TYPE accessType
+	) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
 	}
 
+	/**
+	 * Retrieve paginated list of ALL Access Requirements associated with a Team.
+	 * @param userId
+	 * @param id the ID of the Team whose Access Requirements are retrieved.
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_TEAM_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getTeamAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable String id,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
+				@PathVariable String id) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 
+	/**
+	 * Delete an Access Requirement.
+	 * This service may only be used by the Synapse Access and Compliance Team.
+	 * @param userId
+	 * @param requirementId the ID of the requirement to delete
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String requirementId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {	
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
 	}
 }

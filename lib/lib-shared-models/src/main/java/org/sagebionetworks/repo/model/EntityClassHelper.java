@@ -7,10 +7,10 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 public class EntityClassHelper {
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
-	private static final String ENTITY_TYPE_FIELD_NAME = "entityType";
+	private static final String CONCRETE_TYPE_FIELD_NAME = "concreteType";
 	
 	public static String entityType(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
-		return jsonObjectAdapter.getString(ENTITY_TYPE_FIELD_NAME);
+		return jsonObjectAdapter.getString(CONCRETE_TYPE_FIELD_NAME);
 	}
 	
 	public static JSONEntity deserialize(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {

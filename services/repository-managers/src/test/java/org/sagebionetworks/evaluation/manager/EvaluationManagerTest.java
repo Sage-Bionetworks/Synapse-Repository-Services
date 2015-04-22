@@ -22,8 +22,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -50,6 +52,7 @@ public class EvaluationManagerTest {
 	private IdGenerator mockIdGenerator;
 	private EvaluationDAO mockEvaluationDAO;
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
+	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
@@ -77,6 +80,8 @@ public class EvaluationManagerTest {
     	mockAuthorizationManager = mock(AuthorizationManager.class);
     	
     	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
+
+    	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -108,6 +113,7 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
+    	ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
 
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
@@ -120,9 +126,11 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.getCountByContentSource(eq(EVALUATION_CONTENT_SOURCE))).thenReturn(1L);
     	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), any(List.class))).thenReturn(1L);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     }
 
 	@Test
@@ -177,7 +185,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(false);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
 		assertEquals(evaluations, qr.getResults());
 		assertEquals(1L, qr.getTotalNumberOfResults());
@@ -199,6 +207,22 @@ public class EvaluationManagerTest {
 			assertTrue(e.getMessage().toLowerCase().contains("name"));			
 		}
 		verify(mockEvaluationDAO, times(0)).update(eq(eval));
+	}
+	
+	private static final String TEAM_ID = "101";
+	
+	@Test
+	public void testGetTeamSubmissionEligibility() throws Exception {
+		when(mockEvaluationDAO.get(eval.getId())).thenReturn(eval);
+		when(mockPermissionsManager.canCheckTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID)).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
+		tse.setEvaluationId(eval.getId());
+		tse.setTeamId(TEAM_ID);
+		when(mockSubmissionEligibilityManager.getTeamSubmissionEligibility(eval, TEAM_ID)).
+			thenReturn(tse);
+		assertEquals(tse,
+				evaluationManager.getTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID));
 	}
 
 }

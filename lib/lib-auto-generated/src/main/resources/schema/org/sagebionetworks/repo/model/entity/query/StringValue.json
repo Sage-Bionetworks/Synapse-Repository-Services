@@ -1,0 +1,14 @@
+{
+	"description": "Use String values.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.entity.query.Value"
+		}
+	],
+	"properties":{
+        "value": {
+			"type": "string"
+		}
+    }
+}

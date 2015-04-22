@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -29,6 +30,8 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -46,7 +49,6 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -70,20 +72,18 @@ import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -1028,27 +1028,6 @@ public class ServletTestHelper {
 	}
 
 	/**
-	 * Create an attachment token
-	 */
-	public S3AttachmentToken createS3AttachmentToken(Long userId,
-			ServiceConstants.AttachmentType attachentType, String id,
-			S3AttachmentToken token) throws Exception {
-		Assert.assertNotNull(id);
-		Assert.assertNotNull(token);
-
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(attachentType)
-						+ "/" + id + UrlHelpers.ATTACHMENT_S3_TOKEN, userId,
-				token);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), S3AttachmentToken.class);
-	}
-
-	/**
 	 * Get a pre-signed URL for a an attachment
 	 */
 	public PresignedUrl getAttachmentUrl(Long userIdId, String entityId,
@@ -1158,12 +1137,12 @@ public class ServletTestHelper {
 	}
 
 	public PaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId)
+			HttpServlet dispatchServlet, String id, Long userId, ACCESS_TYPE accessType)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils
 				.initRequest(HTTPMODE.GET, "/entity/" + id
 						+ "/accessRequirementUnfulfilled", userId, null);
-
+		if (accessType!=null) request.setParameter("accessType", accessType.name());
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1172,11 +1151,12 @@ public class ServletTestHelper {
 	}
 
 	public PaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(
-			HttpServlet dispatchServlet, String id, Long userId)
+			HttpServlet dispatchServlet, String id, Long userId, ACCESS_TYPE accessType)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/evaluation/" + id
 						+ "/accessRequirementUnfulfilled", userId, null);
+		if (accessType!=null) request.setParameter("accessType", accessType.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1429,26 +1409,6 @@ public class ServletTestHelper {
 		return pcm.getResults();
 	}
 	
-	public RowSet tableQuery(
-			DispatcherServlet instance, Long userId, Query query)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.TABLE_QUERY, userId, query);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		instance.service(request, response);
-		String reponseString = response.getContentAsString();
-		if(response.getStatus() == 201){
-			return EntityFactory.createEntityFromJSONString(reponseString, RowSet.class);
-		}else if(response.getStatus() == 202){
-			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
-			throw new TableUnavilableException(status);
-		}else{
-			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
-			return null;
-		}
-	}
-	
 	/**
 	 * Start a new Asynchronous Job.
 	 * 
@@ -1604,6 +1564,16 @@ public class ServletTestHelper {
 
 		return objectMapper
 				.readValue(response.getContentAsString(), Team.class);
+	}
+	
+	public List<Team> listTeams(HttpServlet dispatchServlet, IdList idList) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.TEAM_LIST, userId, idList);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		
+		return ListWrapper.unwrap(new JSONObjectAdapterImpl(response.getContentAsString()), Team.class);
 	}
 
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,

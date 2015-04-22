@@ -24,20 +24,20 @@ public class RedirectUtils {
 	 * @param response
 	 * @throws IOException
 	 */
-	public static void handleRedirect(Boolean redirect, URL redirectUrl, HttpServletResponse response) throws IOException{
+	public static void handleRedirect(Boolean redirect, String redirectUrl, HttpServletResponse response) throws IOException {
 		// Redirect by default
 		if(redirect == null){
 			redirect = Boolean.TRUE;
 		}
 		if(Boolean.TRUE.equals(redirect)){
 			// Standard redirect
-			response.addHeader(LOCATION_HEADER, redirectUrl.toString());
+			response.addHeader(LOCATION_HEADER, redirectUrl);
 			response.setStatus(HttpStatus.TEMPORARY_REDIRECT.value());
 		}else{
 			// Return the redirect url instead of redirecting.
 			response.setStatus(HttpStatus.OK.value());
 			response.setContentType("text/plain");
-			response.getWriter().write(redirectUrl.toString());
+			response.getWriter().write(redirectUrl);
 			response.getWriter().flush();
 		}
 	}

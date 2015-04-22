@@ -47,6 +47,11 @@
 		"submissionReceiptMessage": {
 			"type": "string",
 			"description": "Message to display to users upon successful submission to this Evaluation."
+		},
+		"quota": {
+			"type":"object",
+			"description":"Maximum submissions per team/participant per submission round",
+			"$ref":"org.sagebionetworks.evaluation.model.SubmissionQuota"
 		}
 	}
 }

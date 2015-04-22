@@ -5,12 +5,19 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
@@ -21,21 +28,26 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.worker.TableWorker.State;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
@@ -47,6 +59,7 @@ public class TableWorkerTest {
 	TableIndexDAO mockTableIndexDAO;
 	StackConfiguration mockConfiguration;
 	SimpleJdbcTemplate mockConnection;
+	NodeInheritanceManager mockNodeInheritanceManager;
 
 
 	@Before
@@ -55,11 +68,13 @@ public class TableWorkerTest {
 		mockTableRowManager = Mockito.mock(TableRowManager.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
 		mockConfiguration = Mockito.mock(StackConfiguration.class);
+		mockNodeInheritanceManager = mock(NodeInheritanceManager.class);
 		mockConnection = Mockito.mock(SimpleJdbcTemplate.class);
 		// Turn on the feature by default
 		when(mockConfiguration.getTableEnabled()).thenReturn(true);
 		// return a connection by default
 		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(mockTableIndexDAO);
+		when(mockNodeInheritanceManager.isNodeInTrash(anyString())).thenReturn(false);
 		
 		// By default we want to the manager to just call the passed callable.
 		stub(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<TableWorker.State>() {
@@ -81,13 +96,21 @@ public class TableWorkerTest {
 	 * @return
 	 */
 	public TableWorker createNewWorker(List<Message> messages){
-		return new TableWorker(messages, mockTableConnectionFactory, mockTableRowManager, mockConfiguration, new WorkerProgress() {
+		TableWorker tableWorker = new TableWorker(mockTableConnectionFactory, mockTableRowManager, mockConfiguration,
+				mockNodeInheritanceManager);
+		tableWorker.setWorkerProgress(new WorkerProgress() {
 			@Override
 			public void progressMadeForMessage(Message message) {
+			}
+
+			@Override
+			public void retryMessage(Message message, int retryTimeoutInSeconds) {
 				// TODO Auto-generated method stub
 				
 			}
 		});
+		tableWorker.setMessages(messages);
+		return tableWorker;
 	}
 	
 	/**
@@ -166,7 +189,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
 		TableRowChange trc = new TableRowChange();
@@ -175,7 +198,7 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(tableId, 0L, Collections.singleton(0L))).thenReturn(rowSet);
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -206,7 +229,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(2L);
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 3L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 3L));
 		TableRowChange trc = new TableRowChange();
@@ -215,7 +238,7 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
-		when(mockTableRowManager.getRowSet(tableId, 3L, Collections.singleton(0L))).thenReturn(rowSet);
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -242,7 +265,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
 		RuntimeException error = new RuntimeException("Something went horribly wrong!");
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenThrow(error);
@@ -272,7 +295,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Without a connection the message should go back to the queue
 		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(null);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -298,7 +321,7 @@ public class TableWorkerTest {
 		TableStatus status = new TableStatus();
 		// Set the current token to be different than the token in the message
 		status.setResetToken(resetToken2);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken1);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -324,7 +347,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenThrow(new NotFoundException("This table does not exist"));
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenThrow(new NotFoundException("This table does not exist"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -348,7 +371,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
 		when(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -364,7 +387,48 @@ public class TableWorkerTest {
 	}
 	
 	/**
+	 * When a lock cannot be acquired, the message should remain on the queue as this is a recoverable failure.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testCacheBehindException() throws Exception {
+		String tableId = "456";
+		String resetToken = "reset-token";
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		status.setProgressMessage("going");
+		status.setProgressCurrent(2L);
+		status.setProgressTotal(3L);
+		List<ColumnModel> currentSchema = Lists.newArrayList();
+		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenThrow(new TableUnavilableException(status));
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
+		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		List<Message> messages = Arrays.asList(two);
+		// Create the worker
+		TableWorker worker = createNewWorker(messages);
+		// Make the call
+		List<Message> results = worker.call();
+		assertNotNull(results);
+		assertEquals("The message should not have been returned since this is a recoverable failure", 0, results.size());
+		// The connection factory should be called
+		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		// The status should get set to available
+		verify(mockTableRowManager, times(1)).attemptToUpdateTableProgress(tableId, resetToken, "going", 2L, 3L);
+	}
+
+	/**
 	 * An InterruptedException thrown while waiting for lock should be treated asn a recoverable exception.
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -373,7 +437,7 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Simulate a failure to get the lock
 		when(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new InterruptedException("Sop!!!"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -401,7 +465,7 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		// simulate the ConflictingUpdateException
 		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 1L, 0L, 16000L)).thenReturn(Collections.<Long, Long> emptyMap());
 		
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -414,5 +478,21 @@ public class TableWorkerTest {
 		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
 		// The connection factory should never be called
 		verify(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
+	}
+
+	@Test
+	public void testDoNotCreateTrashedTables() throws Exception {
+		String tableId = "456";
+		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenReturn(true);
+		String resetToken = "reset-token";
+		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		List<Message> messages = Arrays.asList(two);
+		// Create the worker
+		TableWorker worker = createNewWorker(messages);
+		// Make the call
+		List<Message> results = worker.call();
+		assertEquals(messages, results);
+		// The connection factory should not be called
+		verifyZeroInteractions(mockTableConnectionFactory);
 	}
 }

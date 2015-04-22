@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+       ">
+
+    <context:annotation-config />
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<!-- The real Node DAO -->
+	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
+	<bean id="nodeInheritanceManager"
+		class="org.sagebionetworks.repo.manager.NodeInheritanceManagerImpl" />
+
+	<!-- The Entity manager -->
+	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl">
+		<property name="allowCreationOfOldEntities" ref="stackConfiguration.allowCreationOfOldEntities"/>
+	</bean>
+	
+	<bean id="entityQueryManager" class="org.sagebionetworks.repo.manager.EntityQueryManagerImpl" />
+
+	<!-- Activity manager -->
+	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
+	
+	<bean id="principalManager" class="org.sagebionetworks.repo.manager.principal.PrincipalManagerImpl" />
+	
+	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
+		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientId" index="0" />
+		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />
+	</bean>
+
+	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
+		<property name="providerMap">
+			<map>
+				<entry
+					key="GOOGLE_OAUTH_2_0"
+					value-ref="googleOAuth2Provider" />
+			</map>
+		</property>
+
+	</bean>
+
+	<!-- Trash manager -->
+	<bean id="trashManager" class="org.sagebionetworks.repo.manager.trash.TrashManagerImpl" />
+	
+	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
+	
+	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
+	
+	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
+	<bean id="uploadFileDaemonThreadPoolPrimary"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads"/>
+	</bean>
+
+	<!-- The thread pool used by the asynchronous fileupload secondary daemons -->
+	<bean id="uploadFileDaemonThreadPoolSecondary"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
+	</bean>
+
+	<!-- Fixed Memory Pool - Used to provided a fix amount of memory used for transfering files
+	      from http input streams to S3 -->
+	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool" init-method="initialize">
+	    <!-- This first argument controls the maximum memory used by the pool -->
+	    <property name="maxMemoryBytes" ref="stackConfiguration.maxFileTransferMemoryPoolBytes"/>
+	    <property name="blockSizeBytes" ref="stackConfiguration.fileTransferBufferSizeBytes"/>
+	</bean>
+	
+	<!-- Memory File Transfer Strategy -->
+	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
+	
+	<!-- Temp file provider -->
+	<bean id="tempFileProvider" class="org.sagebionetworks.repo.util.TempFileProviderImpl" />
+	
+	<!-- Temp File Transfer Strategy -->
+	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
+	
+	<!-- File Upload manager -->
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
+	    <!-- The memory strategy is the primary -->
+	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
+	   	<!-- The temp strategy is the fall-back -->
+	    <property name="fallbackStrategy" ref="tempFileTransferStrategy"/>
+	    <property name="multipartUploadDaemonTimeoutMS" ref="stackConfiguration.fileMultipartUploadDaemonTimeoutMS"/>
+	</bean>
+	
+	<!-- The preview manager -->
+	<bean id="previewManager" class="org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl" init-method="initialize">
+	    <!-- The list of preview generators-->
+	    <property name="generatorList">
+	        <list>
+	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	            <bean
+					class="org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator">
+					<constructor-arg>
+						<bean
+							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+							<property name="targetClass">
+								<value>org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator
+								</value>
+							</property>
+							<property name="targetMethod">
+								<value>getComma</value>
+							</property>
+						</bean>
+					</constructor-arg>
+				</bean>
+	            <bean
+					class="org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator">
+					<constructor-arg>
+						<bean
+							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+							<property name="targetClass">
+								<value>org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator
+								</value>
+							</property>
+							<property name="targetMethod">
+								<value>getTab</value>
+							</property>
+						</bean>
+					</constructor-arg>
+				</bean>
+	            <bean id="textPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
+	            <bean id="zipPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
+	        </list>
+	    </property>
+	    <!-- The maximum amount of memory to uses -->
+	   	<property name="maxPreviewMemory" ref="stackConfiguration.maxFilePreviewMemoryPoolBytes"/>
+	</bean>
+	
+	<!-- The Location helper -->
+	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
+
+	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
+
+	<bean id="authorizationManager"
+		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
+
+	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
+
+	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
+
+	<bean id="projectSettingsManager" class="org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl" />
+
+	<bean id="accessRequirementManager" class="org.sagebionetworks.repo.manager.AccessRequirementManagerImpl" />
+
+	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
+
+	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"
+		scope="singleton" />
+
+	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
+		
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+	
+	<bean id="amazonSESClient" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
+        <constructor-arg ref="awsCredentials" />
+    </bean>
+    
+	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
+			
+	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
+	
+	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/><bean
+        id="migrationManager"
+        class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
+        scope="singleton" >
+        <property
+            name="backupBatchMax"
+            ref="stackConfiguration.migrationBackupBatchMax" />
+        <property name="migrationListeners" >
+            <list>
+				<bean id="tableCacheInvalidationMigrationListener" class="org.sagebionetworks.repo.manager.migration.TableCacheInvalidationMigrationListener" />
+				<bean id="nodeWithProjectIdMigrationListener" class="org.sagebionetworks.repo.manager.migration.NodeWithProjectIdMigrationListener" />
+            </list>
+        </property>
+    </bean>
+
+	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
+		scope="singleton" />
+
+	<bean id="conceptCache"
+		class="org.sagebionetworks.repo.manager.ontology.ConceptCacheLocalImpl"
+		scope="singleton" />
+
+	<bean id="conceptManager"
+		class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl"
+		scope="singleton" />
+
+	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
+		scope="singleton" />
+
+	<bean id="storageUsageManager"
+		class="org.sagebionetworks.repo.manager.StorageUsageManagerImpl"
+		scope="singleton" />
+
+	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
+		scope="singleton" />
+		
+	<bean id="evaluationManager" class="org.sagebionetworks.evaluation.manager.EvaluationManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="submissionEligibilityManager" class="org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="participantManager" class="org.sagebionetworks.evaluation.manager.ParticipantManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="submissionManager" class="org.sagebionetworks.evaluation.manager.SubmissionManagerImpl" 
+		scope="singleton" />
+
+	<bean id="evaluationPermissionsManager" class="org.sagebionetworks.evaluation.manager.EvaluationPermissionsManagerImpl"
+		scope="singleton" />
+		
+	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 
+		scope="singleton" />
+
+	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
+		scope="singleton" />
+
+	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
+		scope="singleton" />
+
+	<bean id="dynamoAdminManager" class="org.sagebionetworks.repo.manager.dynamo.DynamoAdminManagerImpl" 
+		scope="singleton" />
+
+	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl"
+		scope="singleton" />
+
+	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
+		scope="singleton" />
+		
+	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
+        <property name="tableReadTimeoutMS"	ref="stackConfiguration.tableReadTimeoutMS" />
+       	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
+       	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
+    </bean>
+    
+    <bean id="asynchJobQueuePublisher" class="org.sagebionetworks.repo.manager.asynch.AsynchJobQueuePublisherImpl"
+        init-method="initialize" scope="singleton" >
+    </bean>
+	
+   	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />
+
+	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
+		<constructor-arg index="0" ref="nodeTreeUpdateDao" />
+		<constructor-arg index="1" ref="nodeDao" />
+	</bean>
+
+	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
+		scope="singleton" />		
+		
+	<bean id="subStatusAnnoAsyncManager"
+		class="org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl" />
+
+	<!-- The thread pool used by the backup/restore daemons -->
+	<bean id="backupDaemonThreadPool"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments"
+			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
+	</bean>
+
+	<!-- The second thread pool used by the backup/restore daemons -->
+	<bean id="backupDaemonThreadPool2"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments"
+			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
+	</bean>
+
+	<bean id="backupDaemonLauncher"
+		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
+		scope="singleton" >
+	</bean>
+	
+	<!-- Used to read document from repo -->
+	<bean id="searchDocumentDriver"
+		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
+		scope="singleton" />
+
+	<!-- Used to interface to the Jira server -->
+	<bean id="jiraClient"
+		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
+		scope="singleton" />
+
+	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" init-method="bootstrapTeams" scope="singleton">
+	    <property name="teamsToBootstrap" ref="teamsToBootstrap"/>
+    </bean>
+    
+	<bean id="membershipInvitationManager" class="org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl" scope="singleton"/>
+	<bean id="membershipRequestManager" class="org.sagebionetworks.repo.manager.team.MembershipRequestManagerImpl" scope="singleton" />
+			
+    <!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production.
+        Mirror the ID for reference in code in the AuthorizationConstants.BOOTSTRAP_TEAM enum. 
+     -->
+    <util:list id="teamsToBootstrap">
+        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+            <property name="id" value="2" />
+            <property name="name" value="Administrators" />
+            <property name="initialMembers">
+                <list>
+                    <!-- the admin user -->
+                    <value>1</value>
+                </list>
+            </property>
+            </bean>
+        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+            <property name="id" value="464532" />
+            <property name="name" value="Synapse Access and Compliance Team" />
+        </bean>
+        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+            <property name="id" value="4" />
+            <property name="name" value="Trusted Message Senders" />
+            <property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
+           </bean>
+       </util:list>
+		
+	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
+    
+	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
+</beans>

@@ -1,14 +1,17 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
+
 /**
  * This matches &ltwhere clause&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class WhereClause implements SQLElement {
+public class WhereClause extends SQLElement {
 
-	SearchCondition searchCondition;
+	private final SearchCondition searchCondition;
 
 	public WhereClause(SearchCondition searchCondition) {
-		super();
 		this.searchCondition = searchCondition;
 	}
 
@@ -16,10 +19,12 @@ public class WhereClause implements SQLElement {
 		return searchCondition;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		builder.append("WHERE ");
-		searchCondition.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(searchCondition, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visitor.append("WHERE ");
+		visit(searchCondition, visitor);
+	}
 }

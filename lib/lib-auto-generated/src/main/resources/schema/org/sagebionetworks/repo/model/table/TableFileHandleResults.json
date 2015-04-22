@@ -9,7 +9,7 @@
 		    "description":"The list of ColumnModels ID that describes the rows of this set.",
 			"type": "array",
 			"items": {
-				"type": "string"
+				"$ref": "org.sagebionetworks.repo.model.table.SelectColumn"
 			}
 		},		
 		"rows": {

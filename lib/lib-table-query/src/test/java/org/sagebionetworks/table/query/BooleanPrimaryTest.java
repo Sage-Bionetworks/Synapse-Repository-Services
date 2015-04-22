@@ -15,17 +15,13 @@ public class BooleanPrimaryTest {
 	public void testBooleanPrimaryToSQLPredicate() throws ParseException{
 		Predicate predicate = SqlElementUntils.createPredicate("foo in(1,2)");
 		BooleanPrimary element = new BooleanPrimary(predicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo IN ( 1, 2 )", builder.toString());
+		assertEquals("foo IN ( 1, 2 )", element.toString());
 	}
 	
 	@Test
 	public void testBooleanPrimaryToSQLSearchCondition() throws ParseException{
 		SearchCondition searchCondition = SqlElementUntils.createSearchCondition("bar = 1");
 		BooleanPrimary element = new BooleanPrimary(searchCondition);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("( bar = 1 )", builder.toString());
+		assertEquals("( bar = 1 )", element.toString());
 	}
 }

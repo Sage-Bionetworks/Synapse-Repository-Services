@@ -41,8 +41,8 @@ public class SynapseEmailServiceImplTest {
 	public void testWriteToFile() {
 		
 		String to = "you@foo.bar";
-		String homeDir = System.getProperty("user.home");
-		File file = new File(homeDir, to+".json");
+		String tmpDir = System.getProperty("java.io.tmpdir");
+		File file = new File(tmpDir, to+".json");
 		fileToDelete = file;
 		assertFalse(file.exists());
 		SendEmailRequest emailRequest = new SendEmailRequest();

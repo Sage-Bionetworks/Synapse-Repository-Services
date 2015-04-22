@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+
+	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<!-- This is serving as the JDBC connection pool -->
+	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close" depends-on="stackConfiguration">
+		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
+		<property name="url"
+			ref="stackConfiguration.repositoryDatabaseConnectionUrl" />
+		<property name="username"
+			ref="stackConfiguration.repositoryDatabaseUsername" />
+		<property name="password"
+			ref="stackConfiguration.repositoryDatabasePassword" />
+		<!-- The minimum number of connections in the pool at all times -->
+		<property name="minIdle"
+			ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
+		<!-- The maximum number of connections in the pool -->
+		<property name="maxActive"
+			ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections" />
+		<!-- This will test a connection to see if it is alive when a connection 
+			is fetched from the pool -->
+		<property name="testOnBorrow"
+			ref="stackConfiguration.databaseConnectionPoolShouldValidate" />
+		<!-- This is the SQL uses to test if a connection is alive -->
+		<property name="validationQuery"
+			ref="stackConfiguration.databaseConnectionPoolValidateSql" />
+	</bean>
+
+	<!-- A profiler that logs performance data for all bean method calls. -->
+	<bean id="poolLogger" class="org.sagebionetworks.repo.model.jdo.ConnectionPoolLogger" />
+
+	<!-- The default behavior of Spring is to only roll-back on RuntimeExceptions 
+		not Exceptions. In the past that is has caused us to commit on IOException 
+		and InterruptedException See PLFM-2108. This advice 
+		will ensure that we rollback for all exceptions -->
+	<tx:advice id="defaultWriteTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" />
+		</tx:attributes>
+	</tx:advice>
+	<tx:advice id="defaultNewWriteTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" />
+		</tx:attributes>
+	</tx:advice>
+	<tx:advice id="defaultMandatoryWriteTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- These advisor will be applied to any method with the @WriteTransaction, @NewWriteTransaction and 
+		@MandatoryWriteTransaction annotations. This allows us to change the default rollback exception types 
+		for all of our transactional methods -->
+	<aop:config>
+		<aop:pointcut id="defaultWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransaction)" />
+		<aop:advisor pointcut-ref="defaultWrites" advice-ref="defaultWriteTxRollbackAdvice" />
+	</aop:config>
+	<aop:config>
+		<aop:pointcut id="defaultNewWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.NewWriteTransaction)" />
+		<aop:advisor pointcut-ref="defaultNewWrites" advice-ref="defaultNewWriteTxRollbackAdvice" />
+	</aop:config>
+	<aop:config>
+		<aop:pointcut id="defaultMandatoryWrites"
+			expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
+		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
+	</aop:config>
+
+	<!-- Transaction Manager for PMF -->
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSourcePool" />
+	</bean>
+
+	<bean id="simpleJdbcTemplate" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
+		<constructor-arg ref="dataSourcePool"></constructor-arg>
+	</bean>
+	
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<constructor-arg ref="dataSourcePool"></constructor-arg>
+	</bean>
+	
+	<bean id="namedParameterJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
+		<constructor-arg ref="dataSourcePool"></constructor-arg>
+	</bean>
+
+</beans>

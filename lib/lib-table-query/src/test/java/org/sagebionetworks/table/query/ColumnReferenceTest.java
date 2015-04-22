@@ -16,25 +16,19 @@ public class ColumnReferenceTest {
 	@Test
 	public void testToSQL() throws ParseException{
 		ColumnReference ref = SqlElementUntils.createColumnReference("lhs.rhs");
-		StringBuilder builder = new StringBuilder();
-		ref.toSQL(builder);
-		assertEquals("lhs.rhs", builder.toString());
+		assertEquals("lhs.rhs", ref.toString());
 	}
 	
 	@Test
 	public void testToSQLNoRHS() throws ParseException{
 		ColumnReference ref = SqlElementUntils.createColumnReference("lhs");
-		StringBuilder builder = new StringBuilder();
-		ref.toSQL(builder);
-		assertEquals("lhs", builder.toString());
+		assertEquals("lhs", ref.toString());
 	}
 	
 	@Test
 	public void testToSQLDelimited() throws ParseException{
 		ColumnReference ref = SqlElementUntils.createColumnReference("\"has space\".\"has\"\"quote\"");
-		StringBuilder builder = new StringBuilder();
-		ref.toSQL(builder);
-		assertEquals("\"has space\".\"has\"\"quote\"", builder.toString());
+		assertEquals("\"has space\".\"has\"\"quote\"", ref.toString());
 	}
 	
 }

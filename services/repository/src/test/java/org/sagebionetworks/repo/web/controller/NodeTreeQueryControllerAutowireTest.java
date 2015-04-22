@@ -4,15 +4,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.servlet.http.HttpServlet;
-
 import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
@@ -24,13 +21,11 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 
 public class NodeTreeQueryControllerAutowireTest extends AbstractAutowiredControllerTestBase {
@@ -72,10 +67,10 @@ public class NodeTreeQueryControllerAutowireTest extends AbstractAutowiredContro
 		parent.setName("NodeLineageQueryControllerAutowireTest.parent");
 		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
 		Assert.assertNotNull(parent);
-		child = new Study();
+		child = new Folder();
 		child.setName("NodeLineageQueryControllerAutowireTest.child");
 		child.setParentId(parent.getId());
-		child.setEntityType(Study.class.getName());
+		child.setEntityType(Folder.class.getName());
 		child = servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());

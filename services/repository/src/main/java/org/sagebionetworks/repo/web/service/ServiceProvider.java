@@ -22,8 +22,6 @@ public interface ServiceProvider {
 	
 	public NodeQueryService getNodeQueryService();
 	
-	public S3TokenService getS3TokenService();
-	
 	public StorageUsageService getStorageUsageService();
 	
 	public UserGroupService getUserGroupService();
@@ -63,5 +61,11 @@ public interface ServiceProvider {
 	public CertifiedUserService getCertifiedUserService();
 	
 	public AsynchronousJobServices getAsynchronousJobServices();
+
+	public LogService getLogService();
+
+	public ProjectSettingsService getProjectSettingsService();
+	
+	public ChallengeService getChallengeService();
 	
 }

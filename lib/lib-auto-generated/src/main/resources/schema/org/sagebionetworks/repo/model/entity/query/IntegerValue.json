@@ -1,0 +1,14 @@
+{
+	"description": "Use for integer values.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.entity.query.Value"
+		}
+	],
+	"properties":{
+        "value": {
+			"type": "integer"
+		}
+    }
+}

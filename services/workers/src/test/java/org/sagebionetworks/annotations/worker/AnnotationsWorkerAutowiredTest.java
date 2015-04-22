@@ -14,7 +14,7 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -28,8 +28,9 @@ public class AnnotationsWorkerAutowiredTest {
 		WorkerLogger mockWorkerLogger = Mockito.mock(WorkerLogger.class);
 		SubmissionStatusAnnotationsAsyncManager ssAsyncMgr = 
 				Mockito.mock(SubmissionStatusAnnotationsAsyncManager.class);
-		doThrow(new DeadlockLoserDataAccessException("foo", null)).
-			when(ssAsyncMgr).createEvaluationSubmissionStatuses(anyString(), anyString());
+		doThrow(new TransientDataAccessException("foo", null) {
+			private static final long serialVersionUID = 1L;
+		}).when(ssAsyncMgr).createEvaluationSubmissionStatuses(anyString(), anyString());
 		AnnotationsWorker worker = new AnnotationsWorker(messages, ssAsyncMgr, mockWorkerLogger);
 		List<Message> completedMessages = worker.call();
 		// if the message is not in the list it means it is not completed and will be retried

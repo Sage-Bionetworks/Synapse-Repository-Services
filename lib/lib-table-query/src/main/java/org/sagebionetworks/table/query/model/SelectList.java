@@ -1,10 +1,14 @@
 package org.sagebionetworks.table.query.model;
 
 import java.util.List;
+
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor.SQLClause;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 /**
  * This matches &ltselect list&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SelectList implements SQLElement{
+public class SelectList extends SQLElement {
 	
 	Boolean asterisk;
 	List<DerivedColumn> columns;
@@ -27,21 +31,29 @@ public class SelectList implements SQLElement{
 		return columns;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
+	public void visit(Visitor visitor) {
+		if (asterisk == null) {
+			for (DerivedColumn dc : columns) {
+				visit(dc, visitor);
+			}
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		// select is either star or a list of derived columns
+		visitor.pushCurrentClause(SQLClause.SELECT);
 		if(asterisk != null){
-			builder.append("*");
+			visitor.append("*");
 		}else{
 			boolean first = true;
 			for(DerivedColumn dc: columns){
 				if(!first){
-					builder.append(", ");
+					visitor.append(", ");
 				}
-				dc.toSQL(builder);
+				visit(dc, visitor);
 				first = false;
 			}
 		}
+		visitor.popCurrentClause(SQLClause.SELECT);
 	}
-	
 }

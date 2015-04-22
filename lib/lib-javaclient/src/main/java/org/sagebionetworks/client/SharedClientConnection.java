@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -55,6 +57,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for Synapse REST APIs
  */
 public class SharedClientConnection {
+	
+	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 
 	public static interface ErrorHandler {
 		void handleError(int code, String responseBody) throws SynapseException;
@@ -106,11 +110,11 @@ public class SharedClientConnection {
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
-		defaultGETDELETEHeaders.put("Accept", "application/json");
+		defaultGETDELETEHeaders.put("Accept", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 
 		defaultPOSTPUTHeaders = new HashMap<String, String>();
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
-		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
+		defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 		
 		this.clientProvider = clientProvider;
 		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
@@ -240,7 +244,10 @@ public class SharedClientConnection {
 	
 	public boolean revalidateSession(String userAgent) throws SynapseException {
 		Session session = new Session();
-		session.setSessionToken(getCurrentSessionToken());
+		String currentSessionToken = getCurrentSessionToken();
+		if (currentSessionToken==null) throw new 
+			SynapseClientException("You must log in before revalidating the session.");
+		session.setSessionToken(currentSessionToken);
 		try {
 			putAuthEntity("/session", EntityFactory.createJSONObjectForEntity(session), userAgent);
 		} catch (SynapseForbiddenException e) {
@@ -362,10 +369,12 @@ public class SharedClientConnection {
 	private static void convertHttpResponseToException(int statusCode, JSONObject responseBody) throws SynapseException {
 		if (isOKStatusCode(statusCode)) return;
 		String reasonStr = null;
-		try {
-			reasonStr = responseBody.getString(ERROR_REASON_TAG);
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
+		if (responseBody!=null) {
+			try {
+				reasonStr = responseBody.getString(ERROR_REASON_TAG);
+			} catch (JSONException e) {
+				throw new SynapseClientException(e);
+			}
 		}
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
 			throw new SynapseUnauthorizedException(reasonStr);
@@ -396,7 +405,12 @@ public class SharedClientConnection {
 	public String downloadZippedFileString(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
 			FileNotFoundException, SynapseException {
 		HttpGet get = new HttpGet(endpoint+uri);
-		setHeaders(get, defaultGETDELETEHeaders, userAgent);
+		Map<String, String> modHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
+		modHeaders.put(USER_AGENT, userAgent);
+		if (apiKey!=null) {
+			addDigitalSignature(endpoint + uri, modHeaders);
+		} 
+		setHeaders(get, modHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
 		HttpResponse response = clientProvider.execute(get);
 		HttpEntity entity = response.getEntity();
@@ -487,6 +501,13 @@ public class SharedClientConnection {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	public static String getCharacterSetFromRequest(HttpRequestBase request) {
+		Header contentTypeHeader = request.getFirstHeader("Content-Type");
+		if (contentTypeHeader==null) return null;
+		ContentType contentType = ContentType.parse(contentTypeHeader.getValue());
+		return contentType.getCharset().name();
+	}
 
 	public String postStringDirect(String endpoint, String uri, String data, String userAgent) throws SynapseException {
 		URIBuilder builder = null;
@@ -499,7 +520,7 @@ public class SharedClientConnection {
 		try {
 			HttpPost post = new HttpPost(builder.toString());
 			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
-			StringEntity stringEntity = new StringEntity(data);
+			StringEntity stringEntity = new StringEntity(data, getCharacterSetFromRequest(post));
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
@@ -576,13 +597,23 @@ public class SharedClientConnection {
 	 * @param userAgent 
 	 */
 	protected JSONObject getJson(String endpoint, String uri, String userAgent) throws SynapseException {
+		return getJson(endpoint, uri, userAgent, null);
+	}
+
+	/**
+	 * Get a JSONEntity
+	 * 
+	 * @param userAgent
+	 */
+	protected JSONObject getJson(String endpoint, String uri, String userAgent, ErrorHandler errorHandler) throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null, null);
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null,
+				errorHandler);
 		return jsonObject;
 	}
 

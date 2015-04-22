@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.LinkedList;
 
@@ -23,10 +24,13 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.base.Predicate;
 
 /**
  * Test for the search controller
@@ -58,6 +62,19 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(searchDao);
 		documentProvider = dispatchServlet.getWebApplicationContext().getBean(SearchDocumentDriver.class);
 		assertNotNull(documentProvider);
+
+		// wait for search initialization
+		assertTrue(TimeUtils.waitFor(60000, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					return searchDao.postInitialize();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
+
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest");
@@ -66,13 +83,17 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchDao.createOrUpdateSearchDocument(doc);
 		// Wait for it to show up
-		long start = System.currentTimeMillis();
-		while(!searchDao.doesDocumentExist(project.getId(), project.getEtag())){
-			System.out.println("Waiting for entity to appearh in seach index: "+project.getId()+"...");
-			Thread.sleep(1000);
-			long elapse = System.currentTimeMillis()-start;
-			assertTrue("Timed out waiting for a document to appear in the search index",elapse < MAX_WAIT);
-		}
+		assertTrue(TimeUtils.waitFor(60000, 100, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					System.out.println("Waiting for entity to appearh in seach index: " + project.getId() + "...");
+					return searchDao.doesDocumentExist(project.getId(), project.getEtag());
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 	}
 	
 	@After

@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,8 +27,8 @@ import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * This is a generic dao like DBOBasicDao that provides data migration functions for individual tables.
@@ -37,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
 @SuppressWarnings("rawtypes")
 public class MigratableTableDAOImpl implements MigratableTableDAO {
 	
+	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
+
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	@Autowired
@@ -277,7 +280,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public int deleteObjectsById(MigrationType type, List<Long> idList) {
 		if (type == null) {
@@ -324,7 +327,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return page;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch) {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
@@ -428,5 +431,37 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public List<MigrationType> getPrimaryMigrationTypes() {
 		return rootTypes;
 	}
+
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#runWithForeignKeyIgnored(java.util.concurrent.Callable)
+	 */
+	@Override
+	public <T> T runWithForeignKeyIgnored(Callable<T> call) throws Exception{
+		try{
+			// unconditionally turn off foreign key checks.
+			setForeignKeyChecks(false);
+			return call.call();
+		}finally{
+			// unconditionally turn on foreign key checks.
+			setForeignKeyChecks(true);
+		}
+	}
+	
+	/**
+	 * Helper to enable/disable foreign keys.
+	 * @param enabled
+	 */
+	private void setForeignKeyChecks(boolean enabled) {
+		int value;
+		if(enabled){
+			// trun it on.
+			value = 1;
+		}else{
+			// turn it off
+			value = 0;
+		}
+		simpleJdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
+	}
 }

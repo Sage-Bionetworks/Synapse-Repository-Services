@@ -19,8 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Sets;
 
@@ -99,7 +99,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	};
 			
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType, DomainType dType) {
 		if (fragments == null || fragments.size() <= 0) {
 			return;
@@ -124,7 +124,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public long delete(long principalId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);

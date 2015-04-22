@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -177,11 +178,9 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
 		if (!currUserInfo.isAdmin()) {
 			try {
-				if (!this.authorizationManager.canAccess(
-						currUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-					throw new UnauthorizedException(userId
-							+ " does not have read access to the requested entity.");
-				}
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canAccess(
+						currUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 			} catch (NotFoundException e) {
 				throw new UnauthorizedException(userId
 						+ " does not have read access to the requested entity.");

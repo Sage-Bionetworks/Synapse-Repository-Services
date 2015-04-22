@@ -1,12 +1,12 @@
 {
-    "description":"Represents a selection of rows of a TablEntity",
+    "description":"Represents a selection of rows of a TableEntity",
     "properties":{
 		"tableId":{
-			"description":"The ID of the TableEntity than owns these rows",
+			"description":"The ID of the TableEntity than owns these rows (optional if supplied by the REST command)",
 			"type": "string"
 		},
 		"etag": {
-		    "description":"When a RowReferencesRow is returned from a table update, this will be set to the current etag of the table.",
+		    "description":"This should be set to the current etag or this selection (the etag returned by a query, or the current etag of the table).",
 			"type": "string"
 		},
 		"rowIds": {

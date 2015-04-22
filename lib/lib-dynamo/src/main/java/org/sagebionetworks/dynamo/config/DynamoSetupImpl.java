@@ -1,6 +1,8 @@
 package org.sagebionetworks.dynamo.config;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -11,23 +13,25 @@ import org.sagebionetworks.dynamo.DynamoTimeoutException;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.model.CreateTableRequest;
-import com.amazonaws.services.dynamodb.model.DeleteTableRequest;
-import com.amazonaws.services.dynamodb.model.DescribeTableRequest;
-import com.amazonaws.services.dynamodb.model.KeySchema;
-import com.amazonaws.services.dynamodb.model.KeySchemaElement;
-import com.amazonaws.services.dynamodb.model.ListTablesResult;
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputDescription;
-import com.amazonaws.services.dynamodb.model.ResourceNotFoundException;
-import com.amazonaws.services.dynamodb.model.TableDescription;
-import com.amazonaws.services.dynamodb.model.TableStatus;
-import com.amazonaws.services.dynamodb.model.UpdateTableRequest;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
+import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputDescription;
+import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
+import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.amazonaws.services.dynamodbv2.model.TableStatus;
+import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 
 public class DynamoSetupImpl implements DynamoSetup {
 	
@@ -163,13 +167,11 @@ public class DynamoSetupImpl implements DynamoSetup {
 		}
 
 		String tableName = table.getTableName();
-		KeySchema keySchema = this.getKeySchema(table);
+		Pair<List<KeySchemaElement>, List<AttributeDefinition>> keySchema = this.getKeySchema(table);
 		ProvisionedThroughput provisionedThroughput = this.getProvisionedThroughput(table);
 
-		CreateTableRequest request = new CreateTableRequest()
-				.withTableName(tableName)
-				.withKeySchema(keySchema)
-				.withProvisionedThroughput(provisionedThroughput);
+		CreateTableRequest request = new CreateTableRequest().withTableName(tableName).withKeySchema(keySchema.getFirst())
+				.withAttributeDefinitions(keySchema.getSecond()).withProvisionedThroughput(provisionedThroughput);
 
 		this.dynamoClient.createTable(request);
 	}
@@ -201,27 +203,27 @@ public class DynamoSetupImpl implements DynamoSetup {
 	/**
 	 * Maps DynamoKeySchema to DynamoDB's KeySchema.
 	 */
-	private KeySchema getKeySchema(DynamoTableConfig table) {
+	private Pair<List<KeySchemaElement>, List<AttributeDefinition>> getKeySchema(DynamoTableConfig table) {
 
 		assert table != null;
 
 		DynamoKeySchema kSchema = table.getKeySchema();
 		DynamoKey hKey = kSchema.getHashKey();
-		KeySchemaElement hashKey = new KeySchemaElement()
-				.withAttributeName(hKey.getKeyName())
-				.withAttributeType(hKey.getKeyType());
+		KeySchemaElement hashKey = new KeySchemaElement().withAttributeName(hKey.getKeyName()).withKeyType(hKey.getKeyType());
+		AttributeDefinition hashKeyAttributeDefinition = new AttributeDefinition(hKey.getKeyName(), hKey.getAttributeType());
 
-		KeySchema keySchema = new KeySchema().withHashKeyElement(hashKey);
+		List<KeySchemaElement> keySchema = Lists.newArrayList(hashKey);
+		List<AttributeDefinition> attributes = Lists.newArrayList(hashKeyAttributeDefinition);
 
 		DynamoKey rKey = kSchema.getRangeKey();
 		if (rKey != null) {
-			KeySchemaElement rangeKey = new KeySchemaElement()
-					.withAttributeName(rKey.getKeyName())
-					.withAttributeType(rKey.getKeyType());
-			keySchema.setRangeKeyElement(rangeKey);
+			KeySchemaElement rangeKey = new KeySchemaElement().withAttributeName(rKey.getKeyName()).withKeyType(rKey.getKeyType());
+			keySchema.add(rangeKey);
+			AttributeDefinition rangeKeyAttributeDefinition = new AttributeDefinition(rKey.getKeyName(), rKey.getAttributeType());
+			attributes.add(rangeKeyAttributeDefinition);
 		}
 
-		return keySchema;
+		return Pair.create(keySchema, attributes);
 	}
 
 	/**
@@ -270,6 +272,13 @@ public class DynamoSetupImpl implements DynamoSetup {
 		return tableNameSet;
 	}
 
+	private static final Comparator<AttributeDefinition> ATTRIBUTE_DEFINITION_COMPARATOR = new Comparator<AttributeDefinition>() {
+		@Override
+		public int compare(AttributeDefinition o1, AttributeDefinition o2) {
+			return o1.getAttributeName().compareTo(o2.getAttributeName());
+		}
+	};
+
 	/**
 	 * Whether the existing table and the table defined in configuration has the same key schema.
 	 */
@@ -279,9 +288,12 @@ public class DynamoSetupImpl implements DynamoSetup {
 		assert configTable != null;
 
 		// The key schema must be the same
-		KeySchema configKeySchema = this.getKeySchema(configTable);
-		KeySchema keySchema = existingTable.getKeySchema();
-		return keySchema.equals(configKeySchema);
+		Pair<List<KeySchemaElement>, List<AttributeDefinition>> configKeySchema = this.getKeySchema(configTable);
+		Pair<List<KeySchemaElement>, List<AttributeDefinition>> existingSchema = Pair.create(existingTable.getKeySchema(),
+				existingTable.getAttributeDefinitions());
+		Collections.sort(configKeySchema.getSecond(), ATTRIBUTE_DEFINITION_COMPARATOR);
+		Collections.sort(existingSchema.getSecond(), ATTRIBUTE_DEFINITION_COMPARATOR);
+		return existingSchema.equals(configKeySchema);
 	}
 
 	/**

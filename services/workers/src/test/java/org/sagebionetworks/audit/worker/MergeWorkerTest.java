@@ -16,10 +16,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import org.mockito.Mockito;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+
+
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
+import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -76,6 +83,9 @@ public class MergeWorkerTest {
 	public void testIntegration() throws IOException{
 		// Start this test with no data in the bucket
 		accessRecordDAO.deleteAllStackInstanceBatches();
+		
+		ProgressCallback mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		
 		// Setup the times
 	    Calendar cal = Calendar.getInstance();
 		cal.set(1982, 4, 20, 0, 0);
@@ -95,7 +105,7 @@ public class MergeWorkerTest {
 		
 		Set<String> dayTwoSessionIds = createBatchesForDay(dayTwoTimeStamp, count, 1);
 		// Now let the worker do the its thing
-		MergeWorker worker = new MergeWorker(accessRecordDAO);
+		MergeWorker worker = new MergeWorker(accessRecordDAO, mockProgressCallback);
 		long start = System.currentTimeMillis();
 		boolean hasMore = true;
 		// Wait until the worker merges all files
@@ -104,6 +114,7 @@ public class MergeWorkerTest {
 			long elapse = System.currentTimeMillis()-start;
 			assertTrue("Timed out waiting for merge worker to finish",elapse < MAX_WAIT);
 		}
+		verify(mockProgressCallback, times(18)).progressMade();
 		
 		// Now list the files for each day.
 		ObjectListing listing = accessRecordDAO.listBatchKeys(null);

@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.Progress.BasicProgress;
+import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	

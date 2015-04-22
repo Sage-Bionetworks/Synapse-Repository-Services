@@ -13,9 +13,7 @@ public class SetFunctionSpecificationTest {
 	@Test
 	public void testCountStar(){
 		SetFunctionSpecification element = new SetFunctionSpecification(Boolean.TRUE);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("COUNT(*)", builder.toString());
+		assertEquals("COUNT(*)", element.toString());
 	}
 	
 	
@@ -24,9 +22,7 @@ public class SetFunctionSpecificationTest {
 		// The simplest way to create a value expression is to parse it out
 		ValueExpression valueExpression = new TableQueryParser("foo").valueExpression();
 		SetFunctionSpecification element = new SetFunctionSpecification(SetFunctionType.MAX, null, valueExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("MAX(foo)", builder.toString());
+		assertEquals("MAX(foo)", element.toString());
 	}
 	
 	@Test
@@ -34,9 +30,7 @@ public class SetFunctionSpecificationTest {
 		// The simplest way to create a value expression is to parse it out
 		ValueExpression valueExpression = new TableQueryParser("foo").valueExpression();
 		SetFunctionSpecification element = new SetFunctionSpecification(SetFunctionType.COUNT, SetQuantifier.DISTINCT, valueExpression);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("COUNT(DISTINCT foo)", builder.toString());
+		assertEquals("COUNT(DISTINCT foo)", element.toString());
 	}
 	
 }

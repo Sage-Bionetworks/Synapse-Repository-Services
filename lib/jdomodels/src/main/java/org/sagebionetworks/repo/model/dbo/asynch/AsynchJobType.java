@@ -3,10 +3,18 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 
 /**
  * This enum maps types to classes.
@@ -16,17 +24,25 @@ import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
  */
 public enum AsynchJobType {
 	
-	UPLOAD_CSV_TO_TABLE(AsynchUploadRequestBody.class, AsynchUploadResponseBody.class,  StackConfiguration.singleton().getTableCSVUploadQueueName()),
-	DOWNLOAD_CSV_FROM_TABLE(AsynchDownloadRequestBody.class, AsynchDownloadResponseBody.class,  StackConfiguration.singleton().getTableCSVDownloadQueueName());
+	APPEND_ROW_SET_TO_TABLE(AppendableRowSetRequest.class, RowReferenceSetResults.class),
+
+	UPLOAD_CSV_TO_TABLE(UploadToTableRequest.class, UploadToTableResult.class),
 	
+	UPLOAD_CSV_TO_TABLE_PREVIEW(UploadToTablePreviewRequest.class, UploadToTablePreviewResult.class),
+
+	DOWNLOAD_CSV_FROM_TABLE(DownloadFromTableRequest.class, DownloadFromTableResult.class),
+
+	QUERY(QueryBundleRequest.class, QueryResultBundle.class),
+
+	QUERY_NEXT_PAGE(QueryNextPageToken.class, QueryResult.class);
+
+
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
-	private String queueName;
 	
-	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass, Class<? extends AsynchronousResponseBody> responseClass, String queueName){
+	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass, Class<? extends AsynchronousResponseBody> responseClass) {
 		this.requestClass = requestClass;
 		this.responseClass = responseClass;
-		this.queueName = queueName;
 	}
 	
 	/**
@@ -59,6 +75,6 @@ public enum AsynchJobType {
 	 * @return
 	 */
 	public String getQueueName(){
-		return this.queueName;
+		return StackConfiguration.singleton().getAsyncQueueName(this.name());
 	}
 }

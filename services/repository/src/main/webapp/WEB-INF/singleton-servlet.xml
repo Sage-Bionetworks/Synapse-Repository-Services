@@ -11,14 +11,10 @@
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
 	<!-- Discover all our controllers -->
-	<context:component-scan base-package="org.sagebionetworks.repo.web.controller, org.sagebionetworks.bridge.controller, org.sagebionetworks.auth, org.sagebionetworks.file.controller" />
+	<context:component-scan base-package="org.sagebionetworks.repo.web.controller, org.sagebionetworks.auth, org.sagebionetworks.file.controller" />
 
 
 	<!-- Import the manager beans -->
-	<import resource="classpath:shared-servlet.xml" />
-	<import resource="classpath:controller-spb.xml" />
-	<import resource="classpath:authentication-services-spb.xml" />
-	<import resource="classpath:file-services-spb.xml" />
-	<import resource="classpath:bridge-controller-spb.xml" />
+  	<import resource="classpath:repository-servlet-import.xml" />
 
 </beans>

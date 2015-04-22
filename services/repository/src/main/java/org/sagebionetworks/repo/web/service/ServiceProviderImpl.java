@@ -26,8 +26,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private NodeQueryService nodeQueryService;
 	@Autowired
-	private S3TokenService s3TokenService;
-	@Autowired
 	private StorageUsageService storageUsageService;
 	@Autowired
 	private UserGroupService userGroupService;
@@ -67,6 +65,12 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private CertifiedUserService certifiedUserService;
 	@Autowired
 	private AsynchronousJobServices asynchronousJobServices;
+	@Autowired
+	private LogService logService;
+	@Autowired
+	private ProjectSettingsService projectSettingsService;
+	@Autowired
+	private ChallengeService challengeService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -88,9 +92,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public NodeQueryService getNodeQueryService() {
 		return nodeQueryService;
-	}
-	public S3TokenService getS3TokenService() {
-		return s3TokenService;
 	}
 	public StorageUsageService getStorageUsageService() {
 		return storageUsageService;
@@ -170,4 +171,20 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return asynchronousJobServices;
 	}
 
+	@Override
+	public LogService getLogService() {
+		return logService;
+	}
+
+	@Override
+	public ProjectSettingsService getProjectSettingsService() {
+		return projectSettingsService;
+	}
+	
+	
+	@Override
+	public ChallengeService getChallengeService() {
+		return challengeService;
+	}
+	
 }

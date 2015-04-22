@@ -14,18 +14,14 @@ public class RowValueConstructorTest {
 	public void testRowValueConstructorToSQLRowValueConstructorElement() throws ParseException{
 		RowValueConstructorElement rowValueConstructorElement = SqlElementUntils.createRowValueConstructorElement("foo");
 		RowValueConstructor element = new RowValueConstructor(rowValueConstructorElement);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo", builder.toString());
+		assertEquals("foo", element.toString());
 	}
 
 	@Test
 	public void testRowValueConstructorToSQLRowValueConstructorList() throws ParseException{
 		RowValueConstructorList rowValueConstructorList = SqlElementUntils.createRowValueConstructorList("one, two");
 		RowValueConstructor element = new RowValueConstructor(rowValueConstructorList);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("( one, two )", builder.toString());
+		assertEquals("( one, two )", element.toString());
 	}
 	
 }

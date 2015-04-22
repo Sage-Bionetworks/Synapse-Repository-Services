@@ -14,14 +14,26 @@
 	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfiguration"/>
 	
 	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableCSVUploadQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableCSVDownloadQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-		
+	<bean name="stackConfiguration.asyncQueueName[LOCATIONABLE_CONVERT_TYPE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[APPEND_ROW_SET_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE_PREVIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[QUERY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[PRINCIPAL_PREFIX]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
+	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabaseUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabasePassword" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<bean id="stackConfiguration.oAuth2GoogleClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2GoogleClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Map used for JDO config  -->
 	<bean id="stackConfiguration.repositoryJDOConfigurationMap" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -38,6 +50,9 @@
 	<bean id="stackConfiguration.databaseConnectionPoolMaxNumberConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.controllerLoggingEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<bean id="stackConfiguration.allowCreationOfOldEntities" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.allowCreationOfOldAttachments" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean id="stackConfiguration.cloudWatchOnOff" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.cloudWatchTriggerTime" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -50,6 +65,7 @@
 	<bean id="stackConfiguration.workflowExecutionRetentionPeriodInDays" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
 	<bean id="stackConfiguration.repositoryChangeTopicPrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.repositoryModificationTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.searchUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.dynamoUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.rdsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -80,9 +96,6 @@
 	<bean id="stackConfiguration.tableReadTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
 		
-	<!-- Bridge participant data -->
-	<bean id="stackConfiguration.participantDataBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	
 	<!-- Semaphore gated runner configuration -->
 	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersRds" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -100,7 +113,8 @@
     <bean id="stackConfiguration.semaphoreSharedMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
 	
 	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.dynamoEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.dynamoEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.dynamoTableRowCacheEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	
 	<!-- Configuration for multi-part upload daemons. -->
 	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
@@ -115,6 +129,8 @@
 	
 	<!-- Audit config -->
 	<bean id="stackConfiguration.auditRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.aclRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.resourceAccessRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.stackInstanceNumber" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Logging -->

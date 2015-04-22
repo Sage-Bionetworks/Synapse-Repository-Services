@@ -1,24 +1,35 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.PaginatedIds;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Basic implementation of the ColumnModelManager.
@@ -56,7 +67,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(offset < 0) throw new IllegalArgumentException("Offset cannot be less than zero");
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException{
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
@@ -64,18 +75,45 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(authorizationManager.isAnonymousUser(user)){
 			throw new UnauthorizedException("You must login to create a ColumnModel");
 		}
-		// Validate the name
-		if(TableConstants.isReservedColumnName(columnModel.getName())){
-			throw new IllegalArgumentException("The column name: "+columnModel.getName()+" is a system reserved column name.");
-		}
-		// Is the name a key word?
-		if(TableConstants.isKeyWord(columnModel.getName())){
-			throw new IllegalArgumentException("The name: "+columnModel.getName()+" is a SQL key word and cannot be used as a column name.");
-		}
+		checkColumnNaming(columnModel);
 		// Pass it along to the DAO.
 		return columnModelDao.createColumnModel(columnModel);
 	}
 	
+	@WriteTransaction
+	@Override
+	public List<ColumnModel> createColumnModels(UserInfo user, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException {
+		if (user == null)
+			throw new IllegalArgumentException("User cannot be null");
+		// Must login to create a column model.
+		if (authorizationManager.isAnonymousUser(user)) {
+			throw new UnauthorizedException("You must login to create a ColumnModel");
+		}
+		// first quickly check for naming errors
+		for (ColumnModel columnModel : columnModels) {
+			checkColumnNaming(columnModel);
+		}
+		// the create all column models
+		List<ColumnModel> results = Lists.newArrayListWithCapacity(columnModels.size());
+		for (ColumnModel columnModel : columnModels) {
+			// Pass it along to the DAO.
+			results.add(columnModelDao.createColumnModel(columnModel));
+		}
+		return results;
+	}
+
+	private void checkColumnNaming(ColumnModel columnModel) {
+		// Validate the name
+		if (TableConstants.isReservedColumnName(columnModel.getName())) {
+			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
+		}
+		// Is the name a key word?
+		if (TableConstants.isKeyWord(columnModel.getName())) {
+			throw new IllegalArgumentException("The name: " + columnModel.getName()
+					+ " is a SQL key word and cannot be used as a column name.");
+		}
+	}
+
 	@Override
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
@@ -91,7 +129,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return columnModelDao.getColumnModel(ids, keepOrder);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId, boolean isNew) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
@@ -105,6 +143,13 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}else{
 			return false;
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public void unbindAllColumnsAndOwnerFromObject(String objectId) {
+		columnModelDao.unbindAllColumnsFromObject(objectId);
+		columnModelDao.deleteOwner(objectId);
 	}
 
 	@Override
@@ -131,10 +176,31 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
 			String tableId) throws DatastoreException, NotFoundException {
 		// The user must be granted read permission on the table to get the columns.
-		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
-			throw new UnauthorizedException("You must have "+ACCESS_TYPE.READ+" permission on "+tableId+" to perform that operation.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return columnModelDao.getColumnModelsForObject(tableId);
+	}
+
+	@Override
+	public ColumnMapper getCurrentColumns(UserInfo user, String tableId,
+			List<SelectColumn> selectColumns) throws DatastoreException, NotFoundException {
+		LinkedHashMap<String, SelectColumnAndModel> nameToColumnMap = Maps.newLinkedHashMap();
+		Map<Long, SelectColumnAndModel> idToColumnMap = Maps.newHashMap();
+		List<ColumnModel> columns = getColumnModelsForTable(user, tableId);
+		Map<String, ColumnModel> columnIdToModelMap = TableModelUtils.createStringIDtoColumnModelMap(columns);
+		for (SelectColumn selectColumn : selectColumns) {
+			if (selectColumn.getId() == null) {
+				throw new IllegalArgumentException("column header " + selectColumn + " is not a valid column for this table");
+			}
+			ColumnModel columnModel = columnIdToModelMap.get(selectColumn.getId());
+			if (columnModel == null) {
+				throw new IllegalArgumentException("column header " + selectColumn + " is not a known column for this table");
+			}
+			SelectColumnAndModel selectColumnAndModel = TableModelUtils.createSelectColumnAndModel(selectColumn, columnModel);
+			nameToColumnMap.put(selectColumn.getName(), selectColumnAndModel);
+			idToColumnMap.put(Long.parseLong(selectColumn.getId()), selectColumnAndModel);
+		}
+		return TableModelUtils.createColumnMapper(nameToColumnMap, idToColumnMap);
 	}
 	
 	

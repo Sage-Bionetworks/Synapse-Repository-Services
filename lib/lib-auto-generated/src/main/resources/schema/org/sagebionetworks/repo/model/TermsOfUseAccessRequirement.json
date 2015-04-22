@@ -3,18 +3,14 @@
 	"description": "JSON schema for Terms of Use Access Requirement, used for a 'tier 2' Access Requirement",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.AccessRequirement"
+			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirement"
 		}
 	],
 	"properties": {
 		"termsOfUse": {
 			"type": "string",
-			"description": "Terms Of Use for Access, stored directly in the document (versus in a referenced Location)",
+			"description": "Terms Of Use for Access, stored directly in the document (versus in a referenced Location)  Required when creating or updating.",
 			"title": "Terms Of Use"
-		},
-		"locationData": {
-			"type": "object",
-			"$ref": "org.sagebionetworks.repo.model.LocationData"
 		}
 	}
 }

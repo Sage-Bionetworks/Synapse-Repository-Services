@@ -15,17 +15,13 @@ public class InValueListTest {
 	public void testInValueListToSQLOne() throws ParseException{
 		List<ValueExpression> list = SqlElementUntils.createValueExpressions("one");
 		InValueList element = new InValueList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("one", builder.toString());
+		assertEquals("one", element.toString());
 	}
 	
 	@Test
 	public void testInValueListToSQLMultiple() throws ParseException{
 		List<ValueExpression> list = SqlElementUntils.createValueExpressions("one", "three");
 		InValueList element = new InValueList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("one, three", builder.toString());
+		assertEquals("one, three", element.toString());
 	}
 }

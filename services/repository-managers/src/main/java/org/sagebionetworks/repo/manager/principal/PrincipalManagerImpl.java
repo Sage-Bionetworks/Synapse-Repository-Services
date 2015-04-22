@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -40,8 +41,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
@@ -209,7 +210,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		portalHost = portalHost.toLowerCase().trim();
 		if (portalHost.endsWith("synapse.org")) return;
 		if (portalHost.endsWith("sagebase.org")) return;
-		if (portalHost.equals("localhost")) return;
+		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	
@@ -220,7 +221,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (user.getLastName()==null) user.setLastName("");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		
-		if (domain.equals(DomainType.SYNAPSE) || domain.equals(DomainType.BRIDGE)) {
+		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForNewAccount(user, domain, new Date());
 			String urlString = portalEndpoint+token;
 			URL url = null;
@@ -246,15 +247,16 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			}
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
-			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.txt", fieldValues);
-			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, false, null);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, urlString.replaceAll("&", "&amp;"));
+			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, true, null);
 			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException {
 		String validatedEmail = validateNewAccountToken(accountSetupInfo.getEmailValidationToken(), new Date());
@@ -353,11 +355,11 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Override
 	public void additionalEmailValidation(UserInfo userInfo, Username email,
 			String portalEndpoint, DomainType domain) throws NotFoundException {
-		if (userInfo.getId()==AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())
+		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		
-		if (domain.equals(DomainType.SYNAPSE) || domain.equals(DomainType.BRIDGE)) {
+		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), domain, new Date());
 			String urlString = portalEndpoint+token;
 			URL url = null;
@@ -377,13 +379,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			Map<String,String> fieldValues = new HashMap<String,String>();
 			UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
-					userProfile.getFirstName()+" "+userProfile.getLastName());
+			userProfile.getFirstName()+" "+userProfile.getLastName());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, urlString.replaceAll("&", "&amp;"));
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
-			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.txt", fieldValues);
-			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, false, null);
+			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, true, null);
 			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
@@ -405,7 +408,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		throw new IllegalArgumentException("token does not contain parameter "+paramName);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo,
 			Boolean setAsNotificationEmail) throws NotFoundException {
@@ -423,7 +426,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) notificationEmailDao.update(alias);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void removeEmail(UserInfo userInfo, String email) throws NotFoundException {
 		if (email.equals(notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())))
@@ -450,7 +453,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	 * @param email
 	 * @throws NotFoundException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNotificationEmail(UserInfo userInfo, String email) throws NotFoundException {
 		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email);

@@ -1,0 +1,15 @@
+{
+	"title": "Post Message Content Access Requirement",
+	"description": "JSON schema for Post Message Content Access Requirement",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirement"
+		}
+	],
+	"properties": {
+		"url": {
+			"type": "string",
+			"description": "The URL of the IFrame to be displayed for the user.  Required when creating or updating."
+		}
+	}
+}

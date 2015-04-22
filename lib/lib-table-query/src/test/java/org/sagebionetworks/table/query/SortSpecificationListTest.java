@@ -15,18 +15,14 @@ public class SortSpecificationListTest {
 	public void testToSQLOne() throws ParseException{
 		List<SortSpecification> list = SqlElementUntils.createSortSpecifications("foo asc");
 		SortSpecificationList element= new SortSpecificationList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo ASC", builder.toString());
+		assertEquals("foo ASC", element.toString());
 	}
 	
 	@Test
 	public void testToSQLMore() throws ParseException{
 		List<SortSpecification> list = SqlElementUntils.createSortSpecifications("foo asc","bar desc");
 		SortSpecificationList element= new SortSpecificationList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo ASC, bar DESC", builder.toString());
+		assertEquals("foo ASC, bar DESC", element.toString());
 	}
 
 	
@@ -34,8 +30,6 @@ public class SortSpecificationListTest {
 	public void testToSQLMoreNoOrderSpec() throws ParseException{
 		List<SortSpecification> list = SqlElementUntils.createSortSpecifications("foo","bar");
 		SortSpecificationList element= new SortSpecificationList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo, bar", builder.toString());
+		assertEquals("foo, bar", element.toString());
 	}
 }

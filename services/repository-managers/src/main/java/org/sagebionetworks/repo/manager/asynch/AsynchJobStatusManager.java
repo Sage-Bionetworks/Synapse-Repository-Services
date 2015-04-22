@@ -47,7 +47,7 @@ public interface AsynchJobStatusManager {
 	 * @param progressMessage
 	 * @return
 	 */
-	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage);
+	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage);
 	
 	
 	/**

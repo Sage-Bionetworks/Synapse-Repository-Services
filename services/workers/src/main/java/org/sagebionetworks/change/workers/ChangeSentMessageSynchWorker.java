@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.util.ClockProvider;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
@@ -58,7 +58,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	@Autowired 
 	StackStatusDao stackStatusDao;
 	@Autowired
-	ClockProvider clockProvider;
+	Clock clock;
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
@@ -85,7 +85,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 		long maxChangeNumber = changeDao.getCurrentChangeNumber();
 		long minChangeNumber = changeDao.getMinimumChangeNumber();
 		// We only want to look at change messages that are older than this.
-		Timestamp olderThan = new Timestamp(clockProvider.currentTimeMillis() - MINIMUMN_MESSAGE_AGE);
+		Timestamp olderThan = new Timestamp(clock.currentTimeMillis() - MINIMUMN_MESSAGE_AGE);
 		/*
 		 * It is possible, but unlikely, that check-sums could match yet the
 		 * tables are still be out-of-synch giving a false-negative. To deal
@@ -117,13 +117,8 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 					}
 				}
 			}
-			try {
-				// Sleep between pages to keep from overloading the database.
-				clockProvider.sleep(configuration.getChangeSynchWorkerSleepTimeMS().getLong());
-			} catch (InterruptedException e) {
-				// Stopping
-				throw new RuntimeException(e);
-			}
+			// Sleep between pages to keep from overloading the database.
+			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
 			// Extend the timeout for this worker by calling the callback
 			callback.progressMade();
 			// Create some metrics
@@ -173,6 +168,6 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	 * @return
 	 */
 	public int getMinimumPageSize() {
-		return configuration.getChangeSynchWorkerMinPageSize().getInteger();
+		return configuration.getChangeSynchWorkerMinPageSize().get();
 	}
 }

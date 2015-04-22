@@ -21,7 +21,7 @@ public class FileHandleBackup {
 	private String bucketName;
 	private String key;
 	private String name;
-	
+	private Long storageLocationId;
 	public Long getId() {
 		return id;
 	}
@@ -94,30 +94,31 @@ public class FileHandleBackup {
 	public void setName(String name) {
 		this.name = name;
 	}
+
+	public Long getStorageLocationId() {
+		return storageLocationId;
+	}
+
+	public void setStorageLocationId(Long storageLocationId) {
+		this.storageLocationId = storageLocationId;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((bucketName == null) ? 0 : bucketName.hashCode());
-		result = prime * result
-				+ ((contentMD5 == null) ? 0 : contentMD5.hashCode());
-		result = prime * result
-				+ ((contentSize == null) ? 0 : contentSize.hashCode());
-		result = prime * result
-				+ ((contentType == null) ? 0 : contentType.hashCode());
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((bucketName == null) ? 0 : bucketName.hashCode());
+		result = prime * result + ((contentMD5 == null) ? 0 : contentMD5.hashCode());
+		result = prime * result + ((contentSize == null) ? 0 : contentSize.hashCode());
+		result = prime * result + ((contentType == null) ? 0 : contentType.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
-		result = prime * result
-				+ ((metadataType == null) ? 0 : metadataType.hashCode());
+		result = prime * result + ((metadataType == null) ? 0 : metadataType.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result
-				+ ((previewId == null) ? 0 : previewId.hashCode());
+		result = prime * result + ((previewId == null) ? 0 : previewId.hashCode());
+		result = prime * result + ((storageLocationId == null) ? 0 : storageLocationId.hashCode());
 		return result;
 	}
 	@Override
@@ -189,16 +190,18 @@ public class FileHandleBackup {
 				return false;
 		} else if (!previewId.equals(other.previewId))
 			return false;
+		if (storageLocationId == null) {
+			if (other.storageLocationId != null)
+				return false;
+		} else if (!storageLocationId.equals(other.storageLocationId))
+			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
-		return "FileHandleBackup [id=" + id + ", etag=" + etag + ", previewId="
-				+ previewId + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", metadataType=" + metadataType
-				+ ", contentType=" + contentType + ", contentSize="
-				+ contentSize + ", contentMD5=" + contentMD5 + ", bucketName="
-				+ bucketName + ", key=" + key + ", name=" + name + "]";
+		return "FileHandleBackup [id=" + id + ", etag=" + etag + ", previewId=" + previewId + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", metadataType=" + metadataType + ", contentType=" + contentType + ", contentSize=" + contentSize
+				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName + ", key=" + key + ", name=" + name + ", storageLocationId="
+				+ storageLocationId + "]";
 	}
-	
 }

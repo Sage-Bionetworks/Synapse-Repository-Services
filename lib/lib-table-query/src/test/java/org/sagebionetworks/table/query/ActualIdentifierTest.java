@@ -15,18 +15,14 @@ public class ActualIdentifierTest {
 	
 	@Test
 	public void testRegularToSQL(){
-		StringBuilder builder = new StringBuilder();
 		ActualIdentifier ai = new ActualIdentifier("C123", null);
-		ai.toSQL(builder);
-		assertEquals("C123", builder.toString());
+		assertEquals("C123", ai.toString());
 	}
 	
 	@Test
 	public void testDelimitedToSQL(){
-		StringBuilder builder = new StringBuilder();
 		ActualIdentifier ai = new ActualIdentifier(null, "has\"quote");
-		ai.toSQL(builder);
-		assertEquals("\"has\"\"quote\"", builder.toString());
+		assertEquals("\"has\"\"quote\"", ai.toString());
 	}
 
 }

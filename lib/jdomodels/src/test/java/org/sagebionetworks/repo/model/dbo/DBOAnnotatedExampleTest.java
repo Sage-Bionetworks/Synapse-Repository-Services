@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -224,6 +225,23 @@ public class DBOAnnotatedExampleTest {
 		
 	}
 	
-	
+	@Test
+	public void testSelfForeignKey() throws Exception {
+		// First create the object.
+		DBOAnnotatedExample example = new DBOAnnotatedExample();
+		
+		TableMapping<DBOAnnotatedExample> tm = example.getTableMapping();
+		FieldColumn[] columns = tm.getFieldColumns();
+		
+		// PARENT_ID column should have isSelfForeignKey annotation set to true
+		// and rest should be set to false
+		for (FieldColumn column : columns) {
+			if (column.getColumnName().equals("PARENT_ID")) {
+				assertTrue(column.isSelfForeignKey());
+			} else {
+				assertFalse(column.isSelfForeignKey());
+			}
+		}
+	}
 
 }

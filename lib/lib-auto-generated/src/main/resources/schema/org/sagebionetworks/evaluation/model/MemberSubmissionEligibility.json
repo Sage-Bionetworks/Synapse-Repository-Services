@@ -1,0 +1,19 @@
+{
+	"description": "Describes the eligibility of an indivdiual to submit to an Evaluation queue, reflecting the queue's submission quotas and current submissions.",
+	"name": "MemberSubmissionEligibility",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.evaluation.model.SubmissionEligibilityInterface"
+        }
+    ],
+	"properties": {
+		"principalId": {
+			"type": "integer",
+			"description": ""
+		},
+		"hasConflictingSubmission": {
+			"type":"boolean",
+			"description": "true if the individual has submitted alone or with another team"
+		}
+	}
+}

@@ -129,10 +129,15 @@ public interface ColumnModelDAO {
 	public String lockOnOwner(String objectId);
 	
 	/**
+	 * Delete the owner object.
+	 * 
+	 * @param objectId
+	 */
+	public void deleteOwner(String objectId);
+
+	/**
 	 * This should only be called by tests.
 	 * 
 	 */
 	public boolean truncateAllColumnData();
-		
-
 }

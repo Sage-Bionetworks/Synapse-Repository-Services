@@ -92,7 +92,11 @@ public class AnnotationDBOUtilsTest {
 		Long owner = new Long(45);
 		annos.addAnnotation("list", new Double(123.1));
 		annos.addAnnotation("list", new Double(456.3));
-		List<DBODoubleAnnotation> results = AnnotationDBOUtils.createDoubleAnnotations(owner, annos.getDoubleAnnotations());
+		// should skip non-finite values
+		annos.addAnnotation("list", Double.NaN);
+		annos.addAnnotation("list", Double.POSITIVE_INFINITY);
+		annos.addAnnotation("list", Double.NEGATIVE_INFINITY);
+		List<DBODoubleAnnotation> results = AnnotationDBOUtils.createFiniteDoubleAnnotations(owner, annos.getDoubleAnnotations());
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// Check the values
@@ -105,6 +109,7 @@ public class AnnotationDBOUtilsTest {
 		assertEquals(owner, toCheck.getOwner());
 		assertEquals("list", toCheck.getAttribute());
 		assertEquals(new Double(456.3), toCheck.getValue());
+		
 	}
 	
 	@Test
@@ -130,7 +135,7 @@ public class AnnotationDBOUtilsTest {
 	}
 
 	@Test
-	public void testCreateStringAnnotationsWillNullValue(){
+	public void testCreateStringAnnotationsWithNullValue(){
 		String nullStringAnnotation = null;
 		Map<String, List<String>> stringAnnotations = new HashMap<String, List<String>>();
 		List<String> values = new ArrayList<String>();
@@ -150,7 +155,7 @@ public class AnnotationDBOUtilsTest {
 	}
 	
 	@Test
-	public void testCreateLongAnnotationsWillNullValue(){
+	public void testCreateLongAnnotationsWithNullValue(){
 		Long nullLongAnnotation = null;
 		Map<String, List<Long>> longAnnotations = new HashMap<String, List<Long>>();
 		List<Long> values = new ArrayList<Long>();
@@ -170,7 +175,7 @@ public class AnnotationDBOUtilsTest {
 	}
 	
 	@Test
-	public void testCreateDoubleAnnotationsWillNullValue(){
+	public void testCreateDoubleAnnotationsWithNullValue(){
 		Double nullDoubleAnnotation = null;
 		Map<String, List<Double>> doubleAnnotations = new HashMap<String, List<Double>>();
 		List<Double> values = new ArrayList<Double>();
@@ -179,7 +184,7 @@ public class AnnotationDBOUtilsTest {
 		Annotations annos = new Annotations();
 		annos.setDoubleAnnotations(doubleAnnotations);
 		Long owner = new Long(45);
-		List<DBODoubleAnnotation> results = AnnotationDBOUtils.createDoubleAnnotations(owner, annos.getDoubleAnnotations());
+		List<DBODoubleAnnotation> results = AnnotationDBOUtils.createFiniteDoubleAnnotations(owner, annos.getDoubleAnnotations());
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		// Check the values
@@ -190,7 +195,7 @@ public class AnnotationDBOUtilsTest {
 	}
 	
 	@Test
-	public void testCreateDateAnnotationsWillNullValue(){
+	public void testCreateDateAnnotationsWithNullValue(){
 		Date nullDateAnnotation = null;
 		Map<String, List<Date>> dateAnnotations = new HashMap<String, List<Date>>();
 		List<Date> values = new ArrayList<Date>();

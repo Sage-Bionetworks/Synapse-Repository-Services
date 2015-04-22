@@ -15,22 +15,27 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.SetMultimap;
@@ -43,7 +48,7 @@ import com.google.common.collect.SetMultimap;
  * @author John
  * 
  */
-public class TableWorker implements Callable<List<Message>> {
+public class TableWorker implements Worker {
 
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
@@ -52,35 +57,38 @@ public class TableWorker implements Callable<List<Message>> {
 	private static final long BATCH_SIZE = 16000;
 
 	static private Logger log = LogManager.getLogger(TableWorker.class);
-	List<Message> messages;
+
+	@Autowired
 	ConnectionFactory tableConnectionFactory;
+	@Autowired
 	TableRowManager tableRowManager;
-	boolean featureEnabled;
-	long timeoutMS;
+	@Autowired
+	StackConfiguration configuration;
+	@Autowired
+	NodeInheritanceManager nodeInheritanceManager;
+
+	List<Message> messages;
 	WorkerProgress workerProgress;
 
-	/**
-	 * This worker has many dependencies.
-	 * 
-	 * @param messages
-	 * @param tableConnectionFactory
-	 * @param tableTruthDAO
-	 * @param columnModelDAO
-	 * @param tableIndexDAO
-	 * @param semaphoreDao
-	 * @param tableStatusDAO
-	 * @param configuration
-	 * @param timeoutMS
-	 */
-	public TableWorker(List<Message> messages,
-			ConnectionFactory tableConnectionFactory,
-			TableRowManager tableRowManager, StackConfiguration configuration, WorkerProgress workerProgress) {
-		super();
-		this.messages = messages;
+	public TableWorker() {
+	}
+
+	// unit testing only
+	TableWorker(ConnectionFactory tableConnectionFactory, TableRowManager tableRowManager, StackConfiguration configuration,
+			NodeInheritanceManager nodeInheritanceManager) {
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.tableRowManager = tableRowManager;
-		this.featureEnabled = configuration.getTableEnabled();
-		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
+		this.configuration = configuration;
+		this.nodeInheritanceManager = nodeInheritanceManager;
+	}
+
+	@Override
+	public void setMessages(List<Message> messages) {
+		this.messages = messages;
+	}
+
+	@Override
+	public void setWorkerProgress(WorkerProgress workerProgress) {
 		this.workerProgress = workerProgress;
 	}
 
@@ -88,7 +96,7 @@ public class TableWorker implements Callable<List<Message>> {
 	public List<Message> call() throws Exception {
 		List<Message> processedMessages = new LinkedList<Message>();
 		// If the feature is disabled then we simply swallow all messages
-		if (!featureEnabled) {
+		if (!configuration.getTableEnabled()) {
 			return messages;
 		}
 		// process each message
@@ -109,6 +117,17 @@ public class TableWorker implements Callable<List<Message>> {
 				} else {
 					// Create or update.
 					String tableId = change.getObjectId();
+					// make sure the table is not in the trash
+					try {
+						if (nodeInheritanceManager.isNodeInTrash(tableId)) {
+							processedMessages.add(message);
+							continue;
+						}
+					} catch (NotFoundException e) {
+						// if the table no longer exists, we want to stop trying
+						processedMessages.add(message);
+						continue;
+					}
 					// this method does the real work.
 					State state = createOrUpdateTable(tableId,
 							change.getObjectEtag(), message);
@@ -140,22 +159,21 @@ public class TableWorker implements Callable<List<Message>> {
 			// If the passed token does not match the current token then this 
 			// is an old message that should be removed from the queue.
 			// See PLFM-2641.  We must check message before we acquire the lock.
-			 TableStatus status = tableRowManager.getTableStatus(tableId);
+			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
 			// If the reset-tokens do not match this message should be ignored
 			if (!tableResetToken.equals(status.getResetToken())) {
 				// This is an old message so we ignore it
 				return State.SUCCESS;
 			}
+			log.info("Get creat index lock " + tableId);
 			// Run with the exclusive lock on the table if we can get it.
-			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
-					timeoutMS, new Callable<State>() {
-						@Override
-						public State call() throws Exception {
-							// This method does the real work.
-							return createOrUpdateWhileHoldingLock(tableId,
-									tableResetToken, message);
-						}
-					});
+			return tableRowManager.tryRunWithTableExclusiveLock(tableId, configuration.getTableWorkerTimeoutMS(), new Callable<State>() {
+				@Override
+				public State call() throws Exception {
+					// This method does the real work.
+					return createOrUpdateWhileHoldingLock(tableId, tableResetToken, message);
+				}
+			});
 		} catch (LockUnavilableException e) {
 			// We did not get the lock on this table.
 			// This is a recoverable failure as we can try again later.
@@ -191,6 +209,7 @@ public class TableWorker implements Callable<List<Message>> {
 	private State createOrUpdateWhileHoldingLock(String tableId,
 			String tableResetToken, Message message) throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
+		log.info("Create index " + tableId);
 		try {
 			// Save the status before we start
 			// Try to get a connection.
@@ -203,8 +222,15 @@ public class TableWorker implements Callable<List<Message>> {
 			// This method will do the rest of the work.
 			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken, message);
 			// We are finished set the status
+			log.info("Create index " + tableId + " done");
 			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
+		} catch (TableUnavilableException e) {
+			// recoverable
+			tableRowManager.attemptToUpdateTableProgress(tableId, tableResetToken, e.getStatus().getProgressMessage(), e.getStatus()
+					.getProgressCurrent(), e.getStatus().getProgressTotal());
+			log.info("Create index " + tableId + " aborted, unavailable");
+			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			// Failed.
 			// Get the stack trace.
@@ -213,6 +239,7 @@ public class TableWorker implements Callable<List<Message>> {
 			// Attempt to set the status to failed.
 			tableRowManager.attemptToSetTableStatusToFailed(tableId, tableResetToken, e.getMessage(), writer.toString());
 			// This is not an error we can recover from.
+			log.info("Create index " + tableId + " aborted, unrecoverable");
 			return State.UNRECOVERABLE_FAILURE;
 		}
 	}
@@ -230,13 +257,14 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws TableUnavilableException
 	 */
-	String synchIndexWithTable(TableIndexDAO indexDao,
-			String tableId, String resetToken, Message message) throws DatastoreException, NotFoundException,
-			IOException {
+	String synchIndexWithTable(TableIndexDAO indexDao, String tableId, String resetToken, Message message) throws DatastoreException,
+			NotFoundException, IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(currentSchema, false);
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
 		if(currentSchema.isEmpty()){
@@ -264,7 +292,7 @@ public class TableWorker implements Callable<List<Message>> {
 					BATCH_SIZE);
 
 			// gather rows by version
-			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
+			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowIdsMap(currentRowVersions);
 			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap.asMap().entrySet()) {
 				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
 				Long version = versionWithRows.getKey();
@@ -273,7 +301,7 @@ public class TableWorker implements Callable<List<Message>> {
 				workerProgress.progressMadeForMessage(message);
 
 				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet);
+				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet, mapper);
 
 				tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows " + rowSet.getRows().size()
 						+ " to version: " + version, currentProgress, currentProgress);

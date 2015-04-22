@@ -95,7 +95,7 @@ public class AnnotationsWorkerIntegrationTest {
 		node.setModifiedByPrincipalId(userId);
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		node.setVersionComment("This is the first version of the first node ever!");
 		node.setVersionLabel("0.0.1");
     	nodeId = nodeDAO.createNew(node).substring(3); // trim "syn" from node ID
@@ -128,7 +128,7 @@ public class AnnotationsWorkerIntegrationTest {
         Node created = nodeDAO.getNode(nodeId);
         EntityBundle bundle = new EntityBundle();
         bundle.setFileHandles(new ArrayList<FileHandle>());
-        Submission createdSub = submissionManager.createSubmission(userInfo, submission, created.getETag(), bundle);
+        Submission createdSub = submissionManager.createSubmission(userInfo, submission, created.getETag(), null, bundle);
         submissionId = createdSub.getId();
         
         // create a submissionstatus

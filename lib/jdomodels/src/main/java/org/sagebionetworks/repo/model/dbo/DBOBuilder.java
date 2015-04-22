@@ -32,7 +32,7 @@ public class DBOBuilder<T> {
 	public interface ParamTypeMapper {
 		public Object convert(Object result);
 
-		public int getSqlType();
+		public Integer getSqlType();
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
@@ -186,7 +186,8 @@ public class DBOBuilder<T> {
 			@Override
 			public FieldColumn apply(Entry<Field> fieldEntry) {
 				return new FieldColumn(fieldEntry.field.getName(), fieldEntry.annotation.name(), fieldEntry.annotation.primary())
-						.withIsBackupId(fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
+						.withIsBackupId(fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag()
+								).withIsSelfForeignKey(fieldEntry.annotation.isSelfForeignKey());
 			}
 		});
 		return result.toArray(new FieldColumn[result.size()]);
@@ -275,7 +276,7 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.VARCHAR;
 					}
 				});
@@ -293,7 +294,7 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.BLOB;
 					}
 				});
@@ -307,8 +308,30 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.NUMERIC;
+					}
+				});
+			}
+
+			if (fieldEntry.annotation.truncatable() && fieldEntry.field.getType() == String.class) {
+				final int maxSize = (fieldEntry.annotation.varchar() > 0) ? fieldEntry.annotation.varchar() : ((fieldEntry.annotation
+						.fixedchar() > 0) ? fieldEntry.annotation.fixedchar() : Integer.MAX_VALUE);
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						if (result instanceof String) {
+							String stringResult = (String) result;
+							if (stringResult.length() > maxSize) {
+								result = stringResult.substring(0, maxSize);
+							}
+						}
+						return result;
+					}
+
+					@Override
+					public Integer getSqlType() {
+						return null;
 					}
 				});
 			}
@@ -346,7 +369,7 @@ public class DBOBuilder<T> {
 		}
 
 		StringBuilder sb = new StringBuilder(1000);
-		sb.append("CREATE TABLE " + escapeName(tableName) + " (\n\t");
+		sb.append("CREATE TABLE IF NOT EXISTS " + escapeName(tableName) + " (\n\t");
 		sb.append(StringUtils.join(lines, ",\n\t"));
 		sb.append("\n)\n");
 

@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -19,8 +17,13 @@ public interface AccessApprovalService {
 			UnauthorizedException, NotFoundException, InvalidModelException,
 			IOException;
 
+	public AccessApproval getAccessApproval(
+			Long userId, String approvalId)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException;
+
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
-			RestrictableObjectDescriptor subjectId, HttpServletRequest request)
+			RestrictableObjectDescriptor subjectId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	public void deleteAccessApprovals(Long userId, String approvalId)

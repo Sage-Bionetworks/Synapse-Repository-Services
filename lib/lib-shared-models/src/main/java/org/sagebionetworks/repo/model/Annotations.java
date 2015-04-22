@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,7 +28,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  */
 @SuppressWarnings("rawtypes")
-public class Annotations implements JSONEntity {
+public class Annotations implements JSONEntity, Serializable {
 	private static final String JSON_BLOB_ANNOTATIONS = "blobAnnotations";
 	private static final String JSON_DATE_ANNOTATIONS = "dateAnnotations";
 	private static final String JSON_LONG_ANNOTATIONS = "longAnnotations";

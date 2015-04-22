@@ -44,7 +44,7 @@ public interface MessageService {
 	public void deleteMessage(Long userId, String messageId)
 			throws NotFoundException;
 
-	public URL getMessageFileRedirectURL(Long userId, String messageId) throws NotFoundException;
+	public String getMessageFileRedirectURL(Long userId, String messageId) throws NotFoundException;
 
 	public MessageToUser createMessageToEntityOwner(Long userId, String entityId,
 			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException;

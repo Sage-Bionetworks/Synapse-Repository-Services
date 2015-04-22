@@ -38,6 +38,7 @@ public interface BackupDriver {
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException;
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException, Exception;
 }

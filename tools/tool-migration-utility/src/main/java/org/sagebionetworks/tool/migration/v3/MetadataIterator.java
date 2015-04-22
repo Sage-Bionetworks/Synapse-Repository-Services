@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.Progress.BasicProgress;
+import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
  * Provides a buffered Iterator over all metadata in a stack.

@@ -22,7 +22,7 @@ import org.openid4java.message.ax.FetchResponse;
 import org.openid4java.message.sreg.SRegMessage;
 import org.openid4java.message.sreg.SRegRequest;
 import org.openid4java.message.sreg.SRegResponse;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 
 /**
  * Modified "Relying Party" implementation
@@ -128,7 +128,7 @@ public class OpenIDConsumerUtils {
 	 * @throws UnauthorizedException If the request is invalid
 	 */
 	public static OpenIDInfo verifyResponse(ParameterList parameters)
-			throws IOException, UnauthorizedException {
+			throws IOException, UnauthenticatedException {
 		ensureManagerExists();
 		
 		//TODO Modification is needed to get it working with hosted google apps
@@ -179,7 +179,7 @@ public class OpenIDConsumerUtils {
 				return result;
 			}
 		} catch (OpenIDException e) {
-			throw new UnauthorizedException(e);
+			throw new UnauthenticatedException(e);
 		}
 		
 		// not verified

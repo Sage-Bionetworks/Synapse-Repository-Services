@@ -1,7 +1,7 @@
 Basics Table Query,Select all columns from the table identified by 'syn123'.,select * from syn123
 Basics Table Query,Select only two columns identified by 'foo' and 'bar' from the table identified by 'syn'123'.,"select foo, bar from syn123"
-Basics Table Query,"To refer to a column name that contains spaces or punctuation, the name must be with double quotes.","select ""has space"" from syn123"
-Basics Table Query,Any double quotes within a column name must be escaped with another double quote.,"select ""The """"Cool"""" name"" from syn123"
+Basics Table Query,"To refer to a column name that contains spaces or punctuation, the name must be enclosed in double quotes.","select ""has space"" from syn123"
+Basics Table Query,Any double quote within a column name must be escaped with two double quotes.,"select ""The """"Cool"""" name"" from syn123"
 Aggregation Functions,Count the number of rows in table 'syn123'.,select count(*) from syn123
 Aggregation Functions,Get the maximum of all values for the column 'foo' in table 'syn123'.,select max( foo ) from syn123
 Aggregation Functions,Get the minimum of all values for the column 'foo' in table 'syn123'.,select min(foo) from syn123
@@ -24,6 +24,7 @@ Filtering,Select all rows where column foo has a null value.,select * from syn12
 Filtering,Select all rows where column foo has a value that is not null.,select * from syn123 where foo is not null
 Filtering,Select all rows where column foo has a value with a prefix of 'bar'.  In this example the right-hand-side of the LIKE keyword is a regular expression where the '%' represents one or more characters or even zero characters.,select * from syn123 where foo like 'bar%'
 Filtering,Select all rows where column foo has a value with a prefix of 'bar'.  In this example the right-hand-side of the LIKE keyword is a regular expression where the '_' represents one and only one character.,select * from syn123 where foo like 'bar_'
+Filtering,Select all rows where double column foo is not a number or plus or minus infinity,select * from syn123 where isNan(foo) or isInfinity(foo)
 Filtering,The default escape character for LIKE regular expression is the '\' character.  In this example we want to find all rows such that foo that contain 'bar_' so we will need to escape the '_' character.,select * from syn123 where foo like 'bar\_'
 Filtering,"To use a different escape character for LIKE regular expression we must define the escape character.  In this example, the '|' will be used as an escape character instead of '\'.",select * from syn123 where foo like 'bar|_' escape '|'
 Filtering,Select all rows where column foo has a value equal to one or column bar has a value equals to two.,select * from syn123 where foo = 1 or bar = 2

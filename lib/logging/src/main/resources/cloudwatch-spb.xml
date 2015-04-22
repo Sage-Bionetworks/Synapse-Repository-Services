@@ -33,18 +33,4 @@
 
 	<!-- A consumer that logs performance data for all bean method calls to Amazon CloudWatch. -->  
 	<bean id="consumer" class="org.sagebionetworks.cloudwatch.Consumer" scope="singleton"/>
-
-	<!--  bean saying we want to invoke the sendEm method in Consumer class -->
-	<bean id="methodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-  		<property name="targetObject" ref="consumer" />
-  		<property name="targetMethod" value="executeCloudWatchPut" />
-  		<property name="concurrent" value="false" />
-	</bean>
-
-	<!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
-	<bean id="cloudwatchTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-    	<property name="jobDetail" ref="methodInvoking" />
-    	<property name="startDelay" value="0" />
-    	<property name="repeatInterval" ref="stackConfiguration.cloudWatchTriggerTime" />
-	</bean>
 </beans>

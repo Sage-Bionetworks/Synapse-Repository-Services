@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -24,13 +23,10 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -40,26 +36,32 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
-	private S3TokenManager s3TokenManager;
-	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
+	
+	boolean allowCreationOfOldEntities = true;
+	
+	/**
+	 * Injected via spring.
+	 * @param allowOldEntityTypes
+	 */
+	public void setAllowCreationOfOldEntities(boolean allowCreationOfOldEntities) {
+		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
+	}
 
 	public EntityManagerImpl() {
 	}
 	
 	public EntityManagerImpl(NodeManager nodeManager,
-			S3TokenManager s3TokenManager,
 			EntityPermissionsManager permissionsManager, UserManager userManager) {
 		super();
 		this.nodeManager = nodeManager;
-		this.s3TokenManager = s3TokenManager;
 		this.entityPermissionsManager = permissionsManager;
 		this.userManager = userManager;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
@@ -69,8 +71,7 @@ public class EntityManagerImpl implements EntityManager {
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass())
-				.name());
+		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass()));
 		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
@@ -92,8 +93,18 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
 		validateType(EntityType.getNodeTypeForClass(entityClass),
-				EntityType.valueOf(node.getNodeType()), entityId);
+				node.getNodeType(), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
+	}
+	
+	@Override
+	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		// Get the annotations for this entity
+		NamedAnnotations annos = nodeManager.getAnnotations(user, entityId);
+		// Fetch the current node from the server
+		Node node = nodeManager.get(user, entityId);
+		EntityWithAnnotations ewa = populateEntityWithNodeAndAnnotations(node.getNodeType().getClassForType(), annos, node);
+		return ewa.getEntity();
 	}
 
 	/**
@@ -220,7 +231,7 @@ public class EntityManagerImpl implements EntityManager {
 		return newEntity;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -229,7 +240,7 @@ public class EntityManagerImpl implements EntityManager {
 		nodeManager.delete(userInfo, entityId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteEntityVersion(UserInfo userInfo, String id,
 			Long versionNumber) throws NotFoundException, DatastoreException,
@@ -263,7 +274,7 @@ public class EntityManagerImpl implements EntityManager {
 		return annos.getAdditionalAnnotations();
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String entityId,
 			Annotations updated) throws ConflictingUpdateException,
@@ -292,7 +303,7 @@ public class EntityManagerImpl implements EntityManager {
 		dst.setUri(src.getUri());
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
 			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
@@ -310,19 +321,6 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = nodeManager.getAnnotations(userInfo,
 				updated.getId());
 		annos.setEtag(updated.getEtag());
-	
-		// Detect if new version for specific types
-		// Auto-version locationable entities
-		if (!newVersion && (updated instanceof Locationable)) {
-			Locationable locationable = (Locationable) updated;
-			String currentMd5 = (String) annos.getPrimaryAnnotations()
-					.getSingleValue("md5");
-			if (null != currentMd5 && !currentMd5.equals(locationable.getMd5())) {
-				newVersion = true;
-				// setting this to null we cause the revision id to be used.
-				locationable.setVersionLabel(null);
-			}
-		}
 		
 		// Auto-version FileEntity See PLFM-1744
 		if(!newVersion && (updated instanceof FileEntity)){
@@ -366,7 +364,7 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(entity.getEtag());
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends Entity> List<String> aggregateEntityUpdate(
 			UserInfo userInfo, String parentId, Collection<T> update)
@@ -412,7 +410,7 @@ public class EntityManagerImpl implements EntityManager {
 		EntityType type = EntityType.getNodeTypeForClass(childrenClass);
 		while (it.hasNext()) {
 			Node child = it.next();
-			if (EntityType.valueOf(child.getNodeType()) == type) {
+			if (child.getNodeType() == type) {
 				resultSet.add(this.getEntity(userInfo, child.getId(),
 						childrenClass));
 			}
@@ -424,6 +422,11 @@ public class EntityManagerImpl implements EntityManager {
 	public EntityType getEntityType(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
+	}
+
+	@Override
+	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException {
+		return nodeManager.getNodeTypeForDeletion(entityId);
 	}
 
 	@Override
@@ -522,29 +525,12 @@ public class EntityManagerImpl implements EntityManager {
 		}
 		return results;
 	}
-
-	@Override
-	public S3AttachmentToken createS3AttachmentToken(Long userId,
-			String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException{
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		validateUpdateAccess(userInfo, entityId);
-		return s3TokenManager.createS3AttachmentToken(userId, entityId, token);
-	}
-	
-	@Override
-	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
-			String tokenId) throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		validateReadAccess(userInfo, entityId);
-		return s3TokenManager.getAttachmentUrl(userId, entityId, tokenId);
-	}
 	
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo)) {
+				ACCESS_TYPE.READ, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -555,7 +541,7 @@ public class EntityManagerImpl implements EntityManager {
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo)) {
+				ACCESS_TYPE.UPDATE, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -575,7 +561,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override	
 	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
 			String activityId) throws DatastoreException,
@@ -585,7 +571,7 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getActivityForNode(userInfo, entityId, null);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {

@@ -5,28 +5,32 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 
 public class TeamServiceTest {
 	
 	private TeamServiceImpl teamService = new TeamServiceImpl();
 	
 	private TeamManager mockTeamManager;
+	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
 	
 	private Team team = null;
 	private TeamMember member = null;
@@ -34,6 +38,7 @@ public class TeamServiceTest {
 	@Before
 	public void before() throws Exception {
 		mockTeamManager = mock(TeamManager.class);
+		mockPrincipalPrefixDAO = mock(PrincipalPrefixDAO.class);
 			
 		team = new Team();
 		team.setId("101");
@@ -45,16 +50,28 @@ public class TeamServiceTest {
 
 		Map<Team, Collection<TeamMember>> universe = new HashMap<Team, Collection<TeamMember>>();
 		universe.put(team, Arrays.asList(new TeamMember[]{member}));
-		when(mockTeamManager.getAllTeamsAndMembers()).thenReturn(universe);
+		when(mockTeamManager.listAllTeamsAndMembers()).thenReturn(universe);
 		
 		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
-		when(mockTeamManager.getMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
+		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
 		teamService.setTeamManager(mockTeamManager);
+		teamService.setPrincipalPrefixDAO(mockPrincipalPrefixDAO);
 	}
 	
 	@Test
 	public void testGetTeamsByFragment() throws Exception {
+		
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix("foo", 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockPrincipalPrefixDAO.countTeamsForPrefix("foo")).thenReturn(1L);
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix("ba", 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockPrincipalPrefixDAO.countTeamsForPrefix("ba")).thenReturn(1L);
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix("bas", 1L, 0L)).thenReturn(new LinkedList<Long>());
+		when(mockPrincipalPrefixDAO.countTeamsForPrefix("bas")).thenReturn(0L);
+		
 		List<Team> expected = new ArrayList<Team>(); expected.add(team);
+		ListWrapper<Team> wrapped = new ListWrapper<Team>();
+		wrapped.setList(expected);
+		when(mockTeamManager.list(any(List.class))).thenReturn(wrapped);
 		PaginatedResults<Team> pr = teamService.get("foo", 1, 0);
 		assertEquals(expected.size(), pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
@@ -69,7 +86,18 @@ public class TeamServiceTest {
 	
 	@Test
 	public void testGetTeamMembersByFragment() throws Exception {
-		List<TeamMember> expected = new ArrayList<TeamMember>(); expected.add(member);
+		Long teamId = 101L;
+		when(mockPrincipalPrefixDAO.listTeamMembersForPrefix("Smith", teamId, 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockPrincipalPrefixDAO.countTeamMembersForPrefix("Smith", teamId)).thenReturn(1L);
+		when(mockPrincipalPrefixDAO.listTeamMembersForPrefix("john", teamId, 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockPrincipalPrefixDAO.countTeamMembersForPrefix("john", teamId)).thenReturn(1L);
+		when(mockPrincipalPrefixDAO.listTeamMembersForPrefix("bas", teamId, 1L, 0L)).thenReturn(new LinkedList<Long>());
+		when(mockPrincipalPrefixDAO.countTeamMembersForPrefix("bas", teamId)).thenReturn(0L);
+		List<TeamMember> expected = new ArrayList<TeamMember>();
+		expected.add(member);
+		ListWrapper<TeamMember> wrapper = new ListWrapper<TeamMember>();
+		wrapper.setList(expected);
+		when(mockTeamManager.listMembers(any(List.class), any(List.class))).thenReturn(wrapper);
 		// test last name match
 		PaginatedResults<TeamMember> pr = teamService.getMembers("101", "Smith", 1, 0);
 		assertEquals(expected.size(), pr.getTotalNumberOfResults());
@@ -86,16 +114,16 @@ public class TeamServiceTest {
 	@Test
 	public void testGetTeamNoFragment() throws Exception {
 		teamService.get(null, 1, 0);
-		verify(mockTeamManager).get(1, 0);
+		verify(mockTeamManager).list(1, 0);
 	}
 	
 	@Test
 	public void testGetTeamMemberNoFragment() throws Exception {
 		PaginatedResults<TeamMember>results = new PaginatedResults<TeamMember>();
 		results.setResults(new ArrayList<TeamMember>());
-		when(mockTeamManager.getMembers("101", 1, 0)).thenReturn(results);
+		when(mockTeamManager.listMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
-		verify(mockTeamManager).getMembers("101", 1, 0);
+		verify(mockTeamManager).listMembers("101", 1, 0);
 	}
 	
 

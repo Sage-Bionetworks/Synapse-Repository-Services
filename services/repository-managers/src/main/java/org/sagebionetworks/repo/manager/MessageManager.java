@@ -34,7 +34,7 @@ public interface MessageManager {
 	/**
 	 * Returns the redirect URL used to download the file containing the body of the message
 	 */
-	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
+	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
 	 * Saves the message so that it can be processed by other queries.

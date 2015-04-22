@@ -18,9 +18,7 @@ public class BooleanTestTest {
 		TruthValue truthValue = null;
 		
 		BooleanTest element = new BooleanTest(booleanPrimary, is, not, truthValue);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo <> 'bar'", builder.toString());
+		assertEquals("foo <> 'bar'", element.toString());
 	}
 	
 	@Test
@@ -31,9 +29,7 @@ public class BooleanTestTest {
 		TruthValue truthValue = TruthValue.TRUE;
 		
 		BooleanTest element = new BooleanTest(booleanPrimary, is, not, truthValue);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo IS NULL IS TRUE", builder.toString());
+		assertEquals("foo IS NULL IS TRUE", element.toString());
 	}
 	
 	@Test
@@ -44,8 +40,6 @@ public class BooleanTestTest {
 		TruthValue truthValue = TruthValue.UNKNOWN;
 		
 		BooleanTest element = new BooleanTest(booleanPrimary, is, not, truthValue);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo > 1 IS NOT UNKNOWN", builder.toString());
+		assertEquals("foo > 1 IS NOT UNKNOWN", element.toString());
 	}
 }

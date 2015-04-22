@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic database implementation of of PrincipalAliasDAO
@@ -66,7 +67,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	
 	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public PrincipalAlias bindAliasToPrincipal(PrincipalAlias dto) throws NotFoundException {
 		if(dto == null) throw new IllegalArgumentException("PrincipalAlais cannot be null");
@@ -206,6 +207,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	@Override
 	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds) {
 		if(principalIds == null) throw new IllegalArgumentException("PrincipalIds cannot be null");
+		if(principalIds.isEmpty()) return Collections.emptyList();
 		Map<String,Object> parameters = new HashMap<String,Object>();
 		parameters.put(SET_BIND_VAR, principalIds);
 		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS, principalAliasMapper, parameters);
@@ -215,7 +217,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void bootstrap(){
 		// Boot strap all users and groups
 		if (this.userGroupDAO.getBootstrapPrincipals() == null) {

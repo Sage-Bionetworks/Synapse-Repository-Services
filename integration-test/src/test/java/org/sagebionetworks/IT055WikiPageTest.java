@@ -70,6 +70,10 @@ public class IT055WikiPageTest {
 		toDelete = new ArrayList<WikiPageKey>();
 		handlesToDelete = new ArrayList<String>();
 		
+		// Create a project, this will own the wiki page.
+		project = new Project();
+		project = synapse.createEntity(project);
+
 		// Get the image file from the classpath.
 		URL url = IT055WikiPageTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -80,16 +84,12 @@ public class IT055WikiPageTest {
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		handlesToDelete.add(fileHandle.getId());
-		
-		// Create a project, this will own the wiki page.
-		project = new Project();
-		project = synapse.createEntity(project);
 	}
 
 	@After

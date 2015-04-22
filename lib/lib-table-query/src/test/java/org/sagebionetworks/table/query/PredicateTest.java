@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
+import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
@@ -20,101 +21,92 @@ public class PredicateTest {
 	public void testPredicateToSQLComparisonPredicate() throws ParseException{
 		ComparisonPredicate comparisonPredicate = SqlElementUntils.createComparisonPredicate("foo >= 123.4");
 		Predicate element = new Predicate(comparisonPredicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo >= 123.4", builder.toString());
+		assertEquals("foo >= 123.4", element.toString());
 	}
 	
 	@Test
 	public void testPredicateToSQLBetweenPredicate() throws ParseException{
 		BetweenPredicate betweenPredicate = SqlElementUntils.createBetweenPredicate("bar between 0.0 and 1.0");
 		Predicate element = new Predicate(betweenPredicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar BETWEEN 0.0 AND 1.0", builder.toString());
+		assertEquals("bar BETWEEN 0.0 AND 1.0", element.toString());
 	}
 	
 	@Test
 	public void testPredicateToSQLInPredicate() throws ParseException{
 		InPredicate inPredicate = SqlElementUntils.createInPredicate("bar in (2,3,5)");
 		Predicate element = new Predicate(inPredicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar IN ( 2, 3, 5 )", builder.toString());
+		assertEquals("bar IN ( 2, 3, 5 )", element.toString());
 	}
 	
 	@Test
 	public void testPredicateToSQLLikePredicate() throws ParseException{
 		LikePredicate likePredicate = SqlElementUntils.createLikePredicate("bar like '%suffix'");
 		Predicate element = new Predicate(likePredicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("bar LIKE '%suffix'", builder.toString());
+		assertEquals("bar LIKE '%suffix'", element.toString());
 	}
 	
+	@Test
+	public void testPredicateToSQLisInfinityBooleanFunction() throws ParseException {
+		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isInfinity(col5)").predicate()
+				.getBooleanFunctionPredicate();
+		Predicate element = new Predicate(booleanFunctionPredicate);
+		assertEquals("ISINFINITY(col5)", element.toString());
+	}
+
+	@Test
+	public void testPredicateToSQLIsNanBooleanFunction() throws ParseException {
+		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isNaN(col5)").predicate().getBooleanFunctionPredicate();
+		Predicate element = new Predicate(booleanFunctionPredicate);
+		assertEquals("ISNAN(col5)", element.toString());
+	}
+
 	@Test
 	public void testPredicateToSQLNullPredicate() throws ParseException{
 		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is null");
 		Predicate element = new Predicate(nullPredicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo IS NULL", builder.toString());
+		assertEquals("foo IS NULL", element.toString());
 	}
 
 	@Test
 	public void testPredicateToSQLNotNullPredicate() throws ParseException {
 		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is not null");
 		Predicate element = new Predicate(nullPredicate);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo IS NOT NULL", builder.toString());
+		assertEquals("foo IS NOT NULL", element.toString());
 	}
 	
 	@Test
 	public void testBooleanTestSQLPrimaryIsBooleanTrue() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is true");
-		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
-		assertEquals("foo IS TRUE", builder.toString());
+		assertEquals("foo IS TRUE", booleanPrimary.toString());
 	}
 
 	@Test
 	public void testBooleanTestSQLPrimaryIsBooleanFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is fAlse");
-		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
-		assertEquals("foo IS FALSE", builder.toString());
+		assertEquals("foo IS FALSE", booleanPrimary.toString());
 	}
 
 	@Test
 	public void testBooleanTestSQLPrimaryIsBooleanNotTrue() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is not true");
-		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
-		assertEquals("foo IS NOT TRUE", builder.toString());
+		assertEquals("foo IS NOT TRUE", booleanPrimary.toString());
 	}
 
 	@Test
 	public void testBooleanTestSQLPrimaryIsBooleanNotFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is not false");
-		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
-		assertEquals("foo IS NOT FALSE", builder.toString());
+		assertEquals("foo IS NOT FALSE", booleanPrimary.toString());
 	}
 
 	@Test
 	public void testBooleanTestSQLPrimaryIsBooleanEqualsTrue() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo = true");
-		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
-		assertEquals("foo = TRUE", builder.toString());
+		assertEquals("foo = TRUE", booleanPrimary.toString());
 	}
 
 	@Test
 	public void testBooleanTestSQLPrimaryIsBooleanEqualsFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo <> fAlse");
-		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
-		assertEquals("foo <> FALSE", builder.toString());
+		assertEquals("foo <> FALSE", booleanPrimary.toString());
 	}
 }

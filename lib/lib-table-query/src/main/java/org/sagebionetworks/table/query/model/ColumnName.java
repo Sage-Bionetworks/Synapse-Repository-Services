@@ -1,15 +1,15 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
 
 /**
  * This matches &ltcolumn name&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ColumnName implements SQLElement{
+public class ColumnName extends SQLElement {
 
 	Identifier identifier;
 
 	public ColumnName(Identifier identifier) {
-		super();
 		this.identifier = identifier;
 	}
 
@@ -17,9 +17,8 @@ public class ColumnName implements SQLElement{
 		return identifier;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		identifier.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(identifier, visitor);
 	}
 	
 }

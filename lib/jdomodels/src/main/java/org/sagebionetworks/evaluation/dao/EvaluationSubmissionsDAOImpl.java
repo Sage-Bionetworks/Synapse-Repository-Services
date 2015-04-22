@@ -22,8 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	private static final String SELECT_FOR_EVALUATION = "SELECT * FROM "+TABLE_EVALUATION_SUBMISSIONS+
@@ -82,7 +82,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public EvaluationSubmissions createForEvaluation(long evaluationId)
 			throws DatastoreException {
 		EvaluationSubmissionsDBO dbo = new EvaluationSubmissionsDBO();
@@ -112,20 +112,19 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	}
 	
 	@Override
-	public EvaluationSubmissions getForEvaluation(long evaluationId)
-			throws NotFoundException {
+	public EvaluationSubmissions getForEvaluationIfExists(long evaluationId) {
 		try {
 			EvaluationSubmissionsDBO dbo = jdbcTemplate.queryForObject(SELECT_FOR_EVALUATION, new Object[]{evaluationId}, EVAL_SUB_ROW_MAPPER);
 			EvaluationSubmissions dto = new EvaluationSubmissions();
 			copyDboToDto(dbo, dto);
 			return dto;		
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Cannot find EvaluationSubmissions for evaluation "+evaluationId, e);
+			return null;
 		}
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public EvaluationSubmissions lockAndGetForEvaluation(long evaluationId)
 			throws NotFoundException {
 		try {
@@ -134,12 +133,12 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 			copyDboToDto(dbo, dto);
 			return dto;		
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Cannot find EvaluationSubmissions for evaluation "+evaluationId, e);
+			throw new NotFoundException("Cannot find EvaluationSubmissions for evaluation " + evaluationId);
 		}
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public String updateEtagForEvaluation(long evaluationId, boolean sendChangeMessage, ChangeType changeType)
 			throws DatastoreException, NotFoundException {
 		String etag = UUID.randomUUID().toString();
@@ -149,7 +148,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteForEvaluation(long evaluationId)
 			throws DatastoreException, NotFoundException {
 		jdbcTemplate.update(DELETE_FOR_EVALUATION, new Object[]{evaluationId});

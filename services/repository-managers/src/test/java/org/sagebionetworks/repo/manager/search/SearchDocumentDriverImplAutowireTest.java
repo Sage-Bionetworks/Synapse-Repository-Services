@@ -136,47 +136,8 @@ public class SearchDocumentDriverImplAutowireTest {
 		return page;
 	}
 	
-	private String uploadAndGetFileHandleId(String markdownContent) throws IOException {
-		// Zip up the markdown into a file
-		// The upload file will hold the newly created markdown file.
-		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
-        if(markdownContent != null) {
-        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, markdownContent);
-        } else {
-        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, "");
-        }
-		String contentType = "application/x-gzip";
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setContentType(contentType);
-		ccftr.setFileName(markdownTemp.getName());
-		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
-		ccftr.setContentMD5(md5);
-		// Start the upload
-		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(adminUserInfo, ccftr);
-
-		S3FileHandle handle = new S3FileHandle();
-		handle.setContentType(token.getContentType());
-		handle.setContentMd5(token.getContentMD5());
-		handle.setContentSize(markdownTemp.length());
-		handle.setFileName("markdown.txt");
-		// Creator of the wiki page may not have been set to the user yet
-		// so do not use wiki's createdBy
-		handle.setCreatedBy(adminUserInfo.getId().toString());
-		long currentTime = System.currentTimeMillis();
-		handle.setCreatedOn(new Date(currentTime));
-		handle.setKey(token.getKey());
-		handle.setBucketName(StackConfiguration.getS3Bucket());
-		// Upload this to S3
-		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
-		// Save the metadata
-		handle = fileMetadataDao.createFile(handle);
-		
-		if(markdownTemp != null){
-			markdownTemp.delete();
-		}
-		
-		return handle.getId();
+	private String uploadAndGetFileHandleId(String markdownContent) throws IOException {	
+		return fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdownContent).getId();
 	}
 	
 	/**
@@ -225,7 +186,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setId("5678");
 		node.setParentId("1234");
 		node.setETag("0");
-		node.setNodeType(EntityType.dataset.name());
+		node.setNodeType(EntityType.folder);
 		node.setDescription("Test annotations");
 		Long nonexistantPrincipalId = 42L;
 		node.setCreatedByPrincipalId(nonexistantPrincipalId);
@@ -301,7 +262,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
 		
-		assertEquals("study", fields.getNode_type());
+		assertEquals("folder", fields.getNode_type());
 		assertEquals(node.getDescription()+wikiPageText, fields.getDescription());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
 		assertEquals(nonexistantPrincipalId.toString(), fields.getCreated_by());
@@ -364,7 +325,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setId("5678");
 		node.setParentId("1234");
 		node.setETag("0");
-		node.setNodeType(EntityType.step.name());
+		node.setNodeType(EntityType.folder);
 		node
 				.setDescription("For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA).");
 		Long nonexistantPrincipalId = 42L;

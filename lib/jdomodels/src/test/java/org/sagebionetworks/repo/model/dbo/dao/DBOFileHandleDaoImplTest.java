@@ -219,9 +219,9 @@ public class DBOFileHandleDaoImplTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("fileName");
 		// Create a URL that is is 700 chars long
-		char[] chars = new char[700-9];
+		char[] chars = new char[700 - 9 - 4];
 		Arrays.fill(chars, 'a');
-		meta.setExternalURL("http://"+new String(chars));
+		meta.setExternalURL("http://" + new String(chars) + ".com");
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -233,6 +233,59 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(meta, clone);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testLongNameTooLong() throws DatastoreException, NotFoundException {
+		S3FileHandle meta = new S3FileHandle();
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		// Create a name that 260 chars long
+		char[] chars = new char[260];
+		Arrays.fill(chars, 'x');
+		meta.setFileName(new String(chars));
+		// Create
+		meta = fileHandleDao.createFile(meta);
+		assertNull(meta);
+	}
+	
+
+	public void testLongName() throws DatastoreException, NotFoundException {
+		S3FileHandle meta = new S3FileHandle();
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		// Create a name that 255 chars long
+		char[] chars = new char[255];
+		Arrays.fill(chars, 'x');
+		meta.setFileName(new String(chars));
+		// Create
+		meta = fileHandleDao.createFile(meta);
+		assertNotNull(meta);
+		String id = meta.getId();
+		toDelete.add(id);
+		FileHandle clone = fileHandleDao.get(id);
+		assertNotNull(clone);
+		// Does the clone match the expected.
+		assertEquals(meta, clone);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testURLWithSpace() throws DatastoreException, NotFoundException {
+		ExternalFileHandle meta = new ExternalFileHandle();
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setFileName("fileName");
+		// Create a URL that is is 700 chars long
+		meta.setExternalURL("http://synapse.org/some space");
+		// Save it
+		meta = fileHandleDao.createFile(meta);
+	}
+
 	@Test
 	public void testS3FileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata

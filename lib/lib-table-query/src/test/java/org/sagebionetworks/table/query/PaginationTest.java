@@ -10,17 +10,18 @@ public class PaginationTest {
 	@Test
 	public void testToSQL(){
 		Pagination element = new Pagination("123", "456");
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("LIMIT 123 OFFSET 456", builder.toString());
+		assertEquals("LIMIT 123 OFFSET 456", element.toString());
 	}
 	
 	@Test
-	public void testToSQLNoOffset(){
-		Pagination element = new Pagination("123", null);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("LIMIT 123", builder.toString());
+	public void testToSQLWithLongs() {
+		Pagination element = new Pagination(123L, 456L);
+		assertEquals("LIMIT 123 OFFSET 456", element.toString());
 	}
 
+	@Test
+	public void testToSQLNoOffset(){
+		Pagination element = new Pagination("123", null);
+		assertEquals("LIMIT 123", element.toString());
+	}
 }

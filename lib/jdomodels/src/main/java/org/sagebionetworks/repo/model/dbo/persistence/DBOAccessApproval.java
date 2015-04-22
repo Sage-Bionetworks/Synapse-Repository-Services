@@ -6,7 +6,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ENTITY_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
@@ -40,7 +39,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	private long modifiedOn;
 	private Long requirementId;
 	private Long accessorId;
-	private String entityType;
 	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -52,7 +50,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		new FieldColumn("modifiedOn", COL_ACCESS_APPROVAL_MODIFIED_ON),
 		new FieldColumn("requirementId", COL_ACCESS_APPROVAL_REQUIREMENT_ID),
 		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID),
-		new FieldColumn("entityType", COL_ACCESS_APPROVAL_ENTITY_TYPE),
 		new FieldColumn("serializedEntity", COL_ACCESS_APPROVAL_SERIALIZED_ENTITY)
 		};
 
@@ -72,7 +69,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				aa.setModifiedOn(rs.getLong(COL_ACCESS_APPROVAL_MODIFIED_ON));
 				aa.setRequirementId(rs.getLong(COL_ACCESS_APPROVAL_REQUIREMENT_ID));
 				aa.setAccessorId(rs.getLong(COL_ACCESS_APPROVAL_ACCESSOR_ID));
-				aa.setEntityType(rs.getString(COL_ACCESS_APPROVAL_ENTITY_TYPE));
 				java.sql.Blob blob = rs.getBlob(COL_ACCESS_APPROVAL_SERIALIZED_ENTITY);
 				if(blob != null){
 					aa.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
@@ -100,6 +96,17 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				return DBOAccessApproval.class;
 			}
 		};
+	}
+
+
+	@Override
+	public String toString() {
+		return "DBOAccessApproval [id=" + id + ", eTag=" + eTag
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
+				+ ", requirementId=" + requirementId + ", accessorId="
+				+ accessorId + ", serializedEntity="
+				+ Arrays.toString(serializedEntity) + "]";
 	}
 
 
@@ -181,17 +188,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		this.modifiedOn = modifiedOn;
 	}
 
-
-	public String getEntityType() {
-		return entityType;
-	}
-
-
-	public void setEntityType(String entityType) {
-		this.entityType = entityType;
-	}
-
-
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
 	}
@@ -212,8 +208,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + (int) (createdOn ^ (createdOn >>> 32));
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result
-				+ ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -250,11 +244,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			if (other.eTag != null)
 				return false;
 		} else if (!eTag.equals(other.eTag))
-			return false;
-		if (entityType == null) {
-			if (other.entityType != null)
-				return false;
-		} else if (!entityType.equals(other.entityType))
 			return false;
 		if (id == null) {
 			if (other.id != null)

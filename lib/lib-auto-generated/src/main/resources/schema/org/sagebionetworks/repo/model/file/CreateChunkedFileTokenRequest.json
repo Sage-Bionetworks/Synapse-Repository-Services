@@ -12,6 +12,14 @@
 		"contentMD5": {
 			"description": "The file's content MD5 (should be a HEX encoded string).",
 			"type": "string"
+		},
+		"uploadDestination": {
+			"description": "The upload destination for this parent. (deprecated)",
+			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+		},
+		"storageLocationId": {
+			"description": "The optional storage location id used.",
+			"type": "integer"
 		}
 	}
 }

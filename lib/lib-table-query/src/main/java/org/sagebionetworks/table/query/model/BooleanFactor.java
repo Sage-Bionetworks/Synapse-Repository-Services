@@ -1,9 +1,13 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
+
 /**
  * This matches &ltboolean factor&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class BooleanFactor implements SQLElement {
+public class BooleanFactor extends SQLElement {
 
 	Boolean not;
 	BooleanTest booleanTest;
@@ -19,12 +23,15 @@ public class BooleanFactor implements SQLElement {
 	public BooleanTest getBooleanTest() {
 		return booleanTest;
 	}
-	@Override
-	public void toSQL(StringBuilder builder) {
-		if(not != null){
-			builder.append("NOT ");
-		}
-		booleanTest.toSQL(builder);
+
+	public void visit(Visitor visitor) {
+		visit(booleanTest, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		if(not != null){
+			visitor.append("NOT ");
+		}
+		visit(booleanTest, visitor);
+	}
 }

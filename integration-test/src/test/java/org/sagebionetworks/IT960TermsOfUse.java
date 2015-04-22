@@ -1,12 +1,9 @@
 package org.sagebionetworks;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.AfterClass;
@@ -19,12 +16,10 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 
 public class IT960TermsOfUse {
 
@@ -33,7 +28,7 @@ public class IT960TermsOfUse {
 	private static Long userToDelete;
 	
 	private static Project project;
-	private static Study dataset;
+	private static FileEntity dataset;
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -65,16 +60,14 @@ public class IT960TermsOfUse {
 		adminSynapse.updateACL(acl); // push back to Synapse
 		
 		// a dataset added to the project will inherit its parent's permissions, i.e. will be public-readable
-		dataset = new Study();
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setExternalURL("http://foobar.com");
+		efh.setFileName("foo.bar");
+		efh = adminSynapse.createExternalFileHandle(efh);
+		dataset = new FileEntity();
 		dataset.setName("bar");
 		dataset.setParentId(project.getId());
-		List<LocationData> locations = new ArrayList<LocationData>();
-		LocationData ld = new LocationData();
-		ld.setPath("http://foobar.com");
-		ld.setType(LocationTypeNames.external);
-		locations.add(ld);
-		dataset.setLocations(locations);
-		dataset.setMd5("12345678123456781234567812345678");
+		dataset.setDataFileHandleId(efh.getId());
 		dataset = adminSynapse.createEntity(dataset);
 	}
 	
@@ -93,9 +86,8 @@ public class IT960TermsOfUse {
 	@Test
 	public void testRepoSvcWithTermsOfUse() throws Exception {
 		// should be able to see locations (i.e. the location is 'tier 1' data
-		Study ds = synapse.getEntity(dataset.getId(), Study.class);
-		List<LocationData> locations = ds.getLocations();
-		assertTrue(locations!=null && locations.size()==1);
+		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
+		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 	}
 
 	@Test
@@ -103,18 +95,14 @@ public class IT960TermsOfUse {
 		SynapseClientImpl anonymous = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(anonymous);
 		
-		Study ds = synapse.getEntity(dataset.getId(), Study.class);
-		List<LocationData> locations = ds.getLocations();
-		assertTrue(locations!=null && locations.size()==1);
+		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
+		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 		
-		Study idHolder = new Study();
+		FileEntity idHolder = new FileEntity();
 		idHolder.setId(ds.getId());
 		// an admin should be able to retreive the entity, including the locations
-		ds = adminSynapse.getEntity(idHolder.getId(), Study.class);
-		
-		assertEquals("bar", ds.getName());
-		locations = ds.getLocations();
-		assertTrue(locations!=null && locations.size()==1);
+		ds = adminSynapse.getEntity(idHolder.getId(), FileEntity.class);
+		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(idHolder.getId()));
 
 	}
 	

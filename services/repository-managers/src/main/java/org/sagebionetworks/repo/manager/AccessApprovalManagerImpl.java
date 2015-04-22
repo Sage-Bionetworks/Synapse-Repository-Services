@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -27,8 +29,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
@@ -48,15 +50,14 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
 	InvalidModelException, UnauthorizedException, DatastoreException, NotFoundException {
-		if (a.getAccessorId()==null || a.getEntityType()==null || a.getRequirementId()==null) throw new InvalidModelException();
+		if (a.getAccessorId()==null || a.getRequirementId()==null) throw new InvalidModelException();
 
-		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
-		
 		// make sure the approval matches the requirement
 		AccessRequirement ar = accessRequirementDAO.get(a.getRequirementId().toString());
 		if (((ar instanceof TermsOfUseAccessRequirement) && !(a instanceof TermsOfUseAccessApproval))
-				|| ((ar instanceof ACTAccessRequirement) && !(a instanceof ACTAccessApproval))) {
-			throw new InvalidModelException("Cannot apply an approval of type "+a.getEntityType()+" to an access requirement of type "+ar.getEntityType());
+			|| ((ar instanceof PostMessageContentAccessRequirement) && !(a instanceof PostMessageContentAccessApproval))
+			|| ((ar instanceof ACTAccessRequirement) && !(a instanceof ACTAccessApproval))) {
+			throw new InvalidModelException("Cannot apply an approval of type "+a.getClass().getSimpleName()+" to an access requirement of type "+ar.getClass().getSimpleName());
 		}
 		
 	}
@@ -76,8 +77,15 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
+	
+	@Override
+	public AccessApproval getAccessApproval(UserInfo userInfo, String approvalId) 
+			throws DatastoreException, NotFoundException {
+		return accessApprovalDAO.get(approvalId);
+	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
@@ -89,9 +97,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		validateAccessApproval(userInfo, accessApproval);
 
-		if (!authorizationManager.canCreateAccessApproval(userInfo, accessApproval)) {
-			throw new UnauthorizedException("You are not allowed to create this approval.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreateAccessApproval(userInfo, accessApproval));
+
 		
 		populateCreationFields(userInfo, accessApproval);
 		return accessApprovalDAO.create(accessApproval);
@@ -102,9 +109,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		
-		if (!authorizationManager.canAccessAccessApprovalsForSubject(userInfo, subjectId, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, subjectId, ACCESS_TYPE.READ));
+		
 
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
@@ -121,7 +127,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return result;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
@@ -133,21 +139,20 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
-		if (!authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException("You are unauthorized to update this Access Approval");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE));
 		populateModifiedFields(userInfo, accessApproval);
 		return accessApprovalDAO.update(accessApproval);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		if (!authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE)) {
-			throw new UnauthorizedException("You are unauthorized to update this Access Approval");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), 
+						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE));
+			
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 

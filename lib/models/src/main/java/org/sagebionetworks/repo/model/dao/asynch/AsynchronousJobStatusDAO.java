@@ -38,7 +38,7 @@ public interface AsynchronousJobStatusDAO {
 	 * @param progressTotal
 	 * @return The new etag.
 	 */
-	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage);
+	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage);
 	
 	/**
 	 * Set a job to failed.

@@ -3,8 +3,11 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,36 +23,68 @@ import org.apache.logging.log4j.Logger;
  */
 public class StackConfiguration {
 
-	public class StackConfigurationPropertyAccessor implements PropertyAccessor {
-		String name;
+	private class StackConfigurationStringPropertyAccessor implements PropertyAccessor<String> {
+		private final String name;
 
-		private StackConfigurationPropertyAccessor(String name) {
+		private StackConfigurationStringPropertyAccessor(String name) {
 			this.name = name;
 		}
 
 		@Override
-		public String getString() {
-			return dynamicConfiguration.getProperty(this.name);
+		public String get() {
+			return dynamicConfiguration.getPropertyRepeatedly(this.name);
+		}
+	}
+
+	private class StackConfigurationLongPropertyAccessor implements PropertyAccessor<Long> {
+		private final String name;
+
+		private StackConfigurationLongPropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public long getLong() {
-			return Long.parseLong(getString());
+		public Long get() {
+			return Long.parseLong(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationIntegerPropertyAccessor implements PropertyAccessor<Integer> {
+		private final String name;
+
+		private StackConfigurationIntegerPropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public int getInteger() {
-			return Integer.parseInt(getString());
+		public Integer get() {
+			return Integer.parseInt(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationDoublePropertyAccessor implements PropertyAccessor<Double> {
+		private final String name;
+
+		private StackConfigurationDoublePropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public boolean getBoolean() {
-			return Boolean.parseBoolean(getString());
+		public Double get() {
+			return Double.parseDouble(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationBooleanPropertyAccessor implements PropertyAccessor<Boolean> {
+		private final String name;
+
+		private StackConfigurationBooleanPropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public double getDouble() {
-			return Double.parseDouble(getString());
+		public Boolean get() {
+			return Boolean.parseBoolean(dynamicConfiguration.getPropertyRepeatedly(this.name));
 		}
 	}
 
@@ -239,10 +274,6 @@ public class StackConfiguration {
 
 	public static String getFileServiceEndpoint() {
 		return configuration.getFileServiceEndpoint();
-	}
-
-	public static String getBridgeServiceEndpoint() {
-		return configuration.getBridgeServiceEndpoint();
 	}
 
 	/**
@@ -508,6 +539,10 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.notification.email.address");
 	}
+	
+	public static String getSynapseOpsEmailAddress() {
+		return configuration.getProperty("org.sagebionetworks.synapseops.email.address");
+	}
 
 	/**
 	 * @return the name of the S3 Bucket where logs are stored each stack (dev,
@@ -639,17 +674,31 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.dynamo.enabled"));
 	}
 	
+	public boolean getDynamoTableRowCacheEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.dynamo.table.row.cache.enabled"));
+	}
+	
 	/**
 	 * Is the Table feature enabled?
 	 * @return
 	 */
 	public boolean getTableEnabled(){
-		return Boolean.parseBoolean(configuration
-				.getProperty("org.sagebionetworks.table.enabled"));
+		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
+	}
+
+	/**
+	 * Is the Table create all indexes feature enabled?
+	 * 
+	 * @return
+	 */
+	public PropertyAccessor<Boolean> getTableAllIndexedEnabled() {
+		return new StackConfigurationBooleanPropertyAccessor("org.sagebionetworks.table.allindexed.enabled");
 	}
 
 	/**
 	 * Is the DOI feature enabled?
+	 * 
 	 * @return
 	 */
 	public boolean getDoiEnabled(){
@@ -671,11 +720,6 @@ public class StackConfiguration {
 	public static String getBCCSignupEnabled() {
 		return configuration
 				.getProperty("org.sagebionetworks.bcc.signup.enabled");
-	}
-
-	public static String getBridgeSpreadsheetTitle() {
-		return configuration
-				.getProperty("org.sagebionetworks.bridge.spreadsheet.title");
 	}
 
 	/**
@@ -781,28 +825,55 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The name of the queue used used to upload CSV files to tables.
+	 * The name of the async queue
+	 * 
 	 * @return
 	 */
-	public String getTableCSVUploadQueueName(){
-		return String.format(StackConstants.TABLE_CSV_UPLOAD_QUEUE_TEMPLATE,
-				StackConfiguration.getStack(),
-				StackConfiguration.getStackInstance());
-	}
-	
-	/**
-	 * The name of the queue used used to download CSV files from tables.
-	 * @return
-	 */
-	public String getTableCSVDownloadQueueName(){
-		return String.format(StackConstants.TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE,
-				StackConfiguration.getStack(),
-				StackConfiguration.getStackInstance());
+	public String getAsyncQueueName(String baseName) {
+		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance(),
+				baseName);
 	}
 
 	/**
-	 * The name of the AWS topic where repository changes messages are
-	 * published.
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String,String> getAsyncQueueName() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getAsyncQueueName(key.toString());
+			}
+		};
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public String getWorkerQueueName(String baseName) {
+		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance(),
+				baseName);
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String, String> getWorkerQueueName() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getWorkerQueueName(key.toString());
+			}
+		};
+	}
+
+	/**
+	 * The name of the AWS topic where repository changes messages are published.
 	 * 
 	 * @return
 	 */
@@ -810,6 +881,16 @@ public class StackConfiguration {
 		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX,
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
+	}
+
+	/**
+	 * The name of the AWS topic where repository changes messages are published.
+	 * 
+	 * @return
+	 */
+	public String getRepositoryModificationTopicName() {
+		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX, StackConfiguration.getStack(), StackConfiguration.getStackInstance())
+				+ "modifications";
 	}
 
 	/**
@@ -1252,16 +1333,6 @@ public class StackConfiguration {
 				.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
 	}
 
-	public static String getBridgeDataMappingEncryptionKey() {
-		return "::TODO::";
-		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.mapping.encryptionkey");
-	}
-
-	public static String getBridgeDataEncryptionKey() {
-		return "::TODO::";
-		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.encryptionkey");
-	}
-
 	/**
 	 * Entity path for the root folder. This is to be bootstrapped.
 	 */
@@ -1337,14 +1408,23 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * Get the name of the participant data bucket.
 	 * 
 	 * @return
 	 */
-	public String getParticipantDataBucketName() {
-		return String.format(StackConstants.PARTICIPANT_DATA_BUCKET, StackConfiguration.getStack());
+	public String getOAuth2GoogleClientId() {
+		return configuration
+				.getProperty("org.sagebionetworks.oauth2.google.client.id");
 	}
-
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String getOAuth2GoogleClientSecret() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
+	}
+	
 	/**
 	 * Get the max bytes per HTTP request for a table.
 	 * 
@@ -1363,9 +1443,19 @@ public class StackConfiguration {
 		return Integer.parseInt(configuration
 				.getProperty("org.sagebionetworks.table.max.bytes.per.change.set"));
 	}
+	
 	/**
-	 * The maximum amount of time in MS that the table worker can hold the semaphore
-	 * lock on the table.
+	 * Get the max bytes per HTTP request for a table.
+	 * 
+	 * @return
+	 */
+	public int getTableMaxEnumValues() {
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.table.max.enum.values"));
+	}
+
+	/**
+	 * The maximum amount of time in MS that the table worker can hold the semaphore lock on the table.
+	 * 
 	 * @return
 	 */
 	public long getTableWorkerTimeoutMS() {
@@ -1382,33 +1472,51 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
 	}
 
-	public PropertyAccessor getMaxConcurrentRepoConnections() {
-		return new StackConfigurationPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
+	public PropertyAccessor<Integer> getMaxConcurrentRepoConnections() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
 	}
 
 	/**
 	 * The amount of time (MS) the ChangeSentMessageSynchWorker sleeps between pages.
 	 * @return
 	 */
-	public PropertyAccessor getChangeSynchWorkerSleepTimeMS(){
-		return new StackConfigurationPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
+	public PropertyAccessor<Long> getChangeSynchWorkerSleepTimeMS() {
+		return new StackConfigurationLongPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
 	}
 	
 	/**
 	 * The minium page size used by ChangeSentMessageSynchWorker.
 	 * @return
 	 */
-	public PropertyAccessor getChangeSynchWorkerMinPageSize(){
-		return new StackConfigurationPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
+	public PropertyAccessor<Integer> getChangeSynchWorkerMinPageSize() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
 	}
 	
 	/**
-	 * Get the name of the audit record bucket.
+	 * Get the name of the audit access record bucket.
 	 * 
 	 * @return
 	 */
 	public String getAuditRecordBucketName() {
 		return String.format(StackConstants.ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the name of the audit ACL record bucket.
+	 * 
+	 * @return
+	 */
+	public String getAclRecordBucketName() {
+		return String.format(StackConstants.ACL_RECORD_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the name of the audit ACL Resource Access record bucket.
+	 * 
+	 * @return
+	 */
+	public String getResourceAccessRecordBucketName() {
+		return String.format(StackConstants.RESOURCE_ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
 	}
 	
 	/**
@@ -1420,6 +1528,15 @@ public class StackConfiguration {
 		return String.format(StackConstants.STACK_LOG_BUCKET, StackConfiguration.getStack());
 	}
 	
+	/**
+	 * Get the name of the stack test bucket.
+	 * 
+	 * @return
+	 */
+	public String getExternalS3TestBucketName() {
+		return String.format(StackConstants.EXTERNAL_S3_TEST_BUCKET, StackConfiguration.getStack());
+	}
+
 	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to a file (the default)
 	 */
@@ -1433,6 +1550,31 @@ public class StackConfiguration {
 		if (emailDeliveredString==null || emailDeliveredString.length()==0) return false;
 		return Boolean.parseBoolean(emailDeliveredString);
 	}
+	
+	/**
+	 * 
+	 * @return if missing or false then certified user restrictions are in effect.  Setting to true disables.
+	 */
+	public PropertyAccessor<Boolean> getDisableCertifiedUser() {
+		return new StackConfigurationBooleanPropertyAccessor("org.sagebionetworks.disable.certified.user");
+	}
+
+
+	/**
+	 * Are users allowed to create entities of the old types?
+	 */
+	public boolean getAllowCreationOfOldEntities() {
+		return Boolean.parseBoolean(configuration
+						.getProperty("org.sagebionetworks.allow.create.old.entities"));
+	}
+	
+	/**
+	 * Are users allowed to create old attachments (entity attachments and user profile attachments?)
+	 */
+	public boolean getAllowCreationOfOldAttachments() {
+		return Boolean.parseBoolean(configuration
+						.getProperty("org.sagebionetworks.allow.create.old.attachments"));
+	}
 
 
 	private static StackConfiguration singleton = new StackConfiguration();
@@ -1444,4 +1586,5 @@ public class StackConfiguration {
 	public static StackConfiguration singleton(){
 		return singleton;
 	}
+
 }

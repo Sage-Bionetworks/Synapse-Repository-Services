@@ -6,7 +6,6 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +29,7 @@ import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -55,47 +55,33 @@ public class SearchDaoImpl implements SearchDao {
 	
 	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
 	
-	private static final HttpClient httpClient;
-
-	static {
-		ThreadSafeClientConnManager connectionManager;
-		try {
-			connectionManager = HttpClientHelper.createClientConnectionManager(true);
-			// ensure that we can have *many* simultaneous connections to
-			// CloudSearch
-			connectionManager.setDefaultMaxPerRoute(StackConfiguration.getHttpClientMaxConnsPerRoute());
-			HttpParams clientParams = new BasicHttpParams();
-			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,20*1000);
-			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT, 20*1000);
-			httpClient = new DefaultHttpClient(connectionManager, clientParams);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
+	@Autowired
+	CloudSearchClient cloudHttpClient = null;
 	
-	CloudSearchClient cloudHttpClient;
-	
-	/**
-	 * Spring will call this method when the bean is first initialize.
-	 * @throws InterruptedException 
-	 * @throws UnknownHostException 
-	 */
-	public void initialize() throws InterruptedException, UnknownHostException {
-		if(!searchDomainSetup.isSearchEnabled()){
+	@Override
+	public boolean postInitialize() throws Exception {
+		if (!searchDomainSetup.isSearchEnabled()) {
 			log.info("SearchDaoImpl.initialize() will do nothing since search is disabled");
-			return;
+			return true;
 		}
+
+		if (!searchDomainSetup.postInitialize()) {
+			return false;
+		}
+
 		String searchEndPoint = searchDomainSetup.getSearchEndpoint();
 		log.info("Search endpoint: " + searchEndPoint);
+		cloudHttpClient.setSearchServiceEndpoint(searchEndPoint);
 		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
 		log.info("Document endpoint: " + documentEndPoint);
-		cloudHttpClient = new CloudSearchClient(httpClient, searchEndPoint,	documentEndPoint);
-
+		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
+		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
+		//cloudHttpClient._init();
+		return true;
 	}
 
 	/**
@@ -108,7 +94,8 @@ public class SearchDaoImpl implements SearchDao {
 	}
 	
 	@Override
-	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException, HttpClientHelperException {
+	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
 		validateSearchEnabled();
 		if(document == null) throw new IllegalArgumentException("Document cannot be null");
 		List<Document> list = new LinkedList<Document>();
@@ -117,13 +104,14 @@ public class SearchDaoImpl implements SearchDao {
 	}
 	
 	@Override
-	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException {
-		validateSearchEnabled();
+	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
+		CloudSearchClient searchClient = validateSearchAvailable();
 		// Cleanup they data
 		byte[] bytes = cleanSearchDocuments(batch);
 		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 		// Pass along to the client
-		cloudHttpClient.sendDocuments(in, bytes.length);
+		searchClient.sendDocuments(in, bytes.length);
 	}
 	
 	/**
@@ -186,7 +174,8 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void deleteDocument(String documentId) throws ClientProtocolException, IOException, HttpClientHelperException {
+	public void deleteDocument(String documentId) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
 		validateSearchEnabled();
 		// This is just a batch delete of size one.
 		HashSet<String> set = new HashSet<String>(1);
@@ -195,8 +184,9 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException, HttpClientHelperException {
-		validateSearchEnabled();
+	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
+		CloudSearchClient searchClient = validateSearchAvailable();
 		DateTime now = DateTime.now();
 		// Note that we cannot use a JSONEntity here because the format is
 		// just a JSON array
@@ -214,13 +204,14 @@ public class SearchDaoImpl implements SearchDao {
 			}
 		}
 		// Delete the batch.
-		cloudHttpClient.sendDocuments(documentBatch.toString());
+		searchClient.sendDocuments(documentBatch.toString());
 	}
 
 	@Override
-	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException {
-		validateSearchEnabled();
-		String results = cloudHttpClient.performSearch(search);
+	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
+		CloudSearchClient searchClient = validateSearchAvailable();
+		String results = searchClient.performSearch(search);
 		try {
 			return searchResultsFactory.fromAwesomeSearchResults(results);
 		} catch (JSONObjectAdapterException e) {
@@ -230,14 +221,15 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
-			HttpClientHelperException {
-		validateSearchEnabled();
-		return cloudHttpClient.performSearch(search);
+	public String executeRawSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
+		CloudSearchClient searchClient = validateSearchAvailable();
+		return searchClient.performSearch(search);
 	}
 
 	@Override
-	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException {
+	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
 		validateSearchEnabled();
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
@@ -246,14 +238,16 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException {
+	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
 		validateSearchEnabled();
 		String query = String.format(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE, limit, offset);
 		return executeSearch(query);
 	}
 
 	@Override
-	public void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException {
+	public void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException,
+			ServiceUnavailableException {
 		validateSearchEnabled();
 		// Keep deleting as long as there are documents
 		SearchResults sr = null;
@@ -277,4 +271,11 @@ public class SearchDaoImpl implements SearchDao {
 		return searchDomainSetup.isSearchEnabled();
 	}
 
+	private CloudSearchClient validateSearchAvailable() throws ServiceUnavailableException {
+		validateSearchEnabled();
+		if (cloudHttpClient == null) {
+			throw new ServiceUnavailableException("Search service still initializing...");
+		}
+		return cloudHttpClient;
+	}
 }

@@ -1,20 +1,24 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -22,6 +26,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -43,8 +48,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -68,10 +73,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
+	@Autowired
+	private SubmissionEligibilityManager submissionEligibilityManager;
 	
 	private static final int MAX_BATCH_SIZE = 500;
 	
-
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
@@ -87,13 +93,39 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations 
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionToSubmissionStatus(sub, includePrivateAnnos);
+	}
+	
+	static boolean isTeamSubmission(Submission submission, String submissionEligibilityHash) {
+		return (submission.getTeamId()!=null && submissionEligibilityHash!=null);
+	}
+	
+	static boolean isIndividualSubmission(Submission submission, String submissionEligibilityHash) {
+		return submission.getTeamId()==null && submissionEligibilityHash==null && 
+				submission.getContributors().size()==1 &&
+				submission.getContributors().iterator().next().getPrincipalId().equals(submission.getUserId());
+	}
+	
+	AuthorizationStatus checkSubmissionEligibility(UserInfo userInfo, Submission submission, String submissionEligibilityHash, Date now) throws DatastoreException, NotFoundException {
+		String evalId = submission.getEvaluationId();
+		if (isTeamSubmission(submission, submissionEligibilityHash)) {
+			List<String> contributors = new ArrayList<String>();
+			for (SubmissionContributor sc : submission.getContributors()) {
+				contributors.add(sc.getPrincipalId());
+			}
+			return submissionEligibilityManager.isTeamEligible(
+					evalId, submission.getTeamId(), contributors, submissionEligibilityHash, now);
+		} else if (isIndividualSubmission(submission, submissionEligibilityHash)) {
+			return submissionEligibilityManager.isIndividualEligible(evalId, userInfo, now);
+		} else {
+			throw new InvalidModelException("Submission is neither a valid Team or Individual Submission.");
+		}
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
+	@WriteTransaction
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
@@ -104,7 +136,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setUserId(principalId);
 		
 		// validate permissions
-		evaluationPermissionsManager.validateHasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
@@ -114,6 +147,33 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throw new IllegalArgumentException("The supplied eTag is out of date. " +
 					"Please fetch Entity " + entityId + " again.");
 		} 
+		
+		// let's use a single time stamp for everything we do in this transaction
+		Date now = new Date();
+		
+		// set created on date in contributors list and make sure creator is a contributor
+		Set<SubmissionContributor> scs = new HashSet<SubmissionContributor>();
+		boolean creatorIsIncluded = false;
+		if (submission.getContributors()!=null) {
+			for (SubmissionContributor sc : submission.getContributors()) {
+				// don't want to mutate an object in a hashset, so let's make a new one
+				SubmissionContributor scWithDate = new SubmissionContributor();
+				scWithDate.setPrincipalId(sc.getPrincipalId());
+				scWithDate.setCreatedOn(now);
+				scs.add(scWithDate);
+				if (scWithDate.getPrincipalId().equals(principalId)) creatorIsIncluded=true;
+			}
+		}
+		if (!creatorIsIncluded) {
+			SubmissionContributor scWithDate = new SubmissionContributor();
+			scWithDate.setPrincipalId(principalId);
+			scWithDate.setCreatedOn(now);
+			scs.add(scWithDate);
+		}
+		submission.setContributors(scs);
+		
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now));
 		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
@@ -129,7 +189,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setId(idGenerator.generateNewId().toString());
 				
 		// set creation date
-		submission.setCreatedOn(new Date());
+		submission.setCreatedOn(now);
 		
 		// create the Submission	
 		String submissionId = submissionDAO.create(submission);
@@ -138,7 +198,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(submissionId);
 		status.setStatus(SubmissionStatusEnum.RECEIVED);
-		status.setModifiedOn(new Date());
+		status.setModifiedOn(now);
 		
 		submissionStatusDAO.create(status);
 		
@@ -156,7 +216,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
@@ -197,7 +257,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public BatchUploadResponse updateSubmissionStatusBatch(UserInfo userInfo, String evalId,
 			SubmissionStatusBatch batch) throws NotFoundException, ConflictingUpdateException {
 		
@@ -245,9 +305,28 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		return response;
 	}
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 */
+	@Override
+	@WriteTransaction
+	public SubmissionContributor addSubmissionContributor(UserInfo userInfo,
+			String submissionId, SubmissionContributor submissionContributor) {
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("This service is only available to Synapse administrators.");
+		SubmissionContributor created=new SubmissionContributor();
+		created.setPrincipalId(submissionContributor.getPrincipalId());
+		created.setCreatedOn(new Date());
+		submissionDAO.addSubmissionContributor(submissionId, created);
+		return created;
+	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		UserInfo.validateUserInfo(userInfo);
 		
@@ -296,7 +375,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		QueryResults<Submission> submissions = 
 				getAllSubmissionsPrivate(evalId, status, limit, offset);
 		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
@@ -327,7 +406,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		QueryResults<Submission> submissions = getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
-		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionsToSubmissionBundles(submissions, haveReadPrivateAccess);
 	}
 		
@@ -341,7 +420,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public URL getRedirectURLForFileHandle(UserInfo userInfo, 
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		Submission submission = getSubmission(userInfo, submissionId);
@@ -367,9 +446,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType)) {
-			throw new UnauthorizedException("You lack " + accessType + " rights for Evaluation " + evalId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType));
 	}
 
 	/**

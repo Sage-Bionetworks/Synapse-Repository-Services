@@ -86,12 +86,12 @@ public class AnnotationDBOUtils {
 	}
 
 	/**
-	 * Create the double annotations.
+	 * Create the double annotations, skipping any NaN/Infinite values
 	 * @param ownerId
 	 * @param map
 	 * @return
 	 */
-	public static List<DBODoubleAnnotation> createDoubleAnnotations(Long ownerId, Map<String, List<Double>> map) {
+	public static List<DBODoubleAnnotation> createFiniteDoubleAnnotations(Long ownerId, Map<String, List<Double>> map) {
 		List<DBODoubleAnnotation> results = new ArrayList<DBODoubleAnnotation>();
 		if(map != null){
 			Iterator<String> keyIt = map.keySet().iterator();
@@ -101,11 +101,13 @@ public class AnnotationDBOUtils {
 				Iterator<Double> valueIt = valueColection.iterator();
 				while(valueIt.hasNext()){
 					Double value = valueIt.next();
-					DBODoubleAnnotation anno = new DBODoubleAnnotation();
-					anno.setOwner(ownerId);
-					anno.setAttribute(key);
-					anno.setValue(value);
-					results.add(anno);
+					if (value==null || (!Double.isInfinite(value) && !Double.isNaN(value))) {
+						DBODoubleAnnotation anno = new DBODoubleAnnotation();
+						anno.setOwner(ownerId);
+						anno.setAttribute(key);
+						anno.setValue(value);
+						results.add(anno);
+					}
 				}
 			}
 		}

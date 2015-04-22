@@ -1,0 +1,17 @@
+{
+    "title":"TableBundle",
+    "description":"Metadata about a TableEntity that can be included in an EntityBundle",
+    "properties":{
+		"columnModels": {
+		    "description":"The list of ColumnModels currently used by this table.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		},
+        "maxRowsPerPage":{
+            "type":"integer",
+            "description":"The maximum number of rows that can be requested or posted for this table in a single call.  This is a function of the columns that are currently assigned to this table."
+        }
+    }
+}

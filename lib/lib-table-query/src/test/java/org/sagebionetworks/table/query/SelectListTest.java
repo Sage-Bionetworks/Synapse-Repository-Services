@@ -14,32 +14,26 @@ public class SelectListTest {
 	
 	@Test
 	public void testStar(){
-		StringBuilder builder = new StringBuilder();
 		SelectList element = new SelectList(Boolean.TRUE);
-		element.toSQL(builder);
-		assertEquals("*", builder.toString());
+		assertEquals("*", element.toString());
 	}
 
 	@Test
 	public void testDerivedList() throws ParseException{
-		StringBuilder builder = new StringBuilder();
 		List<DerivedColumn> columns = SqlElementUntils.createDerivedColumns("foo", "bar as \"new name\"");
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		SelectList element = new SelectList(columns);
-		element.toSQL(builder);
-		assertEquals("foo, bar AS \"new name\"", builder.toString());
+		assertEquals("foo, bar AS \"new name\"", element.toString());
 	}
 	
 	@Test
 	public void testDerivedListFunction() throws ParseException{
-		StringBuilder builder = new StringBuilder();
 		List<DerivedColumn> columns = SqlElementUntils.createDerivedColumns("max(foo)", "min(bar)");
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		SelectList element = new SelectList(columns);
-		element.toSQL(builder);
-		assertEquals("MAX(foo), MIN(bar)", builder.toString());
+		assertEquals("MAX(foo), MIN(bar)", element.toString());
 	}
 	
 }

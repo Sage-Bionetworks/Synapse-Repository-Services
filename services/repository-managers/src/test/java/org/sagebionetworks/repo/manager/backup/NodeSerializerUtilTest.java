@@ -66,7 +66,7 @@ public class NodeSerializerUtilTest {
 		rod.setId("103");
 		rod.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
+		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setId(104L);
 
 		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
@@ -77,7 +77,7 @@ public class NodeSerializerUtilTest {
 		accessApproval.setEtag("10");
 		accessApproval.setAccessorId("100");
 		accessApproval.setRequirementId(accessRequirement.getId());
-		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		
 		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

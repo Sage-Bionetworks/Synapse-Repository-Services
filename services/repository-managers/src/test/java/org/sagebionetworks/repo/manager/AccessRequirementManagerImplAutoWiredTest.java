@@ -97,6 +97,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		testUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		assertNotNull(nodeManager);
@@ -104,24 +105,24 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		Node rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
-		rootProject.setNodeType(EntityType.project.name());
+		rootProject.setNodeType(EntityType.project);
 		String rootId = nodeManager.createNewNode(rootProject, adminUserInfo);
 		nodesToDelete.add(rootId); // the deletion of 'rootId' will cascade to its children
 		Node node = new Node();
 		node.setName("A");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.link);
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
 		
 		Node fileNode = new Node();
 		fileNode.setName("File");
-		fileNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
+		fileNode.setNodeType(EntityType.file);
 		fileNode.setParentId(rootId);
 		fileId = nodeManager.createNewNode(fileNode, adminUserInfo);
 
 		Node childNode = new Node();
 		childNode.setName("Child");
-		childNode.setNodeType(EntityType.layer.name());
+		childNode.setNodeType(EntityType.link);
 		childNode.setParentId(entityId);
 		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
@@ -141,12 +142,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 		rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
-		rootProject.setNodeType(EntityType.project.name());
+		rootProject.setNodeType(EntityType.project);
 		String rootId2 = nodeManager.createNewNode(rootProject, adminUserInfo);
 		nodesToDelete.add(rootId2); // the deletion of 'rootId' will cascade to its children
 		node = new Node();
 		node.setName("B");
-		node.setNodeType(EntityType.layer.name());
+		node.setNodeType(EntityType.link);
 		node.setParentId(rootId2);
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
@@ -212,7 +213,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -224,7 +225,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(evaluationId);
 		rod.setType(RestrictableObjectType.EVALUATION);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -236,7 +237,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(teamId);
 		rod.setType(RestrictableObjectType.TEAM);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -288,13 +289,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessRequirementBadParam2() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
-		ar.setEntityType(ACTAccessRequirement.class.getName());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-	}
-	
-	@Test(expected=InvalidModelException.class)
-	public void testCreateAccessRequirementBadParam3() throws Exception {
-		ar = newEntityAccessRequirement(entityId);
 		ar.setAccessType(null);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
@@ -334,6 +328,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	}
 	
 	@Test
+	public void testGetAccessRequirement() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		AccessRequirement retrieved = accessRequirementManager.getAccessRequirement(adminUserInfo, ar.getId().toString());
+		assertEquals(ar, retrieved);
+	}
+	
+	@Test
 	public void testGetAccessRequirements() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
@@ -366,7 +368,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+		
+		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -380,7 +386,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+		
+		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -393,7 +403,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(adminEvaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
+		
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+		
+		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -406,7 +421,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod);
+		
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -419,7 +435,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(fileId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0L, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 	}
@@ -432,7 +448,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(evaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserInfo, rod);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}

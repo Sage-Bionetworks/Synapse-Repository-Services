@@ -41,10 +41,10 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
 		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.BOOLEAN);
 		// Create the iterator.
-		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
+		Iterator<Row> iterator = new CSVToRowIterator(columns, reader, false);
 		// Since no header was provide, the values should remain in the same
 		// order.
 		List<Row> asList = readAll(iterator);
@@ -79,10 +79,10 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
 		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.BOOLEAN);
 		// Create the iterator.
-		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
+		Iterator<Row> iterator = new CSVToRowIterator(columns, reader, true);
 		List<Row> asList = readAll(iterator);
 		assertEquals("The header should not be included in the results", 3,
 				asList.size());
@@ -101,6 +101,25 @@ public class CSVToRowIteratorTest {
 		assertEquals(3, row.getValues().size());
 		assertEquals(Arrays.asList(input.get(3)), row.getValues());
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCSVToRowIteratorWithHeadersMissing() throws IOException {
+		// Create a reader with some data.
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This time add a header row.
+		input.add(new String[] { "AAA", "2", "true" });
+		input.add(new String[] { "CCC", "3", "false" });
+		input.add(new String[] { "FFF", "4", "true" });
+		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		// Create some columns
+		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
+				"a", "b", "c");
+		columns.get(0).setColumnType(ColumnType.STRING);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
+		columns.get(2).setColumnType(ColumnType.BOOLEAN);
+		// Should throw an exception since the headers are missing.
+		new CSVToRowIterator(columns, reader, true);
+	}
 
 	@Test
 	public void testCSVToRowIteratorWithHeaderDifferentOrder()
@@ -117,10 +136,10 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"c", "b", "a");
 		columns.get(0).setColumnType(ColumnType.BOOLEAN);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.STRING);
 		// Create the iterator.
-		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
+		Iterator<Row> iterator = new CSVToRowIterator(columns, reader, true);
 		List<Row> asList = readAll(iterator);
 		assertEquals("The header should not be included in the results", 3,
 				asList.size());
@@ -157,10 +176,10 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"c", "b", "a");
 		columns.get(0).setColumnType(ColumnType.BOOLEAN);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.STRING);
 		// Create the iterator.
-		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
+		Iterator<Row> iterator = new CSVToRowIterator(columns, reader, true);
 		List<Row> asList = readAll(iterator);
 		assertEquals("The header should not be included in the results", 3,
 				asList.size());

@@ -82,12 +82,23 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public List<MediaType> getSupportedMediaTypes() {
 		return supportedMedia;
 	}
+	
+	// This is specified by HTTP 1.1
+	private static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
+	
+	// This is the character set used by Synapse if the client does not specify one
+	private static final Charset SYNAPSE_DEFAULT_CHARSET = Charset.forName("UTF-8");
 
 	@Override
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
 			HttpMessageNotReadableException {
 		// First read the string
-		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), inputMessage.getHeaders().getContentType().getCharSet());
+		Charset charsetForDeSerializingBody = inputMessage.getHeaders().getContentType().getCharSet();
+		if (charsetForDeSerializingBody==null) {
+			// HTTP 1.1 says that the default is ISO-8859-1
+			charsetForDeSerializingBody = HTTP_1_1_DEFAULT_CHARSET;
+		}
+		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), charsetForDeSerializingBody);
 		try {
 			return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 		} catch (JSONObjectAdapterException e) {
@@ -186,27 +197,35 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	}
 
 	@Override
-	public void write(JSONEntity entity, MediaType contentType,
+	public void write(JSONEntity entity, final MediaType contentType,
 			HttpOutputMessage outputMessage) throws IOException,
 			HttpMessageNotWritableException {
 		// First write the entity to a JSON string
 		try {
-			HttpHeaders headers = outputMessage.getHeaders();
-			if (headers.getContentType() == null) {
-				if (contentType == null || contentType.isWildcardType() || contentType.isWildcardSubtype()) {
-					contentType = MediaType.APPLICATION_JSON;
-				}
-				if (contentType != null) {
-					headers.setContentType(contentType);
-				}
+			MediaType contentTypeForResponseHeader = contentType;
+			if (contentTypeForResponseHeader.isWildcardType() || contentTypeForResponseHeader.isWildcardSubtype()) {
+				// this will leave the character set unspecified, but we fill that in below
+				contentTypeForResponseHeader = MediaType.APPLICATION_JSON;
 			}
+			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
+			if (charsetForSerializingBody==null) {
+				charsetForSerializingBody = SYNAPSE_DEFAULT_CHARSET;
+				// Let's make it explicit in the response header
+				contentTypeForResponseHeader = new MediaType(
+						contentTypeForResponseHeader.getType(),
+						contentTypeForResponseHeader.getSubtype(),
+						charsetForSerializingBody
+				);
+			}
+			HttpHeaders headers = outputMessage.getHeaders();
+			headers.setContentType(contentTypeForResponseHeader);
 			String jsonString = EntityFactory.createJSONStringForEntity(entity);
-			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), contentType.getCharSet());
+			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 			if (headers.getContentLength() == -1) {
 				headers.setContentLength(length);
 			}
 		} catch (JSONObjectAdapterException e) {
-			throw new HttpMessageNotWritableException(e.getMessage());
+			throw new HttpMessageNotWritableException(e.getMessage(), e);
 		}
 
 	}

@@ -48,6 +48,9 @@ public class ServletTestHelperUtils {
 		}
 
 	}
+	
+	private static final String REQUEST_ENCODING_CHARSET = "UTF-8";
+	private static final String RESPONSE_ENCODING_CHARSET = "UTF-8";
 
 	/**
 	 * Fills in a Mock HTTP request with the default headers (Accept and
@@ -65,15 +68,16 @@ public class ServletTestHelperUtils {
 			throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod(mode.name());
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.addHeader("Accept", "application/json; charset="+RESPONSE_ENCODING_CHARSET);
+		request.addHeader("Accept-Encoding", RESPONSE_ENCODING_CHARSET);
+		request.addHeader("Content-Type", "application/json; charset="+REQUEST_ENCODING_CHARSET);
 		request.setRequestURI(path+requestURI);
 		if (userId != null) {
 			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
 		}
 		if (entity != null) {
 			String body = EntityFactory.createJSONStringForEntity(entity);
-			request.setContent(body.getBytes("UTF-8"));
+			request.setContent(body.getBytes(REQUEST_ENCODING_CHARSET));
 			log.debug("Request content: " + body);
 		}
 		return request;

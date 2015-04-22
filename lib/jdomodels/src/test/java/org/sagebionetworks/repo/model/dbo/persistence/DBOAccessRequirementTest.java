@@ -38,9 +38,7 @@ public class DBOAccessRequirementTest {
 	
 	@Autowired
 	NodeDAO nodeDao;
-	
-	private static final String TEST_USER_NAME = "test-user@test.com";
-	
+		
 	private Node node = null;
 	private UserGroup individualGroup = null;
 	private DBOAccessRequirement ar = null;
@@ -90,7 +88,6 @@ public class DBOAccessRequirementTest {
 		accessRequirement.setModifiedOn(System.currentTimeMillis());
 		accessRequirement.seteTag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
-		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setSerializedEntity(serializedEntity);
 		accessRequirement.setId(id);
 		return accessRequirement;
@@ -123,6 +120,4 @@ public class DBOAccessRequirementTest {
 		assertTrue("Failed to delete the type created", result);
 		
 	}
-	
-
 }

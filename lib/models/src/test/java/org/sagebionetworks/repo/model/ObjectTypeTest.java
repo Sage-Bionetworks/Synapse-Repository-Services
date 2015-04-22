@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ObjectTypeTest {
@@ -19,38 +20,12 @@ public class ObjectTypeTest {
 		}
 	}
 	
-	@Test
-	public void testGetTypeForId(){
-		EntityType[] array = EntityType.values();
-		for(EntityType type: array){
-			assertNotNull(type.getId());
-			EntityType result = type.getTypeForId(type.getId());
-			assertEquals(type, result);
-		}
-	}
 	
-	@Test
-	public void testDatasetValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.project, EntityType.folder};
-		testValidParents(expectedValid,  EntityType.dataset);
-	}
 	
 	@Test
 	public void testProjectValidParent(){
 		EntityType[] expectedValid = new EntityType[]{null};
 		testValidParents(expectedValid, EntityType.project);
-	}
-	
-	@Test
-	public void testLayerValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.dataset, EntityType.project, EntityType.folder};
-		testValidParents(expectedValid, EntityType.layer);
-	}
-	
-	@Test
-	public void testPreviewValidParent(){
-		EntityType[] expectedValid = new EntityType[]{ EntityType.layer, EntityType.folder};
-		testValidParents(expectedValid, EntityType.preview);
 	}
 	
 	/**

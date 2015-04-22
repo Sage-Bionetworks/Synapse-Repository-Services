@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -21,7 +22,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -31,8 +31,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class UserManagerImpl implements UserManager {
 	
@@ -85,7 +85,7 @@ public class UserManagerImpl implements UserManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public long createUser(NewUser user) {
 		// First validate and trim the new user
 		NewUserUtils.validateAndTrim(user);
@@ -153,14 +153,14 @@ public class UserManagerImpl implements UserManager {
 		return alias;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
 		return createUser(adminUserInfo, user, credential, touAgreement, null);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException {
@@ -195,7 +195,6 @@ public class UserManagerImpl implements UserManager {
 		return getUserInfo(principalId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);
@@ -234,7 +233,7 @@ public class UserManagerImpl implements UserManager {
 		return ui;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {

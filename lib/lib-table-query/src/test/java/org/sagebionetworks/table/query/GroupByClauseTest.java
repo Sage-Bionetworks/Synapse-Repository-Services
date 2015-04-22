@@ -13,9 +13,7 @@ public class GroupByClauseTest {
 	public void testToSQL() throws ParseException{
 		GroupingColumnReferenceList list = SqlElementUntils.createGroupingColumnReferenceList("one, two");
 		GroupByClause element = new GroupByClause(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("GROUP BY one, two", builder.toString());
+		assertEquals("GROUP BY one, two", element.toString());
 	}
 
 }

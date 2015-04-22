@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -22,6 +23,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -39,6 +41,7 @@ import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
@@ -306,11 +309,21 @@ public class HttpClientHelper {
 
 		HttpEntity requestEntity = null;
 		if (null != requestContent) {
-			requestEntity = new StringEntity(requestContent);
+			requestEntity = new StringEntity(requestContent, getCharacterSetFromHeaders(requestHeaders));
 		}
 
 		return performEntityRequest(client, requestUrl, requestMethod,
 				requestEntity, requestHeaders);
+	}
+	
+	public static String getCharacterSetFromHeaders(Map<String, String> requestHeaders) {
+		if (requestHeaders==null) return null;
+		String contentTypeHeader = requestHeaders.get("Content-Type");
+		if (contentTypeHeader==null) return null;
+		ContentType contentType = ContentType.parse(contentTypeHeader);
+		Charset charset = contentType.getCharset();
+		if (charset==null) return null;
+		return charset.name();
 	}
 
 	/**

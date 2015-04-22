@@ -9,11 +9,8 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 
-import org.apache.http.client.ClientProtocolException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -25,9 +22,7 @@ import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * Test for SearchServiceImpl
@@ -54,7 +49,7 @@ public class SearchServiceImplTest {
 	}
 	
 	@Test
-	public void testProxySearchPath() throws UnsupportedEncodingException, ClientProtocolException, IOException, HttpClientHelperException, NotFoundException {
+	public void testProxySearchPath() throws Exception {
 		// Prepare mock results
 		SearchResults sample = new SearchResults();
 		sample.setHits(new LinkedList<Hit>());
@@ -91,7 +86,7 @@ public class SearchServiceImplTest {
 	}
 	
 	@Test
-	public void testProxySearchNoPath() throws UnsupportedEncodingException, ClientProtocolException, IOException, HttpClientHelperException, NotFoundException {
+	public void testProxySearchNoPath() throws Exception {
 		// Prepare mock results
 		SearchResults sample = new SearchResults();
 		sample.setHits(new LinkedList<Hit>());

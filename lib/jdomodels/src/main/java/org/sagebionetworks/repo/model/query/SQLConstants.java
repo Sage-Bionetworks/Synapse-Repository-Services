@@ -31,6 +31,7 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_STATUS 			= "STATUS";
 	public static final String COL_EVALUATION_SUB_INSTRUCT_MSG	= "SUBMISSION_INSTRUCTIONS_MESSAGE";
 	public static final String COL_EVALUATION_SUB_RECEIPT_MSG	= "SUBMISSION_RECEIPT_MESSAGE";
+	public static final String COL_EVALUATION_QUOTA				= "QUOTA";
 	
 	public static final String TABLE_EVALUATION_SUBMISSIONS = "EVALUATION_SUBMISSIONS";
 	public static final String COL_EVALUATION_SUBMISSIONS_ID = "ID";
@@ -57,6 +58,15 @@ public class SQLConstants {
 	public static final String COL_SUBMISSION_ENTITY_VERSION	= "ENTITY_VERSION";
 	public static final String COL_SUBMISSION_NAME				= "NAME";
 	public static final String COL_SUBMISSION_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_SUBMISSION_TEAM_ID 			= "TEAM_ID";
+	
+	// Submission contributor
+	public static final String TABLE_SUBMISSION_CONTRIBUTOR		= "SUBMISSION_CONTRIBUTOR";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_ID	= "ID";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_ETAG	= "ETAG";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID	= "SUBMISSION_ID";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID	= "PRINCIPAL_ID";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_CREATED_ON	= "CREATED_ON";
 	
 	// SubmissionStatus table constants
 	public static final String DDL_FILE_SUBSTATUS				= "schema/evaluation/SubmissionStatus-ddl.sql";

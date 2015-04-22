@@ -13,20 +13,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="classpath:aws-spb.xml" />
-	
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<!-- AmazonSNSClient -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-	
 	<bean id="queueServiceDao" class="org.sagebionetworks.asynchronous.workers.sqs.QueueServiceDaoImpl">
 	    <property name="maxSQSRequestSize" value="10"/>
 	</bean>

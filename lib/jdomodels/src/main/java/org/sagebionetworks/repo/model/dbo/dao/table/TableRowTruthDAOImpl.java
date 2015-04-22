@@ -33,21 +33,27 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
@@ -79,12 +85,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " = ? AND " + COL_TABLE_ROW_VERSION + " = ?";
 	private static final String SQL_LIST_ALL_KEYS = "SELECT "
 			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE;
+	private static final String SQL_LIST_ALL_KEYS_FOR_TABLE = "SELECT " + COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE + " WHERE "
+			+ COL_TABLE_ROW_TABLE_ID + " = ?";
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
 			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC";
-	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * FROM "
+	private static final String SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE = "FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
@@ -92,6 +100,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_TABLE_ROW_VERSION
 			+ " > ? ORDER BY "
 			+ COL_TABLE_ROW_VERSION + " ASC";
+	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * "
+			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
+	private static final String SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT COUNT(*) "
+			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
+	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
+			+ COL_ID_SEQUENCE_TABLE_ID
+			+ " = ?";
 	private static final String KEY_TEMPLATE = "%1$s.csv.gz";
 	private static final String SQL_TRUNCATE_SEQUENCE_TABLE = "DELETE FROM "
 			+ TABLE_TABLE_ID_SEQUENCE + " WHERE " + COL_ID_SEQUENCE_TABLE_ID
@@ -104,7 +119,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private AmazonS3Client s3Client;
 
@@ -115,7 +130,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange()
 			.getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
 		if (tableIdString == null)
@@ -130,8 +145,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		Long currentVersion;
 		try {
 			// First lock row for this table
-			dbo = simpleJdbcTemplate.queryForObject(
-					SQL_SELECT_SEQUENCE_FOR_UPDATE, sequenceRowMapper, tableId);
+			dbo = jdbcTemplate.queryForObject(SQL_SELECT_SEQUENCE_FOR_UPDATE, sequenceRowMapper, tableId);
 			currentSequence = dbo.getSequence();
 			currentVersion = dbo.getVersionNumber();
 			exists = true;
@@ -175,9 +189,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		s3Client.createBucket(s3Bucket);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta, boolean isDeletion)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, ColumnModelMapper models, RawRowSet delta)
 			throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
@@ -192,15 +206,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveCSVToS3(models, delta, isDeletion);
-		List<String> headers = TableModelUtils.getHeaders(models);
+		String key = saveCSVToS3(models.getColumnModels(), delta);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());
-		changeDBO.setColumnIds(TableModelUtils
-				.createDelimitedColumnModelIdString(headers));
+		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(Lists.transform(models.getColumnModels(),
+				TableModelUtils.COLUMN_MODEL_TO_ID)));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKey(key);
@@ -210,7 +223,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 		// Prepare the results
 		RowReferenceSet results = new RowReferenceSet();
-		results.setHeaders(headers);
+		results.setHeaders(models.getSelectColumns());
 		results.setTableId(tableId);
 		results.setEtag(changeDBO.getEtag());
 		List<RowReference> refs = new LinkedList<RowReference>();
@@ -236,18 +249,28 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws ConflictingUpdateException
 	 *             when a conflict is found
 	 */
-	public void checkForRowLevelConflict(String tableId, RowSet delta, long minVersion) throws IOException {
-		if (delta.getEtag() == null)
-			throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
-		// Lookup the version number for this update.
-		long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
-		long firstVersionToCheck = Math.max(minVersion - 1, versionOfEtag);
-		// Check each version greater than the version for the etag
-		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, firstVersionToCheck);
-		// check for row level conflicts
-		Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows());
-		for (TableRowChange change : changes) {
-			checkForRowLevelConflict(change, rowIds);
+	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException {
+		if (delta.getEtag() != null) {
+			// Lookup the version number for this update.
+			long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
+			long firstVersionToCheck = Math.max(minVersion - 1, versionOfEtag);
+			// Check each version greater than the version for the etag
+			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, firstVersionToCheck);
+			// check for row level conflicts
+			Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows()).keySet();
+			for (TableRowChange change : changes) {
+				checkForRowLevelConflict(change, rowIds);
+			}
+		} else {
+			// we have to check each row individually
+			// Check each version greater than the min version
+			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
+			// check for row level conflicts
+			// we scan from highest version down and once we encounter a row, we remove it from the map, since we are only interested in comparing to the latest version
+			Map<Long, Long> rowIdsAndVersions = TableModelUtils.getDistictValidRowIds(delta.getRows());
+			for (TableRowChange change : Lists.reverse(changes)) {
+				checkForRowLevelConflict(change, rowIdsAndVersions);
+			}
 		}
 	}
 
@@ -268,10 +291,30 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			public void nextRow(Row row) {
 				// Does this row match?
 				if (rowIds.contains(row.getRowId())) {
-					throw new ConflictingUpdateException(
-							"Row id: "
-									+ row.getRowId()
-									+ " has been changes since last read.  Please get the latest value for this row and then attempt to update it again.");
+					throwUpdateConflict(row.getRowId());
+				}
+			}
+		}, change);
+	}
+
+	/**
+	 * Check for a row level conflict in the passed map of row ids and versions, by scanning the rows of the change and
+	 * looking for the intersection with the passed row Ids.
+	 * 
+	 * @param change
+	 * @param rowIdsAndVersions (this map will be modified!)
+	 * @throws ConflictingUpdateException when a conflict is found
+	 */
+	private void checkForRowLevelConflict(final TableRowChange change, final Map<Long, Long> rowIdsAndVersions) throws IOException {
+		scanChange(new RowHandler() {
+			@Override
+			public void nextRow(Row row) {
+				// Does this row match?
+				Long version = rowIdsAndVersions.remove(row.getRowId());
+				if(version != null){
+					if (version.longValue() < row.getVersionNumber().longValue()) {
+						throwUpdateConflict(row.getRowId());
+					}
 				}
 			}
 		}, change);
@@ -283,7 +326,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			return simpleJdbcTemplate.queryForObject(
+			return jdbcTemplate.queryForObject(
 					SQL_SELECT_VERSION_FOR_ETAG, new RowMapper<Long>() {
 						@Override
 						public Long mapRow(ResultSet rs, int rowNum)
@@ -302,7 +345,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			return simpleJdbcTemplate.queryForLong(SQL_SELECT_MAX_ROWID, tableId);
+			return jdbcTemplate.queryForObject(SQL_SELECT_MAX_ROWID, Long.class, tableId);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
 			return 0L;
@@ -315,8 +358,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
-			return TableModelUtils.ceateDTOFromDBO(dbo);
+			DBOTableRowChange dbo = jdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
+			return TableRowChangeUtils.ceateDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
 			return null;
@@ -333,14 +376,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	private String saveCSVToS3(List<ColumnModel> models, RowSet delta, boolean isDeletion)
+	private String saveCSVToS3(List<ColumnModel> models, RawRowSet delta)
 			throws IOException, FileNotFoundException {
 		File temp = File.createTempFile("rowSet", "csv.gz");
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(temp);
 			// Save this to the the zipped CSV
-			TableModelUtils.validateAnWriteToCSVgz(models, delta, out, isDeletion);
+			TableModelUtils.validateAnWriteToCSVgz(models, delta, out);
 			// upload it to S3.
 			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
 					.toString());
@@ -364,9 +407,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (tableIdString == null)
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOTableRowChange> dboList = simpleJdbcTemplate.query(
+		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
-		return TableModelUtils.ceateDTOFromDBO(dboList);
+		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
 	}
 
 	@Override
@@ -375,10 +418,18 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (tableIdString == null)
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOTableRowChange> dboList = simpleJdbcTemplate.query(
+		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION,
 				rowChangeMapper, tableId, versionNumber);
-		return TableModelUtils.ceateDTOFromDBO(dboList);
+		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
+	}
+
+	@Override
+	public int countRowSetsForTableGreaterThanVersion(String tableIdString, long versionNumber) {
+		ValidateArgument.required(tableIdString, "TableId");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		int count = jdbcTemplate.queryForObject(SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION, Integer.class, tableId, versionNumber);
+		return count;
 	}
 
 	@Override
@@ -388,10 +439,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableID cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(
+			DBOTableRowChange dbo = jdbcTemplate.queryForObject(
 					SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION,
 					rowChangeMapper, tableId, rowVersion);
-			return TableModelUtils.ceateDTOFromDBO(dbo);
+			return TableRowChangeUtils.ceateDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(
 					"TableRowChange does not exist for tableId: " + tableId
@@ -405,7 +456,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet)
+	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet, ColumnModelMapper schema)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Downlaod the file from S3
@@ -414,7 +465,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			RowSet set = new RowSet();
 			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent(), rowsToGet);
 			set.setTableId(tableId);
-			set.setHeaders(dto.getHeaders());
+			set.setHeaders(TableModelUtils.getSelectColumnsFromColumnIds(dto.getIds(), schema));
 			set.setRows(rows);
 			set.setEtag(dto.getEtag());
 			return set;
@@ -452,6 +503,18 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
+	public void deleteAllRowDataForTable(String tableId) {
+		// List key so we can delete them
+		List<String> keysToDelete = listAllKeysForTable(tableId);
+		// Delete each object from S3
+		for (String key : keysToDelete) {
+			s3Client.deleteObject(s3Bucket, key);
+		}
+		// let cascade delete take care of deleting the row changes
+		jdbcTemplate.update(SQL_DELETE_ROW_DATA_FOR_TABLE, KeyFactory.stringToKey(tableId));
+	}
+
+	@Override
 	public void truncateAllRowData() {
 		// List key so we can delete them
 		List<String> keysToDelete = listAllKeys();
@@ -459,7 +522,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		for (String key : keysToDelete) {
 			s3Client.deleteObject(s3Bucket, key);
 		}
-		simpleJdbcTemplate.update(SQL_TRUNCATE_SEQUENCE_TABLE);
+		jdbcTemplate.update(SQL_TRUNCATE_SEQUENCE_TABLE);
 	}
 
 	/**
@@ -468,7 +531,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 */
 	private List<String> listAllKeys() {
-		return simpleJdbcTemplate.query(SQL_LIST_ALL_KEYS,
+		return jdbcTemplate.query(SQL_LIST_ALL_KEYS,
 				new RowMapper<String>() {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
@@ -479,12 +542,26 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	/**
+	 * List all of the S3 Keys for a table
+	 * 
+	 * @return
+	 */
+	private List<String> listAllKeysForTable(String tableId) {
+		return jdbcTemplate.query(SQL_LIST_ALL_KEYS_FOR_TABLE, new RowMapper<String>() {
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_TABLE_ROW_KEY);
+			}
+		}, KeyFactory.stringToKey(tableId));
+	}
+
+	/**
 	 * Get the RowSet original for each row referenced.
 	 * 
 	 * @throws NotFoundException
 	 */
 	@Override
-	public List<RowSet> getRowSetOriginals(RowReferenceSet ref)
+	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, ColumnModelMapper columnMapper)
 			throws IOException, NotFoundException {
 		if (ref == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
@@ -501,31 +578,26 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		Set<Long> versions = TableModelUtils.getDistictVersions(ref.getRows());
 		final Set<RowReference> rowsToFetch = new HashSet<RowReference>(
 				ref.getRows());
-		List<RowSet> results = new LinkedList<RowSet>();
+		List<RawRowSet> results = Lists.newArrayListWithCapacity(versions.size());
 		// For each version of the table
 		for (Long version : versions) {
-			final RowSet thisSet = new RowSet();
-			thisSet.setTableId(ref.getTableId());
-			thisSet.setRows(new LinkedList<Row>());
 			// Scan over the delta
-			TableRowChange trc = scanRowSet(ref.getTableId(), version,
-					new RowHandler() {
-						@Override
-						public void nextRow(Row row) {
-							// Is this a row we are looking for?
-							RowReference thisRowRef = new RowReference();
-							thisRowRef.setRowId(row.getRowId());
-							thisRowRef.setVersionNumber(row.getVersionNumber());
-							if (rowsToFetch.contains(thisRowRef)) {
-								// This is a match
-								thisSet.getRows().add(row);
-							}
-						}
-					});
+			final List<Row> rows = Lists.newLinkedList();
+			TableRowChange trc = scanRowSet(ref.getTableId(), version, new RowHandler() {
+				@Override
+				public void nextRow(Row row) {
+					// Is this a row we are looking for?
+					RowReference thisRowRef = new RowReference();
+					thisRowRef.setRowId(row.getRowId());
+					thisRowRef.setVersionNumber(row.getVersionNumber());
+					if (rowsToFetch.contains(thisRowRef)) {
+						// This is a match
+						rows.add(row);
+					}
+				}
+			});
 			// fill in the rest of the values
-			thisSet.setEtag(trc.getEtag());
-			thisSet.setHeaders(trc.getHeaders());
-			results.add(thisSet);
+			results.add(new RawRowSet(trc.getIds(), trc.getEtag(), ref.getTableId(), rows));
 		}
 		return results;
 	}
@@ -536,7 +608,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public Row getRowOriginal(String tableId, final RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException {
+	public Row getRowOriginal(String tableId, final RowReference ref, ColumnModelMapper resultSchema) throws IOException, NotFoundException {
 		if (ref == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		if (tableId == null)
@@ -555,12 +627,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (results.size() == 0) {
 			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
 		}
-		Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
-		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, columns);
+		Map<Long, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
+		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, resultSchema);
 	}
 
 	@Override
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, ColumnMapper columnMapper)
+			throws IOException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
@@ -574,14 +647,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				break;
 			}
 
-			final List<String> rowChangeHeaders = rowChange.getHeaders();
+			final List<Long> rowChangeColumnIds = rowChange.getIds();
 			// Scan over the delta
 			scanChange(new RowHandler() {
 				@Override
 				public void nextRow(final Row row) {
 					// if we still needed it, we no longer need to find this one
 					if (rowsToFind.remove(row.getRowId())) {
-						appendRowDataToMap(rowIdToRowMap, rowChangeHeaders, row);
+						appendRowDataToMap(rowIdToRowMap, rowChangeColumnIds, row);
 					}
 				}
 			}, rowChange);
@@ -627,7 +700,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Override
 	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion, final long rowIdOffset, final long limit)
-			throws IOException, NotFoundException {
+			throws IOException, NotFoundException, TableUnavilableException {
 		final Map<Long, Long> rowVersions = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
@@ -648,41 +721,51 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return rowVersions;
 	}
 
-	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeHeaders, final Row row) {
+	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<Long> rowChangeColumnIds, final Row row) {
 		if (TableModelUtils.isDeletedRow(row)) {
 			rowIdToRowMap.remove(row.getRowId());
 		} else {
 			rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-				Map<String, Integer> columnIdToIndexMap = null;
+				Map<Long, Integer> columnIdToIndexMap = null;
 
 				@Override
-				public String getCell(String columnId) {
+				public String getCellById(Long columnId) {
 					if (columnIdToIndexMap == null) {
-						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeHeaders);
+						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeColumnIds);
 					}
 					Integer index = columnIdToIndexMap.get(columnId);
-					if (row.getValues() == null || index >= row.getValues().size()) {
+					if (row.getValues() == null || index == null || index >= row.getValues().size()) {
 						return null;
 					}
 					return row.getValues().get(index);
 				}
 
 				@Override
-				public Row getRow() {
-					return row;
+				public Long getRowId() {
+					return row.getRowId();
+				}
+
+				@Override
+				public Long getVersionNumber() {
+					return row.getVersionNumber();
 				}
 			});
 		}
 	}
 
 	@Override
-	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> restultForm)
+	public RowSet getRowSet(RowReferenceSet ref, ColumnModelMapper resultSchema)
 			throws IOException, NotFoundException {
 		// Get all of the data in the raw form.
-		List<RowSet> allSets = getRowSetOriginals(ref);
+		List<RawRowSet> allSets = getRowSetOriginals(ref, resultSchema);
+		// the list of rowsets is sorted by version number. The highest version (last rowset) is the most recent for all
+		// rows. We return that as the etag
+		String etag = null;
+		if (!allSets.isEmpty()) {
+			etag = allSets.get(allSets.size() - 1).getEtag();
+		}
 		// Convert and merge all data into the requested form
-		return TableModelUtils.convertToSchemaAndMerge(allSets, restultForm,
-				ref.getTableId());
+		return TableModelUtils.convertToSchemaAndMerge(allSets, resultSchema, ref.getTableId(), etag);
 	}
 
 	@Override
@@ -691,7 +774,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public void removeLatestVersionCache(String tableId) throws IOException {
+	public void removeCaches(Long tableId) throws IOException {
 		// do nothing here, only caching version needs to do anything
 	}
 
@@ -708,4 +791,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		this.s3Bucket = s3Bucket;
 	}
 
+	protected void throwUpdateConflict(Long rowId) {
+		throw new ConflictingUpdateException("Row id: " + rowId
+				+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
+	}
 }

@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -748,6 +750,44 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		}catch(NotFoundException e){
 			// expected
 		}
+	}
+	
+	@Test
+	public void testGetAndUpdateOrderHint() throws Exception {
+		// Create a new wiki page.
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "2086";
+		ObjectType ownerType = ObjectType.EVALUATION;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		
+		// Un-null added attachments.
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> newIds = new ArrayList<String>();
+		
+		// Create wiki page key
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
+		assertNotNull(clone);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
+		
+		// Make order hint.
+		V2WikiOrderHint orderHint = new V2WikiOrderHint();
+		orderHint.setEtag("etag");
+		orderHint.setIdList(Arrays.asList(new String[] {"A", "B", "C", "D"}));
+		orderHint.setOwnerId(ownerId);
+		orderHint.setOwnerObjectType(ownerType);
+		
+		// Update order hint.
+		V2WikiOrderHint recordedOrderHint = wikiPageDao.updateOrderHint(orderHint, key);
+		
+		// Check if update happened.
+		assertTrue(Arrays.equals(orderHint.getIdList().toArray(), recordedOrderHint.getIdList().toArray()));
+		assertTrue(recordedOrderHint.getOwnerId().equals(ownerId));
+		assertTrue(recordedOrderHint.getOwnerObjectType().equals(ObjectType.EVALUATION));
 	}
 	
 }

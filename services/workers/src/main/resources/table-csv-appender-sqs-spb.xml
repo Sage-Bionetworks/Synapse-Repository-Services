@@ -11,18 +11,15 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="aws-worker.spb.xml"/>
-	<import resource="classpath:managers-spb.xml" />
-
 	<!-- provides table message queue workers -->
-	<bean id="tableCSVAppenderWorkerFactory"
-		class="org.sagebionetworks.table.worker.TableCSVAppenderWorkerFactory"
-		scope="singleton" />
+	<bean id="tableCSVAppenderWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.table.worker.TableCSVAppenderWorker" />
+	</bean>
 	
 	<bean id="tableCSVAppenderQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
 			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.tableCSVUploadQueueName" />
+		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE]" />
 	</bean>
 
 	<!-- Pull messages off the search queue, create works, deletes successfully 

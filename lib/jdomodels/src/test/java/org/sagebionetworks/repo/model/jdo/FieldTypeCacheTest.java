@@ -212,19 +212,5 @@ public class FieldTypeCacheTest {
 			System.out.println(key+": "+type.name());
 		}
 	}
-	
-	@Test
-	public void testPlatform() throws Exception{
-		// Make sure all node fields are primary fields.
-		// This gets mapped from a layer
-		assertEquals(FieldType.STRING_ATTRIBUTE, FieldTypeCache.getInstance().getTypeForName("platform"));
-	}
-	
-	@Test
-	public void testNumberOfSamples() throws Exception{
-		// Make sure all node fields are primary fields.
-		// This gets mapped from a layer
-		assertEquals(FieldType.LONG_ATTRIBUTE, FieldTypeCache.getInstance().getTypeForName("numSamples"));
-	}
 
 }

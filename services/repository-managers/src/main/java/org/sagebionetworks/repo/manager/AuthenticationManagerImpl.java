@@ -3,15 +3,15 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
 
@@ -32,7 +32,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
 		// Check the username password combination
 		// This will throw an UnauthorizedException if invalid
@@ -48,40 +48,39 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
 		if (principalId == null) {
-			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
+			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
 		}
 		return principalId;
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Long checkSessionToken(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
 			// Check to see why the token is invalid
 			Long userId = authDAO.getPrincipal(sessionToken);
 			if (userId == null) {
-				throw new UnauthorizedException("The session token (" + sessionToken + ") is invalid");
+				throw new UnauthenticatedException("The session token (" + sessionToken + ") is invalid");
 			}
-			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
+			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
 		}
 		// Check the terms of use
 		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, domain)) {
 			throw new TermsOfUseException();
 		}
-		
-		authDAO.revalidateSessionToken(principalId, domain);
+		authDAO.revalidateSessionTokenIfNeeded(principalId, domain);
 		return principalId;
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void invalidateSessionToken(String sessionToken) {
 		authDAO.deleteSessionToken(sessionToken);
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void changePassword(Long principalId, String password) {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(principalId, passHash);
@@ -93,13 +92,13 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void changeSecretKey(Long principalId) {
 		authDAO.changeSecretKey(principalId);
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Session getSessionToken(long principalId, DomainType domain) throws NotFoundException {
 		// Get the session token
 		Session session = authDAO.getSessionTokenIfValid(principalId, domain);
@@ -136,7 +135,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void setTermsOfUseAcceptance(Long principalId, DomainType domain, Boolean acceptance) {
 		if (domain == null) {
 			throw new IllegalArgumentException("Must provide a domain");

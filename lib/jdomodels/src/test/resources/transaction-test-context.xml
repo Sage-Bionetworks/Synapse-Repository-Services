@@ -10,15 +10,15 @@
 
 	<context:annotation-config />
 
-	<import resource="classpath:dao-beans.spb.xml" />
-
+	<import resource="classpath:jdomodels-import.xml" />
+	<import resource="stack-configuration.spb.xml" />
+	<import resource="id-generator.spb.xml" />
 
 	<!-- Used to test node locking -->
 	<bean id="transactionValidator"
 		class=" org.sagebionetworks.repo.model.dbo.dao.transactions.TransactionValidatorImpl"
 		init-method="initialize" />
 
-	<bean id="CurrentRowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoStub"/>
-	<bean id="RowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub"/>
+	<bean id="ConnectionFactory" class="org.sagebionetworks.repo.model.dbo.dao.table.ConnectionFactoryStub"/>
 
 </beans>

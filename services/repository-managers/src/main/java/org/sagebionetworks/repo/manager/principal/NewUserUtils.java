@@ -18,7 +18,7 @@ public class NewUserUtils {
 	 */
 	public static NewUser validateAndTrim(NewUser newUser){
 		if(newUser == null) throw new IllegalArgumentException("NewUser cannot be null");
-		if(newUser.getEmail() == null) throw new IllegalArgumentException("New users must have provide a valid email address");
+		if(newUser.getEmail() == null) throw new IllegalArgumentException("New users must provide a valid email address");
 		if(newUser.getUserName() == null) throw new IllegalArgumentException("New users must provide a unique username");
 		// Trim the email and username.
 		newUser.setEmail(newUser.getEmail().trim());

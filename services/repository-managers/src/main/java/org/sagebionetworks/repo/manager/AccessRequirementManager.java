@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -19,6 +20,16 @@ public interface AccessRequirementManager {
 	public <T extends AccessRequirement> T  createAccessRequirement(UserInfo userInfo, T AccessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
+	 * 
+	 * @param userInfo
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 *  get all the access requirements for an entity
 	 */
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
@@ -29,7 +40,7 @@ public interface AccessRequirementManager {
 	 *  the user is allowed to READ the entity
 	 *  
 	 */
-	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException;
+	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 *  update an access requirement

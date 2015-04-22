@@ -2,10 +2,12 @@ package org.sagebionetworks.file.services;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
@@ -18,6 +20,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -149,7 +153,54 @@ public interface FileUploadService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	URL getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException;
-	
+	String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException;
 
+	/**
+	 * Get a list of upload destinations for uploading a file with this entity as a parent
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return the list of possible upload destinations. The first one in the list is the default.
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	@Deprecated
+	List<UploadDestination> getUploadDestinations(Long userId, String parentId) throws DatastoreException, UnauthorizedException,
+			NotFoundException;
+
+	/**
+	 * Get the list of upload locations for a parent
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	List<UploadDestinationLocation> getUploadDestinationLocations(Long userId, String parentId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the upload location for an upload id
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the default upload location for a parent
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @param uploadId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException;
 }

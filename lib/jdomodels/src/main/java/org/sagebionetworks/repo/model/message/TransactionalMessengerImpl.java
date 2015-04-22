@@ -1,25 +1,32 @@
 package org.sagebionetworks.repo.model.message;
 
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ThreadLocalProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 
 /**
@@ -36,12 +43,17 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
 	
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
+
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+
 	@Autowired
 	DataSourceTransactionManager txManager;
 	@Autowired
 	DBOChangeDAO changeDAO;
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
+	@Autowired
+	Clock clock;
 	
 	/**
 	 * Used by spring.
@@ -55,14 +67,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @param changeDAO
 	 * @param transactionSynchronizationManager
 	 */
-	public TransactionalMessengerImpl(
-			DataSourceTransactionManager txManager,
-			DBOChangeDAO changeDAO,
-			TransactionSynchronizationProxy transactionSynchronizationManager) {
-		super();
+	public TransactionalMessengerImpl(DataSourceTransactionManager txManager, DBOChangeDAO changeDAO,
+			TransactionSynchronizationProxy transactionSynchronizationManager, Clock clock) {
 		this.txManager = txManager;
 		this.changeDAO = changeDAO;
 		this.transactionSynchronizationManager = transactionSynchronizationManager;
+		this.clock = clock;
 	}
 
 	/**
@@ -107,30 +117,60 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		appendToBoundMessages(message);
+	}
+
+	@Override
+	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
+		DefaultModificationMessage message = new DefaultModificationMessage();
+		message.setObjectId(objectId);
+		message.setObjectType(objectType);
+		sendModificationMessageAfterCommit(message);
+	}
+
+	@Override
+	public void sendModificationMessageAfterCommit(ModificationMessage message) {
+		ValidateArgument.required(message.getObjectId(), "objectId");
+		ValidateArgument.required(message.getObjectType(), "objectType");
+
+		Long userId = currentUserIdThreadLocal.get();
+		if (userId != null && !AuthorizationUtils.isUserAnonymous(userId.longValue())) {
+			message.setTimestamp(clock.now());
+			message.setUserId(userId);
+
+			appendToBoundMessages(message);
+		}
+	}
+
+	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
-		if(!transactionSynchronizationManager.isSynchronizationActive()) throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
+		if (!transactionSynchronizationManager.isSynchronizationActive())
+			throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
-		Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
+		Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
 		// If we already have a message going out for this object then we needs replace it with the latest.
 		// If an object's etag changes multiple times, only the final etag should be in the message.
-		currentMessages.put(new ChangeMessageKey(message), message);
+		currentMessages.put(new MessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
 	}
-	
-	
+
 	/**
-	 * Get the messages that are currently bound to this transaction.
+	 * Get the change messages that are currently bound to this transaction.
+	 * 
 	 * @return
 	 */
-	private Map<ChangeMessageKey, ChangeMessage> getCurrentBoundMessages(){
-		Map<ChangeMessageKey, ChangeMessage> currentMessages = (Map<ChangeMessageKey, ChangeMessage>) transactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+	@SuppressWarnings("unchecked")
+	private Map<MessageKey, Message> getCurrentBoundMessages() {
+		String queueKey = TRANSACTIONAL_MESSANGER_IMPL_MESSAGES;
+		Map<MessageKey, Message> currentMessages = (Map<MessageKey, Message>) transactionSynchronizationManager
+				.getResource(queueKey);
 		if(currentMessages == null){
 			// This is the first time it is called for this thread.
-			currentMessages = new HashMap<ChangeMessageKey, ChangeMessage>();
+			currentMessages = Maps.newHashMap();
 			// Bind this list to the transaction.
-			transactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES, currentMessages);
+			transactionSynchronizationManager.bindResource(queueKey, currentMessages);
 		}
 		return currentMessages;
 	}
@@ -142,19 +182,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private void registerHandlerIfNeeded(){
 		// Inspect the current handlers.
 		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
-		if(currentList.size() < 1){
-			// Add a new handler
-			transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
-		}else if(currentList.size() == 1){
-			// Validate that the handler is what we expected
-			TransactionSynchronization ts = currentList.get(0);
-			if(ts == null) throw new IllegalStateException("TransactionSynchronization cannot be null");
-			if(!(ts instanceof SynchronizationHandler)){
-				throw new IllegalStateException("Found an unknow TransactionSynchronization: "+ts.getClass().getName());
+		for (TransactionSynchronization sync : currentList) {
+			if (sync instanceof SynchronizationHandler) {
+				return;
 			}
-		}else{
-			throw new IllegalStateException("Expected one and only one TransactionSynchronization for this therad but found: "+currentList.size());
 		}
+		transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
 	}
 	
 	/**
@@ -178,33 +211,51 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		@Override
 		public void afterCommit() {
 			// Log the messages
-			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
+			Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
 			// For each observer fire the message.
 			for(TransactionalMessengerObserver observer: observers){
 				// Fire each message.
-				Collection<ChangeMessage> collection = currentMessages.values();
-				for(ChangeMessage message: collection){
-					observer.fireChangeMessage(message);
-					if(log.isTraceEnabled()){
-						log.trace("Firing a change event: "+message+" for observer: "+observer);
+				for (Message message : currentMessages.values()) {
+					if (message instanceof ChangeMessage) {
+						observer.fireChangeMessage((ChangeMessage) message);
+					} else if (message instanceof ModificationMessage) {
+						observer.fireModificationMessage((ModificationMessage) message);
+					} else {
+						throw new IllegalArgumentException("Unknown message type " + message.getClass().getName());
+					}
+					if (log.isTraceEnabled()) {
+						log.trace("Firing a change event: " + message + " for observer: " + observer);
 					}
 				}
 			}
-			// Clear the list
+			// Clear the lists
 			currentMessages.clear();
 		}
 
 		@Override
 		public void beforeCommit(boolean readOnly) {
 			// write the changes to the database
-			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
-			Collection<ChangeMessage> collection = currentMessages.values();
-			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
+			Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
+
+			// filter out modification message, since this only applies to the non-modifcation only messages
+			List<ChangeMessage> list = Transform.toList(Iterables.filter(currentMessages.values(), new Predicate<Message>() {
+				@Override
+				public boolean apply(Message input) {
+					return input instanceof ChangeMessage;
+				}
+			}), new Function<Message, ChangeMessage>() {
+				@Override
+				public ChangeMessage apply(Message input) {
+					return (ChangeMessage) input;
+				}
+			});
+
 			// Create the list of DBOS
-			List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
+			List<ChangeMessage> updatedList;
+			updatedList = changeDAO.replaceChange(list);
 			// Now replace each entry on the map with the update message
-			for(ChangeMessage message: updatedList){
-				currentMessages.put(new ChangeMessageKey(message), message);
+			for (ChangeMessage message : updatedList) {
+				currentMessages.put(new MessageKey(message), message);
 			}
 		}
 		
@@ -236,7 +287,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public boolean registerMessageSent(ChangeMessage message){
 		try {

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
-
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -10,6 +8,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -123,7 +122,7 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
+	String getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the Redirect URL for a given attachment.
@@ -135,7 +134,8 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
+	String getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException,
+			NotFoundException;
 	
 	/**
 	 * Get the redirect URL for a given Preview.
@@ -147,7 +147,8 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
+	String getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException,
+			NotFoundException;
 
 	/**
 	 * Get the root wiki page.
@@ -160,4 +161,22 @@ public interface V2WikiService {
 	 */
 	V2WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
 
+	/**
+	 * Get the order hint of the given wiki that corresponds to the given WikiPageKey.
+	 * @param userId
+	 * @param ownerId
+	 * @param type
+	 * @return
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type) throws NotFoundException;
+	
+	/**
+	 * Update the order hint of the wiki that corresponds to the given WikiPageKey.
+	 * @param userId
+	 * @param orderHint
+	 * @return
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws NotFoundException;
 }

@@ -1,14 +1,29 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.BooleanUtils;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.visitors.GetTableNameVisitor;
+import org.sagebionetworks.table.query.model.visitors.IsAggregateVisitor;
+import org.sagebionetworks.util.ValidateArgument;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * Represents a SQL query for a table.
@@ -25,6 +40,11 @@ public class SqlQuery {
 	QuerySpecification model;
 	
 	/**
+	 * The full list of all of the columns of this table
+	 */
+	List<ColumnModel> tableSchema;
+	
+	/**
 	 * This map will contain all of the bind variable values for the translated query.
 	 */
 	Map<String, Object> parameters;
@@ -32,7 +52,7 @@ public class SqlQuery {
 	/**
 	 * The map of column names to column models.
 	 */
-	Map<String, ColumnModel> columnNameToModelMap;
+	LinkedHashMap<String, ColumnModel> columnNameToModelMap;
 	
 	/**
 	 * The translated SQL.
@@ -52,9 +72,9 @@ public class SqlQuery {
 	boolean isAggregatedResult;
 	
 	/**
-	 * The list of all column ID referenced in the select column.
+	 * The list of all columns referenced in the select column.
 	 */
-	List<Long> selectColumnIds;
+	ColumnMapper selectColumnModels;
 	
 	
 	/**
@@ -64,9 +84,10 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(String sql, Map<String, ColumnModel> columnNameToModelMap) throws ParseException {
+	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
-		init(TableQueryParser.parserQuery(sql), columnNameToModelMap);
+		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
+		init(parsedQuery, tableSchema, parsedQuery.doVisit(new GetTableNameVisitor()).getTableName());
 	}
 	
 	/**
@@ -76,31 +97,60 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(QuerySpecification model, Map<String, ColumnModel> columnNameToModelMap) {
-		if(model == null) throw new IllegalArgumentException("The input model cannot be null");
-		init(model, columnNameToModelMap);
+	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema, String tableId) {
+		if (model == null)
+			throw new IllegalArgumentException("The input model cannot be null");
+		init(model, tableSchema, tableId);
 	}
 
 	/**
+	 * @param tableId
 	 * @param sql
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public void init(QuerySpecification model, Map<String, ColumnModel> columnNameToModelMap) {
-		if (columnNameToModelMap == null)
-			throw new IllegalArgumentException("columnNameToModelMap cannot be null");
-		this.model = model;
-		this.tableId = SqlElementUntils.getTableId(model);
-		// This string builder is used to build up the output SQL.
-		StringBuilder outputBuilder = new StringBuilder();
+	public void init(QuerySpecification parsedModel, List<ColumnModel> tableSchema, String tableId) {
+		ValidateArgument.required(tableSchema, "TableSchema");
+		ValidateArgument.required(tableId, "tableId");
+		this.tableSchema = tableSchema;
+		this.model = parsedModel;
+		this.tableId = tableId;
+
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
-		this.columnNameToModelMap = columnNameToModelMap;
-		isAggregatedResult = SQLTranslatorUtils.translate(this.model, outputBuilder, this.parameters, this.columnNameToModelMap);
-		this.outputSQL = outputBuilder.toString();
-		this.selectColumnIds = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap);
-	}
+		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
+		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
+			SelectList expandedSelectList = new SelectList(Lists.newArrayList(Iterables.transform(tableSchema,
+					new Function<ColumnModel, DerivedColumn>() {
+						@Override
+						public DerivedColumn apply(ColumnModel cm) {
+							return SQLTranslatorUtils.createDerivedColumn(cm.getName());
+						}
+					})));
+			this.model = new QuerySpecification(this.model.getSqlDirective(), this.model.getSetQuantifier(), expandedSelectList,
+					this.model.getTableExpression());
+		}
 
+		IsAggregateVisitor visitor = new IsAggregateVisitor();
+		model.doVisit(visitor);
+		this.isAggregatedResult = visitor.isAggregate();
+
+		QuerySpecification expandedSelectList = this.model;
+		if (!this.isAggregatedResult) {
+			// we need to add the row count and row version colums
+			SelectList selectList = expandedSelectList.getSelectList();
+			List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
+			selectColumns.addAll(selectList.getColumns());
+			selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_ID));
+			selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_VERSION));
+			selectList = new SelectList(selectColumns);
+			expandedSelectList = new QuerySpecification(expandedSelectList.getSetQuantifier(), selectList,
+					expandedSelectList.getTableExpression());
+		}
+
+		this.outputSQL = SQLTranslatorUtils.translate(expandedSelectList, this.parameters, this.columnNameToModelMap);
+		this.selectColumnModels = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, isAggregatedResult);
+	}
 
 	/**
 	 * The input SQL was parsed into this model object.
@@ -125,7 +175,7 @@ public class SqlQuery {
 	 * The column name to column ID mapping.
 	 * @return
 	 */
-	public Map<String, ColumnModel> getcolumnNameToModelMap() {
+	public Map<String, ColumnModel> getColumnNameToModelMap() {
 		return columnNameToModelMap;
 	}
 
@@ -157,12 +207,18 @@ public class SqlQuery {
 	}
 
 	/**
-	 * The list of column IDs from the select clause.
+	 * The list of column models from the select clause.
 	 * @return
 	 */
-	public List<Long> getSelectColumnIds() {
-		return selectColumnIds;
+	public ColumnMapper getSelectColumnModels() {
+		return selectColumnModels;
 	}
-	
-	
+
+	/**
+	 * All of the Columns of the table.
+	 * @return
+	 */
+	public List<ColumnModel> getTableSchema() {
+		return tableSchema;
+	}
 }

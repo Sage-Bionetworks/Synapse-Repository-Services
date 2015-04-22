@@ -26,7 +26,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:authentication-services-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AuthenticationServiceAutowireTest {
 	
 	private static final String OPEN_ID_TEST_EMAIL = "openId@test.org";

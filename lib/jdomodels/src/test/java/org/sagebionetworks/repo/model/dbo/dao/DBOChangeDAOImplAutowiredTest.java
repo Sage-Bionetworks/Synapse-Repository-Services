@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -28,8 +27,11 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.mysql.jdbc.exceptions.MySQLTransactionRollbackException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -387,6 +389,31 @@ public class DBOChangeDAOImplAutowiredTest {
 		changeDAO.registerMessageSent(batch.get(0));
 	}
 	
+	@Test
+	public void testRegisterMessageSent(){
+		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
+		// Pass the batch.
+		change  = changeDAO.replaceChange(change);
+		// Send the batch
+		assertTrue(changeDAO.registerMessageSent(change));
+		// Calling it again should return false since it was already sent
+		assertFalse("The messages should already be marked as sent", changeDAO.registerMessageSent(change));
+		// Now if we replace the change we should be able to register it sent again
+		change  = changeDAO.replaceChange(change);
+		assertTrue(changeDAO.registerMessageSent(change));
+	}
+	
+	@Test
+	public void testRegisterMessageSentOldChange(){
+		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
+		// Pass the batch.
+		change  = changeDAO.replaceChange(change);
+		// use an older change number
+		change.setChangeNumber(change.getChangeNumber()-1);
+		// Send the batch
+		assertFalse("Since the passed change number doe snot match the current state of the change, the sent registration should not have happened.", changeDAO.registerMessageSent(change));
+	}
+	
 	
 	@Test
 	public void testGetMaxSentChangeNumber(){
@@ -493,7 +520,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	/**
-	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast conccurent updates
+	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast concurrent updates
 	 * @throws ExecutionException 
 	 * @throws InterruptedException 
 	 */
@@ -522,6 +549,71 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(new Integer(timesToRun), twoResult);
 	}
 	
+	/**
+	 * This test creates, then updates change messages on two separate threads.
+	 * One thread works with even ObjectIds while the other works with odd. 
+	 * This test would cause deadlock 4 out of 5 times before we fixed PLFM-3329.
+	 * 
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	@Test
+	public void testPLFM3329() throws InterruptedException, ExecutionException{
+		final int number = 25;
+		final int timesToRun = 100;
+		Callable<Integer> even = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				// create new changes for each run.
+				for(int t=0; t<timesToRun; t++){
+					List<ChangeMessage> batch = new LinkedList<ChangeMessage>();
+					// start at zero for even ids.
+					for(int i=0; i< number; i+=2){
+						batch.add(createChange(ObjectType.FILE, i));
+					}
+					Collections.shuffle(batch);
+					changeDAO.replaceChange(batch);
+				}
+				return timesToRun;
+		}};
+		
+		Callable<Integer> odd = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				// create new changes for each run.
+				for(int t=0; t<timesToRun; t++){
+					List<ChangeMessage> batch = new LinkedList<ChangeMessage>();
+					// start at one for odd ids.
+					for(int i=1; i< number; i+=2){
+						batch.add(createChange(ObjectType.FILE, i));
+					}
+					Collections.shuffle(batch);
+					changeDAO.replaceChange(batch);
+				}
+				return timesToRun;
+		}};
+		// Run multiple threads at the same time
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		// Submit twice
+		Future<Integer> one = pool.submit(even);
+		// Submit again
+		Future<Integer> two = pool.submit(odd);
+		// There should be no errors
+		try {
+			Integer oneResult = one.get();
+			Integer twoResult = two.get();
+			assertEquals(new Integer(timesToRun), oneResult);
+			assertEquals(new Integer(timesToRun), twoResult);
+		} catch (ExecutionException e) {
+			if(e.getCause() instanceof DeadlockLoserDataAccessException){
+				fail("Failed to make non-conflicting additions to the changes table without causing deadlock");
+			}else{
+				// unknown error
+				throw e;
+			}
+		}
+	}
+	
 	@Test
 	public void testCheckUnsentMessageByCheckSumForRange(){
 		List<ChangeMessage> starting = createList(5, ObjectType.PRINCIPAL);
@@ -546,38 +638,6 @@ public class DBOChangeDAOImplAutowiredTest {
 		return starting.get(0).getChangeNumber();
 	}
 
-	// TODO: PLFM-1631 for a load test framework outside this package
-	// TODO: PLFM-1659 the test is failing occasionally for deadlocks on the primary index
-	@Ignore
-	public void testForDeadlocks() throws Exception {
-		final int numOfTasks = 1000;
-		final int numOfThreads = 10;
-		// Create the list of tasks
-		List<ReplaceChange> taskList = new ArrayList<ReplaceChange>(numOfTasks);
-		for (int i = 0; i < 100; i++) {
-			ChangeMessage change = new ChangeMessage();
-			change.setObjectId("829165202913" + (i % 3)); // Simulate gap lock on the OBJECT_ID column
-			change.setObjectType(ObjectType.ENTITY);
-			change.setObjectEtag(Long.toString(System.currentTimeMillis()));
-			change.setChangeType(ChangeType.UPDATE);
-			change.setTimestamp(new Date());
-			taskList.add(new ReplaceChange(change));
-		}
-		// Send the list of changes to a pool of threads
-		ExecutorService exe = Executors.newFixedThreadPool(numOfThreads);
-		try {
-			List<Future<Boolean>> results = exe.invokeAll(taskList, 60, TimeUnit.SECONDS);
-			for (Future<Boolean> future : results) {
-				if (!future.get()) {
-					Assert.fail("Deadlock detected.");
-				}
-			}
-		} finally {
-			exe.shutdown();
-			exe.awaitTermination(60, TimeUnit.SECONDS);
-		}
-	}
-
 	/**
 	 * Helper to build up a list of changes.
 	 * @param numChangesInBatch
@@ -586,33 +646,28 @@ public class DBOChangeDAOImplAutowiredTest {
 	private List<ChangeMessage> createList(int numChangesInBatch, ObjectType type) {
 		List<ChangeMessage> batch = new ArrayList<ChangeMessage>();
 		for(int i=0; i<numChangesInBatch; i++){
-			ChangeMessage change = new ChangeMessage();
-			if(ObjectType.ENTITY == type){
-				change.setObjectId("syn"+i);
-			}else{
-				change.setObjectId(""+i);
-			}
-			change.setObjectEtag("etag"+i);
-			change.setChangeType(ChangeType.UPDATE);
-			change.setObjectType(type);
+			ChangeMessage change = createChange(type, i);
 			batch.add(change);
 		}
 		return batch;
 	}
 
-	private class ReplaceChange implements Callable<Boolean> {
-		private final ChangeMessage change;
-		private ReplaceChange(ChangeMessage change) {
-			this.change = change;
+	/**
+	 * Create a test change number
+	 * @param type
+	 * @param i
+	 * @return
+	 */
+	public ChangeMessage createChange(ObjectType type, int i) {
+		ChangeMessage change = new ChangeMessage();
+		if(ObjectType.ENTITY == type){
+			change.setObjectId("syn"+i);
+		}else{
+			change.setObjectId(""+i);
 		}
-		@Override
-		public Boolean call() throws Exception {
-			try {
-				changeDAO.replaceChange(change);
-				return Boolean.TRUE;
-			} catch (DeadlockLoserDataAccessException e) {
-				return Boolean.FALSE;
-			}
-		}
+		change.setObjectEtag("etag"+i);
+		change.setChangeType(ChangeType.UPDATE);
+		change.setObjectType(type);
+		return change;
 	}
 }

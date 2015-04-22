@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,8 +27,6 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -126,6 +123,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * To determine what permissions a User has on an Entity, the <a
  * href="${GET.entity.id.permissions}" >GET /entity/{id}/permissions</a> method
  * should be used.
+ * </p>
+ * <p>
+ * In addition to authorization via ACLs, entities may be restricted via AccessRequirements (ARs).
+ * For more information, see <a href="#org.sagebionetworks.repo.web.controller.AccessRequirementController">
+ * Access Requirement Services</a> and <a href="#org.sagebionetworks.repo.web.controller.AccessApprovalController">
+ * Access Approval Services</a>
  * </p>
  * <h6>Versions</h6>
  * <p>
@@ -962,8 +965,7 @@ public class EntityController extends BaseController {
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
-		return serviceProvider.getEntityService().getEntityACL(id, userId,
-				request);
+		return serviceProvider.getEntityService().getEntityACL(id, userId);
 	}
 
 	/**
@@ -1261,65 +1263,6 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Create a token used to upload an attachment.
-	 * 
-	 * @param id
-	 * @param userId
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ENTITY_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
-	public @ResponseBody
-	S3AttachmentToken createS3AttachmentToken(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody S3AttachmentToken token, HttpServletRequest request)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException {
-		// Pass it along
-		return serviceProvider.getEntityService().createS3AttachmentToken(
-				userId, id, token);
-	}
-
-	/**
-	 * Create a token used to upload an attachment.
-	 * 
-	 * @param id
-	 * @param userId
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ATTACHMENT_URL }, method = RequestMethod.POST)
-	public @ResponseBody
-	PresignedUrl getAttachmentUrl(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody PresignedUrl url, HttpServletRequest request)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException {
-		if (url == null)
-			throw new IllegalArgumentException(
-					"A PresignedUrl must be provided");
-		// Pass it along.
-		return serviceProvider.getEntityService().getAttachmentUrl(userId, id,
-				url.getTokenID());
-	}
-
-	/**
 	 * Get an existing activity for the current version of an Entity.
 	 * 
 	 * @param id
@@ -1472,7 +1415,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFileRedirectURLForCurrentVersion(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1507,7 +1450,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFileRedirectURLForVersion(userId, id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1540,7 +1483,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFilePreviewRedirectURLForCurrentVersion(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1575,7 +1518,7 @@ public class EntityController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getEntityService()
+		String redirectUrl = serviceProvider.getEntityService()
 				.getFilePreviewRedirectURLForVersion(userId, id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1661,4 +1604,5 @@ public class EntityController extends BaseController {
 		results.setTotalNumberOfResults(entityHeaders.size());
 		return results;
 	}
+
 }

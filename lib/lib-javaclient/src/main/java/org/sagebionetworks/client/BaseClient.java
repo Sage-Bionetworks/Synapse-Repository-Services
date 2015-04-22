@@ -1,12 +1,5 @@
 package org.sagebionetworks.client;
 
-import java.util.List;
-
-import org.sagebionetworks.bridge.model.Community;
-import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for Synapse.

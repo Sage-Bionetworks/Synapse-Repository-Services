@@ -16,8 +16,8 @@ import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
+import org.sagebionetworks.table.query.model.SignedLiteral;
+import org.sagebionetworks.table.query.model.SignedValueSpecification;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 public class TableQueryParserTest {
@@ -92,10 +92,10 @@ public class TableQueryParserTest {
 	
 	
 	@Test
-	public void testUnsignedInteger() throws ParseException{
+	public void testSignedInteger() throws ParseException {
 		StringBuilder builder = new StringBuilder();
 		TableQueryParser parser = new TableQueryParser(" 1234567890 ");
-		parser.unsignedInteger(builder);
+		parser.signedInteger(builder);
 		assertEquals("1234567890", builder.toString());
 	}
 	
@@ -140,34 +140,34 @@ public class TableQueryParserTest {
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralNoExponent() throws ParseException{
+	public void testSignedNumericLiteralNoExponent() throws ParseException {
 		StringBuilder builder = new StringBuilder();
 		TableQueryParser parser = new TableQueryParser(".12");
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals(".12", builder.toString());
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralIntegerStartNoExponent() throws ParseException{
+	public void testSignedNumericLiteralIntegerStartNoExponent() throws ParseException {
 		StringBuilder builder = new StringBuilder();
 		TableQueryParser parser = new TableQueryParser("123.1");
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals("123.1", builder.toString());
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralWithExponent() throws ParseException{
+	public void testSignedNumericLiteralWithExponent() throws ParseException {
 		StringBuilder builder = new StringBuilder();
 		TableQueryParser parser = new TableQueryParser("9.12E+123");
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals("9.12E+123", builder.toString());
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralNoIntegerStartWithExponent() throws ParseException{
+	public void testSignedNumericLiteralNoIntegerStartWithExponent() throws ParseException {
 		StringBuilder builder = new StringBuilder();
 		TableQueryParser parser = new TableQueryParser(".12E+123");
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals(".12E+123", builder.toString());
 	}
 	
@@ -271,62 +271,80 @@ public class TableQueryParserTest {
 	}
 	
 	@Test
-	public void testUnsignedLiteralUnsignedNumericLiteral() throws ParseException{
+	public void testSignedLiteralSignedNumericLiteral() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("123.456e-1");
-		UnsignedLiteral model = parser.unsignedLiteral();
+		SignedLiteral model = parser.signedLiteral();
 		assertNotNull(model);
 		String sql = toSQL(model);
 		assertEquals("123.456e-1", sql);
 	}
 	
 	@Test
-	public void testUnsignedLiteralGeneralLiteral() throws ParseException{
+	public void testSignedLiteralGeneralLiteral() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("'Batman''s car'");
-		UnsignedLiteral model = parser.unsignedLiteral();
+		SignedLiteral model = parser.signedLiteral();
 		assertNotNull(model);
 		String sql = toSQL(model);
 		assertEquals("'Batman''s car'", sql);
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralInteger() throws ParseException{
+	public void testSignedNumericLiteralInteger() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("123");
 		StringBuilder builder = new StringBuilder();
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals("123", builder.toString());
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralDouble() throws ParseException{
+	public void testSignedNumericLiteralDouble() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("123.456");
 		StringBuilder builder = new StringBuilder();
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals("123.456", builder.toString());
 	}
 	
 	@Test
-	public void testUnsignedNumericLiteralExponent() throws ParseException{
+	public void testSignedNumericLiteralExponent() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("123.456e2");
 		StringBuilder builder = new StringBuilder();
-		parser.unsignedNumericLiteral(builder);
+		parser.signedNumericLiteral(builder);
 		assertEquals("123.456e2", builder.toString());
 	}
 	
 	@Test
-	public void testUnsignedValueSpecificationInteger() throws ParseException{
+	public void testSignedValueSpecificationInteger() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("123456");
-		UnsignedValueSpecification unsignedValueSpec = parser.unsignedValueSpecification();
-		assertNotNull(unsignedValueSpec);
-		String sql = toSQL(unsignedValueSpec);
+		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
+		assertNotNull(signedValueSpec);
+		String sql = toSQL(signedValueSpec);
 		assertEquals("123456", sql);
 	}
 	
 	@Test
-	public void testUnsignedValueSpecificationCharacterString() throws ParseException{
+	public void testSignedValueSpecificationIntegerMinus() throws ParseException {
+		TableQueryParser parser = new TableQueryParser("-123456");
+		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
+		assertNotNull(signedValueSpec);
+		String sql = toSQL(signedValueSpec);
+		assertEquals("-123456", sql);
+	}
+
+	@Test
+	public void testSignedValueSpecificationIntegerPlus() throws ParseException {
+		TableQueryParser parser = new TableQueryParser("+123456");
+		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
+		assertNotNull(signedValueSpec);
+		String sql = toSQL(signedValueSpec);
+		assertEquals("+123456", sql);
+	}
+
+	@Test
+	public void testSignedValueSpecificationCharacterString() throws ParseException {
 		TableQueryParser parser = new TableQueryParser("'a string'");
-		UnsignedValueSpecification unsignedValueSpec = parser.unsignedValueSpecification();
-		assertNotNull(unsignedValueSpec);
-		String sql = toSQL(unsignedValueSpec);
+		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
+		assertNotNull(signedValueSpec);
+		String sql = toSQL(signedValueSpec);
 		assertEquals("'a string'", sql);
 	}
 	
@@ -374,6 +392,14 @@ public class TableQueryParserTest {
 		assertEquals("foo.bar >= 10.1e-10", sql);
 	}
 	
+	@Test
+	public void testPredicateSignedComparison() throws ParseException {
+		TableQueryParser parser = new TableQueryParser("foo.bar >= -200");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("foo.bar >= -200", sql);
+	}
+
 	@Test
 	public void testPredicateNull() throws ParseException{
 		TableQueryParser parser = new TableQueryParser("foo is not null");
@@ -519,7 +545,7 @@ public class TableQueryParserTest {
 	}
 	
 	@Test
-	public void testSelectTableNameUnsigned() throws ParseException{
+	public void testSelectTableNameSigned() throws ParseException {
 		// Parse the query into a basic model object
 		QuerySpecification sq = TableQueryParser.parserQuery("select * from syn123");
 		assertNotNull(sq);
@@ -537,9 +563,7 @@ public class TableQueryParserTest {
 	 * @return
 	 */
 	public static String toSQL(SQLElement element){
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		return builder.toString();
+		return element.toString();
 	}
 	
 	@Test

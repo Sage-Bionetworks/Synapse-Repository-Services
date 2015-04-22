@@ -7,15 +7,15 @@ import java.util.Map;
 
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
-import com.amazonaws.services.dynamodb.model.ComparisonOperator;
-import com.amazonaws.services.dynamodb.model.Condition;
-import com.amazonaws.services.dynamodb.model.Key;
-import com.amazonaws.services.dynamodb.model.QueryRequest;
-import com.amazonaws.services.dynamodb.model.QueryResult;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
+import com.amazonaws.services.dynamodbv2.model.Condition;
+import com.amazonaws.services.dynamodbv2.model.QueryRequest;
+import com.amazonaws.services.dynamodbv2.model.QueryResult;
+import com.google.common.collect.Maps;
 
 /**
  * Implementation based on ancestor-descendant and descendant-ancestor pointers.
@@ -83,7 +83,7 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 			throw new IllegalArgumentException("Page size must be greater than 0.");
 		}
 
-		Key lastKeyEvaluated = createPagingKey(nodeId, lastDescIdExcl);
+		Map<String, AttributeValue> lastKeyEvaluated = createPagingKey(nodeId, lastDescIdExcl);
 		List<NodeLineage> descList = getDescendants(nodeId, pageSize, lastKeyEvaluated);
 		List<String> results = new ArrayList<String>(descList.size());
 		for (NodeLineage desc : descList) {
@@ -105,7 +105,7 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 			throw new IllegalArgumentException("Page size must be greater than 0.");
 		}
 
-		Key lastKeyEvaluated = createPagingKey(nodeId, lastDescIdExcl);
+		Map<String, AttributeValue> lastKeyEvaluated = createPagingKey(nodeId, lastDescIdExcl);
 		List<NodeLineage> descList = getDescendants(nodeId, generation, pageSize, lastKeyEvaluated);
 		List<String> results = new ArrayList<String>(descList.size());
 		for (NodeLineage desc : descList) {
@@ -116,13 +116,13 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 
 	// Private Methods ////////////////////////////////////////////////////////////////////////////
 
-	private List<NodeLineage> getDescendants(String nodeId, int pageSize, Key lastKeyEvaluated) {
+	private List<NodeLineage> getDescendants(String nodeId, int pageSize, Map<String, AttributeValue> lastKeyEvaluated) {
 		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
 		return getDescendants(hashKey, null, pageSize, lastKeyEvaluated, false);
 	}
 
 	private List<NodeLineage> getDescendants(String nodeId, int distance,
-			int pageSize, Key lastKeyEvaluated) {
+ int pageSize, Map<String, AttributeValue> lastKeyEvaluated) {
 		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
 		String rangeKeyStart = DboNodeLineage.createRangeKey(distance, "");
 		Condition rangeKeyCondition = new Condition()
@@ -142,8 +142,8 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 	 *
 	 * Thus we are using the low-level SDK to do the paging.
 	 */
-	private List<NodeLineage> getDescendants(String hashKey, Condition rangeKeyCondition,
-			int pageSize, Key lastKeyEvaluated, boolean consistentRead) {
+	private List<NodeLineage> getDescendants(String hashKey, Condition rangeKeyCondition, int pageSize,
+			Map<String, AttributeValue> lastKeyEvaluated, boolean consistentRead) {
 
 		if (pageSize > 1000) {
 			pageSize = 1000;
@@ -156,12 +156,15 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
 		QueryRequest queryRequest = new QueryRequest()
 				.withTableName(tableName)
-				.withHashKeyValue(hashKeyAttr)
 				.withLimit(pageSize)
 				.withConsistentRead(consistentRead);
 
+		Map<String, Condition> keyConditions = Maps.newHashMap();
+		keyConditions.put(DboNodeLineage.HASH_KEY_NAME,
+				new Condition().withComparisonOperator(ComparisonOperator.EQ).withAttributeValueList(hashKeyAttr));
+		queryRequest.setKeyConditions(keyConditions);
 		if (rangeKeyCondition != null) {
-			queryRequest.setRangeKeyCondition(rangeKeyCondition);
+			keyConditions.put(DboNodeLineage.RANGE_KEY_NAME, rangeKeyCondition);
 		}
 
 		if (lastKeyEvaluated != null) {
@@ -184,7 +187,7 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 	/**
 	 * Creates the key of the last item to get the next page.
 	 */
-	private Key createPagingKey(String nodeId, String descId) throws IncompletePathException {
+	private Map<String, AttributeValue> createPagingKey(String nodeId, String descId) throws IncompletePathException {
 
 		if (descId == null) {
 			return null; // Return a null key which fetches the first page
@@ -208,7 +211,9 @@ public class NodeTreeQueryDaoImpl extends DynamoDaoBaseImpl implements NodeTreeQ
 		AttributeValue hashKeyValue = new AttributeValue().withS(hashKey);
 		String rangeKey = DboNodeLineage.createRangeKey(distance, descId);
 		AttributeValue rangeKeyValue = new AttributeValue().withS(rangeKey);
-		Key lastKeyEvaluated = new Key().withHashKeyElement(hashKeyValue).withRangeKeyElement(rangeKeyValue);
-		return lastKeyEvaluated;
+		Map<String, AttributeValue> key = Maps.newHashMap();
+		key.put(DboNodeLineage.HASH_KEY_NAME, hashKeyValue);
+		key.put(DboNodeLineage.RANGE_KEY_NAME, rangeKeyValue);
+		return key;
 	}
 }

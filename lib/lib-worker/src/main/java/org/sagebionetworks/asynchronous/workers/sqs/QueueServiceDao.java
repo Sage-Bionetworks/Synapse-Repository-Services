@@ -14,6 +14,13 @@ import com.amazonaws.services.sqs.model.Message;
 public interface QueueServiceDao {
 
 	/**
+	 * get the max time the service will wait for messages to come in
+	 * 
+	 * @return the time in seconds
+	 */
+	int getLongPollWaitTimeInSeconds();
+
+	/**
 	 * Receive messages from a queue.
 	 * @param queueUrl The URL of the queue
 	 * @param visibilityTimeoutSec The visibility timeout of each messages (sec) pull from the queue.
@@ -24,7 +31,18 @@ public interface QueueServiceDao {
 			int visibilityTimeoutSec, int maxMessages);
 
 	/**
+	 * Receive messages from a queue and wait for the to become available
+	 * 
+	 * @param queueUrl The URL of the queue
+	 * @param visibilityTimeoutSec The visibility timeout of each messages (sec) pull from the queue.
+	 * @param maxMessages The maximum number of messages that should be pulled from the queue.
+	 * @return
+	 */
+	List<Message> receiveMessagesLongPoll(String queueUrl, int visibilityTimeoutSec, int maxMessages);
+
+	/**
 	 * Delete the batch of messages.
+	 * 
 	 * @param messagesToDelete
 	 */
 	void deleteMessages(String queueUrl, List<Message> messagesToDelete);
@@ -35,7 +53,4 @@ public interface QueueServiceDao {
 	 * @param toReset
 	 */
 	void resetMessageVisibility(String queueUrl, int newVisibiltySeconds, Collection<Message> toReset);
-
-
-
 }

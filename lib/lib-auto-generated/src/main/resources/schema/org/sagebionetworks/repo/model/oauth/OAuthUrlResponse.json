@@ -1,0 +1,10 @@
+{
+    "title":"OAuthUrlResponse",
+    "description":"Response for an OAuth2 authorization url.",
+	"properties": {
+		"authorizationUrl": {
+			"type": "string",
+			"description": "The URL used to send the user the requested OAuth provider for authentication."
+		}
+	}
+}

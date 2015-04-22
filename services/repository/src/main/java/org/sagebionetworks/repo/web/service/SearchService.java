@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
@@ -26,11 +27,11 @@ public interface SearchService {
 	 * @throws HttpClientHelperException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException,
-			IOException, HttpClientHelperException, DatastoreException,
-			NotFoundException;
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException, IOException, HttpClientHelperException,
+			DatastoreException, NotFoundException, ServiceUnavailableException;
 
 	/**
 	 * @param userId
@@ -43,10 +44,9 @@ public interface SearchService {
 	 * @throws JSONException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
 	 */
-	public ModelAndView proxyRawSearch(Long userId, String searchQuery,
-			HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException, JSONException,
-			DatastoreException, NotFoundException;
+	public ModelAndView proxyRawSearch(Long userId, String searchQuery, HttpServletRequest request) throws ClientProtocolException,
+			IOException, HttpClientHelperException, JSONException, DatastoreException, NotFoundException, ServiceUnavailableException;
 
 }

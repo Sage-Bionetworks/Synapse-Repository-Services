@@ -1,0 +1,36 @@
+{
+    "description":"A bundle of information about a query result.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+    "properties":{
+		"queryResult":{
+			"description":"The results that match the query. Use mask = 0x1 to include in the bundle.",
+			"$ref": "org.sagebionetworks.repo.model.table.QueryResult"
+		},
+		"queryCount":{
+			"description":"The total number of rows that match the query. Use mask = 0x2 to include in the bundle.",
+			"type": "integer"
+		},
+		"selectColumns": {
+		    "description":"The list of SelectColumns from the select clause. Use mask = 0x4 to include in the bundle.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SelectColumn"
+			}
+		},
+		"maxRowsPerPage":{
+			"description":"The maximum number of rows that can be retrieved in a single call.  This is a function of the columns that are selected in the query. Use mask = 0x8 to include in the bundle.",
+			"type": "integer"
+		},
+		"columnModels": {
+		    "description":"The list of ColumnModels for the table. Use mask = 0x10 to include in the bundle.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		}
+    }
+}

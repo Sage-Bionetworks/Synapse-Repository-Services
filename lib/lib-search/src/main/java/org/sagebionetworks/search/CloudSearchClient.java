@@ -10,6 +10,8 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
+import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 
 /**
  * CloudSearch does not yet provide a Java SDK. This is the bare minimum needed
@@ -24,19 +26,47 @@ public class CloudSearchClient {
 	private static final Map<String, String> SEND_DOCUMENTS_REQUEST_HEADERS;
 	static {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.put("Content-Type", "application/json");
+		requestHeaders.put("Content-Type", "application/json;charset=UTF-8");
 		SEND_DOCUMENTS_REQUEST_HEADERS = Collections.unmodifiableMap(requestHeaders);
 	}
 
+	@Autowired
+	CloudSearchHttpClientProvider cloudSearchHttpClientProvider;
+	private final long MAX_BACKOFF_MS = 6400L;
+	
 	private HttpClient httpClient;
 	private String searchServiceEndpoint;
 	private String documentServiceEndpoint;
 
-	public CloudSearchClient(HttpClient httpClient,
-			String searchServiceEndpoint, String documentServiceEndpoint) {
-		this.httpClient = httpClient;
+	public CloudSearchClient() {
+	}
+	
+	public CloudSearchClient(String searchServiceEndpoint, String documentServiceEndpoint) {
 		this.searchServiceEndpoint = searchServiceEndpoint;
 		this.documentServiceEndpoint = documentServiceEndpoint;
+	}
+	
+	public void _init() {
+		if (cloudSearchHttpClientProvider == null) {
+			throw new RuntimeException("ClouSearchHttpClientProvider is null in CloudSearchClient._init()");
+		}
+	
+		this.httpClient = cloudSearchHttpClientProvider.getHttpClient();
+	}
+
+	// For unit test
+	public CloudSearchClient(CloudSearchHttpClientProvider httpClientProvider, String searchServiceEndpoint, String documentServiceEndpoint) {
+		this.httpClient = httpClientProvider.getHttpClient();
+		this.searchServiceEndpoint = searchServiceEndpoint;
+		this.documentServiceEndpoint = documentServiceEndpoint;
+	}
+	
+	public void setSearchServiceEndpoint(String endpoint) {
+		this.searchServiceEndpoint = endpoint;
+	}
+
+	public void setDocumentServiceEndpoint(String endpoint) {
+		this.documentServiceEndpoint = endpoint;
 	}
 
 	public void sendDocuments(String documents) throws ClientProtocolException,
@@ -52,7 +82,32 @@ public class CloudSearchClient {
 
 	public String performSearch(String searchQuery) throws ClientProtocolException, IOException, HttpClientHelperException {
 		String url = searchServiceEndpoint + "?" + searchQuery;
-		return HttpClientHelper.getContent(httpClient, url);
+		String s = null;
+		long backoffMs = 100L;
+		HttpClientHelperException e = null;
+		do {
+			try {
+				s = HttpClientHelper.getContent(httpClient, url);
+			} catch (HttpClientHelperException e1) {
+				e = e1;
+				if (e1.getHttpStatus() == 507) {
+					try {
+						Thread.sleep(backoffMs);
+					} catch (InterruptedException e2) {
+						// Continue
+					}
+				} else {
+					// rethrow
+					throw(e1);
+				}
+			}
+			backoffMs *= 2;
+		} while ((s == null) && (backoffMs < MAX_BACKOFF_MS));
+		// If we're past the max backoff, throw the last 507 we got
+		if (backoffMs >= MAX_BACKOFF_MS) {
+			throw(e);
+		}
+		return s;
 	}
 	
 }

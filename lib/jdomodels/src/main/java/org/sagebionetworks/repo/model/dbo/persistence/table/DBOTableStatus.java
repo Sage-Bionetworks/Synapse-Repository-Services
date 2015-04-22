@@ -51,7 +51,7 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 	@Field(name = COL_TABLE_STATUS_CHANGE_ON, nullable = false)
 	private Long changedOn;
 	
-	@Field(name = COL_TABLE_STATUS_PROGRESS_MESSAGE, varchar= 1000)
+	@Field(name = COL_TABLE_STATUS_PROGRESS_MESSAGE, varchar = 1000, truncatable = true)
 	private String progressMessage;
 	
 	@Field(name = COL_TABLE_STATUS_PROGRESS_CURRENT)
@@ -60,7 +60,7 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 	@Field(name = COL_TABLE_STATUS_PROGRESS_TOTAL)
 	private Long progressTotal;
 	
-	@Field(name = COL_TABLE_STATUS_ERROR_MESSAGE, varchar= 1000)
+	@Field(name = COL_TABLE_STATUS_ERROR_MESSAGE, varchar = 1000, truncatable = true)
 	private String errorMessage;
 	
 	@Field(name = COL_TABLE_STATUS_ERROR_DETAILS, blob = "mediumblob")

@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
 
 import com.amazonaws.services.sqs.model.Message;
+import com.google.common.collect.Sets;
 
 public class SearchQueueWorkerTest {
 	
@@ -53,7 +54,9 @@ public class SearchQueueWorkerTest {
 		SearchQueueWorker worker = new SearchQueueWorker(mockSearchDao, mockDocumentProvider, messageList, mockWikiPageDao, mockWorkerLogger);
 		List<Message> results = worker.call();
 		assertNotNull(results);
-		assertEquals(messageList, results);
+		assertEquals(messageList.size(), results.size());
+		// order is not the same
+		assertEquals(Sets.newHashSet(messageList), Sets.newHashSet(results));
 		
 		HashSet<String> deleteSet = new HashSet<String>();
 		deleteSet.add("one");
@@ -61,7 +64,7 @@ public class SearchQueueWorkerTest {
 		// Delete should be called
 		verify(mockSearchDao, times(1)).deleteDocuments(deleteSet);
 		// create should not be called
-		verify(mockSearchDao, never()).createOrUpdateSearchDocument(any(List.class));
+		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
 	}
 	
 	@Test
@@ -91,10 +94,12 @@ public class SearchQueueWorkerTest {
 		SearchQueueWorker worker = new SearchQueueWorker(mockSearchDao, mockDocumentProvider, messageList, mockWikiPageDao, mockWorkerLogger);
 		List<Message> results = worker.call();
 		assertNotNull(results);
-		assertEquals(messageList, results);
+		assertEquals(messageList.size(), results.size());
+		// order is not the same
+		assertEquals(Sets.newHashSet(messageList), Sets.newHashSet(results));
 	
 		// Delete should be called
-		verify(mockSearchDao, never()).deleteDocuments(any(Set.class));
+		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
 		// create should be called once
 		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(expectedDocs);
 	}
@@ -119,9 +124,9 @@ public class SearchQueueWorkerTest {
 		assertEquals(messageList, results);
 		
 		// Delete should be called
-		verify(mockSearchDao, never()).deleteDocuments(any(Set.class));
+		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
 		// create should not be called
-		verify(mockSearchDao, never()).createOrUpdateSearchDocument(any(List.class));
+		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
 		// We should not call doesDocumentExist() on the repository when it already exists in the search index.
 		verify(mockDocumentProvider, never()).doesDocumentExist("one", "etag1");
 	}
@@ -146,9 +151,9 @@ public class SearchQueueWorkerTest {
 		assertEquals(messageList, results);
 		
 		// Delete should be called
-		verify(mockSearchDao, never()).deleteDocuments(any(Set.class));
+		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
 		// create should not be called
-		verify(mockSearchDao, never()).createOrUpdateSearchDocument(any(List.class));
+		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
 		// We should not call doesDocumentExist() one time.
 		verify(mockDocumentProvider, times(1)).doesDocumentExist("one", "etag1");
 	}
@@ -179,9 +184,11 @@ public class SearchQueueWorkerTest {
 		
 		SearchQueueWorker worker = new SearchQueueWorker(mockSearchDao, mockDocumentProvider, messageList, mockWikiPageDao, mockWorkerLogger);
 		List<Message> results = worker.call();
+		assertEquals(1, results.size());
+		assertEquals("2", results.get(0).getMessageId());
 		
 		// Verify that error logged for "one" and "two" went through
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, cMsg, eRetry, false);
+		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, cMsg, eRetry, true);
 		verify(mockSearchDao, times(1)).deleteDocument("two");
 	}
 	
@@ -192,7 +199,7 @@ public class SearchQueueWorkerTest {
 	public void testLogCreateUpdateException() throws Exception {
 		// Create some create msgs
 		messageList.add(MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1"));
-		messageList.add(MessageUtils.buildCreateEntityMessage("two", "parent2", "etag2", "1", "handle2"));
+		messageList.add(MessageUtils.buildCreateEntityMessage("two", "parent2", "etag2", "2", "handle2"));
 		// These docs should exist in repository
 		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
 		when(mockDocumentProvider.doesDocumentExist("two", "etag2")).thenReturn(true);
@@ -221,9 +228,11 @@ public class SearchQueueWorkerTest {
 		
 		SearchQueueWorker worker = new SearchQueueWorker(mockSearchDao, mockDocumentProvider, messageList, mockWikiPageDao, mockWorkerLogger);
 		List<Message> results = worker.call();
+		assertEquals(1, results.size());
+		assertEquals("2", results.get(0).getMessageId());
 		
 		// Verify that error logged for "one" and "two" went through
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, cMsg, eRetry, false);
+		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, cMsg, eRetry, true);
 		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docTwo);
 	}
 }

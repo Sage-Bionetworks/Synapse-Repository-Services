@@ -1,4 +1,4 @@
-CREATE TABLE `DOI` (
+CREATE TABLE IF NOT EXISTS `DOI` (
 	`ID`              bigint(20)                           NOT NULL,
 	`ETAG`            char(36)                             NOT NULL,
 	`DOI_STATUS`      ENUM('IN_PROCESS', 'CREATED', 'READY', 'ERROR') NOT NULL,

@@ -1,9 +1,13 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
+
 /**
  * This matches &ltin predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class InPredicate implements SQLElement{
+public class InPredicate extends SQLElement {
 
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -28,16 +32,21 @@ public class InPredicate implements SQLElement{
 		return columnReferenceLHS;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
-		columnReferenceLHS.toSQL(builder);
-		builder.append(" ");
-		if(this.not != null){
-			builder.append("NOT ");
-		}
-		builder.append("IN ( ");
-		inPredicateValue.toSQL(builder);
-		builder.append(" )");
+	public void visit(Visitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visit(inPredicateValue, visitor);
 	}
-	
+
+	public void visit(ToSimpleSqlVisitor visitor) {
+		visit(columnReferenceLHS, visitor);
+		visitor.setLHSColumn(columnReferenceLHS);
+		visitor.append(" ");
+		if (this.not != null) {
+			visitor.append("NOT ");
+		}
+		visitor.append("IN ( ");
+		visit(inPredicateValue, visitor);
+		visitor.append(" )");
+		visitor.setLHSColumn(null);
+	}
 }

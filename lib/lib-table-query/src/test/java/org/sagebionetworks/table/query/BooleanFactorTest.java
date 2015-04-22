@@ -13,19 +13,13 @@ public class BooleanFactorTest {
 	public void testBooleanFactorToSQLMissingNot() throws ParseException{
 		BooleanTest booleanTest = SqlElementUntils.createBooleanTest("foo>1");
 		BooleanFactor element = new  BooleanFactor(null , booleanTest);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo > 1", builder.toString());
+		assertEquals("foo > 1", element.toString());
 	}
 	
 	@Test
 	public void testBooleanFactorToSQLNot() throws ParseException{
 		BooleanTest booleanTest = SqlElementUntils.createBooleanTest("foo>1");
 		BooleanFactor element = new  BooleanFactor(Boolean.TRUE , booleanTest);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("NOT foo > 1", builder.toString());
+		assertEquals("NOT foo > 1", element.toString());
 	}
-	
-
 }

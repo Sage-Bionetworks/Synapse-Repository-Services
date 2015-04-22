@@ -24,7 +24,7 @@ import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:cloudwatch-test-spb.xml" })
+@ContextConfiguration(locations = { "classpath:cloudwatch-spb.xml" })
 public class ConsumerIntegrationTest {
 	
 	@Autowired

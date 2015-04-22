@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -28,16 +27,6 @@ public class EntityTypeTest {
 		}
 	}
 	
-	@Test
-	public void testGetId(){
-		EntityType[] values = EntityType.values();
-		assertNotNull(values);
-		HashSet<Short> ids = new HashSet<Short>();
-		for(EntityType type: values){
-			assertTrue(ids.add(type.getId()));
-		}
-		assertEquals(values.length, ids.size());
-	}
 		
 	@Test
 	public void testGetNodeTypeForClass(){
@@ -45,16 +34,6 @@ public class EntityTypeTest {
 		for(EntityType type: array){
 			assertNotNull(type.getClassForType());
 			EntityType result = EntityType.getNodeTypeForClass(type.getClassForType());
-			assertEquals(type, result);
-		}
-	}
-	
-	@Test
-	public void testGetTypeForId(){
-		EntityType[] array = EntityType.values();
-		for(EntityType type: array){
-			assertNotNull(type.getId());
-			EntityType result = EntityType.getTypeForId(type.getId());
 			assertEquals(type, result);
 		}
 	}
@@ -72,17 +51,6 @@ public class EntityTypeTest {
 	}
 	
 	@Test
-	public void testDataset(){
-		assertNotNull(EntityType.dataset);
-		assertEquals(Study.class, EntityType.dataset.getClassForType());
-	}
-	@Test
-	public void testLayer(){
-		assertNotNull(EntityType.layer);
-		assertEquals(Data.class, EntityType.layer.getClassForType());
-	}
-	
-	@Test
 	public void testProject(){
 		assertNotNull(EntityType.project);
 		assertEquals(Project.class, EntityType.project.getClassForType());
@@ -94,42 +62,7 @@ public class EntityTypeTest {
 		assertEquals(Folder.class, EntityType.folder.getClassForType());
 	}
 
-	@Test
-	public void testStep(){
-		assertNotNull(EntityType.step);
-		assertEquals(Step.class, EntityType.step.getClassForType());
-	}
-	
-	@Test
-	public void testPreview(){
-		assertNotNull(EntityType.preview);
-		assertEquals(Preview.class, EntityType.preview.getClassForType());
-	}
-	
-	@Test
-	public void testCode(){
-		assertNotNull(EntityType.code);
-		assertEquals(Code.class, EntityType.code.getClassForType());
-	}
-	
-	@Test
-	public void testStudyAlais(){
-		LinkedHashSet<String> expected = new LinkedHashSet<String>();
-		Set<String> aliases = EntityType.dataset.getAllAliases();
-		assertTrue(aliases.contains("dataset"));
-		assertTrue(aliases.contains("study"));
-		assertTrue(aliases.contains("entity"));
-	}
-	
-	@Test
-	public void testDataAlais(){
-		LinkedHashSet<String> expected = new LinkedHashSet<String>();
-		Set<String> aliases = EntityType.layer.getAllAliases();
-		assertTrue(aliases.contains("data"));
-		assertTrue(aliases.contains("layer"));
-		assertTrue(aliases.contains("entity"));
-	}
-	
+
 	@Test
 	public void testProjectAlais(){
 		LinkedHashSet<String> expected = new LinkedHashSet<String>();

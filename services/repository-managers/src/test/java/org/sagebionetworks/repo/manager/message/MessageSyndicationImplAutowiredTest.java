@@ -36,7 +36,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:aws-topic-publisher.spb.xml", "classpath:dynamo-dao-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageSyndicationImplAutowiredTest {
 	
 	public static final long MAX_WAIT = 10*1000; //ten seconds

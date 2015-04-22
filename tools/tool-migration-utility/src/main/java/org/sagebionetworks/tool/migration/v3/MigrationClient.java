@@ -27,9 +27,9 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
+import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
  * The V3 migration client.

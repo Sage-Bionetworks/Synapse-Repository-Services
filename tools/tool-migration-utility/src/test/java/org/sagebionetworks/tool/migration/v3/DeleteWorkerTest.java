@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.tool.migration.Progress.BasicProgress;
+import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
  * Test for DeleteWorker

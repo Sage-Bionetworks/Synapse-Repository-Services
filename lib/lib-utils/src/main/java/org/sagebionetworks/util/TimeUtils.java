@@ -1,18 +1,18 @@
 package org.sagebionetworks.util;
 
-import java.util.Iterator;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeoutException;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 
 import com.google.common.base.Predicate;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class TimeUtils {
 	private static final DateTimeFormatter dateParser;
+
+	private static Clock clock = new DefaultClock();
 
 	static {
 		// DateTimeFormat.forPattern("yy-M-d H:m:s.SSS");
@@ -51,6 +51,20 @@ public class TimeUtils {
 	}
 
 	/**
+	 * Wait for at most maxTimeMillis for condition to return true. Recheck every checkIntervalMillis
+	 * 
+	 * @param maxTimeMillis
+	 * @param checkIntervalMillis interval check time
+	 * @param condition
+	 * @param input
+	 * @return false if timed out
+	 * @throws Exception
+	 */
+	public static <T> T waitFor(long maxTimeMillis, long checkIntervalMillis, Callable<Pair<Boolean, T>> condition) throws Exception {
+		return waitForInternal(maxTimeMillis, checkIntervalMillis, condition, false);
+	}
+
+	/**
 	 * Wait for at most maxTimeMillis for condition to return true. Recheck every checkIntervalMillis with exponential
 	 * back off
 	 * 
@@ -66,18 +80,37 @@ public class TimeUtils {
 
 	private static <T> boolean waitForInternal(long maxTimeMillis, long initialCheckIntervalMillis, T input, Predicate<T> condition,
 			boolean exponential) {
-		long startTimeMillis = Clock.currentTimeMillis();
+		long startTimeMillis = clock.currentTimeMillis();
 		while (!condition.apply(input)) {
-			long nowMillis = Clock.currentTimeMillis();
+			long nowMillis = clock.currentTimeMillis();
 			if (nowMillis - startTimeMillis >= maxTimeMillis) {
 				return false;
 			}
-			Clock.sleepNoInterrupt(initialCheckIntervalMillis);
+			clock.sleepNoInterrupt(initialCheckIntervalMillis);
 			if (exponential) {
 				initialCheckIntervalMillis *= 1.2;
 			}
 		}
 		return true;
+	}
+
+	private static <T> T waitForInternal(long maxTimeMillis, long initialCheckIntervalMillis, Callable<Pair<Boolean, T>> condition,
+			boolean exponential) throws Exception {
+		long startTimeMillis = clock.currentTimeMillis();
+		for (;;) {
+			Pair<Boolean, T> call = condition.call();
+			if (call.getFirst().booleanValue() == true) {
+				return call.getSecond();
+			}
+			long nowMillis = clock.currentTimeMillis();
+			if (nowMillis - startTimeMillis >= maxTimeMillis) {
+				throw new TimeoutException("Waited " + (nowMillis - startTimeMillis) + " milliseconds");
+			}
+			clock.sleepNoInterrupt(initialCheckIntervalMillis);
+			if (exponential) {
+				initialCheckIntervalMillis *= 1.2;
+			}
+		}
 	}
 
 	/**
@@ -105,7 +138,7 @@ public class TimeUtils {
 				if (++count >= maxRetryCount) {
 					throw new RetryException("Exceeded maximum retries", re.getCause());
 				}
-				Clock.sleepNoInterrupt(initialCheckIntervalMillis);
+				clock.sleepNoInterrupt(initialCheckIntervalMillis);
 				if (exponential) {
 					initialCheckIntervalMillis *= 1.2;
 				}

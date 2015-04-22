@@ -17,8 +17,6 @@ public class ExpectedStackBeansTest {
 	String[] expectedBeanNames = new String[]{
 			"stackConfiguration",
 			"stackConfiguration.stackAndStackInstancePrefix",
-			"stackConfiguration.tableCSVUploadQueueName",
-			"stackConfiguration.tableCSVDownloadQueueName",
 			// Id generator Properties
 			"stackConfiguration.idGeneratorDatabaseDriver",
 			"stackConfiguration.idGeneratorDatabaseConnectionUrl",
@@ -38,6 +36,9 @@ public class ExpectedStackBeansTest {
 			// Migration
 			"stackConfiguration.migrationBackupBatchMax",
 			"stackConfiguration.migrationMaxAllowedPacketBytes",
+			
+			"stackConfiguration.oAuth2GoogleClientId",
+			"stackConfiguration.oAuth2GoogleClientSecret",			
 
 			"stackConfiguration.tableRowChangeBucketName",
 			"stackConfiguration.tableMaxBytesPerRequest",
@@ -47,6 +48,8 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.tableReadTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersTableCluster",
 			"stackConfiguration.tableMaxBytesPerChangeSet",
+			
+			"stackConfiguration.allowCreationOfOldEntities",
 			
 			// Semaphore gated runner configuration.
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",
@@ -60,6 +63,7 @@ public class ExpectedStackBeansTest {
 			
 			"stackConfiguration.searchEnabled",
 			"stackConfiguration.dynamoEnabled",
+			"stackConfiguration.dynamoTableRowCacheEnabled",
 			
 			"stackConfiguration.fileMultipartUploadDaemonTimeoutMS",
 			"stackConfiguration.fileMultipartUploadDaemonMainMaxThreads",
@@ -69,7 +73,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.stackInstanceNumber",
 			
 			"stackConfiguration.logBucketName",
-			"stackConfiguration.participantDataBucketName",
 	};
 	
 	@Before

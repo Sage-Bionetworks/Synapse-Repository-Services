@@ -80,13 +80,8 @@ class NodeLineage {
 	 * Creates the dbo.
 	 */
 	DboNodeLineage createDbo() {
-		DboNodeLineage dbo = new DboNodeLineage();
-		String hashKey = DboNodeLineage.createHashKey(this.nodeId, this.lineageType);
-		dbo.setHashKey(hashKey);
-		String rangeKey = DboNodeLineage.createRangeKey(this.distance, this.ancOrDescNodeId);
-		dbo.setRangeKey(rangeKey);
-		dbo.setTimestamp(this.timestamp);
-		dbo.setVersion(this.version);
+		DboNodeLineage dbo = new DboNodeLineage(this.nodeId, this.lineageType, this.distance, this.ancOrDescNodeId, this.version,
+				this.timestamp);
 		return dbo;
 	}
 

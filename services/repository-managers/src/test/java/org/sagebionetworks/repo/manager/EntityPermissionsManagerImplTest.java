@@ -88,7 +88,7 @@ public class EntityPermissionsManagerImplTest {
 		node.setCreatedByPrincipalId(createdBy);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedBy);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
 	}
@@ -579,24 +579,24 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testCanDownload() throws Exception {
 		// baseline:  there is no restriction against downloading this entity
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		// now create an access requirement on project and child
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(project.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// now we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		arId=null;
 		// back to the baseline
-		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 		// now add the AR to the child node itself
 		ar.setId(null);
 		ar.setEtag(null);
@@ -606,6 +606,6 @@ public class EntityPermissionsManagerImplTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		arId = ""+ar.getId();
 		// again, we can't download
-		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).getAuthorized());
 	}
 }

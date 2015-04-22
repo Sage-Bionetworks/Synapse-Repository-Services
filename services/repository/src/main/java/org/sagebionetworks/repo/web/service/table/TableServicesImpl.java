@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.service.table;
 
 import java.io.IOException;
-import java.net.URL;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,22 +15,31 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Basic implementation of the TableServices.
@@ -58,6 +67,12 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
+	public List<ColumnModel> createColumnModels(Long userId, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return columnModelManager.createColumnModels(user, columnModels);
+	}
+
+	@Override
 	public ColumnModel getColumnModel(Long userId, String columnId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return columnModelManager.getColumnModel(user, columnId);
@@ -66,9 +81,10 @@ public class TableServicesImpl implements TableServices {
 	@Override
 	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, String entityId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, entityId);
+		List<ColumnModel> models = columnModelManager.getColumnModelsForTable(user, entityId);
 		PaginatedColumnModels pcm = new PaginatedColumnModels();
 		pcm.setResults(models);
+		pcm.setTotalNumberOfResults((long) models.size());
 		return pcm;
 	}
 
@@ -84,23 +100,26 @@ public class TableServicesImpl implements TableServices {
 		return columnModelManager.listColumnModels(user, prefix, limit, offset);
 	}
 
+	@Deprecated // This is now asynchronous
 	@Override
 	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rows.getTableId());
-		return tableRowManager.appendRows(user, rows.getTableId(), models, rows);
+		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
+		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows);
 	}
-
+	
+	@Deprecated // This is now asynchronous
 	@Override
-	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdate) throws NotFoundException, DatastoreException,
-			IOException {
-		Validate.required(rowsToAppendOrUpdate, "rowsToAppendOrUpdate");
-		Validate.required(rowsToAppendOrUpdate.getTableId(), "rowsToAppendOrUpdate.tableId");
+	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
+			DatastoreException, IOException {
+		Validate.required(rowsToAppendOrUpdateOrDelete, "rowsToAppendOrUpdateOrDelete");
+		Validate.required(rowsToAppendOrUpdateOrDelete.getTableId(), "rowsToAppendOrUpdateOrDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToAppendOrUpdate.getTableId());
-		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdate.getTableId(), models, rowsToAppendOrUpdate);
+		List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, rowsToAppendOrUpdateOrDelete.getTableId());
+		ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
+		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), columnMap, rowsToAppendOrUpdateOrDelete);
 	}
 
 	@Override
@@ -108,8 +127,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToDelete, "rowsToDelete");
 		Validate.required(rowsToDelete.getTableId(), "rowsToDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToDelete.getTableId());
-		return tableRowManager.deleteRows(user, rowsToDelete.getTableId(), models, rowsToDelete);
+		return tableRowManager.deleteRows(user, rowsToDelete.getTableId(), rowsToDelete);
 	}
 
 	@Override
@@ -117,9 +135,9 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToGet, "rowsToGet");
 		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToGet.getTableId());
+		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
-		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, models);
+		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, columnMap);
 	}
 
 	@Override
@@ -127,16 +145,17 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getColumnsForTable(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
-		for (ColumnModel model : models) {
-			if (model.getColumnType() != ColumnType.FILEHANDLEID) {
-				throw new IllegalArgumentException("Column " + model.getId() + " is not of type FILEHANDLEID");
+		ColumnMapper mapper = columnModelManager.getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
+		for (SelectColumnAndModel selectColumnAndModel : mapper.getSelectColumnAndModels()) {
+			if (selectColumnAndModel.getColumnModel() != null
+					&& selectColumnAndModel.getColumnModel().getColumnType() != ColumnType.FILEHANDLEID) {
+				throw new IllegalArgumentException("Column " + selectColumnAndModel.getColumnModel().getId() + " is not of type FILEHANDLEID");
 			}
 		}
-		RowSet rowSet = tableRowManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, models);
+		RowSet rowSet = tableRowManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, mapper);
 
 		// we expect there to be null entries, but the file handle manager does not
-		List<String> idsList = Lists.newArrayListWithCapacity(models.size() * rowSet.getRows().size());
+		List<String> idsList = Lists.newArrayListWithCapacity(mapper.columnModelCount() * rowSet.getRows().size());
 		for (Row row : rowSet.getRows()) {
 			for (String id : row.getValues()) {
 				if (id != null) {
@@ -155,7 +174,7 @@ public class TableServicesImpl implements TableServices {
 		// insert the file handles in order. Null ids will give null file handles
 		for (Row row : rowSet.getRows()) {
 			FileHandleResults rowHandles = new FileHandleResults();
-			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(models.size()));
+			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(mapper.columnModelCount()));
 			for (String id : row.getValues()) {
 				FileHandle fh;
 				if (id != null) {
@@ -171,7 +190,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public URL getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException {
+	public String getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
 
@@ -187,7 +206,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public URL getFilePreviewRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException,
+	public String getFilePreviewRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException,
 			NotFoundException {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
@@ -204,23 +223,29 @@ public class TableServicesImpl implements TableServices {
 		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);
 	}
 
-	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException{
-		return columnModelManager.getColumnModelsForTable(user, tableId);
-	}
-
 	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {
 		return columnModelManager.getColumnModel(user, columnId);
 	}
 
-	private List<ColumnModel> getColumnsForTable(UserInfo user, String tableId, List<String> columnIds) throws DatastoreException,
-			NotFoundException {
-		return columnModelManager.getColumnModel(user, columnIds, true);
+	@Override
+	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest queryBundle) throws NotFoundException, DatastoreException,
+			TableUnavilableException, TableFailedException {
+		UserInfo user = userManager.getUserInfo(userId);
+
+		return tableRowManager.queryBundle(user, queryBundle);
 	}
 
 	@Override
-	public RowSet query(Long userId, Query query, boolean isConsisitent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException {
+	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return tableRowManager.query(user, query.getSql(), isConsisitent, countOnly);
+		QueryResult queryResult = tableRowManager.queryNextPage(user, nextPageToken);
+		return queryResult;
+	}
+
+	@Override
+	public Long getMaxRowsPerPage(List<ColumnModel> models) {
+		return tableRowManager.getMaxRowsPerPage(models);
 	}
 	
 }

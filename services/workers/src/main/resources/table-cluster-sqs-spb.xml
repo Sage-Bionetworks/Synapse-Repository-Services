@@ -11,10 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="aws-worker.spb.xml"/>
-	<import resource="classpath:table-cluster-spb.xml" />
-	<import resource="classpath:managers-spb.xml" />
-
 	<!-- Setups the table message queue. -->
 	<bean id="tableMessageQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
@@ -30,29 +26,30 @@
 	</bean>
 
 	<!-- provides table message queue workers -->
-	<bean id="tableQueueWorkerFactory"
-		class="org.sagebionetworks.table.worker.TableWorkerFactory"
-		scope="singleton" />
+	<bean id="tableQueueWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.table.worker.TableWorker" />
+	</bean>
+
+	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+	<bean id="tableWorkerSemaphore"
+			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
+			scope="singleton">
+		<property name="lockTimeoutMS" value="1800000" />
+		<property name="maxCount" value="10" />
+	</bean>
 
 	<!-- Pull messages off the search queue, create works, deletes successfully 
 		processed messages -->
 	<bean id="tableQueueMessageReveiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
+		class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
+		depends-on="stackConfiguration"
 		scope="singleton">
 		<property name="messageQueue" ref="tableMessageQueue" />
 		<property name="workerFactory" ref="tableQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="5" />
-		<property name="maxMessagePerWorker" value="2" />
+		<property name="workerSemaphore" ref="tableWorkerSemaphore" />
+		<property name="maxNumberOfWorkerThreads" value="3" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="tableSemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
-		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersTableCluster" />
-		<property name="semaphoreKey" value="tableClusterWorker" />		
-		<property name="runner" ref="tableQueueMessageReveiver" />
 	</bean>
 
 	<!-- This trigger is used to process messages from the search queue. -->
@@ -61,8 +58,8 @@
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="tableSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject" ref="tableQueueMessageReveiver" />
+				<property name="targetMethod" value="triggerFired" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>

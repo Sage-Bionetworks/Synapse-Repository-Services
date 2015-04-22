@@ -1,0 +1,18 @@
+{
+    "description":"A page of query result.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+    "properties":{
+		"queryResults":{
+			"description":"The rows returned.",
+			"$ref": "org.sagebionetworks.repo.model.table.RowSet"
+		},
+		"nextPageToken":{
+			"description":"If set, there there more results than returned in this queryResults",
+			"$ref": "org.sagebionetworks.repo.model.table.QueryNextPageToken"
+		}
+	}
+}

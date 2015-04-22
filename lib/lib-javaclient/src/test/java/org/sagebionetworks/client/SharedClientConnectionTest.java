@@ -1,6 +1,8 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyObject;
@@ -27,13 +29,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class SharedClientConnectionTest {
 	

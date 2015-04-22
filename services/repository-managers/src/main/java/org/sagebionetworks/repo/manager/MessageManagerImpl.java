@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -53,8 +55,8 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
@@ -200,7 +202,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
+	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
 		// If the user can get the message metadata (permission checking by the manager)
 		// then the user can download the file
 		MessageToUser dto = getMessage(userInfo, messageId);
@@ -208,14 +210,14 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getId().toString());
 		
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
-			if (userInfo.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 				throw new UnauthorizedException("Anonymous user may not send messages.");
 			}
 			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
@@ -238,7 +240,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId())
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId()).getAuthorized()
 				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
 			throw new UnauthorizedException("Invalid file handle given");
 		}
@@ -281,7 +283,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
 			String entityId, MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
 		// No permission checks since we only need to find the IDs of the creator of the node
@@ -320,7 +322,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
 			MessageRecipientSet recipients) throws NotFoundException {
 		MessageToUser message = getMessage(userInfo, messageId);
@@ -360,7 +362,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException {
 		// Check to see if the user can see the message being updated
 		getMessage(userInfo, status.getMessageId());
@@ -375,7 +377,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public List<String> processMessage(String messageId) throws NotFoundException {
 		return processMessage(messageId, false);
 	}
@@ -516,7 +518,7 @@ public class MessageManagerImpl implements MessageManager {
 			// Check permissions to send to non-individuals
 			if (!userIsTrustedMessageSender &&
 					!ug.getIsIndividual() &&
-					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
+					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized()) {
 				errors.add(userInfo.getId()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;
@@ -561,7 +563,12 @@ public class MessageManagerImpl implements MessageManager {
 	 * Note:  The file given by the fileHandleId must be stored with UTF-8 encoding
 	 */
 	private String downloadEmailContentToString(String fileHandleId, Charset charset) throws NotFoundException {
-		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		URL url;
+		try {
+			url = new URL(fileHandleManager.getRedirectURLForFileHandle(fileHandleId));
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
 		
 		// Read the file
 		try {
@@ -598,7 +605,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteMessage(UserInfo userInfo, String messageId) {
 		if (!userInfo.isAdmin()) {
 			throw new UnauthorizedException("Only admins may delete messages");
@@ -609,7 +616,7 @@ public class MessageManagerImpl implements MessageManager {
 	
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
 		UserInfo recipient = userManager.getUserInfo(recipientId);
@@ -625,9 +632,6 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String webLink;
 		switch (domain) {
-		case BRIDGE:
-			webLink = "https://bridge.synapse.org/resetPassword.html?token=" + sessionToken;
-			break;
 		case SYNAPSE:
 			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 			break;
@@ -641,7 +645,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void sendWelcomeEmail(Long recipientId, DomainType domain) throws NotFoundException {
 		// Build the subject and body of the message
 		String domainString = WordUtils.capitalizeFully(domain.name());
@@ -659,7 +663,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException {
 		// Build the subject and body of the message
 		MessageToUser dto = messageDAO.getMessage(messageId);

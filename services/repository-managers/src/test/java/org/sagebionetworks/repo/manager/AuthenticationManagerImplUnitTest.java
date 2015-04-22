@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -33,7 +33,6 @@ public class AuthenticationManagerImplUnitTest {
 //	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String synapseSessionToken = "synapsesessiontoken";
-	final String bridgeSessionToken = "bridgesessiontoken";
 	final byte[] salt = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	
 	@Before
@@ -41,7 +40,6 @@ public class AuthenticationManagerImplUnitTest {
 		authDAO = mock(AuthenticationDAO.class);
 		when(authDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
 		when(authDAO.changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE))).thenReturn(synapseSessionToken);
-		when(authDAO.changeSessionToken(eq(userId), eq((String) null), eq(DomainType.BRIDGE))).thenReturn(bridgeSessionToken);
 		
 		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
@@ -52,14 +50,6 @@ public class AuthenticationManagerImplUnitTest {
 		authManager = new AuthenticationManagerImpl(authDAO, userGroupDAO);
 	}
 
-	@Test
-	public void testSessionTokensDifferentForEachDomain() throws Exception {
-		// Bridge comes first and the record doesn't exist, but it is valid, so it should return a session.
-		String bridgeSessionToken = authManager.authenticate(userId, password, DomainType.BRIDGE).getSessionToken();
-		String synapseSessionToken = authManager.authenticate(userId, password, DomainType.SYNAPSE).getSessionToken();
-		assertFalse(bridgeSessionToken.equals(synapseSessionToken));
-	}
-	
 	@Test
 	public void testAuthenticateWithPassword() throws Exception {
 		Session session = authManager.authenticate(userId, password, DomainType.SYNAPSE);
@@ -111,7 +101,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
-		} catch (UnauthorizedException e) {
+		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("invalid"));
 		}
 		
@@ -120,7 +110,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
-		} catch (UnauthorizedException e) {
+		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("expired"));
 		}
 	}

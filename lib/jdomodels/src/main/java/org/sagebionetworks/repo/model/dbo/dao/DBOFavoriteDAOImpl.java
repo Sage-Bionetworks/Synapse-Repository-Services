@@ -119,11 +119,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		dbo.setCreatedOn(new Date().getTime());
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		basicDao.createNew(dbo);
-		try {
-			return getIndividualFavorite(dto.getPrincipalId(), dto.getEntityId());
-		} catch (NotFoundException e) {
-			throw new DatastoreException("Favorite not added.");
-		}
+		return getIndividualFavorite(dto.getPrincipalId(), dto.getEntityId());
 	}
 
 	@Override
@@ -206,7 +202,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 				EntityHeader header = new EntityHeader();
 				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 				header.setName(rs.getString(COL_NODE_NAME));
-				header.setType(EntityType.getTypeForId(rs.getShort(COL_NODE_TYPE)).getEntityType());
+				header.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)).getEntityType());
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				return header;

@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
@@ -44,6 +45,7 @@ import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -68,7 +70,7 @@ public class CertifiedUserManagerImplTest {
 	}
 	
 	private static String getDefaultQuizGeneratorAsString() {
-		InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
+		InputStream is = CertifiedUserManagerImplTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
 		return IOTestUtil.readFromInputStream(is, "utf-8");
 	}
 
@@ -251,14 +253,12 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRetrieveCertificationQuizGenerator() throws Exception {
-		certifiedUserManager.expireQuizGeneratorCache();
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(false);
 		QuizGenerator q = certifiedUserManager.retrieveCertificationQuizGenerator();
 		assertNotNull(q); // we check the content elsewhere, so here we just check we get a result
 		
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		when(s3Utility.downloadFromS3ToString(anyString())).thenReturn(getDefaultQuizGeneratorAsString());
-		certifiedUserManager.expireQuizGeneratorCache();
 		assertEquals(getDefaultQuizGenerator(), certifiedUserManager.retrieveCertificationQuizGenerator());
 	}
 	
@@ -285,6 +285,18 @@ public class CertifiedUserManagerImplTest {
 			}
 			assertTrue("None of "+quiz.getQuestions().size()+
 					" questions came from this variety of size "+vs.getQuestionOptions().size(), foundOne);
+		}
+		// test that the quiz answers have been scrubbed
+		for (Question q : quiz.getQuestions()) {
+			if (q instanceof MultichoiceQuestion) {
+				MultichoiceQuestion mq = (MultichoiceQuestion)q;
+				for (MultichoiceAnswer a : mq.getAnswers()) {
+					assertNull(a.getIsCorrect());
+				}
+			} else if (q instanceof TextFieldQuestion) {
+				TextFieldQuestion tq  = (TextFieldQuestion)q;
+				assertNull(tq.getAnswer());
+			}
 		}
 	}
 	
@@ -471,6 +483,16 @@ public class CertifiedUserManagerImplTest {
 			}
 		}
 	}
+	
+	@Test
+	public void testPLFM3080() throws Exception {
+		QuizGenerator quizGenerator = getDefaultQuizGenerator();
+		// this should not affect the QuizGenerator (but the fact that it DID caused PLFM-3080)
+		CertifiedUserManagerImpl.selectQuiz(quizGenerator);
+		// this should return no errors
+		List<String> errorMessages = CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
+		assertTrue(errorMessages.toString(), errorMessages.isEmpty());
+	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {
 		QuizResponse resp = new QuizResponse();
@@ -557,7 +579,6 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testSubmitCertificationQuizPASSINGResponse() throws Exception {
-		certifiedUserManager.expireQuizGeneratorCache();
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -573,6 +594,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException());
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
@@ -593,7 +615,6 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testSubmitCertificationQuizFAILINGResponse() throws Exception {
-		certifiedUserManager.expireQuizGeneratorCache();
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -609,6 +630,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException());
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
 		PassingRecord passingRecord = captor.getValue();
@@ -625,6 +647,29 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(created.getId(), pr.getResponseId());
 		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testSubmitCertificationQuizAlreadyPassed() throws Exception {
+		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
+		QuizGenerator quizGenerator = createQuizGenerator();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		quizGenerator.writeToJSONObject(adapter);
+		String quizGeneratorAsString = adapter.toJSONString();
+		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
+		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(666L);
+		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
+		created.setCreatedBy(userInfo.getId().toString());
+		created.setCreatedOn(new Date());
+		created.setId(10101L);
+		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
+		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		PassingRecord previousPR = new PassingRecord();
+		previousPR.setPassed(true);
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenReturn(previousPR);
+		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 	}
 	
 	@Test

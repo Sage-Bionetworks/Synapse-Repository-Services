@@ -11,18 +11,15 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="aws-worker.spb.xml"/>
-	<import resource="classpath:managers-spb.xml" />
-
 	<!-- provides table message queue workers -->
-	<bean id="tableCSVDownloadWorkerFactory"
-		class="org.sagebionetworks.table.worker.TableCSVDownloadWorkerFactory"
-		scope="singleton" />
+	<bean id="tableCSVDownloadWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.table.worker.TableCSVDownloadWorker" />
+	</bean>
 	
 	<bean id="tableCSVDownloaderQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
 			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.tableCSVDownloadQueueName" />
+		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]" />
 	</bean>
 
 	<bean id="tableCSVDownloaderMessageReveiver"

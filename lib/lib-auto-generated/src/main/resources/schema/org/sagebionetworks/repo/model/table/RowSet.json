@@ -1,19 +1,20 @@
 {
-    "description":"Represents a set of row of a TablEntity",
+    "description":"Represents a set of row of a TableEntity",
+    	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.AppendableRowSet"
+		}
+	],
     "properties":{
-		"tableId":{
-			"description":"The ID of the TableEntity than owns these rows",
-			"type": "string"
-		},
 		"etag": {
 		    "description":"Any RowSet returned from Synapse will contain the current etag of the change set.  To update any rows from a RowSet the etag must be provided with the POST.",
 			"type": "string"
 		},
 		"headers": {
-		    "description":"The list of ColumnModels ID that describes the rows of this set.",
+		    "description":"The list of SelectColumns that describes the rows of this set.",
 			"type": "array",
 			"items": {
-				"type": "string"
+				"$ref": "org.sagebionetworks.repo.model.table.SelectColumn"
 			}
 		},		
 		"rows": {

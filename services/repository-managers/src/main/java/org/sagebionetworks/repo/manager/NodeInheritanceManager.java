@@ -81,4 +81,13 @@ public interface NodeInheritanceManager {
 	 */
 	void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException;
 
+	/**
+	 * Check to see if the node is in the trash
+	 * 
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	boolean isNodeInTrash(String nodeId) throws NotFoundException, DatastoreException;
 }

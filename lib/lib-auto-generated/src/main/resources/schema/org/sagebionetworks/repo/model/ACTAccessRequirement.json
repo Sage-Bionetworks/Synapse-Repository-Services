@@ -9,8 +9,12 @@
 	"properties": {
 		"actContactInfo": {
 			"type": "string",
-			"description": "Information on how to contact the ACT Team for access approval (external to Synapse)",
+			"description": "Information on how to contact the Synapse ACT for access approval (external to Synapse).  Required when creating or updating.",
 			"title": "ACT Contact Information"
+		},
+		"openJiraIssue": {
+			"type":"boolean",
+			"description":  "If true, then in addition to following directions in the 'actContactInfo' the client should open a JIRA issue to notify the ACT.  If omitted, default is 'true'."
 		}
 	}
 }

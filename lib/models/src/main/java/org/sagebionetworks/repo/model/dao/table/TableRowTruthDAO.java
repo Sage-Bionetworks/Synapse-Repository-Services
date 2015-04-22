@@ -1,17 +1,23 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
 
@@ -64,7 +70,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta, boolean isDelete)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, ColumnModelMapper models, RawRowSet delta)
 			throws IOException;
 		
 	/**
@@ -76,7 +82,8 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet) throws IOException, NotFoundException;
+	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet, ColumnModelMapper schema) throws IOException,
+			NotFoundException;
 	
 	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
@@ -97,7 +104,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 * @throws NotFoundException 
 	 */
-	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> result) throws IOException, NotFoundException;
+	public RowSet getRowSet(RowReferenceSet ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException;
 	
 	/**
 	 * Get all the rows referenced in their unmodified form.
@@ -108,7 +115,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException 
 	 */
-	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException, NotFoundException;
+	public List<RawRowSet> getRowSetOriginals(RowReferenceSet ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException;
 
 	/**
 	 * Get a rows referenced in its unmodified form.
@@ -120,7 +127,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public Row getRowOriginal(String tableId, RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException;
+	public Row getRowOriginal(String tableId, RowReference ref, ColumnModelMapper columnMapper) throws IOException, NotFoundException;
 	
 	/**
 	 * Get all the latest versions of the rows specified by the rowIds
@@ -128,12 +135,13 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @param rowIdsInOut the set of row ids to find
 	 * @param minVersion only check with versions equal or greater than the minVersion
+	 * @param columnMapper
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException,
-			NotFoundException;
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion, ColumnMapper columnMapper)
+			throws IOException, NotFoundException;
 
 	/**
 	 * Get all the latest versions of the rows specified by the rowIds
@@ -155,9 +163,10 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
+	 * @throws TableUnavilableException
 	 */
 	public Map<Long, Long> getLatestVersions(String tableId, long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException;
+			NotFoundException, TableUnavilableException;
 
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -174,19 +183,35 @@ public interface TableRowTruthDAO {
 	 * 
 	 * @param tableId
 	 * @param version
-	 * @param ascending
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);
 	
 	/**
+	 * Count all changes for a table with a version number greater than the given value (exclusive).
+	 * 
+	 * @param tableId
+	 * @param version
+	 * @return
+	 */
+	public int countRowSetsForTableGreaterThanVersion(String tableId, long version);
+
+	/**
 	 * Get the TableRowChange for a given tableId and row version number.
+	 * 
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public TableRowChange getTableRowChange(String tableId, long rowVersion) throws NotFoundException;
+
+	/**
+	 * This should only be called after the table entity has been deleted
+	 * 
+	 * @param tableId
+	 */
+	public void deleteAllRowDataForTable(String tableId);
 	
 	/**
 	 * This should never be called in a production setting.
@@ -202,9 +227,9 @@ public interface TableRowTruthDAO {
 	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
 
 	/**
-	 * Remove the latest version cache for the table
+	 * Remove the latest version cache and row cache for the table
 	 * 
 	 * @param tableId
 	 */
-	public void removeLatestVersionCache(String tableId) throws IOException;
+	public void removeCaches(Long tableId) throws IOException;
 }

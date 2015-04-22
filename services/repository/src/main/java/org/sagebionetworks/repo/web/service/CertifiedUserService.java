@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
@@ -55,4 +57,22 @@ public interface CertifiedUserService {
 	 * @return
 	 */
 	public PassingRecord getPassingRecord(Long userId, Long principalId) throws NotFoundException;
+
+	/**
+	 * Get all Passing Records for a given user.
+	 * Must be a Synapse admin to make this call
+	 */
+	public PaginatedResults<PassingRecord> getPassingRecords(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
+	
+	/**
+	 * For integration testing only.  'userId' must be a Synapse administrator
+	 * @param userId
+	 * @param principalId
+	 * @param isCertified
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public void setUserCertificationStatus(Long userId, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
+
+
 }

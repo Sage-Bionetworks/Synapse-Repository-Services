@@ -1,0 +1,25 @@
+{
+	"title": "AclModificationMessage",
+	"description": "JSON schema for a acl modification message",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.ModificationMessage"
+		}
+	],
+	"properties": {
+		"principalId": {
+			"type": "integer",
+			"description": "The principal id for which the change applies"
+		},
+		"aclModificationType": {
+			"type": "string",
+			"description": "The type of acl change that occurred",
+			"name": "AclModificationType",
+			"id": "org.sagebionetworks.repo.model.message.AclModificationType",
+			"enum": [
+				"PRINCIPAL_ADDED",
+				"PRINCIPAL_REMOVED"
+			]
+		}
+	}
+}

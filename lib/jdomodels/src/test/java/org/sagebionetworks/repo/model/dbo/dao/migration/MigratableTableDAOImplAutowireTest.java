@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
@@ -212,6 +212,45 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
+	
+	@Test
+	public void testRunWithForeignKeyIgnored() throws Exception{
+		final S3FileHandle fh = TestUtils.createS3FileHandle(creatorUserGroupId);
+		fh.setFileName("withPreview.txt");
+		// This does not exists but we should be able to set while foreign keys are ignored.
+		fh.setPreviewId("-123");
+		// This should fail
+		try{
+			fileHandleDao.createFile(fh);
+			fail("A foreign key should have prevented this change.");
+		}catch(Exception e){
+			// expected
+		}
+		// While the check is off we can violate foreign keys.
+		Boolean result = migratableTableDAO.runWithForeignKeyIgnored(new Callable<Boolean>(){
+			@Override
+			public Boolean call() throws Exception {
+				// We should be able to do this now that foreign keys are disabled.
+				S3FileHandle updated = fileHandleDao.createFile(fh);
+				toDelete.add(updated.getId());
+				return true;
+			}});
+		assertTrue(result);
+		
+		// This should fail if constraints are back on.
+		final S3FileHandle fh2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		fh2.setFileName("withPreview2.txt");
+		// This does not exists but we should be able to set while foreign keys are ignored.
+		fh2.setPreviewId("-123");
+		// This should fail
+		try{
+			fileHandleDao.createFile(fh2);
+			fail("A foreign key should have prevented this change.");
+		}catch(Exception e){
+			// expected
+		}
+	}
+	
 
 	/**
 	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 
@@ -226,33 +265,32 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL_ALIAS);
 		expectedPrimaryTypes.add(MigrationType.NOTIFICATION_EMAIL);
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
+		expectedPrimaryTypes.add(MigrationType.STORAGE_LOCATION);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_OWNERS);
 		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
 		expectedPrimaryTypes.add(MigrationType.NODE);
+		expectedPrimaryTypes.add(MigrationType.TEAM);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION_SUBMISSIONS);
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.SUBMISSION_CONTRIBUTOR);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
-		expectedPrimaryTypes.add(MigrationType.TEAM);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.PROJECT_SETTINGS);
+		expectedPrimaryTypes.add(MigrationType.PROJECT_STATS);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
 		expectedPrimaryTypes.add(MigrationType.ACL);
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
-		expectedPrimaryTypes.add(MigrationType.COMMUNITY_TEAM);
-		expectedPrimaryTypes.add(MigrationType.BRIDGE_PARTICIPANT);
-		expectedPrimaryTypes.add(MigrationType.BRIDGE_USER_PARTICIPANT_MAP);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_DESCRIPTOR);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_COLUMN_DESCRIPTOR);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_STATUS);
+		expectedPrimaryTypes.add(MigrationType.CHALLENGE);
+		expectedPrimaryTypes.add(MigrationType.CHALLENGE_TEAM);
 		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
 		expectedPrimaryTypes.add(MigrationType.BOUND_COLUMN_OWNER);
 		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);

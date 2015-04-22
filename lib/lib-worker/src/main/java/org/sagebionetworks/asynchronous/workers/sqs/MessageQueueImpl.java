@@ -48,20 +48,20 @@ public class MessageQueueImpl implements MessageQueue {
 	private final String queueName;
 	private final List<ObjectType> objectTypes;
 	private String queueUrl;
-	private String topicPrefix;
+	private String topicPrefixOrName;
 	private boolean isEnabled;
 
-	public MessageQueueImpl(final String queueName, String topicPrefix, List<ObjectType> objectTypes, boolean isEnabled) {
+	public MessageQueueImpl(final String queueName, String topicPrefixOrName, List<ObjectType> objectTypes, boolean isEnabled) {
 		if (queueName == null) {
 			throw new IllegalArgumentException("QueueName cannot be null");
 		}
-		if (objectTypes == null || objectTypes.isEmpty()) {
-			throw new IllegalArgumentException("ObjectTypes cannot be null or empty");
+		if (objectTypes != null && objectTypes.isEmpty()) {
+			throw new IllegalArgumentException("ObjectTypes cannot be empty");
 		}
 		this.isEnabled = isEnabled;
 		this.queueName = queueName;
 		this.objectTypes = objectTypes;
-		this.topicPrefix = topicPrefix;
+		this.topicPrefixOrName = topicPrefixOrName;
 	}
 
 	@PostConstruct
@@ -89,7 +89,7 @@ public class MessageQueueImpl implements MessageQueue {
 
 		this.logger.info("Queue created. URL: " + queueUrl + " ARN: " + queueArn);
 		// create topics and setup access.
-		createAndGrandAccessToTopic(queueArn, queueUrl, this.objectTypes);
+		createAndGrandAccessToTopics(queueArn, queueUrl, this.objectTypes);
 
 		this.queueUrl = queueUrl;
 	}
@@ -106,13 +106,18 @@ public class MessageQueueImpl implements MessageQueue {
 	
 	/**
 	 * Create a topic (if needed) for each type and grant access to publish from the topics to the queue.
+	 * 
 	 * @param queueArn
 	 * @param queueUrl
 	 * @param type
 	 */
-	private void createAndGrandAccessToTopic(String queueArn, String queueUrl, List<ObjectType> types){
-		for(ObjectType type: types){
-			createAndGrandAccessToTopic(queueArn, queueUrl, type);
+	private void createAndGrandAccessToTopics(String queueArn, String queueUrl, List<ObjectType> types) {
+		if (types == null) {
+			createAndGrandAccessToTopic(queueArn, queueUrl, null);
+		} else {
+			for (ObjectType type : types) {
+				createAndGrandAccessToTopic(queueArn, queueUrl, type);
+			}
 		}
 	}
 	
@@ -124,7 +129,12 @@ public class MessageQueueImpl implements MessageQueue {
 	 */
 	private void createAndGrandAccessToTopic(String queueArn, String queueUrl, ObjectType type){
 		// Let the queue subscribe to the topic
-		String topicName = topicPrefix+type.name();
+		String topicName;
+		if (type == null) {
+			topicName = topicPrefixOrName;
+		} else {
+			topicName = topicPrefixOrName + type.name();
+		}
 		CreateTopicRequest ctRequest = new CreateTopicRequest(topicName);
 		CreateTopicResult topicResult = this.awsSNSClient.createTopic(ctRequest);
 		final String topicArn = topicResult.getTopicArn();
@@ -140,6 +150,7 @@ public class MessageQueueImpl implements MessageQueue {
 	 * Subscribes this queue to the topic if needed.
 	 */
 	private Subscription subscribeQueueToTopicIfNeeded(final String topicArn, final String queueArn) {
+		logger.info("Subscribing " + queueArn + " to " + topicArn);
 		assert topicArn != null;
 		assert queueArn != null;
 		Subscription sub = findSubscription(topicArn, queueArn);
@@ -178,20 +189,24 @@ public class MessageQueueImpl implements MessageQueue {
 	 */
 	private void grantPolicyIfNeeded(final String topicArn, final String queueArn, final String queueUrl, ObjectType type) {
 		assert topicArn != null;
-		// All topics for this stack should be able to publish to this queue, so we setup a wildcard ARN:
-		// for example: 'arn:aws:sns:us-east-1:<userid>:<stack>-<instances>-repo-ENTITY' will become 
-		// 'arn:aws:sns:us-east-1:<userid>:<stack>-<instances>-repo-*;
-		String wildArn = topicArn.replaceAll(type.name(), "*");
+		String arnToGrant = topicArn;
+		if (type != null) {
+			// All topics for this stack should be able to publish to this queue, so we setup a wildcard ARN:
+			// for example: 'arn:aws:sns:us-east-1:<userid>:<stack>-<instances>-repo-ENTITY' will become
+			// 'arn:aws:sns:us-east-1:<userid>:<stack>-<instances>-repo-*;
+			String wildArn = topicArn.replaceAll(type.name(), "*");
+			arnToGrant = wildArn;
+		}
 		GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
 				.withQueueUrl(queueUrl)
 				.withAttributeNames("Policy");
 		GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
 		String policyString =  attrResult.getAttributes().get("Policy");
 		this.logger.info("Currently policy: " + policyString);
-		if(policyString == null || policyString.indexOf(wildArn) < 1) {
+		if (policyString == null || policyString.indexOf(arnToGrant) < 1) {
 			this.logger.info("Policy not set to grant the topic write permission to the queue. Adding a policy now...");
 			// Now we need to grant the topic permission to send messages to the queue.
-			String permissionString = String.format(GRAN_SET_MESSAGE_TEMPLATE, queueArn, wildArn);
+			String permissionString = String.format(GRAN_SET_MESSAGE_TEMPLATE, queueArn, arnToGrant);
 			Map<String, String> map = new HashMap<String, String>();
 			map.put("Policy", permissionString);
 			this.logger.info("Setting policy to: "+permissionString);

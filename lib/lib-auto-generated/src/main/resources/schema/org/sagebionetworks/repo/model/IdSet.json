@@ -1,0 +1,12 @@
+{
+	"description": "Set of IDs",
+	"properties": {
+		"set": {
+			"type": "array",
+			"uniqueItems":true,
+			"items": {
+				"type":"integer"
+			}
+		}
+	}
+}

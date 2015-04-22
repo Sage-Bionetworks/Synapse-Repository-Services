@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -31,12 +32,15 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
@@ -68,6 +72,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	
 	@Autowired
 	private SubmissionStatusDAO submissionStatusDAO;
+	
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
 	
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -105,6 +112,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
+		 groupMembersDAO.addMembers(
+		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+		 Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
 		// initialize Evaluations
@@ -355,6 +365,16 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		Thread.sleep(1L);
 		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
+		DoubleAnnotation da = new DoubleAnnotation();
+		// make sure NaNs can make the round trip
+		da.setKey("foo");
+		da.setValue(Double.NaN);
+		da.setIsPrivate(true);
+		Annotations annots = new Annotations();
+		annots.setDoubleAnnos(Collections.singletonList(da));
+		annots.setObjectId(status.getId());
+		annots.setScopeId(eval1.getId());
+		status.setAnnotations(annots);
 		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
@@ -362,6 +382,8 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		status.setEtag(statusClone.getEtag());
 		status.setStatusVersion(statusClone.getStatusVersion());
 		assertEquals(status, statusClone);
+		// make sure NaNs can make the round trip
+		assertTrue(Double.isNaN(statusClone.getAnnotations().getDoubleAnnos().get(0).getValue()));
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		
 		// delete
@@ -548,7 +570,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		toCreate.setModifiedByPrincipalId(Long.parseLong(ownerId));
 		toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
 		toCreate.setModifiedOn(toCreate.getCreatedOn());
-		toCreate.setNodeType(EntityType.project.name());
+		toCreate.setNodeType(EntityType.project);
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("1");
     	String id = nodeManager.createNewNode(toCreate, userInfo);

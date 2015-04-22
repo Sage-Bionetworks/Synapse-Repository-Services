@@ -1,18 +1,30 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Date;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -21,22 +33,35 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 /**
  * This controller is used for Administration of Synapse.
@@ -44,6 +69,8 @@ import org.springframework.http.HttpHeaders;
  * @author John
  */
 public class AdministrationServiceImpl implements AdministrationService  {
+
+	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -72,6 +99,27 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Autowired
 	SemaphoreManager semaphoreManager;
 
+	@Autowired
+	private TableRowManager tableRowManager;
+
+	@Autowired
+	private ConnectionFactory tableConnectionFactory;
+
+	@Autowired
+	private RepositoryMessagePublisher repositoryMessagePublisher;
+
+	@Autowired
+	private EntityManager entityManager;
+
+	@Autowired
+	private DBOChangeDAO changeDAO;
+
+	@Autowired
+	private TableStatusDAO tableStatusDAO;
+
+	@Autowired
+	TransactionSynchronizationProxy transactionSynchronizationManager;
+
 	/**
 	 * Spring will use this constructor
 	 */
@@ -91,13 +139,15 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public AdministrationServiceImpl(BackupDaemonLauncher backupDaemonLauncher,
 			ObjectTypeSerializer objectTypeSerializer, UserManager userManager,
 			StackStatusManager stackStatusManager,
-			MessageSyndication messageSyndication) {
+			MessageSyndication messageSyndication,
+			DBOChangeDAO changeDAO) {
 		super();
 		this.backupDaemonLauncher = backupDaemonLauncher;
 		this.objectTypeSerializer = objectTypeSerializer;
 		this.userManager = userManager;
 		this.stackStatusManager = stackStatusManager;
 		this.messageSyndication = messageSyndication;
+		this.changeDAO = changeDAO;
 	}
 	
 	/* (non-Javadoc)
@@ -239,6 +289,56 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		userManager.deletePrincipal(userInfo, Long.parseLong(id));
 	}
+
+	@Override
+	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin())
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		// purge
+		tableRowManager.removeCaches(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		if (indexDao != null) {
+			indexDao.deleteTable(tableId);
+			indexDao.deleteStatusTable(tableId);
+		}
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
+		TableEntity tableEntity = entityManager.getEntity(userInfo, tableId, TableEntity.class);
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectType(ObjectType.TABLE);
+		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
+		message.setObjectEtag(resetToken);
+		message.setParentId(KeyFactory.stringToKey(tableEntity.getParentId()).toString());
+		message = changeDAO.replaceChange(message);
+
+		// and send out update message
+		repositoryMessagePublisher.fireChangeMessage(message);
+	}
+
+	@Override
+	public void addIndexesToTable(Long userId, String tableId) throws NotFoundException, IOException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin())
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		// purge
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		if (indexDao != null) {
+			indexDao.addIndexes(tableId);
+		}
+	}
+
+	public void removeIndexesFromTable(Long userId, String tableId) throws NotFoundException, IOException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin())
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		// purge
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		if (indexDao != null) {
+			indexDao.removeIndexes(tableId);
+		}
+	}
+
 	@Override
 	public void clearAllLocks(Long userId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -265,5 +365,192 @@ public class AdministrationServiceImpl implements AdministrationService  {
 				waitObject.wait(30000);
 			}
 		}
+	}
+
+	// we want to test throwing exceptions from within a transaction
+	@Override
+	@WriteTransaction
+	public void throwExceptionTransactional(String exception) throws Throwable {
+		throwException(exception);
+	}
+
+	// we want to test throwing exceptions from within a transaction
+	@Override
+	@WriteTransaction
+	public void doNothing() {
+	}
+
+	private static class TransactionSynchronizationStub implements TransactionSynchronization {
+		private String exception;
+
+		@Override
+		public void suspend() {
+		}
+
+		@Override
+		public void resume() {
+		}
+
+		@Override
+		public void flush() {
+		}
+
+		@Override
+		public void beforeCommit(boolean readOnly) {
+			if (exception != null) {
+				try {
+					String exceptionToThrow = exception;
+					exception = null;
+					doThrowException(exceptionToThrow);
+				} catch (RuntimeException e) {
+					throw e;
+				} catch (Throwable t) {
+					// do nothing (which will make the test fail)
+					log.error("Cannot handle non-runtime exceptions here: " + t.getMessage(), t);
+				}
+			}
+		}
+
+		@Override
+		public void beforeCompletion() {
+		}
+
+		@Override
+		public void afterCommit() {
+		}
+
+		@Override
+		public void afterCompletion(int status) {
+		}
+
+		public void setExceptionToThrow(String exception) {
+			if (this.exception != null) {
+				log.error("Exception already set: " + this.exception);
+				this.exception = null; // no exception thrown means test will fail
+				return;
+			}
+			this.exception = exception;
+		}
+	}
+
+	@Override
+	@WriteTransaction
+	public void throwExceptionTransactionalBeforeCommit(String exception) {
+		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
+		TransactionSynchronizationStub handler = null;
+		for (TransactionSynchronization sync : currentList) {
+			if (sync instanceof TransactionSynchronizationStub) {
+				handler = (TransactionSynchronizationStub) sync;
+				break;
+			}
+		}
+		if (handler == null) {
+			handler = new TransactionSynchronizationStub();
+			transactionSynchronizationManager.registerSynchronization(handler);
+		}
+		handler.setExceptionToThrow(exception);
+		doNothing();
+	}
+
+	@Override
+	public void throwException(String exception) throws Throwable {
+		doThrowException(exception);
+	}
+
+	public static void doThrowException(String exception) throws Throwable {
+		try {
+			Throwable t = null;
+			Class<?> exceptionClass = Class.forName(exception);
+			if (exceptionClass == ACLInheritanceException.class) {
+				throw new ACLInheritanceException("", "100");
+			}
+			if (exceptionClass == AsynchJobFailedException.class) {
+				throw new AsynchJobFailedException(new AsynchronousJobStatus());
+			}
+			Constructor<?>[] constructors = exceptionClass.getConstructors();
+			for (Constructor<?> constructor : constructors) {
+				Class<?>[] parameterTypes = constructor.getParameterTypes();
+				if (parameterTypes.length == 2) {
+					if (parameterTypes[0] == String.class && parameterTypes[1] == Throwable.class) {
+						t = (Throwable) constructor.newInstance("test exception", null);
+						log.info("Throwing test exception", t);
+						throw t;
+					} else if (parameterTypes[0] == Object.class && parameterTypes[1] == Class.class) {
+						t = (Throwable) constructor.newInstance(2, Integer.class);
+						log.info("Throwing test exception", t);
+						throw t;
+					} else if (parameterTypes[0] == String.class && parameterTypes[1] == Class.class) {
+						t = (Throwable) constructor.newInstance("test exception", Integer.class);
+						log.info("Throwing test exception", t);
+						throw t;
+					} else if (parameterTypes[0] == Method.class && parameterTypes[1] == Throwable.class) {
+						t = (Throwable) constructor.newInstance(null, null);
+						log.info("Throwing test exception", t);
+						throw t;
+					}
+				}
+			}
+			for (Constructor<?> constructor : constructors) {
+				Class<?>[] parameterTypes = constructor.getParameterTypes();
+				if (parameterTypes == null || parameterTypes.length == 0) {
+					t = (Throwable) exceptionClass.newInstance();
+					log.info("Throwing test exception", t);
+					throw t;
+				}
+			}
+			for (Constructor<?> constructor : constructors) {
+				Class<?>[] parameterTypes = constructor.getParameterTypes();
+				if (parameterTypes.length == 1) {
+					if (parameterTypes[0] == String.class) {
+						t = (Throwable) constructor.newInstance(new Object[] { "test exception" });
+						log.info("Throwing test exception", t);
+						throw t;
+					}
+				}
+			}
+			for (Constructor<?> constructor : constructors) {
+				Class<?>[] parameterTypes = constructor.getParameterTypes();
+				if (parameterTypes.length == 2) {
+					t = (Throwable) constructor.newInstance(new Object[] { null, null });
+					log.info("Throwing test exception", t);
+					throw t;
+				}
+			}
+			for (Constructor<?> constructor : constructors) {
+				Class<?>[] parameterTypes = constructor.getParameterTypes();
+				if (parameterTypes.length == 1) {
+					t = (Throwable) constructor.newInstance(new Object[] { null });
+					log.info("Throwing test exception", t);
+					throw t;
+				}
+			}
+		} catch (ClassNotFoundException e) {
+			// do nothing (which will make the test fail)
+			log.error("Cannot instantiate exception: " + e.getMessage(), e);
+		} catch (InstantiationException e) {
+			// do nothing (which will make the test fail)
+			log.error("Cannot instantiate exception: " + e.getMessage(), e);
+		} catch (IllegalAccessException e) {
+			// do nothing (which will make the test fail)
+			log.error("Cannot instantiate exception: " + e.getMessage(), e);
+		} catch (InvocationTargetException e) {
+			// do nothing (which will make the test fail)
+			log.error("Cannot instantiate exception: " + e.getMessage(), e);
+		}
+		// no error
+		// do nothing (which will make the test fail)
+		log.error("No exception could be instantiated: " + exception);
+	}
+
+	@Override
+	public ChangeMessages createOrUpdateChangeMessages(Long userId,
+			ChangeMessages batch) throws UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		}
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(changeDAO.replaceChange(batch.getList()));
+		return messages;
 	}
 }

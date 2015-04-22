@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,7 +68,7 @@ public class UploaderUtilsTest {
 		childEntity.setDataFileHandleId(s3fileHandle.getId());
 		childEntity.setParentId(targetEntityId);
 		
-		when(mockSynapseClient.createFileHandle(any(File.class), anyString())).thenReturn(s3fileHandle);
+		when(mockSynapseClient.createFileHandle(any(File.class), anyString(), eq(targetEntityId))).thenReturn(s3fileHandle);
 		when(mockSynapseClient.createEntity(any(Entity.class))).thenReturn(childEntity);
 		
 		Entity returned = UploaderUtils.createChildFileEntity(tmpFileFile, mimeType, mockSynapseClient, targetEntityId, mockStatusCallback);
@@ -90,7 +91,7 @@ public class UploaderUtilsTest {
 		EntityBundle ebcUpdated = new EntityBundle();
 		ebcUpdated.setEntity(expectedNewVersion);
 		
-		when(mockSynapseClient.createFileHandle(any(File.class), anyString())).thenReturn(s3fileHandle);
+		when(mockSynapseClient.createFileHandle(any(File.class), anyString(), eq(oldVersion.getParentId()))).thenReturn(s3fileHandle);
 		when(mockSynapseClient.updateEntityBundle(anyString(), any(EntityBundleCreate.class))).thenReturn(ebcUpdated);
 		
 		Entity returned = UploaderUtils.createNewVersionFileEntity(tmpFileFile, mimeType, mockSynapseClient, oldVersion, mockStatusCallback);

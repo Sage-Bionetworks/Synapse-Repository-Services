@@ -94,8 +94,14 @@ public interface TableStatusDAO {
 	public TableStatus getTableStatus(String tableId) throws NotFoundException;
 
 	/**
-	 * Remove all table state. This should not be called during normal
-	 * operations.
+	 * Delete the table status for this table. Called during migration if table was updated in staging and we don't want
+	 * stale status
+	 * 
+	 */
+	public void deleteTableStatus(String tableId);
+
+	/**
+	 * Remove all table state. This should not be called during normal operations.
 	 * 
 	 */
 	public void clearAllTableState();

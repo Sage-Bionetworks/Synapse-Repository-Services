@@ -1,23 +1,34 @@
 package org.sagebionetworks.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import org.sagebionetworks.util.TestClock;
-
+import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.ReflectionUtils;
 
 import com.google.common.base.Predicate;
 
 public class TimeUtilsTest {
-	// we need to test the Clock dependent code in utils here, to avoid a circular dependency between lib-utils
-	// (Clock.java) and lib-test (TestClock.java)
+
+	TestClock clock = new TestClock();
+
+	@Before
+	public void before() throws Exception {
+		ReflectionStaticTestUtils.setStaticField(TimeUtils.class, "clock", clock);
+	}
+
 	@After
-	public void after() {
-		TestClock.resetClockProvider();
+	public void after() throws Exception {
+		ReflectionStaticTestUtils.setStaticField(TimeUtils.class, "clock", new DefaultClock());
 	}
 
 	@Test
@@ -36,8 +47,7 @@ public class TimeUtilsTest {
 
 	@Test
 	public void testNormal() {
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
+		long start = clock.currentTimeMillis();
 		final AtomicInteger count = new AtomicInteger(0);
 		boolean result = TimeUtils.waitFor(6000, 1000, "a", new Predicate<String>() {
 			@Override
@@ -46,13 +56,12 @@ public class TimeUtilsTest {
 			}
 		});
 		assertTrue(result);
-		assertEquals(start + 6000, Clock.currentTimeMillis());
+		assertEquals(start + 6000, clock.currentTimeMillis());
 	}
 
 	@Test
 	public void testExponential() {
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
+		long start = clock.currentTimeMillis();
 		final AtomicInteger count = new AtomicInteger(0);
 		boolean result = TimeUtils.waitForExponential(6000, 1000, "a", new Predicate<String>() {
 			@Override
@@ -61,13 +70,12 @@ public class TimeUtilsTest {
 			}
 		});
 		assertTrue(result);
-		assertEquals(start + 1000 * 7.4, Clock.currentTimeMillis(), 100);
+		assertEquals(start + 1000 * 7.4, clock.currentTimeMillis(), 100);
 	}
 
 	@Test
 	public void testFail() {
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
+		long start = clock.currentTimeMillis();
 		final AtomicInteger count = new AtomicInteger(0);
 		boolean result = TimeUtils.waitFor(6000, 1000, "a", new Predicate<String>() {
 			@Override
@@ -77,13 +85,12 @@ public class TimeUtilsTest {
 		});
 		assertFalse(result);
 		assertEquals(7, count.get());
-		assertEquals(start + 6000, Clock.currentTimeMillis());
+		assertEquals(start + 6000, clock.currentTimeMillis());
 	}
 
 	@Test
 	public void testExponentialFail() {
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
+		long start = clock.currentTimeMillis();
 		final AtomicInteger count = new AtomicInteger(0);
 		boolean result = TimeUtils.waitForExponential(6000, 1000, "a", new Predicate<String>() {
 			@Override
@@ -93,13 +100,12 @@ public class TimeUtilsTest {
 		});
 		assertFalse(result);
 		assertEquals(6, count.get());
-		assertEquals(start + 1000 * 7.4, Clock.currentTimeMillis(), 100);
+		assertEquals(start + 1000 * 7.4, clock.currentTimeMillis(), 100);
 	}
 	
 	@Test
 	public void testExponentialMaxRetry() throws Exception{
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
+		long start = clock.currentTimeMillis();
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
 		Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 1000, new Callable<Boolean>() {
@@ -113,13 +119,12 @@ public class TimeUtilsTest {
 
 		assertTrue(result);
 		assertEquals(maxRetry, count.get());
-		assertEquals(start + 1000 * 2.2, Clock.currentTimeMillis(), 100);
+		assertEquals(start + 1000 * 2.2, clock.currentTimeMillis(), 100);
 	}
 	
 	@Test
 	public void testExponentialMaxRetryFail() {
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
+		long start = clock.currentTimeMillis();
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
 		try {
@@ -138,6 +143,6 @@ public class TimeUtilsTest {
 		
 		//should have called apply maxRetry times, no more.
 		assertEquals(maxRetry, count.get());
-		assertEquals(start + 1000 * 2.2, Clock.currentTimeMillis(), 100);
+		assertEquals(start + 1000 * 2.2, clock.currentTimeMillis(), 100);
 	}
 }

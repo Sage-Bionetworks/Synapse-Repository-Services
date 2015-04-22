@@ -9,6 +9,9 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -113,4 +116,9 @@ public interface AuthenticationService {
 	public Session processOpenIDInfo(OpenIDInfo info, DomainType domain) throws NotFoundException;
 
 	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException;
+
+	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
+
+	public Session validateOAuthAuthenticationCode(
+			OAuthValidationRequest request) throws NotFoundException;
 }

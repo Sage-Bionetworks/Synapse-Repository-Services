@@ -1,0 +1,18 @@
+{
+    "title":"SubmissionTeam",
+    "description":"Record for a Team that can be used to submit to a challenge, including whether said Team is already registered.",
+	"properties": {
+		"teamId":{
+			"type":"string",
+			"description":"Team ID"
+		},
+		"challengeId":{
+			"type":"string",
+			"description":"Challenge ID"
+		},
+		"isRegistered":{
+			"type": "boolean",
+			"description": "true if and only if the given team is registered for the given challenge."
+		}
+	}
+}

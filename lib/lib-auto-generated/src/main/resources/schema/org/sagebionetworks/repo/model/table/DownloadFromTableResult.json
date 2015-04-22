@@ -1,0 +1,29 @@
+{
+	"description": "The response body of an asynchronous CSV table download job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"resultsFileHandleId": {
+			"type": "string",
+			"description": "The resulting file handle ID can be used to download the CSV file created by this job.  The file will contain all of the data requested in the query SQL provided when the job was started."
+		},
+		"tableId": {
+		    "description":"The ID of the table identified in the from clause of the table query.",
+			"type": "string"
+		},
+		"etag": {
+		    "description":"Any RowSet returned from Synapse will contain the current etag of the change set.  To update any rows from a RowSet the etag must be provided with the POST.",
+			"type": "string"
+		},
+		"headers": {
+		    "description":"The list of SelectColumns that describes the rows of this set.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SelectColumn"
+			}
+		}
+	}
+}

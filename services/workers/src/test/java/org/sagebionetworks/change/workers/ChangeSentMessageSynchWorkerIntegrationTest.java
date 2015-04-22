@@ -28,8 +28,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.util.ClockProvider;
-import org.sagebionetworks.util.DefaultClockProvider;
+import org.sagebionetworks.util.DefaultClock;
+import org.sagebionetworks.util.TestClock;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -61,6 +61,8 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	@Autowired
 	StackConfiguration configuration;
 	
+	TestClock testClock = new TestClock();
+
 	private int objectIdSequence;
 	
 	@Before
@@ -78,7 +80,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(0L));
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "random", mockRandom);
-		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new ClockProvider() {
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clock", new DefaultClock() {
 			@Override
 			public void sleep(long millis) throws InterruptedException {
 				// Do not really sleep here
@@ -94,11 +96,9 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@After
 	public void after(){
-		if(changeSentMessageSynchWorker != null){
-			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new DefaultClockProvider());
-			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "configuration", configuration);
-			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "random", new Random());
-		}
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clock", new DefaultClock());
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "configuration", configuration);
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "random", new Random());
 	}
 	
 	@Test
@@ -151,13 +151,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@Test
 	public void testGetChangeSynchWorkerSleepTimeMS(){
-		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS().getLong();
+		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS().get();
 		assertTrue(sleepMS > 500);
 	}
 	
 	@Test
 	public void testGetChangeSynchWorkerMinPageSize(){
-		int pageSize = configuration.getChangeSynchWorkerMinPageSize().getInteger();
+		int pageSize = configuration.getChangeSynchWorkerMinPageSize().get();
 		assertTrue(pageSize > 5000);
 	}
 	

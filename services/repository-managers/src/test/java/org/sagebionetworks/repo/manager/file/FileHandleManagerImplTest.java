@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -28,6 +29,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -249,7 +251,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.getRawFileHandle(mockUser, handleId);
 	}
 	
@@ -259,7 +261,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
 		assertEquals("failed to get the handle", handle, validResults);
 	}
@@ -278,7 +280,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.deleteFileHandle(mockUser, handleId);
 	}
 	
@@ -288,7 +290,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.deleteFileHandle(mockUser, handleId);
 		// The S3 file should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
@@ -301,7 +303,7 @@ public class FileHandleManagerImplTest {
 		// Deleting a file handle that has previews disabled should not StackOverflow :)
 		validResults.setPreviewId(validResults.getId());
 		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.deleteFileHandle(mockUser, validResults.getId());
 	}
 	
@@ -311,7 +313,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.clearPreview(mockUser, handleId);
 	}
 	
@@ -321,7 +323,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.clearPreview(mockUser, handleId);
 		// The database reference to the preview handle should be cleared
 		verify(mockfileMetadataDao, times(1)).setPreviewId(eq(handleId), eq((String)null));
@@ -341,7 +343,7 @@ public class FileHandleManagerImplTest {
 		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
 		when(mockfileMetadataDao.get(preview.getId())).thenReturn(preview);
 		// Allow all calls
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(any(UserInfo.class), any(String.class))).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(any(UserInfo.class), anyString(), any(String.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// Now deleting the original handle should trigger the delete of the previews.
 		manager.deleteFileHandle(mockUser, validResults.getId());
 		// The S3 file should get deleted.
@@ -361,7 +363,7 @@ public class FileHandleManagerImplTest {
 		external.setExternalURL("http://google.com");
 		when(mockfileMetadataDao.get(external.getId())).thenReturn(external);
 		// fire!
-		URL redirect = manager.getRedirectURLForFileHandle(external.getId());
+		String redirect = manager.getRedirectURLForFileHandle(external.getId());
 		assertNotNull(redirect);
 		assertEquals(external.getExternalURL(), redirect.toString());
 	}
@@ -376,7 +378,7 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
 		// fire!
-		URL redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
+		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
 		assertNotNull(redirect);
 		assertEquals(expecedURL, redirect.toString());
 	}
@@ -442,8 +444,8 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
-		URL redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
-		assertEquals(expecedURL, redirect.toString());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertEquals(expecedURL, redirect);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -457,8 +459,8 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
-		URL redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
-		assertEquals(expecedURL, redirect.toString());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertEquals(expecedURL, redirect);
 	}
 	
 	/**

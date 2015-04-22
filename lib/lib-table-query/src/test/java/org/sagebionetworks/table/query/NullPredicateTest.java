@@ -13,17 +13,13 @@ public class NullPredicateTest {
 	public void testNullPredicateToSQL() throws ParseException{
 		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
 		NullPredicate element = new NullPredicate(columnReferenceLHS, null);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo IS NULL", builder.toString());
+		assertEquals("foo IS NULL", element.toString());
 	}
 	
 	@Test
 	public void testNullPredicateToSQLNot() throws ParseException{
 		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
 		NullPredicate element = new NullPredicate(columnReferenceLHS, Boolean.TRUE);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo IS NOT NULL", builder.toString());
+		assertEquals("foo IS NOT NULL", element.toString());
 	}
 }

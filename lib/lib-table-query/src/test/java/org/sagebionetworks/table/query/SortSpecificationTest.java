@@ -15,9 +15,7 @@ public class SortSpecificationTest {
 		SortKey sortKey = SqlElementUntils.createSortKey("foo.bar");
 		OrderingSpecification orderingSpecification = null;
 		SortSpecification element= new SortSpecification(sortKey, orderingSpecification);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo.bar", builder.toString());
+		assertEquals("foo.bar", element.toString());
 	}
 	
 	@Test
@@ -25,9 +23,7 @@ public class SortSpecificationTest {
 		SortKey sortKey = SqlElementUntils.createSortKey("foo asc");
 		OrderingSpecification orderingSpecification = OrderingSpecification.ASC;
 		SortSpecification element= new SortSpecification(sortKey, orderingSpecification);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo ASC", builder.toString());
+		assertEquals("foo ASC", element.toString());
 	}
 	
 	@Test
@@ -35,9 +31,14 @@ public class SortSpecificationTest {
 		SortKey sortKey = SqlElementUntils.createSortKey("foo desc");
 		OrderingSpecification orderingSpecification = OrderingSpecification.DESC;;
 		SortSpecification element= new SortSpecification(sortKey, orderingSpecification);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("foo DESC", builder.toString());
+		assertEquals("foo DESC", element.toString());
 	}
 
+	@Test
+	public void testToSQLAggregate() throws ParseException {
+		SortKey sortKey = SqlElementUntils.createSortKey("avg(foo)");
+		OrderingSpecification orderingSpecification = OrderingSpecification.ASC;
+		SortSpecification element = new SortSpecification(sortKey, orderingSpecification);
+		assertEquals("AVG(foo) ASC", element.toString());
+	}
 }

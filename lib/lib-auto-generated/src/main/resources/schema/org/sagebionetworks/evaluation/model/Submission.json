@@ -45,6 +45,18 @@
 			"format": "date-time",
 			"description": "The date on which Submission was created.",
 			"transient": true
+		},
+		"teamId": {
+			"type":"string",
+			"description":"optional Team which collaborated on the submission"
+		},
+		"contributors": {
+			"type":"array",
+			"uniqueItems":true,
+			"items":{
+				"type":"object",
+				"$ref":"org.sagebionetworks.evaluation.model.SubmissionContributor"
+			}
 		}
 	}
 }

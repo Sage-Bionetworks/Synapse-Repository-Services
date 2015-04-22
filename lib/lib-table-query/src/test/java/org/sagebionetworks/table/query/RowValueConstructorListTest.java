@@ -16,17 +16,13 @@ public class RowValueConstructorListTest {
 	public void testRowValueConstructorListToSQLOne() throws ParseException{
 		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one");
 		RowValueConstructorList element = new RowValueConstructorList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("one", builder.toString());
+		assertEquals("one", element.toString());
 	}
 	
 	@Test
 	public void testRowValueConstructorListToSQLMore() throws ParseException{
 		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one", "two");
 		RowValueConstructorList element = new RowValueConstructorList(list);
-		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
-		assertEquals("one, two", builder.toString());
+		assertEquals("one, two", element.toString());
 	}
 }

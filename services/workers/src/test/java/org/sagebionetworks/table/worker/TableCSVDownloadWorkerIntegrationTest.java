@@ -1,12 +1,15 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -33,18 +36,20 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SortDirection;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -52,6 +57,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -119,27 +125,165 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			}
 		}
 	}
-	
+
 	@Test
 	public void testRoundTrip() throws Exception{
+		List<String[]> input = createTable();
+		
+		String sql = "select * from "+tableId;
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		assertEquals(tableId, response.getTableId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		checkResults(fileHandle, input, true);
+	}
+
+	@Test
+	public void testRoundTripSorted() throws Exception{
+		List<String[]> input = createTable();
+		
+		String sql = "select * from "+tableId;
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		SortItem sortItem = new SortItem();
+		sortItem.setColumn("c");
+		sortItem.setDirection(SortDirection.DESC);
+		request.setSort(Lists.newArrayList(sortItem));
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		assertEquals(tableId, response.getTableId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		input = Lists.newArrayList(input.get(0), input.get(4), input.get(2), input.get(1), input.get(3));
+		checkResults(fileHandle, input, true);
+	}
+
+	@Test
+	public void testRoundTripWithZeroResults() throws Exception {
+		createTable();
+
+		String sql = "select * from " + tableId + " where a = 'xxxxxx'";
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		assertEquals(tableId, response.getTableId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		checkResults(fileHandle, Lists.<String[]> newArrayList(new String[] { "a", "b", "c" }), true);
+	}
+
+	@Test
+	public void testDownloadWitoutWaitForSql() throws Exception {
+		List<String[]> input = createTable();
+
+		String sql = "select * from " + tableId;
+		// download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(false);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		assertEquals(tableId, response.getTableId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		checkResults(fileHandle, input, false);
+	}
+
+	private void checkResults(S3FileHandle fileHandle, List<String[]> input, boolean includeRowAndVersion) throws IOException,
+			FileNotFoundException {
+		CsvNullReader csvReader;
+		List<String[]> results;
+		assertEquals("text/csv", fileHandle.getContentType());
+		assertNotNull(fileHandle.getFileName());
+		assertNotNull(fileHandle.getContentMd5());
+		// Download the file
+		tempFile = File.createTempFile("DownloadCSV", ".csv");
+		s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), tempFile);
+		// Load the CSV data
+		csvReader = new CsvNullReader(new FileReader(tempFile));
+		results = null;
+		try {
+			results = csvReader.readAll();
+		} finally {
+			csvReader.close();
+		}
+		assertNotNull(results);
+		assertEquals(input.size(), results.size());
+		for (int i = 0; i < input.size(); i++) {
+			assertArrayEquals(input.get(i), Arrays.copyOfRange(results.get(i), includeRowAndVersion ? 2 : 0, results.get(i).length));
+		}
+	}
+
+	private List<String[]> createTable() throws NotFoundException, IOException {
 		// Create one column of each type
 		List<ColumnModel> temp = new LinkedList<ColumnModel>();
 		temp.add(TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING));
-		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.LONG));
+		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.INTEGER));
 		temp.add(TableModelTestUtils.createColumn(0L, "c", ColumnType.DOUBLE));
 		schema = new LinkedList<ColumnModel>();
-		for(ColumnModel cm: temp){
+		for (ColumnModel cm : temp) {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<String> headers = TableModelUtils.getHeaders(schema);
+		List<Long> headers = TableModelUtils.getIds(schema);
 		// Create the table.
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
+		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		columnManager.bindColumnToObject(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -150,56 +294,18 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
-		
-		String sql = "select * from "+tableId;
-		// Wait for the table to be ready
-		RowSet result = waitForConsistentQuery(adminUserInfo, sql+" limit 100");
-		assertNotNull(result);
-		// Now download the data from this table as a csv
-		AsynchDownloadRequestBody request = new AsynchDownloadRequestBody();
-		request.setSql(sql);
-		request.setWriteHeader(true);
-		request.setIncludeRowIdAndRowVersion(false);
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
-		// Wait for the job to complete.
-		status = waitForStatus(status);
-		assertNotNull(status);
-		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchDownloadResponseBody);
-		AsynchDownloadResponseBody response = (AsynchDownloadResponseBody) status.getResponseBody();
-		assertNotNull(response.getEtag());
-		assertNotNull(response.getResultsFileHandleId());
-		assertEquals(tableId, response.getTableId());
-		// Get the filehandle
-		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
-		assertEquals("text/csv", fileHandle.getContentType());
-		assertNotNull(fileHandle.getFileName());
-		assertNotNull(fileHandle.getContentMd5());
-		// Download the file
-		tempFile = File.createTempFile("DownloadCSV", ".csv");
-		s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), tempFile);
-		// Load the CSV data
-		CsvNullReader csvReader = new CsvNullReader(new FileReader(tempFile));
-		List<String[]> results = null;
-		try{
-			results = csvReader.readAll();
-		}finally{
-			csvReader.close();
-		}
-		assertNotNull(results);
-		assertEquals(input.size(), results.size());
-		for(int i=0; i<input.size(); i++){
-			assertEquals(Arrays.toString(input.get(i)), Arrays.toString(results.get(i)));
-		}
-
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
+				null,
+				null, null);
+		return input;
 	}
-	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws DatastoreException, NotFoundException, InterruptedException{
+
+	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return  tableRowManager.query(adminUserInfo, sql, true, false);
+				return tableRowManager.query(adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

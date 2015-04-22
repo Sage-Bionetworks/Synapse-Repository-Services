@@ -25,11 +25,12 @@ import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Basic implementation for a job status CRUD.
@@ -39,7 +40,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
-	private static final String SQL_UPDATE_PROGRESS = "UPDATE "+ASYNCH_JOB_STATUS+" SET "+COL_ASYNCH_JOB_PROGRESS_CURRENT+" = ?, "+COL_ASYNCH_JOB_PROGRESS_TOTAL+" = ?, "+COL_ASYNCH_JOB_PROGRESS_MESSAGE+" = ?, "+COL_ASYNCH_JOB_ETAG+" = ?, "+COL_ASYNCH_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_JOB_ID+" = ?";
+	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
+			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
+			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
 	private static final String SQL_SET_FAILED = "UPDATE "+ASYNCH_JOB_STATUS+" SET "+COL_ASYNCH_JOB_ERROR_MESSAGE+" = ?, "+COL_ASYNCH_JOB_ERROR_DETAILS+" = ?, "+COL_ASYNCH_JOB_STATE+" = ?, "+COL_ASYNCH_JOB_ETAG+" = ?, "+COL_ASYNCH_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_JOB_ID+" = ?";
 
 	private static final String TRUNCATE_ALL = "DELETE FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_ID+" > -1";
@@ -60,7 +63,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void truncateAllAsynchTableJobStatus() {
 		jdbcTemplate.update(TRUNCATE_ALL);
@@ -70,7 +73,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 * This is set to Propagation.REQUIRES_NEW because the transaction
 	 * must be committed before a message is sent to the worker.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@NewWriteTransaction
 	@Override
 	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -90,18 +93,16 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@NewWriteTransaction
 	@Override
-	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
+	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
-		String newEtag = UUID.randomUUID().toString();
 		progressMessage = AsynchJobStatusUtils.truncateMessageStringIfNeeded(progressMessage);
 		long now = System.currentTimeMillis();
-		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, newEtag, now, jobId);
-		return newEtag;
+		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, jobId);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setJobFailed(String jobId, Throwable error) {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
@@ -114,7 +115,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		return newEtag;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");

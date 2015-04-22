@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -18,8 +20,8 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * The Migration driver updates the progress and read/writes migration data to zip files.
@@ -70,7 +72,9 @@ public class BackupDriverImpl implements BackupDriver {
 			progress.setMessage("Backup id count: "+idsToBackup.size());
 			ZipEntry entry = new ZipEntry(type.name() + ZIP_ENTRY_SUFFIX);
 			zos.putNextEntry(entry);
-			migrationManager.writeBackupBatch(user, type, idsToBackup, zos);
+			Writer zipWriter = new OutputStreamWriter(zos, "UTF-8");
+			migrationManager.writeBackupBatch(user, type, idsToBackup, zipWriter);
+			zipWriter.flush();
 			progress.incrementProgress();
 			// If this type has secondary types then add them to the zip as well.
 			List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
@@ -80,10 +84,13 @@ public class BackupDriverImpl implements BackupDriver {
 					Thread.yield();
 					entry = new ZipEntry(secondary.name() + ZIP_ENTRY_SUFFIX);
 					zos.putNextEntry(entry);
-					migrationManager.writeBackupBatch(user, secondary, idsToBackup, zos);
+					zipWriter = new OutputStreamWriter(zos, "UTF-8");
+					migrationManager.writeBackupBatch(user, secondary, idsToBackup, zipWriter);
+					zipWriter.flush();
 					progress.incrementProgress();
 				}
 			}
+			zipWriter.close();
 			zos.close();
 			progress.appendLog("Finished processing");
 		} finally {
@@ -95,9 +102,9 @@ public class BackupDriverImpl implements BackupDriver {
 		return true;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException {
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws Exception {
 		if (source == null)
 			throw new IllegalArgumentException("Source file cannot be null");
 		if (!source.exists())

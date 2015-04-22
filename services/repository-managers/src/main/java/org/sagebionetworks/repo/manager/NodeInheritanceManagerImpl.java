@@ -1,18 +1,24 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * 
@@ -21,19 +27,21 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	
+	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
+
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
 	@Autowired
 	NodeDAO nodeDao;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void nodeParentChanged(String nodeId, String parentNodeId)
 			throws NotFoundException, DatastoreException {
 		nodeParentChanged(nodeId, parentNodeId, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void nodeParentChanged(String nodeId, String parentNodeId, boolean skipBenefactor) 
 			throws NotFoundException, DatastoreException {
@@ -62,13 +70,13 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException, DatastoreException {
 		setNodeToInheritFromItself(nodeId, true);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNodeToInheritFromItself(String nodeId, boolean skipBenefactor)
 			throws NotFoundException, DatastoreException {
@@ -90,7 +98,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException, DatastoreException {
 		// First determine who this node is inheriting from.
@@ -163,7 +171,6 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * Get the benefactor of a node.
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String getBenefactor(String nodeId) throws NotFoundException, DatastoreException {
 		return nodeInheritanceDao.getBenefactor(nodeId);
@@ -174,10 +181,15 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		nodeInheritanceDao.addBeneficiary(beneficiaryId, toBenefactorId);
 	}
 
+	@Override
+	public boolean isNodeInTrash(String nodeId) throws NotFoundException, DatastoreException {
+		String benefactor = nodeInheritanceDao.getBenefactor(nodeId);
+		return TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor));
+	}
 }

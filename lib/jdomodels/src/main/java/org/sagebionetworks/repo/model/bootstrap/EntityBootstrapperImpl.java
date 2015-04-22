@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -24,9 +25,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 
@@ -35,6 +37,10 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
+	private static final Long SLEEP_TIME_S = 5L;
+	private static final Long ENTITY_BOOTSTRAPPER_LOCK_TIMEOUT = 30000L;
+	private static final String ENTITY_BOOTSTRAPPER_LOCK = "ENTITYBOOTSTRAPPERLOCK";
+
 	@Autowired
 	private NodeDAO nodeDao;
 	
@@ -55,6 +61,9 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
 	@Autowired
 	private NodeInheritanceDAO nodeInheritanceDao;
+	
+	@Autowired
+	private SemaphoreDao semaphoreDao;
 
 	private List<EntityBootstrapData> bootstrapEntities;
 	/**
@@ -62,17 +71,40 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	 */
 	private Map<String, EntityBootstrapData> pathMap;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void bootstrapAll() throws Exception {
+		String token = null;
+		try {
+			// Acquire token
+			while (true) {
+				token = semaphoreDao.attemptToAcquireLock(ENTITY_BOOTSTRAPPER_LOCK, ENTITY_BOOTSTRAPPER_LOCK_TIMEOUT);
+				if (token != null) {
+					break;
+				}
+				// Sleep
+				TimeUnit.SECONDS.sleep(SLEEP_TIME_S);
+			}
+			
+			doBootstrap();
+
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+		finally {
+			// Release token
+			semaphoreDao.releaseLock(ENTITY_BOOTSTRAPPER_LOCK, token);
+		}
+		
+	}
+
+	private void doBootstrap() throws Exception, NotFoundException {
 		// Make sure users have been bootstrapped
 		userGroupDAO.bootstrapUsers();
 		userProfileDAO.bootstrapProfiles();
 		groupMembersDAO.bootstrapGroups();
 		authDAO.bootstrapCredentials();
 		
-		// First make sure the nodeDao has been bootstrapped
-		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
 		// Map the default users to their ids
 		// Now create a node for each type in the list
@@ -101,7 +133,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setParentId(parentId);
 			toCreate.setDescription(entityBoot.getEntityDescription());
 			if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
-			toCreate.setNodeType(entityBoot.getEntityType().name());
+			toCreate.setNodeType(entityBoot.getEntityType());
 			toCreate.setCreatedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 			toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
 			toCreate.setModifiedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

@@ -2,6 +2,8 @@ package org.sagebionetworks.asynchronous.workers.sqs;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -12,6 +14,8 @@ import com.amazonaws.services.sqs.model.CreateQueueResult;
  * The stripped-bare implementation of a message queue.
  */
 public class MessageQueueSimpleImpl implements MessageQueue {
+
+	private static final Logger log = LogManager.getLogger(MessageQueueSimpleImpl.class);
 
 	@Autowired
 	private AmazonSQSClient awsSQSClient;
@@ -32,6 +36,7 @@ public class MessageQueueSimpleImpl implements MessageQueue {
 		CreateQueueRequest cqRequest = new CreateQueueRequest(queueName);
 		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
 		this.queueUrl = cqResult.getQueueUrl();
+		log.info("Queue created. URL: " + queueUrl);
 	}
 
 	@Override

@@ -4,12 +4,14 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
+import java.util.Collections;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
@@ -134,6 +136,27 @@ public class TeamController extends BaseController {
 		return serviceProvider.getTeamService().getByMember(id, limit, offset);
 	}
 	
+	/**
+	 * Retrieve a list of Teams given their IDs. 
+	 *  
+	 * Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the list of IDs passed in.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<Team> listTeams(
+			@RequestBody IdList ids
+			) throws DatastoreException, NotFoundException {
+		ListWrapper<Team> result = serviceProvider.getTeamService().list(ids.getList());
+		return result;
+	}
+	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -175,7 +198,7 @@ public class TeamController extends BaseController {
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
-		URL redirectUrl = serviceProvider.getTeamService().getIconURL(id);
+		String redirectUrl = serviceProvider.getTeamService().getIconURL(id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -301,6 +324,50 @@ public class TeamController extends BaseController {
 	}
 	
 	/**
+	 * Returns the TeamMember info for a team and a given list of members' principal IDs.
+	 * 
+	 * Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the list of IDs passed in.
+	 *
+	 * @param teamId
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_MEMBER_LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<TeamMember> listTeamMembersGivenTeamandUserList(
+			@PathVariable Long id,
+			@RequestBody IdList ids
+			) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTeamService().listTeamMembers(Collections.singletonList(id), ids.getList());
+	}
+	
+	/**
+	 * Returns the TeamMember info for a user and a given list of Team IDs.
+	 * 
+	 * Invalid IDs in the list are ignored:  The results list is simply
+	 * smaller than the list of IDs passed in.
+	 *
+	 * @param id user's ID
+	 * @param ids Team IDs
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_TEAM_MEMBER_LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<TeamMember> listTeamMembersGivenUserandTeamList(
+			@PathVariable Long id,
+			@RequestBody IdList ids
+			) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTeamService().listTeamMembers(ids.getList(), Collections.singletonList(id));
+	}
+	
+	/**
 	 * Remove the given member from the specified Team.
 	 * Note:  The client must either be a Team administrator or the member being removed.
 	 * @param id the Team ID
@@ -318,19 +385,4 @@ public class TeamController extends BaseController {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
 	}	
 	
-	/**
-	 * Refresh the cached prefix tree of Team and member names.  Note:  This is for testing only and
-	 * may only be invoked by a Synapse administrator.
-	 * @param userId
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.TEAM_UPDATE_SEARCH_CACHE, method = RequestMethod.POST)
-	public void refreshCache(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
-			) throws NotFoundException, DatastoreException, UnauthorizedException {
-		serviceProvider.getTeamService().refreshCache(userId);
-	}	
 }

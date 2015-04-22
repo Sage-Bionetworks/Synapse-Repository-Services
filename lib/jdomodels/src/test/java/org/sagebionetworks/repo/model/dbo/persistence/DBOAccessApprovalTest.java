@@ -4,19 +4,26 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -106,7 +113,6 @@ public class DBOAccessApprovalTest {
 		accessApproval.seteTag("10");
 		accessApproval.setAccessorId(Long.parseLong(principal.getId()));
 		accessApproval.setRequirementId(ar.getId());
-		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		accessApproval.setSerializedEntity("my dog has fleas".getBytes());
 		accessApproval.setId(id);
 		return accessApproval;
@@ -136,7 +142,7 @@ public class DBOAccessApprovalTest {
 		// Delete it
 		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class,  params);
 		assertTrue("Failed to delete the type created", result);
-		
 	}
+	
 
 }

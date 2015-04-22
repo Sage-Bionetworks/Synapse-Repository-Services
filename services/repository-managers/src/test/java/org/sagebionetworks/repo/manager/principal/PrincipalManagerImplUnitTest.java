@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -302,6 +303,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testValidateSynapsePortalHostOK() throws Exception {
 		PrincipalManagerImpl.validateSynapsePortalHost("www.synapse.org");
 		PrincipalManagerImpl.validateSynapsePortalHost("localhost");
+		PrincipalManagerImpl.validateSynapsePortalHost("127.0.0.1");
 		PrincipalManagerImpl.validateSynapsePortalHost("synapse-staging.sagebase.org");
 	}
 
@@ -320,7 +322,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestination().getToAddresses());
 		Message message = emailRequest.getMessage();
 		assertEquals("Welcome to SYNAPSE!", message.getSubject().getData());
-		String body = message.getBody().getText().getData();
+		String body = message.getBody().getHtml().getData();
 		// check that all template fields have been replaced
 		assertTrue(body.indexOf("#")<0);
 		assertTrue(body.indexOf(FIRST_NAME)>=0); 
@@ -505,7 +507,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestination().getToAddresses());
 		Message message = emailRequest.getMessage();
 		assertEquals("Request to add or change new email", message.getSubject().getData());
-		String body = message.getBody().getText().getData();
+		String body = message.getBody().getHtml().getData();
 		// check that all template fields have been replaced
 		assertTrue(body.indexOf("#")<0);
 		// check that user's name appears
@@ -531,7 +533,7 @@ public class PrincipalManagerImplUnitTest {
 		manager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testAdditionalEmailValidationAnonymous() throws Exception {
 		Long principalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		UserInfo userInfo = new UserInfo(false, principalId);

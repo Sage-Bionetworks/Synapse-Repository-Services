@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -14,9 +13,11 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -43,7 +44,7 @@ import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationServiceImpl implements EvaluationService {
 
@@ -63,7 +64,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private QueryDAO queryDAO;
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Evaluation createEvaluation(Long userId, Evaluation eval) 
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -153,7 +154,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Evaluation updateEvaluation(Long userId, Evaluation eval)
 			throws DatastoreException, NotFoundException, UnauthorizedException,
 			InvalidModelException, ConflictingUpdateException {
@@ -162,7 +163,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteEvaluation(Long userId, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -170,7 +171,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public Participant addParticipant(Long userId, String evalId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantManager.addParticipant(userInfo, evalId);
@@ -184,7 +185,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void removeParticipant(Long userId, String evalId,
 			String idToRemove) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -215,8 +216,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, HttpServletRequest request)
+	@WriteTransaction
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
@@ -225,8 +226,23 @@ public class EvaluationServiceImpl implements EvaluationService {
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
-		return submissionManager.createSubmission(userInfo, submission, entityEtag, bundle);
+		return submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
 	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param submissionId
+	 * @param submissionContributor
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public SubmissionContributor addSubmissionContributor(Long userId, String submissionId, SubmissionContributor submissionContributor) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return submissionManager.addSubmissionContributor(userInfo, submissionId, submissionContributor);
+	}
+	
+
 
 	@Override
 	public Submission getSubmission(Long userId, String submissionId)
@@ -243,7 +259,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public SubmissionStatus updateSubmissionStatus(Long userId,
 			SubmissionStatus submissionStatus) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -251,7 +267,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public BatchUploadResponse updateSubmissionStatusBatch(Long userId, String evalId,
 			SubmissionStatusBatch batch) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -260,7 +276,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 	@Override
 	@Deprecated
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	public void deleteSubmission(Long userId, String submissionId)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -353,7 +369,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public URL getRedirectURLForFileHandle(Long userId, 
+	public String getRedirectURLForFileHandle(Long userId,
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -373,7 +389,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.valueOf(accessType));
+		return evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.valueOf(accessType)).getAuthorized();
 	}
 
 	@Override
@@ -442,4 +458,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private String makeEvalIdUrl(String evalId, String url) {
 		return url.replace(UrlHelpers.EVALUATION_ID_PATH_VAR, evalId);
 	}
+	
+	public TeamSubmissionEligibility getTeamSubmissionEligibility(Long userId, String evalId, String teamId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.getTeamSubmissionEligibility(userInfo, evalId, teamId);
+		
+	}
+	
+
 }

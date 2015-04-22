@@ -23,8 +23,8 @@
 								#if(${model.knownImplementations})
 								<h6>Known Implementations:</h6>
 									#foreach( $imp in $model.knownImplementations )
-									#if($imp.href) 
-										<a href="$imp.href">$imp.display</a>#if( $foreach.hasNext ),&nbsp #end
+									#if($imp.href && $imp.href[0]) 
+										<a href="$imp.href[0]">$imp.display[0]</a>#if( $foreach.hasNext ),&nbsp #end
 									#end
 									#end
 								#end
@@ -41,10 +41,25 @@
 										#foreach( $field in $model.fields )
 										<tr>
 											<td>$field.name</td>
-											<td>#if($field.type.isArray) #if($field.type.isUnique)
-												SET&#60 #else ARRAY&#60 #end #end #if($field.type.href) <a
-												href="$field.type.href">$field.type.display</a> #else
-												$field.type.display #end #if($field.type.isArray) &#62 #end
+											<td>#if($field.type.isArray)#*
+													*##if($field.type.isUnique) SET#else ARRAY#end#*
+													*#&lt;#*
+													*##if($field.type.href[0])<a href="$field.type.href[0]">$field.type.display[0]</a>#*
+													*##else$field.type.display[0]#*
+													*##end&gt;#*
+												*##elseif($field.type.isMap) MAP&lt;#*
+														*##if($field.type.href[0])<a href="$field.type.href[0]">$field.type.display[0]</a>#*
+														*##else$field.type.display[0]#*
+														*##end,#*
+														*##if($field.type.href[1])<a href="$field.type.href[1]">$field.type.display[1]</a>#*
+														*##else$field.type.display[1]#*
+														*##end#*
+														*#&gt;#*
+												*##else#*
+													*# #if($field.type.href[0])<a href="$field.type.href[0]">$field.type.display[0]</a>#*
+													*##else$field.type.display[0]#*
+													*##end#*
+												*##end
 											</td> #if ($field.description)
 											<td>$field.description</td> #else
 											<td></td> #end

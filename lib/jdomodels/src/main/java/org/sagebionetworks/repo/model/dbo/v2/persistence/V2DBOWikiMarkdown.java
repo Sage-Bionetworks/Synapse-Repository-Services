@@ -9,15 +9,24 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_DDL_FILE_WIKI_MARKDOWN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
+import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -26,67 +35,37 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author hso
  *
  */
+@Table(name = V2_TABLE_WIKI_MARKDOWN, constraints = {"UNIQUE KEY `V2_WIKI_UNIQUE_MARKDOWN_VERSION` (`" + V2_COL_WIKI_MARKDOWN_ID + "`,`" + V2_COL_WIKI_MARKDOWN_VERSION_NUM + "`)"})
 public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMarkdown, V2DBOWikiMarkdown> {
 	
-	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("wikiId", V2_COL_WIKI_MARKDOWN_ID, true).withIsBackupId(true),
-		new FieldColumn("fileHandleId", V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID),
-		new FieldColumn("markdownVersion", V2_COL_WIKI_MARKDOWN_VERSION_NUM, true),
-		new FieldColumn("modifiedOn", V2_COL_WIKI_MARKDOWN_MODIFIED_ON),
-		new FieldColumn("modifiedBy", V2_COL_WIKI_MARKDOWN_MODIFIED_BY),
-		new FieldColumn("title", V2_COL_WIKI_MARKDOWN_TITLE),
-		new FieldColumn("attachmentIdList", V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST),
-	};
-	
+	@Field(name = V2_COL_WIKI_MARKDOWN_ID, backupId = true, primary = true, nullable = false)
+	@ForeignKey(name = "V2_WIKI_MARKDOWN_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long wikiId;
+	
+	@Field(name = V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID, nullable = false)
+	@ForeignKey(name = "V2_WIKI_MARKDOWN_FILE_HAND_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
 	private Long fileHandleId;
+	
+	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION_NUM, primary = true, nullable = false)
 	private Long markdownVersion;
+	
+	@Field(name = V2_COL_WIKI_MARKDOWN_MODIFIED_ON, nullable = false)
 	private Long modifiedOn;
+	
+	@Field(name = V2_COL_WIKI_MARKDOWN_MODIFIED_BY, nullable = false)
 	private Long modifiedBy;
+	
+	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, varchar = 256)
 	private String title;
+	
+	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, type = "mediumblob", defaultNull = true)
 	private byte[] attachmentIdList;
 
+	private static TableMapping<V2DBOWikiMarkdown> tableMapping = AutoTableMapping.create(V2DBOWikiMarkdown.class);
+	
 	@Override
 	public TableMapping<V2DBOWikiMarkdown> getTableMapping() {
-		return new TableMapping<V2DBOWikiMarkdown>() {
-
-			@Override
-			public V2DBOWikiMarkdown mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				V2DBOWikiMarkdown result = new V2DBOWikiMarkdown();
-				result.setWikiId(rs.getLong(V2_COL_WIKI_MARKDOWN_ID));
-				result.setFileHandleId(rs.getLong(V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID));
-				result.setMarkdownVersion(rs.getLong(V2_COL_WIKI_MARKDOWN_VERSION_NUM));
-				result.setModifiedOn(rs.getLong(V2_COL_WIKI_MARKDOWN_MODIFIED_ON));
-				result.setModifiedBy(rs.getLong(V2_COL_WIKI_MARKDOWN_MODIFIED_BY));
-				result.setTitle(rs.getString(V2_COL_WIKI_MARKDOWN_TITLE));
-				java.sql.Blob blob = rs.getBlob(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST);
-				if(blob != null){
-					result.setAttachmentIdList(blob.getBytes(1, (int) blob.length()));
-				}
-				return result;
-			}
-
-			@Override
-			public String getTableName() {
-				return V2_TABLE_WIKI_MARKDOWN;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return V2_DDL_FILE_WIKI_MARKDOWN;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends V2DBOWikiMarkdown> getDBOClass() {
-				return V2DBOWikiMarkdown.class;
-			}	
-		};
+		return tableMapping;
 	}
 
 	@Override

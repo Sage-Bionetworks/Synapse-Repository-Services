@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +41,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessControlListDAOImplTest {
-	
+
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
@@ -51,7 +50,7 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
@@ -66,7 +65,7 @@ public class DBOAccessControlListDAOImplTest {
 	@Before
 	public void setUp() throws Exception {
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		
+
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
 		modifiedById = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 
@@ -77,26 +76,26 @@ public class DBOAccessControlListDAOImplTest {
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedById);
-		node.setNodeType(EntityType.project.name());
+		node.setNodeType(EntityType.project);
 		String nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
 		node = nodeDAO.getNode(nodeId);
 		nodeList.add(node);
-		
+
 		// create a group to give the permissions to
 		group = new UserGroup();
 		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
-		
+
 		// Create a second user
 		group2 = new UserGroup();
 		group2.setIsIndividual(false);
 		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
-		
+
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
 		acl.setId(nodeId);
@@ -134,12 +133,13 @@ public class DBOAccessControlListDAOImplTest {
 		aclList.add(acl);
 	}
 
-
 	@After
 	public void tearDown() throws Exception {
+		for (AccessControlList acl : aclList){
+			aclDAO.delete(acl.getId(), ObjectType.ENTITY);
+		}
 		for (Node n : nodeList) {
 			nodeDAO.delete(n.getId());
-			aclDAO.delete(n.getId(), ObjectType.ENTITY);
 		}
 		nodeList.clear();
 		aclList.clear();
@@ -200,27 +200,69 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@Test
 	public void testGet() throws Exception {
-		
-		AccessControlList acl = aclList.iterator().next();
-		String id = acl.getId();
-		
-		AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
-		
-		assertEquals(acl, acl2);
-		
-		aclList.remove(acl);
-		aclDAO.delete(id, ObjectType.ENTITY);
-		
-		try {
-			aclDAO.get(id, ObjectType.ENTITY);
-			fail("NotFoundException expected");	
-		} catch (NotFoundException e) {  // any other kind of exception will cause a failure
-			// as expected
+		for (AccessControlList acl : aclList) {
+			String id = acl.getId();
+			AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
+			assertEquals(acl, acl2);
 		}
-
-
 	}
 
+	/**
+	 * Test get method with bad ownerId
+	 * @throws Exception
+	 */
+	@Test (expected=NotFoundException.class)
+	public void testGetWithBadId() throws Exception {
+		AccessControlList acl = aclList.iterator().next();
+		String id = acl.getId();
+		aclList.remove(acl);
+		aclDAO.delete(id, ObjectType.ENTITY);
+		aclDAO.get(id, ObjectType.ENTITY);
+	}
+
+	/**
+	 * This test tests 2 methods:
+	 *     get using aclID, and
+	 *     getAclId using ownerId and ownerType
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetAclId() throws Exception {
+		for (AccessControlList acl : aclList) {
+			String id = acl.getId();
+			// get the AclId using ownerId and ownerType
+			Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
+			// get the acl using the AclId
+			AccessControlList acl2 = aclDAO.get(aclId);
+			assertEquals(acl, acl2);
+		}
+	}
+
+	@Test  (expected=NotFoundException.class)
+	public void testGetWithBadAclID() throws Exception {
+		Long aclId = -598787L;
+		aclDAO.get(aclId);
+	}
+
+	/**
+	 * Test method getOwnerType using AclId
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetOwnerType() throws Exception {
+		for (AccessControlList acl : aclList) {
+			String id = acl.getId();
+			// get the AclId using ownerId and ownerType
+			Long aclId = aclDAO.getAclId(id, ObjectType.ENTITY);
+			assertEquals(ObjectType.ENTITY, aclDAO.getOwnerType(aclId));
+		}
+	}
+
+	@Test  (expected=NotFoundException.class)
+	public void testGetOwnerTypeWithBadAclID() throws Exception {
+		Long aclId = -598787L;
+		aclDAO.getOwnerType(aclId);
+	}
 
 	/**
 	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.Base)}.

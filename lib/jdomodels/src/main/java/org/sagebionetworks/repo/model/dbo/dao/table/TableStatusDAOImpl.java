@@ -1,16 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_DETAILS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_CURRENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RESET_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RUNTIME_MS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STARTED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
 import java.util.UUID;
 
@@ -21,6 +11,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.table.TableStateEnum;
 import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -34,8 +25,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * A very basic DAO to tack table status.
@@ -51,6 +42,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	private static final String SQL_SELECT_STATUS_FOR_UPDATE = "SELECT * FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_ALL_STATE = "DELETE FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" > -1";
 	private static final String SQL_RESET_TO_PENDING = "INSERT INTO "+TABLE_STATUS+" ("+COL_TABLE_STATUS_ID+", "+COL_TABLE_STATUS_STATE+", "+COL_TABLE_STATUS_RESET_TOKEN+", "+COL_TABLE_STATUS_STARTED_ON+", "+COL_TABLE_STATUS_CHANGE_ON+") VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_RESET_TOKEN+" = ?, "+COL_TABLE_STATUS_STARTED_ON+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?";
+	private static final String SQL_DELETE_TABLE_STATUS = "DELETE FROM " + TABLE_STATUS + " WHERE " + COL_TABLE_STATUS_ID + " = ?";
 
 	TableMapping<DBOTableStatus> tableMapping = new DBOTableStatus().getTableMapping();
 	
@@ -60,7 +52,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	TransactionalMessenger transactionalMessanger;
+	TransactionalMessenger transactionalMessenger;
 	
 	@Override
 	public TableStatus getTableStatus(String tableIdString) throws DatastoreException, NotFoundException {
@@ -71,7 +63,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		return TableStatusUtils.createDTOFromDBO(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String resetTableStatusToProcessing(String tableIdString) {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
@@ -82,11 +74,12 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// We are not unconditionally replacing this row.  Instead we are only setting the columns that we wish to change.
 		jdbcTemplate.update(SQL_RESET_TO_PENDING, tableId, state,resetToken, now, now, state, resetToken, now, now);
 		// Fire a change event
-		transactionalMessanger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
+		transactionalMessenger.sendModificationMessageAfterCommit(tableIdString, ObjectType.ENTITY);
 		return resetToken;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableIdString,
 			String resetToken, String errorMessage, String errorDetails)
@@ -96,7 +89,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	}
 
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableIdString,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException, NotFoundException {
@@ -130,7 +123,14 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// Set the progress current to be the same as the progress total.
 		Long progressCurrent = current.getProgressTotal();
 		byte[] errorDetailsBytes = TableStatusUtils.createErrorDetails(errorDetails);
-		jdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS,tableChangeEtag, tableId);
+		current.setState(TableStateEnum.valueOf(state.name()));
+		current.setChangedOn(now);
+		current.setProgressCurrent(progressCurrent);
+		current.setErrorMessage(errorMessage);
+		current.setErrorDetails(errorDetailsBytes);
+		current.setTotalRunTimeMS(runtimeMS);
+		current.setLastTableChangeEtag(tableChangeEtag);
+		basicDao.update(current);
  	}
 	
 	/**
@@ -148,7 +148,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public void clearAllTableState() {
 		jdbcTemplate.update(SQL_DELETE_ALL_STATE);
@@ -170,4 +170,8 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		jdbcTemplate.update(SQL_UPDATE_TABLE_PROGRESS, now, progressMessage, currentProgress, totalProgress, runtimeMS, tableId);
 	}
 
+	@Override
+	public void deleteTableStatus(String tableId) {
+		jdbcTemplate.update(SQL_DELETE_TABLE_STATUS, KeyFactory.stringToKey(tableId));
+	}
 }

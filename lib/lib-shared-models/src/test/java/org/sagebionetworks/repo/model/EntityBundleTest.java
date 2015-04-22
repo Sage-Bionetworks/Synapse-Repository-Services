@@ -14,6 +14,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -38,10 +40,6 @@ public class EntityBundleTest {
 		testAddEntity(new Project(), Project.class);
 	}
 	
-	@Test
-	public void testAddStudy() {
-		testAddEntity(new Study(), Study.class);
-	}
 	
 	@Test
 	public void testAddFolder() {
@@ -120,6 +118,11 @@ public class EntityBundleTest {
 		acl.setCreatedBy("John Doe");
 		acl.setId("syn456");
 		
+		AccessControlList benefactorAcl = (AccessControlList) 
+				autoGenFactory.newInstance(AccessControlList.class.getName());
+		benefactorAcl.setCreatedBy("John Doe");
+		benefactorAcl.setId("syn456");
+		
 		// Child Count
 		Boolean hasChildren = true;
 		
@@ -145,7 +148,7 @@ public class EntityBundleTest {
 		RestrictableObjectDescriptor rod1 = new RestrictableObjectDescriptor(); rod1.setId("101"); rod1.setType(RestrictableObjectType.EVALUATION);
 		RestrictableObjectDescriptor rod2 = new RestrictableObjectDescriptor(); rod1.setId("102"); rod1.setType(RestrictableObjectType.EVALUATION);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
-		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		accessRequirements.add(ar);
 		
@@ -156,6 +159,14 @@ public class EntityBundleTest {
 		fileHandle.setId("00000");
 		List<FileHandle> fileHandleList = new LinkedList<FileHandle>();
 		fileHandleList.add(fileHandle);
+		
+		TableBundle tableBundle = new  TableBundle();
+		tableBundle.setMaxRowsPerPage(123L);
+		ColumnModel cm1 = new ColumnModel();
+		cm1.setId("456");
+		ColumnModel cm2 = new ColumnModel();
+		cm2.setId("890");
+		tableBundle.setColumnModels(Arrays.asList(cm1, cm2));
 
 		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
@@ -164,9 +175,12 @@ public class EntityBundleTest {
 		entityBundle.setReferencedBy(rb);
 		entityBundle.setHasChildren(hasChildren);
 		entityBundle.setAccessControlList(acl);
+		entityBundle.setBenefactorAcl(benefactorAcl);
 		entityBundle.setAccessRequirements(accessRequirements);
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
 		entityBundle.setFileHandles(fileHandleList);
+		entityBundle.setTableBundle(tableBundle);
+		entityBundle.setRootWikiId("9876");
 		
 		return entityBundle;
 	}

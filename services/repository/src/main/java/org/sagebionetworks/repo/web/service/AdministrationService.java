@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -135,6 +137,11 @@ public interface AdministrationService {
 	FireMessagesResult getCurrentChangeNumber(Long userId) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Create or update a list of ChangeMessage
+	 */
+	ChangeMessages createOrUpdateChangeMessages(Long userId, ChangeMessages batch) throws UnauthorizedException, NotFoundException ;
+
+	/**
 	 * Clears the Synapse DOI table.
 	 */
 	void clearDoi(Long userId) throws NotFoundException, UnauthorizedException, DatastoreException;
@@ -155,10 +162,37 @@ public interface AdministrationService {
 	public void deleteUser(Long userId, String id) throws NotFoundException;
 
 	/**
+	 * Rebuild a table's index and caches
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @throws IOException
+	 */
+	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException;
+
+	/**
+	 * add indexes to all table columns
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @throws IOException
+	 */
+	public void addIndexesToTable(Long userId, String tableId) throws NotFoundException, IOException;
+
+	/**
+	 * remove indexes from all table columns
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @throws IOException
+	 */
+	public void removeIndexesFromTable(Long userId, String tableId) throws NotFoundException, IOException;
+
+	/**
 	 * Clear all locks.
 	 * 
 	 * @param userId
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public void clearAllLocks(Long userId) throws NotFoundException;
 
@@ -170,4 +204,9 @@ public interface AdministrationService {
 	 * @throws Exception
 	 */
 	public void waitForTesting(Long userId, boolean release) throws Exception;
+
+	public void throwExceptionTransactional(String exception) throws Throwable;
+	public void doNothing() throws Throwable;
+	public void throwException(String exception) throws Throwable;
+	public void throwExceptionTransactionalBeforeCommit(String exception);
 }

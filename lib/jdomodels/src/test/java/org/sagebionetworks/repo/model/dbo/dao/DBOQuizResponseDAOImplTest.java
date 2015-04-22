@@ -115,7 +115,11 @@ public class DBOQuizResponseDAOImplTest {
 		assertTrue(list.isEmpty());
 		count = quizResponseDao.getUserResponsesForQuizCount(quizId, principalId);
 		assertEquals(0L, count);
-		
+		List<PassingRecord> passingRecords = quizResponseDao.getAllPassingRecords(quizId, principalId, limit, offset);
+		assertTrue(passingRecords.isEmpty());
+		count = quizResponseDao.getAllPassingRecordsCount(quizId, principalId);
+		assertEquals(0L, count);
+
 		// now add some records and try retrieving
 		QuizResponse created = createDTOAndStore(principalId.toString(), quizId, true, 10L);
 		String someOtherUserId=BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
@@ -139,6 +143,14 @@ public class DBOQuizResponseDAOImplTest {
 		assertEquals(0L, quizResponseDao.getAllResponsesForQuiz(quizId, /*limit*/0L, /*offset*/0L).size());
 		assertEquals(0L, quizResponseDao.getUserResponsesForQuiz(quizId, principalId, /*limit*/10L, /*offset*/1L).size());
 		assertEquals(0L, quizResponseDao.getUserResponsesForQuiz(quizId, principalId, /*limit*/0L, /*offset*/0L).size());
+	
+		// all passing records
+		createDTOAndStore(principalId.toString(), quizId, false, 8L);
+		createDTOAndStore(principalId.toString(), quizId, false, 2L);
+		passingRecords = quizResponseDao.getAllPassingRecords(quizId, principalId, limit, offset);
+		assertEquals(3, passingRecords.size());
+		count = quizResponseDao.getAllPassingRecordsCount(quizId, principalId);
+		assertEquals(3L, count);
 	}
 	
 	private static void checkPassingRecord(

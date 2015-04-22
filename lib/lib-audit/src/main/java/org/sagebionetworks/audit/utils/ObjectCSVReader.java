@@ -3,6 +3,8 @@ package org.sagebionetworks.audit.utils;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Date;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -120,7 +122,7 @@ public class ObjectCSVReader<T> {
 		try {
 			T newObject = clazz.newInstance();
 			// Fill in each fields from the buffer
-			for (int i = 0; i < fields.length; i++) {
+			for (int i = 0; i < fields.length && i < buffer.length; i++) {
 				String value = buffer[i];
 				if (value == null)
 					continue;
@@ -141,6 +143,15 @@ public class ObjectCSVReader<T> {
 					field.set(newObject, Double.parseDouble(value));
 				}else if (field.getType() == Float.class) {
 					field.set(newObject, Float.parseFloat(value));
+				}else if (field.getType().isEnum()) {
+					try {
+						Method method = field.getType().getMethod("valueOf", String.class);
+						field.set(newObject, method.invoke(null, value));
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				}else if (field.getType() == Date.class) {
+					field.set(newObject, new Date(value));
 				} else {
 					throw new IllegalArgumentException(
 							"Unsupported field type: "

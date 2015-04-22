@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dao.table;
 
-import java.util.List;
 
 /**
  * Captures both the headers and rows from 
@@ -9,9 +8,6 @@ import java.util.List;
  */
 public interface RowAndHeaderHandler extends RowHandler {
 
-	/**
-	 * Called once the ha
-	 * @param headers
-	 */
-	public void setHeaderColumnIds(List<String> headers);
+	public void writeHeader();
+	public void setEtag(String etag);
 }

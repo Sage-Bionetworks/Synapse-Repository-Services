@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltpattern&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class Pattern implements SQLElement {
+public class Pattern extends SQLElement {
 	
 	CharacterValueExpression characterValueExpression;
 
@@ -16,8 +18,7 @@ public class Pattern implements SQLElement {
 		return characterValueExpression;
 	}
 	
-	@Override
-	public void toSQL(StringBuilder builder) {
-		characterValueExpression.toSQL(builder);
+	public void visit(Visitor visitor) {
+		visit(characterValueExpression, visitor);
 	}
 }

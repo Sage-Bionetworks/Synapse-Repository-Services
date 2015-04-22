@@ -1,19 +1,23 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.AutoGenFactory;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -24,8 +28,68 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class MessageUtils {
 	
+	private static final String CONCRETE_TYPE = "concreteType";
+
+	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
+
+	public static class MessageBundle {
+		private final Message message;
+		private final ChangeMessage changeMessage;
+
+		public MessageBundle(Message message, ChangeMessage changeMessage) {
+			this.message = message;
+			this.changeMessage = changeMessage;
+		}
+
+		public Message getMessage() {
+			return message;
+		}
+
+		public ChangeMessage getChangeMessage() {
+			return changeMessage;
+		}
+	}
+
 	public static int SQS_MAX_REQUEST_SIZE = 10;
-	
+
+	@SuppressWarnings("unchecked")
+	public static <T extends JSONEntity> T extractMessageBody(Message message, Class<T> clazz) {
+		ValidateArgument.required(message, "message");
+		try {
+			JSONObject object = new JSONObject(message.getBody());
+			JSONObjectAdapterImpl adapter;
+			if (object.has("objectId")) {
+				// This is a message pushed directly to a queue
+				adapter = new JSONObjectAdapterImpl(object);
+			}
+			if (object.has("TopicArn") && object.has("Message")) {
+				// This is a message that was pushed to a topic then forwarded to a queue.
+				JSONObject innerObject = new JSONObject(object.getString("Message"));
+				adapter = new JSONObjectAdapterImpl(innerObject);
+			} else {
+				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
+			}
+
+			T result;
+			if (adapter.has(CONCRETE_TYPE)) {
+				String concreteType = adapter.getString(CONCRETE_TYPE);
+				result = (T) autoGenFactory.newInstance(concreteType);
+			} else {
+				result = clazz.newInstance();
+			}
+			result.initializeFromJSONObject(adapter);
+			return result;
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		} catch (InstantiationException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Extract a ChangeMessage from an Amazon Message
 	 * @param message
@@ -54,6 +118,19 @@ public class MessageUtils {
 		}
 	}
 	
+	/**
+	 * Extract a ChangeMessage from an Amazon Message
+	 * 
+	 * @param message
+	 * @return
+	 */
+	public static MessageBundle extractMessageBundle(Message message) {
+		if (message == null)
+			throw new IllegalArgumentException("Message cannot be null");
+		ChangeMessage changeMessage = extractMessageBody(message);
+		return new MessageBundle(message, changeMessage);
+	}
+
 	/**
 	 * Extracts a UnsentMessageRange from an Amazon Message
 	 */
@@ -161,7 +238,26 @@ public class MessageUtils {
 		message.setObjectType(objectType);
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}
-	
+
+	/**
+	 * Build a generic message.
+	 * @param changeType
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @param timestamp
+	 * @return
+	 */
+	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag, Long timestamp){
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectEtag(etag);
+		message.setObjectId(objectId);
+		message.setObjectType(objectType);
+		message.setTimestamp(new Date(timestamp));
+		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+	}
+
 	/**
 	 * Constructs a list of lists, each sublist containing no more than 10 items
 	 */

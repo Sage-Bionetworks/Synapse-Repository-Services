@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -75,7 +76,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public URL getIconURL(String teamId) throws DatastoreException, NotFoundException;
+	public String getIconURL(String teamId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -142,27 +143,6 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public void removeMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
-	 * 
-	 * @return
-	 */
-	Long millisSinceLastCacheUpdate();
-
-	/**
-	 * For use by Quartz
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void refreshCache() throws DatastoreException, NotFoundException;
-	
-	/**
-	 * For use by TeamController, requests from which must be authenticated
-	 * @param userId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void refreshCache(Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -186,5 +166,24 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public TeamMembershipStatus getTeamMembershipStatus(Long userId, String teamId, String principalId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 */
+	ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param teamIds
+	 * @param memberIds
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ListWrapper<TeamMember> listTeamMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException;
 	
 }

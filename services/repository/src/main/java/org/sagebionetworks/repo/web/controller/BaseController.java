@@ -13,14 +13,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NotReadyException;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -30,7 +36,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.TypeMismatchException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -115,6 +121,21 @@ public abstract class BaseController {
 		return ex.getStatus();
 	}
 	
+	/**
+	 * When a NotReadyException occurs we need to communicate the async status to the caller with a 202 ACCEPTED,
+	 * indicating we accepted they call but the resource is not ready yet.
+	 * 
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(NotReadyException.class)
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public @ResponseBody
+	AsynchronousJobStatus handleResultNotReadyException(NotReadyException ex, HttpServletRequest request) {
+		return ex.getStatus();
+	}
+
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
@@ -210,6 +231,19 @@ public abstract class BaseController {
 	}
 	
 	/**
+	 * This is thrown when there are problems authenticating the user.
+	 * The user is usually advised to correct their credentials and try again.  
+	 */
+	@ExceptionHandler(UnauthenticatedException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody
+	ErrorResponse handleUnauthenticatedException(UnauthenticatedException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+	
+	/**
 	 * This exception is thrown when an entity with a given name already exists.
 	 * @param ex
 	 * @param request
@@ -219,6 +253,20 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
 	ErrorResponse handleNameConflictException(NameConflictException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+
+	/**
+	 * This exception is thrown when an async job fails.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(AsynchJobFailedException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleAsynchJobFailedException(AsynchJobFailedException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -521,10 +569,7 @@ public abstract class BaseController {
 		// Build and set the redirect URL
 		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
 				+ UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
-		response.sendError(HttpStatus.NOT_FOUND.value(), message);
-		ErrorResponse er = new ErrorResponse();
-		er.setReason(message);
-		return er;
+		return handleException(ex, request, message, false);
 	}
 
 	/**
@@ -583,10 +628,10 @@ public abstract class BaseController {
 	 * @param request
 	 * @return
 	 */
-	@ExceptionHandler(DeadlockLoserDataAccessException.class)
+	@ExceptionHandler(TransientDataAccessException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
+	ErrorResponse handleTransientDataAccessExceptions(TransientDataAccessException ex,
 			HttpServletRequest request) {
 		log.error("Handling " + request.toString(), ex);
 		ErrorResponse er = new ErrorResponse();
@@ -607,8 +652,33 @@ public abstract class BaseController {
 	 * @return an ErrorResponse object containing the exception reason or some
 	 *         other human-readable response
 	 */
-	protected ErrorResponse handleException(Throwable ex,
+	ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullTrace) {
+
+		String message = ex.getMessage();
+		if (message == null) {
+			message = ex.getClass().getName();
+		} else {
+			// Some HTTPClient exceptions include the host to which it was trying to
+			// connect, just unilaterally find and replace any references to
+			// cloudsearch in error messages PLFM-977
+			if (0 <= message.toLowerCase().indexOf("cloudsearch")) {
+				message = "search failed, try again";
+			}
+		}
+		return handleException(ex, request, message, fullTrace);
+	}
+
+	/**
+	 * Log the exception at the warning level and return an ErrorResponse object. Child classes should override this
+	 * method if they want to change the behavior for all exceptions.
+	 * 
+	 * @param ex the exception to be handled
+	 * @param request the client request
+	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 * @return an ErrorResponse object containing the exception reason or some other human-readable response
+	 */
+	private ErrorResponse handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace) {
 		// Always log the stack trace on develop stacks
 		if (fullTrace || StackConfiguration.isDevelopStack()) {
 			// Print the full stack trace
@@ -618,14 +688,6 @@ public abstract class BaseController {
 			log.error("Handling " + request.toString());
 		}
 
-		// Some HTTPClient exceptions include the host to which it was trying to
-		// connect, just unilaterally find and replace any references to
-		// cloudsearch in error messages PLFM-977
-		String message = ex.getMessage();
-		String normalizedMessage = message.toLowerCase();
-		if (0 <= normalizedMessage.indexOf("cloudsearch")) {
-			message = "search failed, try again";
-		}
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(message);
 		return er;
@@ -651,11 +713,13 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
 	ErrorResponse handleExceptionHttpClientHelperExceptio(HttpClientHelperException ex, HttpServletRequest request) {
-		// Convert to a DatastoreException
-		int index = ex.getMessage().indexOf("\"message\":");
+		// Convert to a IllegalArgumentException
 		String message = "Unknown";
-		if(index > 0){
-			message = ex.getMessage().substring(index, ex.getMessage().length());
+		if (ex.getMessage() != null) {
+			int index = ex.getMessage().indexOf("\"message\":");
+			if (index > 0) {
+				message = ex.getMessage().substring(index, ex.getMessage().length());
+			}
 		}
 		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
 		return handleException(ds, request, true);
@@ -678,18 +742,48 @@ public abstract class BaseController {
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
+	
+	/**
+	 * When an entity's parent is in the trash can.
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(ParentInTrashCanException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleParentInTrashCanException(ParentInTrashCanException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, true);
+	}
 
 	/**
 	 * When the number of requests made to a particular service exceeds a threshold rate
 	 */
 	@ExceptionHandler(TooManyRequestsException.class)
+	@ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
 	public @ResponseBody
 	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
 			HttpServletRequest request, HttpServletResponse response) {
-		// Note: This older version of Spring lacks HttpStatus.TOO_MANY_REQUESTS
-		// Therefore, the status must be set manually
-		//TODO Change this method to match the other exception handlers when Spring is updated 
-		response.setStatus(429);
 		return handleException(ex, request, false);
 	}
+	
+	
+	/**
+	 * This is thrown when the user has not accepted the terms of use
+	 */
+	@ExceptionHandler(TermsOfUseException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleTermsOfUseException(TermsOfUseException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+
+
 }

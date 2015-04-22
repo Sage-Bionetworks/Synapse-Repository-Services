@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -142,4 +143,33 @@ public interface V2WikiManager {
 	 */
 	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
+	/**
+	 * Gets the order hint associated with the given object id and object type.
+	 * @param user
+	 * @param objectId
+	 * @param objectType
+	 * @return The order hint associated with the given object id and object type.
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint getOrderHint(UserInfo user, String objectId, ObjectType objectType) throws NotFoundException;
+	
+	/**
+	 * Updates the given order hint.
+	 * @param user
+	 * @param orderHint
+	 * @return The updated order hint.
+	 * @throws NotFoundException
+	 */
+	V2WikiOrderHint updateOrderHint(UserInfo user, V2WikiOrderHint orderHint) throws NotFoundException;
+
+	/**
+	 * Get the root wiki page key.
+	 * @param user
+	 * @param ownerId
+	 * @param type
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	WikiPageKey getRootWikiKey(UserInfo user, String ownerId, ObjectType type) throws NotFoundException;
+	
 }

@@ -47,9 +47,10 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	private static final Long EVAL_ID_AS_LONG = Long.parseLong(EVAL_ID);
 	private static final String EVAL_SUB_ETAG = "someEvalSubEtag-00000";
 	private static final Long STATUS_VERSION = 7L;
+	private static final String TEAM_ID = "1010101";
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException, JSONObjectAdapterException{
+	public void before() throws Exception {
 
 		mockSubStatusAnnoDAO = mock(AnnotationsDAO.class);
 		mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
@@ -63,6 +64,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		submission.setName("my submission");
 		submission.setSubmitterAlias("team awesome");
 		submission.setUserId("000");
+		submission.setTeamId(TEAM_ID);
 		submission.setVersionNumber(1L);
 		
 		// SubmissionStatus
@@ -89,7 +91,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		annosCaptor = ArgumentCaptor.forClass(List.class);
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag(EVAL_SUB_ETAG);
-		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
+		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		SubmissionBundle bundle = new SubmissionBundle();
 		bundle.setSubmission(submission);
 		bundle.setSubmissionStatus(subStatus);
@@ -173,13 +175,21 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		statusAnno.setKey(DBOConstants.PARAM_SUBSTATUS_STATUS);
 		statusAnno.setValue(subStatus.getStatus().toString());
 		annos.getStringAnnos().add(statusAnno);
+		
+		// submission Team ID
+		LongAnnotation teamAnno = new LongAnnotation();
+		teamAnno.setIsPrivate(true);
+		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
+		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
+		annos.getLongAnnos().add(teamAnno);
+		
 	}
 	
 	@Test
 	public void testStaleCreateChangeMessage() throws Exception {
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag("some other etag");
-		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
+		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations((List<Annotations>)any());		
@@ -189,7 +199,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	public void testStaleUpdateChangeMessage() throws Exception {
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag("some other etag");
-		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
+		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations((List<Annotations>)any());
 		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
@@ -197,7 +207,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 
 	@Test
 	public void testStaleCreateChangeMessageNullEtag() throws Exception {
-		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(null);
+		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(null);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);		
 		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations((List<Annotations>)any());
 		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		

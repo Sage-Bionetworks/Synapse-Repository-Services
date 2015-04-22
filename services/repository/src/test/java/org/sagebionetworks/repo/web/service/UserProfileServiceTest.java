@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -28,6 +31,8 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -108,45 +113,7 @@ public class UserProfileServiceTest {
 		userProfileService.setEntityManager(mockEntityManager);
 		userProfileService.setPrincipalAlaisDAO(mockPrincipalAlaisDAO);
 	}
-	
-	@Test
-	public void testGetUserGroupHeadersById() throws DatastoreException, NotFoundException {
-		List<Long> ids = new ArrayList<Long>();
-		ids.add(0L);
-		ids.add(1l);
-		ids.add(2L);
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren())
-			headers.put(ugh.getOwnerId(), ugh);
-		assertEquals(3, headers.size());
-		assertTrue(headers.containsKey("0"));
-		assertTrue(headers.containsKey("1"));
-		assertTrue(headers.containsKey("2"));
-	}
-	
-	@Test
-	public void testGetUserGroupHeadersByIdNotInCache() throws DatastoreException, NotFoundException {
-		List<Long> ids = new ArrayList<Long>();
-		ids.add(0L);
-		ids.add(1l);
-		ids.add(2L);
-		ids.add(EXTRA_USER_ID); // should require fetch from repo
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren()) {
-			headers.put(ugh.getOwnerId(), ugh);
-		}
-		assertEquals(4, headers.size());
-		assertTrue(headers.containsKey("0"));
-		assertTrue(headers.containsKey("1"));
-		assertTrue(headers.containsKey("2"));
-		assertTrue(headers.containsKey(EXTRA_USER_ID.toString()));
-		
-		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()));
-	}
+
 	
 	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
 		List<Long> ids = new ArrayList<Long>();
@@ -170,7 +137,7 @@ public class UserProfileServiceTest {
 	@Test
 	public void testAddFavorite() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);		
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);		
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
@@ -185,7 +152,7 @@ public class UserProfileServiceTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);		
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);		
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
@@ -195,34 +162,62 @@ public class UserProfileServiceTest {
 		fail();
 	}
 	
+	private static IdList singletonIdList(String id) {
+		IdList result = new IdList();
+		result.setList(Collections.singletonList(Long.parseLong(id)));
+		return result;
+	}
+	
+	private static ListWrapper<UserProfile> wrap(UserProfile up) {
+		return ListWrapper.wrap(Collections.singletonList(up), UserProfile.class);
+	}
+	
 	@Test
 	public void testPrivateFieldCleaning() throws Exception {
 		String profileId = "someOtherProfileid";
-		String ownerId = "ownerId";
+		String ownerId = "9999";
 		String email = "test@example.com";
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(ownerId);
+		userProfile.setEmails(Collections.singletonList(email));
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertNull(someOtherUserProfile.getEtag());
+		assertNull(someOtherUserProfile.getEmails());
+		
+		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdList(ownerId));
+		assertEquals(1, lwup.getList().size());
+		someOtherUserProfile = lwup.getList().get(0);
+		assertNull(someOtherUserProfile.getEtag());
+		assertNull(someOtherUserProfile.getEmails());
 	}
 
 	@Test
 	public void testPrivateFieldCleaningAdmin() throws Exception {
 		String profileId = "someOtherProfileid";
-		String ownerId = "ownerId";
+		String ownerId = "9999";
 		String email = "test@example.com";
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(ownerId);
+		userProfile.setEmails(Collections.singletonList(email));
 
 		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertNull(someOtherUserProfile.getEtag());
+		assertNotNull(someOtherUserProfile.getEmails());
+		
+		ListWrapper<UserProfile> lwup = userProfileService.listUserProfiles(EXTRA_USER_ID, singletonIdList(ownerId));
+		assertEquals(1, lwup.getList().size());
+		someOtherUserProfile = lwup.getList().get(0);
+		assertNull(someOtherUserProfile.getEtag());
+		assertNotNull(someOtherUserProfile.getEmails());
 	}
 
 

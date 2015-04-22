@@ -13,8 +13,8 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Study;
 
 public class IT050SynapseJavaClientDynamo {
 
@@ -52,7 +52,7 @@ public class IT050SynapseJavaClientDynamo {
 		parent = new Project();
 		parent.setName(IT050SynapseJavaClientDynamo.class.getName() + "parent");
 		parent = synapse.createEntity(parent);
-		child = new Study();
+		child = new Folder();
 		child.setName(IT050SynapseJavaClientDynamo.class.getName() + "child");
 		child.setParentId(parent.getId());
 		child = synapse.createEntity(child);

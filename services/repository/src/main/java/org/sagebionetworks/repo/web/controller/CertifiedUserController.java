@@ -27,8 +27,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * To become a Synapse Certified User you must pass a test.  The Synapse APIs include
  * a service to provide the test and a service to submit a test result.  There are also
  * administrative services to retrieve the history of test submissions.
- * 
- * @author brucehoff
  *
  */
 @ControllerInfo(displayName="Certified User Services", path="repo/v1")
@@ -108,7 +106,7 @@ public class CertifiedUserController extends BaseController {
 	/**
 	 * Retrieve the Passing Record on the User Certification test for the given user.
 	 * @param userId
-	 * @param principalId
+	 * @param id
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -116,8 +114,34 @@ public class CertifiedUserController extends BaseController {
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORD_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PassingRecord getPassingRecord(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = ID_PATH_VARIABLE) Long principalId
+			@PathVariable(value = ID_PATH_VARIABLE) Long id
 			) throws NotFoundException {
-		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, principalId);
+		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, id);
 	}
+
+	/**
+	 * Retrieve all the Passing Record on the User Certification test for the given user.
+	 * Note:  This service is available to Synapse administrators only.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
+	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long id,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			) throws NotFoundException {
+		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, id, limit, offset);
+	}
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
+	public void setUserCertificationStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
+			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
+			) throws NotFoundException {
+		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, principalId, isCertified);
+	}
+
 }

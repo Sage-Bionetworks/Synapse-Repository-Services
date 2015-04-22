@@ -24,4 +24,14 @@ public interface WorkerProgress {
 	 */
 	public void progressMadeForMessage(Message message);
 
+	/**
+	 * Report that this message must be retried after a timeout
+	 * 
+	 * A worker can delay rehandling a message between 1 second and 9 hours After calling this method, the handler
+	 * Should stop handling this message since another handler could pick up the message and not return the message from
+	 * the handler call (which would cause it to be deleted)
+	 * 
+	 * @param message
+	 */
+	public void retryMessage(Message message, int retryTimeoutInSeconds);
 }

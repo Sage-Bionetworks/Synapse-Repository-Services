@@ -3,10 +3,13 @@ package org.sagebionetworks.table.query.model;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.table.query.model.visitors.ToSimpleSqlVisitor;
+import org.sagebionetworks.table.query.model.visitors.Visitor;
+
 /**
  * This matches &ltrow value constructor list&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class RowValueConstructorList implements SQLElement {
+public class RowValueConstructorList extends SQLElement {
 	
 	List<RowValueConstructorElement> rowValueConstructorElements;
 
@@ -26,16 +29,20 @@ public class RowValueConstructorList implements SQLElement {
 		return rowValueConstructorElements;
 	}
 
-	@Override
-	public void toSQL(StringBuilder builder) {
+	public void visit(Visitor visitor) {
+		for (RowValueConstructorElement element : rowValueConstructorElements) {
+			visit(element, visitor);
+		}
+	}
+
+	public void visit(ToSimpleSqlVisitor visitor) {
 		boolean isFrist = true;
 		for(RowValueConstructorElement element: rowValueConstructorElements){
 			if(!isFrist){
-				builder.append(", ");
+				visitor.append(", ");
 			}
-			element.toSQL(builder);
+			visit(element, visitor);
 			isFrist = false;
 		}
 	}
-	
 }

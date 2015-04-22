@@ -32,6 +32,10 @@
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-utils</artifactId>
 		</dependency>
 		<dependency>

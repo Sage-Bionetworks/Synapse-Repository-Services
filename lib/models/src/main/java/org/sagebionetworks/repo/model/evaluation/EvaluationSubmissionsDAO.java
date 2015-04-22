@@ -18,9 +18,8 @@ public interface EvaluationSubmissionsDAO {
 	 * 
 	 * @param evaluationId
 	 * @return
-	 * @throws NotFoundException
 	 */
-	public EvaluationSubmissions getForEvaluation(long evaluationId) throws NotFoundException;
+	public EvaluationSubmissions getForEvaluationIfExists(long evaluationId);
 	
 	/**
 	 * 

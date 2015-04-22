@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.message;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
@@ -47,5 +48,13 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * @param message
 	 * @return 
 	 */
-	public boolean publishToTopic(ChangeMessage message);
+	public void publishToTopic(ChangeMessage message);
+
+	/**
+	 * Publish a message to the modification topic.
+	 * 
+	 * @param message
+	 * @return
+	 */
+	public void publishToModificationTopic(ModificationMessage message);
 }

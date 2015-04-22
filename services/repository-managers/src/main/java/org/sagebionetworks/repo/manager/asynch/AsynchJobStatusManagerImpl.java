@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.asynch;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -13,8 +14,8 @@ import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	
@@ -50,9 +51,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		if(!authorizationManager.canUserStartJob(user, body)){
-			throw new UnauthorizedException("The user is not authorized to start the job.");
-		}
 		// Dao does the rest.
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
 		// publish a message to get the work started
@@ -61,12 +59,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
-	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
+	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		// Progress can only be updated if the stack is in read-write mode.
 		checkStackReadWrite();
-		return asynchJobStatusDao.updateJobProgress(jobId, progressCurrent, progressTotal, progressMessage);
+		asynchJobStatusDao.updateJobProgress(jobId, progressCurrent, progressTotal, progressMessage);
 	}
 
 	/**
@@ -79,7 +77,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setJobFailed(String jobId, Throwable error) {
 		// We allow a job to fail even if the stack is not in read-write mode.
@@ -87,7 +85,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@WriteTransaction
 	@Override
 	public String setComplete(String jobId, AsynchronousResponseBody body)
 			throws DatastoreException, NotFoundException {

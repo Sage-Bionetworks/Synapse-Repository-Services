@@ -2,53 +2,56 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ardverk.collection.PatriciaTrie;
-import org.ardverk.collection.StringKeyAnalyzer;
-import org.ardverk.collection.Trie;
-import org.ardverk.collection.Tries;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
-import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class UserProfileServiceImpl implements UserProfileService {
 
@@ -63,6 +66,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private UserManager userManager;
 	
 	@Autowired
+	private TeamManager teamManager;
+
+	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
@@ -70,20 +76,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	private EntityManager entityManager;
-
-	/**
-	 * These member variables are declared volatile to enforce thread-safe
-	 * cache access. Clients should fetch the latest cache objects for every
-	 * request.
-	 * 
-	 * The cache objects may be *replaced* by new cache objects created in the
-	 * refreshCache() method, but existing cache objects can NOT be modified.
-	 * This is to avoid corruption of cache state during multithreaded read
-	 * operations.
-	 */
-	private volatile Long cachesLastUpdated = 0L;
-	private volatile Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
-	private volatile Map<Long, UserGroupHeader> userGroupHeadersIdCache;
+	
+	@Autowired
+	PrincipalPrefixDAO principalPrefixDAO;
+	@Autowired
+	UserGroupDAO userGroupDao;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
@@ -122,8 +119,28 @@ public class UserProfileServiceImpl implements UserProfileService {
 				sort, 
 				ascending);
 	}
+	
+	/**
+	 * Return UserProfiles for the given ids
+	 * @param userId
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdList ids)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		ListWrapper<UserProfile> results = userProfileManager.list(ids);
+		for (UserProfile profile : results.getList()) {
+			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
+		}
+		return results;
+	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+
+	@WriteTransaction
 	@Override
 	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) 
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
@@ -131,50 +148,46 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
-
-	@Override
-	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId, String profileId, 
-			S3AttachmentToken token, HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.createS3UserProfileAttachmentToken(userInfo, profileId, token);
-	}
-
-	@Override
-	public PresignedUrl getUserProfileAttachmentUrl(Long userId, String profileId,
-			PresignedUrl url, HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
-		return userProfileManager.getUserProfileAttachmentUrl(userId, profileId, url.getTokenID());
-	}
 	
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids) 
-			throws DatastoreException, NotFoundException {		
-		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
-			refreshCache();
-		UserInfo userInfo;
-		if(userId != null) {
-			userInfo = userManager.getUserInfo(userId);
-		} else {
-			// request is anonymous			
-			userInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		}
-		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
-		for (Long id : ids) {
-			UserGroupHeader header = userGroupHeadersIdCache.get(id);
-			if (header == null) {
-				// Header not found in cache; attempt to fetch one from repo
-				header = fetchNewHeader(userInfo, id);
-			}
-			if (header != null) {
-				ugHeaders.add(header);
+			throws DatastoreException, NotFoundException {
+		// split users and groups using the alias.
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(new HashSet<Long>(ids));
+		Map<Long, UserGroupHeader> map = new HashMap<Long, UserGroupHeader>(ids.size());
+		// Track all users
+		Set<Long> userIdSet = new HashSet<Long>(ids.size());
+		for(PrincipalAlias alias: aliases){
+			if(AliasType.TEAM_NAME.equals(alias.getType())){
+				// Team
+				UserGroupHeader teamHeader = new UserGroupHeader();
+				teamHeader.setIsIndividual(false);
+				teamHeader.setUserName(alias.getAlias());
+				teamHeader.setOwnerId(alias.getPrincipalId().toString());
+				map.put(alias.getPrincipalId(), teamHeader);
+			}else if(AliasType.USER_EMAIL.equals(alias.getType())){
+				// This is a user
+				userIdSet.add(alias.getPrincipalId());
 			}
 		}
-		
+		// Fetch all users
+		IdList idList = new IdList();
+		idList.setList(new LinkedList<Long>(userIdSet));
+		ListWrapper<UserProfile> profiles = userProfileManager.list(idList);
+		for(UserProfile profile: profiles.getList()){
+			// Convert the profiles to headers
+			UserGroupHeader userHeader = convertUserProfileToHeader(profile);
+			map.put(Long.parseLong(profile.getOwnerId()), userHeader);
+		}
+		// final results will be in this list.
+		List<UserGroupHeader> finalList = new LinkedList<UserGroupHeader>();
+		// Now put all of the parts back together in the requested order
+		for(Long principalId: ids){
+			finalList.add(map.get(principalId));
+		}
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
-		response.setChildren(ugHeaders);
-		response.setTotalNumberOfResults((long) ugHeaders.size());
+		response.setChildren(finalList);
+		response.setTotalNumberOfResults((long) finalList.size());
 		response.setPrefixFilter(null);
 		return response;
 	}
@@ -183,69 +196,19 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
 			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
 					throws DatastoreException, NotFoundException {
-		if (userGroupHeadersNamePrefixCache == null || userGroupHeadersNamePrefixCache.size() == 0)
-			refreshCache();
-		
-		int limitInt = 10;
+		long limitLong = 10;
 		if(limit != null){
-			limitInt = limit.intValue();
+			limitLong = limit.longValue();
 		}
-		int offsetInt = 0;
+		long offsetLong = 0;
 		if(offset != null){
-			offsetInt = offset.intValue();
+			offsetLong = offset.longValue();
 		}
-		// Get the results from the cache
-		SortedMap<String, Collection<UserGroupHeader>> matched = userGroupHeadersNamePrefixCache.prefixMap(prefix.toLowerCase());
-		List<UserGroupHeader> fullList = PrefixCacheHelper.flatten(matched);
-		QueryResults<UserGroupHeader> eqr = new QueryResults<UserGroupHeader>(fullList, limitInt, offsetInt);
-		UserGroupHeaderResponsePage results = new UserGroupHeaderResponsePage();
-		results.setChildren(eqr.getResults());
-		results.setPrefixFilter(prefix);
-		results.setTotalNumberOfResults(new Long(eqr.getTotalNumberOfResults()));
-		return results;
-	}
-	
-	@Override
-	public void refreshCache() throws DatastoreException, NotFoundException {
-
-		this.logger.info("refreshCache() started at time " + System.currentTimeMillis());
-
-		// Create and populate local caches. Upon completion, swap them for the
-		// singleton member variable caches.
-		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
-		Map<Long, UserGroupHeader> tempIdCache = new HashMap<Long, UserGroupHeader>();
-
-		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE).getResults();
-		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
-		UserGroupHeader header;
-		for (UserProfile profile : userProfiles) {
-			UserProfileManagerUtils.clearPrivateFields(null, profile);
-			header = convertUserProfileToHeader(profile);
-			addToPrefixCache(tempPrefixCache, header);
-			addToIdCache(tempIdCache, header);
-		}
-		// List all team names
-		List<PrincipalAlias> teamNames = principalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME);
-		
-		this.logger.info("Loaded " + teamNames.size() + " user teams.");
-		for (PrincipalAlias alais: teamNames) {
-			header = convertUserGroupToHeader(alais);			
-			addToPrefixCache(tempPrefixCache, header);
-			addToIdCache(tempIdCache, header);
-		}
-		userGroupHeadersNamePrefixCache = Tries.unmodifiableTrie(tempPrefixCache);
-		userGroupHeadersIdCache = Collections.unmodifiableMap(tempIdCache);
-		cachesLastUpdated = System.currentTimeMillis();
-
-		this.logger.info("refreshCache() completed at time " + System.currentTimeMillis());
-	}
-	
-	@Override
-	public Long millisSinceLastCacheUpdate() {
-		if (userGroupHeadersNamePrefixCache == null) {
-			return null;
-		}
-		return System.currentTimeMillis() - cachesLastUpdated;
+		List<Long> ids = principalPrefixDAO.listPrincipalsForPrefix(prefix, limitLong, offsetLong);
+		UserGroupHeaderResponsePage response = getUserGroupHeadersByIds(null, ids);
+		response.setPrefixFilter(prefix);
+		response.setTotalNumberOfResults(principalPrefixDAO.countPrincipalsForPrefix(prefix));
+		return response;
 	}
 	
 	// setters for managers (for testing)
@@ -279,7 +242,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
+		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()) 
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version
@@ -300,71 +263,80 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return userProfileManager.getFavorites(userInfo, limit, offset);
 	}
 	
-	
+	@Override
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userToGetInfoFor = userInfo;
+
+		ValidateArgument.required(type, "type");
+
+		// validate for different types of lists
+		switch (type) {
+		case OTHER_USER_PROJECTS:
+			ValidateArgument.required(otherUserId, "user");
+			break;
+		case TEAM_PROJECTS:
+			ValidateArgument.required(teamId, "team");
+			break;
+		default:
+			break;
+		}
+
+		if(sortColumn ==null){
+			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		}
+		if (sortDirection == null) {
+			sortDirection = SortDirection.DESC;
+		}
+
+		if (otherUserId != null) {
+			userToGetInfoFor = userManager.getUserInfo(otherUserId);
+		}
+		Team teamToFetch = null;
+		if (teamId != null) {
+			teamToFetch = teamManager.get(teamId.toString());
+		}
+
+		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
+	}
+
 	/*
 	 * Private Methods
 	 */
-
-	/**
-	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
-	 * check for a UserGroup with the specified ID.
-	 */
-	private UserGroupHeader fetchNewHeader(UserInfo userInfo, Long id) {
-		UserProfile profile;
-		try {
-			profile = userProfileManager.getUserProfile(userInfo, id.toString());
-			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
-		} catch (NotFoundException e) {
-			// Profile not found, so return null
-			return null;
-		}
-		return convertUserProfileToHeader(profile);
-	}
-
-	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
-		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(header);
-		
-		for (String prefix : prefixes) {
-			if (!prefixCache.containsKey(prefix)) {
-				// cache does not contain a user/group with that name
-				Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
-				coll.add(header);
-				prefixCache.put(prefix, coll);
-			} else {					
-				// cache already contains a user/group with that name; add to the collection
-				Collection<UserGroupHeader> coll = prefixCache.get(prefix);
-				coll.add(header);
-			}
-		}
-	}
-
-	private void addToIdCache(Map<Long, UserGroupHeader> idCache, UserGroupHeader header) {
-		idCache.put(Long.parseLong(header.getOwnerId()), header);
-	}
 
 	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
 		UserGroupHeader header = new UserGroupHeader();
 		header.setFirstName(profile.getFirstName());
 		header.setLastName(profile.getLastName());
 		header.setOwnerId(profile.getOwnerId());
-		header.setPic(profile.getPic());
 		header.setIsIndividual(true);
 		header.setUserName(profile.getUserName());
 		return header;
 	}
-
-	private UserGroupHeader convertUserGroupToHeader(PrincipalAlias alias) {
-		UserGroupHeader header = new UserGroupHeader();
-		header.setUserName(alias.getAlias());
-		header.setOwnerId(alias.getPrincipalId().toString());
-		header.setIsIndividual(false);
-		return header;
-	}
-
+	
 	@Override
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO) {
 		this.principalAliasDAO = mockPrincipalAlaisDAO;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImage(java.lang.String)
+	 */
+	@Override
+	public String getUserProfileImage(String profileId) throws NotFoundException {
+		return userProfileManager.getUserProfileImageUrl(profileId);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImagePreview(java.lang.String)
+	 */
+	@Override
+	public String getUserProfileImagePreview(String profileId) throws NotFoundException {
+		return userProfileManager.getUserProfileImagePreviewUrl(profileId);
 	}
 
 }

@@ -3,6 +3,7 @@
 	"properties": {
 		"list": {
 			"type": "array",
+			"uniqueItems":false,
 			"items": {
 				"type":"integer"
 			}

@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +79,21 @@ public class V2WikiServiceImpl implements V2WikiService {
 		UserInfo user = userManager.getUserInfo(userId);
 		return wikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
 	}
+	
+	@Override
+	public V2WikiOrderHint getWikiOrderHint(Long userId, String ownerId, ObjectType type)
+			throws NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getOrderHint(user, ownerId, type);
+	}
+	
+	@Override
+	public V2WikiOrderHint updateWikiOrderHint(Long userId,
+			V2WikiOrderHint orderHint)
+			throws NotFoundException{
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.updateOrderHint(user, orderHint);
+	}
 
 	@Override
 	public PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(
@@ -97,7 +113,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey,
+	public String getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey,
 			String fileName, Long version) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, version);
@@ -105,7 +121,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getAttachmentPreviewRedirectURL(Long userId,
+	public String getAttachmentPreviewRedirectURL(Long userId,
 			WikiPageKey wikiPageKey, String fileName, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -123,7 +139,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version)
+	public String getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		String id = wikiManager.getMarkdownFileHandleId(user, wikiPageKey, version);

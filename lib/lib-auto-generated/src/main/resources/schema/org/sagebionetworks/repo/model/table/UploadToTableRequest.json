@@ -1,0 +1,29 @@
+{
+	"description": "A CSV table upload request.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+        }
+    ],
+	"properties": {
+		"tableId": {
+			"type": "string",
+			"description": "The ID of the table."
+		},
+		"uploadFileHandleId": {
+			"type": "string",
+			"description": "The ID of the file handle for a type of UPLOAD"
+		},
+		"updateEtag": {
+			"type": "string",
+			"description": "Any RowSet returned from Synapse will contain the current etag of the change set.  To update any rows from a RowSet the etag must be provided with the POST."
+		},
+		"linesToSkip": {
+			"type": "integer",
+			"description": "The number of lines to skip from the start of the file.  The default value of 0 will be used if this is not provided by the caller."
+		},
+		"csvTableDescriptor": {
+			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		}
+	}
+}

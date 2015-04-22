@@ -9,16 +9,22 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -34,16 +40,20 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.collect.Maps;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
-	private static final String FIELD = "Field";
 	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
+	private static final String FIELD = "Field";
+	private static final String TYPE = "Type";
+	private static final Pattern VARCHAR = Pattern.compile("varchar\\((\\d+)\\)");
 
-	DataSourceTransactionManager transactionManager;
-	TransactionTemplate transactionTemplate;
-	JdbcTemplate template;
+	private final DataSourceTransactionManager transactionManager;
+	private final TransactionTemplate writeTransactionTemplate;
+	private final TransactionTemplate readTransactionTemplate;
+	private final JdbcTemplate template;
 
 	/**
 	 * The IoC constructor.
@@ -54,38 +64,123 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public TableIndexDAOImpl(DataSource dataSource) {
 		super();
 		this.transactionManager = new DataSourceTransactionManager(dataSource);
+		// This will manage transactions for calls that need it.
+		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);
+		this.readTransactionTemplate = createTransactionTemplate(this.transactionManager, true);
+		this.template = new JdbcTemplate(dataSource);
+	}
+
+	private static TransactionTemplate createTransactionTemplate(DataSourceTransactionManager transactionManager, boolean readOnly) {
 		// This will define how transaction are run for this instance.
-		DefaultTransactionDefinition transactionDef = new DefaultTransactionDefinition();
+		DefaultTransactionDefinition transactionDef;
+		transactionDef = new DefaultTransactionDefinition();
 		transactionDef.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
-		transactionDef.setReadOnly(false);
+		transactionDef.setReadOnly(readOnly);
 		transactionDef.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 		transactionDef.setName("TableIndexDAOImpl");
-		// This will manage transactions for calls that need it.
-		this.transactionTemplate = new TransactionTemplate(this.transactionManager, transactionDef);
-		this.template = new JdbcTemplate(dataSource);
+		return new TransactionTemplate(transactionManager, transactionDef);
 	}
 
 	@Override
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
 			String tableId) {
 		// First determine if we have any columns for this table yet
-		List<String> columns = getCurrentTableColumns(tableId);
-		// Convert the names to columnIDs
-		List<String> oldSchema = SQLUtils.convertColumnNamesToColumnId(columns);
+		List<ColumnDefinition> oldColumnDefs = getCurrentTableColumns(tableId);
+		List<String> oldColumns = oldColumnDefs == null ? null : Lists.transform(oldColumnDefs, new Function<ColumnDefinition, String>() {
+			@Override
+			public String apply(ColumnDefinition input) {
+				return input.name;
+			}
+		});
 		// Build the SQL to create or update the table
-		String dml = SQLUtils.creatOrAlterTableSQL(oldSchema, newSchema,
-				tableId);
+		String dml = SQLUtils.creatOrAlterTableSQL(oldColumns, newSchema, tableId);
 		// If there is nothing to apply then do nothing
 		if (dml == null)
 			return false;
 		// Execute the DML
-		template.update(dml);
+		try {
+			template.update(dml);
+		} catch (BadSqlGrammarException e) {
+			if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().startsWith("Row size too large")) {
+				throw new InvalidDataAccessResourceUsageException(
+						"Too much data per column. The maximum size for a row is about 65000 bytes", e.getCause());
+			} else {
+				throw e;
+			}
+		}
 		return true;
 	}
 
 	@Override
+	public void addIndexes(String tableId) {
+		List<ColumnDefinition> columns = getCurrentTableColumns(tableId);
+		// do one by one and ignore any errors for adding a duplicate index
+		List<String> indexes = Lists.newArrayList();
+		for (ColumnDefinition column : columns) {
+			if (TableConstants.isReservedColumnName(column.name)) {
+				continue;
+			}
+			SQLUtils.appendColumnIndexDefinition(column.name, column.maxSize, indexes);
+		}
+		for (String index : indexes) {
+			try {
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " add " + index);
+			} catch (BadSqlGrammarException e) {
+				if (e.getCause() != null && e.getCause().getMessage() != null) {
+					String message = e.getCause().getMessage();
+					if (message.startsWith("Duplicate key name") || message.startsWith("Too many keys")) {
+						continue;
+					}
+				}
+				throw e;
+			}
+		}
+	}
+
+	@Override
+	public void removeIndexes(String tableId) {
+		List<ColumnDefinition> columns = getCurrentTableColumns(tableId);
+		// do one by one and ignore any errors for removing non-existant indexes
+		for (ColumnDefinition column : columns) {
+			if (TableConstants.isReservedColumnName(column.name)) {
+				continue;
+			}
+			try {
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " drop index "
+						+ SQLUtils.getColumnIndexName(column.name));
+			} catch (BadSqlGrammarException e) {
+				if (e.getCause() == null || e.getCause().getMessage() == null
+						|| !e.getCause().getMessage().contains("check that column/key exists")) {
+					throw e;
+				}
+			}
+		}
+	}
+
+	@Override
+	public void addIndex(String tableId, ColumnModel columnModel) {
+		// do one by one and ignore any errors for adding a duplicate index
+		String column = SQLUtils.getColumnNameForId(columnModel.getId());
+		if (TableConstants.isReservedColumnName(column)) {
+			return;
+		}
+		List<String> indexes = Lists.newArrayList();
+		SQLUtils.appendColumnIndexDefinition(column, columnModel.getMaximumSize(), indexes);
+
+		for (String index : indexes) {
+			try {
+				template.update("alter table " + SQLUtils.getTableNameForId(tableId, TableType.INDEX) + " add " + index);
+			} catch (BadSqlGrammarException e) {
+				if (e.getCause() == null || e.getCause().getMessage() == null || !e.getCause().getMessage().startsWith("Duplicate key name")) {
+					throw e;
+				}
+			}
+		}
+	}
+
+	@Override
 	public boolean deleteTable(String tableId) {
-		String dropTableDML = SQLUtils.dropTableSQL(tableId);
+		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
 		try {
 			template.update(dropTableDML);
 			return true;
@@ -96,18 +191,25 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<String> getCurrentTableColumns(String tableId) {
-		String tableName = SQLUtils.getTableNameForId(tableId);
+	public List<ColumnDefinition> getCurrentTableColumns(String tableId) {
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
 		// Bind variables do not seem to work here
 		try {
-			return template.query(SQL_SHOW_COLUMNS + tableName,
-					new RowMapper<String>() {
-						@Override
-						public String mapRow(ResultSet rs, int rowNum)
-								throws SQLException {
-							return rs.getString(FIELD);
-						}
-					});
+			return template.query(SQL_SHOW_COLUMNS + tableName, new RowMapper<ColumnDefinition>() {
+				@Override
+				public ColumnDefinition mapRow(ResultSet rs, int rowNum) throws SQLException {
+					ColumnDefinition columnDefinition = new ColumnDefinition();
+					columnDefinition.name = rs.getString(FIELD);
+					columnDefinition.maxSize = null;
+					String type = rs.getString(TYPE);
+					Matcher m = VARCHAR.matcher(type);
+					if (m.matches()) {
+						columnDefinition.columnType = ColumnType.STRING;
+						columnDefinition.maxSize = Long.parseLong(m.group(1));
+					}
+					return columnDefinition;
+				}
+			});
 		} catch (BadSqlGrammarException e) {
 			// Spring throws this when the table does not
 			return null;
@@ -123,7 +225,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Current schema cannot be null");
 
 		// Execute this within a transaction
-		this.transactionTemplate.execute(new TransactionCallback<Void>() {
+		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
 			@Override
 			public Void doInTransaction(TransactionStatus status) {
 				// Within a transaction
@@ -148,7 +250,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 		});
 	}
-
+	
 	@Override
 	public Long getRowCountForTable(String tableId) {
 		String sql = SQLUtils.getCountSQL(tableId);
@@ -173,7 +275,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
-		String createStatusTableSql = SQLUtils.createStatusTableSQL(tableId);
+		String createStatusTableSql = SQLUtils.createTableSQL(tableId, SQLUtils.TableType.STATUS);
 		template.update(createStatusTableSql);
 
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
@@ -182,7 +284,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void deleteStatusTable(String tableId) {
-		String dropStatusTableDML = SQLUtils.dropStatusTableSQL(tableId);
+		String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.STATUS);
 		try {
 			template.update(dropStatusTableDML);
 		} catch (BadSqlGrammarException e) {
@@ -202,17 +304,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		final List<Row> rows = new LinkedList<Row>();
 		final RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
+		rowSet.setHeaders(query.getSelectColumnModels().getSelectColumns());
 		// Stream over the results and save the results in a a list
 		queryAsStream(query, new RowAndHeaderHandler() {
+			@Override
+			public void writeHeader() {
+				// no-op
+			}
+
 			@Override
 			public void nextRow(Row row) {
 				rows.add(row);
 			}
-			
+
 			@Override
-			public void setHeaderColumnIds(List<String> headers) {
-				rowSet.setHeaders(headers);
-				
+			public void setEtag(String etag) {
+				rowSet.setEtag(etag);
 			}
 		});
 		rowSet.setTableId(query.getTableId());
@@ -221,38 +328,40 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public boolean queryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) {
-		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		final List<String> headers = new LinkedList<String>();
-		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
-		final Map<Integer, ColumnModel> modeledColumns = Maps.newHashMap();
+		ValidateArgument.required(query, "Query");
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		handler.writeHeader();
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				ResultSetMetaData metadata = rs.getMetaData();
-				if (headers.isEmpty()) {
-					// Read the headers from the result set
-					populateHeadersFromResultsSet(headers,
-							nonMetadataColumnIndicies, query, modeledColumns, metadata);
-					handler.setHeaderColumnIds(headers);
-				}
-				// Read the results into a new list
-				List<String> values = new LinkedList<String>();
+
 				Row row = new Row();
+				List<String> values = new LinkedList<String>();
 				row.setValues(values);
-				if (!query.isAggregatedResult()) {
-					// Non-aggregate queries include two extra columns,
-					// row id and row version.
-					row.setRowId(rs.getLong(ROW_ID));
-					row.setVersionNumber(rs.getLong(ROW_VERSION));
+
+				// ROW_ID and ROW_VERSION are always appended to the list of columns
+				int selectModelIndex = 0;
+				int columnCount = metadata.getColumnCount();
+				List<SelectColumn> selectColumns = query.getSelectColumnModels().getSelectColumns();
+				// result sets use 1-base indexing
+				for (int i = 1; i <= columnCount; i++) {
+					String name = metadata.getColumnName(i);
+					if (ROW_ID.equals(name)) {
+						row.setRowId(rs.getLong(i));
+					} else if (ROW_VERSION.equals(name)) {
+						row.setVersionNumber(rs.getLong(i));
+					} else {
+						SelectColumn selectColumn = selectColumns.get(selectModelIndex++);
+						String value = rs.getString(i);
+						value = TableModelUtils.translateRowValueFromQuery(value, selectColumn.getColumnType());
+						values.add(value);
+					}
 				}
-				// fill the value list
-				for (Integer index : nonMetadataColumnIndicies) {
-					String value = rs.getString(index);
-					ColumnModel columnModel = modeledColumns.get(index);
-					value = TableModelUtils.translateRowValueFromQuery(value, columnModel);
-					values.add(value);
+				if (selectModelIndex != selectColumns.size()) {
+					throw new IllegalStateException("The number of columns returned (" + selectModelIndex
+							+ ") is not the same as the number expected (" + selectColumns.size() + ")");
 				}
 				handler.nextRow(row);
 			}
@@ -260,36 +369,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return true;
 	}
 
-	static void populateHeadersFromResultsSet(List<String> headers, List<Integer> nonMetadataColumnIndicies, SqlQuery query,
-			Map<Integer, ColumnModel> modeledColumns, ResultSetMetaData resultSetMetaData) throws SQLException {
-		// There are three possibilities, column ID, aggregate function, or row
-		// metadata.
-		Map<Long, ColumnModel> columnIdToModelMap = TableModelUtils.createIDtoColumnModelMap(query.getcolumnNameToModelMap().values());
-		int columnCount = resultSetMetaData.getColumnCount();
-		for (int i = 1; i < columnCount + 1; i++) {
-			String name = resultSetMetaData.getColumnName(i);
-			// If this is a real column then we can extract the ColumnId.
-			if (ROW_ID.equals(name) || ROW_VERSION.equals(name)) {
-				// We do not include row id or row version in the headers.
-				continue;
-			}
-			if (SQLUtils.hasColumnPrefixe(name) && !name.startsWith("COUNT")) {
-				// Extract the column ID
-				String columnId = SQLUtils.getColumnIdForColumnName(name);
-				headers.add(columnId);
-				if (columnIdToModelMap != null) {
-					ColumnModel columnModel = columnIdToModelMap.get(Long.parseLong(columnId));
-					if (columnModel != null) {
-						modeledColumns.put(i, columnModel);
-					}
-				}
-			} else {
-				// Return what was provided unchanged
-				headers.add(name);
-			}
-			// This is not a row_id or row_version column.
-			nonMetadataColumnIndicies.add(i);
-		}
+	@Override
+	public <T> T executeInReadTransaction(TransactionCallback<T> callable) {
+		return readTransactionTemplate.execute(callable);
 	}
-
 }

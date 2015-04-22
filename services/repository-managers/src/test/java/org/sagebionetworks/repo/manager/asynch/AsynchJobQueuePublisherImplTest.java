@@ -9,7 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -36,7 +36,7 @@ public class AsynchJobQueuePublisherImplTest {
 	public void testPublishRoundTrip() throws Exception{
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setJobId("123");
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn8786");
 		body.setUploadFileHandleId("333");
 		status.setRequestBody(body);

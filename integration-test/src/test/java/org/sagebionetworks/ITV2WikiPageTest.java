@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -9,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,9 +27,13 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -34,6 +42,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -60,6 +69,7 @@ public class ITV2WikiPageTest {
 	private File imageFileTwo;
 	private File markdownFile;
 	private Project project;
+	private TermsOfUseAccessRequirement accessRequirement;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -93,21 +103,31 @@ public class ITV2WikiPageTest {
 		assertNotNull(markdownFile);
 		assertTrue(markdownFile.exists());
 		
+		// Create a project, this will own the wiki page.
+		project = new Project();
+		project = synapse.createEntity(project);
+
 		// Create the file handles
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(3, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		fileHandleTwo = (S3FileHandle) results.getList().get(1);
 		markdownHandle = (S3FileHandle) results.getList().get(2);
-		// Create a project, this will own the wiki page.
-		project = new Project();
-		project = synapse.createEntity(project);
+		
+		// create the access requirement
+		accessRequirement = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(project.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setSubjectIds(Collections.singletonList(rod));
+		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
 	@After
@@ -134,7 +154,14 @@ public class ITV2WikiPageTest {
 			synapse.deleteFileHandle(id);
 		}
 		for(WikiPageKey key: toDelete){
-			synapse.deleteV2WikiPage(key);
+			adminSynapse.deleteV2WikiPage(key);
+		}
+		if (accessRequirement != null) {
+			try {
+				adminSynapse.deleteAccessRequirement(accessRequirement.getId());
+			} catch (Exception e) {
+				// continue
+			}
 		}
 	}
 	
@@ -232,6 +259,124 @@ public class ITV2WikiPageTest {
 	}
 	
 	@Test
+	public void testAccessRequirementV1WikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		WikiPage wiki = new WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		String markdownText1 = "markdown text one";
+		wiki.setMarkdown(markdownText1);
+		wiki.setTitle("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip");
+		// Create a V2WikiPage
+		wiki = adminSynapse.createWikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		assertNotNull(wiki);
+		WikiPageKey key = adminSynapse.getRootWikiPageKey(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT);
+		toDelete.add(key);
+		assertEquals(markdownText1, wiki.getMarkdown());
+		
+		// update
+		String markdownText2 = "markdown text two";
+		wiki.setMarkdown(markdownText2);
+		wiki = adminSynapse.updateWikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		assertNotNull(wiki);
+		
+		// Get a version of the wiki
+		WikiPage current = adminSynapse.getWikiPage(key);
+		assertEquals(markdownText2, current.getMarkdown());
+		
+		// get the previous version
+		WikiPage old = adminSynapse.getWikiPageForVersion(key, 0L);
+		assertEquals(markdownText1, old.getMarkdown());
+	}
+	
+	@Test
+	public void testAccessRequirementV2WikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip");
+		// Create a V2WikiPage
+		wiki = adminSynapse.createV2WikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT, wiki.getId());
+		toDelete.add(key);
+		Date firstModifiedOn = wiki.getModifiedOn();
+		
+		// Add another file attachment and change the title and update the wiki
+		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
+		wiki.setTitle("Updated ITV2AccessRequirementWikiPageTest");
+		wiki = adminSynapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		assertEquals(fileHandleTwo.getId(), wiki.getAttachmentFileHandleIds().get(1));
+		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertEquals("Updated ITV2AccessRequirementWikiPageTest", wiki.getTitle());
+		assertTrue(!wiki.getModifiedOn().equals(firstModifiedOn));
+		
+		// test get
+		wiki = synapse.getV2WikiPage(key);
+		V2WikiPage root = synapse.getV2RootWikiPage(accessRequirement.getId().toString(), ObjectType.ACCESS_REQUIREMENT);
+		assertEquals(wiki, root);
+		
+		// get markdown file
+		String markdown = synapse.downloadV2WikiMarkdown(key);
+		assertNotNull(markdown);
+		String oldMarkdown = synapse.downloadVersionOfV2WikiMarkdown(key, new Long(0));
+		assertNotNull(oldMarkdown);
+		
+		// Get the tree
+		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
+		assertNotNull(tree);
+		assertNotNull(tree.getResults());
+		assertEquals(1, tree.getResults().size());
+		assertEquals(1, tree.getTotalNumberOfResults());
+		
+		// Get history
+		PaginatedResults<V2WikiHistorySnapshot> history = synapse.getV2WikiHistory(key, new Long(10), new Long(0));
+		assertNotNull(history);
+		assertNotNull(history.getResults());
+		assertTrue(history.getResults().size() == 2);
+		// First snapshot is most recent, so we want the last snapshot, version 0 (the first entry in history)
+		String versionToRestore = history.getResults().get(1).getVersion();
+		// Get the version first
+		V2WikiPage firstVersion = synapse.getVersionOfV2WikiPage(key, new Long(versionToRestore));
+		assertEquals(1, firstVersion.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), firstVersion.getAttachmentFileHandleIds().get(0));
+		assertEquals(firstModifiedOn, firstVersion.getModifiedOn());
+		
+		// Restore wiki to first state before update
+		wiki = adminSynapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId(), new Long(versionToRestore));
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertNotNull(wiki.getMarkdownFileHandleId());
+		// Get history again
+		PaginatedResults<V2WikiHistorySnapshot> history2 = synapse.getV2WikiHistory(key, new Long(10), new Long(0));
+		assertNotNull(history2);
+		assertNotNull(history2.getResults());
+		assertTrue(history2.getResults().size() == 3);
+
+		assertTrue(wiki.getAttachmentFileHandleIds().size() == 1);
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertEquals("ITV2WikiPageTest.testAccessRequirementWikiRoundTrip", wiki.getTitle());
+		
+		// Delete the wiki
+		adminSynapse.deleteV2WikiPage(key);
+		// Now try to get it
+		try{
+			synapse.getV2WikiPage(key);
+			fail("This should have failed as the wiki was deleted");
+		}catch(SynapseException e){
+			// expected;
+		}
+	}
+	
+	@Test
 	public void testV2MethodsWithV1Models() throws IOException, SynapseException, JSONObjectAdapterException {
 		// Create V1 Wiki
 		WikiPage wiki = new WikiPage();
@@ -239,7 +384,7 @@ public class ITV2WikiPageTest {
 		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
 		wiki.setMarkdown("markdown");
 		wiki.setTitle("ITV2WikiPageTest");
-		wiki = synapse.createV2WikiPageWithV1(project.getId(), ObjectType.ENTITY, wiki);
+		wiki = synapse.createWikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
@@ -254,7 +399,7 @@ public class ITV2WikiPageTest {
 		// Add another file attachment and update the wiki
 		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
 		wiki.setMarkdown("updated markdown");
-		wiki = synapse.updateV2WikiPageWithV1(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		wiki = synapse.updateWikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
@@ -265,18 +410,20 @@ public class ITV2WikiPageTest {
 		fileHandlesToDelete.add(updatedWikiV2Clone.getMarkdownFileHandleId());
 		
 		// test get
-		wiki = synapse.getV2WikiPageAsV1(key);
+		wiki = synapse.getWikiPage(key);
 		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY);
 		// this root is in the V2 model, but should have all the same fields as "wiki"
 		assertEquals(root.getAttachmentFileHandleIds().size(), wiki.getAttachmentFileHandleIds().size());
 		String markdown = synapse.downloadV2WikiMarkdown(key);
 		assertEquals(markdown, wiki.getMarkdown());
 		// test get first version
-		WikiPage firstWiki = synapse.getVersionOfV2WikiPageAsV1(key, new Long(0));
+		WikiPage firstWiki = synapse.getWikiPageForVersion(key, new Long(0));
 		assertNotNull(firstWiki.getAttachmentFileHandleIds());
 		assertEquals(1, firstWiki.getAttachmentFileHandleIds().size());
 		assertEquals("markdown", firstWiki.getMarkdown());
 		
+		WikiPageKey keyLookup = synapse.getRootWikiPageKey(project.getId(), ObjectType.ENTITY);
+		assertEquals(key, keyLookup);
 	}
 	
 	@Test
@@ -364,5 +511,62 @@ public class ITV2WikiPageTest {
 			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
+	}
+	
+	@Test
+	public void testGetV2WikiOrderHint() throws Exception{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testGetV2WikiOrderHint");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		
+		// test get order hint
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		assertNotNull(hint);
+		assertNotNull(hint.getOwnerId().equals(project.getId()));
+		assertTrue(hint.getOwnerObjectType().equals(ObjectType.ENTITY));
+		assertNull(hint.getIdList());	// Should be null by default
+	}
+	
+	@Test
+	public void testUpdateV2WikiOrderHintRoundTrip() throws Exception{
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setTitle("ITV2WikiPageTest.testUpdateV2WikiOrderHint");
+		// Create a V2WikiPage
+		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		
+		V2WikiOrderHint hint = synapse.getV2OrderHint(key);
+		
+		// Update order hint
+		List<String> hintIdList = Arrays.asList(new String[] {"A", "X", "B", "Y", "C", "Z"});
+		hint.setIdList(hintIdList);
+		
+		V2WikiOrderHint updatedHint = synapse.updateV2WikiOrderHint(hint);
+		
+		assertNotNull(updatedHint);
+		assertNotNull(updatedHint.getOwnerId().equals(project.getId()));
+		assertFalse(updatedHint.getEtag().equals(hint.getEtag()));
+		assertTrue(updatedHint.getOwnerObjectType().equals(ObjectType.ENTITY));
+		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), hintIdList.toArray()));
+		
+		V2WikiOrderHint postUpdateHint = synapse.getV2OrderHint(key);
+		assertTrue(updatedHint.getOwnerId().equals(postUpdateHint.getOwnerId()));
+		assertTrue(updatedHint.getOwnerObjectType().equals(postUpdateHint.getOwnerObjectType()));
+		assertTrue(Arrays.equals(updatedHint.getIdList().toArray(), postUpdateHint.getIdList().toArray()));
 	}
 }

@@ -11,9 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:managers-spb.xml" />
-	
-	<bean id="clockProvider" class="org.sagebionetworks.util.DefaultClockProvider"/>
+	<bean id="clock" class="org.sagebionetworks.util.DefaultClock"/>
 
 	<!-- This worker synchronizes changes with sent messages. -->
 	<bean id="changeSentMessageSynchWorker"
