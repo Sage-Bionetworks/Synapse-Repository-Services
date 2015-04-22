@@ -137,8 +137,8 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		// Create the double
 		Map<String, List<Double>> doubleAnnos = annotations.getDoubleAnnotations();
 		if(doubleAnnos != null && doubleAnnos.size() > 0){
-			List<DBODoubleAnnotation> doubleBatch = AnnotationDBOUtils.createFiniteDoubleAnnotations(ownerId, doubleAnnos);
-			if (!doubleBatch.isEmpty()) dboBasicDao.createBatch(doubleBatch);
+			List<DBODoubleAnnotation> batch = AnnotationDBOUtils.createFiniteDoubleAnnotations(ownerId, doubleAnnos);
+			if (!batch.isEmpty()) dboBasicDao.createBatch(batch);
 		}
 		// Create the dates
 		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();

@@ -1004,7 +1004,6 @@ public class IT500SynapseJavaClient {
 		annos.addAnnotation("foo", "bar");
 		annos.addAnnotation("baz", 10.3D);
 		synapseOne.updateAnnotations(dataset.getId(), annos);
-		//String queryString = "select id, "+key+" from entity where entity."+key+" == \""+value+"\"";
 		String queryString = "select id, "+key+" from entity where entity.id == \""+dataset.getId()+"\"";
 		// Wait for the query
 		JSONObject result = waitForQuery(queryString);
@@ -1017,8 +1016,6 @@ public class IT500SynapseJavaClient {
 		result = waitForQuery(queryString);
 		assertEquals(1, result.get("totalNumberOfResults"));
 		assertEquals(dataset.getId(), ((JSONObject)result.getJSONArray("results").get(0)).get("entity.id"));
-	
-	
 	}
 	
 	@Test
