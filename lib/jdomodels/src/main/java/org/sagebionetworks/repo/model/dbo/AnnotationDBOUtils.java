@@ -59,36 +59,6 @@ public class AnnotationDBOUtils {
 	}
 
 	/**
-	 * Create string annotations for any NaN/Infinite double values
-	 * @param ownerId
-	 * @param map
-	 * @return
-	 */
-	public static List<DBOStringAnnotation> createStringAnnotationsForNonFiniteDoubles(Long ownerId, Map<String, List<Double>> map) {
-		List<DBOStringAnnotation> results = new ArrayList<DBOStringAnnotation>();
-		if(map != null){
-			Iterator<String> keyIt = map.keySet().iterator();
-			while(keyIt.hasNext()){
-				String key = keyIt.next();
-				Collection<Double> valueColection = map.get(key);
-				Iterator<Double> valueIt = valueColection.iterator();
-				while(valueIt.hasNext()){
-					Double value = valueIt.next();
-					if (value!=null && Double.isInfinite(value) || Double.isNaN(value)) {
-						DBOStringAnnotation anno = new DBOStringAnnotation();
-						anno.setOwner(ownerId);
-						anno.setAttribute(key);
-						anno.setValue(value.toString());
-						if (!results.contains(anno))
-							results.add(anno);
-					}
-				}
-			}
-		}
-		return results;
-	}
-
-	/**
 	 * Create a list of DBOLongAnnotation from the given map.
 	 * @param ownerId
 	 * @param map

@@ -113,37 +113,6 @@ public class AnnotationDBOUtilsTest {
 	}
 	
 	@Test
-	public void createStringAnnotationsForNonFiniteValues() {
-		Annotations annos = new Annotations();
-		// Create a value that is larger than the max
-		Long owner = new Long(45);
-		annos.addAnnotation("list", new Double(123.1));
-		annos.addAnnotation("list", new Double(456.3));
-		annos.addAnnotation("list", Double.NaN);
-		annos.addAnnotation("list", Double.POSITIVE_INFINITY);
-		annos.addAnnotation("list", Double.NEGATIVE_INFINITY);
-		
-		List<DBOStringAnnotation> results = AnnotationDBOUtils.createStringAnnotationsForNonFiniteDoubles(owner, annos.getDoubleAnnotations());
-		assertNotNull(results);
-		assertEquals(3, results.size());
-		
-		DBOStringAnnotation toCheck = results.get(0);
-		assertEquals(owner, toCheck.getOwner());
-		assertEquals("list", toCheck.getAttribute());
-		assertEquals(""+Double.NaN, toCheck.getValue());
-		
-		toCheck = results.get(1);
-		assertEquals(owner, toCheck.getOwner());
-		assertEquals("list", toCheck.getAttribute());
-		assertEquals(""+Double.POSITIVE_INFINITY, toCheck.getValue());
-		
-		toCheck = results.get(2);
-		assertEquals(owner, toCheck.getOwner());
-		assertEquals("list", toCheck.getAttribute());
-		assertEquals(""+Double.NEGATIVE_INFINITY, toCheck.getValue());
-	}
-	
-	@Test
 	public void testCreateDateList(){
 		Annotations annos = new Annotations();
 		// Create a value that is larger than the max

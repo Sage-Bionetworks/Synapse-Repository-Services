@@ -122,11 +122,9 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		dboBasicDao.createNew(onwer);
 
 		// Create the string.
-		Set<DBOStringAnnotation> allCreatedStringAnnotations = new HashSet<DBOStringAnnotation>();
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
 			List<DBOStringAnnotation> stringBatch = AnnotationDBOUtils.createStringAnnotations(ownerId, stringAnnos);
-			allCreatedStringAnnotations.addAll(stringBatch);
 			dboBasicDao.createBatch(stringBatch);
 		}
 		
@@ -141,17 +139,6 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		if(doubleAnnos != null && doubleAnnos.size() > 0){
 			List<DBODoubleAnnotation> doubleBatch = AnnotationDBOUtils.createFiniteDoubleAnnotations(ownerId, doubleAnnos);
 			if (!doubleBatch.isEmpty()) dboBasicDao.createBatch(doubleBatch);
-			List<DBOStringAnnotation> stringBatch = AnnotationDBOUtils.createStringAnnotationsForNonFiniteDoubles(ownerId, doubleAnnos);
-			List<DBOStringAnnotation> reducedStringBatch = new ArrayList<DBOStringAnnotation>();
-			for (DBOStringAnnotation a : stringBatch) {
-				if (allCreatedStringAnnotations.contains(a)) {
-					System.out.println("DBOAnnotationsDaoImpl.replaceAnnotations: skipping duplicate "+a);
-				} else {
-					reducedStringBatch.add(a);
-					allCreatedStringAnnotations.add(a);
-				}
-			}
-			if (!reducedStringBatch.isEmpty()) dboBasicDao.createBatch(reducedStringBatch);
 		}
 		// Create the dates
 		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();
