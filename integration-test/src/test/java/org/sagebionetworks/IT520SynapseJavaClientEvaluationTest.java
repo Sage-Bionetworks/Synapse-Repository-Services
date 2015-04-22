@@ -1057,19 +1057,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 			
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
-			{
-				QueryTableResults allSubmissions = synapseOne.queryEvaluation("SELECT * FROM evaluation_" + eval1.getId());
-				System.out.println("Headers: "+allSubmissions.getHeaders());
-				System.out.println("---- ROWS ----");
-				for (Row submissionRow : allSubmissions.getRows()) {
-					for (String value : submissionRow.getValues()) {
-						System.out.print(value+" ");
-					}
-					System.out.println();
-				}
-				System.out.println("---- END ROWS ----");
-			}
-			
 		}
 		
 		// verify the results

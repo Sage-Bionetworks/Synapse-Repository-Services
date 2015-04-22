@@ -79,7 +79,8 @@ public class AnnotationDBOUtils {
 						anno.setOwner(ownerId);
 						anno.setAttribute(key);
 						anno.setValue(value.toString());
-						results.add(anno);
+						if (!results.contains(anno))
+							results.add(anno);
 					}
 				}
 			}

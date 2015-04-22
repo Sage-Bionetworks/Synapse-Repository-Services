@@ -12,9 +12,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,11 +29,10 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
@@ -120,9 +122,11 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		dboBasicDao.createNew(onwer);
 
 		// Create the string.
+		Set<DBOStringAnnotation> allCreatedStringAnnotations = new HashSet<DBOStringAnnotation>();
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
 			List<DBOStringAnnotation> stringBatch = AnnotationDBOUtils.createStringAnnotations(ownerId, stringAnnos);
+			allCreatedStringAnnotations.addAll(stringBatch);
 			dboBasicDao.createBatch(stringBatch);
 		}
 		
@@ -138,7 +142,16 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			List<DBODoubleAnnotation> doubleBatch = AnnotationDBOUtils.createFiniteDoubleAnnotations(ownerId, doubleAnnos);
 			if (!doubleBatch.isEmpty()) dboBasicDao.createBatch(doubleBatch);
 			List<DBOStringAnnotation> stringBatch = AnnotationDBOUtils.createStringAnnotationsForNonFiniteDoubles(ownerId, doubleAnnos);
-			if (!stringBatch.isEmpty()) dboBasicDao.createBatch(stringBatch);
+			List<DBOStringAnnotation> reducedStringBatch = new ArrayList<DBOStringAnnotation>();
+			for (DBOStringAnnotation a : stringBatch) {
+				if (allCreatedStringAnnotations.contains(a)) {
+					System.out.println("DBOAnnotationsDaoImpl.replaceAnnotations: skipping duplicate "+a);
+				} else {
+					reducedStringBatch.add(a);
+					allCreatedStringAnnotations.add(a);
+				}
+			}
+			if (!reducedStringBatch.isEmpty()) dboBasicDao.createBatch(reducedStringBatch);
 		}
 		// Create the dates
 		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();

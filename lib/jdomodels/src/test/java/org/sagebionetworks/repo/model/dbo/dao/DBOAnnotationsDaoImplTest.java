@@ -143,6 +143,7 @@ public class DBOAnnotationsDaoImplTest {
 		annos.setId(KeyFactory.keyToString(node.getId()));
 		annos.addAnnotation("keyOne", new Double(123.1));
 		annos.addAnnotation("keyTwo", new Double(345.2));
+		annos.addAnnotation("keyNaN", Double.NaN);
 		// Replace the annotations
 		dboAnnotationsDao.replaceAnnotations(annos);
 		// Now get them back
@@ -150,6 +151,7 @@ public class DBOAnnotationsDaoImplTest {
 		assertNotNull(clone);
 		assertEquals(new Double(123.1), clone.getSingleValue("keyOne"));
 		assertEquals(new Double(345.2), clone.getSingleValue("keyTwo"));
+		assertEquals("NaN", clone.getSingleValue("keyNaN"));
 		
 		// Make sure we can replace them
 		annos = new Annotations();
