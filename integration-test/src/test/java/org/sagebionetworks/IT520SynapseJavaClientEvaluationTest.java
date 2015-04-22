@@ -71,11 +71,13 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
+import org.sagebionetworks.repo.model.query.Row;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -972,6 +974,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag);
 		submissionsToDelete.add(sub2.getId());
 		
+		String doubleHeader = "DOUBLE";
+		double doubleValue = Double.NaN;
 		// add annotations
 		BatchUploadResponse response = null;
 		{
@@ -985,6 +989,15 @@ public class IT520SynapseJavaClientEvaluationTest {
 			stringAnnos.add(sa);
 			Annotations annos = new Annotations();
 			annos.setStringAnnos(stringAnnos);		
+			
+			DoubleAnnotation da = new DoubleAnnotation();
+			da.setIsPrivate(true);
+			da.setKey(doubleHeader);
+			da.setValue(doubleValue);
+			List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+			doubleAnnos.add(da);
+			annos.setDoubleAnnos(doubleAnnos);					
+			
 			status.setScore(0.5);
 			status.setStatus(SubmissionStatusEnum.SCORED);
 			status.setReport("Lorem ipsum");
@@ -1006,6 +1019,15 @@ public class IT520SynapseJavaClientEvaluationTest {
 			stringAnnos.add(sa);
 			Annotations annos = new Annotations();
 			annos.setStringAnnos(stringAnnos);		
+			
+			DoubleAnnotation da = new DoubleAnnotation();
+			da.setIsPrivate(true);
+			da.setKey(doubleHeader);
+			da.setValue(doubleValue);
+			List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+			doubleAnnos.add(da);
+			annos.setDoubleAnnos(doubleAnnos);					
+			
 			status.setScore(0.5);
 			status.setStatus(SubmissionStatusEnum.SCORED);
 			status.setReport("Lorem ipsum");
@@ -1030,7 +1052,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 			long elapsed = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for annotations to be published for query: " + queryString,
 					elapsed < RDS_WORKER_TIMEOUT);
-			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");
+			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");		
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
 		}
@@ -1043,6 +1065,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 		int index = headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
 		assertTrue(rows.get(0).getValues().get(index).contains(sub1.getId()));
 		assertTrue(rows.get(1).getValues().get(index).contains(sub2.getId()));
+		
+		int nanColumnIndex = headers.indexOf(doubleHeader);
+		assertTrue("Expected NaN but found: "+rows.get(0).getValues().get(nanColumnIndex).toString(), 
+				rows.get(0).getValues().get(nanColumnIndex).contains(""+doubleValue));
+		assertTrue("Expected NaN but found: "+rows.get(1).getValues().get(nanColumnIndex).toString(), 
+				rows.get(1).getValues().get(nanColumnIndex).contains(""+doubleValue));
 		
 		
 		// now check that if you delete the submission it stops appearing in the query

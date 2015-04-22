@@ -265,27 +265,38 @@ public class AnnotationsDAOImplTest {
 		da2.setIsPrivate(false);
 		da2.setKey("keyTwo");
 		da2.setValue(2.2);
+		DoubleAnnotation da3 = new DoubleAnnotation();
+		da3.setIsPrivate(false);
+		da3.setKey("keyThree");
+		da3.setValue(Double.NaN);
 		doubleAnnos.add(da1);
 		doubleAnnos.add(da2);
+		doubleAnnos.add(da3);
 		annos.setDoubleAnnos(doubleAnnos);
 		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
+		
+        Annotations finiteAnnos = createAnnotations(evalId, submissionId);
+		List<DoubleAnnotation> finiteDoubleAnnos = new ArrayList<DoubleAnnotation>();
+		doubleAnnos.add(da1);
+		doubleAnnos.add(da2);
+		finiteAnnos.setDoubleAnnos(finiteDoubleAnnos);
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		checkAnnotationsMetadata(clone, submissionId);
-		assertTrue(clone.getDoubleAnnos().containsAll(annos.getDoubleAnnos()));
+		assertTrue(clone.getDoubleAnnos().containsAll(finiteAnnos.getDoubleAnnos()));
 		assertFalse(annos.getStringAnnos().containsAll(clone.getStringAnnos()));
 		
 		// Update
 		doubleAnnos = new ArrayList<DoubleAnnotation>();
-		DoubleAnnotation da3 = new DoubleAnnotation();
-		da3.setIsPrivate(true);
-		da3.setKey("keyThree");
-		da3.setValue(3.3);
+		DoubleAnnotation da4 = new DoubleAnnotation();
+		da4.setIsPrivate(true);
+		da4.setKey("keyThree");
+		da4.setValue(3.3);
 		da1.setValue(da1.getValue() + 3.14);
 		doubleAnnos.add(da1);
-		doubleAnnos.add(da3);
+		doubleAnnos.add(da4);
 		annos.setDoubleAnnos(doubleAnnos);
 		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		

@@ -143,6 +143,7 @@ public class DBOAnnotationsDaoImplTest {
 		annos.setId(KeyFactory.keyToString(node.getId()));
 		annos.addAnnotation("keyOne", new Double(123.1));
 		annos.addAnnotation("keyTwo", new Double(345.2));
+		annos.addAnnotation("keyNaN", Double.NaN); // this should be ignored
 		// Replace the annotations
 		dboAnnotationsDao.replaceAnnotations(annos);
 		// Now get them back
@@ -271,8 +272,8 @@ public class DBOAnnotationsDaoImplTest {
 		annos.setId(KeyFactory.keyToString(node.getId()));
 		annos.addAnnotation("stringKey", "String");
 		
-		LoopingAnnotaionsWoker workerOne = new LoopingAnnotaionsWoker(dboAnnotationsDao, 10, annos);
-		LoopingAnnotaionsWoker workerTwo = new LoopingAnnotaionsWoker(dboAnnotationsDao, 10, annos);
+		LoopingAnnotationsWorker workerOne = new LoopingAnnotationsWorker(dboAnnotationsDao, 10, annos);
+		LoopingAnnotationsWorker workerTwo = new LoopingAnnotationsWorker(dboAnnotationsDao, 10, annos);
 		// Start both workers
 		ExecutorService pool = Executors.newFixedThreadPool(2);
 		Future<Boolean> furtureOne = pool.submit(workerOne);
@@ -298,12 +299,12 @@ public class DBOAnnotationsDaoImplTest {
 	 * @author John
 	 *
 	 */
-	private static class LoopingAnnotaionsWoker implements Callable<Boolean>{
+	private static class LoopingAnnotationsWorker implements Callable<Boolean>{
 		DBOAnnotationsDao dboAnnotationsDao;
 		int count;
 		Annotations annos;
 		
-		public LoopingAnnotaionsWoker(DBOAnnotationsDao dboAnnotationsDao,
+		public LoopingAnnotationsWorker(DBOAnnotationsDao dboAnnotationsDao,
 				int count, Annotations annos) {
 			super();
 			this.dboAnnotationsDao = dboAnnotationsDao;
