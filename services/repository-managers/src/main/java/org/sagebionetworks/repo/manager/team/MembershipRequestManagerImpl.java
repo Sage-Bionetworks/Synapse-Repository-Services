@@ -60,12 +60,14 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			AuthorizationManager authorizationManager,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
 			NotificationManager notificationManager,
+			UserProfileDAO userProfileDAO,
 			PrincipalAliasDAO principalAliasDAO,
 			TeamDAO teamDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
 		this.notificationManager = notificationManager;
+		this.userProfileDAO = userProfileDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.teamDAO=teamDAO;
 	}

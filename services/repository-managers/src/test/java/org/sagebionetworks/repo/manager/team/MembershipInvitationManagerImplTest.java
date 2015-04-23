@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -36,7 +37,7 @@ public class MembershipInvitationManagerImplTest {
 	private TeamDAO mockTeamDAO = null;
 	
 	private UserInfo userInfo = null;
-	private UserInfo adminInfo = null;
+
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 
 	private static final String TEAM_ID = "123";
@@ -62,6 +63,7 @@ public class MembershipInvitationManagerImplTest {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
 		mockNotificationManager = Mockito.mock(NotificationManager.class);
+		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipInvtnSubmissionDAO,
@@ -69,7 +71,6 @@ public class MembershipInvitationManagerImplTest {
 				mockTeamDAO
 				);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
-		adminInfo = new UserInfo(true, -1l);
 	}
 
 	
@@ -148,6 +149,10 @@ public class MembershipInvitationManagerImplTest {
 	public void testAdminCreate() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(null);
 		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockMembershipInvtnSubmissionDAO.create(mis)).thenReturn(mis);
+		Team team = new Team();
+		team.setName("our team");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		membershipInvitationManagerImpl.create(userInfo, mis);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).create(mis);
 	}

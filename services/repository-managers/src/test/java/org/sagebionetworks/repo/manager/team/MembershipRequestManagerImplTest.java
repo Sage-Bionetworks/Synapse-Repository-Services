@@ -9,6 +9,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -26,17 +27,21 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 public class MembershipRequestManagerImplTest {
 	
-	private AuthorizationManager mockAuthorizationManager = null;
-	private MembershipRequestManagerImpl membershipRequestManagerImpl = null;
-	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
+	private AuthorizationManager mockAuthorizationManager;
+	private MembershipRequestManagerImpl membershipRequestManagerImpl;
+	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
 	private NotificationManager mockNotificationManager;
+	private UserProfileDAO mockUserProfileDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private TeamDAO mockTeamDAO;
 
@@ -51,10 +56,13 @@ public class MembershipRequestManagerImplTest {
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
 		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
+		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipRqstSubmissionDAO,
 				mockNotificationManager,
+				mockUserProfileDAO,
 				mockPrincipalAliasDAO,
 				mockTeamDAO
 				);
@@ -151,6 +159,13 @@ public class MembershipRequestManagerImplTest {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId("111");
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
+		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
+		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn("foo");
+		UserProfile up = new UserProfile();
+		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
+		Team team = new Team();
+		team.setName("foo");
+		when(mockTeamDAO.get("111")).thenReturn(team);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
 	}
 	
