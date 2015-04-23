@@ -260,7 +260,7 @@ public class ActivityController extends BaseController{
 	 * that were generatedBy an <a
 	 * href="${org.sagebionetworks.repo.model.provenance.Activity}"
 	 * >Activity</a>. Returns a <a
-	 * href="${org.sagebionetworks.repo.model.PaginatedResults}">
+	 * href="${org.sagebionetworks.reflection.model.PaginatedResults}">
 	 * PaginatedResults</a> of <a
 	 * href="${org.sagebionetworks.repo.model.Reference}">Reference</a> objects.
 	 * </p>
