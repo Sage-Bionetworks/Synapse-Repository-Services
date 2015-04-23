@@ -194,7 +194,7 @@ public class ServletTestHelperUtils {
 			throws Exception {
 		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
 				.readResponseJSON(response);
-		PaginatedResults<T> pr = new PaginatedResults<T>();
+		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
 		pr.initializeFromJSONObject(adapter);
 		return pr;
 	}
