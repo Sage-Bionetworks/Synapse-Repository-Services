@@ -525,6 +525,8 @@ public class TeamManagerImpl implements TeamManager {
 		// clean up and membership requests
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
 		// send confirmation message
+		// TODO the following query must be done BEFORE cleaning up invitations, not after!!
+		// TODO how do you know this is a member who was invited, not an admin accepting an request?
 		Set<String> inviters = getInviters(Long.parseLong(teamId), principalUserInfo.getId());
 		if (!inviters.isEmpty()) sendJoinedTeamMessage(inviters, principalUserInfo, teamId);
 	}
@@ -543,6 +545,7 @@ public class TeamManagerImpl implements TeamManager {
 	private void sendJoinedTeamMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
 		String inviteeUserName = principalAliasDAO.getUserName(invitee.getId());
 		UserProfile userProfile = userProfileDAO.get(invitee.getId().toString());
+		userProfile.setUserName(inviteeUserName);
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayName#", displayName);

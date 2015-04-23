@@ -73,7 +73,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 	
 	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.txt";
-	private static final String TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
+	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
 
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {
 		if (mrs.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
@@ -112,6 +112,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private void sendMembershipRequestMessage(UserInfo requester, Set<String> adminPrincipalIds, String teamId) throws NotFoundException {
 		String requesterUserName = principalAliasDAO.getUserName(requester.getId());
 		UserProfile userProfile = userProfileDAO.get(requester.getId().toString());
+		userProfile.setUserName(requesterUserName);
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayName#", displayName);
@@ -122,7 +123,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		notificationManager.sendNotification(
 				requester, 
 				adminPrincipalIds, 
-				TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT, 
+				TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT, 
 				messageContent, 
 				NotificationManager.TEXT_PLAIN_MIME_TYPE);
 	}

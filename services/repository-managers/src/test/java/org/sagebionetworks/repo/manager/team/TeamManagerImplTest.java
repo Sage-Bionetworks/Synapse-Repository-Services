@@ -592,8 +592,9 @@ public class TeamManagerImplTest {
 		// 987 is not a team admin
 		when(mockAuthorizationManager.canAccess(principalUserInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		UserProfile profile = new UserProfile();
+		profile.setUserName("userName987");
 		when(mockUserProfileDAO.get(principalId)).thenReturn(profile);
-		when(mockPrincipalAliasDAO.getUserName(Long.parseLong(principalId))).thenReturn("userName987");
+		when(mockPrincipalAliasDAO.getUserName(Long.parseLong(principalId))).thenReturn(profile.getUserName());
 		when(mockMembershipInvtnSubmissionDAO.
 				getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong())).thenReturn(1L);
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();

@@ -160,8 +160,9 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId("111");
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
 		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
-		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn("foo");
 		UserProfile up = new UserProfile();
+		up.setUserName("foo");
+		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn(up.getUserName());
 		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
 		Team team = new Team();
 		team.setName("foo");
