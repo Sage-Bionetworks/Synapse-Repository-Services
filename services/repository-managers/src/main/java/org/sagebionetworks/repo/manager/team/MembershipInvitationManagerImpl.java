@@ -81,7 +81,6 @@ public class MembershipInvitationManagerImpl implements
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public MembershipInvtnSubmission create(UserInfo userInfo,
 			MembershipInvtnSubmission mis) throws DatastoreException,
