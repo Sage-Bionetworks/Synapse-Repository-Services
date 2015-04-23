@@ -112,7 +112,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private void sendMembershipRequestMessage(UserInfo requester, Set<String> adminPrincipalIds, String teamId) throws NotFoundException {
 		String requesterUserName = principalAliasDAO.getUserName(requester.getId());
 		UserProfile userProfile = userProfileDAO.get(requester.getId().toString());
-		String displayName = EmailUtils.getDisplayName(requesterUserName, userProfile);
+		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayName#", displayName);
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());

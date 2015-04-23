@@ -34,7 +34,8 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_DETAILS = "#details#";
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
 	
-	public static String getDisplayName(String userName, UserProfile userProfile) {
+	public static String getDisplayName(UserProfile userProfile) {
+		String userName = userProfile.getUserName();
 		if (userName==null) throw new IllegalArgumentException("userName is required");
 		String inviteeFirstName = userProfile.getFirstName();
 		String inviteeLastName = userProfile.getLastName();

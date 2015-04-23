@@ -543,7 +543,7 @@ public class TeamManagerImpl implements TeamManager {
 	private void sendJoinedTeamMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
 		String inviteeUserName = principalAliasDAO.getUserName(invitee.getId());
 		UserProfile userProfile = userProfileDAO.get(invitee.getId().toString());
-		String displayName = EmailUtils.getDisplayName(inviteeUserName, userProfile);
+		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayName#", displayName);
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
