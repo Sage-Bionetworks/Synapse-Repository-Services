@@ -17,9 +17,9 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -167,7 +167,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		h1.setName("Joe");
 		h1.setType("type");
 		results.add(h1);
-		PaginatedResults<EntityHeader> paged = new PaginatedResults<EntityHeader>("/repo/v1/somePath", results, 101, 50, 1, "sortOn", true);
+		PaginatedResults<EntityHeader> paged = new PaginatedResults<EntityHeader>(results, 101);
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		HttpOutputMessage message = new HttpOutputMessage() {
 			@Override

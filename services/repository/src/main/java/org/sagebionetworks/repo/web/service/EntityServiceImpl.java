@@ -7,6 +7,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -111,8 +111,7 @@ public class EntityServiceImpl implements EntityService {
 	
 	@Override
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
-			Long userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request)
+			Long userId, Integer offset, Integer limit, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if(offset == null){
 			offset = 1;
@@ -124,9 +123,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
-
-		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults<VersionInfo>(urlPath, versions.getResults(), versions.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*descending*/false);
+		return new PaginatedResults<VersionInfo>(versions.getResults(), versions.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -541,8 +538,7 @@ public class EntityServiceImpl implements EntityService {
 		if (limit==null) limit = Integer.MAX_VALUE;
 		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
 		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
-		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults(urlPath,  results.getResults(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
+		return new PaginatedResults(results.getResults(), results.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -581,9 +577,7 @@ public class EntityServiceImpl implements EntityService {
 			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
 			entityList.add(entity);
 		}
-		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				nodeResults.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
+		return new PaginatedResults<T>(entityList, nodeResults.getTotalNumberOfResults());
 	}
 
 	@Override

@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
-import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
@@ -24,7 +24,7 @@ public class SchemaUtils {
 	
 	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	RootDoc root) {
 		// Add all know concrete classes from the Factory.
-		AutoGenFactory autoGen = new AutoGenFactory();
+		ServerSideOnlyFactory autoGen = new ServerSideOnlyFactory();
 		Iterator<String> keySet = autoGen.getKeySetIterator();
 		while(keySet.hasNext()){
 			String name = keySet.next();

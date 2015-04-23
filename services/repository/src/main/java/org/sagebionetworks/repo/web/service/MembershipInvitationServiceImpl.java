@@ -3,13 +3,13 @@
  */
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;

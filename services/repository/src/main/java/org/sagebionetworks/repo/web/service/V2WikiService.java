@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;

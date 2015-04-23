@@ -2,12 +2,12 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -55,13 +55,8 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessApproval>(
-				UrlHelpers.ACCESS_APPROVAL, 
 				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
+				(int)results.getTotalNumberOfResults());
 	}
 
 	@WriteTransaction

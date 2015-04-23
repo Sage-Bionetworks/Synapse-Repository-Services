@@ -21,8 +21,6 @@ public class ListWrapper<T extends JSONEntity> implements JSONEntity {
 
 	private static final String CONCRETE_TYPE = "concreteType";
 
-	private static final AutoGenFactory factory = new AutoGenFactory();
-
 	public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.model.ListWrapper\",\"description\":\"A list of objects\",\"name\":\"ListWrapper\",\"properties\":{\"list\":{\"items\":{\"id\":\"org.sagebionetworks.repo.model.Entity\",\"description\":\"This is the base interface that all Entities should implement\",\"name\":\"Entity\",\"properties\":{\"id\":{\"description\":\"The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued\",\"type\":\"string\"},\"createdOn\":{\"description\":\"The date this entity was created.\",\"format\":\"date-time\",\"type\":\"string\"},\"modifiedOn\":{\"description\":\"The date this entity was last modified.\",\"format\":\"date-time\",\"type\":\"string\"},\"parentId\":{\"description\":\"The ID of the parent of this entity\",\"type\":\"string\"},\"etag\":{\"description\":\"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date.\",\"type\":\"string\"},\"createdBy\":{\"description\":\"The user that created this entity.\",\"type\":\"string\"},\"accessControlList\":{\"description\":\"The URI to get to this entity's access control list\",\"transient\":true,\"type\":\"string\"},\"description\":{\"description\":\"The description of this entity.\",\"type\":\"string\"},\"modifiedBy\":{\"description\":\"The user that last modified this entity.\",\"type\":\"string\"},\"name\":{\"description\":\"The name of this entity\",\"type\":\"string\"},\"annotations\":{\"description\":\"The URI to get to this entity's annotations\",\"transient\":true,\"type\":\"string\"},\"uri\":{\"description\":\"The Uniform Resource Identifier (URI) for this entity.\",\"transient\":true,\"type\":\"string\"}},\"type\":\"interface\"},\"description\":\"The list of objects\",\"type\":\"array\"}},\"type\":\"object\"}";
 
 	private List<T> list;
@@ -105,9 +103,9 @@ public class ListWrapper<T extends JSONEntity> implements JSONEntity {
 					if (!childAdapter.isNull(CONCRETE_TYPE)) {
 						// child has an even more concrete type
 						String childClass = childAdapter.getString(CONCRETE_TYPE);
-						newInstance = (T) factory.newInstance(childClass);
+						newInstance = (T) Class.forName(childClass).newInstance();
 					} else {
-						newInstance = (T) factory.newInstance(clazz.getName());
+						newInstance = (T) Class.forName(clazz.getName()).newInstance();
 					}
 					newInstance.initializeFromJSONObject(childAdapter);
 					this.list.add(newInstance);

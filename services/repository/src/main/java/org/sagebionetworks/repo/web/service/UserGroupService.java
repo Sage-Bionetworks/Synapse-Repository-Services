@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.web.service;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;

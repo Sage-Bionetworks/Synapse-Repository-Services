@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.manager.util.Validate;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -32,7 +33,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**

@@ -13,18 +13,17 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Versionable;
@@ -228,7 +227,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the types of entities
 	 */
-	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> ids,
+	public PaginatedResults<EntityHeader> getEntityTypeBatch(List<String> ids,
 			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY_TYPE, userId, null);
@@ -240,7 +239,7 @@ public class EntityServletTestHelper {
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(new JSONObject(
 				response.getContentAsString()));
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
 				EntityHeader.class);
 		results.initializeFromJSONObject(adapter);
 		return results;
@@ -659,7 +658,7 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), UserEvaluationPermissions.class);
 	}
 
-	public BatchResults<EntityHeader> getEntityHeaderByMd5(Long userId,
+	public PaginatedResults<EntityHeader> getEntityHeaderByMd5(Long userId,
 			String md5) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/entity/md5/" + md5, userId, null);
@@ -669,7 +668,7 @@ public class EntityServletTestHelper {
 
 		JSONObjectAdapter adapter = ServletTestHelperUtils
 				.readResponseJSON(response);
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
 				EntityHeader.class);
 		results.initializeFromJSONObject(adapter);
 		return results;
