@@ -8,7 +8,7 @@
 	"properties": {
 		"file": {
 			"type": "string",
-			"description": "The file handle id"
+			"description": "The file entity id"
 		},
 		"resultType": {
 			"name": "S3FileCopyResultType",
@@ -16,6 +16,7 @@
 			"description": "Result type of file copy operation",
 			"enum": [
 				"ERROR",
+				"NOTCOPIED",
 				"UPTODATE",
 				"COPIED"
 			]
@@ -24,9 +25,13 @@
 			"type": "string",
 			"description": "Error message if result type is ERROR"
 		},
+		"resultBucket": {
+			"type": "string",
+			"description": "The bucket of the resulting file if result type is UPTODATE or COPIED"
+		},
 		"resultKey": {
 			"type": "string",
-			"description": "The key of the resulting file if result type is SKIPPED or COPIED"
+			"description": "The key of the resulting file if result type is UPTODATE or COPIED"
 		}
 	}
 }

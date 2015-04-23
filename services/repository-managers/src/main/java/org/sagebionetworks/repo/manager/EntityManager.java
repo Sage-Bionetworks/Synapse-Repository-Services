@@ -65,7 +65,21 @@ public interface EntityManager {
 	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Get the full path of an entity as a '/' separated string
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
+			UnauthorizedException;
+
+	/**
 	 * This version of should only be used for validation, and should not be exposed directly to the caller.
+	 * 
 	 * @param entityId
 	 * @return
 	 * @throws NotFoundException
@@ -379,5 +393,4 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 */
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
-	
 }

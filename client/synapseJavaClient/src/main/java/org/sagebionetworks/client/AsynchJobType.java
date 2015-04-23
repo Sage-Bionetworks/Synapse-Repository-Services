@@ -91,17 +91,6 @@ public enum AsynchJobType {
 	 * Get the URL used to get the results for this job type.
 	 * 
 	 * @param token
-	 * @param request
-	 * @return
-	 */
-	public String getResultUrl(String token) {
-		return getResultUrl(token, (String) null);
-	}
-
-	/**
-	 * Get the URL used to get the results for this job type.
-	 * 
-	 * @param token
 	 * @param entityId
 	 * @return
 	 */

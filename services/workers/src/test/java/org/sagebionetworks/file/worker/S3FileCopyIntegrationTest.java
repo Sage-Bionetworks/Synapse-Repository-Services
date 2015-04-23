@@ -170,14 +170,40 @@ public class S3FileCopyIntegrationTest {
 		assertTrue(status.getResponseBody() instanceof S3FileCopyResults);
 		S3FileCopyResults results = (S3FileCopyResults) status.getResponseBody();
 		assertEquals(testFileNames.length, results.getResults().size());
-		assertEquals(testFileNames.length, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		for (int i = 0; i < testFileNames.length; i++) {
+			assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(i).getResultType());
 			TestStreams.assertEquals(TestStreams.randomStream(200, 123L + i), s3Client.getObject(DESTINATION_TEST_BUCKET, testFileNames[i])
 					.getObjectContent());
-			assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(i).getResultType());
 			s3ToDelete.add(results.getResults().get(i).getResultKey());
 		}
+	}
+
+	@Test
+	public void testCopyFailOnOneError() throws Exception {
+		S3FileCopyRequest request = new S3FileCopyRequest();
+		request.setFiles(Lists.<String> newArrayList());
+		request.setBucket(DESTINATION_TEST_BUCKET);
+		request.setOverwrite(false);
+
+		for (int i = 0; i < testFileNames.length; i++) {
+			String fileEntityId = createFileEntity(i);
+		request.getFiles().add(fileEntityId);
+		}
+		request.getFiles().add("syn333333333333");
+
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(adminUserInfo, status);
+		assertNotNull(status);
+		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof S3FileCopyResults);
+		S3FileCopyResults results = (S3FileCopyResults) status.getResponseBody();
+		assertEquals(testFileNames.length + 1, results.getResults().size());
+		for (int i = 0; i < testFileNames.length; i++) {
+			assertEquals(S3FileCopyResultType.NOTCOPIED, results.getResults().get(i).getResultType());
+		}
+		assertEquals(S3FileCopyResultType.ERROR, results.getResults().get(testFileNames.length).getResultType());
 	}
 
 	@Test
@@ -209,37 +235,6 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	@Test
-	public void testOverwriteSuccess() throws Exception {
-		S3FileCopyRequest request = new S3FileCopyRequest();
-		request.setFiles(Lists.<String> newArrayList());
-		request.setBucket(DESTINATION_TEST_BUCKET);
-		request.setOverwrite(true);
-
-		String fileEntityId = createFileEntity(0);
-		request.getFiles().add(fileEntityId);
-
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
-		// Wait for the job to complete.
-		status = waitForStatus(adminUserInfo, status);
-		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
-		S3FileCopyResults results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
-		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
-		s3ToDelete.add(results.getResults().get(0).getResultKey());
-
-		// and overwrite all
-		status = asynchJobStatusManager.startJob(adminUserInfo, request);
-		// Wait for the job to complete.
-		status = waitForStatus(adminUserInfo, status);
-		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
-		results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
-		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
-	}
-
-	@Test
 	public void testUpdateSuccess() throws Exception {
 		S3FileCopyRequest request = new S3FileCopyRequest();
 		request.setFiles(Lists.<String> newArrayList());
@@ -254,8 +249,6 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		S3FileCopyResults results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
 		s3ToDelete.add(results.getResults().get(0).getResultKey());
 
@@ -265,8 +258,6 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		assertEquals(S3FileCopyResultType.UPTODATE, results.getResults().get(0).getResultType());
 
 		// and overwrite all
@@ -281,19 +272,17 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
 	}
 
 	@Test
-	public void testUpdateTooSmallForSkip() throws Exception {
+	public void testOverwriteSuccess() throws Exception {
 		S3FileCopyRequest request = new S3FileCopyRequest();
 		request.setFiles(Lists.<String> newArrayList());
 		request.setBucket(DESTINATION_TEST_BUCKET);
 		request.setOverwrite(true);
 
-		String fileEntityId = createFileEntity(0);
+		String fileEntityId = createFileEntity(0, 0, 200, null);
 		request.getFiles().add(fileEntityId);
 
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
@@ -301,10 +290,13 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		S3FileCopyResults results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
 		s3ToDelete.add(results.getResults().get(0).getResultKey());
+
+		entityManager.deleteEntity(adminUserInfo, fileEntityId);
+		entities.remove(fileEntityId);
+		fileEntityId = createFileEntity(0, 1000, 200, null);
+		request.getFiles().set(0, fileEntityId);
 
 		// and overwrite all
 		status = asynchJobStatusManager.startJob(adminUserInfo, request);
@@ -312,8 +304,6 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
 	}
 
@@ -332,8 +322,6 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		S3FileCopyResults results = (S3FileCopyResults) status.getResponseBody();
-		assertEquals(1, results.getSuccessCount().intValue());
-		assertEquals(0, results.getErrorCount().intValue());
 		assertEquals(S3FileCopyResultType.COPIED, results.getResults().get(0).getResultType());
 		s3ToDelete.add(results.getResults().get(0).getResultKey());
 
@@ -341,7 +329,9 @@ public class S3FileCopyIntegrationTest {
 		status = asynchJobStatusManager.startJob(adminUserInfo, request);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
-		assertEquals(AsynchJobState.FAILED, status.getJobState());
+		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
+		results = (S3FileCopyResults) status.getResponseBody();
+		assertEquals(S3FileCopyResultType.ERROR, results.getResults().get(0).getResultType());
 	}
 
 	private String createFileEntity(int index) throws IOException, ServiceUnavailableException {

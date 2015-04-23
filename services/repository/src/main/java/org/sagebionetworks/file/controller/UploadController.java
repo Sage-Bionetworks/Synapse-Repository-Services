@@ -592,7 +592,8 @@ public class UploadController extends BaseController {
 
 	/**
 	 * Asynchronously start a copy of large files to a bucket that is owned by the user. This is used for large files
-	 * that have their requestor pays set. Use the returned job id and <a
+	 * that have their requestor pays set. See www.synapse.org//#!HelpPages:CreatingADownloadBucket for details on how
+	 * to set up a download bucket. Use the returned job id and <a
 	 * href="${GET.file.s3FileCopy.async.get.asyncToken}">GET /file/s3FileCopy/async/get</a> to get the results of the
 	 * query
 	 * 

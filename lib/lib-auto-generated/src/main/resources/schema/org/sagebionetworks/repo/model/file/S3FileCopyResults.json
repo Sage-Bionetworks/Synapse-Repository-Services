@@ -12,14 +12,6 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.file.S3FileCopyResult"
 			}
-		},
-		"successCount": {
-			"type": "integer",
-			"description": "Count of successful copied or skipped files"
-		},
-		"errorCount": {
-			"type": "integer",
-			"description": "Count of failed file copies"
 		}
 	}
 }

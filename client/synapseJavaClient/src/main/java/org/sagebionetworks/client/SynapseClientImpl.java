@@ -2473,8 +2473,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException {
-		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, tableId);
+	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
 	}
 
 	/**
@@ -3665,7 +3665,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId)
 			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
-		String url = type.getResultUrl(jobId);
+		String url = type.getResultUrl(jobId, entityId);
 		return getAsynchJobResponse(url, type.getReponseClass());
 	}
 

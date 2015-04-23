@@ -637,7 +637,7 @@ public interface SynapseClient extends BaseClient {
 	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
 			throws SynapseException;
 
-	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken, String tableId) throws SynapseException, SynapseResultNotReadyException;
+	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
 	public WikiPage createWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws JSONObjectAdapterException,

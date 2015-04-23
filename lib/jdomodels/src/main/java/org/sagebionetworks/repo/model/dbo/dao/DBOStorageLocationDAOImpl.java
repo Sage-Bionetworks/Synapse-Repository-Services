@@ -130,6 +130,10 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 				create(defaultStorageLocationSetting);
 			} catch (DuplicateKeyException e2) {
 				// someone else got there first
+			} catch (IllegalArgumentException e2) {
+				if (!(e2.getCause() instanceof DuplicateKeyException)) {
+					throw e2;
+				}
 			}
 		}
 	}

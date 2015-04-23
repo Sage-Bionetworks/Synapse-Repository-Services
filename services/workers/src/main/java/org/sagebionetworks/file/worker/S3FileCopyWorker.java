@@ -15,12 +15,11 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.MultipartManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -30,12 +29,13 @@ import org.sagebionetworks.repo.model.file.S3FileCopyResult;
 import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.AmazonErrorCodes;
-import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -75,12 +75,14 @@ public class S3FileCopyWorker extends AbstractWorker {
 	private AuthorizationManager authorizationManager;
 
 	private class S3CopyFileProgressCallback implements ProgressCallback<Long> {
+		private final Message message;
 		private final long progressTotal;
 		private final String fileName;
 		private final AsynchronousJobStatus status;
 		private long progressCurrent = 0L;
 
-		S3CopyFileProgressCallback(long progressTotal, long progressCurrent, String fileName, AsynchronousJobStatus status) {
+		S3CopyFileProgressCallback(Message message, long progressTotal, long progressCurrent, String fileName, AsynchronousJobStatus status) {
+			this.message = message;
 			this.progressTotal = progressTotal;
 			this.progressCurrent = progressCurrent;
 			this.fileName = fileName;
@@ -91,10 +93,40 @@ public class S3FileCopyWorker extends AbstractWorker {
 		public void progressMade(Long sizeTransfered) {
 			progressCurrent += sizeTransfered;
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Copying " + fileName);
+			getWorkerProgress().progressMadeForMessage(message);
 		}
 
 		long getProgressCurrent() {
 			return progressCurrent;
+		}
+	}
+
+	private static class Entry {
+		private S3FileHandle fileHandle;
+		private S3FileCopyResult fileCopyResult;
+
+		public Entry(String fileEntityId, String destinationBucket) {
+			fileCopyResult = new S3FileCopyResult();
+			fileCopyResult.setFile(fileEntityId);
+			fileCopyResult.setResultBucket(destinationBucket);
+			fileCopyResult.setResultType(S3FileCopyResultType.NOTCOPIED);
+		}
+
+		public S3FileCopyResult getFileCopyResult() {
+			return fileCopyResult;
+		}
+
+		public S3FileHandle getFileHandle() {
+			return fileHandle;
+		}
+
+		public void setFileHandle(S3FileHandle fileHandle) {
+			this.fileHandle = fileHandle;
+		}
+
+		public void setError(String errorMessage) {
+			fileCopyResult.setResultType(S3FileCopyResultType.ERROR);
+			fileCopyResult.setErrorMessage(errorMessage);
 		}
 	}
 
@@ -112,132 +144,50 @@ public class S3FileCopyWorker extends AbstractWorker {
 			S3FileCopyRequest request = (S3FileCopyRequest) status.getRequestBody();
 			ValidateArgument.required(request.getBucket(), "bucket");
 
-			long progressCurrent = 0L;
 			long progressTotal = 0L;
-
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 0L, "Intializing...");
-
-			List<Pair<S3FileHandle, S3FileCopyResult>> files = Lists.newArrayListWithCapacity(request.getFiles().size());
-			long successCount = 0;
-			long errorCount = 0;
-
+			List<Entry> files = Lists.newArrayListWithCapacity(request.getFiles().size());
 			for (String fileEntityId : request.getFiles()) {
-				Entity entity = entityManager.getEntity(userInfo, fileEntityId);
-				if (!(entity instanceof FileEntity)) {
-					throw new IllegalArgumentException("Entity " + fileEntityId
-							+ " is not a FileEntity. This operation can only handle FileEntity types");
-				}
-				FileEntity fileEntity = (FileEntity) entity;
+				Entry entry = new Entry(fileEntityId, request.getBucket());
+				files.add(entry);
 
-				List<EntityHeader> entityPath = entityManager.getEntityPath(userInfo, fileEntityId);
-				int startIndex = 1;// we skip the root node
-				StringBuilder path = new StringBuilder(256);
-				if (entityPath.size() > startIndex) {
-					for (int i = startIndex; i < entityPath.size(); i++) {
-						if (path.length() > 0) {
-							path.append(MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR);
-						}
-						path.append(entityPath.get(i).getName());
-					}
-				} else {
-					path.append(fileEntity.getName());
-				}
+				asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 0L, "Intializing " + fileEntityId);
 
-				FileHandleResults fileHandleResults = fileHandleManager.getAllFileHandles(
-						Collections.singletonList(fileEntity.getDataFileHandleId()), false);
-
-				FileHandle fileHandle = Iterables.getOnlyElement(fileHandleResults.getList());
-
-				if (!(fileHandle instanceof S3FileHandle)) {
-					throw new IllegalArgumentException("File " + fileHandle.getId()
-							+ " is not an S3FileHandle. This operation can only handle S3FileHandle types");
-				}
-				S3FileHandle s3FileHandle = (S3FileHandle) Iterables.getOnlyElement(fileHandleResults.getList());
-
-				S3FileCopyResult result = new S3FileCopyResult();
-				result.setFile(s3FileHandle.getId());
-				result.setResultKey(path.toString());
-
-				files.add(Pair.create(s3FileHandle, result));
-
-				AuthorizationStatus auth = authorizationManager.canAccess(userInfo, fileEntityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-				if (!auth.getAuthorized()) {
-					result.setResultType(S3FileCopyResultType.ERROR);
-					result.setErrorMessage(auth.getReason());
-					errorCount++;
-				} else {
-					ObjectMetadata originalFile = s3Client.getObjectMetadata(s3FileHandle.getBucketName(), s3FileHandle.getKey());
-					ObjectMetadata existingCopy = null;
-					try {
-						existingCopy = s3Client.getObjectMetadata(request.getBucket(), result.getResultKey());
-					} catch (AmazonServiceException e) {
-						if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
-							throw new IllegalArgumentException(
-									"The bucket "
-											+ request.getBucket()
-											+ " could not be found or accessed. Check the name and permissions on that bucket. See www.synapse.org//#!HelpPages:CreatingADownloadBucket for details on how to set up a download bucket.");
-						} else if (AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())
-								|| AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode())) {
-							// just doesn't exist. Nothing needs doing
-						} else {
-							log.error("Error getting s3 object info: " + e.getMessage(), e);
-						}
-					} catch (AmazonClientException e) {
-						log.error("Error getting s3 object info: " + e.getMessage(), e);
-					}
-
-					boolean shouldCopy = true;
-					if (existingCopy != null) {
-						if (BooleanUtils.isNotTrue(request.getOverwrite())) {
-							throw new IllegalArgumentException("The file " + s3FileHandle.getFileName()
-									+ " already exists in the destination bucket " + request.getBucket() + " under key "
-									+ result.getResultKey() + ". Either delete that key in your S3 bucket or specify overwrite=true.");
-						}
-						if (originalFile.getETag() != null && originalFile.getETag().equals(existingCopy.getETag())) {
-							// the file already exists, so lets not copy it again
-							shouldCopy = false;
-							result.setResultType(S3FileCopyResultType.UPTODATE);
-							successCount++;
-						}
-					}
-					if (shouldCopy) {
-						progressTotal += s3FileHandle.getContentSize();
-					}
-				}
+				progressTotal += precheckFile(entry, userInfo, BooleanUtils.isTrue(request.getOverwrite()));
 			}
 
-			// Start the progress
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, progressTotal, "Starting...");
-			for (Pair<S3FileHandle, S3FileCopyResult> file : files) {
-				if (file.getSecond().getResultType() == null) {
-					S3CopyFileProgressCallback progress = new S3CopyFileProgressCallback(progressTotal, progressCurrent, file.getFirst()
-							.getFileName(), status);
-					try {
-						copyFile(file.getFirst(), request.getBucket(), file.getSecond().getResultKey(), progress);
-						file.getSecond().setResultType(S3FileCopyResultType.COPIED);
-						successCount++;
-						progressCurrent = progress.getProgressCurrent();
-					} catch (Throwable e) {
-						file.getSecond().setResultType(S3FileCopyResultType.ERROR);
-						file.getSecond().setErrorMessage(e.getMessage());
-						errorCount++;
-						progressTotal -= file.getFirst().getContentSize();
-						asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, progressTotal, "Error on file "
-								+ file.getFirst().getFileName());
-						log.error("S3 file copy failed: " + e.getMessage(), e);
+			boolean skipRestOfCopy = anyErrors(files);
+
+			if (!skipRestOfCopy) {
+				// Start the progress
+				long progressCurrent = 0L;
+				asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
+				for (Entry file : files) {
+					if (file.getFileCopyResult().getResultType() == S3FileCopyResultType.NOTCOPIED) {
+						S3CopyFileProgressCallback progress = new S3CopyFileProgressCallback(message, progressTotal, progressCurrent, file
+								.getFileHandle().getFileName(), status);
+						try {
+							copyFile(file.getFileHandle(), file.getFileCopyResult().getResultBucket(), file.getFileCopyResult()
+									.getResultKey(), progress);
+							file.getFileCopyResult().setResultType(S3FileCopyResultType.COPIED);
+							progressCurrent = progress.getProgressCurrent();
+						} catch (Throwable e) {
+							file.setError(e.getMessage());
+							progressTotal -= file.getFileHandle().getContentSize();
+							asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Error on file "
+									+ file.getFileHandle().getFileName());
+							log.error("S3 file copy failed: " + e.getMessage(), e);
+						}
 					}
 				}
 			}
 
 			S3FileCopyResults resultBody = new S3FileCopyResults();
-			resultBody.setResults(Transform.toList(files, new Function<Pair<S3FileHandle, S3FileCopyResult>, S3FileCopyResult>() {
+			resultBody.setResults(Transform.toList(files, new Function<Entry, S3FileCopyResult>() {
 				@Override
-				public S3FileCopyResult apply(Pair<S3FileHandle, S3FileCopyResult> input) {
-					return input.getSecond();
+				public S3FileCopyResult apply(Entry input) {
+					return input.getFileCopyResult();
 				}
 			}));
-			resultBody.setErrorCount(errorCount);
-			resultBody.setSuccessCount(successCount);
 			// done
 			asynchJobStatusManager.setComplete(status.getJobId(), resultBody);
 			return message;
@@ -249,15 +199,111 @@ public class S3FileCopyWorker extends AbstractWorker {
 		}
 	}
 
+	private boolean anyErrors(List<Entry> files) {
+		for (Entry file : files) {
+			if (file.getFileCopyResult().getResultType().equals(S3FileCopyResultType.ERROR)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private long precheckFile(Entry entry, UserInfo userInfo, boolean overwrite) {
+		Entity entity;
+		try {
+			entity = entityManager.getEntity(userInfo, entry.getFileCopyResult().getFile());
+		} catch (NotFoundException e) {
+			entry.setError(e.getMessage());
+			return 0;
+		} catch (UnauthorizedException e) {
+			entry.setError(e.getMessage());
+			return 0;
+		}
+		if (!(entity instanceof FileEntity)) {
+			entry.setError("Entity " + entry.getFileCopyResult().getFile()
+					+ " is not a FileEntity. This operation can only handle FileEntity types");
+			return 0;
+		}
+		FileEntity fileEntity = (FileEntity) entity;
+
+		String path = entityManager.getEntityPathAsFilePath(userInfo, entry.getFileCopyResult().getFile());
+		entry.getFileCopyResult().setResultKey(path);
+
+		FileHandleResults fileHandleResults = fileHandleManager.getAllFileHandles(
+				Collections.singletonList(fileEntity.getDataFileHandleId()), false);
+
+		FileHandle fileHandle = Iterables.getOnlyElement(fileHandleResults.getList());
+
+		if (!(fileHandle instanceof S3FileHandle)) {
+			entry.setError("File " + fileHandle.getId() + " is not an S3FileHandle. This operation can only handle S3FileHandle types");
+			return 0;
+		}
+		S3FileHandle s3FileHandle = (S3FileHandle) fileHandle;
+		entry.setFileHandle(s3FileHandle);
+
+		AuthorizationStatus auth = authorizationManager.canAccess(userInfo, entry.getFileCopyResult().getFile(), ObjectType.ENTITY,
+				ACCESS_TYPE.DOWNLOAD);
+		if (!auth.getAuthorized()) {
+			entry.setError(auth.getReason());
+			return 0;
+		}
+
+		ObjectMetadata originalFile = s3Client.getObjectMetadata(s3FileHandle.getBucketName(), s3FileHandle.getKey());
+		try {
+			ObjectMetadata existingCopy = s3Client.getObjectMetadata(entry.getFileCopyResult().getResultBucket(), entry.getFileCopyResult()
+					.getResultKey());
+			if (!overwrite) {
+				entry.setError("The file " + s3FileHandle.getFileName() + " already exists in the destination bucket "
+						+ entry.getFileCopyResult().getResultBucket() + " under key " + entry.getFileCopyResult().getResultKey()
+						+ ". Either delete that key in your S3 bucket or specify overwrite=true.");
+				return 0;
+			}
+			// check the etag, which is not a good indicator, as it is very much dependent on how the file was
+			// uploaded (multipart uploads and part size)
+			if (originalFile.getETag() != null && originalFile.getETag().equals(existingCopy.getETag())) {
+				// the file already exists, so lets not copy it again
+				entry.getFileCopyResult().setResultType(S3FileCopyResultType.UPTODATE);
+				return 0;
+			}
+		} catch (AmazonServiceException e) {
+			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
+				throw new IllegalArgumentException(
+						"The bucket "
+								+ entry.getFileCopyResult().getResultBucket()
+								+ " could not be found or accessed. Check the name and permissions on that bucket. See www.synapse.org//#!HelpPages:CreatingADownloadBucket for details on how to set up a download bucket.");
+			} else if (AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode())) {
+				// just doesn't exist. Nothing needs doing
+			} else {
+				log.error("Error getting s3 object info: " + e.getMessage(), e);
+			}
+		} catch (AmazonClientException e) {
+			log.error("Error getting s3 object info: " + e.getMessage(), e);
+		}
+
+		return s3FileHandle.getContentSize();
+	}
+
 	// package protected for testing
 	void copyFile(S3FileHandle s3FileHandle, String destinationBucket, String destinationKey, ProgressCallback<Long> progress) {
 
 		// Get object size.
 		ObjectMetadata metadataResult = s3Client.getObjectMetadata(new GetObjectMetadataRequest(s3FileHandle.getBucketName(), s3FileHandle
 				.getKey()));
-		long objectSize = metadataResult.getContentLength(); // in bytes
 
+		boolean useSingleUpload = false;
+
+		long objectSize = metadataResult.getContentLength(); // in bytes
 		if (objectSize < MAX_S3_COPY_PART_SIZE) {
+			useSingleUpload = true; // not needed for small uploads
+			// s3 calculates the etag different dependent on how the file is uploaded. We try to preserve the same etag
+			// here. etag is either hex encoded md5 (single upload) or hex encoded md5 - number of parts (multipart
+			// upload). The s3 docs say to look for that '-' as the distinguisher
+			if (metadataResult.getETag() != null && metadataResult.getETag().indexOf('-') >= 0) {
+				useSingleUpload = false;
+			}
+		}
+
+		if (useSingleUpload) {
 			// small enough to do a simple copy
 			CopyObjectRequest copyObjectRequest = new CopyObjectRequest(s3FileHandle.getBucketName(), s3FileHandle.getKey(),
 					destinationBucket, destinationKey).withCannedAccessControlList(CannedAccessControlList.BucketOwnerFullControl);
