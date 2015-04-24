@@ -64,10 +64,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-<<<<<<< HEAD
-=======
 import org.sagebionetworks.repo.transactions.WriteTransaction;
->>>>>>> develop
 
 /**
  * @author brucehoff
