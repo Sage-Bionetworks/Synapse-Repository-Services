@@ -202,7 +202,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 				EntityHeader header = new EntityHeader();
 				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 				header.setName(rs.getString(COL_NODE_NAME));
-				header.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)).getEntityType());
+				header.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)).getEntityTypeClassName());
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				return header;

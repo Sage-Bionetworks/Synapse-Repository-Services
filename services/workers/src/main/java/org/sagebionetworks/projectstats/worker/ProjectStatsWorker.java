@@ -55,7 +55,7 @@ public class ProjectStatsWorker implements Worker {
 	static private Logger log = LogManager.getLogger(ProjectStatsWorker.class);
 	private List<Message> messages;
 	private WorkerProgress workerProgress;
-	private EntityType projectEntityType = EntityType.getNodeTypeForClass(Project.class);
+	private EntityType projectEntityType = EntityType.getEntityTypeForClass(Project.class);
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDao;

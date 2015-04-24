@@ -364,13 +364,13 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
-			EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+			EntityType type = EntityType.getEntityTypeForClass(entity.getClass());
 			// The last element should match this entity
 			EntityHeader myData = path.get(path.size()-1);
 			assertNotNull(myData);
 			assertEquals(entity.getId(), myData.getId());
 			assertEquals(entity.getName(), myData.getName());
-			assertEquals(type.getEntityType(), myData.getType());
+			assertEquals(type.getEntityTypeClassName(), myData.getType());
 		}
 	}
 	

@@ -903,7 +903,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		header.setVersionNumber(versionNumber);
 		header.setVersionLabel(versionLabel);
 		EntityType type = ptn.getType();
-		header.setType(type.getEntityType());
+		header.setType(type.getEntityTypeClassName());
 		return header;
 	}
 	/**

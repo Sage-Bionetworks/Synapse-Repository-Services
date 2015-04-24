@@ -101,7 +101,7 @@ public class EntityServiceImpl implements EntityService {
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
 		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne(paging.getOffset(), paging.getLimit());
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type =  EntityType.getNodeTypeForClass(clazz);
+		EntityType type =  EntityType.getEntityTypeForClass(clazz);
 		// First build the query that will be used
 		BasicQuery query = QueryUtils.createFindPaginagedOfType(paging, type);
 		// Execute the query and convert to entities.
@@ -138,7 +138,7 @@ public class EntityServiceImpl implements EntityService {
 	public Entity getEntity(Long userId, String id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityHeader header = entityManager.getEntityHeader(userInfo, id, null);
-		EntityType type = EntityType.getEntityType(header.getType());
+		EntityType type = EntityType.getEntityTypeForClassName(header.getType());
 		return getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
 	}
 	/**
@@ -155,7 +155,7 @@ public class EntityServiceImpl implements EntityService {
 	 */
 	public <T extends Entity> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException{
 		// Determine the object type from the url.
-		EntityType type = EntityType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getEntityTypeForClass(clazz);
 		T entity = entityManager.getEntity(info, id, clazz);
 		// Do all of the type specific stuff.
 		this.doAddServiceSpecificMetadata(info, entity, type, request, eventType);
@@ -203,7 +203,7 @@ public class EntityServiceImpl implements EntityService {
 			Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Determine the object type from the url.
-		EntityType type = EntityType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getEntityTypeForClass(clazz);
 		T entity = entityManager.getEntityForVersion(info, id, versionNumber, clazz);
 		// Do all of the type specific stuff.
 		this.doAddServiceSpecificMetadata(info, entity, type, request, EventType.GET);
@@ -233,7 +233,7 @@ public class EntityServiceImpl implements EntityService {
 			UnauthorizedException, NotFoundException {
 		// Determine the object type from the url.
 		Class<? extends T> clazz = (Class<? extends T>) newEntity.getClass();
-		EntityType type = EntityType.getNodeTypeForClass(newEntity.getClass());
+		EntityType type = EntityType.getEntityTypeForClass(newEntity.getClass());
 		// Fetch the provider that will validate this entity.
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -289,7 +289,7 @@ public class EntityServiceImpl implements EntityService {
 		if(updatedEntity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(updatedEntity.getId() == null) throw new IllegalArgumentException("Updated Entity cannot have a null id");
 		// Get the type for this entity.
-		EntityType type = EntityType.getNodeTypeForClass(updatedEntity.getClass());
+		EntityType type = EntityType.getEntityTypeForClass(updatedEntity.getClass());
 		Class<? extends T> clazz = (Class<? extends T>) updatedEntity.getClass();
 		// Fetch the provider that will validate this entity.
 		// Get the user
@@ -325,7 +325,7 @@ public class EntityServiceImpl implements EntityService {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the entity we are deleting
-		EntityType type = EntityType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getEntityTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntity(userInfo, entityId);
@@ -358,7 +358,7 @@ public class EntityServiceImpl implements EntityService {
 			Long versionNumber, Class<? extends Entity> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the entity we are deleting
-		EntityType type = EntityType.getNodeTypeForClass(classForType);
+		EntityType type = EntityType.getEntityTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
@@ -422,7 +422,7 @@ public class EntityServiceImpl implements EntityService {
 	public <T extends Entity> List<T> getEntityChildrenOfType(Long userId,
 			String parentId, Class<? extends T> childClass, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType childType =  EntityType.getNodeTypeForClass(childClass);
+		EntityType childType =  EntityType.getEntityTypeForClass(childClass);
 		// For this case we want all children so build up the paging as such
 		PaginatedParameters paging = new PaginatedParameters(0, Long.MAX_VALUE, null, true);
 		BasicQuery query = QueryUtils.createChildrenOfTypePaginated(parentId, paging, childType);
@@ -435,7 +435,7 @@ public class EntityServiceImpl implements EntityService {
 			Long userId, String parentId, Class<? extends T> clazz,
 			PaginatedParameters paging, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		EntityType childType =  EntityType.getNodeTypeForClass(clazz);
+		EntityType childType =  EntityType.getEntityTypeForClass(clazz);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		BasicQuery query = QueryUtils.createChildrenOfTypePaginated(parentId, paging, childType);
 		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
