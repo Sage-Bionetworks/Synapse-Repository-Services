@@ -22,6 +22,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.junit.BeforeAll;
+import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -48,7 +50,6 @@ import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
@@ -61,7 +62,7 @@ import com.google.common.collect.Lists;
  * @author John
  * 
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(ParallelizedSpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class S3FileCopyIntegrationTest {
 
@@ -104,18 +105,21 @@ public class S3FileCopyIntegrationTest {
 			"test" + UUID.randomUUID() + ".unknown" };
 	private List<String> entities = Lists.newArrayList();
 
-	@Before
-	public void before() throws Exception {
+	@BeforeAll
+	public void beforeAll() {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
 
+		s3Client.createBucket(DESTINATION_TEST_BUCKET);
+	}
+
+	@Before
+	public void before() throws Exception {
 		s3FileCopyWorker = factory.createBean(S3FileCopyWorker.class);
 
 		// Create a file
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		// First upload a file that we want to generate a preview for.
-		s3Client.createBucket(DESTINATION_TEST_BUCKET);
 	}
 
 	@After
@@ -187,7 +191,7 @@ public class S3FileCopyIntegrationTest {
 
 		for (int i = 0; i < testFileNames.length; i++) {
 			String fileEntityId = createFileEntity(i);
-		request.getFiles().add(fileEntityId);
+			request.getFiles().add(fileEntityId);
 		}
 		request.getFiles().add("syn333333333333");
 

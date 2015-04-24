@@ -17,8 +17,7 @@
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
 					<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-						<!-- timeout is one day, these copies can take long? -->
-						<property name="timeoutMS" value="86400000" />
+						<property name="timeoutMS" value="60000" />
 						<property name="maxNumberRunners" value="20" />
 						<property name="semaphoreKey" value="s3FileCopy" />		
 						<property name="runner">
