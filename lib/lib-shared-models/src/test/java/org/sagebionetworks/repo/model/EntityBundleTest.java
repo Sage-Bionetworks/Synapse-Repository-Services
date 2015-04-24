@@ -82,21 +82,19 @@ public class EntityBundleTest {
 	 * Create an EntityBundle filled with dummy data
 	 */
 	public static EntityBundle createDummyEntityBundle() {
-		AutoGenFactory autoGenFactory = new AutoGenFactory();
 		
 		// Entities
-		Project project = (Project) autoGenFactory.newInstance(Project.class.getName());
+		Project project = new Project();
 		project.setName("Dummy Project");		
 		
 		// Permissions
-		UserEntityPermissions permissions = (UserEntityPermissions) 
-				autoGenFactory.newInstance(UserEntityPermissions.class.getName());
+		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setOwnerPrincipalId(123L);
 		permissions.setCanView(true);
 		
 		// Path
-		EntityPath path = (EntityPath) 
-				autoGenFactory.newInstance(EntityPath.class.getName());
+		EntityPath path = new EntityPath(); 
+
 		List<EntityHeader> pathHeaders = new ArrayList<EntityHeader>();		
 		EntityHeader rootHeader = new EntityHeader();
 		rootHeader.setId("1");
@@ -113,13 +111,11 @@ public class EntityBundleTest {
 		path.setPath(pathHeaders);
 		
 		// Access Control List
-		AccessControlList acl = (AccessControlList) 
-				autoGenFactory.newInstance(AccessControlList.class.getName());
+		AccessControlList acl = new AccessControlList(); 
 		acl.setCreatedBy("John Doe");
 		acl.setId("syn456");
 		
-		AccessControlList benefactorAcl = (AccessControlList) 
-				autoGenFactory.newInstance(AccessControlList.class.getName());
+		AccessControlList benefactorAcl = new AccessControlList(); 
 		benefactorAcl.setCreatedBy("John Doe");
 		benefactorAcl.setId("syn456");
 		
@@ -135,7 +131,7 @@ public class EntityBundleTest {
 		// Referencing Entities
 		List<EntityHeader> rb = new ArrayList<EntityHeader>(NUM_PAGINATED_RESULTS);
 		for (int i = 0; i < NUM_PAGINATED_RESULTS; i++) {
-			EntityHeader eh = (EntityHeader) autoGenFactory.newInstance(EntityHeader.class.getName());
+			EntityHeader eh = new EntityHeader();
 			eh.setId("syn" + i);
 			eh.setName("EntityHeader " + i);
 			eh.setType("Folder");

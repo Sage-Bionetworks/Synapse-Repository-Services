@@ -15,7 +15,7 @@ public class ObjectTypeTest {
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
 			assertNotNull(type.getClassForType());
-			EntityType result = type.getNodeTypeForClass(type.getClassForType());
+			EntityType result = type.getEntityTypeForClass(type.getClassForType());
 			assertEquals(type, result);
 		}
 	}

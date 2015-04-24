@@ -31,7 +31,7 @@ public class MetadataProviderFactoryTest extends AbstractAutowiredControllerTest
 	
 	@Test
 	public void testGetProjectMetadataProvider() {
-		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Project.class));
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getEntityTypeForClass(Project.class));
 		assertNotNull(providers);
 		assertEquals(1, providers.size());
 	}

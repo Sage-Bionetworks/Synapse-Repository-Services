@@ -12,9 +12,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,11 +29,10 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
@@ -135,8 +137,8 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		// Create the double
 		Map<String, List<Double>> doubleAnnos = annotations.getDoubleAnnotations();
 		if(doubleAnnos != null && doubleAnnos.size() > 0){
-			List<DBODoubleAnnotation> batch = AnnotationDBOUtils.createDoubleAnnotations(ownerId, doubleAnnos);
-			dboBasicDao.createBatch(batch);
+			List<DBODoubleAnnotation> batch = AnnotationDBOUtils.createFiniteDoubleAnnotations(ownerId, doubleAnnos);
+			if (!batch.isEmpty()) dboBasicDao.createBatch(batch);
 		}
 		// Create the dates
 		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();

@@ -18,16 +18,17 @@ import org.sagebionetworks.repo.model.table.TableEntity;
  */
 public enum EntityType {
 	
-	project(Arrays.asList("DEFAULT"), Project.class),
-	folder(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class),
-	link(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class),
-	file(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class),
-	table(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class);
+	project(Arrays.asList("DEFAULT"), Project.class, "Project"),
+	folder(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class, "Folder"),
+	link(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link"),
+	file(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class, "File"),
+	table(Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table");
 	
 	EntityTypeMetadata metadata;
 	Class<? extends Entity> clazz;
+	String displayName;
 	
-	EntityType(List<String> validParentTypes, Class<? extends Entity> clazz){
+	EntityType(List<String> validParentTypes, Class<? extends Entity> clazz, String displayName){
 		this.metadata = new EntityTypeMetadata();
 		this.metadata.setAliases(Arrays.asList(name(),"entity"));
 		this.metadata.setDefaultParentPath("/root");
@@ -35,6 +36,7 @@ public enum EntityType {
 		this.metadata.setValidParentTypes(validParentTypes);
 		this.metadata.setName(this.name());
 		this.clazz = clazz;
+		this.displayName = displayName;
 	}
 	
 	/**
@@ -104,7 +106,7 @@ public enum EntityType {
 		if(type == null){
 			prefix = "DEFAULT";
 		}else{
-			prefix = type.getEntityType();
+			prefix = type.getEntityTypeClassName();
 		}
 		for(String validParent:  typeUrlList){
 			if(validParent.equals(prefix)) return true;
@@ -114,40 +116,48 @@ public enum EntityType {
 	}
 
 	/**
-	 * Lookup a type using the DTO class.
+	 * Given an entity class, get the EntityType.
 	 * @param clazz
 	 * @return
 	 */
-	public static EntityType getNodeTypeForClass(Class<? extends Entity> clazz){
+	public static EntityType getEntityTypeForClass(Class<? extends Entity> clazz){
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
-		EntityType[] array  = EntityType.values();
-		for(EntityType type: array){
-			if(type.clazz == clazz) return type;
-		}
-		throw new IllegalArgumentException("Unknown Entity type: "+clazz.getName());
+		return getEntityTypeForClassName(clazz.getName());
 	}
 
-	public String getEntityType() {
+	/**
+	 * Get the full class name for this EntityType.
+	 * @return
+	 */
+	public String getEntityTypeClassName() {
 		return metadata.getEntityType();
 	}
 
 	/**
-	 * Get the first type that occurs in a given url.
+	 * Given an Entity class name, get the EntityType.
 	 * 
 	 * @param url
 	 * @return
 	 */
-	public static EntityType getEntityType(String entityType) {
-		if (entityType == null){
-			throw new IllegalArgumentException("URL cannot be null");
+	public static EntityType getEntityTypeForClassName(String fullClassName) {
+		if (fullClassName == null){
+			throw new IllegalArgumentException("Full class name cannot be null");
 		}
 		EntityType[] array = EntityType.values();
 		for (EntityType type : array) {
-			if (type.clazz.getName().equals(entityType))
+			if (type.clazz.getName().equals(fullClassName))
 				return type;
 		}
 		throw new IllegalArgumentException(
-				"Unknown Entity type for entityType: " + entityType);
+				"Unknown Entity type for class name: " + fullClassName);
+	}
+	
+	/**
+	 * Name that can be shown to users.
+	 * @return
+	 */
+	public String getDisplayName(){
+		return displayName;
 	}
 
 }

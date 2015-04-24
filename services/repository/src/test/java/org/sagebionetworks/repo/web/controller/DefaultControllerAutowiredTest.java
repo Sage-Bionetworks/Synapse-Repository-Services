@@ -242,7 +242,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 		EntityHeader type = servletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherUserId);
 		assertNotNull(type);
-		assertEquals(EntityType.project.getEntityType(), type.getType());
+		assertEquals(EntityType.project.getEntityTypeClassName(), type.getType());
 		assertEquals(clone.getId(), type.getName());
 		assertEquals(clone.getId(), type.getId());
 	}
@@ -266,7 +266,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(EntityType.project.getEntityType(), benefactor.getType());
+		assertEquals(EntityType.project.getEntityTypeClassName(), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
@@ -274,7 +274,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(EntityType.project.getEntityType(), benefactor.getType());
+		assertEquals(EntityType.project.getEntityTypeClassName(), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 
 	}

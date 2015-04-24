@@ -10,14 +10,14 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.reflection.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
@@ -55,7 +55,7 @@ public class ProjectStatsWorker implements Worker {
 	static private Logger log = LogManager.getLogger(ProjectStatsWorker.class);
 	private List<Message> messages;
 	private WorkerProgress workerProgress;
-	private EntityType projectEntityType = EntityType.getNodeTypeForClass(Project.class);
+	private EntityType projectEntityType = EntityType.getEntityTypeForClass(Project.class);
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDao;

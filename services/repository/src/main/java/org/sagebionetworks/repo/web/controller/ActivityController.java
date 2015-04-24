@@ -4,11 +4,11 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -260,7 +260,7 @@ public class ActivityController extends BaseController{
 	 * that were generatedBy an <a
 	 * href="${org.sagebionetworks.repo.model.provenance.Activity}"
 	 * >Activity</a>. Returns a <a
-	 * href="${org.sagebionetworks.repo.model.PaginatedResults}">
+	 * href="${org.sagebionetworks.reflection.model.PaginatedResults}">
 	 * PaginatedResults</a> of <a
 	 * href="${org.sagebionetworks.repo.model.Reference}">Reference</a> objects.
 	 * </p>
