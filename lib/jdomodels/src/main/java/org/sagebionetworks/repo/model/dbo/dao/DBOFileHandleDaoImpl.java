@@ -40,11 +40,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -258,7 +258,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	@Override
-	public FileHandleResults getAllFileHandles(List<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException {
+	public FileHandleResults getAllFileHandles(Iterable<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException {
 		List<FileHandle> handles = new LinkedList<FileHandle>();
 		if(ids != null){
 			for(String handleId: ids){
@@ -281,12 +281,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	@Override
-	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList) {
+	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList) {
 		Map<String, FileHandle> resultMap = Maps.newHashMap();
 
 		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
 		// the selects here
-		for (List<String> fileHandleIdsBatch : Lists.partition(idsList, 100)) {
+		for (List<String> fileHandleIdsBatch : Iterables.partition(idsList, 100)) {
 			List<DBOFileHandle> handles = simpleJdbcTemplate.query(SQL_SELECT_BATCH, rowMapping, new SinglePrimaryKeySqlParameterSource(
 					fileHandleIdsBatch));
 			for (DBOFileHandle handle : handles) {

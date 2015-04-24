@@ -18,6 +18,14 @@ public class ValidateArgument {
 		}
 	}
 
+	public static void requireType(Object fieldValue, Class<?> requiredType, String fieldName) {
+		required(fieldValue, fieldName);
+		if (!requiredType.isInstance(fieldValue)) {
+			throw new IllegalArgumentException("Expected " + fieldName + " to be of type " + requiredType.getName() + ", but it was type "
+					+ fieldValue.getClass().getName() + " instead");
+		}
+	}
+
 	public static void failRequirement(String message) {
 		throw new IllegalArgumentException(message);
 	}

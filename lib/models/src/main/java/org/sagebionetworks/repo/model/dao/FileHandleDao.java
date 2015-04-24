@@ -58,7 +58,7 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandleResults getAllFileHandles(List<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
+	public FileHandleResults getAllFileHandles(Iterable<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Map all of the file handles for a given list of IDs in batch calls
@@ -68,7 +68,7 @@ public interface FileHandleDao {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList);
+	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList);
 
 	/**
 	 * Delete the file metadata.

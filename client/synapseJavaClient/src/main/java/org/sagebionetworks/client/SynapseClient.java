@@ -86,6 +86,7 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -630,6 +631,11 @@ public interface SynapseClient extends BaseClient {
 	public void deleteFileHandle(String fileHandleId) throws SynapseException;
 
 	public void clearPreview(String fileHandleId) throws SynapseException;
+
+	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
+			throws SynapseException;
+
+	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
 	public WikiPage createWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws JSONObjectAdapterException,

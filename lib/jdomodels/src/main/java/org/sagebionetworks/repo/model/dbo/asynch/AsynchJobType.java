@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -34,8 +36,9 @@ public enum AsynchJobType {
 
 	QUERY(QueryBundleRequest.class, QueryResultBundle.class),
 
-	QUERY_NEXT_PAGE(QueryNextPageToken.class, QueryResult.class);
+	QUERY_NEXT_PAGE(QueryNextPageToken.class, QueryResult.class),
 
+	S3_FILE_COPY(S3FileCopyRequest.class, S3FileCopyResults.class);
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
