@@ -21,6 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -37,7 +38,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -364,13 +364,13 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
-			EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+			EntityType type = EntityType.getEntityTypeForClass(entity.getClass());
 			// The last element should match this entity
 			EntityHeader myData = path.get(path.size()-1);
 			assertNotNull(myData);
 			assertEquals(entity.getId(), myData.getId());
 			assertEquals(entity.getName(), myData.getName());
-			assertEquals(type.getEntityType(), myData.getType());
+			assertEquals(type.getEntityTypeClassName(), myData.getType());
 		}
 	}
 	

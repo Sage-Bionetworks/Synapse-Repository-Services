@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.reflection.model;
 
 import java.util.Collections;
 import java.util.Iterator;

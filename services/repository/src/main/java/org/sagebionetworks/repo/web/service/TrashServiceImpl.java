@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -13,7 +14,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -82,9 +82,8 @@ public class TrashServiceImpl implements TrashService {
 		UserInfo user = userManager.getUserInfo(userId);
 		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrashForUser(
 				currentUser, user, offset, limit);
-		String url = request.getRequestURL() == null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults<TrashedEntity>(url, trashEntities.getResults(),
-				trashEntities.getTotalNumberOfResults(), offset, limit, null, false);
+		return new PaginatedResults<TrashedEntity>(trashEntities.getResults(),
+				trashEntities.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -94,9 +93,8 @@ public class TrashServiceImpl implements TrashService {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrash(
 				currentUser, offset, limit);
-		String url = request.getRequestURL() == null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults<TrashedEntity>(url, trashEntities.getResults(),
-				trashEntities.getTotalNumberOfResults(), offset, limit, null, false);
+		return new PaginatedResults<TrashedEntity>(trashEntities.getResults(),
+				trashEntities.getTotalNumberOfResults());
 	}
 
 	private class TrashPurgeCallback implements PurgeCallback {

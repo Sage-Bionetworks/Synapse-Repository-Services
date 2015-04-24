@@ -77,7 +77,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@PostConstruct
 	private void getProjectEntityType() {
-		PROJECT_ENTITY_TYPE = EntityType.getNodeTypeForClass(Project.class);
+		PROJECT_ENTITY_TYPE = EntityType.getEntityTypeForClass(Project.class);
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		// walk the path from the top (the top is probably root and the next one should be project)
 		String projectId = null;
 		for (EntityHeader node : nodePath) {
-			if (node.getType().equals(PROJECT_ENTITY_TYPE.getEntityType())) {
+			if (node.getType().equals(PROJECT_ENTITY_TYPE.getEntityTypeClassName())) {
 				projectId = node.getId();
 				break;
 			}

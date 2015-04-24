@@ -71,7 +71,7 @@ public class EntityManagerImpl implements EntityManager {
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass()));
+		node.setNodeType(EntityType.getEntityTypeForClass(newEntity.getClass()));
 		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
@@ -92,7 +92,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
-		validateType(EntityType.getNodeTypeForClass(entityClass),
+		validateType(EntityType.getEntityTypeForClass(entityClass),
 				node.getNodeType(), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
@@ -120,9 +120,9 @@ public class EntityManagerImpl implements EntityManager {
 			EntityType acutalType, String id) {
 		if (acutalType != requestedType) {
 			throw new IllegalArgumentException("The Entity: syn" + id
-					+ " has an entityType=" + acutalType.getEntityType()
+					+ " has an entityType=" + acutalType.getEntityTypeClassName()
 					+ " and cannot be changed to entityType="
-					+ requestedType.getEntityType());
+					+ requestedType.getEntityTypeClassName());
 		}
 	}
 
@@ -407,7 +407,7 @@ public class EntityManagerImpl implements EntityManager {
 		List<T> resultSet = new ArrayList<T>();
 		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
 		Iterator<Node> it = children.iterator();
-		EntityType type = EntityType.getNodeTypeForClass(childrenClass);
+		EntityType type = EntityType.getEntityTypeForClass(childrenClass);
 		while (it.hasNext()) {
 			Node child = it.next();
 			if (child.getNodeType() == type) {

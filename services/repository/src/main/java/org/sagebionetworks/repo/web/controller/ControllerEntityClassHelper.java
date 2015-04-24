@@ -6,7 +6,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -45,6 +44,13 @@ public class ControllerEntityClassHelper {
 					+ mediaType);
 		JSONObjectAdapter jsonObjectAdapter = (new JSONObjectAdapterImpl())
 				.createNew(httpRequestBody);
-		return EntityClassHelper.deserialize(jsonObjectAdapter);
+		String type = jsonObjectAdapter.getString("concreteType");
+		try {
+			JSONEntity entity = (JSONEntity) Class.forName(type).newInstance();
+			entity.initializeFromJSONObject(jsonObjectAdapter);
+			return entity;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} 
 	}
 }
