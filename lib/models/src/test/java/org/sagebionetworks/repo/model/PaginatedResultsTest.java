@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -29,14 +30,7 @@ public class PaginatedResultsTest {
 			list.add(project);
 		}
 		
-		PaginatedResults<Project> pr = new PaginatedResults<Project>(
-				"http//localhost:8080/rep/v1/projects",
-				list,
-				101,
-				4,
-				14,
-				"name",
-				true);
+		PaginatedResults<Project> pr = new PaginatedResults<Project>(list, 101);
 		// now write it to JSON
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		pr.writeToJSONObject(adapter);

@@ -17,11 +17,11 @@ import javax.servlet.ServletException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -240,7 +240,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 			ids.add(id);
 		}
 	
-		BatchResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, adminUserId);
+		PaginatedResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, adminUserId);
 		assertNotNull(results);
 		assertEquals(12, results.getTotalNumberOfResults());
 		List<String> outputIds = new ArrayList<String>();
@@ -423,7 +423,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	@Test
 	public void testGetEntityHeaderByMd5() throws Exception {
 
-		BatchResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(
+		PaginatedResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(
 				adminUserId, "548c050497fb361742b85e0712b0cc96");
 		assertNotNull(results);
 		assertEquals(0, results.getTotalNumberOfResults());

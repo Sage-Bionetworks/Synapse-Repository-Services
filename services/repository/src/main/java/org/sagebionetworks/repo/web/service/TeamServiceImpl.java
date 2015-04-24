@@ -9,14 +9,13 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
@@ -97,7 +96,7 @@ public class TeamServiceImpl implements TeamService {
 		
 		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
-		PaginatedResults<Team> results = PaginatedResultsUtil.createPaginatedResults(teams, limit, offset);
+		PaginatedResults<Team> results = new PaginatedResults<Team>(teams, 0);
 		results.setTotalNumberOfResults(principalPrefixDAO.countTeamsForPrefix(fragment));
 		return results;
 	}
@@ -134,7 +133,7 @@ public class TeamServiceImpl implements TeamService {
 		Long teamIdLong = Long.parseLong(teamId);
 		List<Long> memberIds = principalPrefixDAO.listTeamMembersForPrefix(fragment, teamIdLong, limit, offset);
 		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
-		PaginatedResults<TeamMember> results = PaginatedResultsUtil.createPaginatedResults(members, limit, offset);
+		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(members, 0);
 		results.setTotalNumberOfResults(principalPrefixDAO.countTeamMembersForPrefix(fragment, teamIdLong));
 		return results;
 	}

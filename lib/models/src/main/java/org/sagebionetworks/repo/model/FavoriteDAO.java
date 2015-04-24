@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

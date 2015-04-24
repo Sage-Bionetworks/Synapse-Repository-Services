@@ -13,7 +13,6 @@ import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -255,7 +254,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public static Entity createEntityFromeAdapter(JSONObjectAdapter adapter)
 			throws JSONObjectAdapterException {
 		// Get the entity type
-		String typeClassName = EntityClassHelper.entityType(adapter);
+		String typeClassName = adapter.getString("concreteType");
 		if(typeClassName==null){
 			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
 		}

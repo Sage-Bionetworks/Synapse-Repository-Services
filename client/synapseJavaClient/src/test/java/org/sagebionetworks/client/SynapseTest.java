@@ -35,6 +35,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
@@ -46,13 +47,11 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -290,7 +289,6 @@ public class SynapseTest {
 		PaginatedResults<EntityHeader> paginatedResult = new PaginatedResults<EntityHeader>();
 		paginatedResult.setResults(eHeaderList);
 		paginatedResult.setTotalNumberOfResults(1);
-		paginatedResult.setPaging(new HashMap<String, String>());
 				
 		// setup mock
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -414,14 +412,14 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
-		VariableContentPaginatedResults<AccessRequirement> result = 
-			new VariableContentPaginatedResults<AccessRequirement>();
+		PaginatedResults<AccessRequirement> result = 
+			new PaginatedResults<AccessRequirement>();
 		JSONObjectAdapter adapter = result.writeToJSONObject(new JSONObjectAdapterImpl());
 		configureMockHttpResponse(200, adapter.toJSONString());
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		subjectId.setId("12345");
-		VariableContentPaginatedResults<AccessRequirement> clone = 
+		PaginatedResults<AccessRequirement> clone = 
 			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
 		assertNotNull(clone);
 		assertEquals(result, clone);

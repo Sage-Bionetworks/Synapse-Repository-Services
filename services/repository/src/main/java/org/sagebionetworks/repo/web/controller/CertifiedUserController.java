@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;

@@ -33,7 +33,7 @@ public class EntityTypeTest {
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
 			assertNotNull(type.getClassForType());
-			EntityType result = EntityType.getNodeTypeForClass(type.getClassForType());
+			EntityType result = EntityType.getEntityTypeForClass(type.getClassForType());
 			assertEquals(type, result);
 		}
 	}

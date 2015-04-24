@@ -1097,7 +1097,7 @@ public class UrlHelpers {
 	public static void validateAllUrls(Entity object) {
 		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
-		EntityType type = EntityType.getNodeTypeForClass(object.getClass());
+		EntityType type = EntityType.getEntityTypeForClass(object.getClass());
 		String expectedBaseSuffix = UrlHelpers.ENTITY +"/"+object.getId();
 		if(!object.getUri().endsWith(expectedBaseSuffix)){
 			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
