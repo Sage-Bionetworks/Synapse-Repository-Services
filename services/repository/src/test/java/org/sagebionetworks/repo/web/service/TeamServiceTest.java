@@ -1,13 +1,18 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,26 +20,37 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.util.Pair;
 
 public class TeamServiceTest {
 	
-	private TeamServiceImpl teamService = new TeamServiceImpl();
+	private TeamServiceImpl teamService;
 	
+	private UserManager mockUserManager;
 	private TeamManager mockTeamManager;
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
+	private NotificationManager mockNotificationManager;
 	
 	private Team team = null;
 	private TeamMember member = null;
 	
 	@Before
 	public void before() throws Exception {
+		mockUserManager = Mockito.mock(UserManager.class);
+		
 		mockTeamManager = mock(TeamManager.class);
 		mockPrincipalPrefixDAO = mock(PrincipalPrefixDAO.class);
 			
@@ -52,8 +68,10 @@ public class TeamServiceTest {
 		
 		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
 		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
-		teamService.setTeamManager(mockTeamManager);
-		teamService.setPrincipalPrefixDAO(mockPrincipalPrefixDAO);
+
+		mockNotificationManager = Mockito.mock(NotificationManager.class);
+		
+		teamService = new TeamServiceImpl(mockTeamManager, mockPrincipalPrefixDAO, mockUserManager, mockNotificationManager);
 	}
 	
 	@Test
@@ -122,6 +140,31 @@ public class TeamServiceTest {
 		when(mockTeamManager.listMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
 		verify(mockTeamManager).listMembers("101", 1, 0);
+	}
+	
+	@Test
+	public void testAddMember() throws Exception {
+		Long userId = 111L;
+		String teamId = "222";
+		Long principalId = 333L;
+		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
+		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
+		MessageToUser mtu = new MessageToUser();
+		mtu.setRecipients(Collections.singleton(principalId.toString()));
+		String content = "foo";
+		Pair<MessageToUser, String> result = new Pair<MessageToUser, String>(mtu, content);
+		when(mockTeamManager.createJoinedTeamNotification(userInfo1, userInfo2, teamId)).thenReturn(result);
+		teamService.addMember(userId, teamId, principalId.toString());
+		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
+		
+		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);
+		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
+		verify(mockNotificationManager, times(1)).
+			sendNotification(eq(userInfo1), mtuArg.capture(), contentArg.capture());
+		assertEquals(mtu, mtuArg.getValue());
+		assertEquals(content, contentArg.getValue());
 	}
 	
 

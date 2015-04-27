@@ -44,13 +44,18 @@ public class TeamServiceImpl implements TeamService {
 	@Autowired
 	private NotificationManager notificationManager;
 	
-	private final Logger logger = LogManager.getLogger(TeamServiceImpl.class);
+	// for testing
+	public TeamServiceImpl(TeamManager teamManager, 
+			PrincipalPrefixDAO principalPrefixDAO,
+			UserManager userManager,
+			NotificationManager notificationManager) {
+		this.teamManager=teamManager;
+		this.principalPrefixDAO=principalPrefixDAO;
+		this.userManager=userManager;
+		this.notificationManager=notificationManager;
+	}
 	
-	// for testing (e.g. setting a mocked manager
-	public void setTeamManager(TeamManager teamManager) {this.teamManager=teamManager;}
 	
-	public void setPrincipalPrefixDAO(PrincipalPrefixDAO principalPrefixDAO) {this.principalPrefixDAO=principalPrefixDAO;}
-
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#create(java.lang.String, org.sagebionetworks.repo.model.Team)
 	 */
