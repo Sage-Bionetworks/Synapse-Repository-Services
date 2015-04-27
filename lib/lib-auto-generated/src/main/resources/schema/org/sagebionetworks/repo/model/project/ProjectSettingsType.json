@@ -3,6 +3,8 @@
     "name": "ProjectSettingsType",
     "type":"string",
     "enum":[
-        "upload"
+        "upload",
+        "external_sync",
+        "requester_pays"
     ]
 }

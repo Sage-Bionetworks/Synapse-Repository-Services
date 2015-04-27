@@ -740,7 +740,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, String parentId) throws DatastoreException,
 			NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry
@@ -794,7 +794,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry

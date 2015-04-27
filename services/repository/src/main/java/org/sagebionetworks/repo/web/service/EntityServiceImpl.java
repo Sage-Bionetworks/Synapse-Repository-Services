@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -640,7 +641,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId =  entityManager.getFileHandleIdForCurrentVersion(userInfo, id);
+		String fileHandleId = entityManager.getFileHandleIdForVersionForDownload(userInfo, id, null);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -651,7 +652,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId =  entityManager.getFileHandleIdForCurrentVersion(userInfo, entityId);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null);
 		// Look up the preview for this file.
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Use the FileHandle ID to get the URL
@@ -660,11 +661,12 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public String getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
-		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		ValidateArgument.required(id, "Entity Id");
+		ValidateArgument.required(userId, "UserId");
+		ValidateArgument.required(versionNumber, "versionNumber");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId =  entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
+		String fileHandleId = entityManager.getFileHandleIdForVersionForDownload(userInfo, id, versionNumber);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -673,8 +675,9 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public String getFilePreviewRedirectURLForVersion(Long userId, String id,
 			Long versionNumber) throws DatastoreException, NotFoundException {
-		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		ValidateArgument.required(id, "Entity Id");
+		ValidateArgument.required(userId, "UserId");
+		ValidateArgument.required(versionNumber, "versionNumber");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId =  entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
@@ -690,7 +693,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId =  entityManager.getFileHandleIdForCurrentVersion(userInfo, entityId);
+		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null);
 		List<String> idsList = new LinkedList<String>();
 		idsList.add(fileHandleId);
 		return fileHandleManager.getAllFileHandles(idsList, true);

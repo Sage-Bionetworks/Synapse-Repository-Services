@@ -26,7 +26,7 @@ public interface ProjectSettingsManager {
 
 	void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
-	<T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, ProjectSettingsType type,
+	<T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String parentId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	<T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo, T StorageLocationSetting) throws DatastoreException,

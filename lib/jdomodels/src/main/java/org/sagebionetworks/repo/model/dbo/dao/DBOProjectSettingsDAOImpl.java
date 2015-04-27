@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
@@ -23,8 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
@@ -38,12 +40,22 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+	@Autowired
 	private IdGenerator idGenerator;
+
+	private static final String TYPE_PARAM_NAME = "type_param";
+	private static final String PARENT_IDS_PARAM_NAME = "parent_ids_param";
 
 	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_PROJECT_ID
 			+ " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
+
+	private static final String SELECT_SETTING_FROM_PARENTS = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
+			+ COL_PROJECT_SETTING_PROJECT_ID + " IN ( :" + PARENT_IDS_PARAM_NAME + " ) and " + COL_PROJECT_SETTING_TYPE + " = :"
+			+ TYPE_PARAM_NAME + " ORDER BY FIELD( " + COL_PROJECT_SETTING_PROJECT_ID + ", :" + PARENT_IDS_PARAM_NAME + " ) LIMIT 1";
 
 	private static final RowMapper<DBOProjectSetting> projectSettingRowMapper = (new DBOProjectSetting()).getTableMapping();
 
@@ -67,6 +79,22 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		try {
 			DBOProjectSetting projectSetting = jdbcTemplate.queryForObject(SELECT_SETTING, projectSettingRowMapper,
 					KeyFactory.stringToKey(projectId), type.name());
+			ProjectSetting dto = convertDboToDto(projectSetting);
+			return dto;
+		} catch (EmptyResultDataAccessException e) {
+			// not having a setting is normal
+			return null;
+		}
+	}
+
+	@Override
+	public ProjectSetting get(List<Long> parentIds, ProjectSettingsType type) throws DatastoreException {
+		try {
+			MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+			parameterSource.addValue(TYPE_PARAM_NAME, type.name());
+			parameterSource.addValue(PARENT_IDS_PARAM_NAME, Lists.reverse(parentIds));
+			DBOProjectSetting projectSetting = namedParameterJdbcTemplate.queryForObject(SELECT_SETTING_FROM_PARENTS, parameterSource,
+					projectSettingRowMapper);
 			ProjectSetting dto = convertDboToDto(projectSetting);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {

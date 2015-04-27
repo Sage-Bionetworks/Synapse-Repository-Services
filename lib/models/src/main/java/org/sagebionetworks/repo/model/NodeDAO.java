@@ -360,19 +360,10 @@ public interface NodeDAO {
 	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
 
 	/**
-	 * Get the FileHandle ID for the current version..
+	 * Get the FileHandle Id for a given version number.
 	 * 
 	 * @param id
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public String getFileHandleIdForCurrentVersion(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the FileHandle Id for a given version number.
-	 * @param id
-	 * @param versionNumber
+	 * @param versionNumber if null, use the current version
 	 * @return
 	 */
 	public String getFileHandleIdForVersion(String id, Long versionNumber);

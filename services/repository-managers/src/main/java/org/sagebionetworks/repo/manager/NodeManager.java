@@ -307,27 +307,19 @@ public interface NodeManager {
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
-	 * Get the FileHandleId of the file associated with the current version of the entity.
-	 * The caller must have permission to downlaod this file to get the handle.
+	 * Get the FileHandleId of the file associated with a given version of the entity. The caller must have permission
+	 * to downlaod this file to get the handle.
+	 * 
 	 * @param userInfo
 	 * @param id
+	 * @param versionNumber if null, use current version
+	 * @param isForDownload if true, this is for a direct download and we want to check if download
 	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws NotFoundException 
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
 	 */
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws NotFoundException, UnauthorizedException;
-
-	/**
-	 * Get the FileHandleId of the file associated with a given version of the entity.
-	 * The caller must have permission to downlaod this file to get the handle.
-	 * @param userInfo
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws NotFoundException 
-	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException;
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, boolean isForDownload)
+			throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get a reference for the current version of the given node ids

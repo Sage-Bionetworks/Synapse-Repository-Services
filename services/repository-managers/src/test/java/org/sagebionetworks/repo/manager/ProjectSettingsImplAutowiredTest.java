@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.UUID;
 
@@ -87,7 +86,7 @@ public class ProjectSettingsImplAutowiredTest {
 		childId = entityManager.createEntity(userInfo, child, null);
 
 		Folder childChild = new Folder();
-		childChild.setName("child");
+		childChild.setName("childchild");
 		childChild.setParentId(childId);
 		childChildId = entityManager.createEntity(userInfo, childChild, null);
 
@@ -152,16 +151,67 @@ public class ProjectSettingsImplAutowiredTest {
 		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
 		projectSettingsManager.createProjectSetting(userInfo, toCreate);
 
-		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(userInfo, projectId,
+		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForParent(userInfo, childId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForParent(userInfo, childChildId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
+	}
+
+	@Test
+	public void testFindInParents() throws Exception {
+		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		assertNull(setting);
+
+		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
+		toCreate.setProjectId(projectId);
+		toCreate.setSettingsType(ProjectSettingsType.upload);
+		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
+		projectSettingsManager.createProjectSetting(userInfo, toCreate);
+
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		assertEquals(1, setting.getLocations().size());
+
+		UploadDestinationListSetting toCreate2 = new UploadDestinationListSetting();
+		toCreate2.setProjectId(childId);
+		toCreate2.setSettingsType(ProjectSettingsType.upload);
+		toCreate2.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId(),
+				externalLocationSetting.getStorageLocationId()));
+		projectSettingsManager.createProjectSetting(userInfo, toCreate2);
+
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class);
+		assertEquals(2, setting.getLocations().size());
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class);
+		assertEquals(2, setting.getLocations().size());
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class);
+		assertEquals(1, setting.getLocations().size());
+
+		UploadDestinationListSetting toCreate3 = new UploadDestinationListSetting();
+		toCreate3.setProjectId(childChildId);
+		toCreate3.setSettingsType(ProjectSettingsType.upload);
+		toCreate3.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId(),
+				externalLocationSetting.getStorageLocationId(), externalLocationSetting.getStorageLocationId()));
+		projectSettingsManager.createProjectSetting(userInfo, toCreate3);
+
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class);
+		assertEquals(3, setting.getLocations().size());
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class);
+		assertEquals(2, setting.getLocations().size());
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class);
+		assertEquals(1, setting.getLocations().size());
 	}
 }
