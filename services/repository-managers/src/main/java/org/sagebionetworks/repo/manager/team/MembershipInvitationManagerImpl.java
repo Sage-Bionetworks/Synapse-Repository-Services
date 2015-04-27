@@ -24,7 +24,9 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -39,13 +41,12 @@ public class MembershipInvitationManagerImpl implements
 	@Autowired 
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	@Autowired
-	private NotificationManager notificationManager;
-	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
 	private TeamDAO teamDAO;
 	
 	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.txt";
+
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
 
 	public MembershipInvitationManagerImpl() {}
@@ -54,12 +55,10 @@ public class MembershipInvitationManagerImpl implements
 	public MembershipInvitationManagerImpl(
 			AuthorizationManager authorizationManager,
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
-			NotificationManager notificationManager,
 			TeamDAO teamDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
-		this.notificationManager = notificationManager;
 		this.teamDAO=teamDAO;
 	}
 	
@@ -78,6 +77,12 @@ public class MembershipInvitationManagerImpl implements
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
+	 *
+	 * Note:  Within this call there are two transactions:  The first creates the invitation,
+	 * then the invitation message is uploaded to S3, finally a MessageToUser object is created
+	 * to notify the invitee.  This approach avoids having a transaction open while the S3 upload 
+	 * takes place.
+	 * 
 	 */
 	@Override
 	public MembershipInvtnSubmission create(UserInfo userInfo,
@@ -90,24 +95,21 @@ public class MembershipInvitationManagerImpl implements
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
 		MembershipInvtnSubmission created = membershipInvtnSubmissionDAO.create(mis);
-		sendMembershipInvitationMessage(userInfo, created.getInviteeId(), created.getTeamId());
 		return created;
 	}
-
-	private void sendMembershipInvitationMessage(UserInfo inviter, String inviteeId, String teamId) throws NotFoundException {
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
-		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
-		
-		notificationManager.sendNotification(
-				inviter, 
-				Collections.singleton(inviteeId), 
-				TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT, 
-				messageContent, 
-				NotificationManager.TEXT_PLAIN_MIME_TYPE);
-	}
 	
+	@Override
+	public Pair<MessageToUser, String> invitationExtendedMessage(MembershipInvtnSubmission mis) {
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
+		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#teamName#", teamDAO.get(mis.getTeamId()).getName());
+		fieldValues.put("#teamId#", mis.getTeamId());
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
+		return new Pair<MessageToUser, String>(mtu, messageContent);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#get(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */

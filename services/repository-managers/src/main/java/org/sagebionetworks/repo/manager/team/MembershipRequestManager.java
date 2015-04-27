@@ -7,7 +7,9 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 
 public interface MembershipRequestManager {
 	
@@ -93,5 +95,12 @@ public interface MembershipRequestManager {
 	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
 			UserInfo userInfo, String teamId, String requesterId, long limit,
 			long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param created
+	 * @return
+	 */
+	public Pair<MessageToUser, String> invitationExtendedMessage(MembershipRqstSubmission created);
 
 }

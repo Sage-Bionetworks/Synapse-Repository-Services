@@ -6,10 +6,12 @@ package org.sagebionetworks.repo.web.service;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -22,7 +24,9 @@ import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -37,6 +41,8 @@ public class TeamServiceImpl implements TeamService {
 	private UserManager userManager;
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
+	@Autowired
+	private NotificationManager notificationManager;
 	
 	private final Logger logger = LogManager.getLogger(TeamServiceImpl.class);
 	
@@ -198,9 +204,21 @@ public class TeamServiceImpl implements TeamService {
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		
+		// note:  this must be done _before_ adding the member, which cleans up the invitation information
+		// needed to determine who to notify
+		Pair<MessageToUser, String> message = teamManager.joinedTeamMessage(userInfo, memberUserInfo, teamId);
+		MessageToUser notificationMetaData = message.getFirst();
+		String notificationContent = message.getSecond();
+		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
+		
+		notificationManager.sendNotification(
+				userInfo, 
+				notificationMetaData,
+				notificationContent);
 	}
-
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#removeMember(java.lang.String, java.lang.String, java.lang.String)
 	 */

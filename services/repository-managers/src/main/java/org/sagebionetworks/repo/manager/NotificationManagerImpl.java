@@ -34,21 +34,20 @@ public class NotificationManagerImpl implements NotificationManager {
 	}
 	
 	@Override
-	public void sendNotification(UserInfo userInfo, Set<String> to, String subject,
-			String message, String mimeType) throws NotFoundException {
+	public void sendNotification(UserInfo userInfo, MessageToUser mtu,
+			String message) throws NotFoundException {
+		
+		if (mtu.getRecipients().isEmpty()) return;
 
-		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
+		ContentType contentType = ContentType.create(NotificationManager.TEXT_PLAIN_MIME_TYPE, DEFAULT_CHARSET);
 		FileItemStream fileItemStream = new ByteArrayFileItemStream(
 					message.getBytes(DEFAULT_CHARSET), contentType.toString(), "");
 		try {
 			FileHandle fileHandle = fileHandleManager.uploadFile(userInfo.getId().toString(), fileItemStream);
 			
-			MessageToUser dto = new MessageToUser();
-			dto.setSubject(subject);
-			dto.setFileHandleId(fileHandle.getId());
-			dto.setRecipients(to);
+			mtu.setFileHandleId(fileHandle.getId());
 			
-			messageManager.createMessage(userInfo, dto);
+			messageManager.createMessage(userInfo, mtu);
 		} catch (ServiceUnavailableException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {

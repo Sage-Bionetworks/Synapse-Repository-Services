@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.team;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -15,7 +14,9 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 
 public interface TeamManager {
 
@@ -201,4 +202,16 @@ public interface TeamManager {
 	 * @return
 	 */
 	public String getIconURL(String teamId) throws NotFoundException;
+
+	/**
+	 * Create the notification message and determine the message recipient list
+	 * 
+	 * @param joinerInfo
+	 * @param memberInfo
+	 * @param teamId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Pair<MessageToUser, String> joinedTeamMessage(UserInfo joinerInfo,
+			UserInfo memberInfo, String teamId) throws NotFoundException;
 }

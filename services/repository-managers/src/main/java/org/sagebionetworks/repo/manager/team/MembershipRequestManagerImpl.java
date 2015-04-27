@@ -27,8 +27,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -90,7 +92,13 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipRqstSubmission)
-	 */
+	 *
+	 * Note:  Within this call there are two transactions:  The first creates the request,
+	 * then the invitation message is uploaded to S3, finally a MessageToUser object is created
+	 * to notify the requester.  This approach avoids having a transaction open while the S3 upload 
+	 * takes place.
+	 * 
+	 * 	 */
 	@Override
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
@@ -100,29 +108,25 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		validateForCreate(mrs, userInfo);
 		Date now = new Date();
 		populateCreationFields(userInfo, mrs, now);
-		MembershipRqstSubmission created = membershipRqstSubmissionDAO.create(mrs);
-		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
-		if (!teamAdmins.isEmpty()) sendMembershipRequestMessage(userInfo, teamAdmins, mrs.getTeamId());
-		return created;
+		return membershipRqstSubmissionDAO.create(mrs);
 	}
 
-	private void sendMembershipRequestMessage(UserInfo requester, Set<String> adminPrincipalIds, String teamId) throws NotFoundException {
-		String requesterUserName = principalAliasDAO.getUserName(requester.getId());
-		UserProfile userProfile = userProfileDAO.get(requester.getId().toString());
+	@Override
+	public Pair<MessageToUser, String> invitationExtendedMessage(MembershipRqstSubmission mrs) {
+		String requesterUserName = principalAliasDAO.getUserName(Long.parseLong(mrs.getCreatedBy()));
+		UserProfile userProfile = userProfileDAO.get(mrs.getCreatedBy());
 		userProfile.setUserName(requesterUserName);
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayName#", displayName);
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
+		fieldValues.put("#teamName#", teamDAO.get(mrs.getTeamId()).getName());
+		fieldValues.put("#teamId#", mrs.getTeamId());
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
-		
-		notificationManager.sendNotification(
-				requester, 
-				adminPrincipalIds, 
-				TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT, 
-				messageContent, 
-				NotificationManager.TEXT_PLAIN_MIME_TYPE);
+		MessageToUser mtu = new MessageToUser();
+		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
+		mtu.setRecipients(teamAdmins);
+		mtu.setSubject(TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT);
+		return new Pair<MessageToUser, String>(mtu, messageContent);
 	}
 	
 	/* (non-Javadoc)

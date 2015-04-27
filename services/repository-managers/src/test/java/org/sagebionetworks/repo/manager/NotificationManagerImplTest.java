@@ -50,17 +50,20 @@ public class NotificationManagerImplTest {
 		fh.setId(fileHandleId);
 		when(fileHandleManager.uploadFile(eq(USER_ID.toString()), fisCaptor.capture())).
 			thenReturn(fh);
-		notificationManager.sendNotification(userInfo, to, subject, message, mimeType);
+		MessageToUser mtu = new MessageToUser();
+		mtu.setRecipients(to);
+		mtu.setSubject(subject);
+		notificationManager.sendNotification(userInfo, mtu, message);
 		verify(fileHandleManager).uploadFile(eq(USER_ID.toString()), any(FileItemStream.class));
 		FileItemStream fis = fisCaptor.getValue();
 		assertEquals("text/html; charset=UTF-8", fis.getContentType());
 		ArgumentCaptor<MessageToUser> mtuCaptor =
 				ArgumentCaptor.forClass(MessageToUser.class);
 		verify(messageManager).createMessage(eq(userInfo), mtuCaptor.capture());
-		MessageToUser mtu = mtuCaptor.getValue();
-		assertEquals(fileHandleId, mtu.getFileHandleId());
-		assertEquals(subject, mtu.getSubject());
-		assertEquals(to, mtu.getRecipients());
+		MessageToUser mtu2 = mtuCaptor.getValue();
+		assertEquals(fileHandleId, mtu2.getFileHandleId());
+		assertEquals(subject, mtu2.getSubject());
+		assertEquals(to, mtu2.getRecipients());
 	}
 
 }

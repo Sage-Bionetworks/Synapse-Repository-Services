@@ -88,7 +88,6 @@ public class TeamManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private PrincipalManager mockPrincipalManager;
-	private NotificationManager mockNotificationManager;
 	private UserProfileDAO mockUserProfileDAO;
 	private TransactionalMessenger mockTransactionalMessenger;
 	
@@ -113,7 +112,6 @@ public class TeamManagerImplTest {
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
 		teamManagerImpl = new TeamManagerImpl(
@@ -130,7 +128,6 @@ public class TeamManagerImplTest {
 				mockAccessRequirementDAO,
 				mockPrincipalAliasDAO,
 				mockPrincipalManager,
-				mockNotificationManager,
 				mockUserProfileDAO,
 				mockTransactionalMessenger);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
@@ -579,8 +576,6 @@ public class TeamManagerImplTest {
 		// since there are no inviters there is no acknowledgement message
 		verify(mockTeamDAO, never()).get(TEAM_ID);
 		verify(mockUserProfileDAO, never()).get(principalId);
-		verify(mockNotificationManager, never()).sendNotification(
-				any(UserInfo.class), any(Set.class), anyString(), anyString(), anyString());
 	}
 	
 	@Test
@@ -613,12 +608,6 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO, times(2)).get(TEAM_ID);
 		verify(mockUserProfileDAO).get(principalId);
 		ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-		verify(mockNotificationManager).sendNotification(
-				eq(principalUserInfo), 
-				eq(Collections.singleton(userInfo.getId().toString())), 
-				anyString(), 
-				messageCaptor.capture(), 
-				eq("text/plain"));
 		String messageContent = messageCaptor.getValue();
 		// make sure fields have been filled in
 		assertTrue(messageContent, messageContent.indexOf("#teamName#")<0);
@@ -655,9 +644,7 @@ public class TeamManagerImplTest {
 		// since there is no member addition there is no acknowledgement message
 		verify(mockTeamDAO, never()).get(TEAM_ID);
 		verify(mockUserProfileDAO, never()).get(principalId);
-		verify(mockNotificationManager, never()).sendNotification(
-				any(UserInfo.class), any(Set.class), anyString(), anyString(), anyString());
-}
+	}
 	
 	private static List<UserGroup> ugList(String[] pids) {
 		List<UserGroup> ans = new ArrayList<UserGroup>();

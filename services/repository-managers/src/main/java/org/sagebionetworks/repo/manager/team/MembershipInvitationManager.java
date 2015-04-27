@@ -7,7 +7,9 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 
 public interface MembershipInvitationManager {
 	
@@ -22,6 +24,15 @@ public interface MembershipInvitationManager {
 	 * @throws NotFoundException 
 	 */
 	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * Create the notification message
+	 * 
+	 * @param mis
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Pair<MessageToUser, String> invitationExtendedMessage(MembershipInvtnSubmission mis) throws NotFoundException;
 	
 	/**
 	 * Retrieve an invitation by its ID

@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
@@ -53,6 +52,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -98,14 +99,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-
-	private NotificationManager notificationManager;
-	@Autowired
 	private UserProfileDAO userProfileDAO;
 
-	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
-	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
-	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
@@ -133,7 +128,6 @@ public class TeamManagerImpl implements TeamManager {
 			AccessRequirementDAO accessRequirementDAO,
 			PrincipalAliasDAO principalAliasDAO,
 			PrincipalManager principalManager,
-			NotificationManager notificationManager,
 			UserProfileDAO userProfileDAO,
 			TransactionalMessenger transactionalMessenger
 			) {
@@ -151,7 +145,6 @@ public class TeamManagerImpl implements TeamManager {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.principalManager = principalManager;
-		this.notificationManager = notificationManager;
 		this.userProfileDAO = userProfileDAO;
 		this.transactionalMessenger = transactionalMessenger;
 	}
@@ -499,9 +492,57 @@ public class TeamManagerImpl implements TeamManager {
 		for (UserGroup ug : userGroups) if (ug.getId().equals(principalId)) return true;
 		return false;
 	}
+	
+	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
+	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.txt";
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
+	
+
+	@Override
+	public Pair<MessageToUser, String> joinedTeamMessage(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = null;
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+		if (userJoiningTeamIsSelf) {
+			Set<String> inviters = getInviters(Long.parseLong(teamId), memberInfo.getId());
+			String memberUserName = principalAliasDAO.getUserName(memberInfo.getId());
+			UserProfile memberUserProfile = userProfileDAO.get(memberInfo.getId().toString());
+			memberUserProfile.setUserName(memberUserName);
+			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
+			fieldValues.put("#displayName#", memberDisplayName);
+			messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
+			mtu.setRecipients(inviters);
+		} else {
+			String joinerUserName = principalAliasDAO.getUserName(joinerInfo.getId());
+			UserProfile joinerUserProfile = userProfileDAO.get(joinerInfo.getId().toString());
+			joinerUserProfile.setUserName(joinerUserName);
+			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
+			fieldValues.put("#displayName#", joinerDisplayName);
+			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
+			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
+		}	
+		return new Pair<MessageToUser, String>(mtu, messageContent);
+	}
+
+	private Set<String> getInviters(Long teamId, Long inviteeId) {
+		List<MembershipInvtnSubmission> misList = 
+		membershipInvtnSubmissionDAO.
+			getOpenSubmissionsByTeamAndUserInRange(teamId, inviteeId, System.currentTimeMillis(), Long.MAX_VALUE, 0);
+		Set<String> result = new HashSet<String>();
+		for (MembershipInvtnSubmission mis : misList) {
+			result.add(mis.getCreatedBy());
+		}
+		return result;
+	}
+	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#addMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)
+	 * @return a Pair containing (1) the user ID of the one who joined, (2) a list of those to be notified
 	 */
 	@Override
 	@WriteTransaction
@@ -524,41 +565,6 @@ public class TeamManagerImpl implements TeamManager {
 		membershipInvtnSubmissionDAO.deleteByTeamAndUser(Long.parseLong(teamId), principalUserInfo.getId());
 		// clean up and membership requests
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
-		// send confirmation message
-		// TODO the following query must be done BEFORE cleaning up invitations, not after!!
-		// TODO how do you know this is a member who was invited, not an admin accepting an request?
-		Set<String> inviters = getInviters(Long.parseLong(teamId), principalUserInfo.getId());
-		if (!inviters.isEmpty()) sendJoinedTeamMessage(inviters, principalUserInfo, teamId);
-	}
-	
-	private Set<String> getInviters(Long teamId, Long inviteeId) {
-		List<MembershipInvtnSubmission> misList = 
-		membershipInvtnSubmissionDAO.
-			getOpenSubmissionsByTeamAndUserInRange(teamId, inviteeId, System.currentTimeMillis(), Long.MAX_VALUE, 0);
-		Set<String> result = new HashSet<String>();
-		for (MembershipInvtnSubmission mis : misList) {
-			result.add(mis.getCreatedBy());
-		}
-		return result;
-	}
-	
-	private void sendJoinedTeamMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
-		String inviteeUserName = principalAliasDAO.getUserName(invitee.getId());
-		UserProfile userProfile = userProfileDAO.get(invitee.getId().toString());
-		userProfile.setUserName(inviteeUserName);
-		String displayName = EmailUtils.getDisplayName(userProfile);
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#displayName#", displayName);
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
-		String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
-		
-		notificationManager.sendNotification(
-				invitee, 
-				inviterPrincipalIds, 
-				JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT, 
-				messageContent, 
-				NotificationManager.TEXT_PLAIN_MIME_TYPE);
 	}
 	
 	/**

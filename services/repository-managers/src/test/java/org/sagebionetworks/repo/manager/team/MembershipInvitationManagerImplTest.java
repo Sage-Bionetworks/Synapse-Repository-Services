@@ -33,7 +33,6 @@ public class MembershipInvitationManagerImplTest {
 	private MembershipInvitationManagerImpl membershipInvitationManagerImpl = null;
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
-	private NotificationManager mockNotificationManager = null;
 	private TeamDAO mockTeamDAO = null;
 	
 	private UserInfo userInfo = null;
@@ -62,12 +61,10 @@ public class MembershipInvitationManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipInvtnSubmissionDAO,
-				mockNotificationManager,
 				mockTeamDAO
 				);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);

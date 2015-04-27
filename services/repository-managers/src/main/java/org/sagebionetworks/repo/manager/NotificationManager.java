@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -15,14 +14,13 @@ public interface NotificationManager {
 
 	/**
 	 * 
-	 * @param from
-	 * @param to
-	 * @param subject
+	 * @param userInfo
+	 * @param mtu
 	 * @param message
-	 * @param contentType e.g. text/plain or text/html
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
-	public void sendNotification(UserInfo userInfo, Set<String> to, String subject, String message, String contentType) throws NotFoundException;
+	public void sendNotification(UserInfo userInfo, MessageToUser mtu,
+			String message) throws NotFoundException;
 	
 	
 	public static final String TEXT_PLAIN_MIME_TYPE = "text/plain";

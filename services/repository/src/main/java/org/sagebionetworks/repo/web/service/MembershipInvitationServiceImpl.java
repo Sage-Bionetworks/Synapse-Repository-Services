@@ -4,6 +4,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -12,7 +13,9 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -26,6 +29,8 @@ public class MembershipInvitationServiceImpl implements
 	private MembershipInvitationManager membershipInvitationManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private NotificationManager notificationManager;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
@@ -35,11 +40,16 @@ public class MembershipInvitationServiceImpl implements
 			MembershipInvtnSubmission dto) throws UnauthorizedException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return membershipInvitationManager.create(userInfo, dto);
+		MembershipInvtnSubmission created = membershipInvitationManager.create(userInfo, dto);
+		Pair<MessageToUser, String> message = membershipInvitationManager.invitationExtendedMessage(created);
+		notificationManager.sendNotification(
+				userInfo, 
+				message.getFirst(),
+				message.getSecond());
+
+		return created;
 	}
 	
-	
-
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#getOpenInvitations(java.lang.String, java.lang.String, long, long)
 	 */
