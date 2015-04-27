@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -583,10 +584,7 @@ public class MessageManagerImplTest {
 		// The last message should show up in the testUser's inbox, even though the testUser was not in the recipient list
 		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		// message index 0 (the last) is the notification that the user has joined the team
-		cleanup.add(messages.getResults().get(0).getMessage().getId());
-		// The message we seek is the NEXT-TO-LAST (index 1)
-		assertEquals(otherToGroup, messages.getResults().get(1).getMessage());
+		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
 	}
 	
 	@Ignore // see PLFM-3278

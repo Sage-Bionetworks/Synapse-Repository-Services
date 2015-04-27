@@ -40,7 +40,6 @@ public class MembershipRequestManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 	private MembershipRequestManagerImpl membershipRequestManagerImpl;
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
-	private NotificationManager mockNotificationManager;
 	private UserProfileDAO mockUserProfileDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private TeamDAO mockTeamDAO;
@@ -54,14 +53,12 @@ public class MembershipRequestManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipRqstSubmissionDAO,
-				mockNotificationManager,
 				mockUserProfileDAO,
 				mockPrincipalAliasDAO,
 				mockTeamDAO

@@ -4,7 +4,6 @@ import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -16,8 +15,6 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-// TEMPORARY:  DO NOT PULL THIS '@Ignore' into the common repository
-@Ignore
 public class StorageUsageControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired

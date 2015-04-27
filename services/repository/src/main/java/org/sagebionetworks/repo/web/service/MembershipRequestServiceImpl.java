@@ -40,7 +40,7 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
-		Pair<MessageToUser, String> message = membershipRequestManager.invitationExtendedMessage(created);
+		Pair<MessageToUser, String> message = membershipRequestManager.createMembershipRequestNotification(created);
 		notificationManager.sendNotification(
 				userInfo, 
 				message.getFirst(),

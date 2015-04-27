@@ -26,13 +26,13 @@ public interface MembershipInvitationManager {
 	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
-	 * Create the notification message
+	 * Create the notification content
 	 * 
 	 * @param mis
-	 * @return
+	 * @return a pair: (1) the message metadata, (2) the message content
 	 * @throws NotFoundException
 	 */
-	Pair<MessageToUser, String> invitationExtendedMessage(MembershipInvtnSubmission mis) throws NotFoundException;
+	Pair<MessageToUser, String> createInvitationNotification(MembershipInvtnSubmission mis) throws NotFoundException;
 	
 	/**
 	 * Retrieve an invitation by its ID

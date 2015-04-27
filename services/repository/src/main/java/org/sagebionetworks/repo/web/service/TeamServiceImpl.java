@@ -207,7 +207,7 @@ public class TeamServiceImpl implements TeamService {
 		
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
 		// needed to determine who to notify
-		Pair<MessageToUser, String> message = teamManager.joinedTeamMessage(userInfo, memberUserInfo, teamId);
+		Pair<MessageToUser, String> message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
 		MessageToUser notificationMetaData = message.getFirst();
 		String notificationContent = message.getSecond();
 		

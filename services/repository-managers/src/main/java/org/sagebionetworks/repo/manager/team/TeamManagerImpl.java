@@ -499,7 +499,7 @@ public class TeamManagerImpl implements TeamManager {
 	
 
 	@Override
-	public Pair<MessageToUser, String> joinedTeamMessage(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+	public Pair<MessageToUser, String> createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());

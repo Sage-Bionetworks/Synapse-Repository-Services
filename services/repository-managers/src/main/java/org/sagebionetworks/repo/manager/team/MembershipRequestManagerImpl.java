@@ -44,8 +44,6 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Autowired 
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 	@Autowired
-	private NotificationManager notificationManager;
-	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
@@ -59,14 +57,12 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public MembershipRequestManagerImpl(
 			AuthorizationManager authorizationManager,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
-			NotificationManager notificationManager,
 			UserProfileDAO userProfileDAO,
 			PrincipalAliasDAO principalAliasDAO,
 			TeamDAO teamDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
-		this.notificationManager = notificationManager;
 		this.userProfileDAO = userProfileDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.teamDAO=teamDAO;
@@ -92,13 +88,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipRqstSubmission)
-	 *
-	 * Note:  Within this call there are two transactions:  The first creates the request,
-	 * then the invitation message is uploaded to S3, finally a MessageToUser object is created
-	 * to notify the requester.  This approach avoids having a transaction open while the S3 upload 
-	 * takes place.
-	 * 
-	 * 	 */
+	 */
 	@Override
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
@@ -112,7 +102,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 
 	@Override
-	public Pair<MessageToUser, String> invitationExtendedMessage(MembershipRqstSubmission mrs) {
+	public Pair<MessageToUser, String> createMembershipRequestNotification(MembershipRqstSubmission mrs) {
 		String requesterUserName = principalAliasDAO.getUserName(Long.parseLong(mrs.getCreatedBy()));
 		UserProfile userProfile = userProfileDAO.get(mrs.getCreatedBy());
 		userProfile.setUserName(requesterUserName);

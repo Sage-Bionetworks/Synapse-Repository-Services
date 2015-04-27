@@ -21,9 +21,8 @@ public interface MembershipRequestManager {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
-	 * @throws NotFoundException 
 	 */
-	public MembershipRqstSubmission create(UserInfo userInfo, MembershipRqstSubmission mrs) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	public MembershipRqstSubmission create(UserInfo userInfo, MembershipRqstSubmission mrs) throws  DatastoreException, InvalidModelException, UnauthorizedException;
 	
 	/**
 	 * Retrieve an request by its ID
@@ -97,10 +96,11 @@ public interface MembershipRequestManager {
 			long offset) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Create the notification content
 	 * 
-	 * @param created
-	 * @return
+	 * @param mrs
+	 * @return a pair: (1) the message metadata, (2) the message content
 	 */
-	public Pair<MessageToUser, String> invitationExtendedMessage(MembershipRqstSubmission created);
+	public Pair<MessageToUser, String> createMembershipRequestNotification(MembershipRqstSubmission mrs);
 
 }

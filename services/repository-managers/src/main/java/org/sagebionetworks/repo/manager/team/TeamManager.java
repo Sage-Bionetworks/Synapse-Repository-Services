@@ -204,14 +204,14 @@ public interface TeamManager {
 	public String getIconURL(String teamId) throws NotFoundException;
 
 	/**
-	 * Create the notification message and determine the message recipient list
+	 * Create the notification content
 	 * 
 	 * @param joinerInfo
 	 * @param memberInfo
 	 * @param teamId
-	 * @return
+	 * @return a pair: (1) the message metadata, (2) the message content
 	 * @throws NotFoundException
 	 */
-	Pair<MessageToUser, String> joinedTeamMessage(UserInfo joinerInfo,
+	Pair<MessageToUser, String> createJoinedTeamNotification(UserInfo joinerInfo,
 			UserInfo memberInfo, String teamId) throws NotFoundException;
 }

@@ -12,7 +12,6 @@ import java.util.Map;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -41,8 +40,6 @@ public class MembershipInvitationManagerImpl implements
 	@Autowired 
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	@Autowired
-	private UserProfileDAO userProfileDAO;
-	@Autowired
 	private TeamDAO teamDAO;
 	
 	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.txt";
@@ -55,6 +52,7 @@ public class MembershipInvitationManagerImpl implements
 	public MembershipInvitationManagerImpl(
 			AuthorizationManager authorizationManager,
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
+			UserProfileDAO userProfileDAO,
 			TeamDAO teamDAO
 			) {
 		this.authorizationManager = authorizationManager;
@@ -77,12 +75,6 @@ public class MembershipInvitationManagerImpl implements
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
-	 *
-	 * Note:  Within this call there are two transactions:  The first creates the invitation,
-	 * then the invitation message is uploaded to S3, finally a MessageToUser object is created
-	 * to notify the invitee.  This approach avoids having a transaction open while the S3 upload 
-	 * takes place.
-	 * 
 	 */
 	@Override
 	public MembershipInvtnSubmission create(UserInfo userInfo,
@@ -99,7 +91,7 @@ public class MembershipInvitationManagerImpl implements
 	}
 	
 	@Override
-	public Pair<MessageToUser, String> invitationExtendedMessage(MembershipInvtnSubmission mis) {
+	public Pair<MessageToUser, String> createInvitationNotification(MembershipInvtnSubmission mis) {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
