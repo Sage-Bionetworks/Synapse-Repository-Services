@@ -106,7 +106,11 @@ public class TeamManagerImpl implements TeamManager {
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
+	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
+	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.txt";
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
 	
+
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
 		this.teamsToBootstrap = teamsToBootstrap;
 	}
@@ -493,11 +497,6 @@ public class TeamManagerImpl implements TeamManager {
 		return false;
 	}
 	
-	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
-	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.txt";
-	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
-	
-
 	@Override
 	public Pair<MessageToUser, String> createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());

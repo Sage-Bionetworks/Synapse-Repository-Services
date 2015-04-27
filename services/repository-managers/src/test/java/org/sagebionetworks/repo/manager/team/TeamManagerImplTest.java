@@ -23,7 +23,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -59,6 +58,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 
 import com.google.common.collect.Lists;
 
@@ -128,6 +129,12 @@ public class TeamManagerImplTest {
 				mockUserProfileDAO,
 				mockTransactionalMessenger);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
+		UserProfile up = new UserProfile();
+		up.setFirstName("foo");
+		up.setLastName("bar");
+		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
+		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn("userName");
+
 		adminInfo = createUserInfo(true, "-1");
 	}
 	
@@ -602,17 +609,6 @@ public class TeamManagerImplTest {
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 
-		verify(mockTeamDAO, times(2)).get(TEAM_ID);
-		verify(mockUserProfileDAO).get(principalId);
-		ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-		String messageContent = messageCaptor.getValue();
-		// make sure fields have been filled in
-		assertTrue(messageContent, messageContent.indexOf("#teamName#")<0);
-		assertTrue(messageContent, messageContent.indexOf("#teamId#")<0);
-		assertTrue(messageContent, messageContent.indexOf("#userName#")<0);
-		assertTrue(messageContent, messageContent.indexOf("team-name")>=0);
-		assertTrue(messageContent, messageContent.indexOf(TEAM_ID)>=0);
-		assertTrue(messageContent, messageContent.indexOf("userName987")>=0);
 		TeamModificationMessage expectedMessage = new TeamModificationMessage();
 		expectedMessage.setObjectId(TEAM_ID);
 		expectedMessage.setObjectType(ObjectType.TEAM);
@@ -919,6 +915,40 @@ public class TeamManagerImplTest {
 		assertTrue(tms.getHasUnmetAccessRequirement());
 	}
 	
+	@Test
+	public void testCreateJoinedTeamNotificationSelf() throws Exception {
+		Team team = new Team();
+		team.setName("test-name");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
+		String inviterPrincipalId = "987";
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setCreatedBy(inviterPrincipalId);
+		when(mockMembershipInvtnSubmissionDAO.
+			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
+					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
 
+		Pair<MessageToUser, String> result = 
+				teamManagerImpl.createJoinedTeamNotification(userInfo, userInfo, TEAM_ID);
+		assertEquals("new member has joined team", result.getFirst().getSubject());
+		
+		assertEquals(Collections.singleton(inviterPrincipalId), result.getFirst().getRecipients());
+		assertEquals("Hello,\r\nfoo bar (userName) has now joined team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n", result.getSecond());
+	}
+	
+	@Test
+	public void testCreateJoinedTeamNotificationOther() throws Exception {
+		Team team = new Team();
+		team.setName("test-name");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+
+		String otherPrincipalId = "987";
+		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
+		Pair<MessageToUser, String> result = 
+				teamManagerImpl.createJoinedTeamNotification(userInfo, otherUserInfo, TEAM_ID);
+		assertEquals("new member has joined team", result.getFirst().getSubject());
+		assertEquals(Collections.singleton(otherPrincipalId), result.getFirst().getRecipients());
+		assertEquals("Hello,\r\nfoo bar (userName) has added accepted you into team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n", result.getSecond());
+
+	}
 }
