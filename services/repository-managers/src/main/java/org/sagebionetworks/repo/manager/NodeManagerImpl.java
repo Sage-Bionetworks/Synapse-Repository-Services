@@ -672,18 +672,23 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, boolean isForDownload)
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
 			throws NotFoundException, UnauthorizedException {
 		// Validate that the user has download permission.
 		validateDownload(userInfo, id);
 
-		if (isForDownload) {
+		switch (reason) {
+		case FOR_FILE_DOWNLOAD:
 			// validate that this is not requesterPays
 			RequesterPaysSetting requesterPays = projectSettingsManager.getProjectSettingForNode(userInfo, id,
 					ProjectSettingsType.requester_pays, RequesterPaysSetting.class);
 			if (requesterPays != null && BooleanUtils.isTrue(requesterPays.getRequesterPays())) {
 				throw new UnauthorizedException(REQUESTER_DOWNLOAD_COPY_NEEDED);
 			}
+			break;
+		case FOR_PREVIEW_DOWNLOAD:
+		case FOR_HANDLE_VIEW:
+			break;
 		}
 		// Get the value from the dao
 		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);

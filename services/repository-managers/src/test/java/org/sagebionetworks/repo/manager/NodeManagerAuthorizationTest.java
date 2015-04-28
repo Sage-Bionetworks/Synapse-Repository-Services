@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
@@ -220,7 +221,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// The user does not have permission to dowload the file
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, false);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 	}
 	
 	/**
@@ -242,7 +243,7 @@ public class NodeManagerAuthorizationTest {
 		when(
 				mockProjectSettingsManager.getProjectSettingForNode(mockUserInfo, mockNode.getId(), ProjectSettingsType.requester_pays,
 						RequesterPaysSetting.class)).thenReturn(setting);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, true);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_FILE_DOWNLOAD);
 	}
 
 	/**
@@ -256,7 +257,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(null);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, false);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 	}
 	
 	@Test
@@ -265,7 +266,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		String expectedFileHandleId = "999999";
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(expectedFileHandleId);
-		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, false);
+		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 		assertEquals(expectedFileHandleId, handleId);
 	}
 
@@ -282,7 +283,7 @@ public class NodeManagerAuthorizationTest {
 						RequesterPaysSetting.class)).thenReturn(setting);
 		String expectedFileHandleId = "999999";
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(expectedFileHandleId);
-		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, true);
+		String handleId = nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_FILE_DOWNLOAD);
 		assertEquals(expectedFileHandleId, handleId);
 	}
 
@@ -298,7 +299,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// The user does have permission to dowload the file
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, false);
+		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
