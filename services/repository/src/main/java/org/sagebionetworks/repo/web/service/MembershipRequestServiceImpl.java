@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -30,6 +31,18 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	private UserManager userManager;
 	@Autowired
 	private NotificationManager notificationManager;
+	
+	public MembershipRequestServiceImpl() {}
+	
+	public MembershipRequestServiceImpl(MembershipRequestManager membershipRequestManager,
+			UserManager userManager,
+			NotificationManager notificationManager) {
+		this.membershipRequestManager = membershipRequestManager;
+		this.userManager=userManager;
+		this.notificationManager=notificationManager;
+	}
+	
+
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipRqstSubmission)

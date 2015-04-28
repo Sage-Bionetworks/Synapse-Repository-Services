@@ -13,27 +13,27 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
+import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.util.Pair;
 
-public class MembershipInvitationServiceTest {
-	private MembershipInvitationServiceImpl membershipInvitationService;
-	private MembershipInvitationManager mockMembershipInvitationManager;
+public class MembershipRequestServiceTest {
+	private MembershipRequestServiceImpl membershipRequestService;
+	private MembershipRequestManager mockMembershipRequestManager;
 	private UserManager mockUserManager;
 	private NotificationManager mockNotificationManager;
 	
-	
 	@Before
 	public void before() throws Exception {
-		mockMembershipInvitationManager = Mockito.mock(MembershipInvitationManager.class);
+		mockMembershipRequestManager = Mockito.mock(MembershipRequestManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockNotificationManager = Mockito.mock(NotificationManager.class);
 
-		this.membershipInvitationService = new MembershipInvitationServiceImpl(
-				mockMembershipInvitationManager,
+		this.membershipRequestService = new MembershipRequestServiceImpl(
+				mockMembershipRequestManager,
 				mockUserManager,
 				mockNotificationManager);
 	}
@@ -48,14 +48,14 @@ public class MembershipInvitationServiceTest {
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
 		Pair<MessageToUser, String> result = new Pair<MessageToUser, String>(mtu, content);
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
-		when(mockMembershipInvitationManager.createInvitationNotification(mis)).thenReturn(result);
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		when(mockMembershipRequestManager.create(userInfo, mrs)).thenReturn(mrs);
+		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs)).thenReturn(result);
 
-		membershipInvitationService.create(userId, mis);
+		membershipRequestService.create(userId, mrs);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockMembershipInvitationManager).create(userInfo, mis);
-		verify(mockMembershipInvitationManager).createInvitationNotification(mis);
+		verify(mockMembershipRequestManager).create(userInfo, mrs);
+		verify(mockMembershipRequestManager).createMembershipRequestNotification(mrs);
 		
 		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);
 		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
