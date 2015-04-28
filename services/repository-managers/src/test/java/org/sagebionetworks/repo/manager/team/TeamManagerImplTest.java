@@ -576,7 +576,6 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-
 		TeamModificationMessage expectedMessage = new TeamModificationMessage();
 		expectedMessage.setObjectId(TEAM_ID);
 		expectedMessage.setObjectType(ObjectType.TEAM);

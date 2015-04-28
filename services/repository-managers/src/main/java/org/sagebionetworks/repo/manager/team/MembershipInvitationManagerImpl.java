@@ -52,7 +52,6 @@ public class MembershipInvitationManagerImpl implements
 	public MembershipInvitationManagerImpl(
 			AuthorizationManager authorizationManager,
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
-			UserProfileDAO userProfileDAO,
 			TeamDAO teamDAO
 			) {
 		this.authorizationManager = authorizationManager;

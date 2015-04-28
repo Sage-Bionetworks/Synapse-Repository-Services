@@ -7,6 +7,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -26,14 +27,14 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.util.Pair;
 
 public class MembershipInvitationManagerImplTest {
 	
 	private MembershipInvitationManagerImpl membershipInvitationManagerImpl = null;
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
-	private UserProfileDAO mockUserProfileDAO = null;
 	private TeamDAO mockTeamDAO = null;
 	
 	private UserInfo userInfo = null;
@@ -62,12 +63,10 @@ public class MembershipInvitationManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
-		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipInvtnSubmissionDAO,
-				mockUserProfileDAO,
 				mockTeamDAO
 				);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
@@ -248,6 +247,19 @@ public class MembershipInvitationManagerImplTest {
 	public void testGetOpenSubmissionsForTeamAndRequesterInRangeUnauthorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
+	}
+	
+	@Test
+	public void testCreateInvitationNotification() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		Team team = new Team();
+		team.setName("test team");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		Pair<MessageToUser, String> result = membershipInvitationManagerImpl.createInvitationNotification(mis);
+		assertEquals("you have been invited to join a team", result.getFirst().getSubject());
+		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getFirst().getRecipients());
+		assertEquals("Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n", 
+				result.getSecond());
 	}
 
 }
