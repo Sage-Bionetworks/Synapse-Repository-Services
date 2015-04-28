@@ -2,8 +2,6 @@ package org.sagebionetworks.table.cluster;
 
 import java.util.List;
 
-import com.amazonaws.services.rds.model.DBInstance;
-
 /**
  * Discovers database instances that are available.
  * 
@@ -21,5 +19,5 @@ public interface InstanceDiscovery {
 	 * 
 	 * @return
 	 */
-	List<DBInstance> discoverAllInstances();
+	List<InstanceInfo> discoverAllInstances();
 }

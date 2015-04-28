@@ -1536,6 +1536,34 @@ public class StackConfiguration {
 	public String getExternalS3TestBucketName() {
 		return String.format(StackConstants.EXTERNAL_S3_TEST_BUCKET, StackConfiguration.getStack());
 	}
+	
+	/**
+	 * Get the number of database in the table's cluster.
+	 * @return
+	 */
+	public int getTablesDatabaseCount(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.table.cluster.database.count"));
+	}
+	
+	/**
+	 * Get the endpoint of a table's database given its index. 
+	 * @param index Each database in the cluster has an index: 0 - n-1.
+	 * @return
+	 */
+	public String getTablesDatabaseEndpointForIndex(int index){
+		return configuration.getProperty("org.sagebionetworks.table.cluster.endpoint."+index);
+	}
+	
+	/**
+	 * Get the schema name of a table's database given its index. 
+	 * @param index Each database in the cluster has an index: 0 - n-1.
+	 * @return
+	 * @param index
+	 * @return
+	 */
+	public String getTablesDatabaseSchemaForIndex(int index){
+		return configuration.getProperty("org.sagebionetworks.table.cluster.schema."+index);
+	}
 
 	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to a file (the default)
