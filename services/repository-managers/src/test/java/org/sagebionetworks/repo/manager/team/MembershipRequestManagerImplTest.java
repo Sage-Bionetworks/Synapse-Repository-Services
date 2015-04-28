@@ -19,7 +19,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -33,7 +32,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.util.Pair;
 
 public class MembershipRequestManagerImplTest {
 	
@@ -160,16 +161,24 @@ public class MembershipRequestManagerImplTest {
 	}
 	
 	@Test
-	public void testNotification() throws Exception {
+	public void testCreateMembershipRequestNotification() throws Exception {
 		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
 		UserProfile up = new UserProfile();
-		up.setUserName("foo");
+		up.setUserName("auser");
 		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn(up.getUserName());
 		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
 		Team team = new Team();
-		team.setName("foo");
+		team.setName("test-team");
 		when(mockTeamDAO.get("111")).thenReturn(team);
-		// TODO
+		
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		mrs.setTeamId("111");
+		mrs.setCreatedBy(MEMBER_PRINCIPAL_ID);
+		Pair<MessageToUser, String> result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
+		assertEquals("someone has requested to join your team", result.getFirst().getSubject());
+		assertEquals(Collections.singleton("222"), result.getFirst().getRecipients());
+		assertEquals("Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n", 
+				result.getSecond());
 	}
 	
 	@Test
