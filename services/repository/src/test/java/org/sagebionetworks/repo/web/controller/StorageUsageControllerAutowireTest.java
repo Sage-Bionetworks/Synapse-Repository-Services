@@ -45,8 +45,8 @@ public class StorageUsageControllerAutowireTest extends AbstractAutowiredControl
 	public void testGrandTotals() throws Exception {
 		StorageUsageSummaryList sus = servletTestHelper.getStorageUsageGrandTotal(adminUserId);
 		Assert.assertNotNull(sus);
-		Assert.assertEquals("Expected empty list but found "+sus.getSummaryList(), 0, sus.getSummaryList().size());
 		Assert.assertEquals(0L, sus.getTotalSize().longValue());
+		Assert.assertEquals(0, sus.getSummaryList().size());
 	}
 
 	@Test
