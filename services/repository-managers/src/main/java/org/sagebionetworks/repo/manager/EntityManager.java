@@ -355,17 +355,6 @@ public interface EntityManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 * Get the FileHandle ID for the current version of the entity.
-	 * @param userInfo
-	 * @param id
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 */
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
 	 * Get the FileHandle ID for a given version number.
 	 * @param userInfo
 	 * @param id
@@ -377,7 +366,21 @@ public interface EntityManager {
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException;
 
 	/**
+	 * Get the FileHandle ID for a given version number.
+	 * 
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public String getFileHandleIdForVersionForDownload(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException,
+			NotFoundException;
+
+	/**
 	 * Get a reference for the current version of the given entity ids
+	 * 
 	 * @param entityIds entities ids to lookup
 	 * @return list of References with the current version filled in
 	 */

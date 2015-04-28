@@ -6,9 +6,6 @@ import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +14,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -26,24 +24,25 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -73,13 +72,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Autowired
 	private UserProfileManager userProfileManager;
 
-	private EntityType PROJECT_ENTITY_TYPE;
-
-	@PostConstruct
-	private void getProjectEntityType() {
-		PROJECT_ENTITY_TYPE = EntityType.getEntityTypeForClass(Project.class);
-	}
-
 	@Override
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
@@ -102,28 +94,25 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, ProjectSettingsType type,
+	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
+		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
 			throw new UnauthorizedException("Cannot read information for this parent entity");
 		}
-		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
+		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, nodeId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
 			throw new DatastoreException("No path for this parentId could be found");
 		}
-		// walk the path from the top (the top is probably root and the next one should be project)
-		String projectId = null;
-		for (EntityHeader node : nodePath) {
-			if (node.getType().equals(PROJECT_ENTITY_TYPE.getEntityTypeClassName())) {
-				projectId = node.getId();
-				break;
+		List<Long> nodePathIds = Lists.transform(nodePath, new Function<EntityHeader, Long>() {
+			@Override
+			public Long apply(EntityHeader input) {
+				return KeyFactory.stringToKey(input.getId());
 			}
-		}
-		if (projectId == null) {
-			throw new IllegalArgumentException("This parentId is not contained in a project");
-		}
-		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
+		});
+
+		// get the first available project setting of the correct type
+		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
 		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
@@ -141,8 +130,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		// make sure the project id is a project
 		EntityType nodeType = nodeManager.getNodeType(userInfo, projectSetting.getProjectId());
-		if (nodeType.getClassForType() != Project.class) {
-			throw new IllegalArgumentException("The id is not the id of a project entity");
+		if (nodeType.getClassForType() != Project.class && nodeType.getClassForType() != Folder.class) {
+			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
 		}
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");

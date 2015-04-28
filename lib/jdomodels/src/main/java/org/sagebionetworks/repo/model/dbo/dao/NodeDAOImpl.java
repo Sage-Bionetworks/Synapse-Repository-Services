@@ -1297,15 +1297,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public String getFileHandleIdForCurrentVersion(String id) throws DatastoreException, NotFoundException {
-		// lookup the current rev.
-		Long currentRev = getCurrentRevisionNumber(id);
-		// use the current rev to lookup the handle.
-		return getFileHandleIdForVersion(id, currentRev);
-	}
-
-	@Override
 	public String getFileHandleIdForVersion(String id, Long versionNumber) {
+		if (versionNumber == null) {
+			versionNumber = getCurrentRevisionNumber(id);
+		}
 		Long nodeId = KeyFactory.stringToKey(id);
 		try{
 			Long handleId = jdbcTemplate.queryForObject(SQL_SELECT_REV_FILE_HANDLE_ID, Long.class, nodeId, versionNumber);

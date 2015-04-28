@@ -88,6 +88,9 @@ public class NodeManagerImplAutoWiredTest {
 	@Autowired
 	private DBOBasicDao basicDao;
 	
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
+
 	private List<String> nodesToDelete;
 	private List<String> activitiesToDelete;
 	
@@ -570,8 +573,8 @@ public class NodeManagerImplAutoWiredTest {
 		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
-		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null, activityManager);		
+		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, aclDAO, entityBootstrapper,
+				mockNodeInheritanceManager, null, activityManager, projectSettingsManager);
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
@@ -609,8 +612,8 @@ public class NodeManagerImplAutoWiredTest {
 		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
-		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null, activityManager);	
+		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, aclDAO, entityBootstrapper,
+				mockNodeInheritanceManager, null, activityManager, projectSettingsManager);
 		
 		//make a non parentId change to the child
 		Node fetchedNode = nodeManager.get(adminUserInfo, childId);
