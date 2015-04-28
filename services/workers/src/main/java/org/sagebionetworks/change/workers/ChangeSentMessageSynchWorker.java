@@ -12,12 +12,12 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
@@ -71,7 +71,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	Random random = new Random(System.currentTimeMillis());
 
 	@Override
-	public void run(ProgressCallback callback) {
+	public void run(ProgressCallback<Void> callback) {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
@@ -106,7 +106,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 				for(ChangeMessage send: toSend){
 					try {
 						// For each message make progress
-						callback.progressMade();
+						callback.progressMade(null);
 						// publish the message.
 						repositoryMessagePublisher.publishToTopic(send);
 						countSuccess++;
@@ -120,7 +120,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 			// Sleep between pages to keep from overloading the database.
 			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
 			// Extend the timeout for this worker by calling the callback
-			callback.progressMade();
+			callback.progressMade(null);
 			// Create some metrics
 			long elapse = System.currentTimeMillis()-startTime;
 			workerLogger.logCustomMetric(createElapseProfileData(elapse));

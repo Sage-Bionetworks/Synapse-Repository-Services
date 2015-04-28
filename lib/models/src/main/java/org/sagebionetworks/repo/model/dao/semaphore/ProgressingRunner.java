@@ -1,5 +1,6 @@
-package org.sagebionetworks.repo.model.dbo.dao.semaphore;
+package org.sagebionetworks.repo.model.dao.semaphore;
 
+import org.sagebionetworks.util.ProgressCallback;
 
 /**
  * For jobs that need to hold a semaphore for a long period of time, the runner is given
@@ -15,5 +16,5 @@ public interface ProgressingRunner {
 	 * @param callback
 	 * @throws Exception
 	 */
-	public void run(ProgressCallback callback) throws Exception;
+	public void run(ProgressCallback<Void> callback) throws Exception;
 }

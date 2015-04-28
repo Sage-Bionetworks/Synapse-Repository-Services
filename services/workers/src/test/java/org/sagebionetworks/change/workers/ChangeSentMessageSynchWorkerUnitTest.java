@@ -1,15 +1,20 @@
 package org.sagebionetworks.change.workers;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 import org.mockito.Mockito;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
@@ -18,10 +23,9 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.util.DefaultClock;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -31,7 +35,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 	RepositoryMessagePublisher mockRepositoryMessagePublisher;
 	StackStatusDao mockStatusDao;
 	ChangeSentMessageSynchWorker worker;
-	ProgressCallback mockCallback;
+	ProgressCallback<Void> mockCallback;
 	StackConfiguration mockConfiguration;
 	WorkerLogger mockLogger;
 	Random mockRandom;
@@ -93,7 +97,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		long start = testClock.currentTimeMillis();
 		worker.run(mockCallback);
 		// Progress should be made for each page.
-		verify(mockCallback, times(5)).progressMade();
+		verify(mockCallback, times(5)).progressMade(null);
 		verify(mockRepositoryMessagePublisher, times(2)).publishToTopic(any(ChangeMessage.class));
 		verify(mockLogger, times(9)).logCustomMetric(any(ProfileData.class));
 		assertEquals(start + 3000, testClock.currentTimeMillis());
