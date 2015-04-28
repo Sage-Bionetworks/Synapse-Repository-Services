@@ -32,6 +32,16 @@ public class MembershipInvitationServiceImpl implements
 	@Autowired
 	private NotificationManager notificationManager;
 	
+	public MembershipInvitationServiceImpl() {}
+	
+	public MembershipInvitationServiceImpl(MembershipInvitationManager membershipInvitationManager,
+			UserManager userManager,
+			NotificationManager notificationManager) {
+		this.membershipInvitationManager = membershipInvitationManager;
+		this.userManager=userManager;
+		this.notificationManager=notificationManager;
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
 	 */

@@ -38,7 +38,6 @@ import org.sagebionetworks.util.Pair;
 public class TeamServiceTest {
 	
 	private TeamServiceImpl teamService;
-	
 	private UserManager mockUserManager;
 	private TeamManager mockTeamManager;
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
@@ -158,8 +157,10 @@ public class TeamServiceTest {
 		when(mockTeamManager.createJoinedTeamNotification(userInfo1, userInfo2, teamId)).thenReturn(result);
 		teamService.addMember(userId, teamId, principalId.toString());
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
-		
-		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserManager).getUserInfo(principalId);
+				
+		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);		
 		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
 		verify(mockNotificationManager, times(1)).
 			sendNotification(eq(userInfo1), mtuArg.capture(), contentArg.capture());
