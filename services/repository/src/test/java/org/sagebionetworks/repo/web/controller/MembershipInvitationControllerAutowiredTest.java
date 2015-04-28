@@ -73,11 +73,8 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		 PaginatedResults<MessageToUser> messages = 
 				 servletTestHelper.getOutbox(adminUserId, MessageSortBy.SEND_DATE, false, (long)Integer.MAX_VALUE, 0L);
 		 for (MessageToUser mtu : messages.getResults()) {
-			 try {
-				 servletTestHelper.deleteFile(adminUserId, mtu.getFileHandleId());
-			 } catch (Exception e) {
-				 // continue
-			 }
+		 	servletTestHelper.deleteMessage(dispatchServlet, adminUserId, mtu.getId());
+		 	servletTestHelper.deleteFile(adminUserId, mtu.getFileHandleId());
 		 }
 	}
 

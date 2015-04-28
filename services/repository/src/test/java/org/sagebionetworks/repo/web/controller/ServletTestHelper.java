@@ -923,6 +923,17 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
+	
+	public void deleteMessage(HttpServlet dispatchServlet,
+			Long userId, String id) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.MESSAGE + "/" + id, userId, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+
 
 	public ConceptResponsePage getConceptsForParent(String parentId,
 			String pefix, int limit, int offset) throws Exception {
