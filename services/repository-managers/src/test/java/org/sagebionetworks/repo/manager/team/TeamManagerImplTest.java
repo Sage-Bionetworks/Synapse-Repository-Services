@@ -564,7 +564,7 @@ public class TeamManagerImplTest {
 	}
 	
 	@Test
-	public void testAddRequestingMember() throws Exception {
+	public void testAddMember() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		String principalId = "987";
@@ -573,38 +573,6 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
 			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalUserInfo);
-		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
-		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-
-		// since there are no inviters there is no acknowledgement message
-		verify(mockTeamDAO, never()).get(TEAM_ID);
-		verify(mockUserProfileDAO, never()).get(principalId);
-	}
-	
-	@Test
-	public void testAddInvitedMember() throws Exception {
-		// 'userInfo' is a team admin and there is a membership request from 987
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		String principalId = "987";
-		UserInfo principalUserInfo = createUserInfo(false, principalId);
-		// 987 is not a team admin
-		when(mockAuthorizationManager.canAccess(principalUserInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		UserProfile profile = new UserProfile();
-		profile.setUserName("userName987");
-		when(mockUserProfileDAO.get(principalId)).thenReturn(profile);
-		when(mockPrincipalAliasDAO.getUserName(Long.parseLong(principalId))).thenReturn(profile.getUserName());
-		when(mockMembershipInvtnSubmissionDAO.
-				getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong())).thenReturn(1L);
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		mis.setCreatedBy(userInfo.getId().toString());
-		when(mockMembershipInvtnSubmissionDAO.
-				getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong(), anyLong(), anyLong())).
-				thenReturn(Collections.singletonList(mis));
-		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
-			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(createTeam(TEAM_ID, "team-name", "description", null, "101", null, null, null, null));
-		teamManagerImpl.addMember(principalUserInfo, TEAM_ID, principalUserInfo);
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
@@ -633,10 +601,6 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO, never()).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-
-		// since there is no member addition there is no acknowledgement message
-		verify(mockTeamDAO, never()).get(TEAM_ID);
-		verify(mockUserProfileDAO, never()).get(principalId);
 	}
 	
 	private static List<UserGroup> ugList(String[] pids) {

@@ -156,6 +156,11 @@ public class MembershipRequestManagerImplTest {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId("111");
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
+		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
+	}
+	
+	@Test
+	public void testNotification() throws Exception {
 		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
 		UserProfile up = new UserProfile();
 		up.setUserName("foo");
@@ -164,7 +169,7 @@ public class MembershipRequestManagerImplTest {
 		Team team = new Team();
 		team.setName("foo");
 		when(mockTeamDAO.get("111")).thenReturn(team);
-		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
+		// TODO
 	}
 	
 	@Test

@@ -101,8 +101,7 @@ public class EmailUtils {
 				}
 				String template = sb.toString();
 				for (String fieldMarker : fieldValues.keySet()) {
-					String value = fieldValues.get(fieldMarker);
-					template = template.replaceAll(fieldMarker, value);
+					template = template.replaceAll(fieldMarker, fieldValues.get(fieldMarker));
 				}
 				return template;
 			} finally {

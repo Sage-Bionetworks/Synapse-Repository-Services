@@ -92,7 +92,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException {
+			InvalidModelException, UnauthorizedException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mrs, userInfo);
