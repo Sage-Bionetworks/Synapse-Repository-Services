@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -363,20 +364,8 @@ public interface EntityManager {
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException;
-
-	/**
-	 * Get the FileHandle ID for a given version number.
-	 * 
-	 * @param userInfo
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	public String getFileHandleIdForVersionForDownload(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException,
-			NotFoundException;
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get a reference for the current version of the given entity ids

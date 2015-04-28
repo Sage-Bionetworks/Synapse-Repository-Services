@@ -21,7 +21,11 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
-		
+
+	public enum FileHandleReason {
+		FOR_PREVIEW_DOWNLOAD, FOR_FILE_DOWNLOAD, FOR_HANDLE_VIEW
+	}
+
 	/**
 	 * Create a new no
 	 * @param userId
@@ -313,12 +317,12 @@ public interface NodeManager {
 	 * @param userInfo
 	 * @param id
 	 * @param versionNumber if null, use current version
-	 * @param isForDownload if true, this is for a direct download and we want to check if download
+	 * @param reason the reason the caller requests this filehanlde, used for authorization and capability checks
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, boolean isForDownload)
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
 			throws NotFoundException, UnauthorizedException;
 
 	/**
