@@ -258,7 +258,7 @@ public class MembershipInvitationManagerImplTest {
 		Pair<MessageToUser, String> result = membershipInvitationManagerImpl.createInvitationNotification(mis);
 		assertEquals("you have been invited to join a team", result.getFirst().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getFirst().getRecipients());
-		assertEquals("Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n", 
+		assertEquals(result.getSecond(), "Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
 				result.getSecond());
 	}
 

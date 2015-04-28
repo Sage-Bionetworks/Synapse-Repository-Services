@@ -896,7 +896,7 @@ public class TeamManagerImplTest {
 		assertEquals("new member has joined team", result.getFirst().getSubject());
 		
 		assertEquals(Collections.singleton(inviterPrincipalId), result.getFirst().getRecipients());
-		assertEquals("Hello,\r\nfoo bar (userName) has now joined team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n", result.getSecond());
+		assertEquals(result.getSecond(), "Hello,\r\nfoo bar (userName) has now joined team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", result.getSecond());
 	}
 	
 	@Test
@@ -911,7 +911,6 @@ public class TeamManagerImplTest {
 				teamManagerImpl.createJoinedTeamNotification(userInfo, otherUserInfo, TEAM_ID);
 		assertEquals("new member has joined team", result.getFirst().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getFirst().getRecipients());
-		assertEquals("Hello,\r\nfoo bar (userName) has added accepted you into team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n", result.getSecond());
-
+		assertEquals(result.getSecond(), "Hello,\r\nfoo bar (userName) has added accepted you into team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:987/settings\r\n", result.getSecond());
 	}
 }

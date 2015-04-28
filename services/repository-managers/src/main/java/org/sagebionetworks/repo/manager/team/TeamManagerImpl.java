@@ -521,6 +521,7 @@ public class TeamManagerImpl implements TeamManager {
 			joinerUserProfile.setUserName(joinerUserName);
 			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
 			fieldValues.put("#displayName#", joinerDisplayName);
+			fieldValues.put("#userId#", memberInfo.getId().toString());
 			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
 		}	

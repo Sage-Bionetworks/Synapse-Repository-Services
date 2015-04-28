@@ -2,3 +2,5 @@ Hello,
 #displayName# has added accepted you into team #teamName#.  For further information please visit https://www.synapse.org/#!Team:#teamId#.
 Sincerely,
 Synapse Administration
+
+To turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:#userId#/settings

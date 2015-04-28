@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Pair;
@@ -97,6 +96,7 @@ public class MembershipInvitationManagerImpl implements
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#teamName#", teamDAO.get(mis.getTeamId()).getName());
 		fieldValues.put("#teamId#", mis.getTeamId());
+		fieldValues.put("#userId#", mis.getInviteeId());
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
 		return new Pair<MessageToUser, String>(mtu, messageContent);
 	}

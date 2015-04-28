@@ -177,7 +177,7 @@ public class MembershipRequestManagerImplTest {
 		Pair<MessageToUser, String> result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
 		assertEquals("someone has requested to join your team", result.getFirst().getSubject());
 		assertEquals(Collections.singleton("222"), result.getFirst().getRecipients());
-		assertEquals("Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n", 
+		assertEquals(result.getSecond(), "Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
 				result.getSecond());
 	}
 	
