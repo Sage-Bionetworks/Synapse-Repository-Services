@@ -44,6 +44,8 @@ public class TeamServiceImpl implements TeamService {
 	@Autowired
 	private NotificationManager notificationManager;
 	
+	public TeamServiceImpl() {}
+	
 	// for testing
 	public TeamServiceImpl(TeamManager teamManager, 
 			PrincipalPrefixDAO principalPrefixDAO,

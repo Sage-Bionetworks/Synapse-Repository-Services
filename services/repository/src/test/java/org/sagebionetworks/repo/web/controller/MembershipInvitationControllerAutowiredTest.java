@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -65,6 +67,18 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		 teamToDelete = null;
 		 
 		 userManager.deletePrincipal(adminUserInfo, testInvitee.getId());
+		 
+		 // creating invitations generates messages. We have to delete
+		 // the file handles as part of cleaning up
+		 PaginatedResults<MessageToUser> messages = 
+				 servletTestHelper.getOutbox(adminUserId, MessageSortBy.SEND_DATE, false, (long)Integer.MAX_VALUE, 0L);
+		 for (MessageToUser mtu : messages.getResults()) {
+			 try {
+				 servletTestHelper.deleteFile(adminUserId, mtu.getFileHandleId());
+			 } catch (Exception e) {
+				 // continue
+			 }
+		 }
 	}
 
 	@Test

@@ -1866,6 +1866,13 @@ public class ServletTestHelper {
 		return ServletTestHelperUtils.readResponse(response, S3FileHandle.class);
 	}
 	
+	public void deleteFile(Long userId, String fileHandleId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+	
 	public void deleteFilePreview(Long userId, String fileHandleId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId + "/filepreview", userId, null);
