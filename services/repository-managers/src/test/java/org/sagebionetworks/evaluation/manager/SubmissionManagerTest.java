@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
@@ -88,6 +89,7 @@ public class SubmissionManagerTest {
 	private EvaluationPermissionsManager mockEvalPermissionsManager;
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	private Node mockNode;
+	private TeamDAO mockTeamDAO;
 	private Folder folder;
 	private EntityBundle bundle;
 	
@@ -209,6 +211,7 @@ public class SubmissionManagerTest {
       	mockFileHandleManager = mock(FileHandleManager.class);
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
       	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
+      	mockTeamDAO = mock(TeamDAO.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
@@ -249,6 +252,7 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
     	ReflectionTestUtils.setField(submissionManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     	ReflectionTestUtils.setField(submissionManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
+    	ReflectionTestUtils.setField(submissionManager, "teamDAO", mockTeamDAO);
     }
 	
 	@Test

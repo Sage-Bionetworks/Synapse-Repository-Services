@@ -13,8 +13,10 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
 
 public interface SubmissionManager {
 
@@ -53,6 +55,13 @@ public interface SubmissionManager {
 	 */
 	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
+	
+	/**
+	 * 
+	 * @param submission
+	 * @return
+	 */
+	public Pair<MessageToUser,String> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash);
 
 	/**
 	 * Update the SubmissionStatus object for a Submission. Note that the

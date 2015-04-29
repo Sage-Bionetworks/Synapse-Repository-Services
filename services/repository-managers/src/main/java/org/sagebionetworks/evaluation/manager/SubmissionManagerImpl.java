@@ -3,11 +3,14 @@ package org.sagebionetworks.evaluation.manager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -19,6 +22,7 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -26,16 +30,22 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
@@ -43,13 +53,15 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -75,6 +87,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private SubmissionEligibilityManager submissionEligibilityManager;
+	@Autowired
+	private TeamDAO teamDAO;
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private EvaluationDAO evaluationDAO;
 	
 	private static final int MAX_BATCH_SIZE = 500;
 	
@@ -213,6 +233,64 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// return the Submission
 		return submissionDAO.get(submissionId);
+	}
+	
+	private static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.txt";
+
+	private static final String TEAM_SUBMISSION_SUBJECT = "Team Challenge Submission";
+	
+	/**
+	 * 
+	 * @param submission
+	 * @return
+	 */
+	public Pair<MessageToUser,String> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash) {
+		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
+			// no notification to send; return empty result
+			MessageToUser mtu = new MessageToUser();
+			mtu.setRecipients(Collections.EMPTY_SET);
+			mtu.setSubject("");
+			return new Pair<MessageToUser, String>(mtu,"");
+		}
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
+		Set<String> recipients = new HashSet<String>();
+		String submitterId = submission.getUserId();
+		// notify all but the one who submitted.  If there is no one else on the team
+		// then this list will be empty and no notification will be sent.
+		for (SubmissionContributor contributor : submission.getContributors()) {
+			if (!submitterId.equals(contributor.getPrincipalId())) {
+				recipients.add(contributor.getPrincipalId());
+			}
+		}
+		mtu.setRecipients(recipients);
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		Team team = teamDAO.get(submission.getTeamId());
+		fieldValues.put("#teamName#", team.getName());
+		String evaluationId = submission.getEvaluationId();
+		Evaluation evaluation = evaluationDAO.get(evaluationId);
+		String challengeEntityId = evaluation.getContentSource();
+		EntityHeader entityHeader = null;
+		try {
+			entityHeader = entityManager.getEntityHeader(userInfo, challengeEntityId, null);
+		} catch (UnauthorizedException e) {
+			entityHeader = null;
+		}
+		String challengeName = null;
+		if (entityHeader==null || entityHeader.getName()==null) {
+			challengeName = challengeEntityId;
+		} else {
+			challengeName = entityHeader.getName();
+		}
+		fieldValues.put("#challengeName#", challengeName);
+		fieldValues.put("#challengeEntityId#", challengeEntityId);
+		String userName = principalAliasDAO.getUserName(Long.parseLong(submitterId));
+		UserProfile userProfile = userProfileDAO.get(submitterId);
+		userProfile.setUserName(userName);
+		String displayName = EmailUtils.getDisplayName(userProfile);
+		fieldValues.put("#displayName#", displayName);
+		String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
+		return new Pair<MessageToUser, String>(mtu, messageContent);
 	}
 	
 	@Override
