@@ -51,10 +51,12 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
@@ -63,8 +65,11 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
@@ -90,6 +95,9 @@ public class SubmissionManagerTest {
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	private Node mockNode;
 	private TeamDAO mockTeamDAO;
+	private UserProfileDAO mockUserProfileDAO;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private EvaluationDAO mockEvaluationDAO;
 	private Folder folder;
 	private EntityBundle bundle;
 	
@@ -212,6 +220,9 @@ public class SubmissionManagerTest {
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
       	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
       	mockTeamDAO = mock(TeamDAO.class);
+      	mockUserProfileDAO = mock(UserProfileDAO.class);
+      	mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
+      	mockEvaluationDAO = mock(EvaluationDAO.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
@@ -253,6 +264,9 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     	ReflectionTestUtils.setField(submissionManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
     	ReflectionTestUtils.setField(submissionManager, "teamDAO", mockTeamDAO);
+    	ReflectionTestUtils.setField(submissionManager, "userProfileDAO", mockUserProfileDAO);
+    	ReflectionTestUtils.setField(submissionManager, "principalAliasDAO", mockPrincipalAliasDAO);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationDAO", mockEvaluationDAO);
     }
 	
 	@Test
@@ -698,5 +712,13 @@ public class SubmissionManagerTest {
 		batch.setIsLastBatch(true);
 		resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		assertNull(resp.getNextUploadToken());
+	}
+	
+	@Test
+	public void testCreateSubmissionNotification() throws Exception {
+		int submissionEligibilityHash = 1234;
+		Pair<MessageToUser, String> result = 
+				submissionManager.createSubmissionNotification(userInfo, sub, ""+submissionEligibilityHash);
+		
 	}
 }
