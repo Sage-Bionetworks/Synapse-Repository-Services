@@ -1,5 +1,5 @@
 Hello,
-#displayName# has created a Submission to the #challengeName# on behalf of #teamName#.  
+#displayName# has created a Submission to #challengeName# on behalf of #teamName#.  
 For further information please visit https://www.synapse.org/#!Synapse:#challengeEntityId#.
 Sincerely,
 Synapse Administration

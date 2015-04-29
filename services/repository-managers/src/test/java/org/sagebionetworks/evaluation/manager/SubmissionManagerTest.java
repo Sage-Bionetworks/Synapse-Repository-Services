@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -48,9 +49,11 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
@@ -716,9 +719,51 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testCreateSubmissionNotification() throws Exception {
+		assertNull(sub.getContributors());
+		Set<SubmissionContributor> contributors = new HashSet<SubmissionContributor>();
+		SubmissionContributor sc = new SubmissionContributor();
+		sc.setPrincipalId(USER_ID);
+		contributors.add(sc);
+		SubmissionContributor sc2 = new SubmissionContributor();
+		sc2.setPrincipalId("99");
+		contributors.add(sc2);
+		sub.setContributors(contributors);
+		sub.setTeamId(TEAM_ID);
 		int submissionEligibilityHash = 1234;
+		
+		Team team = new Team();
+		team.setName("test team");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		
+		Evaluation evaluation = new Evaluation();
+		evaluation.setContentSource("syn101");
+		when(mockEvaluationDAO.get(sub.getEvaluationId())).thenReturn(evaluation);
+		
+		UserProfile up = new UserProfile();
+		up.setUserName("auser");
+		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn(up.getUserName());
+		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
+
+		when(mockSubmissionEligibilityManager.isTeamEligible(
+				eq(EVAL_ID), eq(TEAM_ID),
+				any(List.class), eq(""+submissionEligibilityHash), any(Date.class))).
+				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Pair<MessageToUser, String> result = 
 				submissionManager.createSubmissionNotification(userInfo, sub, ""+submissionEligibilityHash);
+		assertEquals("Team Challenge Submission", result.getFirst().getSubject());
+		assertEquals(Collections.singleton("99"), result.getFirst().getRecipients());
+		assertEquals("Hello,\r\nauser has created a Submission to syn101 on behalf of test team.  \r\nFor further information please visit https://www.synapse.org/#!Synapse:syn101.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n",
+				result.getSecond());
+	}
+	
+	@Test
+	public void testCreateSubmissionNotification_Individual() throws Exception {
+		// check that when it's not a team submission no notification is created
+		sub.setTeamId(null);
+		Pair<MessageToUser, String> result = 
+				submissionManager.createSubmissionNotification(userInfo, sub, null);
+		assertTrue(result.getFirst().getRecipients().isEmpty());
+		assertEquals("", result.getSecond());
 		
 	}
 }
