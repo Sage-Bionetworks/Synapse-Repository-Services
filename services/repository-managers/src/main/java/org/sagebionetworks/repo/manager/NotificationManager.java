@@ -19,8 +19,7 @@ public interface NotificationManager {
 	 * @param message
 	 * @throws NotFoundException
 	 */
-	public void sendNotification(UserInfo userInfo, MessageToUser mtu,
-			String message) throws NotFoundException;
+	public void sendNotification(UserInfo userInfo, MessageToUserAndBody message) throws NotFoundException;
 	
 	
 	public static final String TEXT_PLAIN_MIME_TYPE = "text/plain";

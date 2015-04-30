@@ -65,9 +65,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public UserProfile getUserProfile(UserInfo userInfo, String ownerId)
+	public UserProfile getUserProfile(String ownerId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		if(userInfo == null) throw new IllegalArgumentException("userInfo can not be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId can not be null");
 		return getUserProfilePrivate(ownerId);
 	}

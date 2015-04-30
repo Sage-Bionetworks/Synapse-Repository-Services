@@ -23,7 +23,7 @@ public interface UserProfileManager {
 	/**
 	 * Get an existing UserProfile
 	 */
-	public UserProfile getUserProfile(UserInfo userInfo, String ownerid)
+	public UserProfile getUserProfile(String ownerid)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**

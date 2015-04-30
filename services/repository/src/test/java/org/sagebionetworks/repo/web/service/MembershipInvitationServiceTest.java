@@ -11,13 +11,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.util.Pair;
 
 public class MembershipInvitationServiceTest {
 	private MembershipInvitationServiceImpl membershipInvitationService;
@@ -47,7 +47,7 @@ public class MembershipInvitationServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		Pair<MessageToUser, String> result = new Pair<MessageToUser, String>(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
 		when(mockMembershipInvitationManager.createInvitationNotification(mis)).thenReturn(result);
@@ -57,12 +57,10 @@ public class MembershipInvitationServiceTest {
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
 		verify(mockMembershipInvitationManager).createInvitationNotification(mis);
 		
-		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);
-		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), mtuArg.capture(), contentArg.capture());
-		assertEquals(mtu, mtuArg.getValue());
-		assertEquals(content, contentArg.getValue());		
+			sendNotification(eq(userInfo), messageArg.capture());
+		assertEquals(result, messageArg);		
 	}
 
 }

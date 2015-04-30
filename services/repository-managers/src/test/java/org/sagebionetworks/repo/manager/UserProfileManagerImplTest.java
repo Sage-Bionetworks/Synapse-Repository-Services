@@ -103,7 +103,7 @@ public class UserProfileManagerImplTest {
 		
 		UserInfo userInfo = new UserInfo(false, principalId);
 		// Get it back
-		UserProfile clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
+		UserProfile clone = userProfileManager.getUserProfile(principalId.toString());
 		assertEquals(created, clone);
 		
 		// Make sure we can update it
@@ -113,7 +113,7 @@ public class UserProfileManagerImplTest {
 		UserProfile updated = userProfileManager.updateUserProfile(userInfo, created);
 		assertFalse("Update failed to update the etag",startEtag.equals(updated.getEtag()));
 		// Get it back
-		clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
+		clone = userProfileManager.getUserProfile(principalId.toString());
 		assertEquals(updated, clone);
 		assertEquals("newUsername", clone.getUserName());
 		
@@ -141,7 +141,7 @@ public class UserProfileManagerImplTest {
 		
 		UserInfo userInfo = new UserInfo(false, principalId);
 		// Get it back
-		UserProfile clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
+		UserProfile clone = userProfileManager.getUserProfile(principalId.toString());
 		assertEquals(profile, clone);
 		assertEquals(Collections.singletonList(USER_EMAIL), clone.getEmails());
 		

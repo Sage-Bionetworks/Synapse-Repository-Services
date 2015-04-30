@@ -1,15 +1,14 @@
 package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 public interface MembershipRequestManager {
 	
@@ -99,8 +98,8 @@ public interface MembershipRequestManager {
 	 * Create the notification content
 	 * 
 	 * @param mrs
-	 * @return a pair: (1) the message metadata, (2) the message content
+	 * @return the message metadata and the message content
 	 */
-	public Pair<MessageToUser, String> createMembershipRequestNotification(MembershipRqstSubmission mrs);
+	public MessageToUserAndBody createMembershipRequestNotification(MembershipRqstSubmission mrs);
 
 }

@@ -12,6 +12,7 @@ import java.util.Map;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,7 +25,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -89,7 +89,7 @@ public class MembershipInvitationManagerImpl implements
 	}
 	
 	@Override
-	public Pair<MessageToUser, String> createInvitationNotification(MembershipInvtnSubmission mis) {
+	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis) {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
@@ -98,7 +98,7 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put("#teamId#", mis.getTeamId());
 		fieldValues.put("#userId#", mis.getInviteeId());
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
-		return new Pair<MessageToUser, String>(mtu, messageContent);
+		return new MessageToUserAndBody(mtu, messageContent);
 	}
 
 	/* (non-Javadoc)

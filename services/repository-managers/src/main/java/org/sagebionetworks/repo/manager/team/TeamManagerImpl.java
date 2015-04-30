@@ -20,7 +20,9 @@ import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -49,7 +51,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -83,6 +84,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
@@ -93,13 +96,11 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	@Autowired
 	private PrincipalManager principalManager;
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManager;
 
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -132,7 +133,7 @@ public class TeamManagerImpl implements TeamManager {
 			AccessRequirementDAO accessRequirementDAO,
 			PrincipalAliasDAO principalAliasDAO,
 			PrincipalManager principalManager,
-			UserProfileDAO userProfileDAO,
+			UserProfileManager userProfileManager,
 			TransactionalMessenger transactionalMessenger
 			) {
 		this.authorizationManager = authorizationManager;
@@ -149,7 +150,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.principalManager = principalManager;
-		this.userProfileDAO = userProfileDAO;
+		this.userProfileManager = userProfileManager;
 		this.transactionalMessenger = transactionalMessenger;
 	}
 
@@ -498,7 +499,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public Pair<MessageToUser, String> createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+	public MessageToUserAndBody createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
@@ -508,16 +509,14 @@ public class TeamManagerImpl implements TeamManager {
 		mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 		if (userJoiningTeamIsSelf) {
 			Set<String> inviters = getInviters(Long.parseLong(teamId), memberInfo.getId());
-			String memberUserName = principalAliasDAO.getUserName(memberInfo.getId());
-			UserProfile memberUserProfile = userProfileDAO.get(memberInfo.getId().toString());
-			memberUserProfile.setUserName(memberUserName);
+			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
 			fieldValues.put("#displayName#", memberDisplayName);
 			messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
 			mtu.setRecipients(inviters);
 		} else {
 			String joinerUserName = principalAliasDAO.getUserName(joinerInfo.getId());
-			UserProfile joinerUserProfile = userProfileDAO.get(joinerInfo.getId().toString());
+			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
 			joinerUserProfile.setUserName(joinerUserName);
 			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
 			fieldValues.put("#displayName#", joinerDisplayName);
@@ -525,7 +524,7 @@ public class TeamManagerImpl implements TeamManager {
 			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
 		}	
-		return new Pair<MessageToUser, String>(mtu, messageContent);
+		return new MessageToUserAndBody(mtu, messageContent);
 	}
 
 	private Set<String> getInviters(Long teamId, Long inviteeId) {

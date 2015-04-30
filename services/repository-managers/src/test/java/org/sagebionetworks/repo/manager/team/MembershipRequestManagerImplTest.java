@@ -19,6 +19,8 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -31,18 +33,13 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.util.Pair;
 
 public class MembershipRequestManagerImplTest {
 	
 	private AuthorizationManager mockAuthorizationManager;
 	private MembershipRequestManagerImpl membershipRequestManagerImpl;
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
-	private UserProfileDAO mockUserProfileDAO;
-	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private UserProfileManager mockUserProfileManager;
 	private TeamDAO mockTeamDAO;
 
 	
@@ -54,14 +51,12 @@ public class MembershipRequestManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
-		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
+		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipRqstSubmissionDAO,
-				mockUserProfileDAO,
-				mockPrincipalAliasDAO,
+				mockUserProfileManager,
 				mockTeamDAO
 				);
 		userInfo = new UserInfo(false);
@@ -165,8 +160,7 @@ public class MembershipRequestManagerImplTest {
 		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
 		UserProfile up = new UserProfile();
 		up.setUserName("auser");
-		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn(up.getUserName());
-		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
+		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
 		Team team = new Team();
 		team.setName("test-team");
 		when(mockTeamDAO.get("111")).thenReturn(team);
@@ -174,11 +168,11 @@ public class MembershipRequestManagerImplTest {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId("111");
 		mrs.setCreatedBy(MEMBER_PRINCIPAL_ID);
-		Pair<MessageToUser, String> result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
-		assertEquals("someone has requested to join your team", result.getFirst().getSubject());
-		assertEquals(Collections.singleton("222"), result.getFirst().getRecipients());
-		assertEquals(result.getSecond(), "Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
-				result.getSecond());
+		MessageToUserAndBody result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
+		assertEquals("someone has requested to join your team", result.getMetadata().getSubject());
+		assertEquals(Collections.singleton("222"), result.getMetadata().getRecipients());
+		assertEquals(result.getBody(), "Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
+				result.getBody());
 	}
 	
 	@Test

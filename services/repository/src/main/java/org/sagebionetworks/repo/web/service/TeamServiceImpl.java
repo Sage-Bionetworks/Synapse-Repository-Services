@@ -6,11 +6,9 @@ package org.sagebionetworks.repo.web.service;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
@@ -26,7 +24,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -214,16 +211,11 @@ public class TeamServiceImpl implements TeamService {
 		
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
 		// needed to determine who to notify
-		Pair<MessageToUser, String> message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
-		MessageToUser notificationMetaData = message.getFirst();
-		String notificationContent = message.getSecond();
+		MessageToUserAndBody message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
 		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		notificationManager.sendNotification(
-				userInfo, 
-				notificationMetaData,
-				notificationContent);
+		notificationManager.sendNotification(userInfo, message);
 	}
 	
 	/* (non-Javadoc)

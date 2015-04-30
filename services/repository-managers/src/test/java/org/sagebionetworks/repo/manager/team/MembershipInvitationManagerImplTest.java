@@ -17,6 +17,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -27,8 +28,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.util.Pair;
 
 public class MembershipInvitationManagerImplTest {
 	
@@ -255,11 +254,11 @@ public class MembershipInvitationManagerImplTest {
 		Team team = new Team();
 		team.setName("test team");
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
-		Pair<MessageToUser, String> result = membershipInvitationManagerImpl.createInvitationNotification(mis);
-		assertEquals("you have been invited to join a team", result.getFirst().getSubject());
-		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getFirst().getRecipients());
-		assertEquals(result.getSecond(), "Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
-				result.getSecond());
+		MessageToUserAndBody result = membershipInvitationManagerImpl.createInvitationNotification(mis);
+		assertEquals("you have been invited to join a team", result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
+		assertEquals(result.getBody(), "Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
+				result.getBody());
 	}
 
 }

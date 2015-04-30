@@ -86,14 +86,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, userInfo.getId().toString());
+		return userProfileManager.getUserProfile(userInfo.getId().toString());
 	}
 	
 	@Override
 	public UserProfile getUserProfileByOwnerId(Long userId, String profileId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserProfile userProfile = userProfileManager.getUserProfile(userInfo, profileId);
+		UserProfile userProfile = userProfileManager.getUserProfile(profileId);
 		UserProfileManagerUtils.clearPrivateFields(userInfo, userProfile);
 		return userProfile;
 	}

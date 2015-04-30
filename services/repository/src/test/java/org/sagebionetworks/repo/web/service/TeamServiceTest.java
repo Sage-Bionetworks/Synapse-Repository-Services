@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -153,19 +154,17 @@ public class TeamServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton(principalId.toString()));
 		String content = "foo";
-		Pair<MessageToUser, String> result = new Pair<MessageToUser, String>(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
 		when(mockTeamManager.createJoinedTeamNotification(userInfo1, userInfo2, teamId)).thenReturn(result);
 		teamService.addMember(userId, teamId, principalId.toString());
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockUserManager).getUserInfo(principalId);
 				
-		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);		
-		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
-		verify(mockNotificationManager, times(1)).
-			sendNotification(eq(userInfo1), mtuArg.capture(), contentArg.capture());
-		assertEquals(mtu, mtuArg.getValue());
-		assertEquals(content, contentArg.getValue());
+		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);		
+		verify(mockNotificationManager).
+			sendNotification(eq(userInfo1), messageArg.capture());
+		assertEquals(result, messageArg.getValue());
 	}
 	
 

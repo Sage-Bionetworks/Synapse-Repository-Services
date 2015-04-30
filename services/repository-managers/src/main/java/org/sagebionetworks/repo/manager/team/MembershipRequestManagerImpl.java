@@ -13,7 +13,8 @@ import java.util.Set;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,9 +27,7 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,9 +43,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Autowired 
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 	@Autowired
-	private UserProfileDAO userProfileDAO;
-	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
+	private UserProfileManager userProfileManager;
 	@Autowired
 	private TeamDAO teamDAO;
 	
@@ -57,14 +54,12 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public MembershipRequestManagerImpl(
 			AuthorizationManager authorizationManager,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
-			UserProfileDAO userProfileDAO,
-			PrincipalAliasDAO principalAliasDAO,
+			UserProfileManager userProfileManager,
 			TeamDAO teamDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
-		this.userProfileDAO = userProfileDAO;
-		this.principalAliasDAO = principalAliasDAO;
+		this.userProfileManager = userProfileManager;
 		this.teamDAO=teamDAO;
 	}
 	
@@ -102,10 +97,8 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 
 	@Override
-	public Pair<MessageToUser, String> createMembershipRequestNotification(MembershipRqstSubmission mrs) {
-		String requesterUserName = principalAliasDAO.getUserName(Long.parseLong(mrs.getCreatedBy()));
-		UserProfile userProfile = userProfileDAO.get(mrs.getCreatedBy());
-		userProfile.setUserName(requesterUserName);
+	public MessageToUserAndBody createMembershipRequestNotification(MembershipRqstSubmission mrs) {
+		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put("#displayName#", displayName);
@@ -116,7 +109,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
 		mtu.setRecipients(teamAdmins);
 		mtu.setSubject(TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT);
-		return new Pair<MessageToUser, String>(mtu, messageContent);
+		return new MessageToUserAndBody(mtu, messageContent);
 	}
 	
 	/* (non-Javadoc)

@@ -54,7 +54,7 @@ public class NotificationManagerImplTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(to);
 		mtu.setSubject(subject);
-		notificationManager.sendNotification(userInfo, mtu, message);
+		notificationManager.sendNotification(userInfo, new MessageToUserAndBody(mtu, message));
 		verify(fileHandleManager).uploadFile(eq(USER_ID.toString()), any(FileItemStream.class));
 		FileItemStream fis = fisCaptor.getValue();
 		assertEquals("text/plain; charset=UTF-8", fis.getContentType());
@@ -75,7 +75,7 @@ public class NotificationManagerImplTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(to);
 		String message = "message";
-		notificationManager.sendNotification(userInfo, mtu, message);
+		notificationManager.sendNotification(userInfo, new MessageToUserAndBody(mtu, message));
 		// there should be no message sent
 		verify(fileHandleManager, never()).uploadFile(anyString(), any(FileItemStream.class));
 		verify(messageManager, never()).createMessage(any(UserInfo.class), any(MessageToUser.class));
