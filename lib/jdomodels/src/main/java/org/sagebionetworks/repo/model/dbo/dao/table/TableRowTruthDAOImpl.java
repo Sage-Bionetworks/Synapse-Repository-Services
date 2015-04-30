@@ -67,7 +67,7 @@ import com.google.common.collect.Sets;
  * @author John
  * 
  */
-public class TableRowTruthDAOImpl implements TableRowTruthDAO {
+public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
 
 	private static final String SQL_SELECT_VERSION_FOR_ETAG = "SELECT "
@@ -236,88 +236,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 		results.setRows(refs);
 		return results;
-	}
-
-	/**
-	 * Check for a row level conflicts in the passed change sets, by scanning
-	 * each row of each change set and looking for the intersection with the
-	 * passed row Ids.
-	 * 
-	 * @param tableId
-	 * @param delta
-	 * @param coutToReserver
-	 * @throws ConflictingUpdateException
-	 *             when a conflict is found
-	 */
-	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException {
-		if (delta.getEtag() != null) {
-			// Lookup the version number for this update.
-			long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
-			long firstVersionToCheck = Math.max(minVersion - 1, versionOfEtag);
-			// Check each version greater than the version for the etag
-			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, firstVersionToCheck);
-			// check for row level conflicts
-			Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows()).keySet();
-			for (TableRowChange change : changes) {
-				checkForRowLevelConflict(change, rowIds);
-			}
-		} else {
-			// we have to check each row individually
-			// Check each version greater than the min version
-			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
-			// check for row level conflicts
-			// we scan from highest version down and once we encounter a row, we remove it from the map, since we are only interested in comparing to the latest version
-			Map<Long, Long> rowIdsAndVersions = TableModelUtils.getDistictValidRowIds(delta.getRows());
-			for (TableRowChange change : Lists.reverse(changes)) {
-				checkForRowLevelConflict(change, rowIdsAndVersions);
-			}
-		}
-	}
-
-	/**
-	 * Check for a row level conflict in the passed change set, by scanning the
-	 * rows of the change and looking for the intersection with the passed row
-	 * Ids.
-	 * 
-	 * @param change
-	 * @param rowIds
-	 * @throws ConflictingUpdateException
-	 *             when a conflict is found
-	 */
-	private void checkForRowLevelConflict(final TableRowChange change,
-			final Set<Long> rowIds) throws IOException {
-		scanChange(new RowHandler() {
-			@Override
-			public void nextRow(Row row) {
-				// Does this row match?
-				if (rowIds.contains(row.getRowId())) {
-					throwUpdateConflict(row.getRowId());
-				}
-			}
-		}, change);
-	}
-
-	/**
-	 * Check for a row level conflict in the passed map of row ids and versions, by scanning the rows of the change and
-	 * looking for the intersection with the passed row Ids.
-	 * 
-	 * @param change
-	 * @param rowIdsAndVersions (this map will be modified!)
-	 * @throws ConflictingUpdateException when a conflict is found
-	 */
-	private void checkForRowLevelConflict(final TableRowChange change, final Map<Long, Long> rowIdsAndVersions) throws IOException {
-		scanChange(new RowHandler() {
-			@Override
-			public void nextRow(Row row) {
-				// Does this row match?
-				Long version = rowIdsAndVersions.remove(row.getRowId());
-				if(version != null){
-					if (version.longValue() < row.getVersionNumber().longValue()) {
-						throwUpdateConflict(row.getRowId());
-					}
-				}
-			}
-		}, change);
 	}
 
 	@Override

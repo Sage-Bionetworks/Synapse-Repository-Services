@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModelMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -232,4 +233,18 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 */
 	public void removeCaches(Long tableId) throws IOException;
+	
+	/**
+	 * Check for a row level conflicts in the passed change sets, by scanning
+	 * each row of each change set and looking for the intersection with the
+	 * passed row Ids.
+	 * 
+	 * @param tableId
+	 * @param delta
+	 * @param coutToReserver
+	 * @throws IOException 
+	 * @throws ConflictingUpdateException
+	 *             when a conflict is found
+	 */
+	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException;
 }
