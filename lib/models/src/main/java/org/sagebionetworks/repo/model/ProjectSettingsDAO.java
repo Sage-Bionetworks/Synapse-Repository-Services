@@ -18,6 +18,8 @@ public interface ProjectSettingsDAO {
 
 	public List<ProjectSetting> getAllForProject(String projectId) throws DatastoreException, NotFoundException;
 
+	public List<ProjectSetting> getByType(ProjectSettingsType projectSettingsType) throws DatastoreException, NotFoundException;
+
 	public ProjectSetting update(ProjectSetting settings) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException;
 

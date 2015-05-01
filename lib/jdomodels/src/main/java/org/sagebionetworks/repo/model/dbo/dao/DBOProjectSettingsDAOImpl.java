@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
@@ -11,13 +11,17 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -25,9 +29,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 
@@ -45,6 +46,9 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+
 	private static final String TYPE_PARAM_NAME = "type_param";
 	private static final String PARENT_IDS_PARAM_NAME = "parent_ids_param";
 
@@ -52,6 +56,8 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			+ " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
+	private static final String SELECT_SETTINGS_BY_TYPE = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_TYPE
+			+ " = ?";
 
 	private static final String SELECT_SETTING_FROM_PARENTS = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " IN ( :" + PARENT_IDS_PARAM_NAME + " ) and " + COL_PROJECT_SETTING_TYPE + " = :"
@@ -71,7 +77,15 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			dbo.setEtag(UUID.randomUUID().toString());
 		}
 		dbo = basicDao.createNew(dbo);
-		return dbo.getId().toString();
+		String projectSettingsId = dbo.getId().toString();
+
+		NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();
+		nodeSettingsModificationMessage.setObjectId(dto.getProjectId());
+		nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
+		nodeSettingsModificationMessage.setProjectSettingsType(dto.getSettingsType());
+		transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
+
+		return projectSettingsId;
 	}
 
 	@Override
@@ -122,9 +136,32 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		return result;
 	}
 
+	@Override
+	public List<ProjectSetting> getByType(ProjectSettingsType projectSettingsType) throws DatastoreException, NotFoundException {
+		List<DBOProjectSetting> projectSettings = jdbcTemplate.query(SELECT_SETTINGS_BY_TYPE, projectSettingRowMapper,
+				projectSettingsType.name());
+		List<ProjectSetting> result = Lists.newArrayListWithCapacity(projectSettings.size());
+		for (DBOProjectSetting projectSetting : projectSettings) {
+			result.add(convertDboToDto(projectSetting));
+		}
+		return result;
+	}
+
 	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
+		try {
+			DBOProjectSetting projectSetting = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
+					new SinglePrimaryKeySqlParameterSource(id));
+
+			NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();
+			nodeSettingsModificationMessage.setObjectId(id);
+			nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
+			nodeSettingsModificationMessage.setProjectSettingsType(projectSetting.getType());
+			transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
+		} catch (NotFoundException e) {
+			// ignore, it's probable already deleted
+		}
 		basicDao.deleteObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
 	}
 
@@ -157,6 +194,12 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		boolean success = basicDao.update(dbo);
 		if (!success)
 			throw new DatastoreException("Unsuccessful updating project setting in database.");
+
+		NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();
+		nodeSettingsModificationMessage.setObjectId(dto.getProjectId());
+		nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
+		nodeSettingsModificationMessage.setProjectSettingsType(dto.getSettingsType());
+		transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
 
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
 		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));

@@ -10,7 +10,9 @@ import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -26,6 +28,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class EntityPermissionsManagerImplUnitTest {
@@ -40,19 +43,31 @@ public class EntityPermissionsManagerImplUnitTest {
 	private Node project;
 	private Node folder;
 	
+	@Mock
 	private UserGroupDAO mockUserGroupDAO;
+	@Mock
 	private NodeDAO mockNodeDao;
+	@Mock
 	private AccessControlListDAO mockAclDAO;
+	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
+	@Mock
 	private NodeInheritanceManager mockNodeInheritanceManager;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private AuthenticationManager mockAuthenticationManager;
+	@Mock
 	private StackConfiguration mockStackConfiguration;
+	@Mock
+	private ProjectSettingsManager mockProjectSettingsManager;
 
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@Before
 	public void setUp() throws Exception {
+		MockitoAnnotations.initMocks(this);
+
 		entityPermissionsManager = new EntityPermissionsManagerImpl();
 		
 		nonCertifiedUserInfo = new UserInfo(false);
@@ -63,22 +78,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		certifiedUserInfo.setId(1234567L);
 		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		
-		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "userGroupDAO", mockUserGroupDAO);
-    	mockNodeDao = Mockito.mock(NodeDAO.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "nodeDao", mockNodeDao);
-    	mockAclDAO = Mockito.mock(AccessControlListDAO.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "aclDAO", mockAclDAO);
-    	mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "accessRequirementDAO", mockAccessRequirementDAO);
-    	mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "nodeInheritanceManager", mockNodeInheritanceManager);
-    	mockUserManager = Mockito.mock(UserManager.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "userManager", mockUserManager);
-    	mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "authenticationManager", mockAuthenticationManager);
-    	mockStackConfiguration = Mockito.mock(StackConfiguration.class);
-    	ReflectionTestUtils.setField(entityPermissionsManager, "configuration", mockStackConfiguration);
+		ReflectionStaticTestUtils.mockAutowire(this, entityPermissionsManager);
     	
     	when(mockStackConfiguration.getDisableCertifiedUser()).thenReturn(new PropertyAccessor<Boolean>(){
 			@Override public Boolean get() {return false;}}

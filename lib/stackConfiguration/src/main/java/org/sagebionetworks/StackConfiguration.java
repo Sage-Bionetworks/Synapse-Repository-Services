@@ -697,6 +697,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Are sub folders in auto sync folders allowed
+	 * 
+	 * @return
+	 */
+	public boolean getAutoSyncSubFoldersAllowed() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.autosync.subfolders.enabled"));
+	}
+
+	/**
 	 * Is the DOI feature enabled?
 	 * 
 	 * @return
