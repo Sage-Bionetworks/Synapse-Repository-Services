@@ -141,7 +141,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		InputStream in = s3Object.getObjectContent();
 		try{
 			// Read the file as a string
-			String markdownString = FileUtils.readCompressedStreamAsStringWithUTF8Charset(in);
+			String markdownString = FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
 			wiki.setMarkdown(markdownString);
 			return wiki;
 		}finally{

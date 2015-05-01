@@ -131,9 +131,15 @@ public class FileUtils {
 	/**
 	 * Read compressed data from file as a string.
 	 */
-	public static String readCompressedStreamAsStringWithUTF8Charset(InputStream in) throws IOException {
-		GZIPInputStream gzin = new GZIPInputStream(in);
-		BufferedInputStream bis = new BufferedInputStream(gzin);
+	public static String readStreamAsStringWithUTF8Charset(InputStream in, boolean gunzip) throws IOException {
+		BufferedInputStream bis;
+		GZIPInputStream gzin=null;
+		if (gunzip) {
+			gzin = new GZIPInputStream(in);
+			bis = new BufferedInputStream(gzin);
+		} else {
+			bis = new BufferedInputStream(in);
+		}
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			byte[] buffer = new byte[1024];
@@ -144,7 +150,7 @@ public class FileUtils {
 		} finally {
 			baos.close();
 			bis.close();
-			gzin.close();
+			if (gzin!=null) gzin.close();
 			in.close();
 		}
 		String fromZip = new String(baos.toByteArray(), "UTF-8");

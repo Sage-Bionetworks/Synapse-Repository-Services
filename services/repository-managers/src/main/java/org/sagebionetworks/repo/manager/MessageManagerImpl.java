@@ -395,7 +395,7 @@ public class MessageManagerImpl implements MessageManager {
 		boolean isHtml="text/html".equals(mimeType);
 
 		try {
-			String messageBody = fileHandleManager.downloadCompressedFileToString(dto.getFileHandleId());
+			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
 			return processMessage(dto, singleTransaction, messageBody, isHtml);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

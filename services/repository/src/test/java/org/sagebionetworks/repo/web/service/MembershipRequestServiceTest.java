@@ -59,7 +59,7 @@ public class MembershipRequestServiceTest {
 		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);
 		verify(mockNotificationManager).
 			sendNotification(eq(userInfo), messageArg.capture());
-		assertEquals(mtu, messageArg.getValue());		
+		assertEquals(result, messageArg.getValue());		
 	}
 
 }

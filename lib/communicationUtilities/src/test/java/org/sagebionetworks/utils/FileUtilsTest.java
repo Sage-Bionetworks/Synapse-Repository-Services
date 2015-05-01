@@ -204,7 +204,7 @@ public class FileUtilsTest {
 		FileUtils.writeCompressedStringWithUTF8Charset(markdown, baos);
 		byte[] bytes = baos.toByteArray();
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-		String unzippedString = FileUtils.readCompressedStreamAsStringWithUTF8Charset(bais);
+		String unzippedString = FileUtils.readStreamAsStringWithUTF8Charset(bais, true);
 		assertEquals(markdown, unzippedString);
 	}
 }

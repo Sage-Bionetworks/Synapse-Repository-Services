@@ -330,7 +330,7 @@ public interface FileHandleManager {
 	 * @param fileHandleId
 	 * @return
 	 */
-	String downloadCompressedFileToString(String fileHandleId) throws IOException;
+	String downloadFileToString(String fileHandleId) throws IOException;
 
 	/**
 	 * Create a file handle that is a place holder for a file that was never uploaded.

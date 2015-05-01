@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -115,6 +117,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 
 	public static final String NOT_SET = "NOT_SET";
+
+	private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+	
+	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
 	@Autowired
 	FileHandleDao fileHandleDao;
@@ -880,8 +886,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return createCompressedFileFromString(createdBy, modifiedOn, fileContents, "application/octet-stream");
 	}	
 	
-	private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
-
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
@@ -892,7 +896,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		FileUtils.writeCompressedStringWithUTF8Charset(fileContents, out);
 		byte[] compressedBytes = out.toByteArray();
-		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, "gzip", mimeType);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, GZIP_CONTENT_ENCODING, mimeType);
 	}
 	
 	@Override
@@ -932,7 +936,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @param fileHandleId
 	 * @return
 	 */
-	public String downloadCompressedFileToString(String fileHandleId) throws IOException {
+	public String downloadFileToString(String fileHandleId) throws IOException {
 		URL url;
 		try {
 			url = new URL(getRedirectURLForFileHandle(fileHandleId));
@@ -944,8 +948,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			InputStream in = null;
 			try {
-				in = url.openStream();
-				return FileUtils.readCompressedStreamAsStringWithUTF8Charset(in);
+				URLConnection connection = url.openConnection();
+				String contentEncoding = connection.getHeaderField(HttpHeaders.CONTENT_ENCODING);
+				in = connection.getInputStream();
+				if (GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
+					return FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
+				} else {
+					return FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/false);
+				}
 			} finally {
 				if (in != null) {
 					in.close();

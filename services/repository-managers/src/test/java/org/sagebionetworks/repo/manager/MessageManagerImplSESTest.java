@@ -148,7 +148,7 @@ public class MessageManagerImplSESTest {
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_PLAIN_TEXT)).thenReturn(urlPT);
 		String urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
-		when(mockFileHandleManager.downloadCompressedFileToString(anyString())).thenReturn("my dog has fleas");
+		when(mockFileHandleManager.downloadFileToString(anyString())).thenReturn("my dog has fleas");
 		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check
