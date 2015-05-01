@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -110,7 +111,7 @@ public class MessageToUserWorkerIntegrationTest {
 			}
 			
 		};
-		S3FileHandle handle = fileHandleManager.uploadFile(fromUserInfo.getId().toString(), fis);
+		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(fromUserInfo.getId().toString(), new Date(), "my dog has fleas");
 		fileHandleId = handle.getId();
 		
 		message = new MessageToUser();

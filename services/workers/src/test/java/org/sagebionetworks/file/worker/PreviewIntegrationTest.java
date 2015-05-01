@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -94,14 +95,7 @@ public class PreviewIntegrationTest {
 	}
 	
 	public S3FileHandle uploadFile(String fileName, String contentType) throws Exception{
-		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
-		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
-		assertNotNull("Failed to find a test file on the classpath: "+fileName, in);
-		when(mockFiz.openStream()).thenReturn(in);
-		when(mockFiz.getContentType()).thenReturn(contentType);
-		when(mockFiz.getName()).thenReturn(fileName);
-		// Now upload the file.
-		return fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
+		return fileUploadManager.createCompressedFileFromString(adminUserInfo.getId().toString(), new Date(), "my dog has fleas");
 	}
 	
 	@After

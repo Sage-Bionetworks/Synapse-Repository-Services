@@ -78,9 +78,9 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		String markdown = from.getMarkdown();
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
         if(markdown != null) {
-        	FileUtils.writeCompressedString(markdown, out);
+        	FileUtils.writeCompressedStringWithUTF8Charset(markdown, out);
         } else {
-        	FileUtils.writeCompressedString("", out);
+        	FileUtils.writeCompressedStringWithUTF8Charset("", out);
         }
         byte[] compressedBytest = out.toByteArray();
 		String contentType = "application/x-gzip";
@@ -141,7 +141,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		InputStream in = s3Object.getObjectContent();
 		try{
 			// Read the file as a string
-			String markdownString = FileUtils.readCompressedStreamAsString(in);
+			String markdownString = FileUtils.readCompressedStreamAsStringWithUTF8Charset(in);
 			wiki.setMarkdown(markdownString);
 			return wiki;
 		}finally{

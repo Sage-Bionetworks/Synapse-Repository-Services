@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Date;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemStream;
@@ -38,19 +39,19 @@ public class NotificationManagerImpl implements NotificationManager {
 		
 		if (message.getMetadata().getRecipients().isEmpty()) return;
 
-		ContentType contentType = ContentType.create(NotificationManager.TEXT_PLAIN_MIME_TYPE, DEFAULT_CHARSET);
-		FileItemStream fileItemStream = new ByteArrayFileItemStream(
-					message.getBody().getBytes(DEFAULT_CHARSET), contentType.toString(), "");
-		try {
-			FileHandle fileHandle = fileHandleManager.uploadFile(userInfo.getId().toString(), fileItemStream);
-			
-			message.getMetadata().setFileHandleId(fileHandle.getId());
-			
-			messageManager.createMessage(userInfo, message.getMetadata());
-		} catch (ServiceUnavailableException e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		// TODO we disable pending completion of the feature see PLFM-3363
+		if (false) {
+			ContentType contentType = ContentType.create(NotificationManager.TEXT_PLAIN_MIME_TYPE, DEFAULT_CHARSET);
+			try {
+				FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
+						userInfo.getId().toString(), new Date(), message.getBody());
+				
+				message.getMetadata().setFileHandleId(fileHandle.getId());
+				
+				messageManager.createMessage(userInfo, message.getMetadata());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 

@@ -201,10 +201,10 @@ public class FileUtilsTest {
 	public void testWriteStringToCompressed() throws IOException {
 		String markdown = "This is a test **markdown** that will be compressed.";
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		FileUtils.writeCompressedString(markdown, baos);
+		FileUtils.writeCompressedStringWithUTF8Charset(markdown, baos);
 		byte[] bytes = baos.toByteArray();
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-		String unzippedString = FileUtils.readCompressedStreamAsString(bais);
+		String unzippedString = FileUtils.readCompressedStreamAsStringWithUTF8Charset(bais);
 		assertEquals(markdown, unzippedString);
 	}
 }

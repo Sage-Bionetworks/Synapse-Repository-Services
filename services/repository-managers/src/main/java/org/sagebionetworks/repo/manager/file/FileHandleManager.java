@@ -63,16 +63,6 @@ public interface FileHandleManager {
 	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator) throws FileUploadException, IOException, ServiceUnavailableException;
 	
 	/**
-	 * Upload a file.
-	 * @param userId
-	 * @param fis
-	 * @return
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 */
-	public S3FileHandle uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException;
-
-	/**
 	 * Get a file handle for a user.
 	 * Note: Only the creator of the FileHandle can access it.
 	 * @param userInfo
@@ -298,7 +288,7 @@ public interface FileHandleManager {
 	UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Create a file handle with the given contents gzipped.
+	 * Create a file handle with the given contents gzipped, using application/octet-stream as the mime type.
 	 * @param createdBy
 	 * @param modifiedOn
 	 * @param markDown
@@ -308,6 +298,26 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException;
+	
+	/**
+	 * Create a file handle with the given contents gzipped, using the specified mime-type.
+	 * @param createdBy
+	 * @param modifiedOn
+	 * @param markDown
+	 * @param mimeType
+	 * @return
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
+	 */
+	S3FileHandle createCompressedFileFromString(String createdBy,
+			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException;
+	
+	/**
+	 * Retrieves file, decompressing if Content-Encoding indicates that it's gzipped
+	 * @param fileHandleId
+	 * @return
+	 */
+	String downloadCompressedFileToString(String fileHandleId) throws IOException;
 
 	/**
 	 * Create a file handle that is a place holder for a file that was never uploaded.

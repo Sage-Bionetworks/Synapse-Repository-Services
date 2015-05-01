@@ -2,18 +2,15 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
 
-import java.io.InputStream;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItemStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -66,14 +63,14 @@ public class PreviewManagerImplAutoWireTest {
 		
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
-		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
-		InputStream in = PreviewManagerImplAutoWireTest.class.getClassLoader().getResourceAsStream(LITTLE_IMAGE_NAME);
-		assertNotNull("Failed to find a test file on the classpath: "+LITTLE_IMAGE_NAME, in);
-		when(mockFiz.openStream()).thenReturn(in);
-		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
-		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
+//		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
+//		InputStream in = PreviewManagerImplAutoWireTest.class.getClassLoader().getResourceAsStream(LITTLE_IMAGE_NAME);
+//		assertNotNull("Failed to find a test file on the classpath: "+LITTLE_IMAGE_NAME, in);
+//		when(mockFiz.openStream()).thenReturn(in);
+//		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
+//		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
 		// Now upload the file.
-		originalfileMetadata = fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
+		originalfileMetadata = fileUploadManager.createCompressedFileFromString(adminUserInfo.getId().toString(), new Date(), "my dog has fleas");
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}

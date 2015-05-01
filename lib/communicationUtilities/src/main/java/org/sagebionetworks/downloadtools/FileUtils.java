@@ -112,7 +112,7 @@ public class FileUtils {
 	 * @throws IOException
 	 * @throws UnsupportedEncodingException
 	 */
-	public static void writeCompressedString(String content, OutputStream out) throws IOException,
+	public static void writeCompressedStringWithUTF8Charset(String content, OutputStream out) throws IOException,
 			UnsupportedEncodingException {
 		GZIPOutputStream gzout = null;
 		OutputStreamWriter outw = null;
@@ -131,7 +131,7 @@ public class FileUtils {
 	/**
 	 * Read compressed data from file as a string.
 	 */
-	public static String readCompressedStreamAsString(InputStream in) throws IOException {
+	public static String readCompressedStreamAsStringWithUTF8Charset(InputStream in) throws IOException {
 		GZIPInputStream gzin = new GZIPInputStream(in);
 		BufferedInputStream bis = new BufferedInputStream(gzin);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

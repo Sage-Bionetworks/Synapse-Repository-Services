@@ -6,8 +6,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -24,6 +26,7 @@ import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -866,18 +869,29 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		return null;
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
+	 */
+	@Override
+	public S3FileHandle createCompressedFileFromString(String createdBy,
+			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
+		return createCompressedFileFromString(createdBy, modifiedOn, fileContents, "application/octet-stream");
+	}	
+	
+	private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
 	 */
-	@WriteTransaction
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
-			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
+			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		// Create the compress string
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FileUtils.writeCompressedString(fileContents, out);
+		FileUtils.writeCompressedStringWithUTF8Charset(fileContents, out);
 		byte[] compressedBytes = out.toByteArray();
 		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytes);
@@ -885,10 +899,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Upload the file to S3
 		String fileName = "compressed.txt.gz";
 		ObjectMetadata meta = new ObjectMetadata();
-		meta.setContentType("application/x-gzip");
+		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
+		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(compressedBytes.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
+		meta.setContentEncoding("gzip");
 		String key = MultipartManagerImpl.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfiguration.getS3Bucket();
 		s3Client.putObject(bucket, key, in, meta);
@@ -903,6 +919,35 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
 		return fileHandleDao.createFile(handle, true);
+	}
+	
+	/**
+	 * Retrieves file, decompressing if Content-Encoding indicates that it's gzipped
+	 * @param fileHandleId
+	 * @return
+	 */
+	public String downloadCompressedFileToString(String fileHandleId) throws IOException {
+		URL url;
+		try {
+			url = new URL(getRedirectURLForFileHandle(fileHandleId));
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+
+		// Read the file
+		try {
+			InputStream in = null;
+			try {
+				in = url.openStream();
+				return FileUtils.readCompressedStreamAsStringWithUTF8Charset(in);
+			} finally {
+				if (in != null) {
+					in.close();
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}		
 	}
 
 	@WriteTransaction
