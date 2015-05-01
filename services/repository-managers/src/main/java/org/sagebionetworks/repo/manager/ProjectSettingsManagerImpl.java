@@ -101,9 +101,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
-			throw new UnauthorizedException("Cannot read information for this parent entity");
-		}
 		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, nodeId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
