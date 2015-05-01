@@ -59,7 +59,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -68,7 +67,6 @@ import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 import com.google.common.collect.Lists;
 
@@ -133,6 +131,7 @@ public class TeamManagerImplTest {
 		UserProfile up = new UserProfile();
 		up.setFirstName("foo");
 		up.setLastName("bar");
+		up.setUserName("userName");
 		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
 		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn("userName");
 

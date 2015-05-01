@@ -889,12 +889,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
-		// Create the compress string
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		FileUtils.writeCompressedStringWithUTF8Charset(fileContents, out);
 		byte[] compressedBytes = out.toByteArray();
-		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
-		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytes);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, "gzip", mimeType);
+	}
+	
+	@Override
+	public S3FileHandle createFileFromByteArray(String createdBy,
+				Date modifiedOn, byte[] fileContents, String mimeType, String contentEncoding) throws UnsupportedEncodingException, IOException {
+		// Create the compress string
+		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
+		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
 		String fileName = "compressed.txt.gz";
@@ -902,9 +908,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
-		meta.setContentLength(compressedBytes.length);
+		meta.setContentLength(fileContents.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
-		meta.setContentEncoding("gzip");
+		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
 		String key = MultipartManagerImpl.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfiguration.getS3Bucket();
 		s3Client.putObject(bucket, key, in, meta);

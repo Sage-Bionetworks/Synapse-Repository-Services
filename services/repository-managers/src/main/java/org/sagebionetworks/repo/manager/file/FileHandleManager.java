@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -298,6 +297,20 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException;
+	
+	/**
+	 * 
+	 * @param createdBy
+	 * @param modifiedOn
+	 * @param fileContents
+	 * @param mimeType
+	 * @param contentEncoding
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws IOException
+	 */
+	S3FileHandle createFileFromByteArray(String createdBy,
+			Date modifiedOn, byte[] fileContents, String mimeType, String contentEncoding) throws UnsupportedEncodingException, IOException;
 	
 	/**
 	 * Create a file handle with the given contents gzipped, using the specified mime-type.
