@@ -50,6 +50,7 @@ public class AutoSyncFolderWorker extends TimedWorker {
 					String bodyJson = EntityFactory.createJSONStringForEntity(syncFolderMessage);
 					// publish the message
 					awsSQSClient.sendMessage(new SendMessageRequest(messageQueue.getQueueUrl(), bodyJson));
+					progressCallback.progressMade(null);
 				} catch (Throwable t) {
 					log.error("Failed to auto sync for setting id " + externalSyncSetting.getId() + ": " + t.getMessage(), t);
 				}
