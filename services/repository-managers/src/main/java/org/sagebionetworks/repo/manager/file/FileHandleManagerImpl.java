@@ -894,7 +894,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FileUtils.writeCompressedStringWithUTF8Charset(fileContents, out);
+		FileUtils.writeStringWithUTF8Charset(fileContents, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
 		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, GZIP_CONTENT_ENCODING, mimeType);
 	}

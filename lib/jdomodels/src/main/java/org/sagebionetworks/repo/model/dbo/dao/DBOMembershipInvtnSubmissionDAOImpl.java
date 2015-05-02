@@ -230,6 +230,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return getOpenByTeamAndUserInRange(teamId, userId, now, limit, offset, membershipInvtnSubmissionRowMapper);
 	}
 
+	@Override
 	public List<String> getInvitersByTeamAndUser(long teamId, long userId, long now) {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);

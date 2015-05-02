@@ -112,18 +112,22 @@ public class FileUtils {
 	 * @throws IOException
 	 * @throws UnsupportedEncodingException
 	 */
-	public static void writeCompressedStringWithUTF8Charset(String content, OutputStream out) throws IOException,
+	public static void writeStringWithUTF8Charset(String content, boolean gzip, OutputStream out) throws IOException,
 			UnsupportedEncodingException {
 		GZIPOutputStream gzout = null;
 		OutputStreamWriter outw = null;
 		try {
-			gzout = new GZIPOutputStream(out);
-			outw = new OutputStreamWriter(gzout, "UTF-8");
+			if (gzip) {
+				gzout = new GZIPOutputStream(out);
+				outw = new OutputStreamWriter(gzout, "UTF-8");
+			} else {
+				outw = new OutputStreamWriter(out, "UTF-8");
+			}
 			outw.append(content);
 			outw.flush();
 			outw.close();
 		} finally {
-			gzout.close();
+			if (gzout!=null) gzout.close();
 			out.close();
 		}
 	}

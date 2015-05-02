@@ -78,9 +78,9 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		String markdown = from.getMarkdown();
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
         if(markdown != null) {
-        	FileUtils.writeCompressedStringWithUTF8Charset(markdown, out);
+        	FileUtils.writeStringWithUTF8Charset(markdown, /*gzip*/true, out);
         } else {
-        	FileUtils.writeCompressedStringWithUTF8Charset("", out);
+        	FileUtils.writeStringWithUTF8Charset("", /*gzip*/true, out);
         }
         byte[] compressedBytest = out.toByteArray();
 		String contentType = "application/x-gzip";
