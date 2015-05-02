@@ -21,7 +21,10 @@ public abstract class AbstractWorker implements Worker {
 		List<Message> toDelete = new LinkedList<Message>();
 		for (Message message : messages) {
 			try {
-				toDelete.add(processMessage(message));
+				Message returned = processMessage(message);
+				if (returned != null) {
+					toDelete.add(returned);
+				}
 			} catch (Throwable e) {
 				// Treat unknown errors as unrecoverable and return them
 				toDelete.add(message);

@@ -9,6 +9,10 @@
 		"locationId": {
 			"type": "integer",
 			"description": "the upload id for the upload location"
+		},
+		"autoSync": {
+			"type": "boolean",
+			"description": "should the folder auto sync changes"
 		}
 	}
 }

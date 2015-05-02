@@ -138,6 +138,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	// selecting and counting the projects a user owns
 
+	private static final String SQL_GET_CHILD_BY_NAME = "SELECT " + COL_NODE_ID + "," + COL_NODE_NAME + "," + COL_NODE_TYPE + ","
+			+ COL_REVISION_NUMBER + "," + COL_REVISION_LABEL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON R."
+			+ COL_REVISION_OWNER_NODE + " = N." + COL_NODE_ID + " AND R." + COL_REVISION_NUMBER + " WHERE " + COL_NODE_PARENT_ID
+			+ " = ? AND " + COL_NODE_NAME + " = ?";
+
 	private static final String LAST_ACCESSED_OR_CREATED =
 		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
 
@@ -210,6 +215,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME
 			+ " WHERE " + COL_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
+
+	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
+		@Override
+		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
+			EntityHeader entityHeader = new EntityHeader();
+			entityHeader.setId(rs.getString(COL_NODE_ID));
+			entityHeader.setName(rs.getString(COL_NODE_NAME));
+
+			EntityType entityType = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+			entityHeader.setType(entityType.getEntityTypeClassName());
+
+			entityHeader.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+			entityHeader.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+			return entityHeader;
+		}
+	};
 
 	// This is better suited for JDBC query.
 	@Autowired
@@ -1050,7 +1071,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
-
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {
 		// Get the names
@@ -1145,6 +1165,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		}
 		return resutls;
+	}
+
+	@Override
+	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException {
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET_CHILD_BY_NAME, ENTITY_HEADER_ROWMAPPER,
+				KeyFactory.stringToKey(nodeId), childName);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Child " + childName + " of " + nodeId + " not found");
+		}
 	}
 
 	@Override

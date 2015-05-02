@@ -231,6 +231,15 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 */
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the child node of a node by name
+	 * 
+	 * @param nodeId
+	 * @param childName
+	 * @return
+	 */
+	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lookup a node id using its unique path.
