@@ -101,7 +101,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, nodeId);
+		List<EntityHeader> nodePath = nodeManager.getNodePathAsAdmin(nodeId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
 			throw new DatastoreException("No path for this parentId could be found");
@@ -253,6 +253,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	private void validateExternalSyncSetting(ExternalSyncSetting setting) {
 		ValidateArgument.required(setting.getAutoSync(), "ExternalSyncSetting.autoSync");
 		ValidateArgument.required(setting.getLocationId(), "ExternalSyncSetting.locationId");
+		// check for empty node
+		if (!nodeDAO.getChildrenIds(setting.getProjectId()).isEmpty()) {
+			throw new IllegalArgumentException("You cannot apply autosync to a folder or project that has any children in it");
+		}
 	}
 
 	private void validateUploadDestinationListSetting(UploadDestinationListSetting setting, UserInfo currentUser) {
