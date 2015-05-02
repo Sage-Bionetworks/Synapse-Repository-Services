@@ -36,7 +36,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -95,6 +94,10 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 			SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE+
 			" ORDER BY "+COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON+" DESC "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_INVITER_BY_TEAM_AND_USER = 
+			"SELECT "+COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES+
+			SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE;
 	
 	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT = 
 			"SELECT COUNT(*) "+SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE;
@@ -160,6 +163,17 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		}
 	};
 	
+	private static final RowMapper<String> INVITER_ROW_MAPPER = new RowMapper<String>() {
+
+		@Override
+		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+			Blob misProperties = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
+			MembershipInvtnSubmission mis = MembershipInvtnSubmissionUtils.deserialize(misProperties.getBytes(1, (int) misProperties.length()));
+			return mis.getCreatedBy();
+		}
+		
+	};
+	
 	private static final RowMapper<DBOMembershipInvtnSubmission> dboMembershipInvtnSubmissionRowMapper =
 			(new DBOMembershipInvtnSubmission()).getTableMapping();
 		
@@ -208,12 +222,22 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED, rowMapper, param);
 	}
-
+	
+	
 	@Override
 	public List<MembershipInvtnSubmission> getOpenSubmissionsByTeamAndUserInRange(
 			long teamId, long userId, long now, long limit, long offset) {
 		return getOpenByTeamAndUserInRange(teamId, userId, now, limit, offset, membershipInvtnSubmissionRowMapper);
 	}
+
+	public List<String> getInvitersByTeamAndUser(long teamId, long userId, long now) {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.query(SELECT_INVITER_BY_TEAM_AND_USER, INVITER_ROW_MAPPER, param);
+	}
+
 
 	@Override
 	public List<MembershipInvitation> getOpenByTeamAndUserInRange(

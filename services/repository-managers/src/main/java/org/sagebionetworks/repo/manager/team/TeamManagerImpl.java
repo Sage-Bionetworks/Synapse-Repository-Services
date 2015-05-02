@@ -508,12 +508,11 @@ public class TeamManagerImpl implements TeamManager {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 		if (userJoiningTeamIsSelf) {
-			Set<String> inviters = getInviters(Long.parseLong(teamId), memberInfo.getId());
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
 			fieldValues.put("#displayName#", memberDisplayName);
 			messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
-			mtu.setRecipients(inviters);
+			mtu.setRecipients(getInviters(Long.parseLong(teamId), memberInfo.getId()));
 		} else {
 			String joinerUserName = principalAliasDAO.getUserName(joinerInfo.getId());
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
@@ -528,14 +527,9 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	private Set<String> getInviters(Long teamId, Long inviteeId) {
-		List<MembershipInvtnSubmission> misList = 
-		membershipInvtnSubmissionDAO.
-			getOpenSubmissionsByTeamAndUserInRange(teamId, inviteeId, System.currentTimeMillis(), Long.MAX_VALUE, 0);
-		Set<String> result = new HashSet<String>();
-		for (MembershipInvtnSubmission mis : misList) {
-			result.add(mis.getCreatedBy());
-		}
-		return result;
+		return
+		new HashSet<String>(membershipInvtnSubmissionDAO.
+			getInvitersByTeamAndUser(teamId, inviteeId, System.currentTimeMillis()));
 	}
 	
 
