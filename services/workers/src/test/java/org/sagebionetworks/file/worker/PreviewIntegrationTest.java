@@ -2,19 +2,18 @@ package org.sagebionetworks.file.worker;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -95,7 +94,17 @@ public class PreviewIntegrationTest {
 	}
 	
 	public S3FileHandle uploadFile(String fileName, String contentType) throws Exception{
-		return fileUploadManager.createCompressedFileFromString(adminUserInfo.getId().toString(), new Date(), "my dog has fleas");
+		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
+		assertNotNull("Failed to find a test file on the classpath: "+fileName, in);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			IOUtils.copy(in, baos);
+		} finally {
+			baos.close();
+		}
+		// Now upload the file.
+		return fileUploadManager.createFileFromByteArray(
+				adminUserInfo.getId().toString(), new Date(), baos.toByteArray(), contentType, null);
 	}
 	
 	@After
