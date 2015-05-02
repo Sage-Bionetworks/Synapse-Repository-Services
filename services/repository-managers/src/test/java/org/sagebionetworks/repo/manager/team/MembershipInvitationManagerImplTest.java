@@ -48,6 +48,7 @@ public class MembershipInvitationManagerImplTest {
 		mis.setId(id);
 		mis.setTeamId(TEAM_ID);
 		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
+		mis.setMessage("Please join our team.");
 		return mis;
 	}
 	
@@ -257,7 +258,7 @@ public class MembershipInvitationManagerImplTest {
 		MessageToUserAndBody result = membershipInvitationManagerImpl.createInvitationNotification(mis);
 		assertEquals("you have been invited to join a team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
-		assertEquals(result.getBody(), "Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
+		assertEquals(result.getBody(), "Hello,\r\nYou have been invited to join the team test team.  The inviter sends the following message:\r\n\r\nPlease join our team.\r\n\r\n  To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
 				result.getBody());
 	}
 

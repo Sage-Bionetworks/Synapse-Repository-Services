@@ -97,6 +97,13 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put("#teamName#", teamDAO.get(mis.getTeamId()).getName());
 		fieldValues.put("#teamId#", mis.getTeamId());
 		fieldValues.put("#userId#", mis.getInviteeId());
+		if (mis.getMessage()==null || mis.getMessage().length()==0) {
+			fieldValues.put("#inviterMessage#", "");
+		} else {
+			fieldValues.put("#inviterMessage#", 
+							"The inviter sends the following message:\r\n\r\n"+
+							mis.getMessage()+"\r\n\r\n");
+		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
 		return new MessageToUserAndBody(mtu, messageContent);
 	}

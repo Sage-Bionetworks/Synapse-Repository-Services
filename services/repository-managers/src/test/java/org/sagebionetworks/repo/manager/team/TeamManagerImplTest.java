@@ -887,6 +887,9 @@ public class TeamManagerImplTest {
 		String inviterPrincipalId = "987";
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setCreatedBy(inviterPrincipalId);
+		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
+				anyLong())).
+			thenReturn(Collections.singletonList(inviterPrincipalId));
 		when(mockMembershipInvtnSubmissionDAO.
 			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));

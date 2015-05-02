@@ -1,5 +1,5 @@
 Hello,
-You have been invited to join the team #teamName#.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:#teamId#.
+You have been invited to join the team #teamName#.  #inviterMessage#  To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:#teamId#.
 Sincerely,
 Synapse Administration
 

@@ -168,10 +168,11 @@ public class MembershipRequestManagerImplTest {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId("111");
 		mrs.setCreatedBy(MEMBER_PRINCIPAL_ID);
+		mrs.setMessage("Please let me in your team.");
 		MessageToUserAndBody result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
 		assertEquals("someone has requested to join your team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton("222"), result.getMetadata().getRecipients());
-		assertEquals(result.getBody(), "Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
+		assertEquals(result.getBody(), "Hello,\r\nauser has requested to join Team test-team.  The requester sends the following message:\r\n\r\nPlease let me in your team.\r\n\r\n  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
 				result.getBody());
 	}
 	

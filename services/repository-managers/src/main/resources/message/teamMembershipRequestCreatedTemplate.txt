@@ -1,5 +1,5 @@
 Hello,
-#displayName# has requested to join Team #teamName#.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:#teamId#.
+#displayName# has requested to join Team #teamName#.  #requesterMessage#  To review pending invitations, visit this page: https://www.synapse.org/#!Team:#teamId#.
 Sincerely,
 Synapse Administration
 

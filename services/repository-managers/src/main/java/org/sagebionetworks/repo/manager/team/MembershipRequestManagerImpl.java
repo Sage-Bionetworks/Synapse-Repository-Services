@@ -104,6 +104,13 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		fieldValues.put("#displayName#", displayName);
 		fieldValues.put("#teamName#", teamDAO.get(mrs.getTeamId()).getName());
 		fieldValues.put("#teamId#", mrs.getTeamId());
+		if (mrs.getMessage()==null || mrs.getMessage().length()==0) {
+			fieldValues.put("#requesterMessage#", "");
+		} else {
+			fieldValues.put("#requesterMessage#", 
+							"The requester sends the following message:\r\n\r\n"+
+							mrs.getMessage()+"\r\n\r\n");
+		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
 		MessageToUser mtu = new MessageToUser();
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
