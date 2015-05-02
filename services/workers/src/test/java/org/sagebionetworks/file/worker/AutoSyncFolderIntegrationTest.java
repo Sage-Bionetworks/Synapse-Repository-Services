@@ -159,6 +159,10 @@ public class AutoSyncFolderIntegrationTest {
 
 	@Test
 	public void testUpdateVersion() throws Exception {
+		if (!StackConfiguration.singleton().getAutoSyncSubFoldersAllowed()) {
+			// intially, this feature is not enabled
+			return;
+		}
 		S3TestUtils.createObjectFromString(DESTINATION_TEST_BUCKET, testBucketBaseKey + "file1", "abc", s3Client);
 
 		// force update message
