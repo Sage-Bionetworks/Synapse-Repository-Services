@@ -50,18 +50,29 @@ public class MessageQueueImpl implements MessageQueue {
 	private String queueUrl;
 	private String topicPrefixOrName;
 	private boolean isEnabled;
+	private final Integer maxReceiveCount;
+	private final String deadLetterQueueName;
 
 	public MessageQueueImpl(final String queueName, String topicPrefixOrName, List<ObjectType> objectTypes, boolean isEnabled) {
+		this(queueName, topicPrefixOrName, objectTypes, isEnabled, null, null);
+	}
+	public MessageQueueImpl(final String queueName, String topicPrefixOrName, List<ObjectType> objectTypes, boolean isEnabled,
+			Integer maxReceiveCount, String deadLetterQueueName) {
 		if (queueName == null) {
 			throw new IllegalArgumentException("QueueName cannot be null");
 		}
 		if (objectTypes != null && objectTypes.isEmpty()) {
 			throw new IllegalArgumentException("ObjectTypes cannot be empty");
 		}
+		if ((deadLetterQueueName != null) && (maxReceiveCount == null)) {
+			throw new IllegalArgumentException("maxReceiveCount must be specified if deadLetterQueueName is not null");
+		}
 		this.isEnabled = isEnabled;
 		this.queueName = queueName;
 		this.objectTypes = objectTypes;
 		this.topicPrefixOrName = topicPrefixOrName;
+		this.deadLetterQueueName = deadLetterQueueName;
+		this.maxReceiveCount = maxReceiveCount;
 	}
 
 	@PostConstruct
@@ -72,26 +83,44 @@ public class MessageQueueImpl implements MessageQueue {
 			return;
 		}
 		// Create the queue if it does not already exist
-		CreateQueueRequest cqRequest = new CreateQueueRequest(queueName);
-		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
-		final String queueUrl = cqResult.getQueueUrl();
-
-		String attrName = "QueueArn";
-		GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
-				.withQueueUrl(queueUrl)
-				.withAttributeNames(attrName);
-		GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
-		final String queueArn = attrResult.getAttributes().get(attrName);
-
-		if (queueArn == null) {
-			throw new IllegalStateException("Failed to get the ARN for Queue: " + getQueueName());
+		final String queueUrl = createQueue(queueName);
+		final String queueArn = getQueueArn(queueUrl);
+		this.logger.info("Queue created. URL: " + queueUrl + " ARN: " + queueArn);
+		
+		// Create the dead letter queue as requested
+		String dlqUrl = null;
+		String dlqArn = null;
+		if (deadLetterQueueName != null) {
+			dlqUrl = createQueue(deadLetterQueueName);
+			dlqArn = getQueueArn(dlqUrl);
+			this.logger.info("Queue created. URL: " + dlqUrl + " ARN: " + dlqArn);
+			grantRedrivePolicy(queueUrl, dlqArn, maxReceiveCount);
 		}
 
-		this.logger.info("Queue created. URL: " + queueUrl + " ARN: " + queueArn);
 		// create topics and setup access.
 		createAndGrandAccessToTopics(queueArn, queueUrl, this.objectTypes);
 
 		this.queueUrl = queueUrl;
+	}
+	
+	public String createQueue(String qName) {
+		CreateQueueRequest cqRequest = new CreateQueueRequest(qName);
+		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
+		String qUrl = cqResult.getQueueUrl();
+		return qUrl;
+	}
+	
+	protected String getQueueArn(String qUrl) {
+		String attrName = "QueueArn";
+		GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
+				.withQueueUrl(qUrl)
+				.withAttributeNames(attrName);
+		GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
+		String qArn = attrResult.getAttributes().get(attrName);
+		if (qArn == null) {
+			throw new IllegalStateException("Failed to get the ARN for Queue URL: " + qUrl);
+		}
+		return qArn;
 	}
 
 	@Override
@@ -217,6 +246,26 @@ public class MessageQueueImpl implements MessageQueue {
 		} else {
 			this.logger.info("Topic already has sendMessage permission on this queue");
 		}
+	}
+	
+	protected void grantRedrivePolicy(String qUrl, String dlqArn, Integer maxReceiveCount) {
+		//GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
+		//	.withQueueUrl(qUrl)
+		//	.withAttributeNames("RedrivePolicy");
+		//GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
+		//String ps =  attrResult.getAttributes().get("RedrivePolicy");
+		//this.logger.info("Current redrive policy: " + ps);
+		//if (ps == null || ps.indexOf(dlqArn) < 1) {
+			String redrivePolicy = String.format("{\"maxReceiveCount\":\"%d\", \"deadLetterTargetArn\":\"%s\"}", maxReceiveCount, dlqArn);
+			SetQueueAttributesRequest queueAttributes = new SetQueueAttributesRequest();
+			Map<String,String> attributes = new HashMap<String,String>();            
+			attributes.put("RedrivePolicy", redrivePolicy);            
+			queueAttributes.setAttributes(attributes);
+			queueAttributes.setQueueUrl(qUrl);
+			this.awsSQSClient.setQueueAttributes(queueAttributes);
+		//} else {
+		//	this.logger.info("Topic already has sendMessage permission on this queue");
+		//}
 	}
 
 	@Override
