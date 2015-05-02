@@ -39,13 +39,15 @@ public class EmailUtils {
 		if (userName==null) throw new IllegalArgumentException("userName is required");
 		String inviteeFirstName = userProfile.getFirstName();
 		String inviteeLastName = userProfile.getLastName();
-		String displayName;
+		StringBuilder displayName = new StringBuilder();
 		if (inviteeFirstName!=null || inviteeLastName!=null) {
-			displayName = inviteeFirstName+" "+inviteeLastName+" ("+userName+")";
+			if (inviteeFirstName!=null) displayName.append(inviteeFirstName+" ");
+			if (inviteeLastName!=null) displayName.append(inviteeLastName+" ");
+			displayName.append("("+userName+")");
 		} else {
-			displayName = userName;
+			displayName.append(userName);
 		}
-		return displayName;
+		return displayName.toString();
 	}
 
 	public static SendEmailRequest createEmailRequest(String recipientEmail, String subject, String body, boolean isHtml, String sender) {

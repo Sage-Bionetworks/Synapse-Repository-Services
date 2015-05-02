@@ -9,6 +9,7 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.UserProfile;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
@@ -52,6 +53,19 @@ public class EmailUtilsTest {
 		assertTrue(message.indexOf("Foo Bar")>=0);
 		assertTrue(message.indexOf("Synapse") >= 0);
 		assertTrue(message.indexOf("foobar")>=0);
+	}
+	
+	@Test
+	public void testGetDisplayName() {
+		UserProfile up = new UserProfile();
+		up.setUserName("jh");
+		assertEquals("jh", EmailUtils.getDisplayName(up));
+		
+		up.setFirstName("J");
+		assertEquals("J (jh)", EmailUtils.getDisplayName(up));
+		
+		up.setLastName("H");
+		assertEquals("J H (jh)", EmailUtils.getDisplayName(up));
 	}
 
 }
