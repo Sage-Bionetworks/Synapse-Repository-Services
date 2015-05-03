@@ -43,7 +43,7 @@
 						<configuration>
 							<sourceDirectory>src/main/resources/schema</sourceDirectory>
 							<outputDirectory>target/auto-generated-pojos</outputDirectory>
-							<createRegister>org.sagebionetworks.repo.model.AutoGenFactory</createRegister>
+							<createRegister>org.sagebionetworks.server.ServerSideOnlyFactory</createRegister>
 						</configuration>
 					</execution>
 				</executions>

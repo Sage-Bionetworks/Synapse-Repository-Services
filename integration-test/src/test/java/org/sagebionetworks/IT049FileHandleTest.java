@@ -15,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -28,9 +27,10 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.manager.S3TestUtils;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -42,18 +42,18 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.TimedAssert;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
@@ -61,6 +61,7 @@ public class IT049FileHandleTest {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
+	private static AmazonS3Client s3Client;
 	
 	private static final String LARGE_FILE_PATH_PROP_KEY = "org.sagebionetworks.test.large.file.path";
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
@@ -81,6 +82,8 @@ public class IT049FileHandleTest {
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}
 	
 	@Before
@@ -102,6 +105,7 @@ public class IT049FileHandleTest {
 			} catch (SynapseClientException e) { }
 		}
 		synapse.deleteEntity(project, true);
+		S3TestUtils.doDeleteAfter(s3Client);
 	}
 	
 	@AfterClass
@@ -320,19 +324,13 @@ public class IT049FileHandleTest {
 	}
 
 	@Test
-	public void testExternalUploadDestinationUploadAndModifyRoundTrip() throws SynapseException, IOException, InterruptedException {
+	public void testExternalUploadDestinationUploadAndModifyRoundTrip() throws Exception {
 		String baseKey = "test-" + UUID.randomUUID();
 
-		// we need to create a bucket and object
-		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(),
-				StackConfiguration.getIAMUserKey()));
-		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
-
+		// we need to create a authentication object
 		String username = synapse.getUserSessionData().getProfile().getUserName();
-		ObjectMetadata metadata = new ObjectMetadata();
-		metadata.setContentLength(username.length());
-		s3Client.putObject(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", new StringInputStream(
-				username), metadata);
+		S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", username,
+				s3Client);
 
 		// create setting
 		ExternalS3StorageLocationSetting externalS3Destination = new ExternalS3StorageLocationSetting();
@@ -365,6 +363,51 @@ public class IT049FileHandleTest {
 
 		assertEquals(S3FileHandle.class, result2.getClass());
 		assertEquals(externalS3Destination.getStorageLocationId(), result2.getStorageLocationId());
+	}
+
+	@Test
+	public void testAutoSyncRoundTrip() throws Exception {
+		String baseKey = "test-" + UUID.randomUUID();
+
+		// we need to create a authentication object
+		String username = synapse.getUserSessionData().getProfile().getUserName();
+		S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", username,
+				s3Client);
+
+		final String md5 = S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey
+				+ "file1.txt", UUID.randomUUID().toString(), s3Client);
+
+		// create setting
+		ExternalS3StorageLocationSetting externalS3Destination = new ExternalS3StorageLocationSetting();
+		externalS3Destination.setUploadType(UploadType.S3);
+		externalS3Destination.setEndpointUrl(null);
+		externalS3Destination.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
+		externalS3Destination.setBaseKey(baseKey);
+		externalS3Destination.setBanner("warning, at institute");
+		externalS3Destination.setDescription("not in synapse, this is");
+		externalS3Destination = synapse.createStorageLocationSetting(externalS3Destination);
+
+		ExternalSyncSetting externalSyncSetting = new ExternalSyncSetting();
+		externalSyncSetting.setLocationId(externalS3Destination.getStorageLocationId());
+		externalSyncSetting.setAutoSync(true);
+		externalSyncSetting.setProjectId(project.getId());
+		externalSyncSetting.setSettingsType(ProjectSettingsType.external_sync);
+		synapse.createProjectSetting(externalSyncSetting);
+
+		TimedAssert.waitForAssert(30000, 500, new Runnable() {
+			@Override
+			public void run() {
+				try {
+					List<EntityHeader> entityHeaderByMd5 = synapse.getEntityHeaderByMd5(md5);
+					assertEquals(1, entityHeaderByMd5.size());
+					assertEquals("file1.txt", entityHeaderByMd5.get(0).getName());
+				} catch (SynapseNotFoundException e) {
+					fail();
+				} catch (SynapseException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		});
 	}
 
 	@Test

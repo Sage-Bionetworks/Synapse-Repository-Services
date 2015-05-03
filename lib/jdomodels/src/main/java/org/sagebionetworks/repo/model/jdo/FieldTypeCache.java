@@ -9,7 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -20,6 +19,7 @@ import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 /**
  * Singleton cache of column information for entity fields name and annotation
@@ -56,7 +56,7 @@ public class FieldTypeCache {
 			localCache.put(field.getName(), FieldType.PRIMARY_FIELD);
 		}
 		// Map all of the Entity field names to the schema type.
-		AutoGenFactory factory = new AutoGenFactory();
+		ServerSideOnlyFactory factory = new ServerSideOnlyFactory();
 		try {
 			addEntityTypeNamesToCache(factory, localCache);
 		} catch (JSONObjectAdapterException e) {
@@ -124,7 +124,7 @@ public class FieldTypeCache {
 	 * @param localCache
 	 * @throws JSONObjectAdapterException
 	 */
-	protected static void addEntityTypeNamesToCache(AutoGenFactory factory,
+	protected static void addEntityTypeNamesToCache(ServerSideOnlyFactory factory,
 			Map<String, FieldType> localCache)
 			throws JSONObjectAdapterException {
 		Iterator<String> it = factory.getKeySetIterator();

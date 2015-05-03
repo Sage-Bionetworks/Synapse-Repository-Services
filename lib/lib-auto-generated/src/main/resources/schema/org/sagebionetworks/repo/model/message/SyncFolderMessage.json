@@ -1,0 +1,10 @@
+{
+	"title": "SyncFolderMessage",
+	"description": "JSON schema for sync folder message",
+	"properties": {
+		"entityId": {
+			"type": "string",
+			"description": "The entity id for which to sync the folder"
+		}
+	}
+}

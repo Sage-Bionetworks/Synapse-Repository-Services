@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.amazonaws.services.rds.AmazonRDSClient;
-import com.amazonaws.services.rds.model.DBInstance;
 
 /**
  * Note: For the first pass at this feature we are only using one database.
@@ -35,11 +34,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	AmazonRDSClient awsRDSClient;
 	@Autowired
 	InstanceDiscovery instanceDiscovery;
-	/**
-	 * This is the repository datasource.
-	 */
-//	@Autowired
-//	BasicDataSource dataSourcePool;
 	/**
 	 * Note: This field will be remove when we actually have more than one connection.
 	 * It is a simple way to get the functionality up and running without adding full
@@ -79,11 +73,11 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		// There is nothing to do if the table feature is not enabled.
 		if(stackConfig.getTableEnabled()){
 			// The features is enabled so we must find all database instances that we can use
-			List<DBInstance> instances = instanceDiscovery.discoverAllInstances();
-			if(instances == null || instances.isEmpty()) throw new IllegalArgumentException("Did not find at least one database instances.  Expected at least one instances: "+InstanceUtils.createDatabaseInstanceIdentifier(0));
+			List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
+			if(instances == null || instances.isEmpty()) throw new IllegalArgumentException("Did not find at least one database instances.");
 			
 			// This will be improved in the future.  For now we just use the first database we find
-			DBInstance instance = instances.get(0);
+			InstanceInfo instance = instances.get(0);
 			// Use the one instance to create a single connection pool
 			singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
 		}else{
@@ -115,14 +109,14 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	@Override
 	public void dropAllTablesForAllConnections() {
 		// For now we only have one database
-		if(this.singleConnectionPool != null){
-			String schema = InstanceUtils.createDatabaseSchemaName(stackConfig.getStack(), stackConfig.getStackInstance());
+		List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
+		if(this.singleConnectionPool != null && instances != null && !instances.isEmpty()){
+			String schema = instances.get(0).getSchema();
 			JdbcTemplate template = new JdbcTemplate(this.singleConnectionPool);
 			template.update(DROP_DATABASE+schema);
 			template.update(CREATE_DATABASE+schema);
 			template.update(USE_DATABASE+schema);
 		}
-		
 	}
 
 }

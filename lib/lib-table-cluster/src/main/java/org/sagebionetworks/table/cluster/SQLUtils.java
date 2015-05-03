@@ -507,7 +507,7 @@ public class SQLUtils {
 	 * is the a certain type of table name?
 	 */
 	public static boolean isTableName(String name, TableType type) {
-		return type.getTableNamePattern().matcher(name).matches();
+		return type.getTableNamePattern().matcher(name.toUpperCase()).matches();
 	}
 
 	/**

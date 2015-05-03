@@ -92,7 +92,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public FileHandleResults getAllFileHandles(List<String> ids,
+	public FileHandleResults getAllFileHandles(Iterable<String> ids,
 			boolean includePreviews) {
 		throw new UnsupportedOperationException("Not supported");
 	}
@@ -124,7 +124,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> fileHandleIds) {
+	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> fileHandleIds) {
 		Map<String, FileHandle> result = Maps.newHashMap();
 		for (String fileHandleId : fileHandleIds) {
 			result.put(fileHandleId, map.get(fileHandleId));

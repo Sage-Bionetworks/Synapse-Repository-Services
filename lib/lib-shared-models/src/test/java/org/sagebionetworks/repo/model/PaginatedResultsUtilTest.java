@@ -7,7 +7,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.PaginatedResultsUtil.Paginator;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.reflection.model.PaginatedResultsUtil;
+import org.sagebionetworks.reflection.model.PaginatedResultsUtil.Paginator;
 import org.sagebionetworks.repo.model.entity.query.IntegerValue;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 

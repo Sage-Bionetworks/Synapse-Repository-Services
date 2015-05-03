@@ -6,41 +6,25 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ReferenceDao;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * The Sage business logic for node management.
@@ -48,7 +32,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
  *
  */
 public class NodeManagerImpl implements NodeManager, InitializingBean {
-	
+
+	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. Use copy to bucket bucket and download from there (See https://www.synapse.org/#!Synapse:syn3316305/wiki/219286 for details)";
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	@Autowired
@@ -65,16 +50,19 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private ReferenceDao referenceDao;
 	@Autowired 
 	private ActivityManager activityManager;
-	
-	
+	@Autowired
+	ProjectSettingsManager projectSettingsManager;
+
 	/**
 	 * This is used for unit test.
+	 * 
 	 * @param nodeDao
 	 * @param authDoa
+	 * @param projectSettingsManager
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, 
-			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper,
+			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager,
+			ProjectSettingsManager projectSettingsManager) {
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.aclDAO = aclDao;
@@ -82,6 +70,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		this.nodeInheritanceManager = nodeInheritanceManager;
 		this.referenceDao = referenceDao;
 		this.activityManager = activityManager;
+		this.projectSettingsManager = projectSettingsManager;
 	}
 	
 	/**
@@ -240,7 +229,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// First validate the username
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, id, ObjectType. ENTITY, ACCESS_TYPE.DELETE));
 		// Lock before we delete
@@ -268,7 +256,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		Node result = nodeDao.getNodeForVersion(nodeId, versionNumber);
@@ -308,7 +295,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Validate that the user can assign the file handle if they have it.
 		if(updatedNode.getFileHandleId() != null){
 			// First determine if this is a change
-			String currentHandleId = nodeDao.getFileHandleIdForCurrentVersion(updatedNode.getId());
+			String currentHandleId = nodeDao.getFileHandleIdForVersion(updatedNode.getId(), null);
 			if(!updatedNode.getFileHandleId().equals(currentHandleId)) {
 				// This is a change so the user must be the creator of the new file handle
 				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -441,7 +428,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return nodeDao.getAnnotationsForVersion(nodeId, versionNumber);
@@ -504,7 +490,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
+
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return nodeDao.getChildren(parentId);
@@ -528,7 +514,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate that the user can do what they are trying to do.
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		// If they are allowed to read a node then get the list.
@@ -539,7 +524,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return nodeDao.getEntityPath(nodeId);
@@ -570,7 +554,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return nodeDao.getEntityHeader(entityId, versionNumber);
@@ -689,19 +672,24 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws NotFoundException, UnauthorizedException {
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws NotFoundException, UnauthorizedException {
 		// Validate that the user has download permission.
 		validateDownload(userInfo, id);
-		// Get the value from the dao
-		String fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
-		checkFileHandleId(id, fileHandleId);
-		return fileHandleId;
-	}
 
-	@Override
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException {
-		// Validate that the user has download permission.
-		validateDownload(userInfo, id);
+		switch (reason) {
+		case FOR_FILE_DOWNLOAD:
+			// validate that this is not requesterPays
+			RequesterPaysSetting requesterPays = projectSettingsManager.getProjectSettingForNode(userInfo, id,
+					ProjectSettingsType.requester_pays, RequesterPaysSetting.class);
+			if (requesterPays != null && BooleanUtils.isTrue(requesterPays.getRequesterPays())) {
+				throw new UnauthorizedException(REQUESTER_DOWNLOAD_COPY_NEEDED);
+			}
+			break;
+		case FOR_PREVIEW_DOWNLOAD:
+		case FOR_HANDLE_VIEW:
+			break;
+		}
 		// Get the value from the dao
 		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);
 		checkFileHandleId(id, fileHandleId);

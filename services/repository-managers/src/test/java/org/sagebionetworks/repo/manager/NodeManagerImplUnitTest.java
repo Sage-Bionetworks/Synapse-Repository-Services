@@ -59,6 +59,7 @@ public class NodeManagerImplUnitTest {
 	private NodeInheritanceManager mockNodeInheritanceManager = null;
 	private ReferenceDao mockReferenceDao = null;
 	private ActivityManager mockActivityManager;
+	private ProjectSettingsManager projectSettingsManager;
 		
 	private UserInfo mockUserInfo;
 	private UserInfo anonUserInfo;
@@ -72,10 +73,10 @@ public class NodeManagerImplUnitTest {
 		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		mockReferenceDao = Mockito.mock(ReferenceDao.class);
 		mockActivityManager = Mockito.mock(ActivityManager.class);
+		projectSettingsManager = Mockito.mock(ProjectSettingsManager.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthManager, mockAclDao, 
-				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao, mockActivityManager);
-
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthManager, mockAclDao, mockEntityBootstrapper, mockNodeInheritanceManager,
+				mockReferenceDao, mockActivityManager, projectSettingsManager);
 
 		mockUserInfo = new UserInfo(false, 101L);
 		

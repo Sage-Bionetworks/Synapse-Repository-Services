@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -979,7 +980,7 @@ public class NodeDAOImplTest {
 		// Get the header of this node
 		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId, null);
 		assertNotNull(parentHeader);
-		assertEquals(EntityType.project.getEntityType(), parentHeader.getType());
+		assertEquals(EntityType.project.getEntityTypeClassName(), parentHeader.getType());
 		assertEquals("parent", parentHeader.getName());
 		assertEquals(parentId, parentHeader.getId());
 		
@@ -992,7 +993,7 @@ public class NodeDAOImplTest {
 		// Get the header of this node
 		EntityHeader childHeader = nodeDao.getEntityHeader(childId, 1L);
 		assertNotNull(childHeader);
-		assertEquals(EntityType.folder.getEntityType(), childHeader.getType());
+		assertEquals(EntityType.folder.getEntityTypeClassName(), childHeader.getType());
 		assertEquals("child", childHeader.getName());
 		assertEquals(childId, childHeader.getId());
 
@@ -1944,7 +1945,7 @@ public class NodeDAOImplTest {
 		assertEquals("V2 should also have the first file handle", fileHandle.getId(), v2Node.getFileHandleId());
 		assertEquals("V3 should also have the second file handle", fileHandle2.getId(), v3Node.getFileHandleId());
 		// Get the file handle
-		String fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
+		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, null);
 		assertEquals(fileHandle2.getId(), fileHandleId);
 		// Try with the version parameter.
 		fileHandleId = nodeDao.getFileHandleIdForVersion(id, v1);
@@ -1954,7 +1955,7 @@ public class NodeDAOImplTest {
 		nodeDao.updateNode(clone);
 		clone = nodeDao.getNode(id);
 		assertEquals(null, clone.getFileHandleId());
-		fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
+		fileHandleId = nodeDao.getFileHandleIdForVersion(id, null);
 		assertEquals(null, fileHandleId);
 		// Make sure we can set it to null
 		// Now delete the node

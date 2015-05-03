@@ -3,21 +3,20 @@ package org.sagebionetworks.projectstats.worker;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.reflection.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
@@ -33,6 +32,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.AclModificationMessage;
 import org.sagebionetworks.repo.model.message.DefaultModificationMessage;
 import org.sagebionetworks.repo.model.message.ModificationMessage;
+import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -55,7 +55,7 @@ public class ProjectStatsWorker implements Worker {
 	static private Logger log = LogManager.getLogger(ProjectStatsWorker.class);
 	private List<Message> messages;
 	private WorkerProgress workerProgress;
-	private EntityType projectEntityType = EntityType.getNodeTypeForClass(Project.class);
+	private EntityType projectEntityType = EntityType.getEntityTypeForClass(Project.class);
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDao;
@@ -156,8 +156,10 @@ public class ProjectStatsWorker implements Worker {
 					ProjectStat projectStat = new ProjectStat(projectId, modificationMessage.getUserId(), modificationMessage.getTimestamp());
 					projectStatsDao.update(projectStat);
 				}
+			} else if (modificationMessage instanceof NodeSettingsModificationMessage) {
+				// nothing to do here
 			} else {
-				throw new IllegalArgumentException("cannot modification type " + modificationMessage.getObjectType());
+				throw new IllegalArgumentException("cannot handle modification type " + modificationMessage.getClass().getName());
 			}
 			return message;
 		} catch (TransientDataAccessException e) {

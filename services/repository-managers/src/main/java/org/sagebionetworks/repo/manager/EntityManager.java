@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -65,7 +66,21 @@ public interface EntityManager {
 	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Get the full path of an entity as a '/' separated string
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
+			UnauthorizedException;
+
+	/**
 	 * This version of should only be used for validation, and should not be exposed directly to the caller.
+	 * 
 	 * @param entityId
 	 * @return
 	 * @throws NotFoundException
@@ -341,17 +356,6 @@ public interface EntityManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 * Get the FileHandle ID for the current version of the entity.
-	 * @param userInfo
-	 * @param id
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 */
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
 	 * Get the FileHandle ID for a given version number.
 	 * @param userInfo
 	 * @param id
@@ -360,10 +364,12 @@ public interface EntityManager {
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException;
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get a reference for the current version of the given entity ids
+	 * 
 	 * @param entityIds entities ids to lookup
 	 * @return list of References with the current version filled in
 	 */
@@ -379,5 +385,4 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 */
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
-	
 }

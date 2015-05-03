@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -64,14 +64,8 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		QueryResults<AccessRequirement> results = 
 			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType);
 		
-		return new PaginatedResults<AccessRequirement>(
-				UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
+		return new PaginatedResults<AccessRequirement>(results.getResults(),
+				(int)results.getTotalNumberOfResults());
 	}
 	
 	@Override
@@ -95,14 +89,8 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		QueryResults<AccessRequirement> results = 
 			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
 		
-		return new PaginatedResults<AccessRequirement>(
-				UrlHelpers.ACCESS_REQUIREMENT, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
+		return new PaginatedResults<AccessRequirement>(results.getResults(),
+				(int)results.getTotalNumberOfResults());
 	}
 	
 	@WriteTransaction

@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.List;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -34,10 +35,11 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
@@ -59,6 +61,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private UserManager userManager;
 	@Autowired
 	private AuthenticationManager authenticationManager;
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private StackConfiguration configuration;
 
@@ -364,6 +368,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
 				accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		
+		ExternalSyncSetting projectSettingForNode = projectSettingsManager.getProjectSettingForNode(userInfo, parentOrNodeId,
+				ProjectSettingsType.external_sync, ExternalSyncSetting.class);
+		if (projectSettingForNode != null && BooleanUtils.isTrue(projectSettingForNode.getAutoSync())) {
+			return AuthorizationManagerUtil.accessDenied("This is an autosync folder. No content can be placed in this container.");
+		}
+
 		// if there are any unmet access requirements return false
 		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentOrNodeId, true);
 

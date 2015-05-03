@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -95,9 +95,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		checkAuthorization(isAdmin, currentUserId, userId);
 
 		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForUser(userId, offset, limit);
-		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
-				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
-				offset, limit, null, true);
+		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(queryResults.getResults(), queryResults.getTotalNumberOfResults());
 		return results;
 	}
 

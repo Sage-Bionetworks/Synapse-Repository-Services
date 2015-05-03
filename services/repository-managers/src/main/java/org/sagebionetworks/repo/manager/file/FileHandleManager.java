@@ -129,7 +129,7 @@ public interface FileHandleManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FileHandleResults getAllFileHandles(List<String> idsList, boolean includePreviews) throws DatastoreException, NotFoundException;
+	FileHandleResults getAllFileHandles(Iterable<String> idsList, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all file handles on the list in batches. A null id will return a null file handle
@@ -139,7 +139,7 @@ public interface FileHandleManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList) throws DatastoreException, NotFoundException;
+	Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create an external file handle.

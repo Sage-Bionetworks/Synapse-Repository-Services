@@ -1,9 +1,8 @@
 package org.sagebionetworks.audit.worker;
 
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressingRunner;
-
+import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -20,7 +19,7 @@ public class MergeWorkerFactory implements ProgressingRunner {
 	private AccessRecordDAO accessRecordDAO;
 
 	@Override
-	public void run(ProgressCallback callback) {
+	public void run(ProgressCallback<Void> callback) {
 		// Create a worker with IoC
 		MergeWorker worker = new MergeWorker(accessRecordDAO, callback);
 

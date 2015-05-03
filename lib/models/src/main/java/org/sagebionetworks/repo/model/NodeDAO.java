@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -230,6 +231,15 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 */
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the child node of a node by name
+	 * 
+	 * @param nodeId
+	 * @param childName
+	 * @return
+	 */
+	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lookup a node id using its unique path.
@@ -359,19 +369,10 @@ public interface NodeDAO {
 	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
 
 	/**
-	 * Get the FileHandle ID for the current version..
+	 * Get the FileHandle Id for a given version number.
 	 * 
 	 * @param id
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public String getFileHandleIdForCurrentVersion(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the FileHandle Id for a given version number.
-	 * @param id
-	 * @param versionNumber
+	 * @param versionNumber if null, use the current version
 	 * @return
 	 */
 	public String getFileHandleIdForVersion(String id, Long versionNumber);

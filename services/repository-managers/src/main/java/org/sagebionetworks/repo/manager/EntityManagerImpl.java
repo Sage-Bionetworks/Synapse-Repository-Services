@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
+import org.sagebionetworks.repo.manager.file.MultipartManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -71,7 +73,7 @@ public class EntityManagerImpl implements EntityManager {
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass()));
+		node.setNodeType(EntityType.getEntityTypeForClass(newEntity.getClass()));
 		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
@@ -92,7 +94,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
-		validateType(EntityType.getNodeTypeForClass(entityClass),
+		validateType(EntityType.getEntityTypeForClass(entityClass),
 				node.getNodeType(), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
@@ -120,9 +122,9 @@ public class EntityManagerImpl implements EntityManager {
 			EntityType acutalType, String id) {
 		if (acutalType != requestedType) {
 			throw new IllegalArgumentException("The Entity: syn" + id
-					+ " has an entityType=" + acutalType.getEntityType()
+					+ " has an entityType=" + acutalType.getEntityTypeClassName()
 					+ " and cannot be changed to entityType="
-					+ requestedType.getEntityType());
+					+ requestedType.getEntityTypeClassName());
 		}
 	}
 
@@ -407,7 +409,7 @@ public class EntityManagerImpl implements EntityManager {
 		List<T> resultSet = new ArrayList<T>();
 		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
 		Iterator<Node> it = children.iterator();
-		EntityType type = EntityType.getNodeTypeForClass(childrenClass);
+		EntityType type = EntityType.getEntityTypeForClass(childrenClass);
 		while (it.hasNext()) {
 			Node child = it.next();
 			if (child.getNodeType() == type) {
@@ -460,6 +462,27 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// pass through
 		return nodeManager.getNodePath(userInfo, entityId);
+	}
+
+	@Override
+	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
+			UnauthorizedException {
+		List<EntityHeader> entityPath = getEntityPath(userInfo, entityId);
+
+		// we skip the root node
+		int startIndex = 1;
+		if (entityPath.size() == 1) {
+			startIndex = 0;
+		}
+		StringBuilder path = new StringBuilder(256);
+
+		for (int i = startIndex; i < entityPath.size(); i++) {
+			if (path.length() > 0) {
+				path.append(MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR);
+			}
+			path.append(entityPath.get(i).getName());
+		}
+		return path.toString();
 	}
 
 	@Override
@@ -580,15 +603,10 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws UnauthorizedException, NotFoundException {
 		// The manager handles this call.
-		return nodeManager.getFileHandleIdForCurrentVersion(userInfo, id);
-	}
-
-	@Override
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException {
-		// The manager handles this call.
-		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
+		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber, reason);
 	}
 
 	@Override

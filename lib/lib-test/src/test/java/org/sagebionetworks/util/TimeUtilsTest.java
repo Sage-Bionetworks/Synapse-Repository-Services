@@ -145,4 +145,39 @@ public class TimeUtilsTest {
 		assertEquals(maxRetry, count.get());
 		assertEquals(start + 1000 * 2.2, clock.currentTimeMillis(), 100);
 	}
+
+	@Test
+	public void testTimedAssert() {
+		final AtomicInteger count = new AtomicInteger(3);
+		TimedAssert.waitForAssert(10000, 10, new Runnable() {
+			@Override
+			public void run() {
+				if (count.incrementAndGet() < 3) {
+					fail();
+				}
+			}
+		});
+		assertEquals(4, count.get());
+	}
+
+	@Test
+	public void testTimedAssertFail() {
+		final AtomicInteger count = new AtomicInteger(3);
+		boolean gotError;
+		try {
+			TimedAssert.waitForAssert(50, 1, new Runnable() {
+				@Override
+				public void run() {
+					count.incrementAndGet();
+					fail();
+				}
+			});
+			gotError = false;
+		} catch (AssertionError e) {
+			// expected
+			gotError = true;
+		}
+		assertTrue(gotError);
+		assertTrue("should have been checked at least twice", count.get() > 2);
+	}
 }

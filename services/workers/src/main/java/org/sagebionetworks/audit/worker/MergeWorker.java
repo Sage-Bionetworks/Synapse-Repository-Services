@@ -10,7 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
+import org.sagebionetworks.util.ProgressCallback;
 
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -25,14 +25,14 @@ public class MergeWorker {
 		
 	static private Log log = LogFactory.getLog(MergeWorker.class);
 	private AccessRecordDAO accessRecordDAO;
-	private ProgressCallback callback;
+	private ProgressCallback<Void> callback;
 
 	/**
 	 * All dependencies are provide at construction time.
 	 * @param accessRecordDAO
 	 * @param minFileSize
 	 */
-	public MergeWorker(AccessRecordDAO accessRecordDAO, ProgressCallback callback) {
+	public MergeWorker(AccessRecordDAO accessRecordDAO, ProgressCallback<Void> callback) {
 		super();
 		this.accessRecordDAO = accessRecordDAO;
 		this.callback = callback;
@@ -132,7 +132,7 @@ public class MergeWorker {
 							subBatch = accessRecordDAO.getBatch(key);
 							mergedBatches.addAll(subBatch);
 							if (this.callback != null) {
-								this.callback.progressMade();
+								this.callback.progressMade(null);
 							}
 						} catch (Exception e) {
 							// We need to continue even if one file is bad.
@@ -156,7 +156,7 @@ public class MergeWorker {
 					
 					// Extend semaphore timeout after writing collated log file
 					if (this.callback != null) {
-						this.callback.progressMade();
+						this.callback.progressMade(null);
 					}
 					
 					// We merged this batch successfully

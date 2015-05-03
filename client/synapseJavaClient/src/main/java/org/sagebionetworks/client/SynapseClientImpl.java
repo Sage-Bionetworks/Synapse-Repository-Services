@@ -54,54 +54,10 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AutoGenFactory;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Challenge;
-import org.sagebionetworks.repo.model.ChallengePagedResults;
-import org.sagebionetworks.repo.model.ChallengeTeam;
-import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -127,6 +83,8 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
@@ -358,6 +316,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
 	private static final String FILE_HANDLES = "/filehandles";
+	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
@@ -441,8 +400,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected String repoEndpoint;
 	protected String authEndpoint;
 	protected String fileEndpoint;
-
-	private AutoGenFactory autoGenFactory = new AutoGenFactory();
 
 	/**
 	 * The maximum number of threads that should be used to upload asynchronous
@@ -1129,7 +1086,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new RuntimeException("EntityType returned was null!");
 		try {
 			String entityType = adapter.getString("entityType");
-			Entity entity = (Entity) autoGenFactory.newInstance(entityType);
+			Entity entity = (Entity) EntityInstanceFactory.singleton().newInstance(entityType);
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e1) {
@@ -1642,7 +1599,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
 			throws SynapseException {
 		String uri = null;
@@ -1665,7 +1622,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(
 				jsonAccessRequirements);
-		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
+		PaginatedResults<AccessRequirement> results = new PaginatedResults<AccessRequirement>();
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
@@ -1688,7 +1645,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(
+	public PaginatedResults<AccessRequirement> getAccessRequirements(
 			RestrictableObjectDescriptor subjectId) throws SynapseException {
 		String uri = null;
 		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
@@ -1705,7 +1662,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(
 				jsonAccessRequirements);
-		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
+		PaginatedResults<AccessRequirement> results = new PaginatedResults<AccessRequirement>(AccessRequirement.class);
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
@@ -1985,7 +1942,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
+	public PaginatedResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
 			throws SynapseException {
 		String url = ENTITY_URI_PATH + "/type"; // TODO move UrlHelpers
 												// someplace shared so that we
@@ -1997,7 +1954,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 						ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
 				EntityHeader.class);
 		try {
 			results.initializeFromJSONObject(adapter);
@@ -2008,7 +1965,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public BatchResults<EntityHeader> getEntityHeaderBatch(
+	public PaginatedResults<EntityHeader> getEntityHeaderBatch(
 			List<Reference> references) throws SynapseException {
 		ReferenceList list = new ReferenceList();
 		list.setReferences(references);
@@ -2019,7 +1976,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			// POST
 			jsonObject = createJSONObject(url, jsonObject);
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
-			BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+			PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
 					EntityHeader.class);
 			results.initializeFromJSONObject(adapter);
 			return results;
@@ -2503,6 +2460,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws JSONObjectAdapterException, SynapseException {
 		String uri = EXTERNAL_FILE_HANDLE;
 		return doCreateJSONEntity(getFileEndpoint(), uri, efh);
+	}
+
+	@Override
+	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
+			throws SynapseException {
+		S3FileCopyRequest s3FileCopyRequest = new S3FileCopyRequest();
+		s3FileCopyRequest.setFiles(fileHandleIds);
+		s3FileCopyRequest.setBucket(destinationBucket);
+		s3FileCopyRequest.setOverwrite(overwrite);
+		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest);
+	}
+
+	@Override
+	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
 	}
 
 	/**
@@ -5532,9 +5504,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
 		String concreteType = adapter.getString("concreteType");
-		JSONEntity obj = autoGenFactory.newInstance(concreteType);
-		obj.initializeFromJSONObject(adapter);
-		return (T) obj;
+		try {
+			JSONEntity obj = (JSONEntity) Class.forName(concreteType).newInstance();
+			obj.initializeFromJSONObject(adapter);
+			return (T) obj;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -5838,7 +5814,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			JSONObject jsonObj = getSharedClientConnection().getJson(
 					repoEndpoint, url, getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+			PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
 					EntityHeader.class);
 			results.initializeFromJSONObject(adapter);
 			return results.getResults();
