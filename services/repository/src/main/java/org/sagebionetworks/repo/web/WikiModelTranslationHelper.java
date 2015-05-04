@@ -12,7 +12,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
-import org.sagebionetworks.repo.manager.file.ContentTypeUtil;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -23,6 +22,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.TempFileProvider;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -146,9 +146,8 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(from.getMarkdownFileHandleId());
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
 		InputStream in = s3Object.getObjectContent();
-		String contentTypeString = s3Object.getObjectMetadata().getContentType();
-		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
 		try{
 			// Read the file as a string
 			String markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);

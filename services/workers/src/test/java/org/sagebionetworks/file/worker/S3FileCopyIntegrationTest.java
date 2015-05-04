@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -343,7 +344,7 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	private String createFileEntity(int index, int seed, int size, String parentId) throws IOException, ServiceUnavailableException {
-		S3FileHandle fileHandle = uploadFile(testFileNames[index], TestStreams.randomStream(size, 123L + seed));
+		S3FileHandle fileHandle = uploadFile(TestStreams.randomString(size, 123L + seed));
 		toDelete.add(fileHandle);
 		FileEntity fileEntity = new FileEntity();
 		fileEntity.setDataFileHandleId(fileHandle.getId());
@@ -365,7 +366,7 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	private void testCopyFile(long size) throws IOException, ServiceUnavailableException {
-		S3FileHandle fileHandle = uploadFile(testFileNames[0], TestStreams.randomStream(size, 123L));
+		S3FileHandle fileHandle = uploadFile(TestStreams.randomString(size, 123L));
 		toDelete.add(fileHandle);
 
 		@SuppressWarnings("unchecked")
@@ -379,12 +380,9 @@ public class S3FileCopyIntegrationTest {
 		verify(progress, times((int) size / (5 * 1024 * 1024) + 1)).progressMade(any(Long.class));
 	}
 
-	private S3FileHandle uploadFile(String fileHandleName, InputStream in) throws IOException, ServiceUnavailableException {
-		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
-		when(mockFiz.openStream()).thenReturn(in);
-		when(mockFiz.getContentType()).thenReturn("unknown/content");
-		when(mockFiz.getName()).thenReturn(fileHandleName);
-		// Now upload the file.
-		return fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
+	private S3FileHandle uploadFile(String fileContents) throws IOException, ServiceUnavailableException {
+		return fileUploadManager.
+				createCompressedFileFromString(adminUserInfo.getId().toString(), 
+						new Date(), fileContents, "unknown/content");
 	}
 }

@@ -2,10 +2,12 @@ package org.sagebionetworks.util;
 
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 
 public class TestStreams {
@@ -27,6 +29,22 @@ public class TestStreams {
 				}
 			}
 		};
+	}
+	
+	public static String randomString(final long size, final long seed) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			IOUtils.copy(randomStream(size, seed), baos);
+			return baos.toString();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				baos.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	public static void assertEquals(InputStream expected, InputStream actual) {

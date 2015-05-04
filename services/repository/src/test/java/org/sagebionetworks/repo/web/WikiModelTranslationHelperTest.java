@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import org.junit.After;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -104,10 +106,11 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
 		InputStream in = s3Object.getObjectContent();
 		String markdownString = null;
 		try{
-			markdownString = FileUtils.readStreamAsString(in, /*gunzip*/true);
+			markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 		}finally{
 			in.close();
 		}
@@ -140,10 +143,11 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
 		InputStream in = s3Object.getObjectContent();
 		String markdownString = null;
 		try{
-			markdownString = FileUtils.readStreamAsString(in, /*gunzip*/true);
+			markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 		}finally{
 			in.close();
 		}

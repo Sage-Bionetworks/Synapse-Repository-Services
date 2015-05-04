@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,9 +78,10 @@ public class PreviewManagerImplAutoWireTest {
 			baos.close();
 		}
 		// Now upload the file.
+		ContentType contentType = ContentType.create(ImagePreviewGenerator.IMAGE_PNG, "UTF-8");
 		originalfileMetadata = fileUploadManager.
 				createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), 
-						fileContent, ImagePreviewGenerator.IMAGE_PNG, null);
+						fileContent, contentType, null);
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}
