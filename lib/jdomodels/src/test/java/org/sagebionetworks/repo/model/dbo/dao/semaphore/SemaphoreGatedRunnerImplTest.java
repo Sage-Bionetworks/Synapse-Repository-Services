@@ -19,10 +19,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -248,22 +248,22 @@ public class SemaphoreGatedRunnerImplTest {
 		// run
 		semaphoreGatedRunner.setRunner(new ProgressingRunner() {
 			@Override
-			public void run(ProgressCallback callback) throws Exception {
+			public void run(ProgressCallback<Void> callback) throws Exception {
 				// Not every call should result in a lock-refresh, only if enough time has expired
 				testClock.warpForward(timeoutMS / 4);
-				callback.progressMade();
+				callback.progressMade(null);
 				testClock.warpForward(timeoutMS / 4 - 1);
-				callback.progressMade();
+				callback.progressMade(null);
 
 				// This should trigger a refresh
 				testClock.warpForward(2);
-				callback.progressMade();
+				callback.progressMade(null);
 
 				testClock.warpForward(timeoutMS / 2);
-				callback.progressMade();
+				callback.progressMade(null);
 				// This should trigger a refresh
 				testClock.warpForward(timeoutMS / 2);
-				callback.progressMade();
+				callback.progressMade(null);
 			}
 		});
 		semaphoreGatedRunner.attemptToRun();

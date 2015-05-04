@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
+import org.sagebionetworks.repo.manager.file.MultipartManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -463,6 +465,27 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
+	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
+			UnauthorizedException {
+		List<EntityHeader> entityPath = getEntityPath(userInfo, entityId);
+
+		// we skip the root node
+		int startIndex = 1;
+		if (entityPath.size() == 1) {
+			startIndex = 0;
+		}
+		StringBuilder path = new StringBuilder(256);
+
+		for (int i = startIndex; i < entityPath.size(); i++) {
+			if (path.length() > 0) {
+				path.append(MultipartManagerImpl.FILE_TOKEN_TEMPLATE_SEPARATOR);
+			}
+			path.append(entityPath.get(i).getName());
+		}
+		return path.toString();
+	}
+
+	@Override
 	public List<EntityHeader> getEntityPathAsAdmin(String entityId)
 			throws NotFoundException, DatastoreException {
 		// pass through
@@ -580,15 +603,10 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws UnauthorizedException, NotFoundException {
 		// The manager handles this call.
-		return nodeManager.getFileHandleIdForCurrentVersion(userInfo, id);
-	}
-
-	@Override
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException {
-		// The manager handles this call.
-		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
+		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber, reason);
 	}
 
 	@Override

@@ -21,7 +21,11 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
-		
+
+	public enum FileHandleReason {
+		FOR_PREVIEW_DOWNLOAD, FOR_FILE_DOWNLOAD, FOR_HANDLE_VIEW
+	}
+
 	/**
 	 * Create a new no
 	 * @param userId
@@ -307,27 +311,19 @@ public interface NodeManager {
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
-	 * Get the FileHandleId of the file associated with the current version of the entity.
-	 * The caller must have permission to downlaod this file to get the handle.
+	 * Get the FileHandleId of the file associated with a given version of the entity. The caller must have permission
+	 * to downlaod this file to get the handle.
+	 * 
 	 * @param userInfo
 	 * @param id
+	 * @param versionNumber if null, use current version
+	 * @param reason the reason the caller requests this filehanlde, used for authorization and capability checks
 	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws NotFoundException 
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
 	 */
-	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws NotFoundException, UnauthorizedException;
-
-	/**
-	 * Get the FileHandleId of the file associated with a given version of the entity.
-	 * The caller must have permission to downlaod this file to get the handle.
-	 * @param userInfo
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws NotFoundException 
-	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException;
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get a reference for the current version of the given node ids

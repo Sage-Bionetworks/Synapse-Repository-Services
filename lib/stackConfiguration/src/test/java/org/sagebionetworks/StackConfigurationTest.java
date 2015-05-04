@@ -90,5 +90,19 @@ public class StackConfigurationTest {
 		assertEquals(new BigInteger("wu".getBytes()).intValue(), StackConfiguration.getStackInstanceNumber("wu", false));
 	}
 	
+	@Test
+	public void testDatabaseInTablesCluster(){
+		StackConfiguration confg = new StackConfiguration();
+		int count = confg.getTablesDatabaseCount();
+		assertTrue(count > 0);
+		// We should find a schema and endpoint for each database
+		for(int i=0; i<count; i++){
+			String endpoint = confg.getTablesDatabaseEndpointForIndex(i);
+			assertNotNull(endpoint);
+			String schema = confg.getTablesDatabaseSchemaForIndex(i);
+			assertNotNull(schema);
+			System.out.println("Endpoint: "+endpoint+" schema: "+schema);
+		}
+	}
 	
 }

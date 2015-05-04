@@ -12,10 +12,12 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.collections.Maps2;
+import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.base.Supplier;
@@ -244,7 +246,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 * @author jmhill
 	 *
 	 */
-	private class HalfLifeProgressCallback implements ProgressCallback{
+	private class HalfLifeProgressCallback implements ProgressCallback<Void> {
 		String key;
 		String token;
 		long halfExpirationTime;
@@ -257,7 +259,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		}
 
 		@Override
-		public void progressMade() {
+		public void progressMade(Void nothing) {
 			// If past the half expired, then reset the timeout
 			long now = clock.currentTimeMillis();
 			if(now > halfExpirationTime){

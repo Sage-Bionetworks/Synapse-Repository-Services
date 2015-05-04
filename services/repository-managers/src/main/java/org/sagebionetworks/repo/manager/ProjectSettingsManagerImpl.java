@@ -4,11 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +15,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -26,28 +25,30 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.AmazonErrorCodes;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.util.CollectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
-	private static final String OWNER_MARKER = "owner.txt";
 	private static final String EXTERNAL_S3_HELP = "www.synapse.org//#!HelpPages:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
 
 	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
@@ -73,12 +74,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Autowired
 	private UserProfileManager userProfileManager;
 
-	private EntityType PROJECT_ENTITY_TYPE;
-
-	@PostConstruct
-	private void getProjectEntityType() {
-		PROJECT_ENTITY_TYPE = EntityType.getEntityTypeForClass(Project.class);
-	}
+	@Autowired
+	private UserManager userManager;
 
 	@Override
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
@@ -102,32 +99,44 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, ProjectSettingsType type,
+	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
-			throw new UnauthorizedException("Cannot read information for this parent entity");
-		}
-		List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
+		List<EntityHeader> nodePath = nodeManager.getNodePathAsAdmin(nodeId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
 			throw new DatastoreException("No path for this parentId could be found");
 		}
-		// walk the path from the top (the top is probably root and the next one should be project)
-		String projectId = null;
-		for (EntityHeader node : nodePath) {
-			if (node.getType().equals(PROJECT_ENTITY_TYPE.getEntityTypeClassName())) {
-				projectId = node.getId();
-				break;
+		List<Long> nodePathIds = Lists.transform(nodePath, new Function<EntityHeader, Long>() {
+			@Override
+			public Long apply(EntityHeader input) {
+				return KeyFactory.stringToKey(input.getId());
 			}
-		}
-		if (projectId == null) {
-			throw new IllegalArgumentException("This parentId is not contained in a project");
-		}
-		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
+		});
+
+		// get the first available project setting of the correct type
+		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
 		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
 		return (T) projectSetting;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends ProjectSetting> List<T> getNodeSettingsByType(ProjectSettingsType projectSettingsType, Class<T> expectedType) {
+		List<ProjectSetting> projectSettings = projectSettingsDao.getByType(projectSettingsType);
+		Iterator<ProjectSetting> iter = projectSettings.iterator();
+		while (iter.hasNext()) {
+			ProjectSetting projectSetting = iter.next();
+			if (!expectedType.isInstance(projectSetting)) {
+				// report error if wrong type, but don't throw error. This is called by worker who just wants to handle
+				// all correct cases
+				log.error("The project setting for type " + projectSettingsType + " and node " + projectSetting.getProjectId()
+						+ " is not of the expected type " + expectedType.getName() + " but instead is " + projectSetting.getClass().getName());
+				iter.remove();
+			}
+		}
+		return (List<T>) projectSettings;
 	}
 
 	@Override
@@ -141,8 +150,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		// make sure the project id is a project
 		EntityType nodeType = nodeManager.getNodeType(userInfo, projectSetting.getProjectId());
-		if (nodeType.getClassForType() != Project.class) {
-			throw new IllegalArgumentException("The id is not the id of a project entity");
+		if (nodeType.getClassForType() != Project.class && nodeType.getClassForType() != Folder.class) {
+			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
 		}
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
@@ -232,8 +241,21 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
+		} else if (setting instanceof ExternalSyncSetting) {
+			validateExternalSyncSetting((ExternalSyncSetting) setting);
+		} else if (setting instanceof RequesterPaysSetting) {
+			ValidateArgument.required(((RequesterPaysSetting) setting).getRequesterPays(), "RequesterPaysSetting.requesterPays");
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
+		}
+	}
+
+	private void validateExternalSyncSetting(ExternalSyncSetting setting) {
+		ValidateArgument.required(setting.getAutoSync(), "ExternalSyncSetting.autoSync");
+		ValidateArgument.required(setting.getLocationId(), "ExternalSyncSetting.locationId");
+		// check for empty node
+		if (!nodeDAO.getChildrenIds(setting.getProjectId()).isEmpty()) {
+			throw new IllegalArgumentException("You cannot apply autosync to a folder or project that has any children in it");
 		}
 	}
 
@@ -299,10 +321,27 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 					+ getExplanation(userProfile, bucket, key));
 		}
 
-		if (!userName.equals(userProfile.getUserName())) {
+		if (!checkForCorrectName(userProfile, userName)) {
 			throw new IllegalArgumentException("The username " + userName + " found under key " + key + " from bucket " + bucket
 					+ " is not what was expected. " + getExplanation(userProfile, bucket, key));
 		}
+	}
+
+	private boolean checkForCorrectName(UserProfile userProfile, String userName) {
+		if (userName.equals(userProfile.getUserName())) {
+			return true;
+		}
+		if (userName.equalsIgnoreCase(userProfile.getEmail())) {
+			return true;
+		}
+		if (userProfile.getEmails() != null) {
+			for (String email : userProfile.getEmails()) {
+				if (userName.equalsIgnoreCase(email)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has persmission to write to the bucket. Please create an S3 object in bucket '%s' with key '%s' that contains the user name '%s'. Also see "

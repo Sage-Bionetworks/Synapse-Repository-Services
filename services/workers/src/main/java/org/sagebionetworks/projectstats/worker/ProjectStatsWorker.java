@@ -3,7 +3,6 @@ package org.sagebionetworks.projectstats.worker;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +32,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.AclModificationMessage;
 import org.sagebionetworks.repo.model.message.DefaultModificationMessage;
 import org.sagebionetworks.repo.model.message.ModificationMessage;
+import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -156,8 +156,10 @@ public class ProjectStatsWorker implements Worker {
 					ProjectStat projectStat = new ProjectStat(projectId, modificationMessage.getUserId(), modificationMessage.getTimestamp());
 					projectStatsDao.update(projectStat);
 				}
+			} else if (modificationMessage instanceof NodeSettingsModificationMessage) {
+				// nothing to do here
 			} else {
-				throw new IllegalArgumentException("cannot modification type " + modificationMessage.getObjectType());
+				throw new IllegalArgumentException("cannot handle modification type " + modificationMessage.getClass().getName());
 			}
 			return message;
 		} catch (TransientDataAccessException e) {

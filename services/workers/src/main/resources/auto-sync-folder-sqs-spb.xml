@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<bean id="folderSyncQueue" class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl" depends-on="stackConfiguration">
+		<constructor-arg index="0" ref="stackConfiguration.workerQueueName[SyncFolderWorker]" />
+	</bean>
+
+	<!-- check for updates to s3 buckets -->
+	<bean id="autoSyncFolderWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+					<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
+						<property name="timeoutMS" value="60000" />
+						<!-- There must never be more than one instances of this worker running at a time, so as to not duplicate effort -->
+						<property name="maxNumberRunners" value="1" />
+						<property name="semaphoreKey" value="autoSyncFolderWorker" />		
+						<property name="runner">
+							<bean class="org.sagebionetworks.asynchronous.workers.timed.SingletonBeanTimedWorkerFactoryRunner">
+								<property name="worker">
+									<bean class="org.sagebionetworks.file.worker.AutoSyncFolderWorker">
+										<property name="folderSyncQueue" ref="folderSyncQueue"/>
+									</bean>
+								</property>
+							</bean>
+						</property>
+					</bean>
+				</property>
+				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="35" />
+		<!-- This is a slow worker and does not need to be run more than once every hour. -->
+		<property name="repeatInterval" value="3600000" />
+	</bean>
+
+	<!-- handle project settings modification messages -->
+	<bean id="syncSettingsModificationsMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl">
+						<property name="messageQueue">
+							<bean class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl" depends-on="stackConfiguration">
+								<constructor-arg index="0" ref="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]" />
+								<constructor-arg index="1" ref="stackConfiguration.repositoryModificationTopicName" />
+								<constructor-arg index="2"><null /></constructor-arg>
+								<constructor-arg index="3" value="true" />
+							</bean>
+						</property>
+						<property name="workerFactory">
+							<bean class="org.sagebionetworks.asynchronous.workers.sqs.SingletonBeanMessageWorkerFactory">
+								<property name="worker">
+									<bean class="org.sagebionetworks.file.worker.SyncSettingsModificationsWorker">
+										<property name="folderSyncQueue" ref="folderSyncQueue"/>
+									</bean>
+								</property>
+							</bean>
+						</property>
+						<property name="workerSemaphore">
+							<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+								<property name="lockTimeoutMS" value="60000" />
+								<property name="maxCount" value="8" />
+							</bean>
+						</property>
+						<property name="maxNumberOfWorkerThreads" value="2" />
+						<property name="maxMessagePerWorker" value="1" />
+						<property name="visibilityTimeoutSec" value="60" />
+					</bean>
+				</property>
+				<property name="targetMethod" value="triggerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="88" />
+		<property name="repeatInterval" value="10243" />
+	</bean>
+
+	<!-- compare folder and s3 and update accordingly -->
+	<bean id="folderSyncMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl">
+						<property name="messageQueue" ref="folderSyncQueue"/>
+						<property name="workerFactory">
+							<bean class="org.sagebionetworks.asynchronous.workers.sqs.SingletonBeanMessageWorkerFactory" scope="singleton">
+								<property name="worker">
+									<bean class="org.sagebionetworks.file.worker.SyncFolderWorker">
+										<property name="syncFolderGate">
+											<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+												<property name="lockTimeoutMS" value="600000" />
+												<property name="maxCount" value="1" />
+											</bean>
+										</property>
+									</bean>
+								</property>
+							</bean>
+						</property>
+						<property name="workerSemaphore">
+							<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+								<property name="lockTimeoutMS" value="60000" />
+								<property name="maxCount" value="20" />
+							</bean>
+						</property>
+						<property name="maxNumberOfWorkerThreads" value="5" />
+						<property name="maxMessagePerWorker" value="1" />
+						<property name="visibilityTimeoutSec" value="600" />
+					</bean>
+				</property>
+				<property name="targetMethod" value="triggerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="78" />
+		<property name="repeatInterval" value="10143" />
+	</bean>
+</beans>

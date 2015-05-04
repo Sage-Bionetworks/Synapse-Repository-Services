@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -160,5 +161,14 @@ public class AsynchJobTypeTest {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		AsynchJobType type = AsynchJobType.TableAppendRowSet;
 		type.getResultUrl(token, request);
+	}
+
+	@Test
+	public void testGetStartUrlwS3FileCopyRequest() {
+		S3FileCopyRequest request = new S3FileCopyRequest();
+		AsynchJobType type = AsynchJobType.S3FileCopy;
+		String actual = type.getStartUrl(request);
+		String expected = "/file/s3FileCopy/async/start";
+		assertEquals(actual, expected);
 	}
 }

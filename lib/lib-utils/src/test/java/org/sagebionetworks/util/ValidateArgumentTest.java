@@ -34,4 +34,35 @@ public class ValidateArgumentTest {
 	public void testWindowsPLFM_3226() {
 		ValidateArgument.validUrl("ftp://anonymous:anonymous@ftp.ncbi.nih.gov/pub/geo/DATA/supplementary/series/fake/FAKE.tar");
 	}
+
+	private static class T1 {
+	}
+
+	private static class T2 extends T1 {
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequireTypeNull() {
+		ValidateArgument.requireType(null, T1.class, "t");
+	}
+
+	@Test
+	public void testRequireTypeEquals(){
+		ValidateArgument.requireType(new T1(), T1.class, "t");
+	}
+
+	@Test
+	public void testRequireTypeSubClass() {
+		ValidateArgument.requireType(new T2(), T1.class, "t");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequireTypeSuperClass() {
+		ValidateArgument.requireType(new T1(), T2.class, "t");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testRequireTypeFail() {
+		ValidateArgument.requireType(new Integer(0), T2.class, "t");
+	}
 }

@@ -71,7 +71,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -438,8 +437,12 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			basicDao.createNew(ownerEntry);
 		} catch (DatastoreException e) {
 			throw new IllegalArgumentException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
-		} catch (DuplicateKeyException e) {
-			throw new NameConflictException("An owner already exists with the ownerId: " + ownerId + " and ownerType: " + ownerType);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new NameConflictException("An owner already exists with the ownerId: " + ownerId + " and ownerType: " + ownerType);
+			} else {
+				throw e;
+			}
 		}
 
 	}

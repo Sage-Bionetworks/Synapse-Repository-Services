@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -181,5 +182,26 @@ public class DBOProjectSettingsDAOImplTest {
 		ProjectSetting projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
 		assertEquals(l1, ((UploadDestinationListSetting) projectSetting).getLocations().get(0));
 		assertEquals(l2, ((UploadDestinationListSetting) projectSetting).getLocations().get(1));
+	}
+
+	@Test
+	public void testGetByType() {
+		int uploadBefore = projectSettingsDao.getByType(ProjectSettingsType.upload).size();
+		int extSyncBefore = projectSettingsDao.getByType(ProjectSettingsType.external_sync).size();
+
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId(projectId);
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.<Long> newArrayList());
+		projectSettingsDao.create(setting);
+		ExternalSyncSetting externalSyncSetting = new ExternalSyncSetting();
+		externalSyncSetting.setProjectId(projectId);
+		externalSyncSetting.setSettingsType(ProjectSettingsType.external_sync);
+		externalSyncSetting.setAutoSync(false);
+		externalSyncSetting.setLocationId(1L);
+		projectSettingsDao.create(externalSyncSetting);
+
+		assertEquals(uploadBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.upload).size());
+		assertEquals(extSyncBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.external_sync).size());
 	}
 }
