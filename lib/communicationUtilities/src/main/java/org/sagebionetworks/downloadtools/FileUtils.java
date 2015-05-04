@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -23,6 +24,8 @@ import java.util.zip.GZIPOutputStream;
  *
  */
 public class FileUtils {
+	
+	public static final Charset DEFAULT_FILE_CHARSET = Charset.forName("UTF-8");
 	
 	/**
 	 * Chunk a file into smaller files each with a size <= chunkSize.
@@ -112,16 +115,17 @@ public class FileUtils {
 	 * @throws IOException
 	 * @throws UnsupportedEncodingException
 	 */
-	public static void writeStringWithUTF8Charset(String content, boolean gzip, OutputStream out) throws IOException,
+	public static void writeString(String content, Charset charset, boolean gzip, OutputStream out) throws IOException,
 			UnsupportedEncodingException {
+		if (charset==null) charset=DEFAULT_FILE_CHARSET;
 		GZIPOutputStream gzout = null;
 		OutputStreamWriter outw = null;
 		try {
 			if (gzip) {
 				gzout = new GZIPOutputStream(out);
-				outw = new OutputStreamWriter(gzout, "UTF-8");
+				outw = new OutputStreamWriter(gzout, charset);
 			} else {
-				outw = new OutputStreamWriter(out, "UTF-8");
+				outw = new OutputStreamWriter(out, charset);
 			}
 			outw.append(content);
 			outw.flush();
@@ -135,7 +139,8 @@ public class FileUtils {
 	/**
 	 * Read compressed data from file as a string.
 	 */
-	public static String readStreamAsStringWithUTF8Charset(InputStream in, boolean gunzip) throws IOException {
+	public static String readStreamAsString(InputStream in, Charset charset, boolean gunzip) throws IOException {
+		if (charset==null) charset=DEFAULT_FILE_CHARSET;
 		BufferedInputStream bis;
 		GZIPInputStream gzin=null;
 		if (gunzip) {
@@ -157,7 +162,7 @@ public class FileUtils {
 			if (gzin!=null) gzin.close();
 			in.close();
 		}
-		String fromZip = new String(baos.toByteArray(), "UTF-8");
+		String fromZip = new String(baos.toByteArray(), charset);
 		return fromZip;
 	}
 }

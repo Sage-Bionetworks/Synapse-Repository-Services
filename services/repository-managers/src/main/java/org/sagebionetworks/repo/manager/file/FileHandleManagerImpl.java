@@ -894,14 +894,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FileUtils.writeStringWithUTF8Charset(fileContents, /*gzip*/true, out);
+		FileUtils.writeString(fileContents, DEFAULT_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
-		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, GZIP_CONTENT_ENCODING, mimeType);
+		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, contentType, GZIP_CONTENT_ENCODING);
 	}
 	
 	@Override
 	public S3FileHandle createFileFromByteArray(String createdBy,
-				Date modifiedOn, byte[] fileContents, String mimeType, String contentEncoding) throws UnsupportedEncodingException, IOException {
+				Date modifiedOn, byte[] fileContents, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
 		// Create the compress string
 		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
@@ -909,7 +910,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Upload the file to S3
 		String fileName = "compressed.txt.gz";
 		ObjectMetadata meta = new ObjectMetadata();
-		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(fileContents.length);
@@ -950,11 +950,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			try {
 				URLConnection connection = url.openConnection();
 				String contentEncoding = connection.getHeaderField(HttpHeaders.CONTENT_ENCODING);
+				String contentTypeString = connection.getHeaderField(HttpHeaders.CONTENT_TYPE);
+				Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
 				in = connection.getInputStream();
-				if (GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
-					return FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
+				if (contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
+					return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 				} else {
-					return FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/false);
+					return FileUtils.readStreamAsString(in, charset, /*gunzip*/false);
 				}
 			} finally {
 				if (in != null) {

@@ -107,7 +107,7 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		InputStream in = s3Object.getObjectContent();
 		String markdownString = null;
 		try{
-			markdownString = FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
+			markdownString = FileUtils.readStreamAsString(in, /*gunzip*/true);
 		}finally{
 			in.close();
 		}
@@ -143,7 +143,7 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		InputStream in = s3Object.getObjectContent();
 		String markdownString = null;
 		try{
-			markdownString = FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
+			markdownString = FileUtils.readStreamAsString(in, /*gunzip*/true);
 		}finally{
 			in.close();
 		}
