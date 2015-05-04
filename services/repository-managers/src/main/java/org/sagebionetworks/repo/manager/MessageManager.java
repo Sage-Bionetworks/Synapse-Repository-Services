@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;

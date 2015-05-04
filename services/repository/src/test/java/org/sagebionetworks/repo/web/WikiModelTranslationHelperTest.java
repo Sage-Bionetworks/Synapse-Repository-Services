@@ -107,7 +107,7 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		InputStream in = s3Object.getObjectContent();
 		String markdownString = null;
 		try{
-			markdownString = FileUtils.readCompressedStreamAsString(in);
+			markdownString = FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
 		}finally{
 			in.close();
 		}
@@ -137,13 +137,13 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		String markdownHandleId = v2Wiki.getMarkdownFileHandleId();
 		assertNotNull(markdownHandleId);
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
-		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
+		tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
 		InputStream in = s3Object.getObjectContent();
 		String markdownString = null;
 		try{
-			markdownString = FileUtils.readCompressedStreamAsString(in);
+			markdownString = FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
 		}finally{
 			in.close();
 		}

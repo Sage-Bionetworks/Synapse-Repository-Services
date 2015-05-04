@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -92,5 +93,13 @@ public interface MembershipRequestManager {
 	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
 			UserInfo userInfo, String teamId, String requesterId, long limit,
 			long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Create the notification content
+	 * 
+	 * @param mrs
+	 * @return the message metadata and the message content
+	 */
+	public MessageToUserAndBody createMembershipRequestNotification(MembershipRqstSubmission mrs);
 
 }

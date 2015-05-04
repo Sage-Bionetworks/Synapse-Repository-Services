@@ -2,18 +2,18 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -36,8 +36,6 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class PreviewManagerImplAutoWireTest {
 	
-	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
-	
 	@Autowired
 	private FileHandleManager fileUploadManager;
 	
@@ -59,6 +57,9 @@ public class PreviewManagerImplAutoWireTest {
 	
 	private S3FileHandle originalfileMetadata;
 	
+	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
+	
+	private byte[] fileContent;
 	
 	@Before
 	public void before() throws Exception {
@@ -66,14 +67,19 @@ public class PreviewManagerImplAutoWireTest {
 		
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
-		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
 		InputStream in = PreviewManagerImplAutoWireTest.class.getClassLoader().getResourceAsStream(LITTLE_IMAGE_NAME);
 		assertNotNull("Failed to find a test file on the classpath: "+LITTLE_IMAGE_NAME, in);
-		when(mockFiz.openStream()).thenReturn(in);
-		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
-		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			IOUtils.copy(in, baos);
+			fileContent = baos.toByteArray();
+		} finally {
+			baos.close();
+		}
 		// Now upload the file.
-		originalfileMetadata = fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
+		originalfileMetadata = fileUploadManager.
+				createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), 
+						fileContent, ImagePreviewGenerator.IMAGE_PNG, null);
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}
@@ -94,6 +100,7 @@ public class PreviewManagerImplAutoWireTest {
 	@Test
 	public void testGeneratePreview() throws TemporarilyUnavailableException, ExceedsMaximumResources, Exception{
 		// Test that we can generate a preview for this image
+		originalfileMetadata.setContentType(ImagePreviewGenerator.IMAGE_PNG); 
 		PreviewFileHandle pfm = previewManager.generatePreview(originalfileMetadata);
 		assertNotNull(pfm);
 		assertNotNull(pfm.getId());

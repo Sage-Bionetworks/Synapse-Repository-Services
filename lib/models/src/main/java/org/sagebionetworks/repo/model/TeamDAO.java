@@ -87,6 +87,14 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 */
 	public long getMembersCount(String teamId) throws DatastoreException;
+	
+	/**
+	 * Get the ids of all the admins in the team
+	 * @param teamId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public List<String> getAdminTeamMembers(String teamId) throws NotFoundException;
 
 	/**
 	 * This is used to build up the team and member prefix caches

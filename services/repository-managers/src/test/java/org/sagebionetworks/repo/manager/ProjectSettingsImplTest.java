@@ -163,7 +163,7 @@ public class ProjectSettingsImplTest {
 		when(mockStorageLocationDAO.get(1L)).thenReturn(externalS3StorageLocationSetting);
 
 		UserProfile profile = new UserProfile();
-		when(mockUserProfileManager.getUserProfile(currentUser, "12")).thenReturn(profile);
+		when(mockUserProfileManager.getUserProfile("12")).thenReturn(profile);
 
 		projectSettingsManager.validateProjectSetting(setting, currentUser);
 	}

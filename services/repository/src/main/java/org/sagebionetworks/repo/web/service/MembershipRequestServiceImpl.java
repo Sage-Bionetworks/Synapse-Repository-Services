@@ -4,6 +4,8 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -25,6 +27,20 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	private MembershipRequestManager membershipRequestManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private NotificationManager notificationManager;
+	
+	public MembershipRequestServiceImpl() {}
+	
+	public MembershipRequestServiceImpl(MembershipRequestManager membershipRequestManager,
+			UserManager userManager,
+			NotificationManager notificationManager) {
+		this.membershipRequestManager = membershipRequestManager;
+		this.userManager=userManager;
+		this.notificationManager=notificationManager;
+	}
+	
+
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipRqstSubmission)
@@ -34,7 +50,10 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 			MembershipRqstSubmission dto) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return membershipRequestManager.create(userInfo, dto);
+		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
+		MessageToUserAndBody message = membershipRequestManager.createMembershipRequestNotification(created);
+		notificationManager.sendNotification(userInfo, message);
+		return created;
 	}
 
 	/* (non-Javadoc)

@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.UserProfile;
 
 import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -32,6 +33,22 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
 	public static final String TEMPLATE_KEY_DETAILS = "#details#";
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
+	
+	public static String getDisplayName(UserProfile userProfile) {
+		String userName = userProfile.getUserName();
+		if (userName==null) throw new IllegalArgumentException("userName is required");
+		String inviteeFirstName = userProfile.getFirstName();
+		String inviteeLastName = userProfile.getLastName();
+		StringBuilder displayName = new StringBuilder();
+		if (inviteeFirstName!=null || inviteeLastName!=null) {
+			if (inviteeFirstName!=null) displayName.append(inviteeFirstName+" ");
+			if (inviteeLastName!=null) displayName.append(inviteeLastName+" ");
+			displayName.append("("+userName+")");
+		} else {
+			displayName.append(userName);
+		}
+		return displayName.toString();
+	}
 
 	public static SendEmailRequest createEmailRequest(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
 		// Construct whom the email is from 

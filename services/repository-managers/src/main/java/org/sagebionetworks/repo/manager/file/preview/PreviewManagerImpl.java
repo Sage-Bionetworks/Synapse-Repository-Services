@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -115,14 +116,16 @@ public class PreviewManagerImpl implements  PreviewManager {
 			return null;
 		}
 		// Try to find a generator for this type
-		final PreviewGenerator generator = findPreviewGenerator(metadata.getContentType());
+		ContentType contentType = ContentType.parse(metadata.getContentType());
+		final PreviewGenerator generator = findPreviewGenerator(contentType.getMimeType());
 		// there is nothing to do if we do not have a generator for this type
 		if(generator == null){
 			log.info("No preview generator found for contentType:"+metadata.getContentType());
 			return null;
 		}
 		// First determine how much memory will be need to generate this preview
-		double multiper = generator.getMemoryMultiplierForContentType(metadata.getContentType());
+		String mimeType = ContentType.parse(metadata.getContentType()).getMimeType();
+		double multiper = generator.getMemoryMultiplierForContentType(mimeType);
 		long memoryNeededBytes = (long) Math.ceil((((double)metadata.getContentSize())*multiper));
 		if(memoryNeededBytes > maxPreviewMemory){
 			log.info(String.format("Preview cannot be generated.  Memory needed: '%1$s' (bytes) exceed preview memory pool size: '%2$s' (bytes). Metadata: %3$s", memoryNeededBytes, maxPreviewMemory, metadata.toString())); ;

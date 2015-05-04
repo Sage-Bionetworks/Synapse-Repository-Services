@@ -420,7 +420,7 @@ public class SharedClientConnection {
 			String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
 			convertHttpResponseToException(statusCode, responseBody);
 		}
-		return FileUtils.readCompressedStreamAsString(entity.getContent());
+		return FileUtils.readStreamAsStringWithUTF8Charset(entity.getContent(), /*gunzip*/true);
 	}
 
 	public File downloadFromSynapse(String url, String md5,

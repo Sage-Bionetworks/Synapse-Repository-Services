@@ -3,11 +3,16 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -15,8 +20,10 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,16 +38,24 @@ public class MembershipInvitationManagerImpl implements
 	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	@Autowired
+	private TeamDAO teamDAO;
 	
+	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.txt";
+
+	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
+
 	public MembershipInvitationManagerImpl() {}
 	
 	// for testing
 	public MembershipInvitationManagerImpl(
 			AuthorizationManager authorizationManager,
-			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO
+			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
+			TeamDAO teamDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
+		this.teamDAO=teamDAO;
 	}
 	
 	public static void validateForCreate(MembershipInvtnSubmission mis) {
@@ -69,7 +84,28 @@ public class MembershipInvitationManagerImpl implements
 			throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
-		return membershipInvtnSubmissionDAO.create(mis);
+		MembershipInvtnSubmission created = membershipInvtnSubmissionDAO.create(mis);
+		return created;
+	}
+	
+	@Override
+	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis) {
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
+		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#teamName#", teamDAO.get(mis.getTeamId()).getName());
+		fieldValues.put("#teamId#", mis.getTeamId());
+		fieldValues.put("#userId#", mis.getInviteeId());
+		if (mis.getMessage()==null || mis.getMessage().length()==0) {
+			fieldValues.put("#inviterMessage#", "");
+		} else {
+			fieldValues.put("#inviterMessage#", 
+							"The inviter sends the following message:\r\n\r\n"+
+							mis.getMessage()+"\r\n\r\n");
+		}
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
+		return new MessageToUserAndBody(mtu, messageContent);
 	}
 
 	/* (non-Javadoc)

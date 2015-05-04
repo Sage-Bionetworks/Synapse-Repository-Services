@@ -168,7 +168,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testGetOwnUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
-		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
+		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		assertEquals(userProfile, upClone);
 	}
 		
@@ -202,7 +202,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testGetOthersUserProfileByAdmin() throws Exception {
 		String ownerId = userInfo.getId().toString();
-		UserProfile upClone = userProfileManager.getUserProfile(adminUserInfo, ownerId);
+		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		assertEquals(userProfile, upClone);
 	}
 	
@@ -211,7 +211,7 @@ public class UserProfileManagerImplUnitTest {
 	public void testUpdateOwnUserProfile() throws Exception {
 		// Get a copy of a UserProfile to update
 		String ownerId = userInfo.getId().toString();
-		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
+		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		assertEquals(userProfile, upClone);
 		
 		// Change a field
@@ -226,7 +226,7 @@ public class UserProfileManagerImplUnitTest {
 		String ownerId = userInfo.getId().toString();
 		userInfo.setId(-100L);
 		
-		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
+		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		// so we get back the UserProfile for the specified owner...
 		assertEquals(ownerId, upClone.getOwnerId());
 		// ... but we can't update it, since we are not the owner or an admin

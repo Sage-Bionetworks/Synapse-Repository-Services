@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +19,41 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -31,9 +61,10 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author brucehoff
@@ -53,6 +84,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
@@ -63,17 +96,22 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	@Autowired
 	private PrincipalManager principalManager;
 	@Autowired
 	private DBOBasicDao basicDao;
+	@Autowired
+	private UserProfileManager userProfileManager;
+
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
+	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
+	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.txt";
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
 	
+
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
 		this.teamsToBootstrap = teamsToBootstrap;
 	}
@@ -95,6 +133,7 @@ public class TeamManagerImpl implements TeamManager {
 			AccessRequirementDAO accessRequirementDAO,
 			PrincipalAliasDAO principalAliasDAO,
 			PrincipalManager principalManager,
+			UserProfileManager userProfileManager,
 			TransactionalMessenger transactionalMessenger
 			) {
 		this.authorizationManager = authorizationManager;
@@ -111,6 +150,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.principalManager = principalManager;
+		this.userProfileManager = userProfileManager;
 		this.transactionalMessenger = transactionalMessenger;
 	}
 
@@ -457,9 +497,45 @@ public class TeamManagerImpl implements TeamManager {
 		for (UserGroup ug : userGroups) if (ug.getId().equals(principalId)) return true;
 		return false;
 	}
+	
+	@Override
+	public MessageToUserAndBody createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = null;
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+		if (userJoiningTeamIsSelf) {
+			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
+			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
+			fieldValues.put("#displayName#", memberDisplayName);
+			messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
+			mtu.setRecipients(getInviters(Long.parseLong(teamId), memberInfo.getId()));
+		} else {
+			String joinerUserName = principalAliasDAO.getUserName(joinerInfo.getId());
+			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
+			joinerUserProfile.setUserName(joinerUserName);
+			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
+			fieldValues.put("#displayName#", joinerDisplayName);
+			fieldValues.put("#userId#", memberInfo.getId().toString());
+			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
+			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
+		}	
+		return new MessageToUserAndBody(mtu, messageContent);
+	}
+
+	private Set<String> getInviters(Long teamId, Long inviteeId) {
+		return
+		new HashSet<String>(membershipInvtnSubmissionDAO.
+			getInvitersByTeamAndUser(teamId, inviteeId, System.currentTimeMillis()));
+	}
+	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#addMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)
+	 * @return a Pair containing (1) the user ID of the one who joined, (2) a list of those to be notified
 	 */
 	@Override
 	@WriteTransaction
@@ -482,7 +558,6 @@ public class TeamManagerImpl implements TeamManager {
 		membershipInvtnSubmissionDAO.deleteByTeamAndUser(Long.parseLong(teamId), principalUserInfo.getId());
 		// clean up and membership requests
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
-		
 	}
 	
 	/**

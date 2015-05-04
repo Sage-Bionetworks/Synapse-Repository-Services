@@ -102,8 +102,8 @@ public class UserProfileServiceTest {
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
+		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
+		when(mockUserProfileManager.getUserProfile(eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockPrincipalAlaisDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
 
@@ -181,7 +181,7 @@ public class UserProfileServiceTest {
 		userProfile.setOwnerId(ownerId);
 		userProfile.setEmails(Collections.singletonList(email));
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
-		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.getUserProfile(profileId)).thenReturn(userProfile);
 		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
@@ -206,7 +206,7 @@ public class UserProfileServiceTest {
 
 		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
-		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.getUserProfile(profileId)).thenReturn(userProfile);
 		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);

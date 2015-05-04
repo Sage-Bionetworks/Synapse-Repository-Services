@@ -112,18 +112,22 @@ public class FileUtils {
 	 * @throws IOException
 	 * @throws UnsupportedEncodingException
 	 */
-	public static void writeCompressedString(String content, OutputStream out) throws IOException,
+	public static void writeStringWithUTF8Charset(String content, boolean gzip, OutputStream out) throws IOException,
 			UnsupportedEncodingException {
 		GZIPOutputStream gzout = null;
 		OutputStreamWriter outw = null;
 		try {
-			gzout = new GZIPOutputStream(out);
-			outw = new OutputStreamWriter(gzout, "UTF-8");
+			if (gzip) {
+				gzout = new GZIPOutputStream(out);
+				outw = new OutputStreamWriter(gzout, "UTF-8");
+			} else {
+				outw = new OutputStreamWriter(out, "UTF-8");
+			}
 			outw.append(content);
 			outw.flush();
 			outw.close();
 		} finally {
-			gzout.close();
+			if (gzout!=null) gzout.close();
 			out.close();
 		}
 	}
@@ -131,9 +135,15 @@ public class FileUtils {
 	/**
 	 * Read compressed data from file as a string.
 	 */
-	public static String readCompressedStreamAsString(InputStream in) throws IOException {
-		GZIPInputStream gzin = new GZIPInputStream(in);
-		BufferedInputStream bis = new BufferedInputStream(gzin);
+	public static String readStreamAsStringWithUTF8Charset(InputStream in, boolean gunzip) throws IOException {
+		BufferedInputStream bis;
+		GZIPInputStream gzin=null;
+		if (gunzip) {
+			gzin = new GZIPInputStream(in);
+			bis = new BufferedInputStream(gzin);
+		} else {
+			bis = new BufferedInputStream(in);
+		}
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			byte[] buffer = new byte[1024];
@@ -144,7 +154,7 @@ public class FileUtils {
 		} finally {
 			baos.close();
 			bis.close();
-			gzin.close();
+			if (gzin!=null) gzin.close();
 			in.close();
 		}
 		String fromZip = new String(baos.toByteArray(), "UTF-8");

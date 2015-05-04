@@ -187,7 +187,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public <T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo, T storageLocationSetting)
 			throws DatastoreException, NotFoundException, IOException {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
-			UserProfile userProfile = userProfileManager.getUserProfile(userInfo, userInfo.getId().toString());
+			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
 			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getEndpointUrl())
 					&& !externalS3StorageLocationSetting.getEndpointUrl().equals("https://" + Constants.S3_HOSTNAME)) {
@@ -269,7 +269,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 					// only the owner or an admin can add this setting to a project
 					if (!currentUser.isAdmin() && !currentUser.getId().equals(storageLocationSetting.getCreatedBy())) {
-						UserProfile owner = userProfileManager.getUserProfile(currentUser, storageLocationSetting.getCreatedBy().toString());
+						UserProfile owner = userProfileManager.getUserProfile(storageLocationSetting.getCreatedBy().toString());
 						throw new UnauthorizedException(
 								"Only the owner of the external s3 upload destination (user "
 										+ owner.getUserName()
