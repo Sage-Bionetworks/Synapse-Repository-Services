@@ -476,8 +476,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wiki.getMarkdownFileHandleId());
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
 		InputStream in = s3Object.getObjectContent();
-		String contentTypeString = s3Object.getObjectMetadata().getContentType();
-		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
+		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
 		try{
 			return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 		}finally{
