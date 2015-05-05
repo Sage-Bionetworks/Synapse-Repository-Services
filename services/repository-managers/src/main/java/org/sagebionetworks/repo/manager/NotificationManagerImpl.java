@@ -23,8 +23,6 @@ public class NotificationManagerImpl implements NotificationManager {
 	@Autowired
 	private MessageManager messageManager;
 
-	private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
-	
 	public NotificationManagerImpl() {}
 	
 	public NotificationManagerImpl(
@@ -41,7 +39,6 @@ public class NotificationManagerImpl implements NotificationManager {
 
 		// TODO we disable pending completion of the feature see PLFM-3363
 		if (false) {
-			ContentType contentType = ContentType.create(NotificationManager.TEXT_PLAIN_MIME_TYPE, DEFAULT_CHARSET);
 			try {
 				FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
 						userInfo.getId().toString(), new Date(), message.getBody());

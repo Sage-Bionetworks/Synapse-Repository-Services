@@ -7,12 +7,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
@@ -420,7 +422,11 @@ public class SharedClientConnection {
 			String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
 			convertHttpResponseToException(statusCode, responseBody);
 		}
-		return FileUtils.readStreamAsStringWithUTF8Charset(entity.getContent(), /*gunzip*/true);
+		Header contentTypeHeader = response.getFirstHeader(HttpHeaders.CONTENT_TYPE);
+		String contentTypeString = contentTypeHeader==null ? null : contentTypeHeader.getValue();
+		ContentType contentType = contentTypeString==null ? null : ContentType.parse(contentTypeString);
+		Charset charset = contentType==null ? null : contentType.getCharset();
+		return FileUtils.readStreamAsString(entity.getContent(), charset, /*gunzip*/true);
 	}
 
 	public File downloadFromSynapse(String url, String md5,

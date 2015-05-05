@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,7 +94,7 @@ public class PreviewIntegrationTest {
 		toDelete.add(txtFileHandle);
 	}
 	
-	public S3FileHandle uploadFile(String fileName, String contentType) throws Exception{
+	public S3FileHandle uploadFile(String fileName, String mimeType) throws Exception{
 		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
 		assertNotNull("Failed to find a test file on the classpath: "+fileName, in);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -103,8 +104,9 @@ public class PreviewIntegrationTest {
 			baos.close();
 		}
 		// Now upload the file.
+		ContentType contentType = ContentType.create(mimeType, "UTF-8");
 		return fileUploadManager.createFileFromByteArray(
-				adminUserInfo.getId().toString(), new Date(), baos.toByteArray(), contentType, null);
+				adminUserInfo.getId().toString(), new Date(), baos.toByteArray(), null, contentType, null);
 	}
 	
 	@After

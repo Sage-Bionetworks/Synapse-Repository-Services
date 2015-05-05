@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -38,10 +40,8 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -119,8 +120,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 
 	public static final String NOT_SET = "NOT_SET";
-
-	private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+	
+	private static final String DEFAULT_COMPRESSED_FILE_NAME = "compressed.txt.gz";
 	
 	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
@@ -894,22 +895,22 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FileUtils.writeStringWithUTF8Charset(fileContents, /*gzip*/true, out);
+		FileUtils.writeString(fileContents, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
-		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, GZIP_CONTENT_ENCODING, mimeType);
+		ContentType contentType = ContentType.create(mimeType, DEFAULT_FILE_CHARSET);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, null, contentType, GZIP_CONTENT_ENCODING);
 	}
 	
 	@Override
 	public S3FileHandle createFileFromByteArray(String createdBy,
-				Date modifiedOn, byte[] fileContents, String mimeType, String contentEncoding) throws UnsupportedEncodingException, IOException {
+				Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
 		// Create the compress string
 		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
-		String fileName = "compressed.txt.gz";
+		if (fileName==null) fileName=DEFAULT_COMPRESSED_FILE_NAME;
 		ObjectMetadata meta = new ObjectMetadata();
-		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
 		meta.setContentLength(fileContents.length);
@@ -950,11 +951,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			try {
 				URLConnection connection = url.openConnection();
 				String contentEncoding = connection.getHeaderField(HttpHeaders.CONTENT_ENCODING);
+				String contentTypeString = connection.getHeaderField(HttpHeaders.CONTENT_TYPE);
+				Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
 				in = connection.getInputStream();
-				if (GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
-					return FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/true);
+				if (contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
+					return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 				} else {
-					return FileUtils.readStreamAsStringWithUTF8Charset(in, /*gunzip*/false);
+					return FileUtils.readStreamAsString(in, charset, /*gunzip*/false);
 				}
 			} finally {
 				if (in != null) {
