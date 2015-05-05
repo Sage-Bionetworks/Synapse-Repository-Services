@@ -262,16 +262,7 @@ public class S3FileCopyIntegrationTest {
 		status = waitForStatus(adminUserInfo, status);
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		results = (S3FileCopyResults) status.getResponseBody();
-		//
-		// TODO:  This test is failing
-		// it's not clear why it's meant to return 'UPTODDATE'.  It seems like the
-		// test is rerunning the same copy job.  To conclude 'UPTODATE', the worker compares the etag of the 
-		// existing file attached to the entity to the etag of the existing file at the copy target location
-		// However since this test doesn't update the FileEntity, it's not clear why we would expect the worker
-		// to conclude that the files are the same.
-		// ALSO, the headers of the 'existing copy' lack the Content-Disposition, where fileName is stored.
-		// 
-		//assertEquals(S3FileCopyResultType.UPTODATE, results.getResults().get(0).getResultType());
+		assertEquals(S3FileCopyResultType.UPTODATE, results.getResults().get(0).getResultType());
 
 		// and overwrite all
 		// delete old
