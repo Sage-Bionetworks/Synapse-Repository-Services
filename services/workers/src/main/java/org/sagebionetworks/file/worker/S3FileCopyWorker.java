@@ -289,20 +289,13 @@ public class S3FileCopyWorker extends AbstractWorker {
 		ObjectMetadata metadataResult = s3Client.getObjectMetadata(new GetObjectMetadataRequest(s3FileHandle.getBucketName(), s3FileHandle
 				.getKey()));
 
-		boolean useSingleUpload = false;
+		// s3 calculates the etag different dependent on how the file is uploaded. We try to preserve the same etag
+		// here. etag is either hex encoded md5 (single upload) or hex encoded md5 sum - number of parts (multipart
+		// upload). The s3 docs say to look for that '-' as the distinguisher
+		boolean multipPartUpload = metadataResult.getETag() == null || metadataResult.getETag().indexOf('-') >= 0;
 
 		long objectSize = metadataResult.getContentLength(); // in bytes
-		if (objectSize < MAX_S3_COPY_PART_SIZE) {
-			useSingleUpload = true; // not needed for small uploads
-			// s3 calculates the etag different dependent on how the file is uploaded. We try to preserve the same etag
-			// here. etag is either hex encoded md5 (single upload) or hex encoded md5 - number of parts (multipart
-			// upload). The s3 docs say to look for that '-' as the distinguisher
-			if (metadataResult.getETag() != null && metadataResult.getETag().indexOf('-') >= 0) {
-				useSingleUpload = false;
-			}
-		}
-
-		if (useSingleUpload) {
+		if (!multipPartUpload) {
 			// small enough to do a simple copy
 			CopyObjectRequest copyObjectRequest = new CopyObjectRequest(s3FileHandle.getBucketName(), s3FileHandle.getKey(),
 					destinationBucket, destinationKey).withCannedAccessControlList(CannedAccessControlList.BucketOwnerFullControl);
