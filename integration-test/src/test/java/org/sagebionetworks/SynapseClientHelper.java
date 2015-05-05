@@ -39,7 +39,6 @@ public class SynapseClientHelper {
 		Session session = new Session();
 		session.setAcceptsTermsOfUse(true);
 		session.setSessionToken(UUID.randomUUID().toString());
-		newUserClient.setSessionToken(session.getSessionToken());
 		NewIntegrationTestUser nu = new NewIntegrationTestUser();
 		nu.setSession(session);
 		nu.setEmail(UUID.randomUUID().toString() + "@sagebase.org");
@@ -47,6 +46,12 @@ public class SynapseClientHelper {
 		nu.setPassword("password");
 		Long principalId = client.createUser(nu);
 		client.setCertifiedUserStatus(principalId.toString(), true);
+		
+		/** we only use the session token to retrieve the API key which we use afterwards **/
+		newUserClient.setSessionToken(session.getSessionToken());
+		newUserClient.setApiKey(newUserClient.retrieveApiKey());
+		newUserClient.setSessionToken(null);
+		
 		return principalId;
 	}
 }
