@@ -81,7 +81,7 @@ public class PreviewManagerImplAutoWireTest {
 		ContentType contentType = ContentType.create(ImagePreviewGenerator.IMAGE_PNG, "UTF-8");
 		originalfileMetadata = fileUploadManager.
 				createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), 
-						fileContent, contentType, null);
+						fileContent, null, contentType, null);
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}

@@ -304,6 +304,7 @@ public interface FileHandleManager {
 	 * @param createdBy
 	 * @param modifiedOn
 	 * @param fileContents
+	 * @param fileName set to null for default name
 	 * @param contentType
 	 * @param contentEncoding
 	 * @return
@@ -311,7 +312,7 @@ public interface FileHandleManager {
 	 * @throws IOException
 	 */
 	S3FileHandle createFileFromByteArray(String createdBy,
-			Date modifiedOn, byte[] fileContents, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException;
+			Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException;
 	
 	/**
 	 * Create a file handle with the given contents gzipped, using the specified mime-type.

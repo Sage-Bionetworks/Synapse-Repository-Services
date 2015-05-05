@@ -121,6 +121,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String NOT_SET = "NOT_SET";
 	
+	private static final String DEFAULT_COMPRESSED_FILE_NAME = "compressed.txt.gz";
+	
 	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
 	@Autowired
@@ -896,18 +898,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileUtils.writeString(fileContents, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
 		ContentType contentType = ContentType.create(mimeType, DEFAULT_FILE_CHARSET);
-		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, contentType, GZIP_CONTENT_ENCODING);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, null, contentType, GZIP_CONTENT_ENCODING);
 	}
 	
 	@Override
 	public S3FileHandle createFileFromByteArray(String createdBy,
-				Date modifiedOn, byte[] fileContents, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
+				Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
 		// Create the compress string
 		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
-		String fileName = "compressed.txt.gz";
+		if (fileName==null) fileName=DEFAULT_COMPRESSED_FILE_NAME;
 		ObjectMetadata meta = new ObjectMetadata();
 		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
