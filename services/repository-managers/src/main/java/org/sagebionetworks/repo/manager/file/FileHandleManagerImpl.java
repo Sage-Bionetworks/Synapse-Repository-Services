@@ -299,6 +299,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @throws ServiceUnavailableException
 	 */
 	@WriteTransaction
+	@Override
+	@Deprecated
 	public S3FileHandle uploadFile(String userId, FileItemStream fis)
 			throws IOException, ServiceUnavailableException {
 		// Create a token for this file
