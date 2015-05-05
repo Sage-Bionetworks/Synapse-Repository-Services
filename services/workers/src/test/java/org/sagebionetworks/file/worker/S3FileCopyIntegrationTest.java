@@ -66,7 +66,6 @@ import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class S3FileCopyIntegrationTest {
 
-	private static final int TOO_BIG_FOR_SINGLE_COPY = 6000000;
 	private static final String DESTINATION_TEST_BUCKET = "dev.test.destination.bucket.sagebase.org";
 	public static final long MAX_WAIT = 30 * 1000; // 30 seconds
 
@@ -146,11 +145,6 @@ public class S3FileCopyIntegrationTest {
 	@Test
 	public void testCopySmallFile() throws Exception {
 		testCopyFile(200);
-	}
-
-	@Test
-	public void testCopyLargeFile() throws Exception {
-		testCopyFile(TOO_BIG_FOR_SINGLE_COPY);
 	}
 
 	@Test
@@ -245,7 +239,7 @@ public class S3FileCopyIntegrationTest {
 		request.setBucket(DESTINATION_TEST_BUCKET);
 		request.setOverwrite(true);
 
-		String fileEntityId = createFileEntity(0, 0, TOO_BIG_FOR_SINGLE_COPY, null);
+		String fileEntityId = createFileEntity(0, 0, 200, null);
 		request.getFiles().add(fileEntityId);
 
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
@@ -269,7 +263,7 @@ public class S3FileCopyIntegrationTest {
 		entityManager.deleteEntity(adminUserInfo, fileEntityId);
 		entities.remove(fileEntityId);
 		// and recreate with different content
-		fileEntityId = createFileEntity(0, 100, TOO_BIG_FOR_SINGLE_COPY, null);
+		fileEntityId = createFileEntity(0, 100, 200, null);
 		request.getFiles().set(0, fileEntityId);
 		status = asynchJobStatusManager.startJob(adminUserInfo, request);
 		// Wait for the job to complete.
@@ -355,7 +349,7 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user, final AsynchronousJobStatus status) throws Exception {
-		return TimeUtils.waitFor(/* 60000L */6000000L, 500L, new Callable<Pair<Boolean, AsynchronousJobStatus>>() {
+		return TimeUtils.waitFor(60000L, 500L, new Callable<Pair<Boolean, AsynchronousJobStatus>>() {
 			@Override
 			public Pair<Boolean, AsynchronousJobStatus> call() throws Exception {
 				AsynchronousJobStatus currentStatus = asynchJobStatusManager.getJobStatus(adminUserInfo, status.getJobId());
@@ -381,8 +375,8 @@ public class S3FileCopyIntegrationTest {
 
 	private S3FileHandle uploadFile(String fileName, byte[] fileContents) throws IOException, ServiceUnavailableException {
 		ContentType contentType = ContentType.create("unknown/content", DEFAULT_FILE_CHARSET);
-		return fileUploadManager.createFileFromByteArray(
-				adminUserInfo.getId().toString(), new Date(), fileContents, fileName, contentType, null);
+		return fileUploadManager.createFileFromByteArray(adminUserInfo.getId().toString(), new Date(), fileContents, fileName, contentType,
+				null);
 
 	}
 }
