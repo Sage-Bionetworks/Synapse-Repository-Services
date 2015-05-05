@@ -25,5 +25,23 @@ public interface MessageQueue {
 	 * @return
 	 */
 	public boolean isEnabled();
+	
+	/**
+	 * The name of the dead letter queue
+	 * @return
+	 */
+	public String getDeadLetterQueueName();
+	
+	/**
+	 * The URL of the dead letter queue associated with this queue
+	 * @return
+	 */
+	public String getDeadLetterQueueUrl();
+	
+	/**
+	 * The number of times a msg is received before moving to the dead letter queue
+	 * @return
+	 */
+	public int getMaxReceiveCount();
 
 }

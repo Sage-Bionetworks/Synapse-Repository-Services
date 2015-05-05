@@ -8,7 +8,6 @@ import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -52,6 +51,7 @@ public class MessageQueueImpl implements MessageQueue {
 	private boolean isEnabled;
 	private final Integer maxReceiveCount;
 	private final String deadLetterQueueName;
+	private String deadLetterQueueUrl;
 
 	public MessageQueueImpl(final String queueName, String topicPrefixOrName, List<ObjectType> objectTypes, boolean isEnabled) {
 		this(queueName, topicPrefixOrName, objectTypes, isEnabled, null, null);
@@ -73,15 +73,17 @@ public class MessageQueueImpl implements MessageQueue {
 		this.topicPrefixOrName = topicPrefixOrName;
 		this.deadLetterQueueName = deadLetterQueueName;
 		this.maxReceiveCount = maxReceiveCount;
+		this.deadLetterQueueUrl = null;
 	}
 
 	@PostConstruct
-	private void init() {
+	protected void init() {
 		// Do nothing if it is not enabled
 		if(!isEnabled){
 			logger.info("Queue: "+queueName+" will not be configured because it is not enabled");
 			return;
 		}
+
 		// Create the queue if it does not already exist
 		final String queueUrl = createQueue(queueName);
 		final String queueArn = getQueueArn(queueUrl);
@@ -94,6 +96,7 @@ public class MessageQueueImpl implements MessageQueue {
 			dlqUrl = createQueue(deadLetterQueueName);
 			dlqArn = getQueueArn(dlqUrl);
 			this.logger.info("Queue created. URL: " + dlqUrl + " ARN: " + dlqArn);
+			this.deadLetterQueueUrl = dlqUrl;
 			grantRedrivePolicy(queueUrl, dlqArn, maxReceiveCount);
 		}
 
@@ -103,7 +106,7 @@ public class MessageQueueImpl implements MessageQueue {
 		this.queueUrl = queueUrl;
 	}
 	
-	public String createQueue(String qName) {
+	protected String createQueue(String qName) {
 		CreateQueueRequest cqRequest = new CreateQueueRequest(qName);
 		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
 		String qUrl = cqResult.getQueueUrl();
@@ -249,27 +252,45 @@ public class MessageQueueImpl implements MessageQueue {
 	}
 	
 	protected void grantRedrivePolicy(String qUrl, String dlqArn, Integer maxReceiveCount) {
-		//GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
-		//	.withQueueUrl(qUrl)
-		//	.withAttributeNames("RedrivePolicy");
-		//GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
-		//String ps =  attrResult.getAttributes().get("RedrivePolicy");
-		//this.logger.info("Current redrive policy: " + ps);
-		//if (ps == null || ps.indexOf(dlqArn) < 1) {
-			String redrivePolicy = String.format("{\"maxReceiveCount\":\"%d\", \"deadLetterTargetArn\":\"%s\"}", maxReceiveCount, dlqArn);
+		GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
+			.withQueueUrl(qUrl)
+			.withAttributeNames("RedrivePolicy");
+		GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
+		String ps =  attrResult.getAttributes().get("RedrivePolicy");
+		this.logger.info("Current redrive policy: " + ps);
+		if (ps == null || ps.indexOf(dlqArn) < 1) {
+			String redrivePolicy = getRedrivePolicy(maxReceiveCount, dlqArn);
 			SetQueueAttributesRequest queueAttributes = new SetQueueAttributesRequest();
 			Map<String,String> attributes = new HashMap<String,String>();            
 			attributes.put("RedrivePolicy", redrivePolicy);            
 			queueAttributes.setAttributes(attributes);
 			queueAttributes.setQueueUrl(qUrl);
 			this.awsSQSClient.setQueueAttributes(queueAttributes);
-		//} else {
-		//	this.logger.info("Topic already has sendMessage permission on this queue");
-		//}
+		} else {
+			this.logger.info("Dead letter queue already configured on this queue");
+		}
 	}
 
+	protected String getRedrivePolicy(Integer maxReceiveCount, String dlqArn) {
+		return(String.format("{\"maxReceiveCount\":\"%d\", \"deadLetterTargetArn\":\"%s\"}", maxReceiveCount, dlqArn));
+	}
+	
 	@Override
 	public boolean isEnabled() {
 		return isEnabled;
+	}
+	
+	@Override
+	public String getDeadLetterQueueName() {
+		return this.deadLetterQueueName;
+	}
+	@Override
+	public int getMaxReceiveCount() {
+		return this.maxReceiveCount;
+	}
+	
+	@Override
+	public String getDeadLetterQueueUrl() {
+		return this.deadLetterQueueUrl;
 	}
 }

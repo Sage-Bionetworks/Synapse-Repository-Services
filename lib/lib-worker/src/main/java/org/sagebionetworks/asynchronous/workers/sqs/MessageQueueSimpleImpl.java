@@ -53,4 +53,22 @@ public class MessageQueueSimpleImpl implements MessageQueue {
 	public boolean isEnabled() {
 		return true;
 	}
+
+	@Override
+	public String getDeadLetterQueueName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int getMaxReceiveCount() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public String getDeadLetterQueueUrl() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

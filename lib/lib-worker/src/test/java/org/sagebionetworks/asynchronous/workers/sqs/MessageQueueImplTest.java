@@ -3,7 +3,9 @@ package org.sagebionetworks.asynchronous.workers.sqs;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,9 +27,13 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.CreateTopicRequest;
+import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
+import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
 
 
 public class MessageQueueImplTest {
@@ -58,6 +64,23 @@ public class MessageQueueImplTest {
 		when(mockSQSClient.createQueue(any(CreateQueueRequest.class))).thenReturn(expectedRes);
 		String qUrl = msgQImpl.createQueue("queueName");
 		assertEquals("url", qUrl);
+	}
+	
+	@Test
+	public void testGetQueueArn() {
+		Map<String, String> qAttr = new HashMap<String, String>();
+		qAttr.put("QueueArn", "theQueueArn");
+		GetQueueAttributesResult qAttRes = new GetQueueAttributesResult().withAttributes(qAttr);
+		when(mockSQSClient.getQueueAttributes(any(GetQueueAttributesRequest.class))).thenReturn(qAttRes);
+		String qArn = msgQImpl.getQueueArn("qUrl");
+		assertEquals("theQueueArn", qArn);
+	}
+	
+	@Test
+	public void testGetRedrivePolicy() {
+		String expectedPolicy = "{\"maxReceiveCount\":\"5\", \"deadLetterTargetArn\":\"deadLetterQueueArn\"}";
+		String s = msgQImpl.getRedrivePolicy(5, "deadLetterQueueArn");
+		assertEquals(expectedPolicy, s);
 	}
 	
 }
