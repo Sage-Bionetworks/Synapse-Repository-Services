@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -38,10 +40,8 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -120,8 +120,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 
 	public static final String NOT_SET = "NOT_SET";
-
-	private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 	
 	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
@@ -895,9 +893,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FileUtils.writeString(fileContents, DEFAULT_CHARSET, /*gzip*/true, out);
+		FileUtils.writeString(fileContents, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
-		ContentType contentType = ContentType.create(mimeType, DEFAULT_CHARSET);
+		ContentType contentType = ContentType.create(mimeType, DEFAULT_FILE_CHARSET);
 		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, contentType, GZIP_CONTENT_ENCODING);
 	}
 	

@@ -7,21 +7,18 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.fileupload.FileItemStream;
+import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
@@ -55,6 +52,8 @@ import org.springframework.test.context.ContextConfiguration;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.collect.Lists;
+
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
 /**
  * This test validates that when a file is created, the message propagates to the preview queue, is processed by the
@@ -344,7 +343,7 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	private String createFileEntity(int index, int seed, int size, String parentId) throws IOException, ServiceUnavailableException {
-		S3FileHandle fileHandle = uploadFile(TestStreams.randomString(size, 123L + seed));
+		S3FileHandle fileHandle = uploadFile(TestStreams.randomByteArray(size, 123L + seed));
 		toDelete.add(fileHandle);
 		FileEntity fileEntity = new FileEntity();
 		fileEntity.setDataFileHandleId(fileHandle.getId());
@@ -366,7 +365,7 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	private void testCopyFile(long size) throws IOException, ServiceUnavailableException {
-		S3FileHandle fileHandle = uploadFile(TestStreams.randomString(size, 123L));
+		S3FileHandle fileHandle = uploadFile(TestStreams.randomByteArray(size, 123L));
 		toDelete.add(fileHandle);
 
 		@SuppressWarnings("unchecked")
@@ -380,9 +379,10 @@ public class S3FileCopyIntegrationTest {
 		verify(progress, times((int) size / (5 * 1024 * 1024) + 1)).progressMade(any(Long.class));
 	}
 
-	private S3FileHandle uploadFile(String fileContents) throws IOException, ServiceUnavailableException {
-		return fileUploadManager.
-				createCompressedFileFromString(adminUserInfo.getId().toString(), 
-						new Date(), fileContents, "unknown/content");
+	private S3FileHandle uploadFile(byte[] fileContents) throws IOException, ServiceUnavailableException {
+		ContentType contentType = ContentType.create("unknown/content", DEFAULT_FILE_CHARSET);
+		return fileUploadManager.createFileFromByteArray(
+				adminUserInfo.getId().toString(), new Date(), fileContents, contentType, null);
+
 	}
 }

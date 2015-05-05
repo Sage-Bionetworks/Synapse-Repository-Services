@@ -31,11 +31,11 @@ public class TestStreams {
 		};
 	}
 	
-	public static String randomString(final long size, final long seed) {
+	public static byte[] randomByteArray(final long size, final long seed) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			IOUtils.copy(randomStream(size, seed), baos);
-			return baos.toString();
+			return baos.toByteArray();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
