@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -63,6 +64,7 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -84,6 +86,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 /**
@@ -213,6 +216,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private S3FileHandle handleOne;
 	private S3FileHandle markdownOne;
 	private PreviewFileHandle preview;
+	private ExternalFileHandle sftpFileHandle;
 
 	// Evaluation
 	private Evaluation evaluation;
@@ -222,6 +226,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	private Challenge challenge;
 	private ChallengeTeam challengeTeam;
+
+	private Long externalSftpStorageLocationId;
 
 	@Before
 	public void before() throws Exception {
@@ -240,6 +246,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createEntities();
 		createFavorite();
 		createProjectSetting();
+		createExternalSftpFileHandle();
 		createProjectStat();
 		createEvaluation();
 		createAccessRequirement();
@@ -287,6 +294,27 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		settings.setSettingsType(ProjectSettingsType.upload);
 		settings.setLocations(Collections.singletonList(uploadId));
 		projectSettingsDAO.create(settings);
+	}
+
+	private void createExternalSftpFileHandle() {
+		ExternalStorageLocationSetting externalStorageLocationSetting = new ExternalStorageLocationSetting();
+		externalStorageLocationSetting.setDescription("upload normal");
+		externalStorageLocationSetting.setUploadType(UploadType.SFTP);
+		externalStorageLocationSetting.setBanner("warning");
+		externalStorageLocationSetting.setCreatedOn(new Date());
+		externalStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		externalStorageLocationSetting.setSupportsSubfolders(false);
+		externalStorageLocationSetting.setUrl("sftp://mysftp.server.org");
+		externalSftpStorageLocationId = storageLocationDAO.create(externalStorageLocationSetting);
+
+		sftpFileHandle = new ExternalFileHandle();
+		sftpFileHandle.setCreatedBy(adminUserIdString);
+		sftpFileHandle.setCreatedOn(new Date());
+		sftpFileHandle.setEtag("etag");
+		sftpFileHandle.setFileName("file.name");
+		sftpFileHandle.setExternalURL("sftp://mysftp.server.org/somewhereonthis/server");
+		sftpFileHandle.setStorageLocationId(null);
+		sftpFileHandle = fileMetadataDao.createFile(sftpFileHandle);
 	}
 
 	private void createProjectStat() {
@@ -759,6 +787,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
 			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
 		}
+
+		validateExternalSftpFileHandle();
 	}
 
 	private static class BackupInfo {
@@ -801,6 +831,12 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 			assertTrue("This test requires at least one object to exist for each MigrationType.  Please create a new object of type: "
 					+ count.getType() + " in the before() method of this test.", count.getCount() > 0);
 		}
+	}
+
+	private void validateExternalSftpFileHandle() {
+		Map<String, FileHandle> allFileHandlesBatch = fileMetadataDao.getAllFileHandlesBatch(Collections.singleton(sftpFileHandle.getId()));
+		FileHandle fileHandle = Iterables.getOnlyElement(allFileHandlesBatch.values());
+		assertEquals(externalSftpStorageLocationId, fileHandle.getStorageLocationId());
 	}
 
 	/**
