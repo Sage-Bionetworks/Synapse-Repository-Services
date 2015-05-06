@@ -79,6 +79,7 @@ public class ExternalLocationIdSetterListener implements MigrationTypeListener {
 					for (Location location : locations) {
 						if (url.startsWith(location.url)) {
 							jdbcTemplate.update(UPDATE_STORAGE_LOCATION_ID_SQL, location.storageLocationId, fileHandle.getId());
+							break;
 						}
 					}
 				}
