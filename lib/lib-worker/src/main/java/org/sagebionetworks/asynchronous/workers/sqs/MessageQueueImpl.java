@@ -77,7 +77,7 @@ public class MessageQueueImpl implements MessageQueue {
 	}
 
 	@PostConstruct
-	protected void init() {
+	private void init() {
 		// Do nothing if it is not enabled
 		if(!isEnabled){
 			logger.info("Queue: "+queueName+" will not be configured because it is not enabled");
