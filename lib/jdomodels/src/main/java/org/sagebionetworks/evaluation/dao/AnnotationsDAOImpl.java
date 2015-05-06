@@ -241,7 +241,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			List<DoubleAnnotation> doubleAnnos = annotations.getDoubleAnnos();
 			if (doubleAnnos != null) {
 				for (DoubleAnnotation da : doubleAnnos) {
-					if (!Double.isInfinite(da.getValue()) && !Double.isNaN(da.getValue())) {
+					if (da.getValue()==null || (!Double.isInfinite(da.getValue()) && !Double.isNaN(da.getValue()))) {
 						doubleAnnoDBOs.add(AnnotationDBOUtils.createDoubleAnnotationDBO(ownerId, da));
 					}
 					stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, da));

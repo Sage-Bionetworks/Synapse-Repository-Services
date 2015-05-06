@@ -923,6 +923,17 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
+	
+	public void deleteMessage(HttpServlet dispatchServlet,
+			Long userId, String id) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.MESSAGE + "/" + id, userId, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+
 
 	public ConceptResponsePage getConceptsForParent(String parentId,
 			String pefix, int limit, int offset) throws Exception {
@@ -1864,6 +1875,13 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
 		return ServletTestHelperUtils.readResponse(response, S3FileHandle.class);
+	}
+	
+	public void deleteFile(Long userId, String fileHandleId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
 	}
 	
 	public void deleteFilePreview(Long userId, String fileHandleId) throws Exception {

@@ -61,7 +61,7 @@ public class UserManagerImplUnitTest {
 		when(mockUserGroupDAO.get(anyLong())).thenReturn(mockUserGroup);
 		
 		mockUserProfile = new UserProfile();
-		when(mockUserProfileManger.getUserProfile(any(UserInfo.class), anyString())).thenReturn(mockUserProfile);
+		when(mockUserProfileManger.getUserProfile(anyString())).thenReturn(mockUserProfile);
 		
 		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
 		

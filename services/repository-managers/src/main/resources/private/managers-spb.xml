@@ -34,6 +34,8 @@
 	
 	<bean id="principalManager" class="org.sagebionetworks.repo.manager.principal.PrincipalManagerImpl" />
 	
+	<bean id="notificationManager" class="org.sagebionetworks.repo.manager.NotificationManagerImpl" />
+	
 	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientId" index="0" />
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />

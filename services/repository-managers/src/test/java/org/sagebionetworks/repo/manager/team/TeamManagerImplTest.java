@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,7 +27,9 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -36,6 +39,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -52,9 +56,9 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -81,6 +85,7 @@ public class TeamManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private PrincipalManager mockPrincipalManager;
+	private UserProfileManager mockUserProfileManager;
 	private TransactionalMessenger mockTransactionalMessenger;
 	
 	private UserInfo userInfo;
@@ -104,6 +109,7 @@ public class TeamManagerImplTest {
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
+		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
 		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
@@ -119,8 +125,16 @@ public class TeamManagerImplTest {
 				mockAccessRequirementDAO,
 				mockPrincipalAliasDAO,
 				mockPrincipalManager,
+				mockUserProfileManager,
 				mockTransactionalMessenger);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
+		UserProfile up = new UserProfile();
+		up.setFirstName("foo");
+		up.setLastName("bar");
+		up.setUserName("userName");
+		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
+		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn("userName");
+
 		adminInfo = createUserInfo(true, "-1");
 	}
 	
@@ -583,7 +597,7 @@ public class TeamManagerImplTest {
 		ug.setId(principalId);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalUserInfo);
-		verify(mockGroupMembersDAO, times(0)).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
+		verify(mockGroupMembersDAO, never()).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 	}
@@ -864,6 +878,44 @@ public class TeamManagerImplTest {
 		assertTrue(tms.getHasUnmetAccessRequirement());
 	}
 	
+	@Test
+	public void testCreateJoinedTeamNotificationSelf() throws Exception {
+		Team team = new Team();
+		team.setName("test-name");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
+		String inviterPrincipalId = "987";
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setCreatedBy(inviterPrincipalId);
+		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
+				anyLong())).
+			thenReturn(Collections.singletonList(inviterPrincipalId));
+		when(mockMembershipInvtnSubmissionDAO.
+			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
+					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
 
+		MessageToUserAndBody result = 
+				teamManagerImpl.createJoinedTeamNotification(userInfo, userInfo, TEAM_ID);
+		assertEquals("new member has joined team", result.getMetadata().getSubject());
+		
+		assertEquals(Collections.singleton(inviterPrincipalId), result.getMetadata().getRecipients());
+		assertEquals(result.getBody(), "Hello,\r\nfoo bar (userName) has now joined team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
+				result.getBody());
+	}
+	
+	@Test
+	public void testCreateJoinedTeamNotificationOther() throws Exception {
+		Team team = new Team();
+		team.setName("test-name");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+
+		String otherPrincipalId = "987";
+		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
+		MessageToUserAndBody result = 
+				teamManagerImpl.createJoinedTeamNotification(userInfo, otherUserInfo, TEAM_ID);
+		assertEquals("new member has joined team", result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
+		assertEquals(result.getBody(), "Hello,\r\nfoo bar (userName) has added accepted you into team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:987/settings\r\n", 
+				result.getBody());
+	}
 }

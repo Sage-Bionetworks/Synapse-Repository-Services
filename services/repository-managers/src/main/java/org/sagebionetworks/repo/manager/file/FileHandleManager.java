@@ -13,10 +13,10 @@ import java.util.Set;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -33,8 +33,8 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
-import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.event.ProgressListener;
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 
 /**
  * Manages uploading files.
@@ -63,16 +63,6 @@ public interface FileHandleManager {
 	 */
 	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator) throws FileUploadException, IOException, ServiceUnavailableException;
 	
-	/**
-	 * Upload a file.
-	 * @param userId
-	 * @param fis
-	 * @return
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 */
-	public S3FileHandle uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException;
-
 	/**
 	 * Get a file handle for a user.
 	 * Note: Only the creator of the FileHandle can access it.
@@ -299,7 +289,7 @@ public interface FileHandleManager {
 	UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Create a file handle with the given contents gzipped.
+	 * Create a file handle with the given contents gzipped, using application/octet-stream as the mime type.
 	 * @param createdBy
 	 * @param modifiedOn
 	 * @param markDown
@@ -309,6 +299,41 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException;
+	
+	/**
+	 * 
+	 * @param createdBy
+	 * @param modifiedOn
+	 * @param fileContents
+	 * @param fileName set to null for default name
+	 * @param contentType
+	 * @param contentEncoding
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws IOException
+	 */
+	S3FileHandle createFileFromByteArray(String createdBy,
+			Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException;
+	
+	/**
+	 * Create a file handle with the given contents gzipped, using the specified mime-type.
+	 * @param createdBy
+	 * @param modifiedOn
+	 * @param markDown
+	 * @param mimeType
+	 * @return
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
+	 */
+	S3FileHandle createCompressedFileFromString(String createdBy,
+			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException;
+	
+	/**
+	 * Retrieves file, decompressing if Content-Encoding indicates that it's gzipped
+	 * @param fileHandleId
+	 * @return
+	 */
+	String downloadFileToString(String fileHandleId) throws IOException;
 
 	/**
 	 * Create a file handle that is a place holder for a file that was never uploaded.
@@ -321,5 +346,7 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createNeverUploadedPlaceHolderFileHandle(String createdBy,
 			Date modifiedOn, String name) throws UnsupportedEncodingException, IOException;
-	
+
+	@Deprecated
+	S3FileHandle uploadFile(String userId, FileItemStream fis) throws IOException, ServiceUnavailableException;
 }

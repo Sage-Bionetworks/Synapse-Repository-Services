@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -22,6 +23,15 @@ public interface MembershipInvitationManager {
 	 * @throws NotFoundException 
 	 */
 	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * Create the notification content
+	 * 
+	 * @param mis
+	 * @return
+	 * @throws NotFoundException
+	 */
+	MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis) throws NotFoundException;
 	
 	/**
 	 * Retrieve an invitation by its ID

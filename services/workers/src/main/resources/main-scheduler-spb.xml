@@ -93,9 +93,7 @@
 				<ref bean="s3FileCopyMessageReveiverTrigger"/>
 				<ref bean="syncSettingsModificationsMessageReveiverTrigger"/>
 				<ref bean="folderSyncMessageReveiverTrigger"/>
-				<!-- Auto sync not enabled yet
 				<ref bean="autoSyncFolderWorkerTrigger"/>
-				 -->
 				<!-- initializers -->
 				<ref bean="cloudSearchInitializerTrigger" />
 				<!-- others -->

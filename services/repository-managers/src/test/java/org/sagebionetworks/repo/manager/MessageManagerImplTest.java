@@ -13,12 +13,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -222,7 +221,7 @@ public class MessageManagerImplTest {
 			S3FileHandle handle = TestUtils.createS3FileHandle(testUserId);
 			handle = fileDAO.createFile(handle);
 			this.fileHandleId = handle.getId();
-			when(mockFileHandleManager.uploadFile(eq(testUserId), any(FileItemStream.class))).thenReturn(handle);
+			when(mockFileHandleManager.createCompressedFileFromString(eq(testUserId), any(Date.class), anyString())).thenReturn(handle);
 		}
 		
 		{
@@ -230,7 +229,8 @@ public class MessageManagerImplTest {
 			S3FileHandle handle = TestUtils.createS3FileHandle(tmsUserId);
 			handle = fileDAO.createFile(handle);
 			this.tmsFileHandleId = handle.getId();
-			when(mockFileHandleManager.uploadFile(eq(tmsUserId), any(FileItemStream.class))).thenReturn(handle);
+			when(mockFileHandleManager.
+					createCompressedFileFromString(eq(tmsUserId), any(Date.class), anyString())).thenReturn(handle);
 		}
 		
 		// Create all the messages

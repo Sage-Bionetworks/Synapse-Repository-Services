@@ -4,10 +4,17 @@
 package org.sagebionetworks.repo.manager.team;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -16,9 +23,13 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -31,18 +42,30 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	private UserProfileManager userProfileManager;
+	@Autowired
+	private TeamDAO teamDAO;
+	
 	
 	public MembershipRequestManagerImpl() {}
 	
 	// for testing
 	public MembershipRequestManagerImpl(
 			AuthorizationManager authorizationManager,
-			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
+			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
+			UserProfileManager userProfileManager,
+			TeamDAO teamDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
+		this.userProfileManager = userProfileManager;
+		this.teamDAO=teamDAO;
 	}
 	
+	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.txt";
+	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
+
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {
 		if (mrs.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mrs.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
@@ -73,6 +96,29 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		return membershipRqstSubmissionDAO.create(mrs);
 	}
 
+	@Override
+	public MessageToUserAndBody createMembershipRequestNotification(MembershipRqstSubmission mrs) {
+		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
+		String displayName = EmailUtils.getDisplayName(userProfile);
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#displayName#", displayName);
+		fieldValues.put("#teamName#", teamDAO.get(mrs.getTeamId()).getName());
+		fieldValues.put("#teamId#", mrs.getTeamId());
+		if (mrs.getMessage()==null || mrs.getMessage().length()==0) {
+			fieldValues.put("#requesterMessage#", "");
+		} else {
+			fieldValues.put("#requesterMessage#", 
+							"The requester sends the following message:\r\n\r\n"+
+							mrs.getMessage()+"\r\n\r\n");
+		}
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
+		MessageToUser mtu = new MessageToUser();
+		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
+		mtu.setRecipients(teamAdmins);
+		mtu.setSubject(TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT);
+		return new MessageToUserAndBody(mtu, messageContent);
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#get(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */

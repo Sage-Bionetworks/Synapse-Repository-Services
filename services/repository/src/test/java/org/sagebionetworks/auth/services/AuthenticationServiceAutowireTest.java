@@ -82,7 +82,7 @@ public class AuthenticationServiceAutowireTest {
 	@Test
 	public void testPLFM_2498() throws DatastoreException, UnauthorizedException, NotFoundException{
 		// Before we start the user should not have an openId, but they should have an Email
-		UserProfile profile = userProfileManger.getUserProfile(amdin, principalId.toString());
+		UserProfile profile = userProfileManger.getUserProfile(principalId.toString());
 		assertNotNull(profile);
 		assertTrue(profile.getOpenIds().isEmpty());
 		// Now the user should be able to login with open ID because we look them up by email.
@@ -94,7 +94,7 @@ public class AuthenticationServiceAutowireTest {
 		Session session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
 		assertNotNull(session);
 		// The open ID should now be bound to the user's profile
-		profile = userProfileManger.getUserProfile(amdin, principalId.toString());
+		profile = userProfileManger.getUserProfile(principalId.toString());
 		assertNotNull(profile);
 		assertNotNull(profile.getOpenIds());
 		assertEquals(1, profile.getOpenIds().size());
@@ -104,7 +104,7 @@ public class AuthenticationServiceAutowireTest {
 		session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
 		assertNotNull(session);
 		// The open ID should now be bound to the user's profile
-		profile = userProfileManger.getUserProfile(amdin, principalId.toString());
+		profile = userProfileManger.getUserProfile(principalId.toString());
 		assertNotNull(profile);
 		assertNotNull(profile.getOpenIds());
 		assertEquals(1, profile.getOpenIds().size());

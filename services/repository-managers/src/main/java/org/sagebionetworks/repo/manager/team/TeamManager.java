@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.manager.team;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -201,4 +201,16 @@ public interface TeamManager {
 	 * @return
 	 */
 	public String getIconURL(String teamId) throws NotFoundException;
+
+	/**
+	 * Create the notification content
+	 * 
+	 * @param joinerInfo
+	 * @param memberInfo
+	 * @param teamId
+	 * @return the message metadata, the message content
+	 * @throws NotFoundException
+	 */
+	public MessageToUserAndBody createJoinedTeamNotification(UserInfo joinerInfo,
+			UserInfo memberInfo, String teamId) throws NotFoundException;
 }

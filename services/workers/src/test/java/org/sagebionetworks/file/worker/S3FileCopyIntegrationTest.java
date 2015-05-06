@@ -355,7 +355,7 @@ public class S3FileCopyIntegrationTest {
 	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user, final AsynchronousJobStatus status) throws Exception {
-		return TimeUtils.waitFor(/* 60000L */6000000L, 500L, new Callable<Pair<Boolean, AsynchronousJobStatus>>() {
+		return TimeUtils.waitFor(60000L, 500L, new Callable<Pair<Boolean, AsynchronousJobStatus>>() {
 			@Override
 			public Pair<Boolean, AsynchronousJobStatus> call() throws Exception {
 				AsynchronousJobStatus currentStatus = asynchJobStatusManager.getJobStatus(adminUserInfo, status.getJobId());
@@ -379,11 +379,12 @@ public class S3FileCopyIntegrationTest {
 		verify(progress, times((int) size / (5 * 1024 * 1024) + 1)).progressMade(any(Long.class));
 	}
 
-	private S3FileHandle uploadFile(String fileHandleName, InputStream in) throws IOException, ServiceUnavailableException {
+	@SuppressWarnings("deprecation")
+	private S3FileHandle uploadFile(String fileName, InputStream in) throws IOException, ServiceUnavailableException {
 		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
 		when(mockFiz.openStream()).thenReturn(in);
 		when(mockFiz.getContentType()).thenReturn("unknown/content");
-		when(mockFiz.getName()).thenReturn(fileHandleName);
+		when(mockFiz.getName()).thenReturn(fileName);
 		// Now upload the file.
 		return fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
 	}

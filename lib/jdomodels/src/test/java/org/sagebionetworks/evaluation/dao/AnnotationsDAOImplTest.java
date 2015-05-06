@@ -269,9 +269,16 @@ public class AnnotationsDAOImplTest {
 		da3.setIsPrivate(false);
 		da3.setKey("keyThree");
 		da3.setValue(Double.NaN);
+		
+		DoubleAnnotation daNULL = new DoubleAnnotation();
+		daNULL.setIsPrivate(false);
+		daNULL.setKey("keyNULL");
+		daNULL.setValue(null);
+		
 		doubleAnnos.add(da1);
 		doubleAnnos.add(da2);
 		doubleAnnos.add(da3);
+		doubleAnnos.add(daNULL);
 		annos.setDoubleAnnos(doubleAnnos);
 		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		

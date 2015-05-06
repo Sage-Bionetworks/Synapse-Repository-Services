@@ -9,6 +9,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -18,6 +19,8 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -25,14 +28,20 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 
 public class MembershipRequestManagerImplTest {
 	
-	private AuthorizationManager mockAuthorizationManager = null;
-	private MembershipRequestManagerImpl membershipRequestManagerImpl = null;
-	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
+	private AuthorizationManager mockAuthorizationManager;
+	private MembershipRequestManagerImpl membershipRequestManagerImpl;
+	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
+	private UserProfileManager mockUserProfileManager;
+	private TeamDAO mockTeamDAO;
+
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -42,9 +51,13 @@ public class MembershipRequestManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
+		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
+		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
-				mockMembershipRqstSubmissionDAO
+				mockMembershipRqstSubmissionDAO,
+				mockUserProfileManager,
+				mockTeamDAO
 				);
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
@@ -140,6 +153,27 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId("111");
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
+	}
+	
+	@Test
+	public void testCreateMembershipRequestNotification() throws Exception {
+		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
+		UserProfile up = new UserProfile();
+		up.setUserName("auser");
+		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
+		Team team = new Team();
+		team.setName("test-team");
+		when(mockTeamDAO.get("111")).thenReturn(team);
+		
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		mrs.setTeamId("111");
+		mrs.setCreatedBy(MEMBER_PRINCIPAL_ID);
+		mrs.setMessage("Please let me in your team.");
+		MessageToUserAndBody result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
+		assertEquals("someone has requested to join your team", result.getMetadata().getSubject());
+		assertEquals(Collections.singleton("222"), result.getMetadata().getRecipients());
+		assertEquals(result.getBody(), "Hello,\r\nauser has requested to join Team test-team.  The requester sends the following message:\r\n\r\nPlease let me in your team.\r\n\r\n  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
+				result.getBody());
 	}
 	
 	@Test

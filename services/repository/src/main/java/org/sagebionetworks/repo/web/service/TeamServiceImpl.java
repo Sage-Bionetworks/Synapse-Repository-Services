@@ -7,9 +7,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -37,14 +38,23 @@ public class TeamServiceImpl implements TeamService {
 	private UserManager userManager;
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
+	@Autowired
+	private NotificationManager notificationManager;
 	
-	private final Logger logger = LogManager.getLogger(TeamServiceImpl.class);
+	public TeamServiceImpl() {}
 	
-	// for testing (e.g. setting a mocked manager
-	public void setTeamManager(TeamManager teamManager) {this.teamManager=teamManager;}
+	// for testing
+	public TeamServiceImpl(TeamManager teamManager, 
+			PrincipalPrefixDAO principalPrefixDAO,
+			UserManager userManager,
+			NotificationManager notificationManager) {
+		this.teamManager=teamManager;
+		this.principalPrefixDAO=principalPrefixDAO;
+		this.userManager=userManager;
+		this.notificationManager=notificationManager;
+	}
 	
-	public void setPrincipalPrefixDAO(PrincipalPrefixDAO principalPrefixDAO) {this.principalPrefixDAO=principalPrefixDAO;}
-
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#create(java.lang.String, org.sagebionetworks.repo.model.Team)
 	 */
@@ -198,9 +208,16 @@ public class TeamServiceImpl implements TeamService {
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		
+		// note:  this must be done _before_ adding the member, which cleans up the invitation information
+		// needed to determine who to notify
+		MessageToUserAndBody message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
+		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
+		
+		notificationManager.sendNotification(userInfo, message);
 	}
-
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#removeMember(java.lang.String, java.lang.String, java.lang.String)
 	 */

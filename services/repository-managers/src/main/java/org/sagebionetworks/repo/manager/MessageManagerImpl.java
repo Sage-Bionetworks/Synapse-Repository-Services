@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +19,6 @@ import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -52,13 +47,10 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
@@ -393,18 +385,21 @@ public class MessageManagerImpl implements MessageManager {
 	 *    Note: It is crucial to pass in "true" when creating *and* sending a message in the same operation together. 
 	 *      Otherwise the 'sending step' waits forever for the lock obtained by the 'creation step' to be released.
 	 * General usage of this method sets this parameter to false.
+	 * @throws  
 	 */
 	private List<String> processMessage(String messageId, boolean singleTransaction) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
-		Charset charset = contentType.getCharset();
-		if (charset==null) charset=DEFAULT_MESSAGE_FILE_CHARSET;
 		String mimeType = contentType.getMimeType().trim().toLowerCase();
 		boolean isHtml="text/html".equals(mimeType);
 
-		String messageBody = downloadEmailContentToString(dto.getFileHandleId(), charset);
-		return processMessage(dto, singleTransaction, messageBody, isHtml);
+		try {
+			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
+			return processMessage(dto, singleTransaction, messageBody, isHtml);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**
@@ -559,43 +554,6 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	/**
-	 * Helper for {@link #processMessage(String, boolean, String)}
-	 * 
-	 * Returns a string containing the body of a message
-	 * Note:  The file given by the fileHandleId must be stored with UTF-8 encoding
-	 */
-	private String downloadEmailContentToString(String fileHandleId, Charset charset) throws NotFoundException {
-		URL url;
-		try {
-			url = new URL(fileHandleManager.getRedirectURLForFileHandle(fileHandleId));
-		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-		
-		// Read the file
-		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			InputStream in = null;
-			try {
-				byte[] buffer = new byte[1024];
-				in = url.openStream();
-				int length = 0;
-				while ((length = in.read(buffer)) > 0) {
-					out.write(buffer, 0, length);
-				}
-				return new String(out.toByteArray(), charset);
-			} finally {
-				if (in != null) {
-					in.close();
-				}
-				out.close();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
 	 * See {@link #sendEmail(String, String, String)}
 	 * 
 	 * @param sender The username of the sender (null tolerant)
@@ -621,7 +579,6 @@ public class MessageManagerImpl implements MessageManager {
 	@WriteTransaction
 	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(recipientId);
 		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Set " + domain + " Password";
 		Map<String,String> fieldValues = new HashMap<String,String>();
