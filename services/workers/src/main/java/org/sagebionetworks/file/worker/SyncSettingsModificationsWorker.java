@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
+import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
 import org.sagebionetworks.repo.model.message.SyncFolderMessage;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
@@ -61,7 +62,7 @@ public class SyncSettingsModificationsWorker extends SingletonWorker {
 	protected Message processMessage(Message message, WorkerProgress workerProgress) throws Throwable {
 		try {
 			NodeSettingsModificationMessage modificationMessage = extractStatus(message);
-			if (modificationMessage.getProjectSettingsType() == ProjectSettingsType.external_sync) {
+			if (modificationMessage != null && modificationMessage.getProjectSettingsType() == ProjectSettingsType.external_sync) {
 				EntityHeader entityHeader = nodeDao.getEntityHeader(modificationMessage.getObjectId(), null);
 				if (entityHeader.getType().equals(Project.class.getName()) || entityHeader.getType().equals(Folder.class.getName())) {
 					ProjectSetting projectSetting = projectSettingsDao.get(modificationMessage.getObjectId(),
@@ -99,12 +100,16 @@ public class SyncSettingsModificationsWorker extends SingletonWorker {
 	NodeSettingsModificationMessage extractStatus(Message message) throws JSONObjectAdapterException {
 		ValidateArgument.required(message, "message");
 
-		NodeSettingsModificationMessage modificationMessage = MessageUtils.extractMessageBody(message, NodeSettingsModificationMessage.class);
+		ModificationMessage modificationMessage = MessageUtils.extractMessageBody(message, ModificationMessage.class);
+		if (modificationMessage instanceof NodeSettingsModificationMessage) {
+			NodeSettingsModificationMessage nodeSettingsModificationMessage = (NodeSettingsModificationMessage) modificationMessage;
+			ValidateArgument.required(nodeSettingsModificationMessage.getObjectType(), "modificationMessage.objectType");
+			ValidateArgument.required(nodeSettingsModificationMessage.getObjectId(), "modificationMessage.objectId");
+			ValidateArgument.required(nodeSettingsModificationMessage.getProjectSettingsType(), "modificationMessage.projectSettingsType");
 
-		ValidateArgument.required(modificationMessage.getObjectType(), "modificationMessage.objectType");
-		ValidateArgument.required(modificationMessage.getObjectId(), "modificationMessage.objectId");
-		ValidateArgument.required(modificationMessage.getProjectSettingsType(), "modificationMessage.projectSettingsType");
-
-		return modificationMessage;
+			return nodeSettingsModificationMessage;
+		} else {
+			return null;
+		}
 	}
 }

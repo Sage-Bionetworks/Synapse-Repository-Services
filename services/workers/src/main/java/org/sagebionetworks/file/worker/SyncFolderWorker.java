@@ -7,6 +7,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -133,12 +134,15 @@ public class SyncFolderWorker extends SingletonWorker {
 		}
 	}
 
-	private void syncNode(Node topNode, UserInfo owner, Long locationId, String nodeId, String baseKey, S3ObjectSummary objectSummary) {
+	// package protected for testing only
+	void syncNode(Node topNode, UserInfo owner, Long locationId, String nodeId, String baseKey, S3ObjectSummary objectSummary) {
 		String key = objectSummary.getKey();
-		if (!key.startsWith(baseKey)) {
-			throw new IllegalStateException("The key " + key + " does not start with the prefix " + baseKey);
+		if (!StringUtils.isEmpty(baseKey)) {
+			if (!key.startsWith(baseKey)) {
+				throw new IllegalStateException("The key " + key + " does not start with the prefix " + baseKey);
+			}
+			key = key.substring(baseKey.length());
 		}
-		key = key.substring(baseKey.length());
 		if (key.equals(ProjectSettingsManager.OWNER_MARKER)) {
 			// we skip the owner marker here, assuming it should not show up
 			return;
