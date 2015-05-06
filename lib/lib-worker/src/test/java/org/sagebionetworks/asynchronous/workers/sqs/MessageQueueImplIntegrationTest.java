@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,18 +36,18 @@ public class MessageQueueImplIntegrationTest {
 	@Autowired
 	private AmazonSNSClient awsSNSClient;
 	
+	//	This one has dead letter
 	@Autowired
-	private MessageQueueImpl msgQImpl;
+	private MessageQueueImpl testMessageQueue1;
+	
+	@Autowired
+	private MessageQueueImpl testMessageQueue2;
 	
 	@Autowired
 	private QueueServiceDao qSvcDao;
 	
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDown() throws Exception {
 //		System.out.println("Deleting test queue...");
 //		DeleteQueueRequest dqReq = new DeleteQueueRequest().withQueueUrl(msgQImpl.getQueueUrl());
 //		awsSQSClient.deleteQueue(dqReq);
@@ -55,28 +56,28 @@ public class MessageQueueImplIntegrationTest {
 	}
 
 	@Test
-	public void testSetup() throws InterruptedException {
+	public void testSetupDL() throws InterruptedException {
 		ListQueuesResult lqRes = awsSQSClient.listQueues("testQ");
 		assertNotNull(lqRes);
-		// 2 queues expected
-		assertEquals(2, lqRes.getQueueUrls().size());
+		// 3 queues expected
+		assertEquals(3, lqRes.getQueueUrls().size());
 		// Queue URLs from SQS should match what's in the object
-		GetQueueUrlResult quRes = awsSQSClient.getQueueUrl(msgQImpl.getQueueName());
+		GetQueueUrlResult quRes = awsSQSClient.getQueueUrl(testMessageQueue1.getQueueName());
 		assertNotNull(quRes);
-		assertEquals(msgQImpl.getQueueUrl(), quRes.getQueueUrl());
-		quRes = awsSQSClient.getQueueUrl(msgQImpl.getDeadLetterQueueName());
-		assertEquals(msgQImpl.getDeadLetterQueueUrl(), quRes.getQueueUrl());
+		assertEquals(testMessageQueue1.getQueueUrl(), quRes.getQueueUrl());
+		quRes = awsSQSClient.getQueueUrl(testMessageQueue1.getDeadLetterQueueName());
+		assertEquals(testMessageQueue1.getDeadLetterQueueUrl(), quRes.getQueueUrl());
 		// TODO: check that dead letter queue is setup as dead letter for queue
 		
 		// Verify that we can receive a msg once, then it's put on the dead letter queue
 		SendMessageRequest smReq = new SendMessageRequest();
-		smReq.setQueueUrl(msgQImpl.getQueueUrl());
+		smReq.setQueueUrl(testMessageQueue1.getQueueUrl());
 		smReq.setDelaySeconds(1);
 		smReq.setMessageBody(new String("theMessageBody"));
 		awsSQSClient.sendMessage(smReq);
 		Thread.sleep(1500L);
 		ReceiveMessageRequest rmReqQ = new ReceiveMessageRequest();
-		rmReqQ.setQueueUrl(msgQImpl.getQueueUrl());
+		rmReqQ.setQueueUrl(testMessageQueue1.getQueueUrl());
 		rmReqQ.setVisibilityTimeout(1);
 		ReceiveMessageResult rmRes = awsSQSClient.receiveMessage(rmReqQ);
 		assertNotNull(rmRes);
@@ -85,14 +86,59 @@ public class MessageQueueImplIntegrationTest {
 		assertEquals(1, msgs.size());
 		assertEquals("theMessageBody", msgs.get(0).getBody());
 		// Wait > 1 sec, msg should not be back on queue
-		Thread.sleep(1500L);
+		Thread.sleep(5000L);
 		rmRes = awsSQSClient.receiveMessage(rmReqQ);
 		assertNotNull(rmRes);
 		msgs = rmRes.getMessages();
 		assertNotNull(msgs);
 		assertEquals(0, msgs.size());
 		// Now it should be on the dead letter queue
-		
+		ReceiveMessageResult rmResDL = awsSQSClient.receiveMessage(testMessageQueue1.getDeadLetterQueueUrl());
+		assertNotNull(rmResDL);
+		List<Message> msgsDL = rmResDL.getMessages();
+		assertNotNull(msgsDL);
+		assertEquals(1, msgsDL.size());
+		assertEquals("theMessageBody", msgsDL.get(0).getBody());
+
 	}
+	
+	@Test
+	public void testSetupNoDL() throws InterruptedException {
+		assertNull(testMessageQueue2.getDeadLetterQueueName());
+		ListQueuesResult lqRes = awsSQSClient.listQueues("testQ");
+		assertNotNull(lqRes);
+		// 3 queues expected
+		assertEquals(3, lqRes.getQueueUrls().size());
+		// Queue URLs from SQS should match what's in the object
+		GetQueueUrlResult quRes = awsSQSClient.getQueueUrl(testMessageQueue2.getQueueName());
+		assertNotNull(quRes);
+		assertEquals(testMessageQueue2.getQueueUrl(), quRes.getQueueUrl());
+		
+		SendMessageRequest smReq = new SendMessageRequest();
+		smReq.setQueueUrl(testMessageQueue2.getQueueUrl());
+		smReq.setDelaySeconds(1);
+		smReq.setMessageBody(new String("theMessageBody"));
+		awsSQSClient.sendMessage(smReq);
+		Thread.sleep(1500L);
+		ReceiveMessageRequest rmReqQ = new ReceiveMessageRequest();
+		rmReqQ.setQueueUrl(testMessageQueue2.getQueueUrl());
+		rmReqQ.setVisibilityTimeout(1);
+		ReceiveMessageResult rmRes = awsSQSClient.receiveMessage(rmReqQ);
+		assertNotNull(rmRes);
+		List<Message> msgs = rmRes.getMessages();
+		assertNotNull(msgs);
+		assertEquals(1, msgs.size());
+		assertEquals("theMessageBody", msgs.get(0).getBody());
+		// Wait > 1 sec, msg should be back on queue
+		Thread.sleep(5000L);
+		rmRes = awsSQSClient.receiveMessage(rmReqQ);
+		assertNotNull(rmRes);
+		msgs = rmRes.getMessages();
+		assertNotNull(msgs);
+		assertEquals(1, msgs.size());
+		assertEquals("theMessageBody", msgs.get(0).getBody());
+
+	}
+	
 
 }

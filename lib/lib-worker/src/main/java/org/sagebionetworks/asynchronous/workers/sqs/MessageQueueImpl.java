@@ -284,6 +284,7 @@ public class MessageQueueImpl implements MessageQueue {
 	public String getDeadLetterQueueName() {
 		return this.deadLetterQueueName;
 	}
+	
 	@Override
 	public int getMaxReceiveCount() {
 		return this.maxReceiveCount;
