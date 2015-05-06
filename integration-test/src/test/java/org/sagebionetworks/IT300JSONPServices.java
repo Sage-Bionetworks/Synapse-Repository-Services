@@ -54,7 +54,7 @@ public class IT300JSONPServices {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 	}
 	
 	@After

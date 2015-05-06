@@ -66,6 +66,7 @@ public class IT049FileHandleTest {
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
+	private static UserCredentials userCredentials;
 	private static Long userToDelete;
 	private static AmazonS3Client s3Client;
 	
@@ -87,7 +88,8 @@ public class IT049FileHandleTest {
 		adminSynapse.clearAllLocks();
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userCredentials = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = userCredentials.getPrincipalId();
 		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
 		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}
@@ -334,6 +336,7 @@ public class IT049FileHandleTest {
 		String baseKey = "test-" + UUID.randomUUID();
 
 		// we need to create a authentication object
+		synapse.setSessionToken(userCredentials.getSessionToken());
 		String username = synapse.getUserSessionData().getProfile().getUserName();
 		S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", username,
 				s3Client);
@@ -376,6 +379,7 @@ public class IT049FileHandleTest {
 		String baseKey = "test-" + UUID.randomUUID();
 
 		// we need to create a authentication object
+		synapse.setSessionToken(userCredentials.getSessionToken());
 		String username = synapse.getUserSessionData().getProfile().getUserName();
 		S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", username,
 				s3Client);

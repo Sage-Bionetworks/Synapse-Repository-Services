@@ -69,7 +69,7 @@ public class IT510SynapseJavaClientSearchTest {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 		
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapse.getMyProfile();

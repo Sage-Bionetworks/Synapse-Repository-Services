@@ -39,7 +39,7 @@ public class IT960TermsOfUse {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 		
 		project = new Project();
 		project.setName("foo");

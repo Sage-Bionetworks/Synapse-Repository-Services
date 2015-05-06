@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -525,7 +526,8 @@ public class SharedClientConnection {
 		}
 		try {
 			HttpPost post = new HttpPost(builder.toString());
-			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
+			Map<String, String> headers = addAuthenticationHeaders(defaultPOSTPUTHeaders, userAgent, endpoint+uri);
+			setHeaders(post, headers, userAgent);
 			StringEntity stringEntity = new StringEntity(data, getCharacterSetFromRequest(post));
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
@@ -660,15 +662,21 @@ public class SharedClientConnection {
 	    modHeaders.put(AuthorizationConstants.SIGNATURE, signature);
 	}
 	
-	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod, String requestContent,
-			Map<String, String> requestHeaders, String userAgent, Map<String, String> parameters, ErrorHandler errorHandler)
-			throws SynapseException {
+	private Map<String, String> addAuthenticationHeaders(Map<String, String> requestHeaders, String userAgent, String endpointAndUri) throws SynapseClientException {
 		Map<String, String> modHeaders = new HashMap<String, String>(requestHeaders);
 		modHeaders.put(USER_AGENT, userAgent);
 		
 		if (apiKey!=null) {
-			addDigitalSignature(endpoint + uri, modHeaders);
-		} 
+			addDigitalSignature(endpointAndUri, modHeaders);
+		} 		
+		
+		return modHeaders;
+	}
+	
+	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod, String requestContent,
+			Map<String, String> requestHeaders, String userAgent, Map<String, String> parameters, ErrorHandler errorHandler)
+			throws SynapseException {
+		Map<String, String> modHeaders = addAuthenticationHeaders(requestHeaders, userAgent, endpoint + uri);
 		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters, errorHandler);
 	}
 
@@ -801,7 +809,8 @@ public class SharedClientConnection {
 	
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
 		HttpGet get = new HttpGet(endpoint + uri);
-		setHeaders(get, defaultGETDELETEHeaders, userAgent);
+		Map<String, String> headers = addAuthenticationHeaders(defaultGETDELETEHeaders, userAgent, endpoint+uri);
+		setHeaders(get, headers, userAgent);
 		HttpResponse response = clientProvider.execute(get);
 		String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 		convertHttpResponseToException(response.getStatusLine().getStatusCode(), responseBody);

@@ -41,7 +41,7 @@ public class IT050SynapseJavaClientDynamo {
 		adminSynapse.clearAllLocks();
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 
 		String tableName = DboNodeLineage.TABLE_NAME;
 		String hashKeyName = DboNodeLineage.HASH_KEY_NAME;

@@ -74,7 +74,7 @@ public class IT099AsynchronousJobTest {
 			// if not found, then just continue
 		}
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 	}
 	
 	@Before

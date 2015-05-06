@@ -55,8 +55,12 @@ public class IT503PythonClientFilter {
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
-		
+		UserCredentials userCredentials = SynapseClientHelper.
+				createUser(adminSynapse, synapseOne);
+		// while we normally no not set the session token in the client, in
+		// this test suite we exercise session token revalidation which requires said token
+		synapseOne.setSessionToken(userCredentials.getSessionToken());
+		user1ToDelete = userCredentials.getPrincipalId();
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		
 	}
