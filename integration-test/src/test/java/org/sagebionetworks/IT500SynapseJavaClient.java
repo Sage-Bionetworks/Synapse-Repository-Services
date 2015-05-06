@@ -120,6 +120,7 @@ public class IT500SynapseJavaClient {
 	private static SynapseAdminClient synapseAnonymous;
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
+	private static UserCredentials userCredentials;
 	
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
@@ -161,7 +162,8 @@ public class IT500SynapseJavaClient {
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne).getPrincipalId();
+		userCredentials = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		user1ToDelete = userCredentials.getPrincipalId();
 		
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
@@ -781,6 +783,7 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testUserSessionData() throws Exception {
+		synapseOne.setSessionToken(userCredentials.getSessionToken());
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		assertNotNull("Failed to find session token", sessionToken);

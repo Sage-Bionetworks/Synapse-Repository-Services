@@ -95,6 +95,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static SynapseClient synapseTwo;
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
+	private static UserCredentials userTwoCredentials;
 	
 	private Project project = null;
 	private Folder dataset = null;
@@ -133,7 +134,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne).getPrincipalId();
 
 		synapseTwo = new SynapseClientImpl();
-		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo).getPrincipalId();
+		userTwoCredentials = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+		user2ToDelete = userTwoCredentials.getPrincipalId();
 	}
 	
 	@Before
@@ -929,6 +931,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		accessSet.add(ACCESS_TYPE.DELETE);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
+		synapseTwo.setSessionToken(userTwoCredentials.getSessionToken());
 		UserSessionData session = synapseTwo.getUserSessionData();
 		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
 		ra.setPrincipalId(user2Id);
