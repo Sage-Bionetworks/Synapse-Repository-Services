@@ -1,0 +1,10 @@
+{
+	"description": "Interface for signed tokens",
+	"type": "interface",
+	"properties": {
+		"hmac": {
+			"type": "string",
+			"description": "The hash message authentication code for the message.",
+		}
+	}
+}

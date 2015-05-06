@@ -1,0 +1,28 @@
+{
+	"title": "NewUserSignedToken",
+	"description": "Signed token containing the information for a new user.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+		}
+	], 
+	"properties": {
+		"email": {
+			"type": "string",
+			"description": "User's email"
+		},
+		"firstName": {
+			"type": "string",
+			"description": "User's first name"
+		},
+		"lastName": {
+			"type": "string",
+			"description": "User's last name"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description": "The date-time the object was generated."
+		},
+	}
+}
