@@ -130,10 +130,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne).getPrincipalId();
 
 		synapseTwo = new SynapseClientImpl();
-		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo).getPrincipalId();
 	}
 	
 	@Before

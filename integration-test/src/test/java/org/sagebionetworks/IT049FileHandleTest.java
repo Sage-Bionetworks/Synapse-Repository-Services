@@ -81,7 +81,7 @@ public class IT049FileHandleTest {
 		adminSynapse.clearAllLocks();
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
 		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}

@@ -57,7 +57,7 @@ public class ITChallengeController {
 		adminUserId = adminSynapse.getMyProfile().getOwnerId();
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 		
 		assertEquals(userToDelete.toString(), synapse.getMyProfile().getOwnerId());
 	}

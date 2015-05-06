@@ -26,11 +26,11 @@ public class SynapseClientHelper {
 	 * @param newUserClient The client to log the new user in
 	 * @return The ID of the user
 	 */
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient) throws SynapseException, JSONObjectAdapterException {
+	public static UserCredentials createUser(SynapseAdminClient client, SynapseClient newUserClient) throws SynapseException, JSONObjectAdapterException {
 		return createUser(client, newUserClient, UUID.randomUUID().toString());
 	}
 	
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username) throws SynapseException, JSONObjectAdapterException {
+	public static UserCredentials createUser(SynapseAdminClient client, SynapseClient newUserClient, String username) throws SynapseException, JSONObjectAdapterException {
 		if (newUserClient == null) {
 			newUserClient = new SynapseClientImpl();
 		}
@@ -49,9 +49,10 @@ public class SynapseClientHelper {
 		
 		/** we only use the session token to retrieve the API key which we use afterwards **/
 		newUserClient.setSessionToken(session.getSessionToken());
+		newUserClient.setUserName(username);
 		newUserClient.setApiKey(newUserClient.retrieveApiKey());
 		newUserClient.setSessionToken(null);
 		
-		return principalId;
+		return new UserCredentials(username, principalId, session.getSessionToken());
 	}
 }

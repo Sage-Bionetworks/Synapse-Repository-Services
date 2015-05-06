@@ -54,7 +54,7 @@ public class IT054FileEntityTest {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 	}
 	
 	@Before

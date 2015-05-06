@@ -58,7 +58,7 @@ public class IT970UserProfileController {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 		Team team = new Team();
 		team.setName("team" + new Random().nextInt());
 		teamToDelete = adminSynapse.createTeam(team).getId();

@@ -50,7 +50,7 @@ public class IT060SynapseJavaClientDoiTest {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 
 		entity = new Project();
 		entity.setName("IT060SynapseJavaClientDoiTest");

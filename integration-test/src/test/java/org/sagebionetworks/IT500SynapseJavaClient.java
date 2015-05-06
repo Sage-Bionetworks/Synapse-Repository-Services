@@ -161,11 +161,11 @@ public class IT500SynapseJavaClient {
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne).getPrincipalId();
 		
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
-		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo).getPrincipalId();
 		
 		synapseAnonymous = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(synapseAnonymous);

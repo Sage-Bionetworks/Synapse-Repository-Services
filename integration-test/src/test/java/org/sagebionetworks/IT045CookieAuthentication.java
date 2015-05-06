@@ -39,7 +39,7 @@ public class IT045CookieAuthentication {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse).getPrincipalId();
 		
 		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, synapse.getCurrentSessionToken());
 	}
