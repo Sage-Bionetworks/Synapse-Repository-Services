@@ -14,6 +14,13 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 
+/**
+ * This is a collection of web client utilities NOT specific to accessing the Synapse 
+ * REST APIs. These methods complement those in SharedClientConnection.
+ * 
+ * @author bhoff
+ *
+ */
 public class HttpClientHelper {
 	private HttpClientProvider clientProvider;
 
