@@ -5,13 +5,14 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 public class MessageToUserAndBody {
 	private MessageToUser metadata;
 	private String body;
+	private String mimeType;
 	
 	
-	
-	public MessageToUserAndBody(MessageToUser metadata, String body) {
+	public MessageToUserAndBody(MessageToUser metadata, String body, String mimeType) {
 		super();
 		this.metadata = metadata;
 		this.body = body;
+		this.mimeType=mimeType;
 	}
 	
 	public MessageToUser getMetadata() {
@@ -26,6 +27,15 @@ public class MessageToUserAndBody {
 	public void setBody(String body) {
 		this.body = body;
 	}
+	
+	public String getMimeType() {
+		return mimeType;
+	}
+
+	public void setMimeType(String mimeType) {
+		this.mimeType = mimeType;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -33,6 +43,8 @@ public class MessageToUserAndBody {
 		result = prime * result + ((body == null) ? 0 : body.hashCode());
 		result = prime * result
 				+ ((metadata == null) ? 0 : metadata.hashCode());
+		result = prime * result
+				+ ((mimeType == null) ? 0 : mimeType.hashCode());
 		return result;
 	}
 	@Override
@@ -53,6 +65,11 @@ public class MessageToUserAndBody {
 			if (other.metadata != null)
 				return false;
 		} else if (!metadata.equals(other.metadata))
+			return false;
+		if (mimeType == null) {
+			if (other.mimeType != null)
+				return false;
+		} else if (!mimeType.equals(other.mimeType))
 			return false;
 		return true;
 	}

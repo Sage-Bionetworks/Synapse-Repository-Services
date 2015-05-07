@@ -19,6 +19,10 @@
 			"type": "string",
 			"description": "The request message (optional)."
 		},
+		"portalEndpoint": {
+			"type": "string",
+			"description": "The Synapse URL prefix for one-click acceptance of the request."
+		},
 		"expiresOn": {
 			"type": "string",
 			"format": "date-time",

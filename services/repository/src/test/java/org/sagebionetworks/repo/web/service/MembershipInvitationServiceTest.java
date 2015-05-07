@@ -47,7 +47,7 @@ public class MembershipInvitationServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
 		when(mockMembershipInvitationManager.createInvitationNotification(mis)).thenReturn(result);

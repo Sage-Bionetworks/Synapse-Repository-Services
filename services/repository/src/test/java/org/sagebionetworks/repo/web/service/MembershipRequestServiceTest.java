@@ -46,7 +46,7 @@ public class MembershipRequestServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		when(mockMembershipRequestManager.create(userInfo, mrs)).thenReturn(mrs);
 		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs)).thenReturn(result);

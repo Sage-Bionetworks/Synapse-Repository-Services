@@ -523,7 +523,7 @@ public class TeamManagerImpl implements TeamManager {
 			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
 		}	
-		return new MessageToUserAndBody(mtu, messageContent);
+		return new MessageToUserAndBody(mtu, messageContent, "text/html");
 	}
 
 	private Set<String> getInviters(Long teamId, Long inviteeId) {

@@ -154,7 +154,7 @@ public class TeamServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton(principalId.toString()));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		when(mockTeamManager.createJoinedTeamNotification(userInfo1, userInfo2, teamId)).thenReturn(result);
 		teamService.addMember(userId, teamId, principalId.toString());
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
