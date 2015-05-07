@@ -483,6 +483,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void setHttpClientProvider(HttpClientProvider clientProvider) {
 		getSharedClientConnection().setHttpClientProvider(clientProvider);
 	}
+	
+	/**
+	 * Returns a helper class for making specialized Http requests
+	 * 
+	 */
+	private HttpClientHelper getHttpClientHelper() {
+		return new HttpClientHelper(getSharedClientConnection().getHttpClientProvider());
+	}
+
+
 
 	/**
 	 * @param repoEndpoint
@@ -2343,7 +2353,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
+	
 	/**
 	 * Put the contents of the passed file to the passed URL.
 	 * 
@@ -2355,7 +2365,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException {
-		return getSharedClientConnection().putFileToURL(url, file, contentType);
+		return getHttpClientHelper().putFileToURL(url, file, contentType);
 	}
 
 	/**
@@ -3820,7 +3830,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (domain == null) {
 			throw new IllegalArgumentException("Domain must be specified");
 		}
-		return getSharedClientConnection().getDataDirect(authEndpoint,
+		return getHttpClientHelper().getDataDirect(authEndpoint,
 				"/" + domain.name().toLowerCase() + "TermsOfUse.html");
 	}
 
@@ -3959,7 +3969,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setChunkedFileToken(token);
 		request.setChunkNumber((long) currentChunkNumber);
 		URL presignedURL = createChunkedPresignedUrl(request);
-		getSharedClientConnection().putBytesToURL(presignedURL, content,
+		getHttpClientHelper().putBytesToURL(presignedURL, content,
 				contentType.toString());
 
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
