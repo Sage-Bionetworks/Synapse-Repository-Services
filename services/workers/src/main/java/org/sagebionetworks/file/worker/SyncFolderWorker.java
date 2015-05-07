@@ -226,7 +226,7 @@ public class SyncFolderWorker extends SingletonWorker {
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setBucketName(objectSummary.getBucketName());
 		fileHandle.setKey(objectSummary.getKey());
-		String md5 = BinaryUtils.toBase64(BinaryUtils.fromHex(objectSummary.getETag()));
+		String md5 = objectSummary.getETag();
 		fileHandle.setContentMd5(md5);
 		fileHandle.setFileName(fileName);
 		fileHandle.setContentSize(objectSummary.getSize());

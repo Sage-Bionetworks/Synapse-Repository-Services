@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -28,7 +29,6 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.manager.S3TestUtils;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
@@ -54,6 +54,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
@@ -398,12 +399,14 @@ public class IT049FileHandleTest {
 			@Override
 			public void run() {
 				try {
-					List<EntityHeader> entityHeaderByMd5 = synapse.getEntityHeaderByMd5(md5);
-					assertEquals(1, entityHeaderByMd5.size());
-					assertEquals("file1.txt", entityHeaderByMd5.get(0).getName());
+					JSONObject query = synapse.query("select name from entity where parentId == '" + project.getId() + "' LIMIT_1_OFFSET_1");
+					assertEquals(1L, query.getInt("totalNumberOfResults"));
+					assertEquals("file1.txt", query.getJSONArray("results").getJSONObject(0).getString("entity.name"));
+					String hexMD5 = BinaryUtils.toHex(BinaryUtils.fromBase64(md5));
+					assertEquals(1, synapse.getEntityHeaderByMd5(hexMD5).size());
 				} catch (SynapseNotFoundException e) {
 					fail();
-				} catch (SynapseException e) {
+				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			}
