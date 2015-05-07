@@ -140,8 +140,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String SQL_GET_CHILD_BY_NAME = "SELECT " + COL_NODE_ID + "," + COL_NODE_NAME + "," + COL_NODE_TYPE + ","
 			+ COL_REVISION_NUMBER + "," + COL_REVISION_LABEL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON R."
-			+ COL_REVISION_OWNER_NODE + " = N." + COL_NODE_ID + " AND R." + COL_REVISION_NUMBER + " WHERE " + COL_NODE_PARENT_ID
-			+ " = ? AND " + COL_NODE_NAME + " = ?";
+			+ COL_REVISION_OWNER_NODE + " = N." + COL_NODE_ID + " AND R." + COL_REVISION_NUMBER + " = N." + COL_CURRENT_REV + " WHERE "
+			+ COL_NODE_PARENT_ID + " = ? AND " + COL_NODE_NAME + " = ?";
 
 	private static final String LAST_ACCESSED_OR_CREATED =
 		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
