@@ -102,8 +102,11 @@ public class SharedClientConnectionTest {
 	public void testHappyPath() throws Exception {
 		String expectedResponse = "{\"foo\":\"bar\"}";
 		configureMockHttpResponse(201, expectedResponse);
+		String sessionToken = "a-session-token";
+		sharedClientConnection.setSessionToken(sessionToken);
 		JSONObject result = sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 		assertEquals(expectedResponse, result.toString());
+		assertEquals(sessionToken, requestHeaderCaptor.getValue().get("sessionToken"));
 	}
 
 	@Test
