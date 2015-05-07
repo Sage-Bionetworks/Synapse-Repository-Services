@@ -1,11 +1,11 @@
 package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,6 +27,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -38,7 +39,9 @@ public class SharedClientConnectionTest {
 	
 	private SharedClientConnection sharedClientConnection;
 	private HttpClientProvider mockClientProvider;
-	HttpResponse mockResponse;
+	private HttpResponse mockResponse;
+	private ArgumentCaptor<Map> requestHeaderCaptor;
+
 	private String 	endpoint="http://reposvcs.org";
 	private static final String uri = "/some/uri";
 	private static final String jsonString = "jsonString";
@@ -89,7 +92,8 @@ public class SharedClientConnectionTest {
 		mockClientProvider = Mockito.mock(HttpClientProvider.class);
 		sharedClientConnection = new SharedClientConnection(mockClientProvider);
 		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
+		requestHeaderCaptor = ArgumentCaptor.forClass(Map.class);
+		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),requestHeaderCaptor.capture())).thenReturn(mockResponse);
 		when(mockClientProvider.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
 		sharedClientConnection.setRetryRequestIfServiceUnavailable(false);
 	}
@@ -100,6 +104,18 @@ public class SharedClientConnectionTest {
 		configureMockHttpResponse(201, expectedResponse);
 		JSONObject result = sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 		assertEquals(expectedResponse, result.toString());
+	}
+
+	@Test
+	public void testHappyPathWithAPIKey() throws Exception {
+		String expectedResponse = "{\"foo\":\"bar\"}";
+		configureMockHttpResponse(201, expectedResponse);
+		sharedClientConnection.setApiKey("some key");
+		sharedClientConnection.setSessionToken(null);
+		JSONObject result = sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		assertEquals(expectedResponse, result.toString());
+		assertNotNull(requestHeaderCaptor.getValue().get("signature"));
+		assertNotNull(requestHeaderCaptor.getValue().get("signatureTimestamp"));
 	}
 
 	@Test
@@ -199,7 +215,7 @@ public class SharedClientConnectionTest {
 	public void testPostStringDirectErrorHandling() throws Exception {
 		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
 		try {
-			sharedClientConnection.postStringDirect(uri, uri, jsonString, userAgent);
+			sharedClientConnection.postStringDirect("http://host", uri, jsonString, userAgent);
 			fail("expected exception");
 		} catch (SynapseUnauthorizedException e) {
 			assertEquals("user message", e.getMessage());
@@ -211,11 +227,36 @@ public class SharedClientConnectionTest {
 	public void testGetDirectErrorHandling() throws Exception {
 		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
 		try {
-			sharedClientConnection.getDirect(uri, uri, userAgent);
+			sharedClientConnection.getDirect("http://host", uri, userAgent);
 			fail("expected exception");
 		} catch (SynapseUnauthorizedException e) {
 			assertEquals("user message", e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testGetDirectWithAPIKey() throws Exception {
+		String expectedResponse = "some string";
+		configureMockHttpResponse(200, expectedResponse);
+		sharedClientConnection.setApiKey("some key");
+		sharedClientConnection.setSessionToken(null);
+		String result = sharedClientConnection.getDirect(endpoint, uri, userAgent);
+		assertEquals(expectedResponse, result);
+		assertNotNull(requestHeaderCaptor.getValue().get("signature"));
+		assertNotNull(requestHeaderCaptor.getValue().get("signatureTimestamp"));
+	}
+	
+	@Test
+	public void testPostStringDirectWithAPIKey() throws Exception {
+		String expectedResponse = "some string";
+		configureMockHttpResponse(201, expectedResponse);
+		sharedClientConnection.setApiKey("some key");
+		sharedClientConnection.setSessionToken(null);
+		String result = sharedClientConnection.postStringDirect(endpoint, uri, "data", userAgent);
+		assertEquals(expectedResponse, result);
+		assertNotNull(requestHeaderCaptor.getValue().get("signature"));
+		assertNotNull(requestHeaderCaptor.getValue().get("signatureTimestamp"));
+	}
+	
 
 }
