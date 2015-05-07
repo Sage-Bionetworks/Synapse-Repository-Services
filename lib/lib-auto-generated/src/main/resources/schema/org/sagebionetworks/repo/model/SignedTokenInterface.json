@@ -5,6 +5,11 @@
 		"hmac": {
 			"type": "string",
 			"description": "The hash message authentication code for the message.",
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description": "The date-time the token was generated."
 		}
 	}
 }

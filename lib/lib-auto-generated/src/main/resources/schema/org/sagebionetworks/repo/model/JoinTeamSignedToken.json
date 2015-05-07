@@ -1,0 +1,23 @@
+{
+	"title": "JoinTeamSignedToken",
+	"description": "Signed token containing the information needed to join a new user to a team.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+		}
+	], 
+	"properties": {
+		"userId": {
+			"type": "string",
+			"description": "The ID of the user joining the new member to the Team."
+		},
+		"teamId": {
+			"type": "string",
+			"description": "The ID of the team which the user was invited to join."
+		},
+		"memberId": {
+			"type": "string",
+			"description": "The ID of the new team member."
+		}
+	}
+}

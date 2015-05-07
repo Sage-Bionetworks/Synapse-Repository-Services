@@ -18,11 +18,6 @@
 		"lastName": {
 			"type": "string",
 			"description": "User's last name"
-		},
-		"createdOn": {
-			"type": "string",
-			"format":"date-time",
-			"description": "The date-time the object was generated."
-		},
+		}
 	}
 }
