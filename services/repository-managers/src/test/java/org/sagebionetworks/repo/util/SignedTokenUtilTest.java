@@ -12,7 +12,7 @@ public class SignedTokenUtilTest {
 	public void testRoundTrip() {
 		SignedTokenSample sample = new SignedTokenSample();
 		sample.setStringField("foo");
-		String serialized = SignedTokenUtil.signAndSerialized(sample);
+		String serialized = SignedTokenUtil.signAndSerialize(sample);
 		System.out.println(serialized);
 		SignedTokenSample deser = SignedTokenUtil.deserializeAndValidateToken(serialized, SignedTokenSample.class);
 		assertNotNull(deser.getHmac());

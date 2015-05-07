@@ -21,7 +21,7 @@ public class SignedTokenUtil {
 	 * @param token
 	 * @return the signed, serialized token
 	 */
-	public static String signAndSerialized(SignedTokenInterface token) {
+	public static String signAndSerialize(SignedTokenInterface token) {
 		token.setHmac(generateSignature(token));
 		return SerializationUtils.serializeAndHexEncode(token);
 	}
