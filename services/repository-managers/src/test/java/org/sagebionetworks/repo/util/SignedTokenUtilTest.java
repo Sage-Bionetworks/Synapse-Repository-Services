@@ -13,10 +13,8 @@ public class SignedTokenUtilTest {
 		SignedTokenSample sample = new SignedTokenSample();
 		sample.setStringField("foo");
 		String serialized = SignedTokenUtil.signAndSerialize(sample);
-		System.out.println(serialized);
 		SignedTokenSample deser = SignedTokenUtil.deserializeAndValidateToken(serialized, SignedTokenSample.class);
 		assertNotNull(deser.getHmac());
-		System.out.println(deser.getHmac());
 		assertEquals(sample, deser);
 	}
 

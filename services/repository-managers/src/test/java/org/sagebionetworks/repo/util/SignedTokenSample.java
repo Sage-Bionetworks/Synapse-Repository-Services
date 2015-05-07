@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.util;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.model.SignedTokenInterface;
 import org.sagebionetworks.schema.ObjectValidator;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -24,8 +26,18 @@ public class SignedTokenSample implements JSONEntity, SignedTokenInterface {
 	}
 	private String hmac;
 	private String stringField;
+	private Date createdOn;
+	
+    public Date getCreatedOn() {
+    	return createdOn;
+    }
+    
+    public void setCreatedOn(Date date) {
+    	this.createdOn=date;
+    }
 
-    public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.util.SignedTokenSample\",\"title\":\"SignedTokenSample\",\"properties\":{\"stringField\":{\"description\":\"User's last name\",\"type\":\"string\"},\"hmac\":{\"description\":\"The hash message authentication code for the message.\",\"type\":\"string\"},\"firstName\":{\"description\":\"User's first name\",\"type\":\"string\"}},\"type\":\"object\"}";
+
+    public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.util.SignedTokenSample\",\"title\":\"SignedTokenSample\",\"properties\":{\"stringField\":{\"description\":\"User's last name\",\"type\":\"string\"},\"hmac\":{\"description\":\"The hash message authentication code for the message.\",\"type\":\"string\"},\"createdOn\":{\"type\":\"string\", \"format\":\"date-time\"}},\"type\":\"object\"}";
 
     public String getJSONSchema() {
 		return EFFECTIVE_SCHEMA;
