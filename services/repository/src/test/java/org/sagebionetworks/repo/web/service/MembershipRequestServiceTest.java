@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +47,7 @@ public class MembershipRequestServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
+		List<MessageToUserAndBody> result = Collections.singletonList(new MessageToUserAndBody(mtu, content, "text/plain"));
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		when(mockMembershipRequestManager.create(userInfo, mrs)).thenReturn(mrs);
 		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs)).thenReturn(result);
@@ -56,10 +57,12 @@ public class MembershipRequestServiceTest {
 		verify(mockMembershipRequestManager).create(userInfo, mrs);
 		verify(mockMembershipRequestManager).createMembershipRequestNotification(mrs);
 		
-		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), messageArg.capture());
-		assertEquals(result, messageArg.getValue());		
+			sendNotifications(eq(userInfo), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));		
+
 	}
 
 }

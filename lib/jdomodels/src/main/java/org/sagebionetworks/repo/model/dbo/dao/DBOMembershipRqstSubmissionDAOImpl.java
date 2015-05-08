@@ -36,7 +36,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
@@ -140,7 +139,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		basicDao.deleteObjectByPrimaryKey(DBOMembershipRqstSubmission.class, param);
 	}
 
-	private static final RowMapper<MembershipRequest> membershipRequestRowMapper = new RowMapper<MembershipRequest>(){
+	private static final RowMapper<MembershipRequest> MEMBERSHIP_REQUEST_ROW_MAPPER = new RowMapper<MembershipRequest>(){
 		@Override
 		public MembershipRequest mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MembershipRequest mr = new MembershipRequest();
@@ -155,14 +154,23 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		}
 	};
 	
-	private static final RowMapper<DBOMembershipRqstSubmission> dboMembershipRequestRowMapper = 
+	private static final RowMapper<DBOMembershipRqstSubmission> DBO_MEMBERSHIP_REQUEST_ROW_MAPPER = 
 			(new DBOMembershipRqstSubmission()).getTableMapping();
 	
 	private static final RowMapper<MembershipRqstSubmission> membershipRqstSubmissionRowMapper = new RowMapper<MembershipRqstSubmission>(){
 		@Override
 		public MembershipRqstSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DBOMembershipRqstSubmission dbo = dboMembershipRequestRowMapper.mapRow(rs,  rowNum);
+			DBOMembershipRqstSubmission dbo = DBO_MEMBERSHIP_REQUEST_ROW_MAPPER.mapRow(rs,  rowNum);
 			return MembershipRqstSubmissionUtils.copyDboToDto(dbo);
+		}
+	};
+	
+	private static final RowMapper<String> PORTAL_ENDPOINT_ROW_MAPPER = new RowMapper<String>(){
+		@Override
+		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOMembershipRqstSubmission dbo = DBO_MEMBERSHIP_REQUEST_ROW_MAPPER.mapRow(rs,  rowNum);
+			MembershipRqstSubmission dto = MembershipRqstSubmissionUtils.copyDboToDto(dbo);
+			return dto.getPortalEndpoint();
 		}
 	};
 	
@@ -188,7 +196,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED, membershipRequestRowMapper, param);
+		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED, MEMBERSHIP_REQUEST_ROW_MAPPER, param);
 	}
 
 	@Override
@@ -204,13 +212,21 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	public List<MembershipRequest> getOpenByTeamAndRequesterInRange(
 			long teamId, long requesterId, long now, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		return getOpenByTeamAndRequesterInRange(teamId, requesterId, now, limit, offset, membershipRequestRowMapper);
+		return getOpenByTeamAndRequesterInRange(teamId, requesterId, now, limit, offset, MEMBERSHIP_REQUEST_ROW_MAPPER);
 	}
 
 	@Override
 	public List<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
 			long teamId, long requesterId, long now, long limit, long offset) throws DatastoreException, NotFoundException {
 		return getOpenByTeamAndRequesterInRange(teamId, requesterId, now, limit, offset, membershipRqstSubmissionRowMapper);
+	}
+
+	@Override
+	public String getPortalEndpointByTeamAndUser(long teamId, long requesterId, long now) {
+		List<String> portalEndpoints = 
+				getOpenByTeamAndRequesterInRange(teamId, requesterId, now, 1L, 0L, PORTAL_ENDPOINT_ROW_MAPPER);
+		if (portalEndpoints.size()==0) return null;
+		return portalEndpoints.get(0);
 	}
 
 	@Override
@@ -244,8 +260,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_REQUESTER_COUNT, param);
 	}
-
-
+	
 	@WriteTransaction
 	@Override
 	public void deleteByTeamAndRequester(long teamId, long requesterId)

@@ -4,6 +4,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -211,11 +212,11 @@ public class TeamServiceImpl implements TeamService {
 		
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
 		// needed to determine who to notify
-		MessageToUserAndBody message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
+		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId);
 		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		notificationManager.sendNotification(userInfo, message);
+		notificationManager.sendNotifications(userInfo, messages);
 	}
 	
 	/* (non-Javadoc)

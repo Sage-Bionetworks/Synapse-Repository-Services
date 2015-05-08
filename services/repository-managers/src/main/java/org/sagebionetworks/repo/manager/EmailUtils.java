@@ -4,10 +4,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Date;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 
 import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -33,6 +37,12 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
 	public static final String TEMPLATE_KEY_DETAILS = "#details#";
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
+	public static final String TEMPLATE_KEY_TEAM_NAME = "#teamName#";
+	public static final String TEMPLATE_KEY_TEAM_ID = "#teamId#";
+	public static final String TEMPLATE_KEY_ONE_CLICK_JOIN = "#oneClickUnsubscribe#";
+	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
+	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
+	public static final String TEMPLATE_KEY_REQUESTER_MESSAGE = "#requesterMessage#";
 	
 	public static String getDisplayName(UserProfile userProfile) {
 		String userName = userProfile.getUserName();
@@ -114,5 +124,29 @@ public class EmailUtils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId) {
+		JoinTeamSignedToken token = new JoinTeamSignedToken();
+		token.setCreatedOn(new Date());
+		token.setUserId(userId);
+		token.setMemberId(memberId);
+		token.setTeamId(teamId);
+		String serializedToken = SignedTokenUtil.signAndSerialize(token);
+		String result = endpoint+serializedToken;
+		// TODO validate that it's a well formed URL?
+		return result;
+	}
+	
+	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
+		EmailUnsubscribeSignedToken token = new EmailUnsubscribeSignedToken();
+		token.setCreatedOn(new Date());
+		token.setUserId(userId);
+		String serializedToken = SignedTokenUtil.signAndSerialize(token);
+		String result = endpoint+serializedToken;
+		// TODO validate that it's a well formed URL?
+		return result;
+	}
+	
+
 
 }

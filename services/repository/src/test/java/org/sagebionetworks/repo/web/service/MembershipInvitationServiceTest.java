@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,10 +58,11 @@ public class MembershipInvitationServiceTest {
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
 		verify(mockMembershipInvitationManager).createInvitationNotification(mis);
 		
-		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), messageArg.capture());
-		assertEquals(result, messageArg.getValue());		
+			sendNotifications(eq(userInfo), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));		
 	}
 
 }

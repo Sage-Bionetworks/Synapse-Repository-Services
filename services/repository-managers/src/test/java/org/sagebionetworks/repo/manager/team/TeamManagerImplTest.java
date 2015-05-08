@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.InviterAndPortalEndpoint;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
@@ -885,17 +886,21 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
 		String inviterPrincipalId = "987";
+		String portalEndpoint = "https://synapse.org";
+		InviterAndPortalEndpoint ip = new InviterAndPortalEndpoint(inviterPrincipalId, portalEndpoint);
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setCreatedBy(inviterPrincipalId);
 		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 				anyLong())).
-			thenReturn(Collections.singletonList(inviterPrincipalId));
+			thenReturn(Collections.singletonList(ip));
 		when(mockMembershipInvtnSubmissionDAO.
 			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
 
-		MessageToUserAndBody result = 
-				teamManagerImpl.createJoinedTeamNotification(userInfo, userInfo, TEAM_ID);
+		List<MessageToUserAndBody> resultList = 
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID);
+		assertEquals(1, resultList.size());
+		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("new member has joined team", result.getMetadata().getSubject());
 		
 		assertEquals(Collections.singleton(inviterPrincipalId), result.getMetadata().getRecipients());
@@ -911,8 +916,10 @@ public class TeamManagerImplTest {
 
 		String otherPrincipalId = "987";
 		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
-		MessageToUserAndBody result = 
-				teamManagerImpl.createJoinedTeamNotification(userInfo, otherUserInfo, TEAM_ID);
+		List<MessageToUserAndBody> resultList = 
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, otherUserInfo, TEAM_ID);
+		assertEquals(1, resultList.size());
+		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("new member has joined team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
 		assertEquals(result.getBody(), "Hello,\r\nfoo bar (userName) has added accepted you into team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:987/settings\r\n", 

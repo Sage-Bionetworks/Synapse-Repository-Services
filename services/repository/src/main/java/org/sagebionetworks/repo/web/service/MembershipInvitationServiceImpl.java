@@ -3,6 +3,8 @@
  */
 package org.sagebionetworks.repo.web.service;
 
+import java.util.Collections;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
@@ -51,7 +53,7 @@ public class MembershipInvitationServiceImpl implements
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipInvtnSubmission created = membershipInvitationManager.create(userInfo, dto);
 		MessageToUserAndBody message = membershipInvitationManager.createInvitationNotification(created);
-		notificationManager.sendNotification(userInfo, message);
+		notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
 
 		return created;
 	}

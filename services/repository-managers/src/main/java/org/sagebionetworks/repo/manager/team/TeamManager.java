@@ -208,9 +208,9 @@ public interface TeamManager {
 	 * @param joinerInfo
 	 * @param memberInfo
 	 * @param teamId
-	 * @return the message metadata, the message content
+	 * @return the message metadata, the message content for each message recipient
 	 * @throws NotFoundException
 	 */
-	public MessageToUserAndBody createJoinedTeamNotification(UserInfo joinerInfo,
+	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo,
 			UserInfo memberInfo, String teamId) throws NotFoundException;
 }

@@ -50,9 +50,10 @@ public interface MembershipInvtnSubmissionDAO {
 	 * 
 	 * @param teamId
 	 * @param userId
+	 * @param now
 	 * @return
 	 */
-	public List<String> getInvitersByTeamAndUser(long teamId, long userId, long now);
+	public List<InviterAndPortalEndpoint> getInvitersByTeamAndUser(long teamId, long userId, long now);
 
 	/**
 	 * Get the open (unexpired and unfulfilled) MembershipInvtnSubmissions received by the given user

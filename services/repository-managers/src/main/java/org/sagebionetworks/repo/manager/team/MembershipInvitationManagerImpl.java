@@ -3,12 +3,18 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -41,7 +47,7 @@ public class MembershipInvitationManagerImpl implements
 	@Autowired
 	private TeamDAO teamDAO;
 	
-	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.txt";
+	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
 
@@ -94,18 +100,20 @@ public class MembershipInvitationManagerImpl implements
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#teamName#", teamDAO.get(mis.getTeamId()).getName());
-		fieldValues.put("#teamId#", mis.getTeamId());
-		fieldValues.put("#userId#", mis.getInviteeId());
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mis.getTeamId()).getName());
+		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
+				mis.getPortalEndpoint(), mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId()));
+		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+				mis.getPortalEndpoint(), mis.getInviteeId()));
 		if (mis.getMessage()==null || mis.getMessage().length()==0) {
-			fieldValues.put("#inviterMessage#", "");
+			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {
-			fieldValues.put("#inviterMessage#", 
-							"The inviter sends the following message:\r\n\r\n"+
-							mis.getMessage()+"\r\n\r\n");
+			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, 
+							"The inviter sends the following message: <Blockquote> "+
+							mis.getMessage()+" <Blockquote> ");
 		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
-		return new MessageToUserAndBody(mtu, messageContent);
+		return new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType());
 	}
 
 	/* (non-Javadoc)

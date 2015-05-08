@@ -155,16 +155,19 @@ public class TeamServiceTest {
 		mtu.setRecipients(Collections.singleton(principalId.toString()));
 		String content = "foo";
 		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
-		when(mockTeamManager.createJoinedTeamNotification(userInfo1, userInfo2, teamId)).thenReturn(result);
+		List<MessageToUserAndBody> resultList = Collections.singletonList(result);
+		when(mockTeamManager.createJoinedTeamNotifications(userInfo1, userInfo2, teamId)).thenReturn(resultList);
 		teamService.addMember(userId, teamId, principalId.toString());
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockUserManager).getUserInfo(principalId);
 				
-		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);		
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo1), messageArg.capture());
-		assertEquals(result, messageArg.getValue());
+			sendNotifications(eq(userInfo1), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));		
+
 	}
 	
 
