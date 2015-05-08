@@ -109,7 +109,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void addMember(Long userId, String teamId, String principalId, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 

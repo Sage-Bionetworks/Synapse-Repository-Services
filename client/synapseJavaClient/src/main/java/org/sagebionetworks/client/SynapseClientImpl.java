@@ -56,7 +56,6 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
@@ -388,7 +387,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-
+	
+	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
+	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
+	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
@@ -6402,12 +6405,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().deleteUri(repoEndpoint,
 				TEAM + "/" + teamId, getUserAgent());
 	}
-
+	
 	@Override
-	public void addTeamMember(String teamId, String memberId)
+	public void addTeamMember(String teamId, String memberId, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
 		getSharedClientConnection().putJson(repoEndpoint,
-				TEAM + "/" + teamId + MEMBER + "/" + memberId,
+				TEAM + "/" + teamId + MEMBER + "/" + memberId +
+				"?" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
 				new JSONObject().toString(), getUserAgent());
 	}
 
@@ -6520,11 +6524,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public MembershipInvtnSubmission createMembershipInvitation(
-			MembershipInvtnSubmission invitation) throws SynapseException {
+			MembershipInvtnSubmission invitation,
+			String acceptInvitationEndpoint,
+			String notificationUnsubscribeEndpoint) throws SynapseException {
 		try {
 			JSONObject jsonObj = EntityFactory
 					.createJSONObjectForEntity(invitation);
-			jsonObj = createJSONObject(MEMBERSHIP_INVITATION, jsonObj);
+			jsonObj = createJSONObject(
+					MEMBERSHIP_INVITATION + 
+					"?" + ACCEPT_INVITATION_ENDPOINT_PARAM + "=" + urlEncode(acceptInvitationEndpoint) +
+					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
+					jsonObj);
 			return initializeFromJSONObject(jsonObj,
 					MembershipInvtnSubmission.class);
 		} catch (JSONObjectAdapterException e) {
@@ -6610,11 +6620,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public MembershipRqstSubmission createMembershipRequest(
-			MembershipRqstSubmission request) throws SynapseException {
+			MembershipRqstSubmission request,
+			String acceptRequestEndpoint,
+			String notificationUnsubscribeEndpoint) throws SynapseException {
 		try {
 			JSONObject jsonObj = EntityFactory
 					.createJSONObjectForEntity(request);
-			jsonObj = createJSONObject(MEMBERSHIP_REQUEST, jsonObj);
+			jsonObj = createJSONObject(MEMBERSHIP_REQUEST+ 
+					"?" + ACCEPT_REQUEST_ENDPOINT_PARAM + "=" + urlEncode(acceptRequestEndpoint) +
+					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint), jsonObj);
 			return initializeFromJSONObject(jsonObj,
 					MembershipRqstSubmission.class);
 		} catch (JSONObjectAdapterException e) {

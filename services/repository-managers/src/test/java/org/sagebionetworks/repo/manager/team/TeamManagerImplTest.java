@@ -885,6 +885,7 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
 		String inviterPrincipalId = "987";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setCreatedBy(inviterPrincipalId);
 		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
@@ -895,7 +896,7 @@ public class TeamManagerImplTest {
 					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
 
 		List<MessageToUserAndBody> resultList = 
-				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID);
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, notificationUnsubscribeEndpoint);
 		assertEquals(1, resultList.size());
 		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("new member has joined team", result.getMetadata().getSubject());
@@ -912,9 +913,10 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
 		String otherPrincipalId = "987";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
 		List<MessageToUserAndBody> resultList = 
-				teamManagerImpl.createJoinedTeamNotifications(userInfo, otherUserInfo, TEAM_ID);
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, otherUserInfo, TEAM_ID, notificationUnsubscribeEndpoint);
 		assertEquals(1, resultList.size());
 		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("new member has joined team", result.getMetadata().getSubject());

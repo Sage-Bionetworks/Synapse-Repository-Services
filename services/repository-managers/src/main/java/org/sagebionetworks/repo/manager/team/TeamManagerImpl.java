@@ -504,8 +504,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
-		String unsubPortalEndpoint = ""; // TODO
+	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, UserInfo memberInfo, String teamId, String notificationUnsubscribeEndpoint) throws NotFoundException {
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
@@ -519,7 +518,7 @@ public class TeamManagerImpl implements TeamManager {
 				MessageToUser mtu = new MessageToUser();
 				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 				fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-						unsubPortalEndpoint, recipient));
+						notificationUnsubscribeEndpoint, recipient));
 				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
 				mtu.setRecipients(Collections.singleton(recipient));
 				result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
@@ -530,7 +529,7 @@ public class TeamManagerImpl implements TeamManager {
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
 			String recipient = memberInfo.getId().toString();
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-					unsubPortalEndpoint, recipient));
+					notificationUnsubscribeEndpoint, recipient));
 			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();
 			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
