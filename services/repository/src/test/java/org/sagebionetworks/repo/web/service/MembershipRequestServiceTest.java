@@ -65,7 +65,7 @@ public class MembershipRequestServiceTest {
 		verify(mockNotificationManager).
 			sendNotifications(eq(userInfo), messageArg.capture());
 		assertEquals(1, messageArg.getValue().size());		
-		assertEquals(result, messageArg.getValue().get(0));		
+		assertEquals(result, messageArg.getValue());		
 
 	}
 

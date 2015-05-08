@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -8,22 +9,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
 public class EmailUtilsTest {
-
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	@After
-	public void tearDown() throws Exception {
-	}
 
 	@Test
 	public void testCreateEmailRequest() {
@@ -84,6 +78,33 @@ public class EmailUtilsTest {
 		EmailUtils.validateSynapsePortalHost("www.spam.com");
 	}
 	
+	@Test
+	public void testCreateOneClickJoinTeamLink() throws Exception {
+		String endpoint = "https://synapse.org/#";
+		String userId = "111";
+		String memberId = "222";
+		String teamId = "333";
+		String link = EmailUtils.createOneClickJoinTeamLink(endpoint, userId, memberId, teamId);
+		assertTrue(link.startsWith(endpoint));
+		JoinTeamSignedToken token = SignedTokenUtil.deserializeAndValidateToken(link.substring(endpoint.length()), JoinTeamSignedToken.class);
+		assertEquals(userId, token.getUserId());
+		assertEquals(memberId, token.getMemberId());
+		assertEquals(teamId, token.getTeamId());
+		assertNotNull(token.getCreatedOn());
+		assertNotNull(token.getHmac());
+	}
+
+	@Test
+	public void testCreateOneUnsubscribeLink() throws Exception {
+		String endpoint = "https://synapse.org/#";
+		String userId = "111";
+		String link = EmailUtils.createOneClickUnsubscribeLink(endpoint, userId);
+		assertTrue(link.startsWith(endpoint));
+		EmailUnsubscribeSignedToken token = SignedTokenUtil.deserializeAndValidateToken(link.substring(endpoint.length()), EmailUnsubscribeSignedToken.class);
+		assertEquals(userId, token.getUserId());
+		assertNotNull(token.getCreatedOn());
+		assertNotNull(token.getHmac());
+	}
 
 
 }
