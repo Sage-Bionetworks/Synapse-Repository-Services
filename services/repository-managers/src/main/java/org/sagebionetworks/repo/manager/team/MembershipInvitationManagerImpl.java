@@ -96,6 +96,7 @@ public class MembershipInvitationManagerImpl implements
 	
 	@Override
 	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis) {
+		String unsubPortalEndpoint = ""; // TODO
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
@@ -104,7 +105,7 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 				mis.getPortalEndpoint(), mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId()));
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-				mis.getPortalEndpoint(), mis.getInviteeId()));
+				unsubPortalEndpoint, mis.getInviteeId()));
 		if (mis.getMessage()==null || mis.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {

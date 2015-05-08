@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.InviterAndPortalEndpoint;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
@@ -506,6 +505,7 @@ public class TeamManagerImpl implements TeamManager {
 	
 	@Override
 	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+		String unsubPortalEndpoint = ""; // TODO
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
@@ -515,44 +515,35 @@ public class TeamManagerImpl implements TeamManager {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
-			for (InviterAndPortalEndpoint recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
+			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
 				MessageToUser mtu = new MessageToUser();
 				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 				fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-						recipient.getPortalEndpoint(), recipient.getInviterPrincipalId()));
+						unsubPortalEndpoint, recipient));
 				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
-				mtu.setRecipients(Collections.singleton(recipient.getInviterPrincipalId()));
-				result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
-			}
-		} else {
-			String portalEndpoint = getRequestPortalEndpoint(Long.parseLong(teamId), memberInfo.getId());
-			if (portalEndpoint!=null) {
-				UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
-				String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
-				fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
-				String recipient = memberInfo.getId().toString();
-				fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-					portalEndpoint, recipient));
-				String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
-				MessageToUser mtu = new MessageToUser();
-				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 				mtu.setRecipients(Collections.singleton(recipient));
 				result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
 			}
+		} else {
+			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
+			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
+			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
+			String recipient = memberInfo.getId().toString();
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+					unsubPortalEndpoint, recipient));
+			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
+			MessageToUser mtu = new MessageToUser();
+			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+			mtu.setRecipients(Collections.singleton(recipient));
+			result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
 		}	
 		return result;
 	}
 
-	private Set<InviterAndPortalEndpoint> getInviters(Long teamId, Long inviteeId) {
-		return new HashSet<InviterAndPortalEndpoint>(membershipInvtnSubmissionDAO.
+	private Set<String> getInviters(Long teamId, Long inviteeId) {
+		return new HashSet<String>(membershipInvtnSubmissionDAO.
 			getInvitersByTeamAndUser(teamId, inviteeId, System.currentTimeMillis()));
-	}
-	
-	private String getRequestPortalEndpoint(Long teamId, Long inviteeId) {
-		return membershipRqstSubmissionDAO.
-			getPortalEndpointByTeamAndUser(teamId, inviteeId, System.currentTimeMillis());
-	}
-	
+	}	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#addMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)

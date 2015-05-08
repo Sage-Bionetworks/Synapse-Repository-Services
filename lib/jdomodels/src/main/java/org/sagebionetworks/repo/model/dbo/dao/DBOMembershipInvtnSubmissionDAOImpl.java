@@ -26,18 +26,17 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.InviterAndPortalEndpoint;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 /**
@@ -164,13 +163,13 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		}
 	};
 	
-	private static final RowMapper<InviterAndPortalEndpoint> INVITER_ROW_MAPPER = new RowMapper<InviterAndPortalEndpoint>() {
+	private static final RowMapper<String> INVITER_ROW_MAPPER = new RowMapper<String>() {
 
 		@Override
-		public InviterAndPortalEndpoint mapRow(ResultSet rs, int rowNum) throws SQLException {
+		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 			Blob misProperties = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 			MembershipInvtnSubmission mis = MembershipInvtnSubmissionUtils.deserialize(misProperties.getBytes(1, (int) misProperties.length()));
-			return new InviterAndPortalEndpoint(mis.getCreatedBy(), mis.getPortalEndpoint());
+			return mis.getCreatedBy();
 		}
 		
 	};
@@ -232,7 +231,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	}
 
 	@Override
-	public List<InviterAndPortalEndpoint> getInvitersByTeamAndUser(long teamId, long userId, long now) {
+	public List<String> getInvitersByTeamAndUser(long teamId, long userId, long now) {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);

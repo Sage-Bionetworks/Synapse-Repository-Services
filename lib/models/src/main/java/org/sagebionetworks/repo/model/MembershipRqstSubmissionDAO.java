@@ -49,15 +49,6 @@ public interface MembershipRqstSubmissionDAO {
 			long teamId, long requesterId, long time, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
-	 * 
-	 * @param teamId
-	 * @param requesterId
-	 * @param time
-	 * @return
-	 */
-	public String getPortalEndpointByTeamAndUser(long teamId, long requesterId, long time);
-	
-	/**
 	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team
 	 * 
 	 * @param teamId

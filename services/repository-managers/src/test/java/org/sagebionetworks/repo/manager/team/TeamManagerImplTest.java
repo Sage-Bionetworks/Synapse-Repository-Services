@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.InviterAndPortalEndpoint;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
@@ -886,13 +885,11 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
 		String inviterPrincipalId = "987";
-		String portalEndpoint = "https://synapse.org";
-		InviterAndPortalEndpoint ip = new InviterAndPortalEndpoint(inviterPrincipalId, portalEndpoint);
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setCreatedBy(inviterPrincipalId);
 		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 				anyLong())).
-			thenReturn(Collections.singletonList(ip));
+			thenReturn(Collections.singletonList(inviterPrincipalId));
 		when(mockMembershipInvtnSubmissionDAO.
 			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
