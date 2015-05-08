@@ -67,7 +67,6 @@ public class MessageQueueImplIntegrationTest {
 		
 		// Verify that we can receive a msg once, then it's put on the dead letter queue
 		generateMessage(testMessageQueue1);
-		Thread.sleep(5000L);
 		verifyBehavior(testMessageQueue1, true);
 
 		// No dead letter queue case
@@ -79,7 +78,6 @@ public class MessageQueueImplIntegrationTest {
 		assertEquals(testMessageQueue2.getQueueUrl(), quRes2.getQueueUrl());
 		
 		generateMessage(testMessageQueue2);
-		Thread.sleep(5000L);
 		verifyBehavior(testMessageQueue2, false);
 
 	}
@@ -90,7 +88,6 @@ public class MessageQueueImplIntegrationTest {
 		smReq.setDelaySeconds(1);
 		smReq.setMessageBody(new String("theMessageBody"));
 		awsSQSClient.sendMessage(smReq);
-		Thread.sleep(1500L);
 		List<Message> msgs = waitForMsg(msgQImpl.getQueueUrl());
 		assertNotNull(msgs);
 		assertEquals(1, msgs.size());
@@ -117,8 +114,8 @@ public class MessageQueueImplIntegrationTest {
 	}
 	
 	private List<Message> waitForMsg(String qUrl) throws InterruptedException {
-		final int MAX_RETRY = 5;
-		final long SLEEP_MS = 5000L;
+		final int MAX_RETRY = 10;
+		final long SLEEP_MS = 1000L;
 		ReceiveMessageRequest rmReq = new ReceiveMessageRequest().withQueueUrl(qUrl).withVisibilityTimeout(1);
 		ReceiveMessageResult rmRes = null;
 		List<Message> msgs = null;

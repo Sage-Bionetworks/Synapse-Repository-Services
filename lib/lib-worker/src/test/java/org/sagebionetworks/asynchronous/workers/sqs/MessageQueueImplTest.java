@@ -83,4 +83,17 @@ public class MessageQueueImplTest {
 		assertEquals(expectedPolicy, s);
 	}
 	
+	@Test
+	public void testValidateDeadLetterParams() {
+		String dlqName = "deadLetterQ";
+		Integer mrc = 1;
+		assertEquals(true, MessageQueueImpl.validateDeadLetterParams(dlqName, mrc));
+		mrc = null;
+		assertEquals(false, MessageQueueImpl.validateDeadLetterParams(dlqName, mrc));
+		dlqName = null;
+		assertEquals(true, MessageQueueImpl.validateDeadLetterParams(dlqName, mrc));
+		mrc = 1;
+		assertEquals(false, MessageQueueImpl.validateDeadLetterParams(dlqName, mrc));
+	}
+	
 }

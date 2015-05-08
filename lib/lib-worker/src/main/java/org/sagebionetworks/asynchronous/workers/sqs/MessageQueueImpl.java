@@ -125,6 +125,14 @@ public class MessageQueueImpl implements MessageQueue {
 		}
 		return qArn;
 	}
+	
+	protected static boolean validateDeadLetterParams(String deadLetterQueueName, Integer maxReceiveCount) {
+		if (deadLetterQueueName == null) {
+			return (maxReceiveCount == null);
+		} else {
+			return (maxReceiveCount != null);
+		}
+	}
 
 	@Override
 	public String getQueueUrl() {
