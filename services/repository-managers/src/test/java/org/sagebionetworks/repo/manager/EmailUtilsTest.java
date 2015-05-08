@@ -47,7 +47,7 @@ public class EmailUtilsTest {
 	@Test
 	public void testReadMailTemplate() {
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#displayname#", "Foo Bar");
+		fieldValues.put("#displayName#", "Foo Bar");
 		fieldValues.put("#domain#", "Synapse");
 		fieldValues.put("#username#", "foobar");
 		String message = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
@@ -73,10 +73,10 @@ public class EmailUtilsTest {
 	
 	@Test
 	public void testValidateSynapsePortalHostOK() throws Exception {
-		EmailUtils.validateSynapsePortalHost("www.synapse.org");
-		EmailUtils.validateSynapsePortalHost("localhost");
-		EmailUtils.validateSynapsePortalHost("127.0.0.1");
-		EmailUtils.validateSynapsePortalHost("synapse-staging.sagebase.org");
+		EmailUtils.validateSynapsePortalHost("https://www.synapse.org");
+		EmailUtils.validateSynapsePortalHost("http://localhost");
+		EmailUtils.validateSynapsePortalHost("http://127.0.0.1");
+		EmailUtils.validateSynapsePortalHost("https://synapse-staging.sagebase.org");
 	}
 
 	@Test(expected=IllegalArgumentException.class)

@@ -1,4 +1,4 @@
-Hello #displayname#,
+Hello #displayName#,
 
 The following errors were experienced while delivering message #messageid#: 
 #details#

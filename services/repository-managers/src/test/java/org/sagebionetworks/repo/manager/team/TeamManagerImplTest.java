@@ -887,35 +887,40 @@ public class TeamManagerImplTest {
 		team.setName("test-name");
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
-		String inviterPrincipalId = "987";
+		List<String> inviterPrincipalIds = Arrays.asList(new String[]{"987", "654"});
+		List<MembershipInvtnSubmission> miss = new ArrayList<MembershipInvtnSubmission>();
+		for (String inviterPrincipalId : inviterPrincipalIds) {
+			MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+			mis.setCreatedBy(inviterPrincipalId);
+			miss.add(mis);
+		}
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		mis.setCreatedBy(inviterPrincipalId);
 		
-		// TODO return multiple inviters
 		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 				anyLong())).
-			thenReturn(Collections.singletonList(inviterPrincipalId));
+			thenReturn(inviterPrincipalIds);
 		when(mockMembershipInvtnSubmissionDAO.
 			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
-					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
+					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(miss);
 
 		List<MessageToUserAndBody> resultList = 
 				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, notificationUnsubscribeEndpoint);
-		assertEquals(1, resultList.size());
-		MessageToUserAndBody result = resultList.get(0);
-		assertEquals("new member has joined team", result.getMetadata().getSubject());
+		assertEquals(inviterPrincipalIds.size(), resultList.size());
+		for (int i=0; i<inviterPrincipalIds.size(); i++) {
+			MessageToUserAndBody result = resultList.get(i);
+			assertEquals("new member has joined team", result.getMetadata().getSubject());
 		
-		assertEquals(Collections.singleton(inviterPrincipalId), result.getMetadata().getRecipients());
-		String bodyNoWhiteSpace = result.getBody().replaceAll("\\s", "");
+			assertEquals(Collections.singleton(inviterPrincipalIds.get(i)), result.getMetadata().getRecipients());
+			String bodyNoWhiteSpace = result.getBody().replaceAll("\\s", "");
 		
-		String s1 = "<html><body><p>Hello,</p><p>foobar(userName)hasjoinedteamtest-name.Forfurtherinformation,<ahref=https://www.synapse.org/#!Team:123>clickhere</a>tovisittheteampage.</p><p>Sincerely,</p><p>SynapseAdministration</p><p>Toturnoffemailnotifications,<ahref=https://synapse.org/#notificationUnsubscribeEndpoint:";
-		String s2 = ">clickhere.</a></p></body></html>";
-		assertTrue(bodyNoWhiteSpace.startsWith(s1));
-		assertTrue(bodyNoWhiteSpace.endsWith(s2));
-		String unsubscribeToken = bodyNoWhiteSpace.substring(bodyNoWhiteSpace.indexOf(s1)+s1.length(), bodyNoWhiteSpace.indexOf(s2));
-		EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
-		assertEquals(inviterPrincipalId, eust.getUserId());
+			String s1 = "<html><body><p>Hello,</p><p>foobar(userName)hasjoinedteamtest-name.Forfurtherinformation,<ahref=https://www.synapse.org/#!Team:123>clickhere</a>tovisittheteampage.</p><p>Sincerely,</p><p>SynapseAdministration</p><p>Toturnoffemailnotifications,<ahref=https://synapse.org/#notificationUnsubscribeEndpoint:";
+			String s2 = ">clickhere.</a></p></body></html>";
+			assertTrue(bodyNoWhiteSpace.startsWith(s1));
+			assertTrue(bodyNoWhiteSpace.endsWith(s2));
+			String unsubscribeToken = bodyNoWhiteSpace.substring(bodyNoWhiteSpace.indexOf(s1)+s1.length(), bodyNoWhiteSpace.indexOf(s2));
+			EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
+			assertEquals(inviterPrincipalIds.get(i), eust.getUserId());
+		}
 	}
 	
 	@Test
