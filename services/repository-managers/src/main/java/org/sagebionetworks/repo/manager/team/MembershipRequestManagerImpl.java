@@ -118,11 +118,12 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		} else {
 			fieldValues.put(TEMPLATE_KEY_REQUESTER_MESSAGE, 
 							"The requester sends the following message: <Blockquote> "+
-							mrs.getMessage()+" <Blockquote> ");
+							mrs.getMessage()+" </Blockquote> ");
 		}
 		
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
-		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();		for (String recipientPrincipalId : teamAdmins) {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		for (String recipientPrincipalId : teamAdmins) {
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId()));
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(

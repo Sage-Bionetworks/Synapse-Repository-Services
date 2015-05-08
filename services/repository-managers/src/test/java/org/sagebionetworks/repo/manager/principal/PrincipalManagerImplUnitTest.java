@@ -298,20 +298,6 @@ public class PrincipalManagerImplUnitTest {
 	public void testValidateNewAccountTokenInvalidToken() {
 		testReplacedParamValidateNewAccountToken("mac", "invalid-mac");
 	}
-	
-	@Test
-	public void testValidateSynapsePortalHostOK() throws Exception {
-		PrincipalManagerImpl.validateSynapsePortalHost("www.synapse.org");
-		PrincipalManagerImpl.validateSynapsePortalHost("localhost");
-		PrincipalManagerImpl.validateSynapsePortalHost("127.0.0.1");
-		PrincipalManagerImpl.validateSynapsePortalHost("synapse-staging.sagebase.org");
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateSynapsePortalHostNotOk() throws Exception {
-		PrincipalManagerImpl.validateSynapsePortalHost("www.spam.com");
-	}
-	
 	@Test
 	public void testNewAccountEmailValidationHappyPath() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);

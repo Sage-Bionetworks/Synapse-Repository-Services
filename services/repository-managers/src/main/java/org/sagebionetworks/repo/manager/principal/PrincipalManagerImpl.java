@@ -206,14 +206,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return email;
 	}
 	
-	public static void validateSynapsePortalHost(String portalHost) {
-		portalHost = portalHost.toLowerCase().trim();
-		if (portalHost.endsWith("synapse.org")) return;
-		if (portalHost.endsWith("sagebase.org")) return;
-		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
-		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
-	}
-	
 	// will throw exception for invalid email, invalid endpoint, invalid domain, or an email which is already taken
 	@Override
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
@@ -230,7 +222,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			} catch (MalformedURLException e) {
 				throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
 			}
-			validateSynapsePortalHost(url.getHost());
+			EmailUtils.validateSynapsePortalHost(url.getHost());
 			// is the email taken?
 			if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 				throw new NameConflictException("The email address provided is already used.");
@@ -362,13 +354,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), domain, new Date());
 			String urlString = portalEndpoint+token;
-			URL url = null;
-			try {
-				url = new URL(urlString);
-			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
-			}
-			validateSynapsePortalHost(url.getHost());
+			EmailUtils.validateSynapsePortalHost(urlString);
 			// is the email taken?
 			if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 				throw new NameConflictException("The email address provided is already used.");

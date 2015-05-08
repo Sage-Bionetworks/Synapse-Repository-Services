@@ -111,7 +111,7 @@ public class MembershipInvitationManagerImpl implements
 		} else {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, 
 							"The inviter sends the following message: <Blockquote> "+
-							mis.getMessage()+" <Blockquote> ");
+							mis.getMessage()+" </Blockquote> ");
 		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
 		return new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType());
