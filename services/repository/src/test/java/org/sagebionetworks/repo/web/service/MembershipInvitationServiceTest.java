@@ -50,13 +50,18 @@ public class MembershipInvitationServiceTest {
 		String content = "foo";
 		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
-		when(mockMembershipInvitationManager.createInvitationNotification(mis)).thenReturn(result);
+		when(mockMembershipInvitationManager.createInvitationNotification(
+				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
 
-		membershipInvitationService.create(userId, mis);
+		membershipInvitationService.create(userId, mis,
+				acceptInvitationEndpoint,  notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
-		verify(mockMembershipInvitationManager).createInvitationNotification(mis);
+		verify(mockMembershipInvitationManager).createInvitationNotification(
+				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		
 		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).

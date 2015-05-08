@@ -48,11 +48,16 @@ public class MembershipInvitationServiceImpl implements
 	 */
 	@Override
 	public MembershipInvtnSubmission create(Long userId,
-			MembershipInvtnSubmission dto) throws UnauthorizedException,
+			MembershipInvtnSubmission dto,
+			String acceptInvitationEndpoint, 
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipInvtnSubmission created = membershipInvitationManager.create(userInfo, dto);
-		MessageToUserAndBody message = membershipInvitationManager.createInvitationNotification(created);
+		MessageToUserAndBody message = membershipInvitationManager.
+				createInvitationNotification(created,
+						acceptInvitationEndpoint,
+						notificationUnsubscribeEndpoint);
 		notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
 
 		return created;

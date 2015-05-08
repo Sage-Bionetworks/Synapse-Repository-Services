@@ -53,9 +53,15 @@ public class MembershipInvitationController extends BaseController {
 	public @ResponseBody
 	MembershipInvtnSubmission createInvitation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, required = false) String acceptInvitationEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipInvtnSubmission invitation
 			) throws NotFoundException {
-		return serviceProvider.getMembershipInvitationService().create(userId, invitation);
+		return serviceProvider.
+				getMembershipInvitationService().
+				create(userId, invitation, 
+						acceptInvitationEndpoint, 
+						notificationUnsubscribeEndpoint);
 	}
 
 	/**

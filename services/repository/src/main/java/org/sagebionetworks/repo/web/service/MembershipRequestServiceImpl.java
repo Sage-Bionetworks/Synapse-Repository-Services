@@ -49,11 +49,15 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 */
 	@Override
 	public MembershipRqstSubmission create(Long userId,
-			MembershipRqstSubmission dto) throws UnauthorizedException,
+			MembershipRqstSubmission dto,
+			String acceptRequestEndpoint,
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
-		List<MessageToUserAndBody> messages = membershipRequestManager.createMembershipRequestNotification(created);
+		List<MessageToUserAndBody> messages = membershipRequestManager.
+				createMembershipRequestNotification(created,
+						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 		notificationManager.sendNotifications(userInfo, messages);
 		return created;
 	}

@@ -16,8 +16,11 @@ public interface MembershipRequestManager {
 	
 	/**
 	 * Request to join the team.
+	 * 
 	 * @param userInfo
 	 * @param mrs
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -102,6 +105,7 @@ public interface MembershipRequestManager {
 	 * @param mrs
 	 * @return the message metadata and the message content, one for each team administrator
 	 */
-	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs);
+	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
+			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint);
 
 }

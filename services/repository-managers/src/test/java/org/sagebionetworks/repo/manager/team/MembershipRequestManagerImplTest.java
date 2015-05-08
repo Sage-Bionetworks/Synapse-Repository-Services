@@ -165,11 +165,15 @@ public class MembershipRequestManagerImplTest {
 		team.setName("test-team");
 		when(mockTeamDAO.get("111")).thenReturn(team);
 		
+		String acceptRequestEndpoint = "acceptRequestEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId("111");
 		mrs.setCreatedBy(MEMBER_PRINCIPAL_ID);
 		mrs.setMessage("Please let me in your team.");
-		List<MessageToUserAndBody> resultList = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
+		List<MessageToUserAndBody> resultList = membershipRequestManagerImpl.
+				createMembershipRequestNotification(mrs,
+						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 		assertEquals(1, resultList.size());
 		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("someone has requested to join your team", result.getMetadata().getSubject());

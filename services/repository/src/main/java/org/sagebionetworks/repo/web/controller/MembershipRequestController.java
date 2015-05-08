@@ -50,9 +50,11 @@ public class MembershipRequestController extends BaseController {
 	public @ResponseBody
 	MembershipRqstSubmission createRequest(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.ACCEPT_REQUEST_ENDPOINT_PARAM, required = false) String acceptRequestEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipRqstSubmission request
 			) throws NotFoundException {
-		return serviceProvider.getMembershipRequestService().create(userId, request);
+		return serviceProvider.getMembershipRequestService().create(userId, request, acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 	}
 
 	/**

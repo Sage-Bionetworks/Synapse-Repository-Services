@@ -129,4 +129,19 @@ public class AuthorizationConstants {
 	 */
 	public static final String REASON_SERVER_ERROR = "{\"reason\": \"Server Error. Error logged.\"}";
 	
+	/**
+	 * 
+	 */
+	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
+	
+	/**
+	 * 
+	 */
+	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
+	
+	/**
+	 * 
+	 */
+	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	
 }
