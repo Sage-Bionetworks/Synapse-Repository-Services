@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.TeamMember;
 
 public class ITChallengeController {
 
+	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
@@ -176,7 +178,7 @@ public class ITChallengeController {
 		assertTrue(challenges.isEmpty());
 		
 		// Now join the challenge and see it appear in the query results
-		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString());
+		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString(), MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(Collections.singletonList(challenge),
 				synapse.listChallengesForParticipant(""+userToDelete, null, null).getResults()
 				);
@@ -194,7 +196,7 @@ public class ITChallengeController {
 				getResults().isEmpty());
 		
 		// make the user a Team admin so they have permission to register with the challenge
-		synapse.addTeamMember(registeredTeam.getId(), userToDelete.toString());
+		synapse.addTeamMember(registeredTeam.getId(), userToDelete.toString(), MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		adminSynapse.setTeamMemberPermissions(registeredTeam.getId(), userToDelete.toString(), true);
 		// double check that the user is now a team administrator
 		TeamMember tm = synapse.getTeamMember(registeredTeam.getId(), userToDelete.toString());
@@ -237,7 +239,7 @@ public class ITChallengeController {
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
 		// rejoin the challenge to finish things up
-		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString());
+		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString(), MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		
 		

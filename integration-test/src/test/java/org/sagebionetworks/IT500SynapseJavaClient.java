@@ -123,6 +123,10 @@ public class IT500SynapseJavaClient {
 	
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
+	private static final String MOCK_ACCEPT_INVITATION_ENDPOINT = "https://www.synapse.org#invit:";
+	private static final String MOCK_ACCEPT_MEMB_RQST_ENDPOINT = "https://www.synapse.org#request:";
+	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+
 	private List<String> toDelete;
 	private List<Long> accessRequirementsToDelete;
 	private List<String> handlesToDelete;
@@ -1052,7 +1056,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(somePrincipalId);
 		return somePrincipalId;
 	}
-
+	
 	@Test
 	public void testTeamAPI() throws SynapseException, IOException, InterruptedException {
 		// create a Team
@@ -1160,7 +1164,7 @@ public class IT500SynapseJavaClient {
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(createdTeam.getId());
-		synapseTwo.createMembershipRequest(mrs);
+		synapseTwo.createMembershipRequest(mrs, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		// check membership status
 		tms = synapseOne.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1192,7 +1196,7 @@ public class IT500SynapseJavaClient {
 		teamMembers = synapseOne.listTeamMembers(Collections.singletonList(Long.parseLong(updatedTeam.getId())), myPrincipalId);
 		assertEquals(members.getResults(), teamMembers);
 
-		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
+		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1354,7 +1358,7 @@ public class IT500SynapseJavaClient {
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto);
+		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(myPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
@@ -1440,7 +1444,7 @@ public class IT500SynapseJavaClient {
 		String message = "Please accept this request";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto);
+		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(otherPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
