@@ -108,6 +108,8 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint) {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
@@ -122,7 +124,6 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		}
 		
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
-		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		for (String recipientPrincipalId : teamAdmins) {
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId()));

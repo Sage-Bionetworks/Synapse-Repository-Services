@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -79,45 +80,14 @@ public class IT502SynapseJavaClientAccountTest {
 		} catch (SynapseException e) { }
 	}
 	
-	public static String readFile(File file) throws IOException {
-		ByteArrayOutputStream content = new ByteArrayOutputStream();
-		InputStream fis = new FileInputStream(file);
-		try {
-			while (true) {
-				int c = fis.read();
-				if (c<=0) break;
-				content.write(c);
-			}
-			return content.toString();
-		} finally {
-			fis.close();
-		}
-	}
-	
-	public static File getFileForEmail(String email) {
-		String tempDir = System.getProperty("java.io.tmpdir");
-		assertNotNull(tempDir);
-		return new File(tempDir, email+".json");
-	}
-	
 	private String getTokenFromFile(File file, String endpoint) throws IOException {
-		// the email is written to a local file.  Read it and extract the link
-		String body = readFile(file);
-		String startString = "href=\\\""+endpoint;
-		int endpointIndex = body.indexOf(startString);
-		int tokenStart = endpointIndex+startString.length();
-		assertTrue(tokenStart>=0);
-		int tokenEnd = body.indexOf("\\\">", tokenStart);
-		assertTrue(tokenEnd>=0);
-		String token = body.substring(tokenStart, tokenEnd);
-		return token;
+		return EmailValidationUtil.getTokenFromFile(file, "href=\\\""+endpoint, "\\\">");
 	}
-	
-	@Ignore
+		
 	@Test
 	public void testCreateNewAccount() throws Exception {
 		String email = UUID.randomUUID().toString()+"@foo.com";
-		fileToDelete = getFileForEmail(email);
+		fileToDelete = EmailValidationUtil.getFileForEmail(email);
 		assertNotNull(fileToDelete.toString(), fileToDelete);
 		NewUser user = new NewUser();
 		user.setEmail(email);
@@ -125,7 +95,6 @@ public class IT502SynapseJavaClientAccountTest {
 		user.setLastName("lastName");
 		String endpoint = "https://www.synapse.org?";
 		synapseAnonymous.newAccountEmailValidation(user, endpoint);
-		//assertTrue(fileToDelete.exists());
 		String token = getTokenFromFile(fileToDelete, endpoint);
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
 		accountSetupInfo.setEmailValidationToken(token);
@@ -146,12 +115,11 @@ public class IT502SynapseJavaClientAccountTest {
 		user2ToDelete = Long.parseLong(up.getOwnerId());
 	}
 	
-	@Ignore
 	@Test
 	public void testAddEmail() throws Exception {
 		// start the email validation process
 		String email = UUID.randomUUID().toString()+"@foo.com";
-		fileToDelete = getFileForEmail(email);
+		fileToDelete = EmailValidationUtil.getFileForEmail(email);
 		assertNotNull(fileToDelete);
 		assertTrue(fileToDelete.exists());
 		String endpoint = "https://www.synapse.org?";

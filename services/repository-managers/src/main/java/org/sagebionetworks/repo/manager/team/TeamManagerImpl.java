@@ -504,12 +504,14 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, UserInfo memberInfo, String teamId, String notificationUnsubscribeEndpoint) throws NotFoundException {
+	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, 
+			UserInfo memberInfo, String teamId, String notificationUnsubscribeEndpoint) throws NotFoundException {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (notificationUnsubscribeEndpoint==null) return result;
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
 		fieldValues.put(TEMPLATE_KEY_TEAM_ID, teamId);
-		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		if (userJoiningTeamIsSelf) {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);

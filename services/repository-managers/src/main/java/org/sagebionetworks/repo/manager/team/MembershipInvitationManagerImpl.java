@@ -97,6 +97,7 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
+		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));

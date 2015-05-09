@@ -58,7 +58,10 @@ public class MembershipInvitationServiceImpl implements
 				createInvitationNotification(created,
 						acceptInvitationEndpoint,
 						notificationUnsubscribeEndpoint);
-		notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
+		if (message!=null) {
+			notificationManager.
+				sendNotifications(userInfo, Collections.singletonList(message));
+		}
 
 		return created;
 	}
