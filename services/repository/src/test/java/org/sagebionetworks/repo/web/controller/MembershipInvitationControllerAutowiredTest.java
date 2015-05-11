@@ -81,10 +81,13 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 	@Test
 	public void testRoundTrip() throws Exception {
 		// create an invitation
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setInviteeId(testInvitee.getId().toString());
 		mis.setTeamId(teamToDelete.getId());
-		MembershipInvtnSubmission created = servletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis);
+		MembershipInvtnSubmission created = servletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis,
+				acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		
 		// get the invitation
 		MembershipInvtnSubmission mis2 = servletTestHelper.getMembershipInvitation(dispatchServlet, adminUserId, created.getId());

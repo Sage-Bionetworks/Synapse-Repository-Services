@@ -40,7 +40,10 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	
 	public static void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
-		String tmpDir = System.getProperty("java.io.tmpdir");
+		// Note: We used to use System.getProperty("java.io.tmpdir")
+		// but found that this varies between the tomcat test container and
+		// the JVM running the integration test
+		String tmpDir = "/tmp";
 		File file = new File(tmpDir, to+".json");
 		PrintWriter pw;
 		try {

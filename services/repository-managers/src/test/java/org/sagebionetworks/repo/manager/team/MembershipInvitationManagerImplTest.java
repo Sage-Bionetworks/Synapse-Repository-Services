@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
@@ -28,6 +30,8 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 
 public class MembershipInvitationManagerImplTest {
 	
@@ -254,12 +258,29 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
 		Team team = new Team();
 		team.setName("test team");
+		team.setId(TEAM_ID);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
-		MessageToUserAndBody result = membershipInvitationManagerImpl.createInvitationNotification(mis);
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+		MessageToUserAndBody result = membershipInvitationManagerImpl.
+				createInvitationNotification(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		assertEquals("you have been invited to join a team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
-		assertEquals(result.getBody(), "Hello,\r\nYou have been invited to join the team test team.  The inviter sends the following message:\r\n\r\nPlease join our team.\r\n\r\n  To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
-				result.getBody());
+		String bodyNoWhiteSpace = result.getBody().replaceAll("\\s", "");
+		String s1 = "<html><body><p>Hello,</p><p>Youhavebeeninvitedtojointheteamtestteam.Theinvitersendsthefollowingmessage:<Blockquote>Pleasejoinourteam.</Blockquote>Tojointheteam,justclick<ahref=https://synapse.org/#acceptInvitationEndpoint:";
+		String s2 = ">thislink</a>.Ifyouarenotinterestedinjoiningtheteam,pleasedisregardthismessage.</p><p>Sincerely,</p><p>SynapseAdministration</p><p>Toturnoffemailnotifications,<ahref=https://synapse.org/#notificationUnsubscribeEndpoint:";
+		String s3 = ">clickhere.</a></p></body></html>";
+		assertTrue(bodyNoWhiteSpace.startsWith(s1));
+		assertTrue(bodyNoWhiteSpace.indexOf(s2)>0);
+		assertTrue(bodyNoWhiteSpace.endsWith(s3));
+		String acceptInvitationToken = bodyNoWhiteSpace.substring(s1.length(), bodyNoWhiteSpace.indexOf(s2));
+		JoinTeamSignedToken jtst = SignedTokenUtil.deserializeAndValidateToken(acceptInvitationToken, JoinTeamSignedToken.class);
+		assertEquals(TEAM_ID, jtst.getTeamId());
+		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
+		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getUserId());
+		String unsubscribeToken = bodyNoWhiteSpace.substring(bodyNoWhiteSpace.indexOf(s2)+s2.length(), bodyNoWhiteSpace.indexOf(s3));
+		EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
+		assertEquals(MEMBER_PRINCIPAL_ID, eust.getUserId());
 	}
 
 }

@@ -1,0 +1,15 @@
+{
+	"title": "EmailUnsubscribeSignedToken",
+	"description": "Signed token supporting one-click email suppression.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+		}
+	], 
+	"properties": {
+		"userId": {
+			"type": "string",
+			"description": "The ID of the user wishing to suppress email notifications."
+		}
+	}
+}

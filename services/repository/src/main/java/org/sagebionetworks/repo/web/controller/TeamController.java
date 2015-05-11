@@ -252,9 +252,10 @@ public class TeamController extends BaseController {
 	public void addTeamMember(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
 			) throws NotFoundException {
-		serviceProvider.getTeamService().addMember(userId, id, principalId);
+		serviceProvider.getTeamService().addMember(userId, id, principalId, notificationUnsubscribeEndpoint);
 	}
 	
 	/**

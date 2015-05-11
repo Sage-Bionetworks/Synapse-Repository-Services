@@ -9,17 +9,22 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MembershipInvitationService {
+	
 	/**
 	 * 
 	 * @param userId
 	 * @param dto
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public MembershipInvtnSubmission create(Long userId,
-			MembershipInvtnSubmission dto) throws UnauthorizedException, InvalidModelException, NotFoundException;
+			MembershipInvtnSubmission dto,
+			String acceptInvitationEndpoint, 
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, NotFoundException;
 	
 	/**
 	 * 

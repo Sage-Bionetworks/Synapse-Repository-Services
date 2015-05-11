@@ -28,10 +28,13 @@ public interface MembershipInvitationManager {
 	 * Create the notification content
 	 * 
 	 * @param mis
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws NotFoundException
 	 */
-	MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis) throws NotFoundException;
+	MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
+			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 	
 	/**
 	 * Retrieve an invitation by its ID

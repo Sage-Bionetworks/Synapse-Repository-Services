@@ -129,4 +129,19 @@ public class AuthorizationConstants {
 	 */
 	public static final String REASON_SERVER_ERROR = "{\"reason\": \"Server Error. Error logged.\"}";
 	
+	/**
+	 * A request parameter for specifying the portal endpoint for accepting a team membership invitation
+	 */
+	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
+	
+	/**
+	 * A request parameter for specifying the portal endpoint for accepting a team membership request
+	 */
+	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
+	
+	/**
+	 * A request parameter for specifying the portal endpoint for unsubscribing from email
+	 */
+	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	
 }

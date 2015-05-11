@@ -1493,9 +1493,11 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @param teamId
 	 * @param memberId
+	 * @param notificationUnsubscribeEndpoint
 	 * @throws SynapseException
 	 */
-	void addTeamMember(String teamId, String memberId) throws SynapseException;
+	void addTeamMember(String teamId, String memberId, 
+			String notificationUnsubscribeEndpoint) throws SynapseException;
 	
 	/**
 	 * Return the members of the given team matching the given name fragment.
@@ -1572,10 +1574,15 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param invitation
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipInvtnSubmission createMembershipInvitation(MembershipInvtnSubmission invitation) throws SynapseException;
+	MembershipInvtnSubmission createMembershipInvitation(
+			MembershipInvtnSubmission invitation,
+			String acceptInvitationEndpoint, 
+			String notificationUnsubscribeEndpoint ) throws SynapseException;
 
 	/**
 	 * 
@@ -1617,10 +1624,14 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param request
+	 * @param acceptRequestEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request) throws SynapseException;
+	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request,
+			String acceptRequestEndpoint, 
+			String notificationUnsubscribeEndpoint) throws SynapseException;
 	/**
 	 * 
 	 * @param requestId

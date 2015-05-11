@@ -123,6 +123,10 @@ public class IT500SynapseJavaClient {
 	
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
+	private static final String MOCK_ACCEPT_INVITATION_ENDPOINT = "https://www.synapse.org/#invit:";
+	private static final String MOCK_ACCEPT_MEMB_RQST_ENDPOINT = "https://www.synapse.org/#request:";
+	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org/#unsub:";
+
 	private List<String> toDelete;
 	private List<Long> accessRequirementsToDelete;
 	private List<String> handlesToDelete;
@@ -1052,7 +1056,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(somePrincipalId);
 		return somePrincipalId;
 	}
-
+	
 	@Test
 	public void testTeamAPI() throws SynapseException, IOException, InterruptedException {
 		// create a Team
@@ -1160,7 +1164,7 @@ public class IT500SynapseJavaClient {
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(createdTeam.getId());
-		synapseTwo.createMembershipRequest(mrs);
+		synapseTwo.createMembershipRequest(mrs, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		// check membership status
 		tms = synapseOne.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1192,7 +1196,7 @@ public class IT500SynapseJavaClient {
 		teamMembers = synapseOne.listTeamMembers(Collections.singletonList(Long.parseLong(updatedTeam.getId())), myPrincipalId);
 		assertEquals(members.getResults(), teamMembers);
 
-		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
+		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1337,7 +1341,8 @@ public class IT500SynapseJavaClient {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		String myPrincipalId = synapseOne.getMyProfile().getOwnerId();
+		UserProfile synapseOneProfile = synapseOne.getMyProfile();
+		String myPrincipalId = synapseOneProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
@@ -1347,44 +1352,56 @@ public class IT500SynapseJavaClient {
 		
 		// create an invitation
 		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
-		String somePrincipalId = getSomeGroup(createdTeam.getId());
+		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
+		List<String> inviteeEmails = inviteeUserProfile.getEmails();
+		assertEquals(1, inviteeEmails.size());
+		String inviteeEmail = inviteeEmails.get(0);
+		File inviteeNotification = EmailValidationUtil.getFileForEmail(inviteeEmail);
+		if (inviteeNotification.exists()) assertTrue(inviteeNotification.delete());
+		
+		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
-		dto.setInviteeId(somePrincipalId);
+		dto.setInviteeId(inviteePrincipalId);
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto);
+		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(myPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
 		assertNotNull(created.getId());
-		assertEquals(somePrincipalId, created.getInviteeId());
+		assertEquals(inviteePrincipalId, created.getInviteeId());
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
+		
+		// check that a notification was sent to the invitee
+		// TODO  We disable pending the completion of PLFM-3363 when notification is enabled
+		// assertTrue(inviteeNotification.exists());
+		
 		// get the invitation
 		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());
 		assertEquals(created, retrieved);
 		
 		{
 			// query for invitations based on user
-			PaginatedResults<MembershipInvitation> invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, null, 1, 0);
+			PaginatedResults<MembershipInvitation> invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, null, 1, 0);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			MembershipInvitation invitation = invitations.getResults().get(0);
 			assertEquals(expiresOn, invitation.getExpiresOn());
 			assertEquals(message, invitation.getMessage());
 			assertEquals(createdTeam.getId(), invitation.getTeamId());
-			assertEquals(somePrincipalId, invitation.getUserId());
+			assertEquals(inviteePrincipalId, invitation.getUserId());
 			// check pagination
-			invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, null, 2, 1);
+			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, null, 2, 1);
 			assertEquals(0L, invitations.getResults().size());
 			// query for invitations based on user and team
-			invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 1, 0);
+			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, createdTeam.getId(), 1, 0);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			MembershipInvitation invitation2 = invitations.getResults().get(0);
 			assertEquals(invitation, invitation2);
 			// again, check pagination
-			invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 2, 1);
+			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, createdTeam.getId(), 2, 1);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			assertEquals(0L, invitations.getResults().size());
 		}
@@ -1400,11 +1417,11 @@ public class IT500SynapseJavaClient {
 			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
 			assertEquals(0L, invitationSubmissions.getResults().size());
 			// query for SUBMISSIONs based on team and invitee
-			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 1, 0);
+			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), inviteePrincipalId, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			assertEquals(created, invitationSubmissions.getResults().get(0));
 			// again, check pagination
-			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 2, 1);
+			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), inviteePrincipalId, 2, 1);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			assertEquals(0L, invitationSubmissions.getResults().size());
 		}
@@ -1440,7 +1457,7 @@ public class IT500SynapseJavaClient {
 		String message = "Please accept this request";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto);
+		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(otherPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());

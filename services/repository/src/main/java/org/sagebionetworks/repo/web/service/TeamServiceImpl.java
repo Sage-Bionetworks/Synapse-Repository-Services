@@ -4,6 +4,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -204,18 +205,18 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#addMember(java.lang.String, java.lang.String, java.lang.String, boolean)
 	 */
 	@Override
-	public void addMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException,
+	public void addMember(Long userId, String teamId, String principalId, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
 		// needed to determine who to notify
-		MessageToUserAndBody message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
+		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId, notificationUnsubscribeEndpoint);
 		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		notificationManager.sendNotification(userInfo, message);
+		notificationManager.sendNotifications(userInfo, messages);
 	}
 	
 	/* (non-Javadoc)

@@ -3,6 +3,12 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +40,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -63,8 +68,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+
 
 /**
  * @author brucehoff
@@ -107,8 +112,8 @@ public class TeamManagerImpl implements TeamManager {
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
-	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
-	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.txt";
+	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
+	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
 	
 
@@ -499,39 +504,47 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public MessageToUserAndBody createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, 
+			UserInfo memberInfo, String teamId, String notificationUnsubscribeEndpoint) throws NotFoundException {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (notificationUnsubscribeEndpoint==null) return result;
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
-		String messageContent = null;
-		MessageToUser mtu = new MessageToUser();
-		mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, teamId);
 		if (userJoiningTeamIsSelf) {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
-			fieldValues.put("#displayName#", memberDisplayName);
-			messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
-			mtu.setRecipients(getInviters(Long.parseLong(teamId), memberInfo.getId()));
+			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
+			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
+				MessageToUser mtu = new MessageToUser();
+				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+				fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+						notificationUnsubscribeEndpoint, recipient));
+				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
+				mtu.setRecipients(Collections.singleton(recipient));
+				result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
+			}
 		} else {
-			String joinerUserName = principalAliasDAO.getUserName(joinerInfo.getId());
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
-			joinerUserProfile.setUserName(joinerUserName);
 			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
-			fieldValues.put("#displayName#", joinerDisplayName);
-			fieldValues.put("#userId#", memberInfo.getId().toString());
-			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
-			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
+			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
+			String recipient = memberInfo.getId().toString();
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+					notificationUnsubscribeEndpoint, recipient));
+			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
+			MessageToUser mtu = new MessageToUser();
+			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+			mtu.setRecipients(Collections.singleton(recipient));
+			result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
 		}	
-		return new MessageToUserAndBody(mtu, messageContent);
+		return result;
 	}
 
 	private Set<String> getInviters(Long teamId, Long inviteeId) {
-		return
-		new HashSet<String>(membershipInvtnSubmissionDAO.
+		return new HashSet<String>(membershipInvtnSubmissionDAO.
 			getInvitersByTeamAndUser(teamId, inviteeId, System.currentTimeMillis()));
-	}
-	
+	}	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#addMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)

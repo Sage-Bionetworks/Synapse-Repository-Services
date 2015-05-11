@@ -3,6 +3,14 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -29,8 +38,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+
 
 /**
  * @author brucehoff
@@ -63,7 +72,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		this.teamDAO=teamDAO;
 	}
 	
-	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.txt";
+	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
 	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
 
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {
@@ -97,26 +106,36 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 
 	@Override
-	public MessageToUserAndBody createMembershipRequestNotification(MembershipRqstSubmission mrs) {
+	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
+			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint) {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#displayName#", displayName);
-		fieldValues.put("#teamName#", teamDAO.get(mrs.getTeamId()).getName());
-		fieldValues.put("#teamId#", mrs.getTeamId());
+		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mrs.getTeamId()).getName());
 		if (mrs.getMessage()==null || mrs.getMessage().length()==0) {
-			fieldValues.put("#requesterMessage#", "");
+			fieldValues.put(TEMPLATE_KEY_REQUESTER_MESSAGE, "");
 		} else {
-			fieldValues.put("#requesterMessage#", 
-							"The requester sends the following message:\r\n\r\n"+
-							mrs.getMessage()+"\r\n\r\n");
+			fieldValues.put(TEMPLATE_KEY_REQUESTER_MESSAGE, 
+							"The requester sends the following message: <Blockquote> "+
+							mrs.getMessage()+" </Blockquote> ");
 		}
-		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
-		MessageToUser mtu = new MessageToUser();
+		
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
-		mtu.setRecipients(teamAdmins);
-		mtu.setSubject(TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT);
-		return new MessageToUserAndBody(mtu, messageContent);
+		for (String recipientPrincipalId : teamAdmins) {
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
+					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId()));
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+					notificationUnsubscribeEndpoint, recipientPrincipalId));
+			String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
+			MessageToUser mtu = new MessageToUser();
+			mtu.setRecipients(Collections.singleton(recipientPrincipalId));
+			mtu.setSubject(TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT);
+			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
+		}
+		return result;
 	}
 	
 	/* (non-Javadoc)
