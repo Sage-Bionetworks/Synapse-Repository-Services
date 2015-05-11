@@ -5,19 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.UUID;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -121,7 +116,7 @@ public class IT502SynapseJavaClientAccountTest {
 		String email = UUID.randomUUID().toString()+"@foo.com";
 		fileToDelete = EmailValidationUtil.getFileForEmail(email);
 		assertNotNull(fileToDelete);
-		assertTrue(fileToDelete.exists());
+		assertFalse(fileToDelete.exists());
 		String endpoint = "https://www.synapse.org?";
 		synapseOne.additionalEmailValidation(
 				Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 

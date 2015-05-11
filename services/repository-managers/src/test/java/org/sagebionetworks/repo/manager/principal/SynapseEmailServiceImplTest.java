@@ -41,7 +41,7 @@ public class SynapseEmailServiceImplTest {
 	public void testWriteToFile() {
 		
 		String to = "you@foo.bar";
-		String tmpDir = System.getProperty("java.io.tmpdir");
+		String tmpDir = "/tmp";
 		File file = new File(tmpDir, to+".json");
 		fileToDelete = file;
 		assertFalse(file.exists());

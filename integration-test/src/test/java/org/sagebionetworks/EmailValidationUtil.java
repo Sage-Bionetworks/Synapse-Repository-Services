@@ -29,7 +29,10 @@ public class EmailValidationUtil {
 	}
 	
 	public static File getFileForEmail(String email) {
-		String tempDir = System.getProperty("java.io.tmpdir");
+		// Note: We used to use System.getProperty("java.io.tmpdir")
+		// but found that this varies between the tomcat test container and
+		// the JVM running the integration test
+		String tempDir = "/tmp";
 		assertNotNull(tempDir);
 		return new File(tempDir, email+".json");
 	}

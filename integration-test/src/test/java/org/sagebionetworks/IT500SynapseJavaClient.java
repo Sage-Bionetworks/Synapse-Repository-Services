@@ -1376,7 +1376,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		
 		// check that a notification was sent to the invitee
-		assertTrue(inviteeNotification.exists());
+		// TODO  We disable pending the completion of PLFM-3363 when notification is enabled
+		// assertTrue(inviteeNotification.exists());
 		
 		// get the invitation
 		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());
