@@ -1490,13 +1490,15 @@ public interface SynapseClient extends BaseClient {
 	void deleteTeam(String teamId) throws SynapseException;
 	
 	/**
-	 * 
+	 * Add a member to a Team
 	 * @param teamId
 	 * @param memberId
-	 * @param notificationUnsubscribeEndpoint
+	 * @param teamEndpoint the portal prefix for the Team URL. The team ID is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
 	 * @throws SynapseException
 	 */
 	void addTeamMember(String teamId, String memberId, 
+			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException;
 	
 	/**
@@ -1574,8 +1576,10 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param invitation
-	 * @param acceptInvitationEndpoint
-	 * @param notificationUnsubscribeEndpoint
+	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
+	 * invitation.  A signed, serialized token is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL.
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1624,8 +1628,10 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param request
-	 * @param acceptRequestEndpoint
-	 * @param notificationUnsubscribeEndpoint
+	 * @param acceptRequestEndpoint the portal end-point for one-click acceptance of the membership
+	 * request.  A signed, serialized token is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL.
 	 * @return
 	 * @throws SynapseException
 	 */

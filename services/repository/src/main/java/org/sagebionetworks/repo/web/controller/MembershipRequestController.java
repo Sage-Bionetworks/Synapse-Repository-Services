@@ -42,6 +42,13 @@ public class MembershipRequestController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param request
+	 * @param acceptRequestEndpoint
+	 * @param acceptRequestEndpoint the portal end-point for one-click acceptance of the membership
+	 * request.  A signed, serialized token is appended to create the complete URL:
+	 * <ahref="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
+	 * A signed, serialized token is appended to create the complete URL: 
+	 * <ahref="${org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken}">EmailUnsubscribeSignedToken</a>
 	 * @return
 	 * @throws NotFoundException
 	 */

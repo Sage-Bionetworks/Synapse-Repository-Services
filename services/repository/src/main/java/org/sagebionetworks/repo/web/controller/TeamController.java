@@ -245,6 +245,10 @@ public class TeamController extends BaseController {
 	 * @param id the ID of the Team to which the user is to be added.
 	 * @param principalId the ID of the user to be added to the Team.
 	 * @param userId
+	 * @param teamEndpoint the portal prefix for the Team URL. The team ID is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
+	 * A signed, serialized token is appended to create the complete URL: 
+	 * <ahref="${org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken}">EmailUnsubscribeSignedToken</a>
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -253,9 +257,10 @@ public class TeamController extends BaseController {
 			@PathVariable String id,
 			@PathVariable String principalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.TEAM_ENDPOINT_PARAM, required = false) String teamEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
 			) throws NotFoundException {
-		serviceProvider.getTeamService().addMember(userId, id, principalId, notificationUnsubscribeEndpoint);
+		serviceProvider.getTeamService().addMember(userId, id, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	/**

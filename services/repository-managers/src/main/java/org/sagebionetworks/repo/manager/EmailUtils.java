@@ -41,6 +41,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
 	public static final String TEMPLATE_KEY_TEAM_NAME = "#teamName#";
 	public static final String TEMPLATE_KEY_TEAM_ID = "#teamId#";
+	public static final String TEMPLATE_KEY_TEAM_WEB_LINK = "#teamWebLink#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_JOIN = "#oneClickJoin#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
 	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";

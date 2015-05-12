@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -38,7 +37,6 @@ public class NotificationManagerImplTest {
 		notificationManager = new NotificationManagerImpl(fileHandleManager, messageManager);
 	}
 
-	@Ignore // restore once PLFM-3363
 	@Test
 	public void testSendNotification() throws Exception {
 		UserInfo userInfo = new UserInfo(false);

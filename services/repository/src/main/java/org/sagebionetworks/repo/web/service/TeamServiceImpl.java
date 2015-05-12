@@ -205,27 +205,28 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#addMember(java.lang.String, java.lang.String, java.lang.String, boolean)
 	 */
 	@Override
-	public void addMember(Long userId, String teamId, String principalId, 
+	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
-		 addMemberIntern(userId, teamId, principalId, notificationUnsubscribeEndpoint);
+		 addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	@Override
-	public void addMember(String serializedJoinTeamToken, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public void addMember(String serializedJoinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
 		JoinTeamSignedToken jtst = SignedTokenUtil.
 				deserializeAndValidateToken(serializedJoinTeamToken, JoinTeamSignedToken.class);
-		addMemberIntern(Long.parseLong(jtst.getUserId()), jtst.getTeamId(), jtst.getMemberId(), notificationUnsubscribeEndpoint);
+		addMemberIntern(Long.parseLong(jtst.getUserId()), jtst.getTeamId(), jtst.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 
 	private void addMemberIntern(Long userId, String teamId, String principalId, 
+			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
 		// needed to determine who to notify
-		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId, notificationUnsubscribeEndpoint);
+		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId, teamEndpoint, notificationUnsubscribeEndpoint);
 		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
 		

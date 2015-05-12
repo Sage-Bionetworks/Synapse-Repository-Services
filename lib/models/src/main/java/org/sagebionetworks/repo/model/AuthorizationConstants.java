@@ -140,6 +140,11 @@ public class AuthorizationConstants {
 	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
 	
 	/**
+	 * A request parameter for specifying the portal prefix for the Team URL.
+	 * The team ID is appended to create the complete URL.
+	 */
+	public static final String TEAM_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	/**
 	 * A request parameter for specifying the portal endpoint for unsubscribing from email
 	 */
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";

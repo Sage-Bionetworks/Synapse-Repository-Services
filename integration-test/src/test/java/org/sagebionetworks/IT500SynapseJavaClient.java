@@ -125,6 +125,7 @@ public class IT500SynapseJavaClient {
 	
 	private static final String MOCK_ACCEPT_INVITATION_ENDPOINT = "https://www.synapse.org/#invit:";
 	private static final String MOCK_ACCEPT_MEMB_RQST_ENDPOINT = "https://www.synapse.org/#request:";
+	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org/#unsub:";
 
 	private List<String> toDelete;
@@ -1196,7 +1197,7 @@ public class IT500SynapseJavaClient {
 		teamMembers = synapseOne.listTeamMembers(Collections.singletonList(Long.parseLong(updatedTeam.getId())), myPrincipalId);
 		assertEquals(members.getResults(), teamMembers);
 
-		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1377,8 +1378,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		
 		// check that a notification was sent to the invitee
-		// TODO  We disable pending the completion of PLFM-3363 when notification is enabled
-		// assertTrue(inviteeNotification.exists());
+		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification));
 		
 		// get the invitation
 		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());

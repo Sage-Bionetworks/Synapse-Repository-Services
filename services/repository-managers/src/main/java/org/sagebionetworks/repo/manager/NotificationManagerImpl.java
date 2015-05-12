@@ -30,21 +30,17 @@ public class NotificationManagerImpl implements NotificationManager {
 	@Override
 	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages) throws NotFoundException {
 
+		for (MessageToUserAndBody message : messages) {
+			if (message.getMetadata().getRecipients().isEmpty()) continue;
+			try {
+				FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
+						userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
 
-		// TODO we disable pending completion of the feature see PLFM-3363
-		if (false) {
-			for (MessageToUserAndBody message : messages) {
-				if (message.getMetadata().getRecipients().isEmpty()) continue;
-				try {
-					FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
-							userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
+				message.getMetadata().setFileHandleId(fileHandle.getId());
 
-					message.getMetadata().setFileHandleId(fileHandle.getId());
-
-					messageManager.createMessage(userInfo, message.getMetadata());
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
+				messageManager.createMessage(userInfo, message.getMetadata());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}

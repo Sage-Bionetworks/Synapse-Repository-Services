@@ -391,6 +391,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
 	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	public static final String TEAM_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
 	
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
@@ -6407,11 +6408,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void addTeamMember(String teamId, String memberId, String notificationUnsubscribeEndpoint)
+	public void addTeamMember(String teamId, String memberId, 
+			String teamEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
 		getSharedClientConnection().putJson(repoEndpoint,
 				TEAM + "/" + teamId + MEMBER + "/" + memberId +
-				"?" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
+				"?" + 	TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
+				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
 				new JSONObject().toString(), getUserAgent());
 	}
 

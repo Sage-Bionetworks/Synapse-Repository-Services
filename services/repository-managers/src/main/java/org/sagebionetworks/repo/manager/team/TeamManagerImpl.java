@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_N
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -113,8 +114,8 @@ public class TeamManagerImpl implements TeamManager {
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
-	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
-	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
+	public static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
+	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
 	
 
@@ -506,13 +507,17 @@ public class TeamManagerImpl implements TeamManager {
 	
 	@Override
 	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, 
-			UserInfo memberInfo, String teamId, String notificationUnsubscribeEndpoint) throws NotFoundException {
+			UserInfo memberInfo, String teamId, String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws NotFoundException {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		if (notificationUnsubscribeEndpoint==null) return result;
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
 		fieldValues.put(TEMPLATE_KEY_TEAM_ID, teamId);
+		String teamUrl = teamEndpoint+teamId;
+		EmailUtils.validateSynapsePortalHost(teamUrl);
+		fieldValues.put(TEMPLATE_KEY_TEAM_WEB_LINK, teamUrl);
 		if (userJoiningTeamIsSelf) {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);

@@ -12,6 +12,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +42,6 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
@@ -894,6 +897,7 @@ public class TeamManagerImplTest {
 			mis.setCreatedBy(inviterPrincipalId);
 			miss.add(mis);
 		}
+		String teamEndpoint = "https://synapse.org/#Team:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		
 		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
@@ -904,20 +908,38 @@ public class TeamManagerImplTest {
 					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(miss);
 
 		List<MessageToUserAndBody> resultList = 
-				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, notificationUnsubscribeEndpoint);
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, 
+						teamEndpoint,
+						notificationUnsubscribeEndpoint);
 		assertEquals(inviterPrincipalIds.size(), resultList.size());
 		for (int i=0; i<inviterPrincipalIds.size(); i++) {
 			MessageToUserAndBody result = resultList.get(i);
 			assertEquals("new member has joined team", result.getMetadata().getSubject());
 		
 			assertEquals(Collections.singleton(inviterPrincipalIds.get(i)), result.getMetadata().getRecipients());
-			String bodyNoWhiteSpace = result.getBody().replaceAll("\\s", "");
 		
-			String s1 = "<html><body><p>Hello,</p><p>foobar(userName)hasjoinedteamtest-name.Forfurtherinformation,<ahref=https://www.synapse.org/#!Team:123>clickhere</a>tovisittheteampage.</p><p>Sincerely,</p><p>SynapseAdministration</p><p>Toturnoffemailnotifications,<ahref=https://synapse.org/#notificationUnsubscribeEndpoint:";
-			String s2 = ">clickhere.</a></p></body></html>";
-			assertTrue(bodyNoWhiteSpace.startsWith(s1));
-			assertTrue(bodyNoWhiteSpace.endsWith(s2));
-			String unsubscribeToken = bodyNoWhiteSpace.substring(bodyNoWhiteSpace.indexOf(s1)+s1.length(), bodyNoWhiteSpace.indexOf(s2));
+			// this will give us nine pieces...
+			List<String> delims = Arrays.asList(new String[] {
+					TEMPLATE_KEY_DISPLAY_NAME,
+					TEMPLATE_KEY_TEAM_NAME,
+					TEMPLATE_KEY_TEAM_WEB_LINK,
+					TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+			});
+			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.USER_HAS_JOINED_TEAM_TEMPLATE, delims);
+
+			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+			assertEquals("foo bar (userName)", displayName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+			assertEquals("test-name", teamName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+			String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+			assertEquals(teamEndpoint+TEAM_ID, teamLink);
+			assertTrue(result.getBody().endsWith(templatePieces.get(8)));
+			String unsubscribeToken = EmailParseUtil.getTokenFromString(
+					result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
 			EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
 			assertEquals(inviterPrincipalIds.get(i), eust.getUserId());
 		}
@@ -930,22 +952,42 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
 		String otherPrincipalId = "987";
+		String teamEndpoint = "https://synapse.org/#Team:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
 		List<MessageToUserAndBody> resultList = 
-				teamManagerImpl.createJoinedTeamNotifications(userInfo, otherUserInfo, TEAM_ID, notificationUnsubscribeEndpoint);
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, otherUserInfo, TEAM_ID, 
+						teamEndpoint,
+						notificationUnsubscribeEndpoint);
 		assertEquals(1, resultList.size());
 		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("new member has joined team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
-		String bodyNoWhiteSpace = result.getBody().replaceAll("\\s", "");
-		System.out.println(bodyNoWhiteSpace);
-		String s1 = "<html><body><p>Hello,</p><p>foobar(userName)hasacceptedyouintoteamtest-name.Forfurtherinformation,visittheteampage,<ahref=https://www.synapse.org/#!Team:123>here</a>.</p><p>Sincerely,</p><p>SynapseAdministration</p><p>Toturnoffemailnotifications,<ahref=https://synapse.org/#notificationUnsubscribeEndpoint:";
-		String s2 = ">clickhere.</a></p></body></html>";
-		assertTrue(bodyNoWhiteSpace.startsWith(s1));
-		assertTrue(bodyNoWhiteSpace.endsWith(s2));
-		String unsubscribeToken = bodyNoWhiteSpace.substring(bodyNoWhiteSpace.indexOf(s1)+s1.length(), bodyNoWhiteSpace.indexOf(s2));
+
+		// this will give us nine pieces...
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_TEAM_WEB_LINK,
+				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+		});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.ADMIN_HAS_ADDED_USER_TEMPLATE, delims);
+
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("foo bar (userName)", displayName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals("test-name", teamName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+		assertEquals(teamEndpoint+TEAM_ID, teamLink);
+		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
+		String unsubscribeToken = EmailParseUtil.getTokenFromString(
+				result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
 		EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
 		assertEquals(otherPrincipalId, eust.getUserId());
+
 	}
 }
