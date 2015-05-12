@@ -290,13 +290,12 @@ public interface FileHandleManager {
 
 	/**
 	 * Create a file handle with the given contents gzipped, using application/octet-stream as the mime type.
-	 * 
 	 * @param createdBy
 	 * @param modifiedOn
-	 * @param fileContents
+	 * @param markDown
 	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws IOException
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
 	 */
 	S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException;
@@ -317,19 +316,17 @@ public interface FileHandleManager {
 			Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException;
 	
 	/**
-	 * Create a file handle with the given contents gzipped, using the specified mime-type
-	 * 
+	 * Create a file handle with the given contents gzipped, using the specified mime-type.
 	 * @param createdBy
 	 * @param modifiedOn
-	 * @param fileName
-	 * @param fileContents
+	 * @param markDown
 	 * @param mimeType
 	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws IOException
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException 
 	 */
 	S3FileHandle createCompressedFileFromString(String createdBy,
-			Date modifiedOn, String fileName, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException;
+			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException;
 	
 	/**
 	 * Retrieves file, decompressing if Content-Encoding indicates that it's gzipped
