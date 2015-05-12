@@ -9,7 +9,7 @@
 	"properties": {
 		"userId": {
 			"type": "string",
-			"description": "The ID of the user joining the new member to the Team."
+			"description": "The ID of the user who is acting to add the new member to the Team.  The HMAC in the token authenticates that the request is being made by this user."
 		},
 		"teamId": {
 			"type": "string",

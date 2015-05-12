@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
@@ -523,7 +524,7 @@ public class TeamManagerImpl implements TeamManager {
 						notificationUnsubscribeEndpoint, recipient));
 				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
 				mtu.setRecipients(Collections.singleton(recipient));
-				result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
+				result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 			}
 		} else {
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
@@ -536,7 +537,7 @@ public class TeamManagerImpl implements TeamManager {
 			MessageToUser mtu = new MessageToUser();
 			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 			mtu.setRecipients(Collections.singleton(recipient));
-			result.add(new MessageToUserAndBody(mtu, messageContent, "text/html"));
+			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}	
 		return result;
 	}

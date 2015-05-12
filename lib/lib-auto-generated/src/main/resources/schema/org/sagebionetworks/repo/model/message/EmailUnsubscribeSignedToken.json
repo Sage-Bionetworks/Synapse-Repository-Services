@@ -9,7 +9,7 @@
 	"properties": {
 		"userId": {
 			"type": "string",
-			"description": "The ID of the user wishing to suppress email notifications."
+			"description": "The ID of the user wishing to suppress email notifications.  The HMAC in the token authenticates that the request is being made by this user."
 		}
 	}
 }
