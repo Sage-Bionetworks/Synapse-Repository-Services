@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -332,6 +333,34 @@ public class UploadController extends BaseController {
 		return fileService.createExternalFileHandle(userId, fileHandle);
 	}
 
+	/**
+	 * Create an S3FileHandle to represent an S3Object in a user's S3 bucket.
+	 * <p>
+	 * In order to use this method an ExternalS3StorageLocationSetting must first be created
+	 * for the user's bucket.  The ID of the resulting ExternalS3StorageLocationSetting
+	 * must be set in the S3FileHandle.storageLocationId.
+	 * Only the user that created to the ExternalS3StorageLocationSetting will be allowed to
+	 * create S3FileHandle using that storageLocationId.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param fileHandle
+	 *            The S3FileHandle to create
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/externalFileHandle/s3", method = RequestMethod.POST)
+	public @ResponseBody
+	S3FileHandle createExternalFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody S3FileHandle fileHandle)
+			throws DatastoreException, NotFoundException {
+		// Pass it along
+		return fileService.createExternalS3FileHandle(userId, fileHandle);
+	}
+	
 	/**
 	 * This is the first step in uploading a large file. The resulting <a
 	 * href="${org.sagebionetworks.repo.model.file.ChunkedFileToken}"
