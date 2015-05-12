@@ -886,7 +886,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
-		return createCompressedFileFromString(createdBy, modifiedOn, fileContents, "application/octet-stream");
+		return createCompressedFileFromString(createdBy, modifiedOn, null, fileContents, "application/octet-stream");
 	}	
 	
 	/*
@@ -895,12 +895,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 */
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
-			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
+			Date modifiedOn, String fileName, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		FileUtils.writeString(fileContents, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
 		ContentType contentType = ContentType.create(mimeType, DEFAULT_FILE_CHARSET);
-		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, null, contentType, GZIP_CONTENT_ENCODING);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, fileName, contentType, GZIP_CONTENT_ENCODING);
 	}
 	
 	@Override

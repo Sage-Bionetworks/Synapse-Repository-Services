@@ -37,7 +37,7 @@ public class NotificationManagerImpl implements NotificationManager {
 				if (message.getMetadata().getRecipients().isEmpty()) continue;
 				try {
 					FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
-							userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
+							userInfo.getId().toString(), new Date(), null, message.getBody(), message.getMimeType());
 
 					message.getMetadata().setFileHandleId(fileHandle.getId());
 

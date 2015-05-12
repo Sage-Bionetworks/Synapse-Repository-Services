@@ -1337,7 +1337,7 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
-	public void testMembershipInvitationAPI() throws SynapseException {
+	public void testMembershipInvitationAPI() throws Exception {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
@@ -1356,8 +1356,9 @@ public class IT500SynapseJavaClient {
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());
 		String inviteeEmail = inviteeEmails.get(0);
-		File inviteeNotification = EmailValidationUtil.getFileForEmail(inviteeEmail);
-		if (inviteeNotification.exists()) assertTrue(inviteeNotification.delete());
+		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
+		if (EmailValidationUtil.doesFileExist(inviteeNotification)) 
+			EmailValidationUtil.deleteFile(inviteeNotification);
 		
 		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
