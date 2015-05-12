@@ -1,15 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -24,25 +16,21 @@ public class EmailValidationUtil {
 		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
 				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
 		
-		return S3TestUtils.doesFileExist(
-				StackConfiguration.singleton().getExternalS3TestBucketName(), 
-				key, s3Client);
+		return S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client);
 	}
 	
 	public static void deleteFile(String key) throws Exception {
 		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
 				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
 		
-		S3TestUtils.deleteFile(
-				StackConfiguration.singleton().getExternalS3TestBucketName(), 
-				key, s3Client);
+		S3TestUtils.deleteFile(StackConfiguration.getS3Bucket(), key, s3Client);
 	}
 	
 	public static String readFile(String key) throws Exception {
 		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
 				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
 		
-		return S3TestUtils.getObjectAsString(StackConfiguration.singleton().getExternalS3TestBucketName(), key, s3Client);
+		return S3TestUtils.getObjectAsString(StackConfiguration.getS3Bucket(), key, s3Client);
 	}
 	
 	public static String getBucketKeyForEmail(String email) {

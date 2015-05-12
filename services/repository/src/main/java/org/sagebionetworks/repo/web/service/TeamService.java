@@ -112,6 +112,17 @@ public interface TeamService {
 	public void addMember(Long userId, String teamId, String principalId, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Add a member to a Team, based on a JoinedTeamSignedToken object, which is passed in serialized
+	 * 
+	 * @param serializedJoinTeamToken
+	 * @param notificationUnsubscribeEndpoint
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public void addMember(String serializedJoinTeamToken, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	/**
 	 * 
 	 * @param teamId
 	 * @param fragment

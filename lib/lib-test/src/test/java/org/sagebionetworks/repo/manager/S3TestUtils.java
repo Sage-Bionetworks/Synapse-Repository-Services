@@ -2,12 +2,15 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayOutputStream;
 import java.util.LinkedList;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.TimeUtils;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
@@ -39,12 +42,29 @@ public class S3TestUtils {
 		}
 	}
 	
-	public static boolean doesFileExist(String bucket, String key, AmazonS3Client s3Client) {
+	/*
+	 * We use exponential retry to let the 'eventually complete' S3 service make the file available.
+	 */
+	public static boolean doesFileExist(final String bucket, final String key, final AmazonS3Client s3Client) {
+		boolean result = false;
 		try {
-			return null != s3Client.getObjectMetadata(bucket, key);
-		} catch (AmazonS3Exception e) {
-			return false; // NOT FOUND
+			result = TimeUtils.waitForExponentialMaxRetry(10, 1000L, new Callable<Boolean>() {
+				@Override
+				public Boolean call() throws Exception {
+					boolean result = false;
+					try {
+						 result = (null != s3Client.getObjectMetadata(bucket, key));
+					} catch (AmazonClientException e) {
+						result = false;
+					}
+					if (!result) throw new RetryException("file does not exist");
+					return result;
+				}
+			});
+		} catch (Exception e) {
+			result =  false; // NOT FOUND
 		}
+		return result;
 	}
 	
 	public static void deleteFile(String bucket, String key, AmazonS3Client s3Client) {
