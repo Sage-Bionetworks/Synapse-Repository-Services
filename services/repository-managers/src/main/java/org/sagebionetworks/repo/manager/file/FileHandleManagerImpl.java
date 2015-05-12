@@ -83,6 +83,8 @@ import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -90,6 +92,7 @@ import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
@@ -1004,5 +1007,63 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
 		return fileHandleDao.createFile(handle, true);
+	}
+
+	@Override
+	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
+			S3FileHandle fileHandle) {
+		if (userInfo == null){
+			throw new IllegalArgumentException("UserInfo cannot be null");
+		}
+		if (fileHandle == null){
+			throw new IllegalArgumentException("FileHandle cannot be null");
+		}
+		if(fileHandle.getBucketName() == null){
+			throw new IllegalArgumentException("FileHandle.bucket cannot be null");
+		}
+		if(fileHandle.getKey() == null){
+			throw new IllegalArgumentException("FileHandle.key cannot be null");
+		}
+		if(fileHandle.getStorageLocationId() == null){
+			throw new IllegalArgumentException("FileHandle.storageLocationId cannot be null");
+		}
+		if (fileHandle.getFileName() == null) {
+			fileHandle.setFileName(NOT_SET);
+		}
+		if (fileHandle.getContentType() == null) {
+			fileHandle.setContentType(NOT_SET);
+		}
+		// Lookup the storage location
+		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
+		ExternalS3StorageLocationSetting esls = null;
+		if(!(sls instanceof ExternalS3StorageLocationSetting)){
+			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ExternalS3StorageLocationSetting.class.getName());
+		}
+		esls = (ExternalS3StorageLocationSetting) sls;
+		if(!fileHandle.getBucketName().equals(esls.getBucket())){
+			throw new IllegalArgumentException("The bucket for ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided bucket: "+fileHandle.getBucketName());
+		}
+		
+		/*
+		 *  The creation of the ExternalS3StorageLocationSetting already validates that the user has
+		 *  permission to update the bucket. So the creator of the storage location is
+		 *  the only one that can create an S3FileHandle using that storage location Id. 
+		 */
+		if(!esls.getCreatedBy().equals(userInfo.getId())){
+			throw new UnauthorizedException("Only the creator of ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external S3FileHandle with storagaeLocationId = "+fileHandle.getStorageLocationId());
+		}
+		try {
+			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
+			fileHandle.setContentMd5(summary.getETag());
+			fileHandle.setContentSize(summary.getContentLength());
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Unable to ready metadata for bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey(), e);
+		} 
+		// set this user as the creator of the file
+		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setCreatedOn(new Date());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		// Save the file metadata to the DB.
+		return fileHandleDao.createFile(fileHandle);
 	}
 }

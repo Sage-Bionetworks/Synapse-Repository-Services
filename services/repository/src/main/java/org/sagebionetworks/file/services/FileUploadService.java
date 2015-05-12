@@ -203,4 +203,12 @@ public interface FileUploadService {
 	 * @throws DatastoreException
 	 */
 	UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Create an external S3 file handle.
+	 * @param userId
+	 * @param fileHandle
+	 * @return
+	 */
+	S3FileHandle createExternalS3FileHandle(Long userId, S3FileHandle fileHandle);
 }

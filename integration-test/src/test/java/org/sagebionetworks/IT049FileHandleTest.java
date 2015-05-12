@@ -362,8 +362,22 @@ public class IT049FileHandleTest {
 		FileHandle result2 = synapse.createFileHandle(imageFile, myContentType, false, project.getId(), result.getStorageLocationId());
 		toDelete.add(result2);
 
+
 		assertEquals(S3FileHandle.class, result2.getClass());
 		assertEquals(externalS3Destination.getStorageLocationId(), result2.getStorageLocationId());
+		assertTrue(result2 instanceof S3FileHandle);
+		S3FileHandle result2S3 = (S3FileHandle) result2;
+		
+		// Create an external file handle using the external location.
+		S3FileHandle externalS3 = new S3FileHandle();
+		externalS3.setBucketName(result2S3.getBucketName());
+		externalS3.setKey(result2S3.getKey());
+		externalS3.setFileName(result2S3.getFileName());
+		externalS3.setStorageLocationId(result.getStorageLocationId());
+		// create it
+		externalS3 = synapse.createExternalS3FileHandle(externalS3);
+		assertNotNull(externalS3);
+		assertNotNull(externalS3.getId());
 	}
 
 	@Test

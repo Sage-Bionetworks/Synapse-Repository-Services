@@ -349,4 +349,13 @@ public interface FileHandleManager {
 
 	@Deprecated
 	S3FileHandle uploadFile(String userId, FileItemStream fis) throws IOException, ServiceUnavailableException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param fileHandle
+	 * @return
+	 */
+	S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
+			S3FileHandle fileHandle);
 }
