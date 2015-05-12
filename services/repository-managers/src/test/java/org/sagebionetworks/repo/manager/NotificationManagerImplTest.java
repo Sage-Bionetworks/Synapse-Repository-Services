@@ -49,13 +49,13 @@ public class NotificationManagerImplTest {
 		fh.setFileName("foo.bar");
 		String fileHandleId = "123";
 		fh.setId(fileHandleId);
-		when(fileHandleManager.createCompressedFileFromString(eq(USER_ID.toString()), any(Date.class), anyString())).
+		when(fileHandleManager.createCompressedFileFromString(eq(USER_ID.toString()), any(Date.class), anyString(), eq("text/plain"))).
 			thenReturn(fh);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(to);
 		mtu.setSubject(subject);
 		notificationManager.sendNotifications(userInfo, Collections.singletonList(new MessageToUserAndBody(mtu, message, "text/plain")));
-		verify(fileHandleManager).createCompressedFileFromString(eq(USER_ID.toString()), any(Date.class), anyString());
+		verify(fileHandleManager).createCompressedFileFromString(eq(USER_ID.toString()), any(Date.class), anyString(), eq("text/plain"));
 		ArgumentCaptor<MessageToUser> mtuCaptor =
 				ArgumentCaptor.forClass(MessageToUser.class);
 		verify(messageManager).createMessage(eq(userInfo), mtuCaptor.capture());

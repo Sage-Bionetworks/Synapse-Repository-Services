@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -40,8 +42,9 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.util.SerializationUtils;
 
 public class MembershipRequestManagerImplTest {
 	
@@ -215,16 +218,20 @@ public class MembershipRequestManagerImplTest {
 			String acceptRequestToken = 
 					EmailParseUtil.getTokenFromString(result.getBody(), 
 					templatePieces.get(6)+acceptRequestEndpoint, templatePieces.get(8));
-			JoinTeamSignedToken jtst = SignedTokenUtil.deserializeAndValidateToken(acceptRequestToken, JoinTeamSignedToken.class);
+			JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptRequestToken, JoinTeamSignedToken.class);
+			SignedTokenUtil.validateToken(jtst);
 			assertEquals(TEAM_ID, jtst.getTeamId());
 			assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
 			assertEquals(teamAdmins.get(i), jtst.getUserId());
 			assertTrue(result.getBody().endsWith(templatePieces.get(10)));
 			String unsubscribeToken = EmailParseUtil.getTokenFromString(
 					result.getBody(), templatePieces.get(8)+notificationUnsubscribeEndpoint, templatePieces.get(10));
-			EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
-			assertEquals(teamAdmins.get(i), eust.getUserId());
-			
+			NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+					(unsubscribeToken, NotificationSettingsSignedToken.class);
+			SignedTokenUtil.validateToken(nsst);
+			assertEquals(teamAdmins.get(i), nsst.getUserId());
+			assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+			assertFalse(nsst.getSettings().getSendEmailNotifications());
 		}
 
 	}

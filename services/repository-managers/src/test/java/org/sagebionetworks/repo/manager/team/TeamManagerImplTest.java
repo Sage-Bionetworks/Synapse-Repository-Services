@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.team;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -63,7 +64,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -73,6 +74,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 
 import com.google.common.collect.Lists;
 
@@ -940,8 +942,12 @@ public class TeamManagerImplTest {
 			assertTrue(result.getBody().endsWith(templatePieces.get(8)));
 			String unsubscribeToken = EmailParseUtil.getTokenFromString(
 					result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
-			EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
-			assertEquals(inviterPrincipalIds.get(i), eust.getUserId());
+			NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+					(unsubscribeToken, NotificationSettingsSignedToken.class);
+			SignedTokenUtil.validateToken(nsst);
+			assertEquals(inviterPrincipalIds.get(i), nsst.getUserId());
+			assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+			assertFalse(nsst.getSettings().getSendEmailNotifications());
 		}
 	}
 	
@@ -986,8 +992,12 @@ public class TeamManagerImplTest {
 		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
 		String unsubscribeToken = EmailParseUtil.getTokenFromString(
 				result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
-		EmailUnsubscribeSignedToken eust = SignedTokenUtil.deserializeAndValidateToken(unsubscribeToken, EmailUnsubscribeSignedToken.class);
-		assertEquals(otherPrincipalId, eust.getUserId());
+		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+				(unsubscribeToken, NotificationSettingsSignedToken.class);
+		SignedTokenUtil.validateToken(nsst);
+		assertEquals(otherPrincipalId, nsst.getUserId());
+		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+		assertFalse(nsst.getSettings().getSendEmailNotifications());
 
 	}
 }

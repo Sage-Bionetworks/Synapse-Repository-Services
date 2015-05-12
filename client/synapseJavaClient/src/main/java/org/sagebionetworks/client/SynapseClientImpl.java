@@ -55,8 +55,53 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
+import org.sagebionetworks.repo.model.ChallengeTeam;
+import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityInstanceFactory;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResponseMessage;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -97,6 +142,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -1248,6 +1294,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	@Override
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken token) throws SynapseException {
+		String uri = "";
+		return asymmetricalPut(getRepoEndpoint(), uri, token,
+				ResponseMessage.class);
+	}
+
 
 	@Override
 	public UserProfile getUserProfile(String ownerId) throws SynapseException {
@@ -2510,6 +2564,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					endpoint, url, jsonString, getUserAgent(), null,
 					errorHandler);
+			return EntityFactory.createEntityFromJSONObject(responseBody,
+					returnClass);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Asymmetrical put where the request and response are not of the same
+	 * type.
+	 * 
+	 * @param url
+	 * @param reqeust
+	 * @param calls
+	 * @throws SynapseException
+	 */
+	private <T extends JSONEntity> T asymmetricalPut(String endpoint,
+			String url, JSONEntity requestBody, Class<? extends T> returnClass)
+			throws SynapseException {
+		try {
+			String jsonString = EntityFactory
+					.createJSONStringForEntity(requestBody);
+			JSONObject responseBody = getSharedClientConnection().putJson(
+					endpoint, url, jsonString, getUserAgent());
 			return EntityFactory.createEntityFromJSONObject(responseBody,
 					returnClass);
 		} catch (JSONObjectAdapterException e) {
@@ -6417,7 +6495,34 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
 				new JSONObject().toString(), getUserAgent());
 	}
+	
+	@Override
+	public ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
+			String teamEndpoint,
+			String notificationUnsubscribeEndpoint) 
+			throws SynapseException {
+		
+		String uri = TEAM + "/" + MEMBER +
+				"?" + 	TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
+				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
 
+		
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(joinTeamSignedToken.writeToJSONObject(toUpdateAdapter)
+					.toJSONString());
+			JSONObject jsonObj = getSharedClientConnection().putJson(
+					repoEndpoint, uri, obj.toString(), getUserAgent());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new ResponseMessage(adapter);
+
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
 	private static String urlEncode(String s) {
 		try {
 			return URLEncoder.encode(s, "UTF-8");

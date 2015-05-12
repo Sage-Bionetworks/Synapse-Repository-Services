@@ -155,6 +155,7 @@ public class UrlHelpers {
 	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
+	public static final String EMAIL_NOTIFICATION  = PrefixConst.EMAIL_NOTIFICATION;
 	
 	
 	public static final String PRINCIPAL = "/principal";
@@ -758,6 +759,7 @@ public class UrlHelpers {
 	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
 	public static final String TEAM_MEMBER_LIST = TEAM_ID_MEMBER+"List";
 	public static final String USER_TEAM_MEMBER_LIST = USER+ID+MEMBER+"List";
+	public static final String TEAM_MEMBER = TEAM+MEMBER;
 	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
 	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
 	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";

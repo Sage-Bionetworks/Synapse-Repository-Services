@@ -5,7 +5,9 @@ import java.util.List;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
@@ -114,9 +116,9 @@ public interface TeamService {
 	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 * Add a member to a Team, based on a JoinedTeamSignedToken object, which is passed in serialized
+	 * Add a member to a Team, based on a JoinedTeamSignedToken object
 	 * 
-	 * @param serializedJoinTeamToken
+	 * @param joinTeamToken
 	 * @param team
 	 * @param teamEndpoint
 	 * @param notificationUnsubscribeEndpoint
@@ -124,7 +126,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(String serializedJoinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 

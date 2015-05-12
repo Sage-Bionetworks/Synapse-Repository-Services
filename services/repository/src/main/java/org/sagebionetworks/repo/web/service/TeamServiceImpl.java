@@ -8,20 +8,24 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,6 +45,8 @@ public class TeamServiceImpl implements TeamService {
 	PrincipalPrefixDAO principalPrefixDAO;
 	@Autowired
 	private NotificationManager notificationManager;
+	@Autowired
+	private UserProfileManager userProfileManager;
 	
 	public TeamServiceImpl() {}
 	
@@ -212,10 +218,16 @@ public class TeamServiceImpl implements TeamService {
 	}
 	
 	@Override
-	public void addMember(String serializedJoinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
-		JoinTeamSignedToken jtst = SignedTokenUtil.
-				deserializeAndValidateToken(serializedJoinTeamToken, JoinTeamSignedToken.class);
-		addMemberIntern(Long.parseLong(jtst.getUserId()), jtst.getTeamId(), jtst.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
+	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
+		SignedTokenUtil.validateToken(joinTeamToken);
+		addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
+		ResponseMessage responseMessage = new ResponseMessage();
+		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getJSONSchema());
+		Team team = teamManager.get(joinTeamToken.getTeamId());
+		responseMessage.setMessage("User "+
+		EmailUtils.getDisplayName(userProfile)+
+		" has been added to team "+team.getName()+".");
+		return responseMessage;
 	}
 
 	private void addMemberIntern(Long userId, String teamId, String principalId, 
