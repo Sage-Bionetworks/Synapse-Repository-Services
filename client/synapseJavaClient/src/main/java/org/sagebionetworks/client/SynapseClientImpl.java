@@ -391,7 +391,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
 	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
-	public static final String TEAM_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	public static final String TEAM_ENDPOINT_PARAM = "teamEndpoint";
 	
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";

@@ -143,7 +143,7 @@ public class AuthorizationConstants {
 	 * A request parameter for specifying the portal prefix for the Team URL.
 	 * The team ID is appended to create the complete URL.
 	 */
-	public static final String TEAM_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	public static final String TEAM_ENDPOINT_PARAM = "teamEndpoint";
 	/**
 	 * A request parameter for specifying the portal endpoint for unsubscribing from email
 	 */
