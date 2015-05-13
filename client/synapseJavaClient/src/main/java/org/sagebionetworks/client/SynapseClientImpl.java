@@ -6506,7 +6506,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String notificationUnsubscribeEndpoint) 
 			throws SynapseException {
 		
-		String uri = TEAM + "/" + MEMBER;
+		String uri = TEAM + MEMBER;
 		
 		if (teamEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
 			uri += "?" + TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
