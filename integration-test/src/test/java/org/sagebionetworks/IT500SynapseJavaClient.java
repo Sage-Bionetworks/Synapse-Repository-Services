@@ -1557,7 +1557,7 @@ public class IT500SynapseJavaClient {
 		// check that a notification was sent to the invitee
 		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification));
 		
-		// inviter notification
+		// make sure there's no lingering inviter notification
 		String inviterNotification = EmailValidationUtil.getBucketKeyForEmail(synapseOneProfile.getEmails().get(0));
 		if (EmailValidationUtil.doesFileExist(inviterNotification))
 			EmailValidationUtil.deleteFile(inviterNotification);
@@ -1686,7 +1686,7 @@ public class IT500SynapseJavaClient {
 		// check that a notification was sent to the admin
 		assertTrue(EmailValidationUtil.doesFileExist(adminNotification));
 		
-		// requester notification
+		// make sure there's no lingering requester notification
 		String requesterNotification = EmailValidationUtil.getBucketKeyForEmail(requesterProfile.getEmails().get(0));
 		if (EmailValidationUtil.doesFileExist(requesterNotification))
 			EmailValidationUtil.deleteFile(requesterNotification);
