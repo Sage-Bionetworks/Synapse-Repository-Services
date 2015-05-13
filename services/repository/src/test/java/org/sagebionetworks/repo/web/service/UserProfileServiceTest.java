@@ -234,10 +234,22 @@ public class UserProfileServiceTest {
 		SignedTokenUtil.signToken(notificationSettingsSignedToken);
 		
 		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(userId);;
+		userInfo.setId(userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(userId.toString());
+		when(mockUserProfileManager.getUserProfile(userId.toString())).thenReturn(userProfile);
 		
-		// TODO userProfileService.updateNotificationSettings(notificationSettingsSignedToken);
+		userProfileService.updateNotificationSettings(notificationSettingsSignedToken);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserProfileManager).getUserProfile(userId.toString());
+		verify(mockUserProfileManager).updateUserProfile(userInfo, userProfile);
+		Settings settings2 = userProfile.getNotificationSettings();
+		assertNotNull(settings2);
+		assertFalse(settings2.getSendEmailNotifications());
+		// since this setting didn't exist before, it still does not exist
+		assertNull(settings2.getMarkEmailedMessagesAsRead());
 	}
 
 
