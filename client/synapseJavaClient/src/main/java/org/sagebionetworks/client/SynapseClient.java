@@ -107,6 +107,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -636,6 +637,15 @@ public interface SynapseClient extends BaseClient {
 
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
 			throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Create an S3FileHandle using a pre-configured ExternalS3StorageLocationSetting ID.
+	 * @param handle
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws JSONObjectAdapterException, SynapseException;
 
 	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException;
 

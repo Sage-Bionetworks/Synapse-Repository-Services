@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -40,12 +41,17 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
 
@@ -68,6 +74,16 @@ public class FileHandleManagerImplTest {
 	S3FileHandle validResults;
 	AmazonS3Client mockS3Client;
 	AuthorizationManager mockAuthorizationManager;
+	StorageLocationDAO mockStorageLocationDao;
+	
+	String bucket;
+	String key;
+	String md5;
+	Long fileSize;
+	Long storageLocationId;
+	// setup a storage location
+	ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
+	S3FileHandle externals3FileHandle;
 	
 	
 	@Before
@@ -76,6 +92,7 @@ public class FileHandleManagerImplTest {
 		mockfileMetadataDao = Mockito.mock(FileHandleDao.class);
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
+		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
@@ -117,8 +134,32 @@ public class FileHandleManagerImplTest {
 		validResults.setFileName(fileName);
 		validResults.setBucketName("bucket");
 		validResults.setKey("key");
+		
+		bucket = "some-bucket";
+		key = "some-key";
+		md5 = "some-md5";
+		fileSize = 103L;
+		storageLocationId = 987L;
+		// setup a storage location
+		externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setBucket(bucket);
+		externalS3StorageLocationSetting.setCreatedBy(mockUser.getId());
+		when(mockStorageLocationDao.get(storageLocationId)).thenReturn(externalS3StorageLocationSetting);
+		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(mockMeta);
+		when(mockMeta.getETag()).thenReturn(md5);
+		when(mockMeta.getContentLength()).thenReturn(fileSize);
+		
+		externals3FileHandle = new S3FileHandle();
+		externals3FileHandle.setBucketName(bucket);
+		externals3FileHandle.setKey(key);
+		externals3FileHandle.setStorageLocationId(storageLocationId);
+		
+		when(mockfileMetadataDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+		
 		// the manager to test.
 		manager = new FileHandleManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy, mockAuthorizationManager, mockS3Client);
+		ReflectionTestUtils.setField(manager, "storageLocationDAO", mockStorageLocationDao);
 	}
 	
 	@Test (expected=IllegalStateException.class)
@@ -461,6 +502,73 @@ public class FileHandleManagerImplTest {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
+	}
+	
+	@Test
+	public void testCreateExternalS3FileHandleHappy(){
+		// call under test
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+		assertNotNull(result);
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(md5, result.getContentMd5());
+		assertEquals(fileSize, result.getContentSize());
+		assertNotNull(result.getEtag());
+		assertEquals(bucket, result.getBucketName());
+		assertEquals(key, result.getKey());
+		assertEquals(storageLocationId, result.getStorageLocationId());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCreateExternalS3FileHandleUnauthorized(){
+		// In this case the esl created by does not match the caller.
+		externalS3StorageLocationSetting.setCreatedBy(mockUser.getId()+1);
+		// should fails since the user is not the creator of the storage location.
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleWongStorageType(){
+		when(mockStorageLocationDao.get(storageLocationId)).thenReturn(new S3StorageLocationSetting());
+		// should fail
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleNullBucket(){
+		externals3FileHandle.setBucketName(null);
+		// should fail
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleNullKey(){
+		externals3FileHandle.setKey(null);
+		// should fail
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleNullStorageId(){
+		externals3FileHandle.setStorageLocationId(null);
+		// should fail
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleBucketDoesNotMatchLocation(){
+		// must match the storage location bucket.
+		externalS3StorageLocationSetting.setBucket(bucket);
+		externals3FileHandle.setBucketName(bucket+"no-match");
+		// should fail
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalS3FileHandleS3Error(){
+		when(mockS3Client.getObjectMetadata(bucket, key)).thenThrow(new AmazonClientException("Something is wrong"));
+		// should fail
+		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
 	
 	/**

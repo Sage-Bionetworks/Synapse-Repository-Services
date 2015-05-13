@@ -185,4 +185,11 @@ public class FileUploadServiceImpl implements FileUploadService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.getDefaultUploadDestination(userInfo, parentId);
 	}
+
+	@Override
+	public S3FileHandle createExternalS3FileHandle(Long userId,
+			S3FileHandle fileHandle) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createExternalS3FileHandle(userInfo, fileHandle);
+	}
 }
