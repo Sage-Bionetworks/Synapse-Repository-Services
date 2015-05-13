@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -249,7 +250,7 @@ public class TeamController extends BaseController {
 	 * @param teamEndpoint the portal prefix for the Team URL. The team ID is appended to create the complete URL.
 	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
 	 * A signed, serialized token is appended to create the complete URL: 
-	 * <ahref="${org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken}">EmailUnsubscribeSignedToken</a>
+	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)

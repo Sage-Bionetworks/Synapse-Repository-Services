@@ -139,7 +139,7 @@ public class UserProfileController extends BaseController {
 	 * service is by the portal, completing a round trip with a 'one-click unsubscribe'
 	 * link provided by Synapse via email.
 	 * 
-	 * @param emailUnsubscribeSignedToken
+	 * @param notificationSettingsSignedToken
 	 * 	
 	 * @return A success message, if successful.
 	 */
