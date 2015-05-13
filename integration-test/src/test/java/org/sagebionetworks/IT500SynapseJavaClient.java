@@ -1595,6 +1595,7 @@ public class IT500SynapseJavaClient {
 		
 		// finally, the invitER should have been notified that the invitEE joined the team
 		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification));
+		EmailValidationUtil.deleteFile(inviterNotification);
 	}
 
 	@Test
@@ -1723,6 +1724,7 @@ public class IT500SynapseJavaClient {
 		
 		// finally, the requester should have been notified that the admin added her to the team
 		assertTrue(EmailValidationUtil.doesFileExist(requesterNotification));
+		EmailValidationUtil.deleteFile(requesterNotification);
 	}
 	
 	@Test

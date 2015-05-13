@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,7 +16,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendEmailResult;
+import com.amazonaws.util.StringInputStream;
 
 /**
  * This wrapper around the Amazon SES client allows us to suppress sending
@@ -53,11 +53,13 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		try {
 			writer = new StringWriter();
 			(new JSONObject(emailRequest)).write(writer);
-			is = new ByteArrayInputStream(writer.toString().getBytes());
+			is = new StringInputStream(writer.toString());
 			ObjectMetadata metadata = new ObjectMetadata();
 			metadata.setContentLength(writer.toString().length());
 			s3Client.putObject(StackConfiguration.getS3Bucket(), fileName, is, metadata);
 		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		} finally {
 			try {
