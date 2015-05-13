@@ -203,6 +203,6 @@ public interface UserProfileService {
 	 * 
 	 * @param notificationSettingsSignedToken
 	 */
-	public ResponseMessage turnOffEmailNotification(NotificationSettingsSignedToken notificationSettingsSignedToken);
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken);
 
 }

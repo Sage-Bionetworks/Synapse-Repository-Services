@@ -7,7 +7,6 @@ import java.io.StringWriter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.entity.ContentType;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
@@ -15,9 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendEmailResult;
 
 /**
  * This wrapper around the Amazon SES client allows us to suppress sending
@@ -37,6 +36,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	@Autowired
 	private AmazonS3Client s3Client;
 	
+	@Override
 	public void sendEmail(SendEmailRequest emailRequest) {
 		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendEmail(emailRequest);

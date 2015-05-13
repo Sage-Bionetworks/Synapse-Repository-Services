@@ -335,7 +335,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public ResponseMessage turnOffEmailNotification(NotificationSettingsSignedToken notificationSettingsSignedToken) {
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken) {
 		SignedTokenUtil.validateToken(notificationSettingsSignedToken);
 		String userId = notificationSettingsSignedToken.getUserId();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));

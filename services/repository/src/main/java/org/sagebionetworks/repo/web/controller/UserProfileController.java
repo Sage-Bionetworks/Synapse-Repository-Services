@@ -150,7 +150,7 @@ public class UserProfileController extends BaseController {
 			@RequestBody NotificationSettingsSignedToken notificationSettingsSignedToken)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		return serviceProvider.getUserProfileService().turnOffEmailNotification(notificationSettingsSignedToken);
+		return serviceProvider.getUserProfileService().updateNotificationSettings(notificationSettingsSignedToken);
 	}
 	
 	/**

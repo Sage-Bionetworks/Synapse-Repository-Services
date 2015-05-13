@@ -1378,7 +1378,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		
 		// check that a notification was sent to the invitee
-		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification));
+		assertTrue("No file "+inviteeNotification+" found.", EmailValidationUtil.doesFileExist(inviteeNotification));
 		
 		// get the invitation
 		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());

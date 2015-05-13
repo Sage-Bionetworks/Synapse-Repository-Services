@@ -3,14 +3,11 @@ package org.sagebionetworks.repo.util;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.SignedTokenInterface;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
-import org.sagebionetworks.util.SerializationUtils;
 
 public class SignedTokenUtil {
 		
@@ -25,7 +22,7 @@ public class SignedTokenUtil {
 		token.setHmac(generateSignature(token));
 	}
 	
-	public static String generateSignature(SignedTokenInterface token) {
+	private static String generateSignature(SignedTokenInterface token) {
 		if (token.getHmac()!=null) throw new IllegalArgumentException("HMAC is added only after generating signature.");
 		try {
 			String jsonString = EntityFactory.createJSONStringForEntity(token);

@@ -34,6 +34,7 @@ public class EmailValidationUtil {
 	}
 	
 	public static String getBucketKeyForEmail(String email) {
+		assertTrue(email!=null && email.length()>0);
 		return  email+".json";
 	}
 	

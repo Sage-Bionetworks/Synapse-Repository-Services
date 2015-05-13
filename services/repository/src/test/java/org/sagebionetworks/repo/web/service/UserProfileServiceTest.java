@@ -39,9 +39,12 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -218,6 +221,23 @@ public class UserProfileServiceTest {
 		someOtherUserProfile = lwup.getList().get(0);
 		assertNull(someOtherUserProfile.getEtag());
 		assertNotNull(someOtherUserProfile.getEmails());
+	}
+	
+	@Test
+	public void testUpdateNotificationSettings() throws Exception {
+		NotificationSettingsSignedToken notificationSettingsSignedToken = new NotificationSettingsSignedToken();
+		Long userId = 101L;
+		notificationSettingsSignedToken.setUserId(userId.toString());
+		Settings settings = new Settings();
+		settings.setSendEmailNotifications(false);
+		notificationSettingsSignedToken.setSettings(settings);
+		SignedTokenUtil.signToken(notificationSettingsSignedToken);
+		
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(userId);;
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		
+		// TODO userProfileService.updateNotificationSettings(notificationSettingsSignedToken);
 	}
 
 
