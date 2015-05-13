@@ -1361,7 +1361,6 @@ public class IT500SynapseJavaClient {
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());
 		String inviteeEmail = inviteeEmails.get(0);
-		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
 		
 		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
@@ -1434,82 +1433,6 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) {
 			// as expected
 		}
-	}
-
-	@Test
-	public void testMembershipInvitationAndAcceptanceViaNotification() throws Exception {
-		// create a Team
-		String name = "Test-Team-Name";
-		String description = "Test-Team-Description";
-		UserProfile synapseOneProfile = synapseOne.getMyProfile();
-		String myPrincipalId = synapseOneProfile.getOwnerId();
-		assertNotNull(myPrincipalId);
-		Team team = new Team();
-		team.setName(name);
-		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
-		teamsToDelete.add(createdTeam.getId());
-		
-		// create an invitation
-		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
-		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
-		List<String> inviteeEmails = inviteeUserProfile.getEmails();
-		assertEquals(1, inviteeEmails.size());
-		String inviteeEmail = inviteeEmails.get(0);
-		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
-		if (EmailValidationUtil.doesFileExist(inviteeNotification)) 
-			EmailValidationUtil.deleteFile(inviteeNotification);
-		
-		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
-		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
-		dto.setExpiresOn(expiresOn);
-		dto.setInviteeId(inviteePrincipalId);
-		String message = "Please accept this invitation";
-		dto.setMessage(message);
-		dto.setTeamId(createdTeam.getId());
-		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		
-		// check that a notification was sent to the invitee
-		assertTrue("No file "+inviteeNotification+" found.", EmailValidationUtil.doesFileExist(inviteeNotification));
-		
-		// inviter notification
-		String inviterNotification = EmailValidationUtil.getBucketKeyForEmail(synapseOneProfile.getEmails().get(0));
-		if (EmailValidationUtil.doesFileExist(inviterNotification))
-			EmailValidationUtil.deleteFile(inviterNotification);
-		
-		// now get the embedded tokens
-		String startString = "<a href="+MOCK_ACCEPT_INVITATION_ENDPOINT;
-		String endString = ">";
-		String jsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
-		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
-
-		startString = "<a href="+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
-		endString = ">";
-		String nsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
-		NotificationSettingsSignedToken notificationSettingsSignedToken = 
-				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);
-		// delete the message
-		EmailValidationUtil.deleteFile(inviteeNotification);
-		
-		ResponseMessage m = synapseTwo.addTeamMember(joinTeamSignedToken, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		assertNotNull(m.getMessage());
-		
-		// now I should be in the team
-		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), inviteePrincipalId);
-		assertTrue(tms.getIsMember());
-		
-		// I should also be able to use the email-unsubscribe link
-		assertNull(inviteeUserProfile.getNotificationSettings());
-		
-		m = synapseTwo.updateNotificationSettings(notificationSettingsSignedToken);
-		assertNotNull(m.getMessage());
-		
-		// settings should now be updated
-		inviteeUserProfile = synapseTwo.getMyProfile();
-		assertFalse(inviteeUserProfile.getNotificationSettings().getSendEmailNotifications());
-		
-		// finally, the invitER should have been notified that the invitEE joined the team
-		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification));
 	}
 
 	@Test
@@ -1599,7 +1522,83 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testMembershipRequestAndAcceptanceViaNotification() throws SynapseException {
+	public void testMembershipInvitationAndAcceptanceViaNotification() throws Exception {
+		// create a Team
+		String name = "Test-Team-Name";
+		String description = "Test-Team-Description";
+		UserProfile synapseOneProfile = synapseOne.getMyProfile();
+		String myPrincipalId = synapseOneProfile.getOwnerId();
+		assertNotNull(myPrincipalId);
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+		
+		// create an invitation
+		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
+		List<String> inviteeEmails = inviteeUserProfile.getEmails();
+		assertEquals(1, inviteeEmails.size());
+		String inviteeEmail = inviteeEmails.get(0);
+		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
+		if (EmailValidationUtil.doesFileExist(inviteeNotification)) 
+			EmailValidationUtil.deleteFile(inviteeNotification);
+		
+		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
+		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
+		dto.setExpiresOn(expiresOn);
+		dto.setInviteeId(inviteePrincipalId);
+		String message = "Please accept this invitation";
+		dto.setMessage(message);
+		dto.setTeamId(createdTeam.getId());
+		synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		
+		// check that a notification was sent to the invitee
+		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification));
+		
+		// inviter notification
+		String inviterNotification = EmailValidationUtil.getBucketKeyForEmail(synapseOneProfile.getEmails().get(0));
+		if (EmailValidationUtil.doesFileExist(inviterNotification))
+			EmailValidationUtil.deleteFile(inviterNotification);
+		
+		// now get the embedded tokens
+		String startString = "<a href="+MOCK_ACCEPT_INVITATION_ENDPOINT;
+		String endString = ">";
+		String jsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
+		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
+
+		startString = "<a href="+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
+		endString = ">";
+		String nsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
+		NotificationSettingsSignedToken notificationSettingsSignedToken = 
+				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);
+		// delete the message
+		EmailValidationUtil.deleteFile(inviteeNotification);
+		
+		ResponseMessage m = synapseTwo.addTeamMember(joinTeamSignedToken, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		assertNotNull(m.getMessage());
+		
+		// now I should be in the team
+		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), inviteePrincipalId);
+		assertTrue(tms.getIsMember());
+		
+		// I should also be able to use the email-unsubscribe link
+		assertNull(inviteeUserProfile.getNotificationSettings());
+		
+		m = synapseTwo.updateNotificationSettings(notificationSettingsSignedToken);
+		assertNotNull(m.getMessage());
+		
+		// settings should now be updated
+		inviteeUserProfile = synapseTwo.getMyProfile();
+		assertFalse(inviteeUserProfile.getNotificationSettings().getSendEmailNotifications());
+		
+		// finally, the invitER should have been notified that the invitEE joined the team
+		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification));
+	}
+
+	@Test
+	public void testMembershipRequestAndAcceptanceViaNotification() throws Exception {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
@@ -1611,77 +1610,67 @@ public class IT500SynapseJavaClient {
 		Team createdTeam = synapseOne.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 		
+		// clear any existing notification
+		UserProfile adminUserProfile = synapseOne.getMyProfile();
+		List<String> adminEmails = adminUserProfile.getEmails();
+		assertEquals(1, adminEmails.size());
+		String adminEmail = adminEmails.get(0);
+		String adminNotification = EmailValidationUtil.getBucketKeyForEmail(adminEmail);
+		if (EmailValidationUtil.doesFileExist(adminNotification)) 
+			EmailValidationUtil.deleteFile(adminNotification);
+
 		// create a request
-		String otherPrincipalId = synapseTwo.getMyProfile().getOwnerId();
+		UserProfile requesterProfile = synapseTwo.getMyProfile();
+		String requesterPrincipalId = requesterProfile.getOwnerId();
 		MembershipRqstSubmission dto = new MembershipRqstSubmission();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
 		String message = "Please accept this request";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		assertEquals(otherPrincipalId, created.getCreatedBy());
-		assertNotNull(created.getCreatedOn());
-		assertEquals(expiresOn, created.getExpiresOn());
-		assertNotNull(created.getId());
-		assertEquals(otherPrincipalId, created.getUserId());
-		assertEquals(message, created.getMessage());
-		assertEquals(createdTeam.getId(), created.getTeamId());
-		// get the request
-		MembershipRqstSubmission retrieved = synapseTwo.getMembershipRequest(created.getId());
-		assertEquals(created, retrieved);
-		// query for requests based on team
-		{
-			PaginatedResults<MembershipRequest> requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
-			assertEquals(1L, requests.getTotalNumberOfResults());
-			MembershipRequest request = requests.getResults().get(0);
-			assertEquals(expiresOn, request.getExpiresOn());
-			assertEquals(message, request.getMessage());
-			assertEquals(createdTeam.getId(), request.getTeamId());
-			assertEquals(otherPrincipalId, request.getUserId());
-			// check pagination
-			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
-			assertEquals(1L, requests.getTotalNumberOfResults());
-			assertEquals(0L, requests.getResults().size());
-			// query for requests based on team and member
-			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 1, 0);
-			assertEquals(1L, requests.getTotalNumberOfResults());
-			MembershipRequest request2 = requests.getResults().get(0);
-			assertEquals(request, request2);
-			// again, check pagination
-			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 2, 1);
-			assertEquals(1L, requests.getTotalNumberOfResults());
-			assertEquals(0L, requests.getResults().size());
-		}
-		
-		// query for request SUBMISSIONs based on team
-		{
-			PaginatedResults<MembershipRqstSubmission> requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 1, 0);
-			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
-			MembershipRqstSubmission requestSubmission = requestSubmissions.getResults().get(0);
-			assertEquals(created, requestSubmission);
-			// check pagination
-			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 2, 1);
-			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
-			assertEquals(0L, requestSubmissions.getResults().size());
-			// query for requests based on team and member
-			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 1, 0);
-			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
-			assertEquals(created, requestSubmissions.getResults().get(0));
-			// again, check pagination
-			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 2, 1);
-			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
-			assertEquals(0L, requestSubmissions.getResults().size());
-		}
+		synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 
-		// delete the request
-		synapseTwo.deleteMembershipRequest(created.getId());
-		try {
-			synapseTwo.getMembershipRequest(created.getId());
-			fail("Failed to delete membership request.");
-		} catch (SynapseException e) {
-			// as expected
-		}
+		// check that a notification was sent to the admin
+		assertTrue(EmailValidationUtil.doesFileExist(adminNotification));
+		
+		// requester notification
+		String requesterNotification = EmailValidationUtil.getBucketKeyForEmail(requesterProfile.getEmails().get(0));
+		if (EmailValidationUtil.doesFileExist(requesterNotification))
+			EmailValidationUtil.deleteFile(requesterNotification);
+		
+		// now get the embedded tokens
+		String startString = "<a href="+MOCK_ACCEPT_MEMB_RQST_ENDPOINT;
+		String endString = ">";
+		String jsst = EmailValidationUtil.getTokenFromFile(adminNotification, startString, endString);
+		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
+
+		startString = "<a href="+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
+		endString = ">";
+		String nsst = EmailValidationUtil.getTokenFromFile(adminNotification, startString, endString);
+		NotificationSettingsSignedToken notificationSettingsSignedToken = 
+				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);
+		// delete the message
+		EmailValidationUtil.deleteFile(adminNotification);
+		
+		ResponseMessage m = synapseOne.addTeamMember(joinTeamSignedToken, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		assertNotNull(m.getMessage());
+		
+		// now requester should be in the team
+		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), requesterPrincipalId);
+		assertTrue(tms.getIsMember());
+		
+		// admin should also be able to use the email-unsubscribe link
+		assertNull(adminUserProfile.getNotificationSettings());
+		
+		m = synapseOne.updateNotificationSettings(notificationSettingsSignedToken);
+		assertNotNull(m.getMessage());
+		
+		// admin settings should now be updated
+		adminUserProfile = synapseOne.getMyProfile();
+		assertFalse(adminUserProfile.getNotificationSettings().getSendEmailNotifications());
+		
+		// finally, the requester should have been notified that the admin added her to the team
+		assertTrue(EmailValidationUtil.doesFileExist(requesterNotification));
 	}
 		@Test
 	public void testStringUploadToS3() throws Exception {
