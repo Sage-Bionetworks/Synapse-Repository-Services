@@ -118,9 +118,6 @@ public class MessageManagerImplSESTest {
 		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
 		mockFileHandleDao = mock(FileHandleDao.class);
 		
-		// Use a working client
-		//amazonSESClient = new AmazonSimpleEmailServiceClient(awsCredentials);
-
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileDAO, mockNotificationEmailDao, mockPrincipalAliasDAO, 

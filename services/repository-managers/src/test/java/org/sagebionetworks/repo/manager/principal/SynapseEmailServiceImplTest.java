@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -13,8 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.S3TestUtils;
-import org.sagebionetworks.util.RetryException;
-import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -72,19 +69,7 @@ public class SynapseEmailServiceImplTest {
 		emailRequest.setMessage(message);
 		emailRequest.setSource("me@foo.bar");
 		sesClient.sendEmail(emailRequest);
-		boolean result = TimeUtils.waitForExponentialMaxRetry(10, 1000L, 
-			new Callable<Boolean>(){
-
-				@Override
-				public Boolean call() throws Exception {
-					boolean result = S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client);
-					if (!result) throw new RetryException("file does not exist");
-					return true;
-				}
-				
-			});
-		
-		assertTrue(result);
+		assertTrue(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client));
 	}
 
 }
