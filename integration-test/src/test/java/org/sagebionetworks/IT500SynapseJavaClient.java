@@ -1598,6 +1598,58 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
+	public void testMembershipInvitationAndAcceptanceNONotification() throws Exception {
+		// create a Team
+		String name = "Test-Team-Name";
+		String description = "Test-Team-Description";
+		UserProfile synapseOneProfile = synapseOne.getMyProfile();
+		String myPrincipalId = synapseOneProfile.getOwnerId();
+		assertNotNull(myPrincipalId);
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+		
+		// create an invitation
+		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
+		List<String> inviteeEmails = inviteeUserProfile.getEmails();
+		assertEquals(1, inviteeEmails.size());
+		String inviteeEmail = inviteeEmails.get(0);
+		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
+		if (EmailValidationUtil.doesFileExist(inviteeNotification)) 
+			EmailValidationUtil.deleteFile(inviteeNotification);
+		
+		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
+		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
+		dto.setExpiresOn(expiresOn);
+		dto.setInviteeId(inviteePrincipalId);
+		String message = "Please accept this invitation";
+		dto.setMessage(message);
+		dto.setTeamId(createdTeam.getId());
+		synapseOne.createMembershipInvitation(dto, null, null);
+		
+		// check that NO notification was sent to the invitee
+		assertFalse(EmailValidationUtil.doesFileExist(inviteeNotification));
+		
+		// inviter notification
+		String inviterNotification = EmailValidationUtil.getBucketKeyForEmail(synapseOneProfile.getEmails().get(0));
+		if (EmailValidationUtil.doesFileExist(inviterNotification))
+			EmailValidationUtil.deleteFile(inviterNotification);
+		
+		
+		synapseTwo.addTeamMember(createdTeam.getId(), inviteePrincipalId, null, null);
+		
+		// now I should be in the team
+		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), inviteePrincipalId);
+		assertTrue(tms.getIsMember());
+				
+		// finally, the invitER should NOT have been notified that the invitEE joined the team
+		assertFalse(EmailValidationUtil.doesFileExist(inviterNotification));
+	}
+
+	@Test
 	public void testMembershipRequestAndAcceptanceViaNotification() throws Exception {
 		// create a Team
 		String name = "Test-Team-Name";
@@ -1672,7 +1724,57 @@ public class IT500SynapseJavaClient {
 		// finally, the requester should have been notified that the admin added her to the team
 		assertTrue(EmailValidationUtil.doesFileExist(requesterNotification));
 	}
-		@Test
+	
+	@Test
+	public void testMembershipRequestAndAcceptanceNONotification() throws Exception {
+		// create a Team
+		String name = "Test-Team-Name";
+		String myPrincipalId = synapseOne.getMyProfile().getOwnerId();
+		assertNotNull(myPrincipalId);
+		Team team = new Team();
+		team.setName(name);
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+		
+		// clear any existing notification
+		UserProfile adminUserProfile = synapseOne.getMyProfile();
+		List<String> adminEmails = adminUserProfile.getEmails();
+		assertEquals(1, adminEmails.size());
+		String adminEmail = adminEmails.get(0);
+		String adminNotification = EmailValidationUtil.getBucketKeyForEmail(adminEmail);
+		if (EmailValidationUtil.doesFileExist(adminNotification)) 
+			EmailValidationUtil.deleteFile(adminNotification);
+
+		// create a request
+		UserProfile requesterProfile = synapseTwo.getMyProfile();
+		String requesterPrincipalId = requesterProfile.getOwnerId();
+		MembershipRqstSubmission dto = new MembershipRqstSubmission();
+		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
+		dto.setExpiresOn(expiresOn);
+		String message = "Please accept this request";
+		dto.setMessage(message);
+		dto.setTeamId(createdTeam.getId());
+		synapseTwo.createMembershipRequest(dto, null, null);
+
+		// check that a notification was NOT sent to the admin
+		assertFalse(EmailValidationUtil.doesFileExist(adminNotification));
+		
+		// requester notification
+		String requesterNotification = EmailValidationUtil.getBucketKeyForEmail(requesterProfile.getEmails().get(0));
+		if (EmailValidationUtil.doesFileExist(requesterNotification))
+			EmailValidationUtil.deleteFile(requesterNotification);
+	
+		synapseOne.addTeamMember(createdTeam.getId(), requesterPrincipalId, null, null);
+		
+		// now requester should be in the team
+		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), requesterPrincipalId);
+		assertTrue(tms.getIsMember());
+				
+		// finally, the requester should NOT have been notified that the admin added her to the team
+		assertFalse(EmailValidationUtil.doesFileExist(requesterNotification));
+	}
+
+	@Test
 	public void testStringUploadToS3() throws Exception {
 		String content = "This is my test string.";
 		String fileHandleId = synapseOne.uploadToFileHandle(content.getBytes("UTF-8"), 
