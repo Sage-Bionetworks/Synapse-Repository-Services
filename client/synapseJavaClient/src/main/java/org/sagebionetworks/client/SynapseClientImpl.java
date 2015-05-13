@@ -6489,10 +6489,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void addTeamMember(String teamId, String memberId, 
 			String teamEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
-		getSharedClientConnection().putJson(repoEndpoint,
-				TEAM + "/" + teamId + MEMBER + "/" + memberId +
-				"?" + 	TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
-				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
+		String uri = TEAM + "/" + teamId + MEMBER + "/" + memberId;
+		if (teamEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+			uri += "?" + 	TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
+					"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + 
+					urlEncode(notificationUnsubscribeEndpoint);
+		}
+		getSharedClientConnection().putJson(repoEndpoint, uri,
 				new JSONObject().toString(), getUserAgent());
 	}
 	
