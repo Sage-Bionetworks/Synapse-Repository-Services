@@ -144,7 +144,7 @@ public class UserProfileController extends BaseController {
 	 * @return A success message, if successful.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.EMAIL_NOTIFICATION, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.NOTIFICATION_SETTINGS, method = RequestMethod.PUT)
 	public @ResponseBody
 	ResponseMessage updateNotification(
 			@RequestBody NotificationSettingsSignedToken notificationSettingsSignedToken)

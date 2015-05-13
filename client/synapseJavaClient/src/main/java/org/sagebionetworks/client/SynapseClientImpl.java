@@ -339,6 +339,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
+	private static final String NOTIFICATION_SETTINGS = "/notificationSettings";
+
 	private static final String PROFILE_IMAGE = "/image";
 	private static final String PROFILE_IMAGE_PREVIEW = PROFILE_IMAGE+"/preview";
 
@@ -1294,11 +1296,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-	
+
 	@Override
 	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken token) throws SynapseException {
-		String uri = "";
-		return asymmetricalPut(getRepoEndpoint(), uri, token,
+		return asymmetricalPut(getRepoEndpoint(), NOTIFICATION_SETTINGS, token,
 				ResponseMessage.class);
 	}
 

@@ -155,7 +155,7 @@ public class UrlHelpers {
 	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
-	public static final String EMAIL_NOTIFICATION  = PrefixConst.EMAIL_NOTIFICATION;
+	public static final String NOTIFICATION_SETTINGS  = PrefixConst.NOTIFICATION_SETTINGS;
 	
 	
 	public static final String PRINCIPAL = "/principal";
