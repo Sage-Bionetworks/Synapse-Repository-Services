@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -56,6 +57,7 @@ import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -86,6 +88,7 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -96,6 +99,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -103,6 +107,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -411,6 +416,14 @@ public interface SynapseClient extends BaseClient {
 	public UserProfile getMyProfile() throws SynapseException;
 
 	public void updateMyProfile(UserProfile userProfile) throws SynapseException;
+	
+	/**
+	 * update user profile settings
+	 * 
+	 * @param token
+	 * @throws SynapseException
+	 */
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken token) throws SynapseException;
 
 	public UserProfile getUserProfile(String ownerId) throws SynapseException;
 
@@ -624,12 +637,26 @@ public interface SynapseClient extends BaseClient {
 
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
 			throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Create an S3FileHandle using a pre-configured ExternalS3StorageLocationSetting ID.
+	 * @param handle
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws JSONObjectAdapterException, SynapseException;
 
 	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException;
 
 	public void deleteFileHandle(String fileHandleId) throws SynapseException;
 
 	public void clearPreview(String fileHandleId) throws SynapseException;
+
+	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
+			throws SynapseException;
+
+	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
 	public WikiPage createWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws JSONObjectAdapterException,
@@ -1484,12 +1511,28 @@ public interface SynapseClient extends BaseClient {
 	void deleteTeam(String teamId) throws SynapseException;
 	
 	/**
-	 * 
+	 * Add a member to a Team
 	 * @param teamId
 	 * @param memberId
+	 * @param teamEndpoint the portal prefix for the Team URL. The team ID is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
 	 * @throws SynapseException
 	 */
-	void addTeamMember(String teamId, String memberId) throws SynapseException;
+	void addTeamMember(String teamId, String memberId, 
+			String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws SynapseException;
+	
+	/**
+	 * Add a member to a Team
+	 * @param joinTeamSignedToken an object, signed by Synapse, containing the team and 
+	 * member Ids as well as the Id of the user authenticated in the request.
+	 * @param teamEndpoint the portal prefix for the Team URL. The team ID is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
+	 * @throws SynapseException
+	 */
+	ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
+			String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws SynapseException;
 	
 	/**
 	 * Return the members of the given team matching the given name fragment.
@@ -1566,10 +1609,17 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param invitation
+	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
+	 * invitation.  A signed, serialized token is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL.
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipInvtnSubmission createMembershipInvitation(MembershipInvtnSubmission invitation) throws SynapseException;
+	MembershipInvtnSubmission createMembershipInvitation(
+			MembershipInvtnSubmission invitation,
+			String acceptInvitationEndpoint, 
+			String notificationUnsubscribeEndpoint ) throws SynapseException;
 
 	/**
 	 * 
@@ -1611,10 +1661,16 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param request
+	 * @param acceptRequestEndpoint the portal end-point for one-click acceptance of the membership
+	 * request.  A signed, serialized token is appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL.
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request) throws SynapseException;
+	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request,
+			String acceptRequestEndpoint, 
+			String notificationUnsubscribeEndpoint) throws SynapseException;
 	/**
 	 * 
 	 * @param requestId

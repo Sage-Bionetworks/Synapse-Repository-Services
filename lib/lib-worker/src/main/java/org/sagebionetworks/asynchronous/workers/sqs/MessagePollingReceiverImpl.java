@@ -26,6 +26,8 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextClosedEvent;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.sqs.model.Message;
@@ -34,7 +36,7 @@ import com.google.common.collect.Lists;
 /**
  * A basic implementation of a long polling message receiver.
  */
-public class MessagePollingReceiverImpl implements MessageReceiver {
+public class MessagePollingReceiverImpl implements MessageReceiver, ApplicationListener<ContextClosedEvent> {
 
 	static private Logger log = LogManager.getLogger(MessagePollingReceiverImpl.class);
 
@@ -192,6 +194,15 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 				updateQueueTimeouts();
 			}
 		}, visibilityTimeoutSec / 3, visibilityTimeoutSec / 3, TimeUnit.SECONDS);
+	}
+
+	@Override
+	public void onApplicationEvent(ContextClosedEvent event) {
+		// we do these on the context closed event, so all beans will start closing asap, before waiting for completion
+		// in the @PreDestroy step
+		cancelled = true;
+		workerExecutorService.shutdownNow();
+		queueUpdateTimer.shutdownNow();
 	}
 
 	@PreDestroy

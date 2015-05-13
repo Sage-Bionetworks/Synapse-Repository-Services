@@ -19,10 +19,12 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -195,5 +197,12 @@ public interface UserProfileService {
 	 * @throws NotFoundException 
 	 */
 	public String getUserProfileImagePreview(String profileId) throws NotFoundException;
+	
+	/**
+	 * Update notification settings in user profile.
+	 * 
+	 * @param notificationSettingsSignedToken
+	 */
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken);
 
 }

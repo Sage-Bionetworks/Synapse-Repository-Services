@@ -20,7 +20,9 @@ public interface MembershipRequestService {
 	 * @throws DatastoreException 
 	 */
 	public MembershipRqstSubmission create(Long userId,
-			MembershipRqstSubmission dto) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
+			MembershipRqstSubmission dto,
+			String acceptRequestEndpoint, 
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
 	
 	/**
 	 * 

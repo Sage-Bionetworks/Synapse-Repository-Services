@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -14,6 +15,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface ProjectSettingsManager {
+
+	public static final String OWNER_MARKER = "owner.txt";
 
 	ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
@@ -26,8 +29,10 @@ public interface ProjectSettingsManager {
 
 	void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
-	<T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, ProjectSettingsType type,
+	<T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String parentId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	<T extends ProjectSetting> List<T> getNodeSettingsByType(ProjectSettingsType settingsType, Class<T> expectedType);
 
 	<T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo, T StorageLocationSetting) throws DatastoreException,
 			NotFoundException, IOException;

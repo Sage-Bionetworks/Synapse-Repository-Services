@@ -298,20 +298,6 @@ public class PrincipalManagerImplUnitTest {
 	public void testValidateNewAccountTokenInvalidToken() {
 		testReplacedParamValidateNewAccountToken("mac", "invalid-mac");
 	}
-	
-	@Test
-	public void testValidateSynapsePortalHostOK() throws Exception {
-		PrincipalManagerImpl.validateSynapsePortalHost("www.synapse.org");
-		PrincipalManagerImpl.validateSynapsePortalHost("localhost");
-		PrincipalManagerImpl.validateSynapsePortalHost("127.0.0.1");
-		PrincipalManagerImpl.validateSynapsePortalHost("synapse-staging.sagebase.org");
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateSynapsePortalHostNotOk() throws Exception {
-		PrincipalManagerImpl.validateSynapsePortalHost("www.spam.com");
-	}
-	
 	@Test
 	public void testNewAccountEmailValidationHappyPath() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
@@ -509,7 +495,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals("Request to add or change new email", message.getSubject().getData());
 		String body = message.getBody().getHtml().getData();
 		// check that all template fields have been replaced
-		assertTrue(body.indexOf("#")<0);
+		assertTrue(body, body.indexOf("#")<0);
 		// check that user's name appears
 		assertTrue(body.indexOf(FIRST_NAME)>=0); 
 		assertTrue(body.indexOf(LAST_NAME)>=0); 

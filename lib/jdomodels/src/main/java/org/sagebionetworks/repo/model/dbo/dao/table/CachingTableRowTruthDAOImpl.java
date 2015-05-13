@@ -33,7 +33,7 @@ import com.google.common.collect.Sets;
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
  * 
- * @author John
+ * @author Marcel
  * 
  */
 public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
@@ -62,8 +62,8 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 			}
 		});
 
-		Map<Long, Long> rowIds = TableModelUtils.getDistictValidRowIds(updatingRows);
-		Map<Long, Long> rowIdLatestVersions = getLatestVersions(tableIdString, rowIds.keySet(), minVersion);
+		Map<Long, Long> rowIdToRowVersionNumberFromUpdate = TableModelUtils.getDistictValidRowIds(updatingRows);
+		Map<Long, Long> rowIdLatestVersions = getLatestVersions(tableIdString, rowIdToRowVersionNumberFromUpdate.keySet(), minVersion);
 
 		if (delta.getEtag() != null) {
 			long versionOfEtag = getVersionForEtag(tableIdString, delta.getEtag());
@@ -78,7 +78,10 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 			// sure they are the latest version
 			for (Map.Entry<Long, Long> entry : rowIdLatestVersions.entrySet()) {
 				Long latestVersionOfRow = entry.getValue();
-				Long lastVersionOfUpdateRow = rowIds.get(entry.getKey());
+				Long lastVersionOfUpdateRow = rowIdToRowVersionNumberFromUpdate.get(entry.getKey());
+				if(lastVersionOfUpdateRow == null){
+					throw new IllegalArgumentException("Passed a null row version number for rowId = "+latestVersionOfRow);
+				}
 				if (latestVersionOfRow.longValue() > lastVersionOfUpdateRow.longValue()) {
 					throwUpdateConflict(entry.getKey());
 				}

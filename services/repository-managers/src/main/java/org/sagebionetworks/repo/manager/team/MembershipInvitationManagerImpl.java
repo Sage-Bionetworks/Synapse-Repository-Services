@@ -3,15 +3,22 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,7 +31,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -41,7 +47,7 @@ public class MembershipInvitationManagerImpl implements
 	@Autowired
 	private TeamDAO teamDAO;
 	
-	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.txt";
+	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
 
@@ -89,16 +95,27 @@ public class MembershipInvitationManagerImpl implements
 	}
 	
 	@Override
-	public Pair<MessageToUser, String> createInvitationNotification(MembershipInvtnSubmission mis) {
+	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
+			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
+		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#teamName#", teamDAO.get(mis.getTeamId()).getName());
-		fieldValues.put("#teamId#", mis.getTeamId());
-		fieldValues.put("#userId#", mis.getInviteeId());
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mis.getTeamId()).getName());
+		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
+				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId()));
+		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+				notificationUnsubscribeEndpoint, mis.getInviteeId()));
+		if (mis.getMessage()==null || mis.getMessage().length()==0) {
+			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
+		} else {
+			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, 
+							"The inviter sends the following message: <Blockquote> "+
+							mis.getMessage()+" </Blockquote> ");
+		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
-		return new Pair<MessageToUser, String>(mtu, messageContent);
+		return new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType());
 	}
 
 	/* (non-Javadoc)

@@ -206,14 +206,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return email;
 	}
 	
-	public static void validateSynapsePortalHost(String portalHost) {
-		portalHost = portalHost.toLowerCase().trim();
-		if (portalHost.endsWith("synapse.org")) return;
-		if (portalHost.endsWith("sagebase.org")) return;
-		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
-		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
-	}
-	
 	// will throw exception for invalid email, invalid endpoint, invalid domain, or an email which is already taken
 	@Override
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
@@ -223,14 +215,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		
 		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForNewAccount(user, domain, new Date());
-			String urlString = portalEndpoint+token;
-			URL url = null;
-			try {
-				url = new URL(urlString);
-			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
-			}
-			validateSynapsePortalHost(url.getHost());
+			String url = portalEndpoint+token;
+			EmailUtils.validateSynapsePortalHost(url);
 			// is the email taken?
 			if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 				throw new NameConflictException("The email address provided is already used.");
@@ -246,8 +232,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, "");
 			}
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, urlString.replaceAll("&", "&amp;"));
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
 			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, true, null);
 			sesClient.sendEmail(sendEmailRequest);
@@ -361,14 +347,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		
 		if (domain.equals(DomainType.SYNAPSE)) {
 			String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), domain, new Date());
-			String urlString = portalEndpoint+token;
-			URL url = null;
-			try {
-				url = new URL(urlString);
-			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
-			}
-			validateSynapsePortalHost(url.getHost());
+			String url = portalEndpoint+token;
+			EmailUtils.validateSynapsePortalHost(url);
 			// is the email taken?
 			if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 				throw new NameConflictException("The email address provided is already used.");
@@ -380,8 +360,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
 			userProfile.getFirstName()+" "+userProfile.getLastName());
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, urlString.replaceAll("&", "&amp;"));
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));

@@ -1,10 +1,17 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,8 +24,10 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
@@ -27,8 +36,9 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.util.SerializationUtils;
 
 public class MembershipInvitationManagerImplTest {
 	
@@ -49,6 +59,7 @@ public class MembershipInvitationManagerImplTest {
 		mis.setId(id);
 		mis.setTeamId(TEAM_ID);
 		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
+		mis.setMessage("Please join our team.");
 		return mis;
 	}
 	
@@ -254,12 +265,51 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
 		Team team = new Team();
 		team.setName("test team");
+		team.setId(TEAM_ID);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
-		Pair<MessageToUser, String> result = membershipInvitationManagerImpl.createInvitationNotification(mis);
-		assertEquals("you have been invited to join a team", result.getFirst().getSubject());
-		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getFirst().getRecipients());
-		assertEquals(result.getSecond(), "Hello,\r\nYou have been invited to join the team test team.   To view and accept the invitation, please visit this page: https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:999/settings\r\n", 
-				result.getSecond());
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+		MessageToUserAndBody result = membershipInvitationManagerImpl.
+				createInvitationNotification(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+		assertEquals("you have been invited to join a team", result.getMetadata().getSubject());
+		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
+		
+		
+		// this will give us nine pieces...
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_INVITER_MESSAGE,
+				TEMPLATE_KEY_ONE_CLICK_JOIN,
+				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+		});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipInvitationManagerImpl.TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, delims);
+
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("test team", teamName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+		String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertTrue(inviterMessage.indexOf("Please join our team.")>=0);
+		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+		String acceptInvitationToken = 
+				EmailParseUtil.getTokenFromString(result.getBody(), 
+				templatePieces.get(4)+acceptInvitationEndpoint, templatePieces.get(6));
+		JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptInvitationToken, JoinTeamSignedToken.class);
+		SignedTokenUtil.validateToken(jtst);
+		assertEquals(TEAM_ID, jtst.getTeamId());
+		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
+		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getUserId());
+		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
+		String unsubscribeToken = EmailParseUtil.getTokenFromString(
+				result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
+		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+				(unsubscribeToken, NotificationSettingsSignedToken.class);
+		SignedTokenUtil.validateToken(nsst);
+		assertEquals(MEMBER_PRINCIPAL_ID, nsst.getUserId());
+		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+		assertFalse(nsst.getSettings().getSendEmailNotifications());
 	}
+	
 
 }

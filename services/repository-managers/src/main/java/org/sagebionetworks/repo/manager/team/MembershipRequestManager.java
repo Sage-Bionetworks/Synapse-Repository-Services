@@ -1,22 +1,26 @@
 package org.sagebionetworks.repo.manager.team;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 public interface MembershipRequestManager {
 	
 	/**
 	 * Request to join the team.
+	 * 
 	 * @param userInfo
 	 * @param mrs
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -99,8 +103,9 @@ public interface MembershipRequestManager {
 	 * Create the notification content
 	 * 
 	 * @param mrs
-	 * @return a pair: (1) the message metadata, (2) the message content
+	 * @return the message metadata and the message content, one for each team administrator
 	 */
-	public Pair<MessageToUser, String> createMembershipRequestNotification(MembershipRqstSubmission mrs);
+	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
+			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint);
 
 }

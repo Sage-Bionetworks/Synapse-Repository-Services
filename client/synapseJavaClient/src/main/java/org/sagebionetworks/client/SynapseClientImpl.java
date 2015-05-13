@@ -75,6 +75,7 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityInstanceFactory;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -87,6 +88,7 @@ import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -125,6 +127,8 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
@@ -138,6 +142,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -334,6 +339,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
+	private static final String NOTIFICATION_SETTINGS = "/notificationSettings";
+
 	private static final String PROFILE_IMAGE = "/image";
 	private static final String PROFILE_IMAGE_PREVIEW = PROFILE_IMAGE+"/preview";
 
@@ -355,7 +362,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FILE = "/file";
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
+	private static final String EXTERNAL_FILE_HANDLE_S3 = "/externalFileHandle/s3";
 	private static final String FILE_HANDLES = "/filehandles";
+	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
@@ -427,7 +436,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-
+	
+	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
+	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
+	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
+	public static final String TEAM_ENDPOINT_PARAM = "teamEndpoint";
+	
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
@@ -522,6 +536,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void setHttpClientProvider(HttpClientProvider clientProvider) {
 		getSharedClientConnection().setHttpClientProvider(clientProvider);
 	}
+	
+	/**
+	 * Returns a helper class for making specialized Http requests
+	 * 
+	 */
+	private HttpClientHelper getHttpClientHelper() {
+		return new HttpClientHelper(getSharedClientConnection().getHttpClientProvider());
+	}
+
+
 
 	/**
 	 * @param repoEndpoint
@@ -1273,6 +1297,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+
+	@Override
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken token) throws SynapseException {
+		return asymmetricalPut(getRepoEndpoint(), NOTIFICATION_SETTINGS, token,
+				ResponseMessage.class);
+	}
+
 
 	@Override
 	public UserProfile getUserProfile(String ownerId) throws SynapseException {
@@ -2382,7 +2413,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
+	
 	/**
 	 * Put the contents of the passed file to the passed URL.
 	 * 
@@ -2394,7 +2425,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException {
-		return getSharedClientConnection().putFileToURL(url, file, contentType);
+		return getHttpClientHelper().putFileToURL(url, file, contentType);
 	}
 
 	/**
@@ -2500,6 +2531,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = EXTERNAL_FILE_HANDLE;
 		return doCreateJSONEntity(getFileEndpoint(), uri, efh);
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#createExternalS3FileHandle(org.sagebionetworks.repo.model.file.S3FileHandle)
+	 */
+	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws JSONObjectAdapterException, SynapseException{
+		String uri = EXTERNAL_FILE_HANDLE_S3;
+		return doCreateJSONEntity(getFileEndpoint(), uri, handle);
+	}
+
+	@Override
+	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
+			throws SynapseException {
+		S3FileCopyRequest s3FileCopyRequest = new S3FileCopyRequest();
+		s3FileCopyRequest.setFiles(fileHandleIds);
+		s3FileCopyRequest.setBucket(destinationBucket);
+		s3FileCopyRequest.setOverwrite(overwrite);
+		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest);
+	}
+
+	@Override
+	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
+	}
 
 	/**
 	 * Asymmetrical post where the request and response are not of the same
@@ -2520,6 +2575,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			JSONObject responseBody = getSharedClientConnection().postJson(
 					endpoint, url, jsonString, getUserAgent(), null,
 					errorHandler);
+			return EntityFactory.createEntityFromJSONObject(responseBody,
+					returnClass);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Asymmetrical put where the request and response are not of the same
+	 * type.
+	 * 
+	 * @param url
+	 * @param reqeust
+	 * @param calls
+	 * @throws SynapseException
+	 */
+	private <T extends JSONEntity> T asymmetricalPut(String endpoint,
+			String url, JSONEntity requestBody, Class<? extends T> returnClass)
+			throws SynapseException {
+		try {
+			String jsonString = EntityFactory
+					.createJSONStringForEntity(requestBody);
+			JSONObject responseBody = getSharedClientConnection().putJson(
+					endpoint, url, jsonString, getUserAgent());
 			return EntityFactory.createEntityFromJSONObject(responseBody,
 					returnClass);
 		} catch (JSONObjectAdapterException e) {
@@ -3844,7 +3923,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (domain == null) {
 			throw new IllegalArgumentException("Domain must be specified");
 		}
-		return getSharedClientConnection().getDataDirect(authEndpoint,
+		return getHttpClientHelper().getDataDirect(authEndpoint,
 				"/" + domain.name().toLowerCase() + "TermsOfUse.html");
 	}
 
@@ -3983,7 +4062,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setChunkedFileToken(token);
 		request.setChunkNumber((long) currentChunkNumber);
 		URL presignedURL = createChunkedPresignedUrl(request);
-		getSharedClientConnection().putBytesToURL(presignedURL, content,
+		getHttpClientHelper().putBytesToURL(presignedURL, content,
 				contentType.toString());
 
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
@@ -6416,15 +6495,50 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().deleteUri(repoEndpoint,
 				TEAM + "/" + teamId, getUserAgent());
 	}
-
+	
 	@Override
-	public void addTeamMember(String teamId, String memberId)
+	public void addTeamMember(String teamId, String memberId, 
+			String teamEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
-		getSharedClientConnection().putJson(repoEndpoint,
-				TEAM + "/" + teamId + MEMBER + "/" + memberId,
+		String uri = TEAM + "/" + teamId + MEMBER + "/" + memberId;
+		if (teamEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+			uri += "?" + 	TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
+					"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + 
+					urlEncode(notificationUnsubscribeEndpoint);
+		}
+		getSharedClientConnection().putJson(repoEndpoint, uri,
 				new JSONObject().toString(), getUserAgent());
 	}
+	
+	@Override
+	public ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
+			String teamEndpoint,
+			String notificationUnsubscribeEndpoint) 
+			throws SynapseException {
+		
+		String uri = TEAM + MEMBER;
+		
+		if (teamEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+			uri += "?" + TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
+				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+		}
+		
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(joinTeamSignedToken.writeToJSONObject(toUpdateAdapter)
+					.toJSONString());
+			JSONObject jsonObj = getSharedClientConnection().putJson(
+					repoEndpoint, uri, obj.toString(), getUserAgent());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new ResponseMessage(adapter);
 
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
 	private static String urlEncode(String s) {
 		try {
 			return URLEncoder.encode(s, "UTF-8");
@@ -6534,11 +6648,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public MembershipInvtnSubmission createMembershipInvitation(
-			MembershipInvtnSubmission invitation) throws SynapseException {
+			MembershipInvtnSubmission invitation,
+			String acceptInvitationEndpoint,
+			String notificationUnsubscribeEndpoint) throws SynapseException {
 		try {
 			JSONObject jsonObj = EntityFactory
 					.createJSONObjectForEntity(invitation);
-			jsonObj = createJSONObject(MEMBERSHIP_INVITATION, jsonObj);
+			String uri = MEMBERSHIP_INVITATION;
+			if (acceptInvitationEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+				uri += "?" + ACCEPT_INVITATION_ENDPOINT_PARAM + "=" + urlEncode(acceptInvitationEndpoint) +
+						"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+			}
+			jsonObj = createJSONObject(uri, jsonObj);
 			return initializeFromJSONObject(jsonObj,
 					MembershipInvtnSubmission.class);
 		} catch (JSONObjectAdapterException e) {
@@ -6624,11 +6745,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public MembershipRqstSubmission createMembershipRequest(
-			MembershipRqstSubmission request) throws SynapseException {
+			MembershipRqstSubmission request,
+			String acceptRequestEndpoint,
+			String notificationUnsubscribeEndpoint) throws SynapseException {
 		try {
-			JSONObject jsonObj = EntityFactory
-					.createJSONObjectForEntity(request);
-			jsonObj = createJSONObject(MEMBERSHIP_REQUEST, jsonObj);
+			String uri = MEMBERSHIP_REQUEST;
+			if (acceptRequestEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+				uri += 	"?" + ACCEPT_REQUEST_ENDPOINT_PARAM + "=" + urlEncode(acceptRequestEndpoint) +
+						"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+			}
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(request);
+			jsonObj = createJSONObject(uri, jsonObj);
 			return initializeFromJSONObject(jsonObj,
 					MembershipRqstSubmission.class);
 		} catch (JSONObjectAdapterException e) {

@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -201,10 +202,11 @@ public class FileUtilsTest {
 	public void testWriteStringToCompressed() throws IOException {
 		String markdown = "This is a test **markdown** that will be compressed.";
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		FileUtils.writeCompressedString(markdown, baos);
+		Charset charset = Charset.forName("UTF-8");
+		FileUtils.writeString(markdown, charset, /*gzip*/true, baos);
 		byte[] bytes = baos.toByteArray();
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-		String unzippedString = FileUtils.readCompressedStreamAsString(bais);
+		String unzippedString = FileUtils.readStreamAsString(bais, charset, true);
 		assertEquals(markdown, unzippedString);
 	}
 }

@@ -1,15 +1,14 @@
 package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 public interface MembershipInvitationManager {
 	
@@ -29,10 +28,13 @@ public interface MembershipInvitationManager {
 	 * Create the notification content
 	 * 
 	 * @param mis
-	 * @return a pair: (1) the message metadata, (2) the message content
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
+	 * @return
 	 * @throws NotFoundException
 	 */
-	Pair<MessageToUser, String> createInvitationNotification(MembershipInvtnSubmission mis) throws NotFoundException;
+	MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
+			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 	
 	/**
 	 * Retrieve an invitation by its ID

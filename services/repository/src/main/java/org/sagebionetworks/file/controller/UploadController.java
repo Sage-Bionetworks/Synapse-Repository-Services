@@ -12,9 +12,13 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NotReadyException;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -24,16 +28,20 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
 import org.sagebionetworks.repo.web.controller.RedirectUtils;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -163,6 +171,9 @@ public class UploadController extends BaseController {
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
 
 	static private Log log = LogFactory.getLog(UploadController.class);
+
+	@Autowired
+	ServiceProvider serviceProvider;
 
 	@Autowired
 	FileUploadService fileService;
@@ -322,6 +333,34 @@ public class UploadController extends BaseController {
 		return fileService.createExternalFileHandle(userId, fileHandle);
 	}
 
+	/**
+	 * Create an S3FileHandle to represent an S3Object in a user's S3 bucket.
+	 * <p>
+	 * In order to use this method an ExternalS3StorageLocationSetting must first be created
+	 * for the user's bucket.  The ID of the resulting ExternalS3StorageLocationSetting
+	 * must be set in the S3FileHandle.storageLocationId.
+	 * Only the user that created to the ExternalS3StorageLocationSetting will be allowed to
+	 * create S3FileHandle using that storageLocationId.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param fileHandle
+	 *            The S3FileHandle to create
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/externalFileHandle/s3", method = RequestMethod.POST)
+	public @ResponseBody
+	S3FileHandle createExternalFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody S3FileHandle fileHandle)
+			throws DatastoreException, NotFoundException {
+		// Pass it along
+		return fileService.createExternalS3FileHandle(userId, fileHandle);
+	}
+	
 	/**
 	 * This is the first step in uploading a large file. The resulting <a
 	 * href="${org.sagebionetworks.repo.model.file.ChunkedFileToken}"
@@ -578,5 +617,56 @@ public class UploadController extends BaseController {
 		// Get the redirect url
 		String redirectUrl = fileService.getPresignedUrlForFileHandle(userId, handleId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+
+	/**
+	 * Asynchronously start a copy of large files to a bucket that is owned by the user. This is used for large files
+	 * that have their requestor pays set. See www.synapse.org//#!HelpPages:CreatingADownloadBucket for details on how
+	 * to set up a download bucket. Use the returned job id and <a
+	 * href="${GET.file.s3FileCopy.async.get.asyncToken}">GET /file/s3FileCopy/async/get</a> to get the results of the
+	 * query
+	 * 
+	 * @param userId
+	 * @param request S3FileCopyRequest that specifies what files to copy
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.S3_FILE_COPY_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId startS3FileCopyJob(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody S3FileCopyRequest request) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a copy of large files to a bucket started with <a
+	 * href="${POST.file.s3FileCopy.async.start}">POST /file/s3FileCopy/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response
+	 * body will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws NotReadyException
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.S3_FILE_COPY_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	S3FileCopyResults getS3FileCopyResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws NotReadyException, NotFoundException, AsynchJobFailedException {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (S3FileCopyResults) jobStatus.getResponseBody();
 	}
 }

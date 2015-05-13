@@ -10,6 +10,7 @@ public class PrefixConst {
 	public final static String ENTITY=		"/entity";
 	public final static String EXPRESSIONDATA = "/expressiondata";
 	public final static String USER_PROFILE	=		"/userProfile";
+	public final static String NOTIFICATION_SETTINGS	=	"/notificationSettings";
 	public final static String HEALTHCHECK = "/healthcheck";
 	public final static String VERSIONINFO = "/version";	
 	public static final String ACTIVITY = "/activity";

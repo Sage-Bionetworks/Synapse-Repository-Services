@@ -4,10 +4,18 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Date;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.util.SerializationUtils;
 
 import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -26,26 +34,35 @@ public class EmailUtils {
 	//////////////////////////////////////////
 	
 	public static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#domain#";
-	public static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
+	public static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayName#";
 	public static final String TEMPLATE_KEY_USERNAME = "#username#";
 	public static final String TEMPLATE_KEY_WEB_LINK = "#link#";
 	public static final String TEMPLATE_KEY_HTML_SAFE_WEB_LINK = "#htmlSafelink#";
 	public static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
 	public static final String TEMPLATE_KEY_DETAILS = "#details#";
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
+	public static final String TEMPLATE_KEY_TEAM_NAME = "#teamName#";
+	public static final String TEMPLATE_KEY_TEAM_ID = "#teamId#";
+	public static final String TEMPLATE_KEY_TEAM_WEB_LINK = "#teamWebLink#";
+	public static final String TEMPLATE_KEY_ONE_CLICK_JOIN = "#oneClickJoin#";
+	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
+	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
+	public static final String TEMPLATE_KEY_REQUESTER_MESSAGE = "#requesterMessage#";
 	
 	public static String getDisplayName(UserProfile userProfile) {
 		String userName = userProfile.getUserName();
 		if (userName==null) throw new IllegalArgumentException("userName is required");
 		String inviteeFirstName = userProfile.getFirstName();
 		String inviteeLastName = userProfile.getLastName();
-		String displayName;
+		StringBuilder displayName = new StringBuilder();
 		if (inviteeFirstName!=null || inviteeLastName!=null) {
-			displayName = inviteeFirstName+" "+inviteeLastName+" ("+userName+")";
+			if (inviteeFirstName!=null) displayName.append(inviteeFirstName+" ");
+			if (inviteeLastName!=null) displayName.append(inviteeLastName+" ");
+			displayName.append("("+userName+")");
 		} else {
-			displayName = userName;
+			displayName.append(userName);
 		}
-		return displayName;
+		return displayName.toString();
 	}
 
 	public static SendEmailRequest createEmailRequest(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
@@ -112,5 +129,52 @@ public class EmailUtils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	
+	public static void validateSynapsePortalHost(String urlString) {
+		URL url = null;
+		try {
+			url = new URL(urlString);
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
+		}
+		String portalHost = url.getHost();
+		portalHost = portalHost.toLowerCase().trim();
+		if (portalHost.endsWith("synapse.org")) return;
+		if (portalHost.endsWith("sagebase.org")) return;
+		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
+		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
+	}
+	
+
+	
+	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId) {
+		JoinTeamSignedToken token = new JoinTeamSignedToken();
+		token.setCreatedOn(new Date());
+		token.setUserId(userId);
+		token.setMemberId(memberId);
+		token.setTeamId(teamId);
+		SignedTokenUtil.signToken(token);
+		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
+		String result = endpoint+serializedToken;
+		validateSynapsePortalHost(result);
+		return result;
+	}
+	
+	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
+		NotificationSettingsSignedToken token = new NotificationSettingsSignedToken();
+		token.setCreatedOn(new Date());
+		token.setUserId(userId);
+		Settings settings = new Settings();
+		settings.setSendEmailNotifications(false);
+		token.setSettings(settings);
+		SignedTokenUtil.signToken(token);
+		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
+		String result = endpoint+serializedToken;
+		validateSynapsePortalHost(result);
+		return result;
+	}
+	
+
 
 }

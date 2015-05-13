@@ -5,8 +5,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Date;
 
+import org.apache.http.HttpHeaders;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.util.TempFileProvider;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -28,6 +32,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
+
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
 /**
  * Utility for converting between the WikiPage and V2WikiPage models.
@@ -57,6 +63,8 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		this.tempFileProvider = tempFileProvider;
 	}
 	
+	private static final String DEFAULT_WIKI_MIME_TYPE = "application/x-gzip";
+	
 	@WriteTransaction
 	@Override
 	public V2WikiPage convertToV2WikiPage(WikiPage from, UserInfo userInfo) throws IOException, DatastoreException, NotFoundException {
@@ -78,14 +86,14 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		String markdown = from.getMarkdown();
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
         if(markdown != null) {
-        	FileUtils.writeCompressedString(markdown, out);
+        	FileUtils.writeString(markdown, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
         } else {
-        	FileUtils.writeCompressedString("", out);
+        	FileUtils.writeString("", DEFAULT_FILE_CHARSET, /*gzip*/true, out);
         }
         byte[] compressedBytest = out.toByteArray();
-		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setContentType(contentType);
+		ContentType contentType = ContentType.create(DEFAULT_WIKI_MIME_TYPE, DEFAULT_FILE_CHARSET);
+		ccftr.setContentType(contentType.toString());
 		ccftr.setFileName("markdown.txt.gz");
 		// Calculate the MD5
 		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytest);
@@ -138,10 +146,11 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(from.getMarkdownFileHandleId());
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
 		InputStream in = s3Object.getObjectContent();
 		try{
 			// Read the file as a string
-			String markdownString = FileUtils.readCompressedStreamAsString(in);
+			String markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 			wiki.setMarkdown(markdownString);
 			return wiki;
 		}finally{

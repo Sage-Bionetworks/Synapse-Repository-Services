@@ -1,12 +1,20 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,9 +27,12 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
@@ -31,37 +42,34 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.util.SerializationUtils;
 
 public class MembershipRequestManagerImplTest {
 	
 	private AuthorizationManager mockAuthorizationManager;
 	private MembershipRequestManagerImpl membershipRequestManagerImpl;
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
-	private UserProfileDAO mockUserProfileDAO;
-	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private UserProfileManager mockUserProfileManager;
 	private TeamDAO mockTeamDAO;
 
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
+	private static final String TEAM_ID = "111";
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 
 	@Before
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
-		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
+		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipRqstSubmissionDAO,
-				mockUserProfileDAO,
-				mockPrincipalAliasDAO,
+				mockUserProfileManager,
 				mockTeamDAO
 				);
 		userInfo = new UserInfo(false);
@@ -155,36 +163,83 @@ public class MembershipRequestManagerImplTest {
 	@Test
 	public void testCreate() throws Exception {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
 	}
 	
 	@Test
 	public void testCreateMembershipRequestNotification() throws Exception {
-		when(mockTeamDAO.getAdminTeamMembers("111")).thenReturn(Collections.singletonList("222"));
+		List<String> teamAdmins = Arrays.asList(new String[]{"222", "333"});
+		when(mockTeamDAO.getAdminTeamMembers(TEAM_ID)).thenReturn(teamAdmins);
 		UserProfile up = new UserProfile();
 		up.setUserName("auser");
-		when(mockPrincipalAliasDAO.getUserName(userInfo.getId())).thenReturn(up.getUserName());
-		when(mockUserProfileDAO.get(userInfo.getId().toString())).thenReturn(up);
+		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
 		Team team = new Team();
 		team.setName("test-team");
-		when(mockTeamDAO.get("111")).thenReturn(team);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		
+		String acceptRequestEndpoint = "https://synapse.org/#acceptRequestEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		mrs.setCreatedBy(MEMBER_PRINCIPAL_ID);
-		Pair<MessageToUser, String> result = membershipRequestManagerImpl.createMembershipRequestNotification(mrs);
-		assertEquals("someone has requested to join your team", result.getFirst().getSubject());
-		assertEquals(Collections.singleton("222"), result.getFirst().getRecipients());
-		assertEquals(result.getSecond(), "Hello,\r\nauser has requested to join Team test-team.  To review pending invitations, visit this page: https://www.synapse.org/#!Team:111.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
-				result.getSecond());
+		mrs.setMessage("Please let me in your team.");
+		List<MessageToUserAndBody> resultList = membershipRequestManagerImpl.
+				createMembershipRequestNotification(mrs,
+						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
+		assertEquals(teamAdmins.size(), resultList.size());
+		for (int i=0; i<resultList.size(); i++) {
+			MessageToUserAndBody result = resultList.get(i);
+			assertEquals("someone has requested to join your team", result.getMetadata().getSubject());
+			assertEquals(Collections.singleton(teamAdmins.get(i)), result.getMetadata().getRecipients());
+
+			// this will give us eleven pieces...
+			List<String> delims = Arrays.asList(new String[] {
+					TEMPLATE_KEY_DISPLAY_NAME,
+					TEMPLATE_KEY_TEAM_NAME,
+					TEMPLATE_KEY_REQUESTER_MESSAGE,
+					TEMPLATE_KEY_ONE_CLICK_JOIN,
+					TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+			});
+			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipRequestManagerImpl.TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, delims);
+
+			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+			assertEquals("auser", displayName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+			assertEquals("test-team", teamName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+			String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+			assertTrue(inviterMessage.indexOf("Please let me in your team.")>=0);
+			assertTrue(result.getBody().indexOf(templatePieces.get(8))>0);
+			String acceptRequestToken = 
+					EmailParseUtil.getTokenFromString(result.getBody(), 
+					templatePieces.get(6)+acceptRequestEndpoint, templatePieces.get(8));
+			JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptRequestToken, JoinTeamSignedToken.class);
+			SignedTokenUtil.validateToken(jtst);
+			assertEquals(TEAM_ID, jtst.getTeamId());
+			assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
+			assertEquals(teamAdmins.get(i), jtst.getUserId());
+			assertTrue(result.getBody().endsWith(templatePieces.get(10)));
+			String unsubscribeToken = EmailParseUtil.getTokenFromString(
+					result.getBody(), templatePieces.get(8)+notificationUnsubscribeEndpoint, templatePieces.get(10));
+			NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+					(unsubscribeToken, NotificationSettingsSignedToken.class);
+			SignedTokenUtil.validateToken(nsst);
+			assertEquals(teamAdmins.get(i), nsst.getUserId());
+			assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+			assertFalse(nsst.getSettings().getSendEmailNotifications());
+		}
+
 	}
 	
 	@Test
 	public void testGet() throws Exception {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
 		when(mockMembershipRqstSubmissionDAO.get(anyString())).thenReturn(mrs);
 		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
@@ -197,7 +252,7 @@ public class MembershipRequestManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testGetForAnotherUser() throws Exception {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId("-1");
 		when(mockMembershipRqstSubmissionDAO.get(anyString())).thenReturn(mrs);
 		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
@@ -207,7 +262,7 @@ public class MembershipRequestManagerImplTest {
 	public void testDelete() throws Exception {
 		String MRS_ID = "222";
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
 		mrs.setId(MRS_ID);
 		when(mockMembershipRqstSubmissionDAO.get(MRS_ID)).thenReturn(mrs);
@@ -223,7 +278,7 @@ public class MembershipRequestManagerImplTest {
 	public void testDeleteOther() throws Exception {
 		String MRS_ID = "222";
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId("333");
 		mrs.setId(MRS_ID);
 		when(mockMembershipRqstSubmissionDAO.get(MRS_ID)).thenReturn(mrs);
@@ -234,7 +289,7 @@ public class MembershipRequestManagerImplTest {
 	@Test
 	public void testGetOpenByTeam() throws Exception {
 		MembershipRequest mr = new MembershipRequest();
-		mr.setTeamId("111");
+		mr.setTeamId(TEAM_ID);
 		mr.setUserId("333");
 		long teamId = 101L;
 		List<MembershipRequest> expected = Arrays.asList(new MembershipRequest[]{mr});
@@ -257,7 +312,7 @@ public class MembershipRequestManagerImplTest {
 	@Test
 	public void testGetOpenByTeamAndRequester() throws Exception {
 		MembershipRequest mr = new MembershipRequest();
-		mr.setTeamId("111");
+		mr.setTeamId(TEAM_ID);
 		long userId = 333L;
 		mr.setUserId(""+userId);
 		long teamId = 101L;
@@ -282,7 +337,7 @@ public class MembershipRequestManagerImplTest {
 	@Test
 	public void testGetOpenSubmissionsByRequester() throws Exception {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
-		mrs.setTeamId("111");
+		mrs.setTeamId(TEAM_ID);
 		long userId = userInfo.getId();
 		mrs.setUserId(""+userId);
 		List<MembershipRqstSubmission> expected = Arrays.asList(new MembershipRqstSubmission[]{mrs});

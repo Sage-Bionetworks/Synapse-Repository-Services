@@ -6,7 +6,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +15,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -79,7 +79,9 @@ public class MessageManagerImplSESTest {
 
 	@Autowired
 	private AWSCredentials awsCredentials;
-	private AmazonSimpleEmailServiceClient amazonSESClient;
+	
+	@Autowired
+	private SynapseEmailService synapseEmailService;
 	
 	private MessageToUser mockMessageToUser;
 	private UserInfo mockUserInfo;
@@ -116,13 +118,10 @@ public class MessageManagerImplSESTest {
 		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
 		mockFileHandleDao = mock(FileHandleDao.class);
 		
-		// Use a working client
-		amazonSESClient = new AmazonSimpleEmailServiceClient(awsCredentials);
-
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileDAO, mockNotificationEmailDao, mockPrincipalAliasDAO, 
-				mockAuthorizationManager, amazonSESClient,
+				mockAuthorizationManager, synapseEmailService,
 				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
 				mockFileHandleDao);
 		
@@ -149,6 +148,7 @@ public class MessageManagerImplSESTest {
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_PLAIN_TEXT)).thenReturn(urlPT);
 		String urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
+		when(mockFileHandleManager.downloadFileToString(anyString())).thenReturn("my dog has fleas");
 		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check

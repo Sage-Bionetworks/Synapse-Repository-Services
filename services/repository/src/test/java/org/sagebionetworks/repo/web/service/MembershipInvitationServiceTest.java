@@ -6,18 +6,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.util.Pair;
 
 public class MembershipInvitationServiceTest {
 	private MembershipInvitationServiceImpl membershipInvitationService;
@@ -47,22 +48,26 @@ public class MembershipInvitationServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		Pair<MessageToUser, String> result = new Pair<MessageToUser, String>(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
-		when(mockMembershipInvitationManager.createInvitationNotification(mis)).thenReturn(result);
+		when(mockMembershipInvitationManager.createInvitationNotification(
+				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
 
-		membershipInvitationService.create(userId, mis);
+		membershipInvitationService.create(userId, mis,
+				acceptInvitationEndpoint,  notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
-		verify(mockMembershipInvitationManager).createInvitationNotification(mis);
+		verify(mockMembershipInvitationManager).createInvitationNotification(
+				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		
-		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);
-		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), mtuArg.capture(), contentArg.capture());
-		assertEquals(mtu, mtuArg.getValue());
-		assertEquals(content, contentArg.getValue());		
+			sendNotifications(eq(userInfo), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));		
 	}
 
 }

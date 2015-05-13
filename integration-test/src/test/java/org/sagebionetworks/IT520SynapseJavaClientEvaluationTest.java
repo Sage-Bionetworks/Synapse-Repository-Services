@@ -121,6 +121,9 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static final int RDS_WORKER_TIMEOUT = 2*1000*60; // Two min
 	private static final String FILE_NAME = "LittleImage.png";
 	
+	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
+	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Create 2 users
@@ -775,7 +778,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		submissionsToDelete.add(sub1.getId());
 
 		// synapseTwo must join the challenge
-		synapseTwo.addTeamMember(participantTeam.getId(), ""+user2ToDelete);
+		synapseTwo.addTeamMember(participantTeam.getId(), ""+user2ToDelete, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(projectTwo.getId());
 		sub2.setVersionNumber(1L);

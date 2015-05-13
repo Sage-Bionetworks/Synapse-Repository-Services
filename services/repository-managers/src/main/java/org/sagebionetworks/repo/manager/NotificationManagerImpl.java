@@ -1,57 +1,47 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Set;
+import java.util.Date;
+import java.util.List;
 
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class NotificationManagerImpl implements NotificationManager {
-	
+
 	@Autowired
 	private FileHandleManager fileHandleManager;
-	
+
 	@Autowired
 	private MessageManager messageManager;
 
-	private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
-	
 	public NotificationManagerImpl() {}
-	
+
 	public NotificationManagerImpl(
 			FileHandleManager fileHandleManager, 
 			MessageManager messageManager) {
 		this.fileHandleManager = fileHandleManager;
 		this.messageManager = messageManager;
 	}
-	
-	@Override
-	public void sendNotification(UserInfo userInfo, MessageToUser mtu,
-			String message) throws NotFoundException {
-		
-		if (mtu.getRecipients().isEmpty()) return;
 
-		ContentType contentType = ContentType.create(NotificationManager.TEXT_PLAIN_MIME_TYPE, DEFAULT_CHARSET);
-		FileItemStream fileItemStream = new ByteArrayFileItemStream(
-					message.getBytes(DEFAULT_CHARSET), contentType.toString(), "");
-		try {
-			FileHandle fileHandle = fileHandleManager.uploadFile(userInfo.getId().toString(), fileItemStream);
-			
-			mtu.setFileHandleId(fileHandle.getId());
-			
-			messageManager.createMessage(userInfo, mtu);
-		} catch (ServiceUnavailableException e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+	@Override
+	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages) throws NotFoundException {
+
+		for (MessageToUserAndBody message : messages) {
+			if (message.getMetadata().getRecipients().isEmpty()) continue;
+			try {
+				FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
+						userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
+
+				message.getMetadata().setFileHandleId(fileHandle.getId());
+
+				messageManager.createMessage(userInfo, message.getMetadata());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 

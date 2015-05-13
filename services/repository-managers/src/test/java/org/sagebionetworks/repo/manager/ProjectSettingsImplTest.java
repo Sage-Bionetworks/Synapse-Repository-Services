@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -16,21 +19,43 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.Lists;
 
 public class ProjectSettingsImplTest {
 
-	private StorageLocationDAO mockDao = mock(StorageLocationDAO.class);
-	private UserProfileManager mockUserProfileManager = mock(UserProfileManager.class);
+	@Mock
+	private ProjectSettingsDAO mockProjectSettingsDao;
+
+	@Mock
+	private StorageLocationDAO mockStorageLocationDAO;
+
+	@Mock
+	private AuthorizationManager mockAuthorizationManager;
+
+	@Mock
+	private NodeDAO mockNodeDAO;
+
+	@Mock
+	private NodeManager mockNodeManager;
+
+	@Mock
+	private AmazonS3Client mockS3client;
+
+	@Mock
+	private UserProfileManager mockUserProfileManager;
+
+	@Mock
+	private UserManager mockUserManager;
 
 	private ProjectSettingsManagerImpl projectSettingsManager = new ProjectSettingsManagerImpl();
 
 	@Before
-	public void setup() {
-		ReflectionTestUtils.setField(projectSettingsManager, "storageLocationDAO", mockDao);
-		ReflectionTestUtils.setField(projectSettingsManager, "userProfileManager", mockUserProfileManager);
+	public void setup() throws Exception {
+		MockitoAnnotations.initMocks(this);
+		ReflectionStaticTestUtils.mockAutowire(this, projectSettingsManager);
 	}
 
 	@Test
@@ -42,8 +67,8 @@ public class ProjectSettingsImplTest {
 
 		projectSettingsManager.validateProjectSetting(setting, null);
 
-		verify(mockDao).get(1L);
-		verify(mockDao).get(2L);
+		verify(mockStorageLocationDAO).get(1L);
+		verify(mockStorageLocationDAO).get(2L);
 	}
 
 	@Test
@@ -102,7 +127,7 @@ public class ProjectSettingsImplTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 		setting.setLocations(Lists.newArrayList(1L, 2L));
 
-		when(mockDao.get(2L)).thenThrow(new NotFoundException("dummy"));
+		when(mockStorageLocationDAO.get(2L)).thenThrow(new NotFoundException("dummy"));
 
 		projectSettingsManager.validateProjectSetting(setting, null);
 	}
@@ -118,11 +143,11 @@ public class ProjectSettingsImplTest {
 		UserInfo currentUser = new UserInfo(false, 11L);
 		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3StorageLocationSetting.setCreatedBy(11L);
-		when(mockDao.get(1L)).thenReturn(externalS3StorageLocationSetting);
+		when(mockStorageLocationDAO.get(1L)).thenReturn(externalS3StorageLocationSetting);
 
 		projectSettingsManager.validateProjectSetting(setting, currentUser);
 
-		verify(mockDao).get(1L);
+		verify(mockStorageLocationDAO).get(1L);
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -135,14 +160,11 @@ public class ProjectSettingsImplTest {
 		UserInfo currentUser = new UserInfo(false, 11L);
 		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3StorageLocationSetting.setCreatedBy(12L);
-		when(mockDao.get(1L)).thenReturn(externalS3StorageLocationSetting);
+		when(mockStorageLocationDAO.get(1L)).thenReturn(externalS3StorageLocationSetting);
 
 		UserProfile profile = new UserProfile();
-		when(mockUserProfileManager.getUserProfile(currentUser, "12")).thenReturn(profile);
+		when(mockUserProfileManager.getUserProfile("12")).thenReturn(profile);
 
 		projectSettingsManager.validateProjectSetting(setting, currentUser);
-
-		verify(mockDao).get(1L);
-		verify(mockUserProfileManager).getUserProfile(currentUser, "12");
 	}
 }

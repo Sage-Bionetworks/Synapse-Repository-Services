@@ -2,15 +2,17 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.fileupload.FileItemStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -43,21 +45,17 @@ public class NotificationManagerImplTest {
 		to.add("000");
 		String subject = "subject";
 		String message = "message";
-		ArgumentCaptor<FileItemStream> fisCaptor = 
-				ArgumentCaptor.forClass(FileItemStream.class);
 		S3FileHandle fh = new S3FileHandle();
 		fh.setFileName("foo.bar");
 		String fileHandleId = "123";
 		fh.setId(fileHandleId);
-		when(fileHandleManager.uploadFile(eq(USER_ID.toString()), fisCaptor.capture())).
+		when(fileHandleManager.createCompressedFileFromString(eq(USER_ID.toString()), any(Date.class), anyString(), eq("text/plain"))).
 			thenReturn(fh);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(to);
 		mtu.setSubject(subject);
-		notificationManager.sendNotification(userInfo, mtu, message);
-		verify(fileHandleManager).uploadFile(eq(USER_ID.toString()), any(FileItemStream.class));
-		FileItemStream fis = fisCaptor.getValue();
-		assertEquals("text/plain; charset=UTF-8", fis.getContentType());
+		notificationManager.sendNotifications(userInfo, Collections.singletonList(new MessageToUserAndBody(mtu, message, "text/plain")));
+		verify(fileHandleManager).createCompressedFileFromString(eq(USER_ID.toString()), any(Date.class), anyString(), eq("text/plain"));
 		ArgumentCaptor<MessageToUser> mtuCaptor =
 				ArgumentCaptor.forClass(MessageToUser.class);
 		verify(messageManager).createMessage(eq(userInfo), mtuCaptor.capture());
@@ -75,9 +73,9 @@ public class NotificationManagerImplTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(to);
 		String message = "message";
-		notificationManager.sendNotification(userInfo, mtu, message);
+		notificationManager.sendNotifications(userInfo, Collections.singletonList(new MessageToUserAndBody(mtu, message, "text/plain")));
 		// there should be no message sent
-		verify(fileHandleManager, never()).uploadFile(anyString(), any(FileItemStream.class));
+		verify(fileHandleManager, never()).createCompressedFileFromString(anyString(), any(Date.class), anyString());
 		verify(messageManager, never()).createMessage(any(UserInfo.class), any(MessageToUser.class));
 
 	}

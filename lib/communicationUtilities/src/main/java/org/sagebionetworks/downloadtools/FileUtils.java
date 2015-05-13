@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -23,6 +24,8 @@ import java.util.zip.GZIPOutputStream;
  *
  */
 public class FileUtils {
+	
+	public static final Charset DEFAULT_FILE_CHARSET = Charset.forName("UTF-8");
 	
 	/**
 	 * Chunk a file into smaller files each with a size <= chunkSize.
@@ -112,18 +115,23 @@ public class FileUtils {
 	 * @throws IOException
 	 * @throws UnsupportedEncodingException
 	 */
-	public static void writeCompressedString(String content, OutputStream out) throws IOException,
+	public static void writeString(String content, Charset charset, boolean gzip, OutputStream out) throws IOException,
 			UnsupportedEncodingException {
+		if (charset==null) charset=DEFAULT_FILE_CHARSET;
 		GZIPOutputStream gzout = null;
 		OutputStreamWriter outw = null;
 		try {
-			gzout = new GZIPOutputStream(out);
-			outw = new OutputStreamWriter(gzout, "UTF-8");
+			if (gzip) {
+				gzout = new GZIPOutputStream(out);
+				outw = new OutputStreamWriter(gzout, charset);
+			} else {
+				outw = new OutputStreamWriter(out, charset);
+			}
 			outw.append(content);
 			outw.flush();
 			outw.close();
 		} finally {
-			gzout.close();
+			if (gzout!=null) gzout.close();
 			out.close();
 		}
 	}
@@ -131,9 +139,16 @@ public class FileUtils {
 	/**
 	 * Read compressed data from file as a string.
 	 */
-	public static String readCompressedStreamAsString(InputStream in) throws IOException {
-		GZIPInputStream gzin = new GZIPInputStream(in);
-		BufferedInputStream bis = new BufferedInputStream(gzin);
+	public static String readStreamAsString(InputStream in, Charset charset, boolean gunzip) throws IOException {
+		if (charset==null) charset=DEFAULT_FILE_CHARSET;
+		BufferedInputStream bis;
+		GZIPInputStream gzin=null;
+		if (gunzip) {
+			gzin = new GZIPInputStream(in);
+			bis = new BufferedInputStream(gzin);
+		} else {
+			bis = new BufferedInputStream(in);
+		}
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			byte[] buffer = new byte[1024];
@@ -144,10 +159,10 @@ public class FileUtils {
 		} finally {
 			baos.close();
 			bis.close();
-			gzin.close();
+			if (gzin!=null) gzin.close();
 			in.close();
 		}
-		String fromZip = new String(baos.toByteArray(), "UTF-8");
+		String fromZip = new String(baos.toByteArray(), charset);
 		return fromZip;
 	}
 }

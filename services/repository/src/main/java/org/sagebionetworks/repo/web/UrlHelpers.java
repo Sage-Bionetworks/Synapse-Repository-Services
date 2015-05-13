@@ -155,6 +155,7 @@ public class UrlHelpers {
 	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
+	public static final String NOTIFICATION_SETTINGS  = PrefixConst.NOTIFICATION_SETTINGS;
 	
 	
 	public static final String PRINCIPAL = "/principal";
@@ -171,7 +172,11 @@ public class UrlHelpers {
 	public static final String ENTITY_TYPE = ENTITY+TYPE;
 	public static final String ENTITY_TYPE_HEADER = ENTITY+TYPE_HEADER;
 	
-
+	// Asynchronous jobs
+	public static final String ASYNC_START_REQUEST = "/async/start";
+	public static final String ASYNC_GET_REQUEST = "/async/get/{asyncToken}";
+	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
+	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB + "/{jobId}";
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -194,6 +199,9 @@ public class UrlHelpers {
 	public static final String ENTITY_FILE = ENTITY_ID+FILE;
 	public static final String ENTITY_FILE_PREVIEW = ENTITY_ID+FILE_PREVIEW;
 	public static final String ENTITY_FILE_HANDLES = ENTITY_ID+FILE_HANDLE;
+	public static final String S3_FILE_COPY = FILE + "/s3FileCopy";
+	public static final String S3_FILE_COPY_ASYNC_START = S3_FILE_COPY + ASYNC_START_REQUEST;
+	public static final String S3_FILE_COPY_ASYNC_GET = S3_FILE_COPY + ASYNC_GET_REQUEST;
 	// version
 	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
 	public static final String ENTITY_VERSION_FILE_PREVIEW = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_PREVIEW;
@@ -685,12 +693,6 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	
-	// Asynchronous jobs
-	public static final String ASYNC_START_REQUEST = "/async/start";
-	public static final String ASYNC_GET_REQUEST = "/async/get/{asyncToken}";
-	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
-	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB + "/{jobId}";
-
 	// Tables
 	public static final String COLUMN = "/column";
 	public static final String COLUMN_BATCH = COLUMN + "/batch";
@@ -757,6 +759,7 @@ public class UrlHelpers {
 	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
 	public static final String TEAM_MEMBER_LIST = TEAM_ID_MEMBER+"List";
 	public static final String USER_TEAM_MEMBER_LIST = USER+ID+MEMBER+"List";
+	public static final String TEAM_MEMBER = TEAM+MEMBER;
 	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
 	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
 	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";

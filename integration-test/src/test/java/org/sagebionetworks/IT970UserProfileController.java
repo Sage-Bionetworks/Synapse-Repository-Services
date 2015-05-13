@@ -42,6 +42,9 @@ import com.google.common.collect.Sets;
 
 public class IT970UserProfileController {
 
+	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
+	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+	
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
@@ -62,7 +65,7 @@ public class IT970UserProfileController {
 		Team team = new Team();
 		team.setName("team" + new Random().nextInt());
 		teamToDelete = adminSynapse.createTeam(team).getId();
-		adminSynapse.addTeamMember(teamToDelete, userToDelete.toString());
+		adminSynapse.addTeamMember(teamToDelete, userToDelete.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 	}
 	
 	@Before

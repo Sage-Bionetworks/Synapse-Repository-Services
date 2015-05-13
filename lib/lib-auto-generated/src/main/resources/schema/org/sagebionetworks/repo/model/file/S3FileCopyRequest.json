@@ -1,0 +1,25 @@
+{
+	"description": "Copy file handles to an s3 bucket.",
+	"implements": [
+		{
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"bucket": {
+			"description": "The s3 bucket to copy to",
+			"type": "string"
+		},
+		"overwrite": {
+			"description": "overwrite existing files on destination (default false)",
+			"type": "boolean"
+		},
+		"files": {
+			"type": "array",
+			"description": "List of file entity ids to copy.",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

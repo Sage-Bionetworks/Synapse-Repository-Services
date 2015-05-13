@@ -582,7 +582,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(s3Object);
 		InputStream input = s3Object.getObjectContent();
 		try{
-			String back = FileUtils.readCompressedStreamAsString(input);
+			String back = FileUtils.readStreamAsString(input, null, /*gunzip*/true);
 			assertEquals(fileContents, back);
 		}finally{
 			input.close();

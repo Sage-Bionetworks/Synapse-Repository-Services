@@ -3,6 +3,13 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,13 +21,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -32,7 +42,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -49,7 +58,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -62,8 +70,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+
 
 /**
  * @author brucehoff
@@ -83,6 +91,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
@@ -93,21 +103,19 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	@Autowired
 	private PrincipalManager principalManager;
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManager;
 
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
-	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
-	private static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.txt";
+	public static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
+	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
 	
 
@@ -132,7 +140,7 @@ public class TeamManagerImpl implements TeamManager {
 			AccessRequirementDAO accessRequirementDAO,
 			PrincipalAliasDAO principalAliasDAO,
 			PrincipalManager principalManager,
-			UserProfileDAO userProfileDAO,
+			UserProfileManager userProfileManager,
 			TransactionalMessenger transactionalMessenger
 			) {
 		this.authorizationManager = authorizationManager;
@@ -149,7 +157,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.principalManager = principalManager;
-		this.userProfileDAO = userProfileDAO;
+		this.userProfileManager = userProfileManager;
 		this.transactionalMessenger = transactionalMessenger;
 	}
 
@@ -498,47 +506,51 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public Pair<MessageToUser, String> createJoinedTeamNotification(UserInfo joinerInfo, UserInfo memberInfo, String teamId) throws NotFoundException {
+	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, 
+			UserInfo memberInfo, String teamId, String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws NotFoundException {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (notificationUnsubscribeEndpoint==null) return result;
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
-		String messageContent = null;
-		MessageToUser mtu = new MessageToUser();
-		mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, teamId);
+		String teamUrl = teamEndpoint+teamId;
+		EmailUtils.validateSynapsePortalHost(teamUrl);
+		fieldValues.put(TEMPLATE_KEY_TEAM_WEB_LINK, teamUrl);
 		if (userJoiningTeamIsSelf) {
-			Set<String> inviters = getInviters(Long.parseLong(teamId), memberInfo.getId());
-			String memberUserName = principalAliasDAO.getUserName(memberInfo.getId());
-			UserProfile memberUserProfile = userProfileDAO.get(memberInfo.getId().toString());
-			memberUserProfile.setUserName(memberUserName);
+			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
-			fieldValues.put("#displayName#", memberDisplayName);
-			messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
-			mtu.setRecipients(inviters);
+			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
+			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
+				MessageToUser mtu = new MessageToUser();
+				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+				fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+						notificationUnsubscribeEndpoint, recipient));
+				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
+				mtu.setRecipients(Collections.singleton(recipient));
+				result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
+			}
 		} else {
-			String joinerUserName = principalAliasDAO.getUserName(joinerInfo.getId());
-			UserProfile joinerUserProfile = userProfileDAO.get(joinerInfo.getId().toString());
-			joinerUserProfile.setUserName(joinerUserName);
+			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
 			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
-			fieldValues.put("#displayName#", joinerDisplayName);
-			fieldValues.put("#userId#", memberInfo.getId().toString());
-			messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
-			mtu.setRecipients(Collections.singleton(memberInfo.getId().toString()));
+			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
+			String recipient = memberInfo.getId().toString();
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
+					notificationUnsubscribeEndpoint, recipient));
+			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
+			MessageToUser mtu = new MessageToUser();
+			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+			mtu.setRecipients(Collections.singleton(recipient));
+			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}	
-		return new Pair<MessageToUser, String>(mtu, messageContent);
+		return result;
 	}
 
 	private Set<String> getInviters(Long teamId, Long inviteeId) {
-		List<MembershipInvtnSubmission> misList = 
-		membershipInvtnSubmissionDAO.
-			getOpenSubmissionsByTeamAndUserInRange(teamId, inviteeId, System.currentTimeMillis(), Long.MAX_VALUE, 0);
-		Set<String> result = new HashSet<String>();
-		for (MembershipInvtnSubmission mis : misList) {
-			result.add(mis.getCreatedBy());
-		}
-		return result;
-	}
-	
+		return new HashSet<String>(membershipInvtnSubmissionDAO.
+			getInvitersByTeamAndUser(teamId, inviteeId, System.currentTimeMillis()));
+	}	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#addMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)

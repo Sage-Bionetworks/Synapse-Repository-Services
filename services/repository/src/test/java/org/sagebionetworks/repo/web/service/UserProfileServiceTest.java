@@ -39,9 +39,12 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -102,8 +105,8 @@ public class UserProfileServiceTest {
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
+		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
+		when(mockUserProfileManager.getUserProfile(eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockPrincipalAlaisDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
 
@@ -181,7 +184,7 @@ public class UserProfileServiceTest {
 		userProfile.setOwnerId(ownerId);
 		userProfile.setEmails(Collections.singletonList(email));
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
-		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.getUserProfile(profileId)).thenReturn(userProfile);
 		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
@@ -206,7 +209,7 @@ public class UserProfileServiceTest {
 
 		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
-		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		when(mockUserProfileManager.getUserProfile(profileId)).thenReturn(userProfile);
 		when(mockUserProfileManager.list(singletonIdList(ownerId))).thenReturn(wrap(userProfile));
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
@@ -218,6 +221,35 @@ public class UserProfileServiceTest {
 		someOtherUserProfile = lwup.getList().get(0);
 		assertNull(someOtherUserProfile.getEtag());
 		assertNotNull(someOtherUserProfile.getEmails());
+	}
+	
+	@Test
+	public void testUpdateNotificationSettings() throws Exception {
+		NotificationSettingsSignedToken notificationSettingsSignedToken = new NotificationSettingsSignedToken();
+		Long userId = 101L;
+		notificationSettingsSignedToken.setUserId(userId.toString());
+		Settings settings = new Settings();
+		settings.setSendEmailNotifications(false);
+		notificationSettingsSignedToken.setSettings(settings);
+		SignedTokenUtil.signToken(notificationSettingsSignedToken);
+		
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(userId);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(userId.toString());
+		when(mockUserProfileManager.getUserProfile(userId.toString())).thenReturn(userProfile);
+		
+		userProfileService.updateNotificationSettings(notificationSettingsSignedToken);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserProfileManager).getUserProfile(userId.toString());
+		verify(mockUserProfileManager).updateUserProfile(userInfo, userProfile);
+		Settings settings2 = userProfile.getNotificationSettings();
+		assertNotNull(settings2);
+		assertFalse(settings2.getSendEmailNotifications());
+		// since this setting didn't exist before, it still does not exist
+		assertNull(settings2.getMarkEmailedMessagesAsRead());
 	}
 
 

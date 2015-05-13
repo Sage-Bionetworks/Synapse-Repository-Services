@@ -7,12 +7,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
@@ -149,6 +151,10 @@ public class SharedClientConnection {
 		this.clientProvider = clientProvider;
 	}
 	
+	public HttpClientProvider getHttpClientProvider() {
+		return clientProvider;
+	}
+	
 	/**
 	 * @param authEndpoint
 	 *            the authEndpoint to set
@@ -281,74 +287,8 @@ public class SharedClientConnection {
 		deleteUri(authEndpoint, "/secretKey", userAgent);
 		this.apiKey = null;
 	}
-
-	/**
-	 * Put the contents of the passed file to the passed URL.
-	 * 
-	 * @param url
-	 * @param file
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 */
-	public String putFileToURL(URL url, File file, String contentType) throws SynapseException {
-		try {
-			if (url == null)
-				throw new IllegalArgumentException("URL cannot be null");
-			if (file == null)
-				throw new IllegalArgumentException("File cannot be null");
-			HttpPut httppost = new HttpPut(url.toString());
-			// There must not be any headers added or Amazon will return a 403.
-			// Therefore, we must clear the content type.
-			@SuppressWarnings("deprecation")
-			org.apache.http.entity.FileEntity fe = new org.apache.http.entity.FileEntity(file, contentType);
-			httppost.setEntity(fe);
-			HttpResponse response = clientProvider.execute(httppost);
-			int code = response.getStatusLine().getStatusCode();
-			if (code < 200 || code > 299) {
-				throw new SynapseServerException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
-						+ " for " + url + " File: " + file.getName());
-			}
-			return EntityUtils.toString(response.getEntity());
-		} catch (ClientProtocolException e) {
-			throw new SynapseClientException(e);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-
-	}
 	
-	/**
-	 * Put the contents of the passed byte array to the passed URL, associating the given content type
-	 * 
-	 * @param url
-	 * @param content the byte array to upload
-	 * @throws SynapseException
-	 */
-	public String putBytesToURL(URL url, byte[] content, String contentType) throws SynapseException {
-		try {
-			if (url == null)
-				throw new IllegalArgumentException("URL cannot be null");
-			if (content == null)
-				throw new IllegalArgumentException("content cannot be null");
-			HttpPut httppost = new HttpPut(url.toString());
-			ByteArrayEntity se = new ByteArrayEntity(content);
-			httppost.setHeader("content-type", contentType);
-			httppost.setEntity(se);
-			HttpResponse response = clientProvider.execute(httppost);
-			int code = response.getStatusLine().getStatusCode();
-			if (code < 200 || code > 299) {
-				throw new SynapseServerException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
-						+ " for " + url);
-			}
-			return EntityUtils.toString(response.getEntity());
-		} catch (ClientProtocolException e) {
-			throw new SynapseClientException(e);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
 
-	}
-	
 	private static final String ERROR_REASON_TAG = "reason";
 	
 	private static boolean isOKStatusCode(int statusCode) {
@@ -420,7 +360,8 @@ public class SharedClientConnection {
 			String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
 			convertHttpResponseToException(statusCode, responseBody);
 		}
-		return FileUtils.readCompressedStreamAsString(entity.getContent());
+		Charset charset = getCharacterSetFromResponse(response);
+		return FileUtils.readStreamAsString(entity.getContent(), charset, /*gunzip*/true);
 	}
 
 	public File downloadFromSynapse(String url, String md5,
@@ -488,47 +429,26 @@ public class SharedClientConnection {
 		return putJson(authEndpoint, uri, entity.toString(), userAgent);
 	}
 
-	public String getDataDirect(String endpoint, String uri) throws SynapseException {
-		if (null == uri) {
-			throw new IllegalArgumentException("must provide uri");
-		}
-		try {
-			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
-			int statusCode = response.getStatusLine().getStatusCode();
-			if (statusCode!=HttpStatus.SC_OK) throw new SynapseServerException(statusCode);
-			return EntityUtils.toString(response.getEntity());
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
+	public static Charset getCharacterSetFromRequest(HttpRequestBase request) {
+		Header contentTypeHeader = request.getFirstHeader(HttpHeaders.CONTENT_TYPE);
+		return getChararcterSetFromContentTypeHeader(contentTypeHeader);
 	}
 	
-	public static String getCharacterSetFromRequest(HttpRequestBase request) {
-		Header contentTypeHeader = request.getFirstHeader("Content-Type");
+	public static Charset getChararcterSetFromContentTypeHeader(Header contentTypeHeader) {
 		if (contentTypeHeader==null) return null;
 		ContentType contentType = ContentType.parse(contentTypeHeader.getValue());
-		return contentType.getCharset().name();
+		return contentType.getCharset();
+	}
+
+	public static Charset getCharacterSetFromResponse(HttpResponse response) {
+		Header contentTypeHeader = response.getFirstHeader(HttpHeaders.CONTENT_TYPE);
+		return getChararcterSetFromContentTypeHeader(contentTypeHeader);
 	}
 
 	public String postStringDirect(String endpoint, String uri, String data, String userAgent) throws SynapseException {
-		URIBuilder builder = null;
-		try {
-			builder = new URIBuilder(endpoint + uri);
-			builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, domain.name());	
-		} catch (URISyntaxException e) {
-			throw new SynapseClientException(e);
-		}
-		try {
-			HttpPost post = new HttpPost(builder.toString());
-			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
-			StringEntity stringEntity = new StringEntity(data, getCharacterSetFromRequest(post));
-			post.setEntity(stringEntity);
-			HttpResponse response = clientProvider.execute(post);
-			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-			convertHttpResponseToException(response.getStatusLine().getStatusCode(), responseBody);
-			return responseBody;
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "POST", data, defaultPOSTPUTHeaders, userAgent, null, null);
+		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
+		return response.getResponseBody();
 	}
 
 	/******************** Low Level APIs ********************/
@@ -566,9 +486,10 @@ public class SharedClientConnection {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "POST", jsonString, defaultPOSTPUTHeaders, userAgent,
+		String requestMethod = "POST";
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, requestMethod, jsonString, defaultPOSTPUTHeaders, userAgent,
 				parameters, errorHandler);
-		return jsonObject;
+		return convertResponseBodyToJSON(response.getResponseBody(), requestMethod, endpoint, uri, parameters, response.getStatusCode());
 	}
 
 	/**
@@ -588,8 +509,10 @@ public class SharedClientConnection {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "PUT", jsonToPut, defaultPOSTPUTHeaders, userAgent, null, null);
-		return jsonObject;
+		String requestMethod = "PUT";
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, requestMethod, jsonToPut, defaultPOSTPUTHeaders, userAgent, null, null);
+		return convertResponseBodyToJSON(response.getResponseBody(), requestMethod,endpoint, uri, null, response.getStatusCode());
+
 	}
 		
 	/**
@@ -612,9 +535,11 @@ public class SharedClientConnection {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null,
+		String requestMethod = "GET";
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, requestMethod, null, defaultGETDELETEHeaders, userAgent, null,
 				errorHandler);
-		return jsonObject;
+		return convertResponseBodyToJSON(response.getResponseBody(), requestMethod, endpoint, uri, null, response.getStatusCode());
+
 	}
 
 	/**
@@ -623,7 +548,9 @@ public class SharedClientConnection {
 	 */
 	public JSONObject postUri(String endpoint, String uri, String userAgent) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
-		return signAndDispatchSynapseRequest(endpoint, uri, "POST", null, defaultPOSTPUTHeaders, userAgent, null, null);
+		String requestMethod = "POST";
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, requestMethod, null, defaultPOSTPUTHeaders, userAgent, null, null);
+		return convertResponseBodyToJSON(response.getResponseBody(), requestMethod, endpoint, uri, null, response.getStatusCode());
 	}
 
 	/**
@@ -632,12 +559,14 @@ public class SharedClientConnection {
 	 */
 	public void deleteUri(String endpoint, String uri, String userAgent) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
-		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null, null);
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null, null);
+		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
 	}
 	
 	public void deleteUri(String endpoint, String uri, String userAgent, Map<String, String> parameters) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
-		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, parameters, null);
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, parameters, null);
+		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
 	}
 	
 	private void addDigitalSignature(String url, Map<String, String> modHeaders) throws SynapseClientException {
@@ -654,7 +583,7 @@ public class SharedClientConnection {
 	    modHeaders.put(AuthorizationConstants.SIGNATURE, signature);
 	}
 	
-	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod, String requestContent,
+	protected ResponseBodyAndStatusCode signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders, String userAgent, Map<String, String> parameters, ErrorHandler errorHandler)
 			throws SynapseException {
 		Map<String, String> modHeaders = new HashMap<String, String>(requestHeaders);
@@ -705,7 +634,7 @@ public class SharedClientConnection {
 	 * @param requestHeaders
 	 * @return
 	 */
-	protected JSONObject dispatchSynapseRequest(String endpoint, String uri, String requestMethod, String requestContent,
+	protected ResponseBodyAndStatusCode dispatchSynapseRequest(String endpoint, String uri, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders, Map<String, String> parameters, ErrorHandler errorHandler) throws SynapseException {
 		if (requestProfile && !requestMethod.equals("DELETE")) {
 			requestHeaders.put(REQUEST_PROFILE_DATA, "true");
@@ -721,7 +650,6 @@ public class SharedClientConnection {
 		
 		String requestUrl = null;
 		String responseBody = null;
-		JSONObject results = null;
 		int statusCode = 0;
 		try {
 			requestUrl = createRequestUrl(endpoint, uri, parameters);
@@ -744,6 +672,18 @@ public class SharedClientConnection {
 			throw new SynapseClientException(e);
 		}
 		
+		return new ResponseBodyAndStatusCode(responseBody, statusCode);
+	}
+	
+	protected JSONObject convertResponseBodyToJSON(
+			String responseBody, 
+			String requestMethod, 
+			String endpoint, 
+			String uri, 
+			 Map<String, String> parameters,
+			 int statusCode) throws SynapseException {
+		JSONObject results = null;
+		
 		if (null != responseBody && responseBody.length()>0) {
 			String resultsStringForLogging = null;
 			try {
@@ -753,6 +693,7 @@ public class SharedClientConnection {
 				throw new SynapseClientException("responseBody: <<"+responseBody+">>", jsone);
 			}
 			if (log.isDebugEnabled()) {
+				String requestUrl = createRequestUrl(endpoint, uri, parameters);
 				if(authEndpoint.equals(endpoint)) {
 					log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");
 				} else {
@@ -793,13 +734,19 @@ public class SharedClientConnection {
 		}
 	}
 	
+	/**
+	 * This is used to get a response which is a simple string (not encoded as JSON)
+	 * @param endpoint
+	 * @param uri
+	 * @param userAgent
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
-		HttpGet get = new HttpGet(endpoint + uri);
-		setHeaders(get, defaultGETDELETEHeaders, userAgent);
-		HttpResponse response = clientProvider.execute(get);
-		String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-		convertHttpResponseToException(response.getStatusLine().getStatusCode(), responseBody);
-		return responseBody;
+		ResponseBodyAndStatusCode response = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null, null);
+		convertHttpResponseToException(response.getStatusCode(), response.getResponseBody());
+		return response.getResponseBody();
 	}
 
 	private void setHeaders(HttpRequestBase request, Map<String, String> headers, String userAgent) {

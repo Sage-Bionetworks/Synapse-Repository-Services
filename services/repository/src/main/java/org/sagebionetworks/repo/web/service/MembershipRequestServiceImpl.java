@@ -3,10 +3,12 @@
  */
 package org.sagebionetworks.repo.web.service;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -14,9 +16,7 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -49,15 +49,16 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 */
 	@Override
 	public MembershipRqstSubmission create(Long userId,
-			MembershipRqstSubmission dto) throws UnauthorizedException,
+			MembershipRqstSubmission dto,
+			String acceptRequestEndpoint,
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
-		Pair<MessageToUser, String> message = membershipRequestManager.createMembershipRequestNotification(created);
-		notificationManager.sendNotification(
-				userInfo, 
-				message.getFirst(),
-				message.getSecond());
+		List<MessageToUserAndBody> messages = membershipRequestManager.
+				createMembershipRequestNotification(created,
+						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
+		notificationManager.sendNotifications(userInfo, messages);
 		return created;
 	}
 

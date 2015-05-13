@@ -23,7 +23,7 @@ public interface UserProfileManager {
 	/**
 	 * Get an existing UserProfile
 	 */
-	public UserProfile getUserProfile(UserInfo userInfo, String ownerid)
+	public UserProfile getUserProfile(String ownerid)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -99,4 +99,5 @@ public interface UserProfileManager {
 	 * @throws NotFoundException Thrown if the user does not have a profile picture.
 	 */
 	public String getUserProfileImagePreviewUrl(String userId) throws NotFoundException;
+	
 }

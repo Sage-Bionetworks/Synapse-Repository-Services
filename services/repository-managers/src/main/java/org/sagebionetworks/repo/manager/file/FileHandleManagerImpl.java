@@ -1,13 +1,18 @@
 package org.sagebionetworks.repo.manager.file;
 
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -24,6 +29,8 @@ import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpHeaders;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -72,9 +79,12 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -82,6 +92,7 @@ import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
@@ -112,6 +123,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 
 	public static final String NOT_SET = "NOT_SET";
+	
+	private static final String DEFAULT_COMPRESSED_FILE_NAME = "compressed.txt.gz";
+	
+	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
 	@Autowired
 	FileHandleDao fileHandleDao;
@@ -287,6 +302,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @throws ServiceUnavailableException
 	 */
 	@WriteTransaction
+	@Override
+	@Deprecated
 	public S3FileHandle uploadFile(String userId, FileItemStream fis)
 			throws IOException, ServiceUnavailableException {
 		// Create a token for this file
@@ -459,14 +476,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public FileHandleResults getAllFileHandles(List<String> idList,
-			boolean includePreviews) throws DatastoreException,
-			NotFoundException {
+	public FileHandleResults getAllFileHandles(Iterable<String> idList, boolean includePreviews) throws DatastoreException, NotFoundException {
 		return fileHandleDao.getAllFileHandles(idList, includePreviews);
 	}
 
 	@Override
-	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList)
+	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList)
 			throws DatastoreException, NotFoundException {
 		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
@@ -742,7 +757,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, String parentId) throws DatastoreException,
 			NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry
@@ -796,7 +811,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry
@@ -866,29 +881,46 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		return null;
 	}
-
+	
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
 	 */
-	@WriteTransaction
 	@Override
 	public S3FileHandle createCompressedFileFromString(String createdBy,
 			Date modifiedOn, String fileContents) throws UnsupportedEncodingException, IOException {
-		// Create the compress string
+		return createCompressedFileFromString(createdBy, modifiedOn, fileContents, "application/octet-stream");
+	}	
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.file.FileHandleManager#createCompressedFileFromString(java.lang.String, java.util.Date, java.lang.String)
+	 */
+	@Override
+	public S3FileHandle createCompressedFileFromString(String createdBy,
+			Date modifiedOn, String fileContents, String mimeType) throws UnsupportedEncodingException, IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FileUtils.writeCompressedString(fileContents, out);
+		FileUtils.writeString(fileContents, DEFAULT_FILE_CHARSET, /*gzip*/true, out);
 		byte[] compressedBytes = out.toByteArray();
-		ByteArrayInputStream in = new ByteArrayInputStream(compressedBytes);
-		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytes);
+		ContentType contentType = ContentType.create(mimeType, DEFAULT_FILE_CHARSET);
+		return createFileFromByteArray(createdBy, modifiedOn, compressedBytes, null, contentType, GZIP_CONTENT_ENCODING);
+	}
+	
+	@Override
+	public S3FileHandle createFileFromByteArray(String createdBy,
+				Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
+		// Create the compress string
+		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
+		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
-		String fileName = "compressed.txt.gz";
+		if (fileName==null) fileName=DEFAULT_COMPRESSED_FILE_NAME;
 		ObjectMetadata meta = new ObjectMetadata();
-		meta.setContentType("application/x-gzip");
+		meta.setContentType(contentType.toString());
 		meta.setContentMD5(hexMd5);
-		meta.setContentLength(compressedBytes.length);
+		meta.setContentLength(fileContents.length);
 		meta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
+		if (contentEncoding!=null) meta.setContentEncoding(contentEncoding);
 		String key = MultipartManagerImpl.createNewKey(createdBy, fileName, null);
 		String bucket = StackConfiguration.getS3Bucket();
 		s3Client.putObject(bucket, key, in, meta);
@@ -903,6 +935,43 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
 		return fileHandleDao.createFile(handle, true);
+	}
+	
+	/**
+	 * Retrieves file, decompressing if Content-Encoding indicates that it's gzipped
+	 * @param fileHandleId
+	 * @return
+	 */
+	public String downloadFileToString(String fileHandleId) throws IOException {
+		URL url;
+		try {
+			url = new URL(getRedirectURLForFileHandle(fileHandleId));
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+
+		// Read the file
+		try {
+			InputStream in = null;
+			try {
+				URLConnection connection = url.openConnection();
+				String contentEncoding = connection.getHeaderField(HttpHeaders.CONTENT_ENCODING);
+				String contentTypeString = connection.getHeaderField(HttpHeaders.CONTENT_TYPE);
+				Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
+				in = connection.getInputStream();
+				if (contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
+					return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
+				} else {
+					return FileUtils.readStreamAsString(in, charset, /*gunzip*/false);
+				}
+			} finally {
+				if (in != null) {
+					in.close();
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}		
 	}
 
 	@WriteTransaction
@@ -938,5 +1007,63 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
 		return fileHandleDao.createFile(handle, true);
+	}
+
+	@Override
+	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
+			S3FileHandle fileHandle) {
+		if (userInfo == null){
+			throw new IllegalArgumentException("UserInfo cannot be null");
+		}
+		if (fileHandle == null){
+			throw new IllegalArgumentException("FileHandle cannot be null");
+		}
+		if(fileHandle.getBucketName() == null){
+			throw new IllegalArgumentException("FileHandle.bucket cannot be null");
+		}
+		if(fileHandle.getKey() == null){
+			throw new IllegalArgumentException("FileHandle.key cannot be null");
+		}
+		if(fileHandle.getStorageLocationId() == null){
+			throw new IllegalArgumentException("FileHandle.storageLocationId cannot be null");
+		}
+		if (fileHandle.getFileName() == null) {
+			fileHandle.setFileName(NOT_SET);
+		}
+		if (fileHandle.getContentType() == null) {
+			fileHandle.setContentType(NOT_SET);
+		}
+		// Lookup the storage location
+		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
+		ExternalS3StorageLocationSetting esls = null;
+		if(!(sls instanceof ExternalS3StorageLocationSetting)){
+			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ExternalS3StorageLocationSetting.class.getName());
+		}
+		esls = (ExternalS3StorageLocationSetting) sls;
+		if(!fileHandle.getBucketName().equals(esls.getBucket())){
+			throw new IllegalArgumentException("The bucket for ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided bucket: "+fileHandle.getBucketName());
+		}
+		
+		/*
+		 *  The creation of the ExternalS3StorageLocationSetting already validates that the user has
+		 *  permission to update the bucket. So the creator of the storage location is
+		 *  the only one that can create an S3FileHandle using that storage location Id. 
+		 */
+		if(!esls.getCreatedBy().equals(userInfo.getId())){
+			throw new UnauthorizedException("Only the creator of ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external S3FileHandle with storagaeLocationId = "+fileHandle.getStorageLocationId());
+		}
+		try {
+			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
+			fileHandle.setContentMd5(summary.getETag());
+			fileHandle.setContentSize(summary.getContentLength());
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Unable to ready metadata for bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey(), e);
+		} 
+		// set this user as the creator of the file
+		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setCreatedOn(new Date());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		// Save the file metadata to the DB.
+		return fileHandleDao.createFile(fileHandle);
 	}
 }

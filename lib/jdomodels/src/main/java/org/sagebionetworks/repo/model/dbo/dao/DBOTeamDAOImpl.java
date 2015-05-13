@@ -46,14 +46,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * @author brucehoff
@@ -101,10 +100,14 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
 
+	private static final String SELECT_ADMIN_MEMBERS =
+			"SELECT gm."+COL_GROUP_MEMBERS_MEMBER_ID+" FROM "+
+			TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
+
 	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS =
-				"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+" FROM "+
-				TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
-	
+			"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+" FROM "+
+			TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
+
 	private static final String SELECT_ALL_TEAMS_AND_MEMBERS =
 			"SELECT t.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
 			", up."+COL_USER_PROFILE_ID+
@@ -147,6 +150,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			"SELECT COUNT(*) FROM "+TABLE_GROUP_MEMBERS+" gm "+
 			" WHERE gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
+	private static final String SELECT_ADMIN_MEMBER_IDS =
+			SELECT_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+" IN (:"+COL_GROUP_MEMBERS_GROUP_ID+")";
+	
 	private static final String SELECT_ADMIN_MEMBERS_OF_TEAMS =
 			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+" IN (:"+COL_GROUP_MEMBERS_GROUP_ID+")";
 	
@@ -161,6 +167,94 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
 
+	public static class TeamMemberPair {
+		private Team team;
+		private TeamMember teamMember;
+		public Team getTeam() {
+			return team;
+		}
+		public void setTeam(Team team) {
+			this.team = team;
+		}
+		public TeamMember getTeamMember() {
+			return teamMember;
+		}
+		public void setTeamMember(TeamMember teamMember) {
+			this.teamMember = teamMember;
+		}
+
+	}
+	
+	private static final RowMapper<TeamMemberPair> TEAM_MEMBER_PAIR_ROW_MAPPER = new RowMapper<TeamMemberPair>(){
+
+		@Override
+		public TeamMemberPair mapRow(ResultSet rs, int rowNum) throws SQLException {
+			TeamMemberPair tmp = new TeamMemberPair();
+			Team team = null;
+			{
+				Blob teamProperties = rs.getBlob(COL_TEAM_PROPERTIES);
+				team = TeamUtils.deserialize(teamProperties.getBytes(1, (int) teamProperties.length()));
+			}
+			team.setId(rs.getString(COL_TEAM_ID));
+			tmp.setTeam(team);
+			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
+			{
+				UserGroupHeader ugh = new UserGroupHeader();
+				TeamMember tm = new TeamMember();
+				tm.setMember(ugh);
+				tm.setTeamId(team.getId());
+				tm.setIsAdmin(false);
+				tmp.setTeamMember(tm);
+				Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
+				if (upProperties!=null) {
+					ugh.setIsIndividual(true);
+					ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
+					UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
+				} else {
+					ugh.setIsIndividual(false);
+				}
+			}
+			return tmp;
+		}
+	};
+
+	private static final RowMapper<TeamMemberId> TEAM_MEMBER_ID_ROW_MAPPER = new RowMapper<TeamMemberId>(){
+
+		@Override
+		public TeamMemberId mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return new TeamMemberId(rs.getLong(COL_TEAM_ID), rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
+		}
+	};
+
+	private static final RowMapper<String> MEMBER_ID_ROW_MAPPER = new RowMapper<String>(){
+
+		@Override
+		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return rs.getString(COL_GROUP_MEMBERS_MEMBER_ID);
+		}
+	};
+
+	private static final RowMapper<TeamMember> TEAM_MEMBER_ROW_MAPPER = new RowMapper<TeamMember>(){
+		@Override
+		public TeamMember mapRow(ResultSet rs, int rowNum) throws SQLException {
+			UserGroupHeader ugh = new UserGroupHeader();
+			TeamMember tm = new TeamMember();
+			tm.setMember(ugh);
+			tm.setTeamId(rs.getString(COL_GROUP_MEMBERS_GROUP_ID));
+			tm.setIsAdmin(false);
+			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
+			ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
+			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
+			if (upProperties!=null) {
+				ugh.setIsIndividual(true);
+				UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
+			} else {
+				ugh.setIsIndividual(false);
+			}
+			return tm;
+		}
+	};
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#create(org.sagebionetworks.repo.model.Team)
 	 */
@@ -318,69 +412,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PRINCIPAL, ChangeType.DELETE);
 	}
 
-	public static class TeamMemberPair {
-		private Team team;
-		private TeamMember teamMember;
-		public Team getTeam() {
-			return team;
-		}
-		public void setTeam(Team team) {
-			this.team = team;
-		}
-		public TeamMember getTeamMember() {
-			return teamMember;
-		}
-		public void setTeamMember(TeamMember teamMember) {
-			this.teamMember = teamMember;
-		}
-
-	}
-	
-	private static final RowMapper<TeamMemberPair> teamMemberPairRowMapper = new RowMapper<TeamMemberPair>(){
-	
-	@Override
-	public TeamMemberPair mapRow(ResultSet rs, int rowNum) throws SQLException {
-			TeamMemberPair tmp = new TeamMemberPair();
-			Team team = null;
-			{
-				Blob teamProperties = rs.getBlob(COL_TEAM_PROPERTIES);
-				team = TeamUtils.deserialize(teamProperties.getBytes(1, (int) teamProperties.length()));
-			}
-			team.setId(rs.getString(COL_TEAM_ID));
-			tmp.setTeam(team);
-			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
-			{
-				UserGroupHeader ugh = new UserGroupHeader();
-				TeamMember tm = new TeamMember();
-				tm.setMember(ugh);
-				tm.setTeamId(team.getId());
-				tm.setIsAdmin(false);
-				tmp.setTeamMember(tm);
-				Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
-				if (upProperties!=null) {
-					ugh.setIsIndividual(true);
-					ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-					UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
-				} else {
-					ugh.setIsIndividual(false);
-				}
-			}
-			return tmp;
-		}
-	};
-	
-	private static final RowMapper<TeamMemberId> TEAM_MEMBER_ID_ROW_MAPPER = new RowMapper<TeamMemberId>(){
-		
-	@Override
-	public TeamMemberId mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return new TeamMemberId(rs.getLong(COL_TEAM_ID), rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
-		}
-	};
-
 	@Override
 	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
-		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
+		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, TEAM_MEMBER_PAIR_ROW_MAPPER);
 		Map<Long, Team> teamMap = new HashMap<Long, Team>();
 		Map<Long, Map<Long,TeamMember>> teamMemberMap = new HashMap<Long, Map<Long,TeamMember>>();
 		for (TeamMemberPair tmp : queryResults) {
@@ -415,27 +450,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return results;
 	}
 
-	private static final RowMapper<TeamMember> TEAM_MEMBER_ROW_MAPPER = new RowMapper<TeamMember>(){
-		@Override
-		public TeamMember mapRow(ResultSet rs, int rowNum) throws SQLException {
-			UserGroupHeader ugh = new UserGroupHeader();
-			TeamMember tm = new TeamMember();
-			tm.setMember(ugh);
-			tm.setTeamId(rs.getString(COL_GROUP_MEMBERS_GROUP_ID));
-			tm.setIsAdmin(false);
-			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
-			ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
-			if (upProperties!=null) {
-				ugh.setIsIndividual(true);
-				UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
-			} else {
-				ugh.setIsIndividual(false);
-			}
-			return tm;
-		}
-	};
-	
 	@Override
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset)
 			throws DatastoreException {
@@ -504,12 +518,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAMS, TEAM_MEMBER_ID_ROW_MAPPER, param);
-		List<String> results = new ArrayList<String>();
-		for (TeamMemberId id : adminTeamMembers) {
-			results.add(id.getMemberId().toString());
-		}
-		return results;
+		return simpleJdbcTemplate.query(SELECT_ADMIN_MEMBER_IDS, MEMBER_ID_ROW_MAPPER, param);
 	}
 	
 	
