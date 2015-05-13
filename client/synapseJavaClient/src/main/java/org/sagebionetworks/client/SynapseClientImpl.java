@@ -6502,10 +6502,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String notificationUnsubscribeEndpoint) 
 			throws SynapseException {
 		
-		String uri = TEAM + "/" + MEMBER +
-				"?" + 	TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
+		String uri = TEAM + "/" + MEMBER;
+		
+		if (teamEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+			uri += "?" + TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
 				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
-
+		}
 		
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		JSONObject obj;
@@ -6638,11 +6640,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			JSONObject jsonObj = EntityFactory
 					.createJSONObjectForEntity(invitation);
-			jsonObj = createJSONObject(
-					MEMBERSHIP_INVITATION + 
-					"?" + ACCEPT_INVITATION_ENDPOINT_PARAM + "=" + urlEncode(acceptInvitationEndpoint) +
-					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint),
-					jsonObj);
+			String uri = MEMBERSHIP_INVITATION;
+			if (acceptInvitationEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+				uri += "?" + ACCEPT_INVITATION_ENDPOINT_PARAM + "=" + urlEncode(acceptInvitationEndpoint) +
+						"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+			}
+			jsonObj = createJSONObject(uri, jsonObj);
 			return initializeFromJSONObject(jsonObj,
 					MembershipInvtnSubmission.class);
 		} catch (JSONObjectAdapterException e) {
@@ -6732,11 +6735,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String acceptRequestEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException {
 		try {
-			JSONObject jsonObj = EntityFactory
-					.createJSONObjectForEntity(request);
-			jsonObj = createJSONObject(MEMBERSHIP_REQUEST+ 
-					"?" + ACCEPT_REQUEST_ENDPOINT_PARAM + "=" + urlEncode(acceptRequestEndpoint) +
-					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint), jsonObj);
+			String uri = MEMBERSHIP_REQUEST;
+			if (acceptRequestEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+				uri += 	"?" + ACCEPT_REQUEST_ENDPOINT_PARAM + "=" + urlEncode(acceptRequestEndpoint) +
+						"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
+			}
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(request);
+			jsonObj = createJSONObject(uri, jsonObj);
 			return initializeFromJSONObject(jsonObj,
 					MembershipRqstSubmission.class);
 		} catch (JSONObjectAdapterException e) {
