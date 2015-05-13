@@ -54,11 +54,13 @@ public class TeamServiceImpl implements TeamService {
 	public TeamServiceImpl(TeamManager teamManager, 
 			PrincipalPrefixDAO principalPrefixDAO,
 			UserManager userManager,
-			NotificationManager notificationManager) {
+			NotificationManager notificationManager,
+			UserProfileManager userProfileManager) {
 		this.teamManager=teamManager;
 		this.principalPrefixDAO=principalPrefixDAO;
 		this.userManager=userManager;
 		this.notificationManager=notificationManager;
+		this.userProfileManager = userProfileManager;
 	}
 	
 	
@@ -222,7 +224,7 @@ public class TeamServiceImpl implements TeamService {
 		SignedTokenUtil.validateToken(joinTeamToken);
 		addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
-		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getJSONSchema());
+		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
 		Team team = teamManager.get(joinTeamToken.getTeamId());
 		responseMessage.setMessage("User "+
 		EmailUtils.getDisplayName(userProfile)+
