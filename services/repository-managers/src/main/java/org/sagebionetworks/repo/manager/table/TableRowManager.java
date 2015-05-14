@@ -290,14 +290,17 @@ public interface TableRowManager {
 			Exception;
 
 	/**
-	 * Get the table status. If the status does not exist (table never indexed after a migration), then a status is
-	 * created, a change message is generated and the new processing status is returned
+	 * Get the status of a table. This method is guaranteed to return a table's status if the table exists.
+	 * Note: Calling this method can trigger a table to update if the table's status is out-of-date
+	 * for any reason. If an update is triggered, the returned table status will be set to PROCESSING.
+	 * The returned table status will only be AVAIABLE if the table's index is up-to-date (see PLFM-3383).
 	 * 
 	 * @param tableId
 	 * @return the status
 	 * @throws NotFoundException if the table does not exist
+	 * @throws IOException 
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException;
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException;
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
