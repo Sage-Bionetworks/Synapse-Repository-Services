@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/sh 
 #This script will change the vesion of all pom.xml files from:
 #<version>develop-SNAPSHOT</version>
 # to
