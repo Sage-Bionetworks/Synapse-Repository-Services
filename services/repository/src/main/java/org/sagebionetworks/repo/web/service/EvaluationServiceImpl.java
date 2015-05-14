@@ -20,6 +20,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -226,8 +227,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
-		Pair<MessageToUser,String> result = submissionManager.createSubmissionNotification(userInfo,created,submissionEligibilityHash);
-		notificationManager.sendNotification(userInfo, result.getFirst(), result.getSecond());
+		List<MessageToUserAndBody> messages = submissionManager.createSubmissionNotification(userInfo,created,submissionEligibilityHash);
+		notificationManager.sendNotifications(userInfo, messages);
 		return created;
 	}
 	

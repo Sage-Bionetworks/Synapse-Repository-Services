@@ -39,6 +39,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -748,22 +749,22 @@ public class SubmissionManagerTest {
 				eq(EVAL_ID), eq(TEAM_ID),
 				any(List.class), eq(""+submissionEligibilityHash), any(Date.class))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		Pair<MessageToUser, String> result = 
+		List<MessageToUserAndBody> result = 
 				submissionManager.createSubmissionNotification(userInfo, sub, ""+submissionEligibilityHash);
-		assertEquals("Team Challenge Submission", result.getFirst().getSubject());
-		assertEquals(Collections.singleton("99"), result.getFirst().getRecipients());
+		assertEquals("Team Challenge Submission", result.get(0).getMetadata().getSubject());
+		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		assertEquals("Hello,\r\nauser has created a Submission to syn101 on behalf of test team.  \r\nFor further information please visit https://www.synapse.org/#!Synapse:syn101.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n",
-				result.getSecond());
+				result.get(0).getBody());
 	}
 	
 	@Test
 	public void testCreateSubmissionNotification_Individual() throws Exception {
 		// check that when it's not a team submission no notification is created
 		sub.setTeamId(null);
-		Pair<MessageToUser, String> result = 
+		List<MessageToUserAndBody> result = 
 				submissionManager.createSubmissionNotification(userInfo, sub, null);
-		assertTrue(result.getFirst().getRecipients().isEmpty());
-		assertEquals("", result.getSecond());
+		assertTrue(result.get(0).getMetadata().getRecipients().isEmpty());
+		assertEquals("", result.get(0).getBody());
 		
 	}
 }

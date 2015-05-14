@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -244,13 +246,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @param submission
 	 * @return
 	 */
-	public Pair<MessageToUser,String> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash) {
+	public List<MessageToUserAndBody> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash) {
 		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
 			// no notification to send; return empty result
 			MessageToUser mtu = new MessageToUser();
 			mtu.setRecipients(Collections.EMPTY_SET);
 			mtu.setSubject("");
-			return new Pair<MessageToUser, String>(mtu,"");
+			return Collections.singletonList(new MessageToUserAndBody(mtu, "", ContentType.TEXT_PLAIN.toString()));
 		}
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
@@ -290,7 +292,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String displayName = EmailUtils.getDisplayName(userProfile);
 		fieldValues.put("#displayName#", displayName);
 		String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
-		return new Pair<MessageToUser, String>(mtu, messageContent);
+		return Collections.singletonList(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_PLAIN.toString()));
+
 	}
 	
 	@Override

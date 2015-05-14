@@ -1,5 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -7,6 +9,7 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -61,7 +64,7 @@ public interface SubmissionManager {
 	 * @param submission
 	 * @return
 	 */
-	public Pair<MessageToUser,String> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash);
+	public List<MessageToUserAndBody> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash);
 
 	/**
 	 * Update the SubmissionStatus object for a Submission. Note that the

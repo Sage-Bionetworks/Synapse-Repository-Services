@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,13 +19,13 @@ import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
-import org.sagebionetworks.util.Pair;
 
 public class EvaluationServiceTest {
 
@@ -73,7 +74,7 @@ public class EvaluationServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		Pair<MessageToUser, String> result = new Pair<MessageToUser, String>(mtu, content);
+		List<MessageToUserAndBody> result = Collections.singletonList(new MessageToUserAndBody(mtu, content, "text/plain"));
 		Submission submission = new Submission();
 		when(mockSubmissionManager.createSubmission(eq(userInfo), eq(submission), anyString(), anyString(), any(EntityBundle.class))).thenReturn(submission);
 		when(mockSubmissionManager.createSubmissionNotification(eq(userInfo), eq(submission), anyString())).thenReturn(result);
@@ -84,12 +85,9 @@ public class EvaluationServiceTest {
 		verify(mockSubmissionManager).createSubmission(eq(userInfo), eq(submission), eq("123"), eq("987"), any(EntityBundle.class));
 		verify(mockSubmissionManager).createSubmissionNotification(eq(userInfo), any(Submission.class), eq("987"));
 		
-		ArgumentCaptor<MessageToUser> mtuArg = ArgumentCaptor.forClass(MessageToUser.class);
-		ArgumentCaptor<String> contentArg = ArgumentCaptor.forClass(String.class);
-		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), mtuArg.capture(), contentArg.capture());
-		assertEquals(mtu, mtuArg.getValue());
-		assertEquals(content, contentArg.getValue());		
+		ArgumentCaptor<List> mtuArg = ArgumentCaptor.forClass(List.class);
+		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture());
+		assertEquals(result, mtuArg.getValue());		
 	}
 
 }
