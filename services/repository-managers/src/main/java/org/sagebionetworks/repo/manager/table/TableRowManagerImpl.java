@@ -466,20 +466,44 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
 		try {
-			return tableStatusDAO.getTableStatus(tableId);
+			TableStatus status = tableStatusDAO.getTableStatus(tableId);
+			if(!TableState.AVAILABLE.equals(status.getState())){
+				return status;
+			}
+			// We need to validate the table is really AVAILABLE
+			TableRowChange lastChange = getLastTableRowChange(tableId);
+			if(lastChange == null){
+				if(status.getLastTableChangeEtag() == null){
+					// there are not changes and status etag is null then the table is empty and AVAILABLE.
+					return status;
+				}
+			}else{
+				// We have at least one change on the table, does the status etag match the change etag?
+				if(lastChange.getEtag().equals(status.getLastTableChangeEtag())){
+					// the table is up-to-date
+					return status;
+				}
+			}
+			// the table status and last change do not match. Set the table to processing an trigger an update.
+			return setTableToProcessingAndTriggerUpdate(tableId);
+			
 		} catch (NotFoundException e) {
 			// make sure the table exists
 			if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))) {
 				throw new NotFoundException("Table " + tableId + " not found");
 			}
-			// we get here, if the index for this table is not (yet?) being build. We need to kick off the
-			// building of the index and report the table as unavailable
-			tableStatusDAO.resetTableStatusToProcessing(tableId);
-			// status should exist now
-			return tableStatusDAO.getTableStatus(tableId);
+			return setTableToProcessingAndTriggerUpdate(tableId);
 		}
+	}
+
+	private TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
+		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
+		// building of the index and report the table as unavailable
+		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		// status should exist now
+		return tableStatusDAO.getTableStatus(tableId);
 	}
 
 	@Override

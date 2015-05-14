@@ -296,8 +296,9 @@ public interface TableRowManager {
 	 * @param tableId
 	 * @return the status
 	 * @throws NotFoundException if the table does not exist
+	 * @throws IOException 
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException;
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException;
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
