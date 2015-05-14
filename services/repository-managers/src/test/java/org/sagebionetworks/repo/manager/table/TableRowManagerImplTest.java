@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -968,5 +969,123 @@ public class TableRowManagerImplTest {
 				"etag",
 				results, mockProgressCallback);
 		verify(mockProgressCallback, times(2)).progressMade(anyLong());
+	}
+	
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsNoRows() throws Exception {
+		// Since there are now rows this should return null.
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		
+		TableStatus status = new TableStatus();
+		status.setState(TableState.AVAILABLE);
+		// this is null when there are no change sets applied to the table.
+		status.setLastTableChangeEtag(null);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+
+		// call under test
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertEquals(status, result);
+		verify(mockTruthDao).getLastTableRowChange(tableId);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsWithRowsAndUpToDate() throws Exception {
+		// setup the last change to this table.
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setEtag("etagOfLastChange");
+		// There are no table changes for this case.
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		// This table is available and up-to-date.
+		TableStatus status = new TableStatus();
+		status.setState(TableState.AVAILABLE);
+		// Set the status to match the last change.
+		status.setLastTableChangeEtag(lastChange.getEtag());
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+
+		// call under test.
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertEquals(status, result);
+		verify(mockTruthDao).getLastTableRowChange(tableId);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+	}
+	
+	/**
+	 * This is a test PLFM-3383 and PLFM-3379 where a table's status is marked as 
+	 * AVAILABLE but the index is not up-to-date with the table row changes.
+	 * For this case, the table status must be rest to to PROCESSING.
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsAVAILABLEButNotUpToDate() throws Exception {
+		// setup the last change to this table.
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setEtag("etagOfLastChange");
+		// There are no table changes for this case.
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		
+		// This table status is available but not up-to-date.
+		TableStatus startStatus = new TableStatus();
+		startStatus.setState(TableState.AVAILABLE);
+		// Set the status to not match the last table change.
+		startStatus.setLastTableChangeEtag("not the etag of the last change");
+		
+		// This is the status for the second call to getTableStatus()
+		TableStatus processingStatus = new TableStatus();
+		processingStatus.setState(TableState.PROCESSING);
+		processingStatus.setLastTableChangeEtag("not the etag of the last change");
+		// setup both the start (AVAILABLE) and the processing status.
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(startStatus, processingStatus);
+
+		// call under test.
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		// The processing status should be returned.
+		assertEquals(processingStatus, result);
+		verify(mockTruthDao).getLastTableRowChange(tableId);
+		// The table status must get rest here.
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsProcessing() throws Exception {
+		// This table is processing
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+
+		// call under test.
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertEquals(status, result);
+		// The last row should only be checked for for AVAILABLE tables.
+		verify(mockTruthDao, never()).getLastTableRowChange(tableId);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test
+	public void testGetTableStatusOrCreateIfNotExistsNotFound() throws Exception {
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING);
+		// Setup a case where the first time the status does not exists, but does exist the second call.
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table.")).thenReturn(status);
+		// The table exists
+		when(mockNodeDAO.doesNodeExist(KeyFactory.stringToKey(tableId))).thenReturn(true);
+		TableStatus result = manager.getTableStatusOrCreateIfNotExists(tableId);
+		assertEquals(status, result);
+		verify(mockTruthDao, never()).getLastTableRowChange(tableId);
+		// The status should be set to processing in this case.
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetTableStatusOrCreateIfNotExistsTableDoesNotExist() throws Exception {
+		TableStatus status = new TableStatus();
+		status.setState(TableState.PROCESSING);
+		// Setup a case where the first time the status does not exists, but does exist the second call.
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("No status for this table."));
+		// The table does not exists
+		when(mockNodeDAO.doesNodeExist(KeyFactory.stringToKey(tableId))).thenReturn(false);
+		// This should fail as the table does not exist
+		manager.getTableStatusOrCreateIfNotExists(tableId);
 	}
 }
