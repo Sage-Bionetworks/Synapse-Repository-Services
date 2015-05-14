@@ -97,7 +97,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	
 	private static final int MAX_BATCH_SIZE = 500;
 	
-	private static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.txt";
+	private static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.html";
 
 	private static final String TEAM_SUBMISSION_SUBJECT = "Team Challenge Submission";
 	
