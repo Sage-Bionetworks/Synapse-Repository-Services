@@ -134,33 +134,38 @@ public class MigrationClient {
 	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
 		SynapseAdminClient source = factory.createNewSourceClient();
 		SynapseAdminClient destination = factory.createNewDestinationClient();
-		// Get the counts for all type from both the source and destination
-		MigrationTypeCounts startSourceCounts = source.getTypeCounts();
-		MigrationTypeCounts startDestCounts = destination.getTypeCounts();
-		log.info("Start counts:");
-		printCounts(startSourceCounts.getList(), startDestCounts.getList());
-		// Get the primary types for src and dest
-		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
-		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
-		// Only migrate the src primary types that are at destination
-		List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
-		for (MigrationType pt: destPrimaryTypes) {
-			if (srcPrimaryTypes.contains(pt)) {
-				primaryTypesToMigrate.add(pt);
+		try {
+			// Get the counts for all type from both the source and destination
+			MigrationTypeCounts startSourceCounts = source.getTypeCounts();
+			MigrationTypeCounts startDestCounts = destination.getTypeCounts();
+			setDestinationStatus(StatusEnum.READ_ONLY, "Migrating stack...");
+			log.info("Start counts:");
+			printCounts(startSourceCounts.getList(), startDestCounts.getList());
+			// Get the primary types for src and dest
+			List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
+			List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
+			// Only migrate the src primary types that are at destination
+			List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
+			for (MigrationType pt: destPrimaryTypes) {
+				if (srcPrimaryTypes.contains(pt)) {
+					primaryTypesToMigrate.add(pt);
+				}
 			}
-		}
-		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypesToMigrate, deferExceptions);
-		// Print the final counts
-		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
-		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
-		log.info("End counts:");
-		printCounts(endSourceCounts.getList(), endDestCounts.getList());
-		
-		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
-			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
-			this.dumpDeferredExceptions();
-			throw this.deferredExceptions.get(deferredExceptions.size()-1);
+			// Do the actual migration.
+			migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypesToMigrate, deferExceptions);
+			// Print the final counts
+			MigrationTypeCounts endSourceCounts = source.getTypeCounts();
+			MigrationTypeCounts endDestCounts = destination.getTypeCounts();
+			log.info("End counts:");
+			printCounts(endSourceCounts.getList(), endDestCounts.getList());
+			
+			if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
+				log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
+				this.dumpDeferredExceptions();
+				throw this.deferredExceptions.get(deferredExceptions.size()-1);
+			}
+		} finally {
+			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse in READ_WRITE mode...");
 		}
 	}
 
