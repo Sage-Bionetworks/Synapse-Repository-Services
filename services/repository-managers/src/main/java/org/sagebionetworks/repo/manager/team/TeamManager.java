@@ -208,9 +208,12 @@ public interface TeamManager {
 	 * @param joinerInfo
 	 * @param memberInfo
 	 * @param teamId
-	 * @return the message metadata, the message content
+	 * @param teamEndpoint, e.g. https://www.synapse.org/#!Team
+	 * @param notificationUnsubscribeEndpoint
+	 * @return the message metadata, the message content for each message recipient
 	 * @throws NotFoundException
 	 */
-	public MessageToUserAndBody createJoinedTeamNotification(UserInfo joinerInfo,
-			UserInfo memberInfo, String teamId) throws NotFoundException;
+	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo,
+			UserInfo memberInfo, String teamId, String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws NotFoundException;
 }

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -1598,10 +1599,12 @@ public class ServletTestHelper {
 
 	public MembershipInvtnSubmission createMembershipInvitation(
 			HttpServlet dispatchServlet, Long userId,
-			MembershipInvtnSubmission mis) throws Exception {
+			MembershipInvtnSubmission mis,
+			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.MEMBERSHIP_INVITATION, userId, mis);
-
+		request.addParameter(AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, acceptInvitationEndpoint);
+		request.addParameter(AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, notificationUnsubscribeEndpoint);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 

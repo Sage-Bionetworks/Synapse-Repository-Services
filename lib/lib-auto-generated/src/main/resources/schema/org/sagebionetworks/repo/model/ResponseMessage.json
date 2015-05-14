@@ -1,0 +1,10 @@
+{
+	"title": "ResponseMessage",
+	"description": "JSON schema for a user-readable message describing the response to a request.",
+	"properties": {
+		"message": {
+			"type": "string",
+			"description": "a user-readable message describing the response to a request"
+		}
+	}
+}

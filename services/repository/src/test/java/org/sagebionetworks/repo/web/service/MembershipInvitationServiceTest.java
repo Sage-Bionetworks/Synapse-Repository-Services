@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,20 +48,26 @@ public class MembershipInvitationServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
-		when(mockMembershipInvitationManager.createInvitationNotification(mis)).thenReturn(result);
+		when(mockMembershipInvitationManager.createInvitationNotification(
+				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
 
-		membershipInvitationService.create(userId, mis);
+		membershipInvitationService.create(userId, mis,
+				acceptInvitationEndpoint,  notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
-		verify(mockMembershipInvitationManager).createInvitationNotification(mis);
+		verify(mockMembershipInvitationManager).createInvitationNotification(
+				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		
-		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), messageArg.capture());
-		assertEquals(result, messageArg.getValue());		
+			sendNotifications(eq(userInfo), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));		
 	}
 
 }

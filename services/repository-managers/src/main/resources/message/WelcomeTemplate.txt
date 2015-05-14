@@ -1,10 +1,10 @@
-Hello #displayname#,
+Hello #displayName#,
 
 Welcome to #domain#!
 
 Here are the details of your account:
 User Name: #username#
-Full Name: #displayname#
+Full Name: #displayName#
 
 If you did not mean to create this account, please contact us at synapseInfo@synapse.org.
 

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.team;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -12,6 +13,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +64,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -66,7 +72,9 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 
 import com.google.common.collect.Lists;
 
@@ -884,23 +892,63 @@ public class TeamManagerImplTest {
 		team.setName("test-name");
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
-		String inviterPrincipalId = "987";
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		mis.setCreatedBy(inviterPrincipalId);
+		List<String> inviterPrincipalIds = Arrays.asList(new String[]{"987", "654"});
+		List<MembershipInvtnSubmission> miss = new ArrayList<MembershipInvtnSubmission>();
+		for (String inviterPrincipalId : inviterPrincipalIds) {
+			MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+			mis.setCreatedBy(inviterPrincipalId);
+			miss.add(mis);
+		}
+		String teamEndpoint = "https://synapse.org/#Team:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+		
 		when(mockMembershipInvtnSubmissionDAO.getInvitersByTeamAndUser(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
 				anyLong())).
-			thenReturn(Collections.singletonList(inviterPrincipalId));
+			thenReturn(inviterPrincipalIds);
 		when(mockMembershipInvtnSubmissionDAO.
 			getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), 
-					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(Collections.singletonList(mis));
+					anyLong(), eq(Long.MAX_VALUE), eq(0L))).thenReturn(miss);
 
-		MessageToUserAndBody result = 
-				teamManagerImpl.createJoinedTeamNotification(userInfo, userInfo, TEAM_ID);
-		assertEquals("new member has joined team", result.getMetadata().getSubject());
+		List<MessageToUserAndBody> resultList = 
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, 
+						teamEndpoint,
+						notificationUnsubscribeEndpoint);
+		assertEquals(inviterPrincipalIds.size(), resultList.size());
+		for (int i=0; i<inviterPrincipalIds.size(); i++) {
+			MessageToUserAndBody result = resultList.get(i);
+			assertEquals("new member has joined team", result.getMetadata().getSubject());
 		
-		assertEquals(Collections.singleton(inviterPrincipalId), result.getMetadata().getRecipients());
-		assertEquals(result.getBody(), "Hello,\r\nfoo bar (userName) has now joined team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n", 
-				result.getBody());
+			assertEquals(Collections.singleton(inviterPrincipalIds.get(i)), result.getMetadata().getRecipients());
+		
+			// this will give us nine pieces...
+			List<String> delims = Arrays.asList(new String[] {
+					TEMPLATE_KEY_DISPLAY_NAME,
+					TEMPLATE_KEY_TEAM_NAME,
+					TEMPLATE_KEY_TEAM_WEB_LINK,
+					TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+			});
+			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.USER_HAS_JOINED_TEAM_TEMPLATE, delims);
+
+			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+			assertEquals("foo bar (userName)", displayName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+			assertEquals("test-name", teamName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+			String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+			assertEquals(teamEndpoint+TEAM_ID, teamLink);
+			assertTrue(result.getBody().endsWith(templatePieces.get(8)));
+			String unsubscribeToken = EmailParseUtil.getTokenFromString(
+					result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
+			NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+					(unsubscribeToken, NotificationSettingsSignedToken.class);
+			SignedTokenUtil.validateToken(nsst);
+			assertEquals(inviterPrincipalIds.get(i), nsst.getUserId());
+			assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+			assertFalse(nsst.getSettings().getSendEmailNotifications());
+		}
 	}
 	
 	@Test
@@ -910,12 +958,46 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 
 		String otherPrincipalId = "987";
+		String teamEndpoint = "https://synapse.org/#Team:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		UserInfo otherUserInfo = createUserInfo(false, otherPrincipalId);
-		MessageToUserAndBody result = 
-				teamManagerImpl.createJoinedTeamNotification(userInfo, otherUserInfo, TEAM_ID);
+		List<MessageToUserAndBody> resultList = 
+				teamManagerImpl.createJoinedTeamNotifications(userInfo, otherUserInfo, TEAM_ID, 
+						teamEndpoint,
+						notificationUnsubscribeEndpoint);
+		assertEquals(1, resultList.size());
+		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("new member has joined team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
-		assertEquals(result.getBody(), "Hello,\r\nfoo bar (userName) has added accepted you into team test-name.  For further information please visit https://www.synapse.org/#!Team:123.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page at https://www.synapse.org/#!Profile:987/settings\r\n", 
-				result.getBody());
+
+		// this will give us nine pieces...
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_TEAM_WEB_LINK,
+				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+		});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.ADMIN_HAS_ADDED_USER_TEMPLATE, delims);
+
+		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
+		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
+		assertEquals("foo bar (userName)", displayName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
+		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		assertEquals("test-name", teamName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+		assertEquals(teamEndpoint+TEAM_ID, teamLink);
+		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
+		String unsubscribeToken = EmailParseUtil.getTokenFromString(
+				result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
+		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+				(unsubscribeToken, NotificationSettingsSignedToken.class);
+		SignedTokenUtil.validateToken(nsst);
+		assertEquals(otherPrincipalId, nsst.getUserId());
+		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+		assertFalse(nsst.getSettings().getSendEmailNotifications());
+
 	}
 }

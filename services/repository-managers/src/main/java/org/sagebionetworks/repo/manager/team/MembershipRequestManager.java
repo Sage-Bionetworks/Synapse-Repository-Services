@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -14,8 +16,11 @@ public interface MembershipRequestManager {
 	
 	/**
 	 * Request to join the team.
+	 * 
 	 * @param userInfo
 	 * @param mrs
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -98,8 +103,9 @@ public interface MembershipRequestManager {
 	 * Create the notification content
 	 * 
 	 * @param mrs
-	 * @return the message metadata and the message content
+	 * @return the message metadata and the message content, one for each team administrator
 	 */
-	public MessageToUserAndBody createMembershipRequestNotification(MembershipRqstSubmission mrs);
+	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
+			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint);
 
 }

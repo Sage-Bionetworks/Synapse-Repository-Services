@@ -3,6 +3,8 @@
  */
 package org.sagebionetworks.repo.web.service;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
@@ -47,12 +49,16 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 */
 	@Override
 	public MembershipRqstSubmission create(Long userId,
-			MembershipRqstSubmission dto) throws UnauthorizedException,
+			MembershipRqstSubmission dto,
+			String acceptRequestEndpoint,
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
-		MessageToUserAndBody message = membershipRequestManager.createMembershipRequestNotification(created);
-		notificationManager.sendNotification(userInfo, message);
+		List<MessageToUserAndBody> messages = membershipRequestManager.
+				createMembershipRequestNotification(created,
+						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
+		notificationManager.sendNotifications(userInfo, messages);
 		return created;
 	}
 

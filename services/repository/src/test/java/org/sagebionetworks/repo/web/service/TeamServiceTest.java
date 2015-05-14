@@ -26,15 +26,19 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 
 public class TeamServiceTest {
 	
@@ -43,6 +47,7 @@ public class TeamServiceTest {
 	private TeamManager mockTeamManager;
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
 	private NotificationManager mockNotificationManager;
+	private UserProfileManager mockUserProfileManager;
 	
 	private Team team = null;
 	private TeamMember member = null;
@@ -71,7 +76,13 @@ public class TeamServiceTest {
 
 		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		
-		teamService = new TeamServiceImpl(mockTeamManager, mockPrincipalPrefixDAO, mockUserManager, mockNotificationManager);
+		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
+		
+		teamService = new TeamServiceImpl(mockTeamManager, 
+				mockPrincipalPrefixDAO, 
+				mockUserManager, 
+				mockNotificationManager,
+				mockUserProfileManager);
 	}
 	
 	@Test
@@ -147,6 +158,8 @@ public class TeamServiceTest {
 		Long userId = 111L;
 		String teamId = "222";
 		Long principalId = 333L;
+		String teamEndpoint = "teamEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
 		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
@@ -154,17 +167,63 @@ public class TeamServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton(principalId.toString()));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
-		when(mockTeamManager.createJoinedTeamNotification(userInfo1, userInfo2, teamId)).thenReturn(result);
-		teamService.addMember(userId, teamId, principalId.toString());
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
+		List<MessageToUserAndBody> resultList = Collections.singletonList(result);
+		when(mockTeamManager.createJoinedTeamNotifications(userInfo1, userInfo2, teamId, teamEndpoint, notificationUnsubscribeEndpoint)).thenReturn(resultList);
+		teamService.addMember(userId, teamId, principalId.toString(), teamEndpoint, notificationUnsubscribeEndpoint);
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockUserManager).getUserInfo(principalId);
 				
-		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);		
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo1), messageArg.capture());
-		assertEquals(result, messageArg.getValue());
+			sendNotifications(eq(userInfo1), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));		
+
+	}
+	
+	@Test
+	public void testAddMemberByJoinTeamSignedToken() throws Exception {
+		Long userId = 111L;
+		String teamId = "222";
+		Long principalId = 333L;
+		String teamEndpoint = "teamEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
+		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
+		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
+		MessageToUser mtu = new MessageToUser();
+		mtu.setRecipients(Collections.singleton(principalId.toString()));
+		String content = "foo";
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
+		List<MessageToUserAndBody> resultList = Collections.singletonList(result);
+		when(mockTeamManager.createJoinedTeamNotifications(userInfo1, userInfo2, teamId, teamEndpoint, notificationUnsubscribeEndpoint)).thenReturn(resultList);
+		when(mockTeamManager.get(teamId)).thenReturn(team);
+		UserProfile memberUserProfile = new UserProfile();
+		memberUserProfile.setUserName("auser");
+		when(mockUserProfileManager.getUserProfile(principalId.toString())).thenReturn(memberUserProfile);
+		
+		JoinTeamSignedToken jtst = new JoinTeamSignedToken();
+		jtst.setUserId(userId.toString());
+		jtst.setTeamId(teamId);
+		jtst.setMemberId(principalId.toString());
+		SignedTokenUtil.signToken(jtst);
+		
+		ResponseMessage message = teamService.addMember(jtst, teamEndpoint, notificationUnsubscribeEndpoint);
+		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserManager).getUserInfo(principalId);
+				
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
+		verify(mockNotificationManager).
+			sendNotifications(eq(userInfo1), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
+		assertEquals(result, messageArg.getValue().get(0));	
+		
+		assertEquals("User auser has been added to team foo bar.", message.getMessage());
+
 	}
 	
 

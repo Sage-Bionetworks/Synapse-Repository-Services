@@ -8,21 +8,26 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
-import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -40,6 +45,8 @@ public class TeamServiceImpl implements TeamService {
 	PrincipalPrefixDAO principalPrefixDAO;
 	@Autowired
 	private NotificationManager notificationManager;
+	@Autowired
+	private UserProfileManager userProfileManager;
 	
 	public TeamServiceImpl() {}
 	
@@ -47,11 +54,13 @@ public class TeamServiceImpl implements TeamService {
 	public TeamServiceImpl(TeamManager teamManager, 
 			PrincipalPrefixDAO principalPrefixDAO,
 			UserManager userManager,
-			NotificationManager notificationManager) {
+			NotificationManager notificationManager,
+			UserProfileManager userProfileManager) {
 		this.teamManager=teamManager;
 		this.principalPrefixDAO=principalPrefixDAO;
 		this.userManager=userManager;
 		this.notificationManager=notificationManager;
+		this.userProfileManager = userProfileManager;
 	}
 	
 	
@@ -204,18 +213,38 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#addMember(java.lang.String, java.lang.String, java.lang.String, boolean)
 	 */
 	@Override
-	public void addMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException,
+	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
+			NotFoundException {
+		 addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
+	}
+	
+	@Override
+	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
+		SignedTokenUtil.validateToken(joinTeamToken);
+		addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
+		ResponseMessage responseMessage = new ResponseMessage();
+		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
+		Team team = teamManager.get(joinTeamToken.getTeamId());
+		responseMessage.setMessage("User "+
+		EmailUtils.getDisplayName(userProfile)+
+		" has been added to team "+team.getName()+".");
+		return responseMessage;
+	}
+
+	private void addMemberIntern(Long userId, String teamId, String principalId, 
+			String teamEndpoint,
+			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
-		
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
 		// needed to determine who to notify
-		MessageToUserAndBody message = teamManager.createJoinedTeamNotification(userInfo, memberUserInfo, teamId);
+		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId, teamEndpoint, notificationUnsubscribeEndpoint);
 		
 		teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		notificationManager.sendNotification(userInfo, message);
+		notificationManager.sendNotifications(userInfo, messages);
 	}
 	
 	/* (non-Javadoc)

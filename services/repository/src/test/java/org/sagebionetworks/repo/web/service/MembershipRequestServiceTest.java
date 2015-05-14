@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -46,20 +47,26 @@ public class MembershipRequestServiceTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
-		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content);
+		String acceptRequestEndpoint = "acceptRequestEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
+		List<MessageToUserAndBody> result = Collections.singletonList(new MessageToUserAndBody(mtu, content, "text/plain"));
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		when(mockMembershipRequestManager.create(userInfo, mrs)).thenReturn(mrs);
-		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs)).thenReturn(result);
+		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs,
+				acceptRequestEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
 
-		membershipRequestService.create(userId, mrs);
+		membershipRequestService.create(userId, mrs, acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockMembershipRequestManager).create(userInfo, mrs);
-		verify(mockMembershipRequestManager).createMembershipRequestNotification(mrs);
+		verify(mockMembershipRequestManager).createMembershipRequestNotification(mrs,
+				acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 		
-		ArgumentCaptor<MessageToUserAndBody> messageArg = ArgumentCaptor.forClass(MessageToUserAndBody.class);
+		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).
-			sendNotification(eq(userInfo), messageArg.capture());
+			sendNotifications(eq(userInfo), messageArg.capture());
+		assertEquals(1, messageArg.getValue().size());		
 		assertEquals(result, messageArg.getValue());		
+
 	}
 
 }

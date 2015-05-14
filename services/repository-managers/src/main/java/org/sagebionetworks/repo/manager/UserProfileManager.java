@@ -99,4 +99,5 @@ public interface UserProfileManager {
 	 * @throws NotFoundException Thrown if the user does not have a profile picture.
 	 */
 	public String getUserProfileImagePreviewUrl(String userId) throws NotFoundException;
+	
 }

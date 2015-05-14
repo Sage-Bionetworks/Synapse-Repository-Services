@@ -26,6 +26,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -36,7 +37,9 @@ import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -48,6 +51,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -65,7 +69,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.google.common.collect.Sets;
 
 /**
@@ -78,8 +85,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageManagerImplTest {
 	
-	@Autowired
-	private MessageManager messageManager;
+	private MessageManagerImpl messageManager;
 	
 	@Autowired
 	private UserManager userManager;
@@ -118,6 +124,22 @@ public class MessageManagerImplTest {
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
+	@Autowired
+	private AmazonSimpleEmailService amazonSESClient;
+	
+	@Autowired
+	private MessageDAO messageDAO;
+	
+	@Autowired
+	private NotificationEmailDAO notificationEmailDao;
+	
+	@Autowired
+	private AuthorizationManager authorizationManager;
+	
+	@Autowired
+	private NodeDAO nodeDAO;
+	
+
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
 	private static final long LIMIT = 100;
@@ -154,6 +176,30 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
+		messageManager = new MessageManagerImpl();
+		ReflectionTestUtils.setField(messageManager, "messageDAO", messageDAO);
+		ReflectionTestUtils.setField(messageManager, "userGroupDAO", userGroupDAO);
+		ReflectionTestUtils.setField(messageManager, "groupMembersDAO", groupMembersDao);
+		ReflectionTestUtils.setField(messageManager, "userManager", userManager);
+		ReflectionTestUtils.setField(messageManager, "userProfileDAO", userProfileDAO);
+		ReflectionTestUtils.setField(messageManager, "notificationEmailDao", notificationEmailDao);
+		ReflectionTestUtils.setField(messageManager, "principalAliasDAO", principalAliasDAO);
+		ReflectionTestUtils.setField(messageManager, "authorizationManager", authorizationManager);
+		ReflectionTestUtils.setField(messageManager, "fileHandleManager", fileHandleManager);
+		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileDAO);
+		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
+		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
+		// the normally autowired SynapseEmailService diverts email from Amazon SES into an S3
+		// file for testing.  In this test suite, however, we want mail to actually go to SES,
+		// so we override the normal autowiring.
+		ReflectionTestUtils.setField(messageManager, "sesClient", 
+				new SynapseEmailService() {
+					@Override
+					public void sendEmail(SendEmailRequest emailRequest) {
+						amazonSESClient.sendEmail(emailRequest);
+					}});
+		
+
 		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -323,7 +369,7 @@ public class MessageManagerImplTest {
 	
 	@Test
 	public void testNoResend() throws Exception {
-		//two recipients but neither receives the message. 
+		// two recipients but neither receives the message. 
 		// Need to test that if called a second time the message is NOT resent, since sent=true.
 		
 		// the message subject tells the stubbed client to create a failure
