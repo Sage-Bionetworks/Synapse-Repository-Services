@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -16,9 +17,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EmailUtils.*;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -43,6 +49,8 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.EmailParseUtil;
+import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -50,6 +58,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -70,9 +79,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
@@ -751,10 +763,44 @@ public class SubmissionManagerTest {
 				submissionManager.createSubmissionNotifications(
 						userInfo, sub, ""+submissionEligibilityHash,
 						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
+		assertEquals(1, result.size());
 		assertEquals("Team Challenge Submission", result.get(0).getMetadata().getSubject());
 		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		String body = result.get(0).getBody();
-		// TODO validate content
+		
+		// this will give us eleven pieces...
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_CHALLENGE_NAME,
+				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_CHALLENGE_WEB_LINK,
+				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+		});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(SubmissionManagerImpl.TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, delims);
+
+		assertTrue(body.startsWith(templatePieces.get(0)));
+		assertTrue(body.indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(body, templatePieces.get(0), templatePieces.get(2));
+		assertEquals("auser", displayName);
+		assertTrue(body.indexOf(templatePieces.get(4))>0);
+		String challengeName = EmailParseUtil.getTokenFromString(body, templatePieces.get(2), templatePieces.get(4));
+		assertEquals("syn101", challengeName);
+		assertTrue(body.indexOf(templatePieces.get(6))>0);
+		String teamName = EmailParseUtil.getTokenFromString(body, templatePieces.get(4), templatePieces.get(6));
+		assertEquals("test team", teamName);
+		assertTrue(body.indexOf(templatePieces.get(8))>0);
+		String challengeEntityId = EmailParseUtil.
+				getTokenFromString(body, templatePieces.get(6)+CHALLENGE_END_POINT, templatePieces.get(8));
+		assertEquals("syn101", challengeEntityId);
+		assertTrue(body.endsWith(templatePieces.get(10)));
+		String unsubscribeToken = EmailParseUtil.getTokenFromString(
+				body, templatePieces.get(8)+NOTIFICATION_UNSUBSCRIBE_END_POINT, templatePieces.get(10));
+		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+				(unsubscribeToken, NotificationSettingsSignedToken.class);
+		SignedTokenUtil.validateToken(nsst);
+		assertEquals("99", nsst.getUserId());
+		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+		assertFalse(nsst.getSettings().getSendEmailNotifications());
 	}
 	
 	@Test
