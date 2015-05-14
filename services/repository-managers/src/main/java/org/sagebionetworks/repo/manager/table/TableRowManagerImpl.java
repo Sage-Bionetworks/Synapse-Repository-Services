@@ -465,6 +465,10 @@ public class TableRowManagerImpl implements TableRowManager {
 		return exclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(key, lockTimeoutMS, runner);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
+	 */
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException, IOException {
 		try {
@@ -498,6 +502,11 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
+	/**
+	 * Set the table's status to be PROCESSING, fire a table update and return the table's status.
+	 * @param tableId
+	 * @return
+	 */
 	private TableStatus setTableToProcessingAndTriggerUpdate(String tableId) {
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
