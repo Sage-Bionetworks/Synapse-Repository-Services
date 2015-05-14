@@ -19,6 +19,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -48,18 +49,18 @@ public class IT502SynapseJavaClientAccountTest {
 		SynapseClientHelper.setEndpoints(synapseAnonymous);
 	}
 	
-	private File fileToDelete;
+	private String s3KeyToDelete;
 	
 	@Before
 	public void before() throws SynapseException {
-		fileToDelete = null;
+		s3KeyToDelete = null;
 	}
 	
 	@After
 	public void after() throws Exception {
-		if (fileToDelete!=null) {
-			fileToDelete.delete();
-			fileToDelete=null;
+		if (s3KeyToDelete!=null) {
+			EmailValidationUtil.deleteFile(s3KeyToDelete);
+			s3KeyToDelete=null;
 		}
 		if (user2ToDelete!=null) {
 			try {
@@ -75,22 +76,21 @@ public class IT502SynapseJavaClientAccountTest {
 		} catch (SynapseException e) { }
 	}
 	
-	private String getTokenFromFile(File file, String endpoint) throws IOException {
-		return EmailValidationUtil.getTokenFromFile(file, "href=\\\""+endpoint, "\\\">");
+	private String getTokenFromFile(String key, String endpoint) throws Exception {
+		return EmailValidationUtil.getTokenFromFile(key, "href=\\\""+endpoint, "\\\">");
 	}
 		
 	@Test
 	public void testCreateNewAccount() throws Exception {
 		String email = UUID.randomUUID().toString()+"@foo.com";
-		fileToDelete = EmailValidationUtil.getFileForEmail(email);
-		assertNotNull(fileToDelete.toString(), fileToDelete);
+		s3KeyToDelete = EmailValidationUtil.getBucketKeyForEmail(email);
 		NewUser user = new NewUser();
 		user.setEmail(email);
 		user.setFirstName("firstName");
 		user.setLastName("lastName");
 		String endpoint = "https://www.synapse.org?";
 		synapseAnonymous.newAccountEmailValidation(user, endpoint);
-		String token = getTokenFromFile(fileToDelete, endpoint);
+		String token = getTokenFromFile(s3KeyToDelete, endpoint);
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
 		accountSetupInfo.setEmailValidationToken(token);
 		accountSetupInfo.setFirstName("firstName");
@@ -114,16 +114,15 @@ public class IT502SynapseJavaClientAccountTest {
 	public void testAddEmail() throws Exception {
 		// start the email validation process
 		String email = UUID.randomUUID().toString()+"@foo.com";
-		fileToDelete = EmailValidationUtil.getFileForEmail(email);
-		assertNotNull(fileToDelete);
-		assertFalse(fileToDelete.exists());
+		s3KeyToDelete = EmailValidationUtil.getBucketKeyForEmail(email);
+		assertFalse(EmailValidationUtil.doesFileExist(s3KeyToDelete));
 		String endpoint = "https://www.synapse.org?";
 		synapseOne.additionalEmailValidation(
 				Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
 				email, endpoint);
 		
 		// complete the email addition
-		String token = getTokenFromFile(fileToDelete, endpoint);
+		String token = getTokenFromFile(s3KeyToDelete, endpoint);
 		AddEmailInfo addEmailInfo = new AddEmailInfo();
 		addEmailInfo.setEmailValidationToken(token);
 		// we are _not_ setting it to be the notification email

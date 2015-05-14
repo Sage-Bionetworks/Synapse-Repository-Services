@@ -72,7 +72,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		this.teamDAO=teamDAO;
 	}
 	
-	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
+	public static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
 	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
 
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {

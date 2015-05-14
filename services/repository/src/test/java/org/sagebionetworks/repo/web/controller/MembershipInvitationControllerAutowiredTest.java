@@ -1,19 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -23,8 +22,8 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * This is a an integration test for the MembershipInvitationController.
@@ -36,10 +35,14 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 
 	@Autowired
 	public UserManager userManager;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
 
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	private UserInfo testInvitee;
+	private String userEmail;
 	
 	private static final String TEAM_NAME = "MIS_CONTRL_AW_TEST";
 	private Team teamToDelete;
@@ -55,7 +58,8 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		teamToDelete = servletTestHelper.createTeam(dispatchServlet, adminUserId, team);
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		userEmail = UUID.randomUUID().toString() + "@test.com";
+		user.setEmail(userEmail);
 		user.setUserName(UUID.randomUUID().toString());
 		testInvitee = userManager.getUserInfo(userManager.createUser(user));
 		assertNotNull(testInvitee.getId().toString());
@@ -76,10 +80,22 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		 	servletTestHelper.deleteMessage(dispatchServlet, adminUserId, mtu.getId());
 		 	servletTestHelper.deleteFile(adminUserId, mtu.getFileHandleId());
 		 }
+		 
+		 if (userEmail!=null) {
+			 try {
+				 S3TestUtils.deleteFile(StackConfiguration.getS3Bucket(), userEmail+".json", s3Client);
+			 } catch (Exception e) {
+				 // file didn't actually exist
+			 }
+			 userEmail=null;
+		 }
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
+		String key = userEmail+".json"; // this is the target for 'sent' email messages to the invitee
+		assertFalse(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client));
+		
 		// create an invitation
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
@@ -97,5 +113,7 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 				getMembershipInvitationSubmissions(dispatchServlet, adminUserId, teamToDelete.getId());
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));
+		
+		assertTrue(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client));
 	}
 }

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -32,6 +31,7 @@ import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -41,17 +41,18 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class UserProfileServiceImpl implements UserProfileService {
 
@@ -331,6 +332,31 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Override
 	public String getUserProfileImagePreview(String profileId) throws NotFoundException {
 		return userProfileManager.getUserProfileImagePreviewUrl(profileId);
+	}
+	
+	@Override
+	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken) {
+		SignedTokenUtil.validateToken(notificationSettingsSignedToken);
+		String userId = notificationSettingsSignedToken.getUserId();
+		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
+
+		UserProfile userProfile = userProfileManager.getUserProfile(userId);
+		Settings settings = userProfile.getNotificationSettings();
+		if (settings==null) {
+			settings = new Settings();
+		}
+		Settings newSettings = notificationSettingsSignedToken.getSettings();
+		if (newSettings.getSendEmailNotifications()!=null) {
+			settings.setSendEmailNotifications(newSettings.getSendEmailNotifications());
+		}
+		if (newSettings.getMarkEmailedMessagesAsRead()!=null) {
+			settings.setMarkEmailedMessagesAsRead(newSettings.getMarkEmailedMessagesAsRead());
+		}
+		userProfile.setNotificationSettings(settings);
+		userProfileManager.updateUserProfile(userInfo, userProfile);
+		ResponseMessage responseMessage = new ResponseMessage();
+		responseMessage.setMessage("You have successfully updated your email notification settings.");
+		return responseMessage;
 	}
 
 }

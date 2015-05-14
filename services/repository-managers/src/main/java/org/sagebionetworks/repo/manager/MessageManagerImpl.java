@@ -15,6 +15,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -115,7 +116,7 @@ public class MessageManagerImpl implements MessageManager {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	private AmazonSimpleEmailService amazonSESClient;
+	private SynapseEmailService sesClient;
 	
 	@Autowired
 	private FileHandleManager fileHandleManager;
@@ -140,7 +141,7 @@ public class MessageManagerImpl implements MessageManager {
 			NotificationEmailDAO notificationEmailDao,
 			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
-			AmazonSimpleEmailService amazonSESClient,
+			SynapseEmailService sesClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
 			EntityPermissionsManager entityPermissionsManager,
 			FileHandleDao fileHandleDao) {
@@ -152,7 +153,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.notificationEmailDao = notificationEmailDao;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
-		this.amazonSESClient = amazonSESClient;
+		this.sesClient = sesClient;
 		this.fileHandleManager = fileHandleManager;
 		this.nodeDAO = nodeDAO;
 		this.entityPermissionsManager = entityPermissionsManager;
@@ -558,10 +559,10 @@ public class MessageManagerImpl implements MessageManager {
 	 * 
 	 * @param sender The username of the sender (null tolerant)
 	 */
-	private SendEmailResult sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
+	private void sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
 		SendEmailRequest request = EmailUtils.createEmailRequest(recipientEmail, subject, body, isHtml, sender);
         // Send the email
-        return amazonSESClient.sendEmail(request);  
+        sesClient.sendEmail(request);  
 	}
 
 	@Override

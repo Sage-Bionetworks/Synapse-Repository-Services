@@ -1,45 +1,46 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 
-import org.apache.commons.io.IOUtils;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /*
  * The methods in this class help read and validate emails (written as files when testing).
  */
 public class EmailValidationUtil {
 	
-	public static String readFile(File file) throws IOException {
-		ByteArrayOutputStream content = new ByteArrayOutputStream();
-		InputStream fis = new FileInputStream(file);
-		try {
-			IOUtils.copy(fis, content);
-			return content.toString();
-		} finally {
-			content.close();
-			fis.close();
-		}
+	public static boolean doesFileExist(String key) throws Exception {
+		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
+				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		
+		return S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client);
 	}
 	
-	public static File getFileForEmail(String email) {
-		// Note: We used to use System.getProperty("java.io.tmpdir")
-		// but found that this varies between the tomcat test container and
-		// the JVM running the integration test
-		String tempDir = "/tmp";
-		assertNotNull(tempDir);
-		return new File(tempDir, email+".json");
+	public static void deleteFile(String key) throws Exception {
+		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
+				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		
+		S3TestUtils.deleteFile(StackConfiguration.getS3Bucket(), key, s3Client);
 	}
 	
-	public static String getTokenFromFile(File file, String startString, String endString) throws IOException {
+	public static String readFile(String key) throws Exception {
+		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
+				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		
+		return S3TestUtils.getObjectAsString(StackConfiguration.getS3Bucket(), key, s3Client);
+	}
+	
+	public static String getBucketKeyForEmail(String email) {
+		assertTrue(email!=null && email.length()>0);
+		return  email+".json";
+	}
+	
+	public static String getTokenFromFile(String key, String startString, String endString) throws Exception {
 		// the email is written to a local file.  Read it and extract the link
-		String body = EmailValidationUtil.readFile(file);
+		String body = EmailValidationUtil.readFile(key);
 		int endpointIndex = body.indexOf(startString);
 		int tokenStart = endpointIndex+startString.length();
 		assertTrue(tokenStart>=0);

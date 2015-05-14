@@ -1,19 +1,22 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.util.StringInputStream;
 
 /**
  * This wrapper around the Amazon SES client allows us to suppress sending
@@ -30,6 +33,10 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	@Autowired
 	private AmazonSimpleEmailService amazonSESClient;
 	
+	@Autowired
+	private AmazonS3Client s3Client;
+	
+	@Override
 	public void sendEmail(SendEmailRequest emailRequest) {
 		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendEmail(emailRequest);
@@ -38,26 +45,29 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		}
 	}
 	
-	public static void writeToFile(SendEmailRequest emailRequest) {
+	public void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
-		// Note: We used to use System.getProperty("java.io.tmpdir")
-		// but found that this varies between the tomcat test container and
-		// the JVM running the integration test
-		String tmpDir = "/tmp";
-		File file = new File(tmpDir, to+".json");
-		PrintWriter pw;
+		String fileName = to+".json";
+		StringWriter writer=null;
+		InputStream is;
 		try {
-			pw = new PrintWriter(file);
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-		try {
-			(new JSONObject(emailRequest)).write(pw);
+			writer = new StringWriter();
+			(new JSONObject(emailRequest)).write(writer);
+			is = new StringInputStream(writer.toString());
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setContentLength(writer.toString().length());
+			s3Client.putObject(StackConfiguration.getS3Bucket(), fileName, is, metadata);
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
 		} finally {
-			pw.close();
+			try {
+				if (writer!=null) writer.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
-		log.info("\n\nWrote email to file: "+file.getAbsolutePath()+"\n\n");
+		log.info("\n\nWrote email to S3 file: "+fileName+"\n\n");
 	}
 }

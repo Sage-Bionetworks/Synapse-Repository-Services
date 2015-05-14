@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -45,6 +46,13 @@ public class MembershipInvitationController extends BaseController {
 	 * Note:  The client must be an administrator of the specified Team to make this request.
 	 * @param userId
 	 * @param invitation
+	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
+	 * invitation.  A signed, serialized token is appended to create the complete URL:
+	 * <ahref="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
+	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
+	 * A signed, serialized token is appended to create the complete URL: 
+	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
+
 	 * @return
 	 * @throws NotFoundException
 	 */

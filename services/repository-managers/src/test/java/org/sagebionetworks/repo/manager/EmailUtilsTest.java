@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -12,8 +13,9 @@ import java.util.Map;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.util.SerializationUtils;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
@@ -86,7 +88,10 @@ public class EmailUtilsTest {
 		String teamId = "333";
 		String link = EmailUtils.createOneClickJoinTeamLink(endpoint, userId, memberId, teamId);
 		assertTrue(link.startsWith(endpoint));
-		JoinTeamSignedToken token = SignedTokenUtil.deserializeAndValidateToken(link.substring(endpoint.length()), JoinTeamSignedToken.class);
+		
+		JoinTeamSignedToken token = SerializationUtils.hexDecodeAndDeserialize(
+				link.substring(endpoint.length()), JoinTeamSignedToken.class);
+		SignedTokenUtil.validateToken(token);
 		assertEquals(userId, token.getUserId());
 		assertEquals(memberId, token.getMemberId());
 		assertEquals(teamId, token.getTeamId());
@@ -100,10 +105,14 @@ public class EmailUtilsTest {
 		String userId = "111";
 		String link = EmailUtils.createOneClickUnsubscribeLink(endpoint, userId);
 		assertTrue(link.startsWith(endpoint));
-		EmailUnsubscribeSignedToken token = SignedTokenUtil.deserializeAndValidateToken(link.substring(endpoint.length()), EmailUnsubscribeSignedToken.class);
+		NotificationSettingsSignedToken token = SerializationUtils.hexDecodeAndDeserialize(
+				link.substring(endpoint.length()), NotificationSettingsSignedToken.class);
+		SignedTokenUtil.validateToken(token);
 		assertEquals(userId, token.getUserId());
 		assertNotNull(token.getCreatedOn());
 		assertNotNull(token.getHmac());
+		assertNull(token.getSettings().getMarkEmailedMessagesAsRead());
+		assertFalse(token.getSettings().getSendEmailNotifications());
 	}
 
 

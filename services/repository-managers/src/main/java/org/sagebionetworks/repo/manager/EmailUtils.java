@@ -12,8 +12,10 @@ import java.util.Map;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.message.EmailUnsubscribeSignedToken;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.util.SerializationUtils;
 
 import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
@@ -41,6 +43,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
 	public static final String TEMPLATE_KEY_TEAM_NAME = "#teamName#";
 	public static final String TEMPLATE_KEY_TEAM_ID = "#teamId#";
+	public static final String TEMPLATE_KEY_TEAM_WEB_LINK = "#teamWebLink#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_JOIN = "#oneClickJoin#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
 	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
@@ -151,17 +154,22 @@ public class EmailUtils {
 		token.setUserId(userId);
 		token.setMemberId(memberId);
 		token.setTeamId(teamId);
-		String serializedToken = SignedTokenUtil.signAndSerialize(token);
+		SignedTokenUtil.signToken(token);
+		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
 	}
 	
 	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
-		EmailUnsubscribeSignedToken token = new EmailUnsubscribeSignedToken();
+		NotificationSettingsSignedToken token = new NotificationSettingsSignedToken();
 		token.setCreatedOn(new Date());
 		token.setUserId(userId);
-		String serializedToken = SignedTokenUtil.signAndSerialize(token);
+		Settings settings = new Settings();
+		settings.setSendEmailNotifications(false);
+		token.setSettings(settings);
+		SignedTokenUtil.signToken(token);
+		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
