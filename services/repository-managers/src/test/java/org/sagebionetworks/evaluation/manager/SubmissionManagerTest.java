@@ -69,11 +69,9 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
@@ -121,6 +119,9 @@ public class SubmissionManagerTest {
 	private static final String HANDLE_ID_1 = "handle1";
 	private static final String TEST_URL = "http://www.foo.com/bar";
 	private static final String TEAM_ID = "999";
+	private static final String CHALLENGE_END_POINT = "https://synapse.org/#ENTITY:";
+	private static final String NOTIFICATION_UNSUBSCRIBE_END_POINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
@@ -750,7 +751,9 @@ public class SubmissionManagerTest {
 				any(List.class), eq(""+submissionEligibilityHash), any(Date.class))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		List<MessageToUserAndBody> result = 
-				submissionManager.createSubmissionNotification(userInfo, sub, ""+submissionEligibilityHash);
+				submissionManager.createSubmissionNotifications(
+						userInfo, sub, ""+submissionEligibilityHash,
+						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
 		assertEquals("Team Challenge Submission", result.get(0).getMetadata().getSubject());
 		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		assertEquals("Hello,\r\nauser has created a Submission to syn101 on behalf of test team.  \r\nFor further information please visit https://www.synapse.org/#!Synapse:syn101.\r\nSincerely,\r\nSynapse Administration\r\n\r\nTo turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org\r\n",
@@ -762,7 +765,8 @@ public class SubmissionManagerTest {
 		// check that when it's not a team submission no notification is created
 		sub.setTeamId(null);
 		List<MessageToUserAndBody> result = 
-				submissionManager.createSubmissionNotification(userInfo, sub, null);
+				submissionManager.createSubmissionNotifications(userInfo, sub, null,
+						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
 		assertTrue(result.get(0).getMetadata().getRecipients().isEmpty());
 		assertEquals("", result.get(0).getBody());
 		

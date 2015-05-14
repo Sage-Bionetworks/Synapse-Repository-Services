@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -41,7 +42,6 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
@@ -56,14 +56,13 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import static org.sagebionetworks.repo.manager.EmailUtils.*;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -92,13 +91,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private TeamDAO teamDAO;
 	@Autowired
-	private UserProfileDAO userProfileDAO;
-	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
+	private UserProfileManager userProfileManager;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	
 	private static final int MAX_BATCH_SIZE = 500;
+	
+	private static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.txt";
+
+	private static final String TEAM_SUBMISSION_SUBJECT = "Team Challenge Submission";
+	
 	
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -237,38 +239,23 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		return submissionDAO.get(submissionId);
 	}
 	
-	private static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.txt";
-
-	private static final String TEAM_SUBMISSION_SUBJECT = "Team Challenge Submission";
-	
 	/**
-	 * 
+	 * create notifications for everyone on a team submission other than the submitter
 	 * @param submission
 	 * @return
 	 */
-	public List<MessageToUserAndBody> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash) {
+	public List<MessageToUserAndBody> createSubmissionNotifications(UserInfo userInfo, 
+			Submission submission, String submissionEligibilityHash,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint) {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (challengeEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
-			// no notification to send; return empty result
-			MessageToUser mtu = new MessageToUser();
-			mtu.setRecipients(Collections.EMPTY_SET);
-			mtu.setSubject("");
-			return Collections.singletonList(new MessageToUserAndBody(mtu, "", ContentType.TEXT_PLAIN.toString()));
+			// no contributors to notify, so just return an empty list
+			return result;
 		}
-		MessageToUser mtu = new MessageToUser();
-		mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
-		Set<String> recipients = new HashSet<String>();
-		String submitterId = submission.getUserId();
-		// notify all but the one who submitted.  If there is no one else on the team
-		// then this list will be empty and no notification will be sent.
-		for (SubmissionContributor contributor : submission.getContributors()) {
-			if (!submitterId.equals(contributor.getPrincipalId())) {
-				recipients.add(contributor.getPrincipalId());
-			}
-		}
-		mtu.setRecipients(recipients);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		Team team = teamDAO.get(submission.getTeamId());
-		fieldValues.put("#teamName#", team.getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, team.getName());
 		String evaluationId = submission.getEvaluationId();
 		Evaluation evaluation = evaluationDAO.get(evaluationId);
 		String challengeEntityId = evaluation.getContentSource();
@@ -284,16 +271,28 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		} else {
 			challengeName = entityHeader.getName();
 		}
-		fieldValues.put("#challengeName#", challengeName);
-		fieldValues.put("#challengeEntityId#", challengeEntityId);
-		String userName = principalAliasDAO.getUserName(Long.parseLong(submitterId));
-		UserProfile userProfile = userProfileDAO.get(submitterId);
-		userProfile.setUserName(userName);
+		fieldValues.put(TEMPLATE_KEY_CHALLENGE_NAME, challengeName);
+		String challengeEntityURL = challengeEndpoint+challengeEntityId;
+		EmailUtils.validateSynapsePortalHost(challengeEntityURL);
+		fieldValues.put(TEMPLATE_KEY_CHALLENGE_WEB_LINK, challengeEntityURL);
+		String submitterId = submission.getUserId();			
+		UserProfile userProfile = userProfileManager.getUserProfile(submitterId);
 		String displayName = EmailUtils.getDisplayName(userProfile);
-		fieldValues.put("#displayName#", displayName);
-		String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
-		return Collections.singletonList(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_PLAIN.toString()));
-
+		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		// notify all but the one who submitted.  If there is no one else on the team
+		// then this list will be empty and no notification will be sent.
+		for (SubmissionContributor contributor : submission.getContributors()) {
+			if (submitterId.equals(contributor.getPrincipalId())) continue;
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.
+					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, 
+							contributor.getPrincipalId()));
+			MessageToUser mtu = new MessageToUser();
+			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
+			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
+			String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
+			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.toString()));
+		}
+		return result;
 	}
 	
 	@Override

@@ -441,6 +441,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM = "notificationUnsubscribeEndpoint";
 	public static final String TEAM_ENDPOINT_PARAM = "teamEndpoint";
+	public static final String CHALLENGE_ENDPOINT_PARAM = "challengeEndpoint";
 	
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
@@ -4894,7 +4895,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public Submission createIndividualSubmission(Submission sub, String etag)
+	public Submission createIndividualSubmission(Submission sub, String etag,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
 		if (etag==null)
 			throw new IllegalArgumentException("etag is required.");
@@ -4905,6 +4907,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "="
 				+ etag;
+		if (challengeEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+			uri += "&" + CHALLENGE_ENDPOINT_PARAM + "=" + urlEncode(challengeEndpoint) + 
+					"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + 
+					urlEncode(notificationUnsubscribeEndpoint);
+		}
+
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
 			jsonObj = createJSONObject(uri, jsonObj);
@@ -4934,7 +4942,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash)
+	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
 		if (etag==null)
 			throw new IllegalArgumentException("etag is required.");
@@ -4945,6 +4954,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "="
 				+ etag + "&" + SUBMISSION_ELIGIBILITY_HASH+"="+submissionEligibilityHash;
+		if (challengeEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
+			uri += "&" + CHALLENGE_ENDPOINT_PARAM + "=" + urlEncode(challengeEndpoint) + 
+					"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + 
+					urlEncode(notificationUnsubscribeEndpoint);
+		}
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
 			jsonObj = createJSONObject(uri, jsonObj);

@@ -217,7 +217,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
+			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
@@ -227,7 +228,9 @@ public class EvaluationServiceImpl implements EvaluationService {
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
-		List<MessageToUserAndBody> messages = submissionManager.createSubmissionNotification(userInfo,created,submissionEligibilityHash);
+		List<MessageToUserAndBody> messages = submissionManager.
+				createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
+						challengeEndpoint, notificationUnsubscribeEndpoint);
 		notificationManager.sendNotifications(userInfo, messages);
 		return created;
 	}

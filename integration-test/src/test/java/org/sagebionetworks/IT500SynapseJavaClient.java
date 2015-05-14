@@ -1723,8 +1723,7 @@ public class IT500SynapseJavaClient {
 		assertFalse(adminUserProfile.getNotificationSettings().getSendEmailNotifications());
 		
 		// finally, the requester should have been notified that the admin added her to the team
-		// TODO this fails
-		//assertTrue("Can't find file "+requesterNotification, EmailValidationUtil.doesFileExist(requesterNotification));
+		assertTrue("Can't find file "+requesterNotification, EmailValidationUtil.doesFileExist(requesterNotification));
 		EmailValidationUtil.deleteFile(requesterNotification);
 	}
 	

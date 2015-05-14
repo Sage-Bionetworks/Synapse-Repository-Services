@@ -49,6 +49,9 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
 	public static final String TEMPLATE_KEY_REQUESTER_MESSAGE = "#requesterMessage#";
 	
+	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
+	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";
+
 	public static String getDisplayName(UserProfile userProfile) {
 		String userName = userProfile.getUserName();
 		if (userName==null) throw new IllegalArgumentException("userName is required");

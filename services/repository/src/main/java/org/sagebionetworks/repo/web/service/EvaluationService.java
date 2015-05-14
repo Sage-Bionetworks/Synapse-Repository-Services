@@ -200,6 +200,9 @@ public interface EvaluationService {
 	 * @param userId
 	 * @param submission
 	 * @param entityEtag
+	 * @param submissionEligibilityHash
+	 * @param challengeEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -208,7 +211,8 @@ public interface EvaluationService {
 	 * @throws ParseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
+			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
 	/**

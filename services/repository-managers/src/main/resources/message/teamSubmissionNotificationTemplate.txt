@@ -1,7 +1,0 @@
-Hello,
-#displayName# has created a Submission to #challengeName# on behalf of #teamName#.  
-For further information please visit https://www.synapse.org/#!Synapse:#challengeEntityId#.
-Sincerely,
-Synapse Administration
-
-To turn off email notifications, please visit your settings page, which you may reach from https://www.synapse.org

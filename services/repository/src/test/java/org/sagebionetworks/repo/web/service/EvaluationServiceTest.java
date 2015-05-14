@@ -66,8 +66,10 @@ public class EvaluationServiceTest {
 	}
 
 	@Test
-	public void testCreate() throws Exception {
+	public void testCreateSubmission() throws Exception {
 		Long userId = 111L;
+		String challengeEndpoint = "challengeEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		UserInfo userInfo = new UserInfo(false); 
 		userInfo.setId(userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
@@ -76,14 +78,21 @@ public class EvaluationServiceTest {
 		String content = "foo";
 		List<MessageToUserAndBody> result = Collections.singletonList(new MessageToUserAndBody(mtu, content, "text/plain"));
 		Submission submission = new Submission();
-		when(mockSubmissionManager.createSubmission(eq(userInfo), eq(submission), anyString(), anyString(), any(EntityBundle.class))).thenReturn(submission);
-		when(mockSubmissionManager.createSubmissionNotification(eq(userInfo), eq(submission), anyString())).thenReturn(result);
+		when(mockSubmissionManager.createSubmission(eq(userInfo), eq(submission), anyString(), 
+				anyString(), any(EntityBundle.class))).thenReturn(submission);
+		when(mockSubmissionManager.createSubmissionNotifications(
+				eq(userInfo), eq(submission), anyString(), 
+				eq(challengeEndpoint), eq(notificationUnsubscribeEndpoint))).thenReturn(result);
 
 		when(mockServiceProvider.getEntityBundleService()).thenReturn(mockEntityBundleService);
-		evaluationService.createSubmission(userId, submission, "123", "987", null);
+		evaluationService.createSubmission(userId, submission, "123", "987", null,
+				challengeEndpoint, notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockSubmissionManager).createSubmission(eq(userInfo), eq(submission), eq("123"), eq("987"), any(EntityBundle.class));
-		verify(mockSubmissionManager).createSubmissionNotification(eq(userInfo), any(Submission.class), eq("987"));
+		verify(mockSubmissionManager).createSubmission(eq(userInfo), eq(submission), eq("123"), eq("987"), 
+				any(EntityBundle.class));
+		verify(mockSubmissionManager).createSubmissionNotifications(
+				eq(userInfo), any(Submission.class), eq("987"),
+				eq(challengeEndpoint), eq(notificationUnsubscribeEndpoint));
 		
 		ArgumentCaptor<List> mtuArg = ArgumentCaptor.forClass(List.class);
 		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture());

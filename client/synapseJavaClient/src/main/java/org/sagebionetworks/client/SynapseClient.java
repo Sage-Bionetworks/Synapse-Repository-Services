@@ -1000,13 +1000,38 @@ public interface SynapseClient extends BaseClient {
 
 	public Long getParticipantCount(String evalId) throws SynapseException;
 
-	public Submission createIndividualSubmission(Submission sub, String etag)
+	/**
+	 * 
+	 * @param sub
+	 * @param etag
+	 * @param challengeEndpoint the prefix to an entity/challenge page.  The entity ID of the challenge project is
+	 * appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the prefix of a one-click unsubscribe link for notifications.
+	 * A serialization token containing user information is appended to the given endpoint to create the complete URL.
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Submission createIndividualSubmission(Submission sub, String etag,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException;
 	
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(String evaluationId, String teamId) 
 			throws SynapseException;
 
-	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash)
+	/**
+	 * 
+	 * @param sub
+	 * @param etag
+	 * @param submissionEligibilityHash
+	 * @param challengeEndpoint the prefix to an entity/challenge page.  The entity ID of the challenge project is
+	 * appended to create the complete URL.
+	 * @param notificationUnsubscribeEndpoint the prefix of a one-click unsubscribe link for notifications.
+	 * A serialization token containing user information is appended to the given endpoint to create the complete URL.
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException;
 	
 	/**

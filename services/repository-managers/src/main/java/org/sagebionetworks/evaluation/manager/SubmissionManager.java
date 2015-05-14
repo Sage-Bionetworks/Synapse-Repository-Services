@@ -64,7 +64,9 @@ public interface SubmissionManager {
 	 * @param submission
 	 * @return
 	 */
-	public List<MessageToUserAndBody> createSubmissionNotification(UserInfo userInfo, Submission submission, String submissionEligibilityHash);
+	public List<MessageToUserAndBody> createSubmissionNotifications(
+			UserInfo userInfo, Submission submission, String submissionEligibilityHash,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint);
 
 	/**
 	 * Update the SubmissionStatus object for a Submission. Note that the
