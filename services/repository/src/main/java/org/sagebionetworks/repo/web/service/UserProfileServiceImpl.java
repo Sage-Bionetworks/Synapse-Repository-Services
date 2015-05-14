@@ -355,7 +355,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		userProfile.setNotificationSettings(settings);
 		userProfileManager.updateUserProfile(userInfo, userProfile);
 		ResponseMessage responseMessage = new ResponseMessage();
-		responseMessage.setMessage("You have successfully updates your email notification settings.");
+		responseMessage.setMessage("You have successfully updated your email notification settings.");
 		return responseMessage;
 	}
 

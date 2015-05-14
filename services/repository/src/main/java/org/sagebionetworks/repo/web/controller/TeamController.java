@@ -276,7 +276,7 @@ public class TeamController extends BaseController {
 	 * @param notificationUnsubscribeEndpoint
 	 * @throws NotFoundException
 	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_MEMBER, method = RequestMethod.PUT)
 	public @ResponseBody ResponseMessage addTeamMemberViaSignedToken(
 			@RequestBody JoinTeamSignedToken joinTeamSignedToken,

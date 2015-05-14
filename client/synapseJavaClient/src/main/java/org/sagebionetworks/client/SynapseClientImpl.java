@@ -6516,29 +6516,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String notificationUnsubscribeEndpoint) 
 			throws SynapseException {
 		
-		String uri = TEAM + MEMBER;
+		String uri = TEAM + "Member";
 		
 		if (teamEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
 			uri += "?" + TEAM_ENDPOINT_PARAM + "=" + urlEncode(teamEndpoint) + 
 				"&"	+ NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
 		}
 		
-		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
-		JSONObject obj;
-		try {
-			obj = new JSONObject(joinTeamSignedToken.writeToJSONObject(toUpdateAdapter)
-					.toJSONString());
-			JSONObject jsonObj = getSharedClientConnection().putJson(
-					repoEndpoint, uri, obj.toString(), getUserAgent());
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			return new ResponseMessage(adapter);
-
-		} catch (JSONException e1) {
-			throw new RuntimeException(e1);
-		} catch (JSONObjectAdapterException e1) {
-			throw new RuntimeException(e1);
-		}
+		return asymmetricalPut(getRepoEndpoint(), uri, joinTeamSignedToken,
+				ResponseMessage.class);
+		
 	}
+	
 	private static String urlEncode(String s) {
 		try {
 			return URLEncoder.encode(s, "UTF-8");
