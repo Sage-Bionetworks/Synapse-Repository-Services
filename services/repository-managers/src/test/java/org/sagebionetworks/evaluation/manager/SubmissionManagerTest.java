@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -16,9 +17,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EmailUtils.*;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -38,8 +45,12 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.EmailParseUtil;
+import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -47,13 +58,19 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
@@ -62,8 +79,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
@@ -88,6 +109,9 @@ public class SubmissionManagerTest {
 	private EvaluationPermissionsManager mockEvalPermissionsManager;
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
 	private Node mockNode;
+	private TeamDAO mockTeamDAO;
+	private UserProfileManager mockUserProfileManager;
+	private EvaluationDAO mockEvaluationDAO;
 	private Folder folder;
 	private EntityBundle bundle;
 	
@@ -107,6 +131,9 @@ public class SubmissionManagerTest {
 	private static final String HANDLE_ID_1 = "handle1";
 	private static final String TEST_URL = "http://www.foo.com/bar";
 	private static final String TEAM_ID = "999";
+	private static final String CHALLENGE_END_POINT = "https://synapse.org/#ENTITY:";
+	private static final String NOTIFICATION_UNSUBSCRIBE_END_POINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
@@ -209,6 +236,9 @@ public class SubmissionManagerTest {
       	mockFileHandleManager = mock(FileHandleManager.class);
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
       	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
+      	mockTeamDAO = mock(TeamDAO.class);
+      	mockUserProfileManager = mock(UserProfileManager.class);
+      	mockEvaluationDAO = mock(EvaluationDAO.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
@@ -249,6 +279,9 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
     	ReflectionTestUtils.setField(submissionManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     	ReflectionTestUtils.setField(submissionManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
+    	ReflectionTestUtils.setField(submissionManager, "teamDAO", mockTeamDAO);
+    	ReflectionTestUtils.setField(submissionManager, "userProfileManager", mockUserProfileManager);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationDAO", mockEvaluationDAO);
     }
 	
 	@Test
@@ -694,5 +727,90 @@ public class SubmissionManagerTest {
 		batch.setIsLastBatch(true);
 		resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		assertNull(resp.getNextUploadToken());
+	}
+	
+	@Test
+	public void testCreateSubmissionNotification() throws Exception {
+		assertNull(sub.getContributors());
+		Set<SubmissionContributor> contributors = new HashSet<SubmissionContributor>();
+		SubmissionContributor sc = new SubmissionContributor();
+		sc.setPrincipalId(USER_ID);
+		contributors.add(sc);
+		SubmissionContributor sc2 = new SubmissionContributor();
+		sc2.setPrincipalId("99");
+		contributors.add(sc2);
+		sub.setContributors(contributors);
+		sub.setTeamId(TEAM_ID);
+		int submissionEligibilityHash = 1234;
+		
+		Team team = new Team();
+		team.setName("test team");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		
+		Evaluation evaluation = new Evaluation();
+		evaluation.setContentSource("syn101");
+		when(mockEvaluationDAO.get(sub.getEvaluationId())).thenReturn(evaluation);
+		
+		UserProfile up = new UserProfile();
+		up.setUserName("auser");
+		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
+
+		when(mockSubmissionEligibilityManager.isTeamEligible(
+				eq(EVAL_ID), eq(TEAM_ID),
+				any(List.class), eq(""+submissionEligibilityHash), any(Date.class))).
+				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		List<MessageToUserAndBody> result = 
+				submissionManager.createSubmissionNotifications(
+						userInfo, sub, ""+submissionEligibilityHash,
+						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
+		assertEquals(1, result.size());
+		assertEquals("Team Challenge Submission", result.get(0).getMetadata().getSubject());
+		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
+		String body = result.get(0).getBody();
+		
+		// this will give us eleven pieces...
+		List<String> delims = Arrays.asList(new String[] {
+				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_CHALLENGE_NAME,
+				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_CHALLENGE_WEB_LINK,
+				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+		});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(SubmissionManagerImpl.TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, delims);
+
+		assertTrue(body.startsWith(templatePieces.get(0)));
+		assertTrue(body.indexOf(templatePieces.get(2))>0);
+		String displayName = EmailParseUtil.getTokenFromString(body, templatePieces.get(0), templatePieces.get(2));
+		assertEquals("auser", displayName);
+		assertTrue(body.indexOf(templatePieces.get(4))>0);
+		String challengeName = EmailParseUtil.getTokenFromString(body, templatePieces.get(2), templatePieces.get(4));
+		assertEquals("syn101", challengeName);
+		assertTrue(body.indexOf(templatePieces.get(6))>0);
+		String teamName = EmailParseUtil.getTokenFromString(body, templatePieces.get(4), templatePieces.get(6));
+		assertEquals("test team", teamName);
+		assertTrue(body.indexOf(templatePieces.get(8))>0);
+		String challengeEntityId = EmailParseUtil.
+				getTokenFromString(body, templatePieces.get(6)+CHALLENGE_END_POINT, templatePieces.get(8));
+		assertEquals("syn101", challengeEntityId);
+		assertTrue(body.endsWith(templatePieces.get(10)));
+		String unsubscribeToken = EmailParseUtil.getTokenFromString(
+				body, templatePieces.get(8)+NOTIFICATION_UNSUBSCRIBE_END_POINT, templatePieces.get(10));
+		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
+				(unsubscribeToken, NotificationSettingsSignedToken.class);
+		SignedTokenUtil.validateToken(nsst);
+		assertEquals("99", nsst.getUserId());
+		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
+		assertFalse(nsst.getSettings().getSendEmailNotifications());
+	}
+	
+	@Test
+	public void testCreateSubmissionNotification_Individual() throws Exception {
+		// check that when it's not a team submission no notification is created
+		sub.setTeamId(null);
+		List<MessageToUserAndBody> result = 
+				submissionManager.createSubmissionNotifications(userInfo, sub, null,
+						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
+		assertTrue(result.isEmpty());
+		
 	}
 }

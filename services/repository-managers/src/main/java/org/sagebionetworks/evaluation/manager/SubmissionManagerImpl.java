@@ -3,11 +3,15 @@ package org.sagebionetworks.evaluation.manager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -19,23 +23,31 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
@@ -43,13 +55,14 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import static org.sagebionetworks.repo.manager.EmailUtils.*;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -75,8 +88,19 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private SubmissionEligibilityManager submissionEligibilityManager;
+	@Autowired
+	private TeamDAO teamDAO;
+	@Autowired
+	private UserProfileManager userProfileManager;
+	@Autowired
+	private EvaluationDAO evaluationDAO;
 	
 	private static final int MAX_BATCH_SIZE = 500;
+	
+	public static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.html";
+
+	private static final String TEAM_SUBMISSION_SUBJECT = "Team Challenge Submission";
+	
 	
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -213,6 +237,62 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// return the Submission
 		return submissionDAO.get(submissionId);
+	}
+	
+	/**
+	 * create notifications for everyone on a team submission other than the submitter
+	 * @param submission
+	 * @return
+	 */
+	public List<MessageToUserAndBody> createSubmissionNotifications(UserInfo userInfo, 
+			Submission submission, String submissionEligibilityHash,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint) {
+		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		if (challengeEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
+		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
+			// no contributors to notify, so just return an empty list
+			return result;
+		}
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		Team team = teamDAO.get(submission.getTeamId());
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, team.getName());
+		String evaluationId = submission.getEvaluationId();
+		Evaluation evaluation = evaluationDAO.get(evaluationId);
+		String challengeEntityId = evaluation.getContentSource();
+		EntityHeader entityHeader = null;
+		try {
+			entityHeader = entityManager.getEntityHeader(userInfo, challengeEntityId, null);
+		} catch (UnauthorizedException e) {
+			entityHeader = null;
+		}
+		String challengeName = null;
+		if (entityHeader==null || entityHeader.getName()==null) {
+			challengeName = challengeEntityId;
+		} else {
+			challengeName = entityHeader.getName();
+		}
+		fieldValues.put(TEMPLATE_KEY_CHALLENGE_NAME, challengeName);
+		String challengeEntityURL = challengeEndpoint+challengeEntityId;
+		EmailUtils.validateSynapsePortalHost(challengeEntityURL);
+		fieldValues.put(TEMPLATE_KEY_CHALLENGE_WEB_LINK, challengeEntityURL);
+		String submitterId = submission.getUserId();			
+		UserProfile userProfile = userProfileManager.getUserProfile(submitterId);
+		String displayName = EmailUtils.getDisplayName(userProfile);
+		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		// notify all but the one who submitted.  If there is no one else on the team
+		// then this list will be empty and no notification will be sent.
+		for (SubmissionContributor contributor : submission.getContributors()) {
+			if (submitterId.equals(contributor.getPrincipalId())) continue;
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.
+					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, 
+							contributor.getPrincipalId()));
+			MessageToUser mtu = new MessageToUser();
+			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
+			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
+			String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
+			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
+		}
+		return result;
 	}
 	
 	@Override

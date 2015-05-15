@@ -20,6 +20,8 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -33,18 +35,19 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.QueryDAO;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationServiceImpl implements EvaluationService {
 
@@ -62,6 +65,32 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private UserManager userManager;
 	@Autowired
 	private QueryDAO queryDAO;
+	@Autowired
+	private NotificationManager notificationManager;
+	
+	public EvaluationServiceImpl() {}
+	
+	// for testing
+	public EvaluationServiceImpl(
+			ServiceProvider serviceProvider,
+			EvaluationManager evaluationManager,
+			ParticipantManager participantManager,
+			SubmissionManager submissionManager,
+			EvaluationPermissionsManager evaluationPermissionsManager,
+			UserManager userManager,
+			QueryDAO queryDAO,
+			NotificationManager notificationManager
+			) {
+		this.serviceProvider = serviceProvider;
+		this.evaluationManager = evaluationManager;
+		this.participantManager = participantManager;
+		this.submissionManager = submissionManager;
+		this.evaluationPermissionsManager = evaluationPermissionsManager;
+		this.userManager = userManager;
+		this.queryDAO = queryDAO;
+		this.notificationManager = notificationManager;	
+	}
+	
 
 	@Override
 	@WriteTransaction
@@ -188,8 +217,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	@WriteTransaction
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, String submissionEligibilityHash, HttpServletRequest request)
+	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
+			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
@@ -198,7 +227,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
-		return submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
+		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
+		List<MessageToUserAndBody> messages = submissionManager.
+				createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
+						challengeEndpoint, notificationUnsubscribeEndpoint);
+		notificationManager.sendNotifications(userInfo, messages);
+		return created;
 	}
 	
 	/**

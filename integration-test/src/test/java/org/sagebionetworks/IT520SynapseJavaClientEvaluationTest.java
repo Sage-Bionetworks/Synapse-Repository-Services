@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -68,6 +69,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
@@ -122,6 +124,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
+	private static final String MOCK_CHALLENGE_ENDPOINT = "https://synapse.org/#ENTITY:";
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -220,11 +223,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 				adminSynapse.deleteSubmission(id);
 			} catch (SynapseNotFoundException e) {}
 		}
-		for (String id : teamsToDelete) {
-			try {
-				adminSynapse.deleteTeam(id);
-			} catch (SynapseNotFoundException e) {}
-		}
 		
 		// clean up Access Requirements
 		for (Long id : accessRequirementsToDelete) {
@@ -254,6 +252,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 			} catch (SynapseException e) { }
 		}
 		
+		for (String id : teamsToDelete) {
+			try {
+				adminSynapse.deleteTeam(id);
+			} catch (SynapseNotFoundException e) {}
+		}
 		dataSourceFile=null;
 	}
 	
@@ -395,7 +398,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -470,14 +474,33 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(initialCount, synapseOne.getSubmissionCount(eval1.getId()));
 	}
 	
-	@Test
-	public void testTeamSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
-		eval1.setStatus(EvaluationStatus.OPEN);
+	private static SubmissionQuota createSubmissionQuota() {
 		SubmissionQuota quota = new SubmissionQuota();
 		quota.setFirstRoundStart(new Date(System.currentTimeMillis()));
 		quota.setNumberOfRounds(1L);
 		quota.setRoundDurationMillis(60*1000L); // 60 seconds
 		quota.setSubmissionLimit(1L);
+		return quota;
+	}
+	
+	private Team createParticipantTeam() throws SynapseException {
+		Team myTeam = new Team();
+		myTeam.setCanPublicJoin(true);
+		myTeam.setName("registered Team");
+		myTeam = synapseOne.createTeam(myTeam);
+		this.teamsToDelete.add(myTeam.getId());
+		ChallengeTeam challengeTeam = new ChallengeTeam();
+		challengeTeam.setChallengeId(challenge.getId());
+		challengeTeam.setTeamId(myTeam.getId());
+		// this is the actual Team registration step
+		challengeTeam = synapseOne.createChallengeTeam(challengeTeam);
+		return myTeam;
+	}
+	
+	@Test
+	public void testTeamSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		SubmissionQuota quota = createSubmissionQuota();
 		eval1.setQuota(quota);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
@@ -492,16 +515,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
 		
 		// let's register for the challenge!
-		Team myTeam = new Team();
-		myTeam.setName("registered Team");
-		myTeam = synapseOne.createTeam(myTeam);
-		this.teamsToDelete.add(myTeam.getId());
-		ChallengeTeam challengeTeam = new ChallengeTeam();
-		challengeTeam.setChallengeId(challenge.getId());
-		challengeTeam.setTeamId(myTeam.getId());
-		// this is the actual Team registration step
-		challengeTeam = synapseOne.createChallengeTeam(challengeTeam);
-		
+		Team myTeam = createParticipantTeam();
+				
 		// am I eligible to submit?
 		TeamSubmissionEligibility tse = synapseOne.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
 		assertEquals(eval1.getId(), tse.getEvaluationId());
@@ -524,7 +539,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId);
 		sub1.setTeamId(myTeam.getId());
 		long submissionEligibilityHash = tse.getEligibilityStateHash();
-		sub1 = synapseOne.createTeamSubmission(sub1, entityEtag, ""+submissionEligibilityHash);
+		sub1 = synapseOne.createTeamSubmission(sub1, entityEtag, ""+submissionEligibilityHash,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -553,6 +569,108 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@Test
+	public void testTeamSubmissionRoundTripWithNotification() throws Exception {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		SubmissionQuota quota = createSubmissionQuota();
+		eval1.setQuota(quota);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+		
+		Evaluation evaluationClone = synapseOne.getEvaluation(eval1.getId());
+		assertEquals(quota, evaluationClone.getQuota());
+		
+		String entityId = fileEntity.getId();
+		String entityEtag = fileEntity.getEtag();
+		
+		// let's register for the challenge!
+		Team myTeam = createParticipantTeam();
+		
+		// I want my friend to join my team
+		// first, he must register for the challenge
+		UserProfile contributorProfile = synapseTwo.getMyProfile();
+		synapseTwo.addTeamMember(participantTeam.getId(), contributorProfile.getOwnerId(), null, null);
+		// then he has to join my team
+		synapseTwo.addTeamMember(myTeam.getId(), contributorProfile.getOwnerId(), null, null);
+				
+		List<String> contributorEmails = contributorProfile.getEmails();
+		assertEquals(1, contributorEmails.size());
+		String contributorEmail = contributorEmails.get(0);
+		String contributorNotification = EmailValidationUtil.getBucketKeyForEmail(contributorEmail);
+		// make sure there is no notification before the submission is created
+		if (EmailValidationUtil.doesFileExist(contributorNotification)) 
+			EmailValidationUtil.deleteFile(contributorNotification);
+
+		TeamSubmissionEligibility tse = synapseOne.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		sub1.setTeamId(myTeam.getId());
+		SubmissionContributor contributor = new SubmissionContributor();
+		contributor.setPrincipalId(contributorProfile.getOwnerId());
+		sub1.setContributors(Collections.singleton(contributor));
+		long submissionEligibilityHash = tse.getEligibilityStateHash();
+		sub1 = synapseOne.createTeamSubmission(sub1, entityEtag, ""+submissionEligibilityHash,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		submissionsToDelete.add(sub1.getId());
+
+		// contributor should get notification
+		assertTrue(EmailValidationUtil.doesFileExist(contributorNotification));
+	}
+	
+	@Test
+	public void testTeamSubmissionRoundTripWithOUTNotification() throws Exception {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		SubmissionQuota quota = createSubmissionQuota();
+		eval1.setQuota(quota);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+		
+		Evaluation evaluationClone = synapseOne.getEvaluation(eval1.getId());
+		assertEquals(quota, evaluationClone.getQuota());
+		
+		String entityId = fileEntity.getId();
+		String entityEtag = fileEntity.getEtag();
+		
+		// let's register for the challenge!
+		Team myTeam = createParticipantTeam();
+		
+		// I want my friend to join my team
+		// first, he must register for the challenge
+		UserProfile contributorProfile = synapseTwo.getMyProfile();
+		synapseTwo.addTeamMember(participantTeam.getId(), contributorProfile.getOwnerId(), null, null);
+		// then he has to join my team
+		synapseTwo.addTeamMember(myTeam.getId(), contributorProfile.getOwnerId(), null, null);
+		
+		
+		List<String> contributorEmails = contributorProfile.getEmails();
+		assertEquals(1, contributorEmails.size());
+		String contributorEmail = contributorEmails.get(0);
+		String contributorNotification = EmailValidationUtil.getBucketKeyForEmail(contributorEmail);
+		// make sure there is no notification before the submission is created
+		if (EmailValidationUtil.doesFileExist(contributorNotification)) 
+			EmailValidationUtil.deleteFile(contributorNotification);
+
+		TeamSubmissionEligibility tse = synapseOne.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		sub1.setTeamId(myTeam.getId());
+		SubmissionContributor contributor = new SubmissionContributor();
+		contributor.setPrincipalId(contributorProfile.getOwnerId());
+		sub1.setContributors(Collections.singleton(contributor));
+		long submissionEligibilityHash = tse.getEligibilityStateHash();
+		// NOTE:  Since we omit the challenge endpoint, no notification should be sent
+		sub1 = synapseOne.createTeamSubmission(sub1, entityEtag, ""+submissionEligibilityHash,
+				null, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		submissionsToDelete.add(sub1.getId());
+
+		// contributor should get notification
+		assertFalse(EmailValidationUtil.doesFileExist(contributorNotification));
+	}
+	
+	@Test
 	public void testSubmissionEntityBundle() throws SynapseException, NotFoundException, InterruptedException, JSONObjectAdapterException {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
@@ -567,7 +685,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -648,14 +767,16 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag1);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag1,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(entityId2);
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag2);
+		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag2,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 
@@ -772,7 +893,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag1);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag1,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 
@@ -782,7 +904,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub2.setEntityId(projectTwo.getId());
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = synapseTwo.createIndividualSubmission(sub2, entityEtag2);
+		sub2 = synapseTwo.createIndividualSubmission(sub2, entityEtag2,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
@@ -809,7 +932,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String entityEtag = file.getEtag();
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		submissionsToDelete.add(sub1.getId());
 
 		// get file URL
@@ -967,11 +1091,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag);
+		sub1 = synapseOne.createIndividualSubmission(sub1, entityEtag,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		submissionsToDelete.add(sub1.getId());
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(entityId);
-		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag);
+		sub2 = synapseOne.createIndividualSubmission(sub2, entityEtag,
+				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		submissionsToDelete.add(sub2.getId());
 		
 		String doubleHeader = "DOUBLE";

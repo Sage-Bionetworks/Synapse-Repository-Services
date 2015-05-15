@@ -144,6 +144,13 @@ public class AuthorizationConstants {
 	 * The team ID is appended to create the complete URL.
 	 */
 	public static final String TEAM_ENDPOINT_PARAM = "teamEndpoint";
+	
+	/**
+	 * A request parameter for specifying the portal prefix for the Challenge Entity page URL.
+	 * The entity ID is appended to create the complete URL.
+	 */
+	public static final String CHALLENGE_ENDPOINT_PARAM = "challengeEndpoint";
+	
 	/**
 	 * A request parameter for specifying the portal endpoint for unsubscribing from email
 	 */

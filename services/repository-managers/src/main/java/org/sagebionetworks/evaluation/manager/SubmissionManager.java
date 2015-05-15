@@ -1,5 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -7,14 +9,17 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
 
 public interface SubmissionManager {
 
@@ -53,6 +58,15 @@ public interface SubmissionManager {
 	 */
 	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, String submissionEligibilityHash, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
+	
+	/**
+	 * 
+	 * @param submission
+	 * @return
+	 */
+	public List<MessageToUserAndBody> createSubmissionNotifications(
+			UserInfo userInfo, Submission submission, String submissionEligibilityHash,
+			String challengeEndpoint, String notificationUnsubscribeEndpoint);
 
 	/**
 	 * Update the SubmissionStatus object for a Submission. Note that the

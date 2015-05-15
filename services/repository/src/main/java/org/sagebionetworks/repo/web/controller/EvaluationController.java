@@ -621,6 +621,13 @@ public class EvaluationController extends BaseController {
 	 * An individual submission must have a null teamId, a null or empty contributor list, and no
 	 * submissionEligibilityHash parameter.
 	 * <p>
+	 * The caller may optionally provide request parameters, challengeEndpoint and notificationUnsubscribeEndpoint.
+	 * These are prefixes of links which are put in submission notification emails and point back to the Synapse
+	 * portal.  The first is the prefix to an entity/challenge page.  The entity ID of the challenge project is
+	 * appended to create the complete URL.  The second is the prefix of a one-click unsubscribe link for notifications.
+	 * A serialization token containing user information is appended to the given endpoint to create the complete URL.
+	 * 
+	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.SUBMIT</a>.  
@@ -635,6 +642,9 @@ public class EvaluationController extends BaseController {
 	 * @param submissionEligibilityHash - the hash provided by the 
 	 * <a href="${org.sagebionetworks.evaluation.model.TeamSubmissionEligibility}">TeamSubmissionEligibility</a>
 	 * object.
+	 * @param submissionEligibilityHash
+	 * @param teamEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @param header
 	 * @param request
 	 * @return
@@ -653,13 +663,16 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestParam(value = AuthorizationConstants.SUBMISSION_ELIGIBILITY_HASH_PARAM, required = false) String submissionEligibilityHash,
+			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, required = false) String challengeEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
-		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, submissionEligibilityHash, request);
+		return serviceProvider.getEvaluationService().createSubmission(
+				userId, sub, entityEtag, submissionEligibilityHash, request, challengeEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	/**
