@@ -65,8 +65,8 @@ public class MessageQueueImpl implements MessageQueue {
 		if (objectTypes != null && objectTypes.isEmpty()) {
 			throw new IllegalArgumentException("ObjectTypes cannot be empty");
 		}
-		if ((deadLetterQueueName != null) && (maxReceiveCount == null)) {
-			throw new IllegalArgumentException("maxReceiveCount must be specified if deadLetterQueueName is not null");
+		if (! validateDeadLetterParams(deadLetterQueueName, maxReceiveCount)) {
+			throw new IllegalArgumentException("maxReceiveCount and deadLetterQueueName must both be either null or not null");
 		}
 		this.isEnabled = isEnabled;
 		this.queueName = queueName;
@@ -295,7 +295,7 @@ public class MessageQueueImpl implements MessageQueue {
 	}
 	
 	@Override
-	public int getMaxReceiveCount() {
+	public Integer getMaxReceiveCount() {
 		return this.maxReceiveCount;
 	}
 	

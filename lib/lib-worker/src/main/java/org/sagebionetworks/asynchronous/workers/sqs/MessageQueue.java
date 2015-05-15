@@ -42,6 +42,6 @@ public interface MessageQueue {
 	 * The number of times a msg is received before moving to the dead letter queue
 	 * @return
 	 */
-	public int getMaxReceiveCount();
+	public Integer getMaxReceiveCount();
 
 }
