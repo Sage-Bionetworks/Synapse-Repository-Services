@@ -290,7 +290,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
 			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
 			String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
-			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.toString()));
+			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}
 		return result;
 	}

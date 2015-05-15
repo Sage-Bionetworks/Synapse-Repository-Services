@@ -223,11 +223,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 				adminSynapse.deleteSubmission(id);
 			} catch (SynapseNotFoundException e) {}
 		}
-		for (String id : teamsToDelete) {
-			try {
-				adminSynapse.deleteTeam(id);
-			} catch (SynapseNotFoundException e) {}
-		}
 		
 		// clean up Access Requirements
 		for (Long id : accessRequirementsToDelete) {
@@ -257,6 +252,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 			} catch (SynapseException e) { }
 		}
 		
+		for (String id : teamsToDelete) {
+			try {
+				adminSynapse.deleteTeam(id);
+			} catch (SynapseNotFoundException e) {}
+		}
 		dataSourceFile=null;
 	}
 	
@@ -485,6 +485,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	private Team createParticipantTeam() throws SynapseException {
 		Team myTeam = new Team();
+		myTeam.setCanPublicJoin(true);
 		myTeam.setName("registered Team");
 		myTeam = synapseOne.createTeam(myTeam);
 		this.teamsToDelete.add(myTeam.getId());
@@ -584,17 +585,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// let's register for the challenge!
 		Team myTeam = createParticipantTeam();
 		
-		// add a collaborator.  This has to be done by inviting the other
-		// and having them accept the invitation
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		// I want my friend to join my team
+		// first, he must register for the challenge
 		UserProfile contributorProfile = synapseTwo.getMyProfile();
-		mis.setInviteeId(contributorProfile.getOwnerId());
-		mis.setTeamId(myTeam.getId());
-		synapseOne.createMembershipInvitation(mis, null, null);
-		// now accept the invitation
+		synapseTwo.addTeamMember(participantTeam.getId(), contributorProfile.getOwnerId(), null, null);
+		// then he has to join my team
 		synapseTwo.addTeamMember(myTeam.getId(), contributorProfile.getOwnerId(), null, null);
-		
-		
+				
 		List<String> contributorEmails = contributorProfile.getEmails();
 		assertEquals(1, contributorEmails.size());
 		String contributorEmail = contributorEmails.get(0);
@@ -638,14 +635,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// let's register for the challenge!
 		Team myTeam = createParticipantTeam();
 		
-		// add a collaborator.  This has to be done by inviting the other
-		// and having them accept the invitation
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		// I want my friend to join my team
+		// first, he must register for the challenge
 		UserProfile contributorProfile = synapseTwo.getMyProfile();
-		mis.setInviteeId(contributorProfile.getOwnerId());
-		mis.setTeamId(myTeam.getId());
-		synapseOne.createMembershipInvitation(mis, null, null);
-		// now accept the invitation
+		synapseTwo.addTeamMember(participantTeam.getId(), contributorProfile.getOwnerId(), null, null);
+		// then he has to join my team
 		synapseTwo.addTeamMember(myTeam.getId(), contributorProfile.getOwnerId(), null, null);
 		
 		
