@@ -56,8 +56,9 @@ public class MessageQueueImpl implements MessageQueue {
 	public MessageQueueImpl(final String queueName, String topicPrefixOrName, List<ObjectType> objectTypes, boolean isEnabled) {
 		this(queueName, topicPrefixOrName, objectTypes, isEnabled, null, null);
 	}
+	
 	public MessageQueueImpl(final String queueName, String topicPrefixOrName, List<ObjectType> objectTypes, boolean isEnabled,
-			Integer maxReceiveCount, String deadLetterQueueName) {
+			String deadLetterQueueName, Integer maxReceiveCount) {
 		if (queueName == null) {
 			throw new IllegalArgumentException("QueueName cannot be null");
 		}

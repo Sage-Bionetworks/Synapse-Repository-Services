@@ -49,7 +49,7 @@ public class MessageQueueImplTest {
 		List<ObjectType> objTypes = new ArrayList<ObjectType>();
 		objTypes.add(ObjectType.ENTITY);
 		msgQImpl = new MessageQueueImpl("queueName", "topicPrefixOrName", objTypes, true,
-			 5, "deadLetterQueueName");
+			 "deadLetterQueueName", 5);
 		ReflectionTestUtils.setField(msgQImpl, "awsSQSClient", mockSQSClient);
 		ReflectionTestUtils.setField(msgQImpl, "awsSNSClient", mockSNSClient);
 	}

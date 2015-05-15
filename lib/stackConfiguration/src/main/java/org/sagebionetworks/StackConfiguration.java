@@ -903,6 +903,12 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	public String getSearchUpdateDeadLetterQueueName() {
+		return String.format(StackConstants.SEARCH_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * The name of the AWS SQS where dynamo updates are pushed.
@@ -942,6 +948,17 @@ public class StackConfiguration {
 	 */
 	public String getFileUpdateQueueName() {
 		return String.format(StackConstants.FILE_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+
+	/**
+	 * The name of the AWS SQS where file updates are pushed.
+	 * 
+	 * @return
+	 */
+	public String getFileUpdateDeadLetterQueueName() {
+		return String.format(StackConstants.FILE_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}

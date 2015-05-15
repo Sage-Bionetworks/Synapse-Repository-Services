@@ -48,6 +48,11 @@ public class StackConstants {
 	public static final String SEARCH_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-search-update-queue";
 
 	/**
+	 * Template used for the name of the AWS SQS dead letter where search updates are pushed.
+	 */
+	public static final String SEARCH_DEAD_LETTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-search-update-queue-dl";
+
+	/**
 	 * Template used for the name of the AWS SQS where dynamo updates are pushed.
 	 */
 	public static final String DYNAMO_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-dynamo-update-queue";
@@ -66,6 +71,11 @@ public class StackConstants {
 	 * Template used for the name of the AWS SQS where file updates are pushed.
 	 */
 	public static final String FILE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue";
+
+	/**
+	 * Template used for the name of the AWS SQS where file updates are pushed.
+	 */
+	public static final String FILE_DEAD_LETTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue-dl";
 
 
 	/**

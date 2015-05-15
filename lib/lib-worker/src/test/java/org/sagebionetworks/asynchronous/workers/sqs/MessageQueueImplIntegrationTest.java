@@ -114,8 +114,8 @@ public class MessageQueueImplIntegrationTest {
 	}
 	
 	private List<Message> waitForMsg(String qUrl) throws InterruptedException {
-		final int MAX_RETRY = 10;
-		final long SLEEP_MS = 1000L;
+		final int MAX_RETRY = 15;
+		final long SLEEP_MS = 3000L;
 		ReceiveMessageRequest rmReq = new ReceiveMessageRequest().withQueueUrl(qUrl).withVisibilityTimeout(1);
 		ReceiveMessageResult rmRes = null;
 		List<Message> msgs = null;
