@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_CURRENT_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_PENDING_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STACK_STATUS;
@@ -25,9 +25,9 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	
-	public static final String SQL_GET_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+DBOStackStatus.STATUS_ID;
+	public static final String SQL_GET_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_STACK_STATUS_ID+" = "+DBOStackStatus.STATUS_ID;
 	
-	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+DBOStackStatus.STATUS_ID;
+	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_STACK_STATUS_ID+" = "+DBOStackStatus.STATUS_ID;
 	
 	@Autowired
 	DBOBasicDao dboBasicDao;	
@@ -42,12 +42,12 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	@Override
 	public void updateStatus(StackStatus dto) {
 		if(dto == null) throw new IllegalArgumentException("Status cannot be null");
-		if(dto.getStatus() == null) throw new IllegalArgumentException("Cannot set the statu to null");
+		if(dto.getStatus() == null) throw new IllegalArgumentException("Cannot set the statuss to null");
 		try{
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", DBOStackStatus.STATUS_ID);
 			DBOStackStatus jdo = dboBasicDao.getObjectByPrimaryKey(DBOStackStatus.class, params);
-			jdo.setStatus(getStatusCode(dto.getStatus()));
+			jdo.setStatus(dto.getStatus().name());
 			jdo.setCurrentMessage(dto.getCurrentMessage());
 			jdo.setPendingMessage(dto.getPendingMaintenanceMessage());
 			dboBasicDao.update(jdo);
@@ -69,24 +69,10 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 			// If here then the the single status row does not exist.
 			DBOStackStatus status = new DBOStackStatus();
 			status.setId(DBOStackStatus.STATUS_ID);
-			status.setStatus(getStatusCode(StatusEnum.READ_WRITE));
+			status.setStatus(StatusEnum.READ_WRITE.name());
 			status.setCurrentMessage(DBOStackStatus.DEFAULT_MESSAGE);
 			dboBasicDao.createNew(status);
 		}
-	}
-	
-	/**
-	 * Get the id used for this enumeration.
-	 * @param enumValue
-	 * @return
-	 */
-	private static short getStatusCode(StatusEnum enumValue){
-		for(short i=0; i< StatusEnum.values().length; i++){
-			if( StatusEnum.values()[i] == enumValue){
-				return i;
-			}
-		}
-		throw new IllegalArgumentException("StatusEnum cannot be null");
 	}
 
 	@Override
@@ -96,8 +82,7 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 			public StackStatus mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				StackStatus status = new StackStatus();
-				int index = rs.getInt(1);
-				status.setStatus(StatusEnum.values()[index]);
+				status.setStatus(StatusEnum.valueOf(rs.getString(1)));
 				status.setCurrentMessage(rs.getString(2));
 				status.setPendingMaintenanceMessage(rs.getString(3));
 				return status;
@@ -109,8 +94,13 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 
 	@Override
 	public StatusEnum getCurrentStatus() {
-		int index = simpleJdbcTemplate.queryForInt(SQL_GET_STATUS);
-		return StatusEnum.values()[index];
+		String statusString = simpleJdbcTemplate.queryForObject(SQL_GET_STATUS, String.class);
+		return StatusEnum.valueOf(statusString);
+	}
+
+	@Override
+	public boolean isStackReadWrite() {
+		return getCurrentStatus().equals(StatusEnum.READ_WRITE);
 	}
 
 }

@@ -1,22 +1,25 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
+import org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphore;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SemaphoreManagerImplTest {
 	
-	SemaphoreDao mockSemaphoreDao;
+	MultipleLockSemaphore mockSemaphoreDao;
 	SemaphoreManagerImpl manager;
 	
 	@Before
 	public void before(){
-		mockSemaphoreDao = Mockito.mock(SemaphoreDao.class);
+		mockSemaphoreDao = Mockito.mock(MultipleLockSemaphore.class);
 		manager = new SemaphoreManagerImpl();
 		ReflectionTestUtils.setField(manager,"semaphoreDao", mockSemaphoreDao);
 	}
@@ -29,13 +32,13 @@ public class SemaphoreManagerImplTest {
 	@Test
 	public void testReleaseAllLocksAsAdminHappy(){
 		manager.releaseAllLocksAsAdmin(new UserInfo(true));
-		verify(mockSemaphoreDao, times(1)).forceReleaseAllLocks();
+		verify(mockSemaphoreDao, times(1)).releaseAllLocks();
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testReleaseAllLocksAsAdminUnauthorized(){
 		manager.releaseAllLocksAsAdmin(new UserInfo(false));
-		verify(mockSemaphoreDao, never()).forceReleaseAllLocks();
+		verify(mockSemaphoreDao, never()).releaseAllLocks();
 	}
 
 }

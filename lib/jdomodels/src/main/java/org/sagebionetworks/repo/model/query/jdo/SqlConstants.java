@@ -546,13 +546,6 @@ public class SqlConstants {
 	public static final String DDL_FILE_DOI = "schema/Doi-ddl.sql";
 
 	
-	// SEMAPHORE
-	public static final String TABLE_SEMAPHORE 			= "SEMAPHORE";
-	public static final String COL_SEMAPHORE_KEY		= "SEM_KEY";
-	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
-	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
-	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
-	
 	// Exclusive semaphore
 	public static final String TABLE_EXCLUSIVE_SEMAPHORE 				= "EXCLUSIVE_SEMAPHORE";
 	public static final String COL_EXCLUSIVE_SEMAPHORE_KEY				= "SEMAPHORE_KEY";
@@ -565,16 +558,16 @@ public class SqlConstants {
 	public static final String COL_SHARED_SEMAPHORE_KEY				= "SEMAPHORE_KEY";
 	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
 	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
-
-	// Lock master
-	public static final String TABLE_LOCK_MASTER 					= "LOCK_MASTER";
-	public static final String COL_LOCK_MASTER_KEY 					= "SEMAPHORE_KEY";
-
-	// Counting Semaphore
-	public static final String TABLE_COUNTING_SEMAPHORE 			= "COUNTING_SEMAPHORE";
-	public static final String COL_COUNTING_SEMAPHORE_KEY			= "SEMAPHORE_KEY";
-	public static final String COL_COUNTING_SEMAPHORE_LOCK_TOKEN	= "LOCK_TOKEN";
-	public static final String COL_COUNTING_SEMAPHORE_EXPIRES		= "EXPIRATION";
+	
+	// SEMAPHORE_MASTER
+	public static final String TABLE_SEMAPHORE_MASTER = "SEMAPHORE_MASTER";
+	public static final String COL_TABLE_SEM_MAST_KEY = "LOCK_KEY";
+	
+	// SEMAPHORE_LOCK
+	public static final String TABLE_SEMAPHORE_LOCK = 			"SEMAPHORE_LOCK";
+	public static final String COL_TABLE_SEM_LOCK_LOCK_KEY =	"LOCK_KEY";
+	public static final String COL_TABLE_SEM_LOCK_TOKEN =		"TOKEN";
+	public static final String COL_TABLE_SEM_LOCK_EXPIRES_ON =	"EXPIRES_ON";
 
 	// Upload status
 	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";

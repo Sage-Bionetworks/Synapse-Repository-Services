@@ -316,8 +316,8 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOQuizResponseDAOImpl" />
 		
 	<!-- Misc beans -->
-	<bean id="semaphoreDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
+	<bean id="multipleLockSemaphore"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphoreImpl" init-method="init"/>	
 
 	<bean id="exclusiveOrSharedSemaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreDaoImpl">

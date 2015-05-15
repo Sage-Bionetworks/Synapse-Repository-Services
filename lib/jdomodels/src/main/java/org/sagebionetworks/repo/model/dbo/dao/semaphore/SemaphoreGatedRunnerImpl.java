@@ -1,11 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,15 +9,12 @@ import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -63,14 +56,11 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 */
 	public static long MIN_TIMEOUT_MS = 10*1000;
 	
-	private static String KEY_NUM_DELIMITER = "-";
-	
 	@Autowired
-	private SemaphoreDao semaphoreDao;
+	private MultipleLockSemaphore multiLockSemaphore;
 	private String semaphoreKey;
 	private PropertyAccessor<Integer> maxNumberRunners;
 	private Object runner;
-	private Random randomGen = new Random(System.currentTimeMillis());;
 	private long timeoutMS;
 
 	@Autowired
@@ -81,8 +71,8 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 * 
 	 * @param semaphoreDao
 	 */
-	public void setSemaphoreDao(SemaphoreDao semaphoreDao) {
-		this.semaphoreDao = semaphoreDao;
+	public void setSemaphoreDao(MultipleLockSemaphore multiLockSemaphore) {
+		this.multiLockSemaphore = multiLockSemaphore;
 	}
 
 	/**
@@ -95,7 +85,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		// This checks to make sure that we don't use the same key twice. For testing, we reload the context multiple
 		// times, which leads to these beans being recreated multiple times. This check uses a singleton bean to make
 		// sure we only check for duplicates within a single bean context and not across bean contexts.
-		if (!USED_KEY_SET.get(semaphoreDao).add(semaphoreKey)) {
+		if (!USED_KEY_SET.get(multiLockSemaphore).add(semaphoreKey)) {
 			throw new IllegalArgumentException("The key: '" + semaphoreKey + "' is already in use. Duplicate key name?");
 		}
 		this.semaphoreKey = semaphoreKey;
@@ -148,7 +138,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	@Override
 	public void attemptToRun() {
 		if(this.semaphoreKey == null) throw new IllegalArgumentException("semaphoreKey cannot be null");
-		if(this.semaphoreDao == null) throw new IllegalArgumentException("semaphoreDao cannot be null");
+		if(this.multiLockSemaphore == null) throw new IllegalArgumentException("semaphoreDao cannot be null");
 		if(this.runner == null) throw new IllegalArgumentException("Runner cannot be null");
 		if(this.timeoutMS < MIN_TIMEOUT_MS) throw new IllegalArgumentException("The lock timeout is below the minimum timeout of "+MIN_TIMEOUT_MS+" MS");
 		// do nothing if the max number of of runner is less than one
@@ -159,9 +149,8 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			return;
 		}
 		// randomly generate a lock number to attempt
-		int lockNumber = randomGen.nextInt(maxNumberRunners.get());
-		final String key = generateKeyForLockNumber(lockNumber, null);
-		final String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
+		final long timeoutSec = timeoutMS/1000L;
+		final String token = multiLockSemaphore.attemptToAcquireLock(semaphoreKey, timeoutSec, maxNumberRunners.get());
 		if(token != null){
 			try{
 				// Make a run
@@ -170,7 +159,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 				}else if(runner instanceof ProgressingRunner){
 					// This type of runner allows the lock timeout to be refreshed.
 					ProgressingRunner progressingRunner = (ProgressingRunner) runner;
-					progressingRunner.run(new HalfLifeProgressCallback(key, token));
+					progressingRunner.run(new HalfLifeProgressCallback(semaphoreKey, token));
 				}else{
 					throw new RuntimeException("Unknown runner type: "+runner.getClass().getName());
 				}
@@ -178,44 +167,9 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			}catch(Exception e){
 				log.error("runner failed: ", e);
 			}finally{
-				semaphoreDao.releaseLock(key, token);
+				multiLockSemaphore.releaseLock(semaphoreKey, token);
 			}
 		}
-	}
-
-	@Override
-	public <T> T attemptToRunAllSlots(Callable<T> task, String extraKey) throws Exception {
-		if (this.semaphoreKey == null)
-			throw new IllegalArgumentException("semaphoreKey cannot be null");
-		if (this.semaphoreDao == null)
-			throw new IllegalArgumentException("semaphoreDao cannot be null");
-		if (this.runner != null)
-			throw new IllegalArgumentException("Runner should not be set");
-		if (this.timeoutMS < MIN_TIMEOUT_MS)
-			throw new IllegalArgumentException("The lock timeout is below the minimum timeout of " + MIN_TIMEOUT_MS + " MS");
-		// do nothing if the max number of of runner is less than one
-		if (maxNumberRunners.get() < 1) {
-			if (log.isDebugEnabled()) {
-				log.debug("Max number of runners is less than one so the runner will not be run");
-			}
-			return null;
-		}
-
-		List<String> allLockKeys = getAllLockKeys(extraKey);
-		// randomly shuffle, so not all machines will try in the same order
-		Collections.shuffle(allLockKeys, randomGen);
-
-		for (String key : allLockKeys) {
-			String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
-			if (token != null) {
-				try {
-					return task.call();
-				} finally {
-					semaphoreDao.releaseLock(key, token);
-				}
-			}
-		}
-		throw new LockUnavilableException("No empty slot available");
 	}
 
 	/**
@@ -223,21 +177,6 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 */
 	void clearKeys(){
 		USED_KEY_SET.clear();
-	}
-	
-	private String generateKeyForLockNumber(int lockNumber, String extraKey) {
-		return semaphoreKey + (extraKey == null ? "" : KEY_NUM_DELIMITER) + (extraKey == null ? "" : extraKey) + KEY_NUM_DELIMITER
-				+ lockNumber;
-	}
-	
-	@Override
-	public List<String> getAllLockKeys(String extraKey) {
-		int size = maxNumberRunners.get();
-		List<String> keys = Lists.newArrayListWithCapacity(size);
-		for (int i = 0; i < size; i++) {
-			keys.add(generateKeyForLockNumber(i, extraKey));
-		}
-		return keys;
 	}
 
 	/**
@@ -264,7 +203,8 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			long now = clock.currentTimeMillis();
 			if(now > halfExpirationTime){
 				// Refresh the timer
-				semaphoreDao.refreshLockTimeout(key,token, timeoutMS);
+				long timeoutSec = timeoutMS/1000L;
+				multiLockSemaphore.refreshLockTimeout(key,token, timeoutSec);
 				// Reset the local expiration time.
 				resetHalfExpirationTime();
 			}
@@ -278,5 +218,10 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			halfExpirationTime = clock.currentTimeMillis() + timeoutMS / 2L;
 		}
 		
+	}
+
+	@Override
+	public String getSemaphoreKey() {
+		return semaphoreKey;
 	}
 }

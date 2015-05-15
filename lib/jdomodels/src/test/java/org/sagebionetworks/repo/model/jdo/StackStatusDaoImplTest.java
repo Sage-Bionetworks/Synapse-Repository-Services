@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +35,7 @@ public class StackStatusDaoImplTest {
 	public void testGetCurrentStatus(){
 		StatusEnum status = stackStatusDao.getCurrentStatus();
 		assertEquals(StatusEnum.READ_WRITE, status);
+		assertTrue(stackStatusDao.isStackReadWrite());
 	}
 	
 	@Test
@@ -52,6 +52,8 @@ public class StackStatusDaoImplTest {
 		
 		StackStatus current = stackStatusDao.getFullCurrentStatus();
 		assertEquals(newStatus, current);
+		
+		assertFalse(stackStatusDao.isStackReadWrite());
 		
 		// Change it back
 		stackStatusDao.updateStatus(starting);

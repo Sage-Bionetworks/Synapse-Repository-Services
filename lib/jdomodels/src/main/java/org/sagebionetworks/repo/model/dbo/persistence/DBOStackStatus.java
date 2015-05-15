@@ -40,7 +40,7 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 					throws SQLException {
 				DBOStackStatus status = new DBOStackStatus();
 				status.setId(rs.getLong(COL_STACK_STATUS_ID));
-				status.setStatus(rs.getShort(COL_STACK_STATUS_STATUS));
+				status.setStatus(rs.getString(COL_STACK_STATUS_STATUS));
 				status.setCurrentMessage(rs.getString(COL_STACK_STATUS_CURRENT_MESSAGE));
 				if(rs.wasNull()){
 					status.setCurrentMessage(null);
@@ -75,7 +75,7 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 	}
 
 	private Long id;
-	private short status;
+	private String status;
 	private String currentMessage;
 	private String pendingMessage;
 
@@ -85,10 +85,10 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 	public void setId(Long id) {
 		this.id = id;
 	}
-	public short getStatus() {
+	public String getStatus() {
 		return status;
 	}
-	public void setStatus(short status) {
+	public void setStatus(String status) {
 		this.status = status;
 	}
 	public String getCurrentMessage() {
@@ -112,7 +112,7 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((pendingMessage == null) ? 0 : pendingMessage.hashCode());
-		result = prime * result + status;
+		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		return result;
 	}
 	@Override
@@ -139,7 +139,10 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 				return false;
 		} else if (!pendingMessage.equals(other.pendingMessage))
 			return false;
-		if (status != other.status)
+		if (status == null) {
+			if (other.status != null)
+				return false;
+		} else if (!status.equals(other.status))
 			return false;
 		return true;
 	}
@@ -150,6 +153,4 @@ public class DBOStackStatus implements DatabaseObject<DBOStackStatus> {
 				+ pendingMessage + "]";
 	}
 	
-	
-
 }
