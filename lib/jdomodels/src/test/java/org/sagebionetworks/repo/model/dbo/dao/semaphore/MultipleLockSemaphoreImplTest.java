@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.services.sns.model.NotFoundException;
+
 /**
  * This is a database level integration test for the MultipleLockSemaphore.
  * 
@@ -24,14 +26,16 @@ public class MultipleLockSemaphoreImplTest {
 	@Autowired
 	MultipleLockSemaphore semaphore;
 	
+	String key;
+	
 	@Before
 	public void before(){
 		semaphore.releaseAllLocks();
+		key = "sampleKey";
 	}
 	
 	@Test
 	public void testAcquireRelease(){
-		String key = "sampleKey";
 		int maxLockCount = 2;
 		long timeoutSec = 60;
 		// get one lock
@@ -52,7 +56,6 @@ public class MultipleLockSemaphoreImplTest {
 	
 	@Test
 	public void testLockExpired() throws InterruptedException{
-		String key = "sampleKey";
 		int maxLockCount = 1;
 		long timeoutSec = 1;
 		// get one lock
@@ -70,7 +73,6 @@ public class MultipleLockSemaphoreImplTest {
 	
 	@Test (expected=LockReleaseFailedException.class)
 	public void testReleaseExpiredLock() throws InterruptedException{
-		String key = "sampleKey";
 		int maxLockCount = 1;
 		long timeoutSec = 1;
 		// get one lock
@@ -87,7 +89,6 @@ public class MultipleLockSemaphoreImplTest {
 	
 	@Test
 	public void testRefreshLockTimeout() throws InterruptedException{
-		String key = "sampleKey";
 		int maxLockCount = 1;
 		long timeoutSec = 2;
 		// get one lock
@@ -104,7 +105,6 @@ public class MultipleLockSemaphoreImplTest {
 	
 	@Test (expected=LockReleaseFailedException.class)
 	public void testRefreshExpiredLock() throws InterruptedException{
-		String key = "sampleKey";
 		int maxLockCount = 1;
 		long timeoutSec = 1;
 		// get one lock
@@ -117,6 +117,19 @@ public class MultipleLockSemaphoreImplTest {
 		assertNotNull(token2);
 		// this should fail as the lock has already expired.
 		semaphore.refreshLockTimeout(key, token1, timeoutSec);
+	}
+	
+	@Test (expected=LockReleaseFailedException.class)
+	public void testReleaseLockAfterReleaseAllLocks(){
+		int maxLockCount = 1;
+		long timeoutSec = 1;
+		// get one lock
+		String token1 = semaphore.attemptToAcquireLock(key, timeoutSec, maxLockCount);
+		assertNotNull(token1);
+		// Force the release of all locks
+		semaphore.releaseAllLocks();
+		// Now try to release the lock
+		semaphore.releaseLock(key, token1);
 	}
 
 }

@@ -10,6 +10,7 @@ import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
+import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -167,7 +168,11 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			}catch(Exception e){
 				log.error("runner failed: ", e);
 			}finally{
-				multiLockSemaphore.releaseLock(semaphoreKey, token);
+				try {
+					multiLockSemaphore.releaseLock(semaphoreKey, token);
+				} catch (LockReleaseFailedException e) {
+					log.info(e.getMessage());
+				}
 			}
 		}
 	}
