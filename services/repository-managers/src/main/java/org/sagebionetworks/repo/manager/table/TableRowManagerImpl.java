@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,7 +65,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -77,6 +77,8 @@ import com.thoughtworks.xstream.XStream;
 
 public class TableRowManagerImpl implements TableRowManager {
 	
+	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
+
 	static private Log log = LogFactory.getLog(TableRowManagerImpl.class);
 	
 	public static final long BUNDLE_MASK_QUERY_RESULTS = 0x1;
@@ -181,8 +183,10 @@ public class TableRowManagerImpl implements TableRowManager {
 		result.setHeaders(columnMapper.getSelectColumns());
 		result.setTableId(tableId);
 		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdateOrDelete.getRows().size());
+		Set<Long> columnIdSet = Transform.toSet(result.getHeaders(), TableModelUtils.SELECT_COLUMN_TO_ID);
 		Map<Long, Pair<PartialRow, Row>> rowsToUpdate = Maps.newHashMap();
 		for (PartialRow partialRow : rowsToAppendOrUpdateOrDelete.getRows()) {
+			validatePartialRow(partialRow, columnIdSet);
 			Row row;
 			if (partialRow.getRowId() != null) {
 				row = new Row();
@@ -200,6 +204,38 @@ public class TableRowManagerImpl implements TableRowManager {
 		resolveUpdateValues(tableId, rowsToUpdate, columnMapper);
 		result.setRows(rows);
 		return result;
+	}
+	
+	/**
+	 * Validate the PartialRow matches the headers.
+	 * 
+	 * @param row
+	 * @param headers
+	 */
+	public static void validatePartialRow(PartialRow row, Set<Long> columnIds){
+		if(row == null){
+			throw new IllegalArgumentException("PartialRow cannot be null");
+		}
+		if(columnIds == null){
+			throw new IllegalArgumentException("Set<Long> columnIds cannot be null");
+		}
+		if(row != null){
+			if(row.getValues() != null){
+				if(row.getValues().isEmpty()){
+					throw new IllegalArgumentException("PartialRow.values() was empty for row id: "+row.getRowId());
+				}
+				for(String key: row.getValues().keySet()){
+					try {
+						Long columnId = Long.parseLong(key);
+						if(!columnIds.contains(columnId)){
+							throw new IllegalArgumentException(String.format(PARTIAL_ROW_KEY_NOT_A_VALID, key, row.getRowId()));
+						}
+					} catch (NumberFormatException e) {
+						throw new IllegalArgumentException(String.format(PARTIAL_ROW_KEY_NOT_A_VALID, key, row.getRowId()));
+					}
+				}
+			}
+		}
 	}
 
 	private Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {

@@ -69,6 +69,8 @@ import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -278,6 +280,90 @@ public class TableRowManagerImplTest {
 		assertEquals(refSet, results);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+	}
+	
+	/**
+	 * This is a test for PLFM-3386
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@Test
+	public void testAppendPartialRowsColumnIdNotFound() throws DatastoreException, NotFoundException, IOException {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, expectedRawRows)).thenReturn(refSet);
+		
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(null);
+		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
+		partialSet = new PartialRowSet();
+		partialSet.setTableId(tableId);
+		partialSet.setRows(Arrays.asList(partialRow));
+		try {
+			manager.appendPartialRows(user, tableId, mapper, partialSet);
+			fail("Should have failed since a column name was used and not an ID.");
+		} catch (IllegalArgumentException e) {
+			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
+		}
+		// verify the table status was set
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test
+	public void testValidatePartialRowString(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(null);
+		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
+	
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		try {
+			TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+			fail("Should have failed since a column name was used and not an ID.");
+		} catch (Exception e) {
+			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowNoMatch(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(999L);
+		partialRow.setValues(ImmutableMap.of("789", "updated value 2"));
+	
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		try {
+			TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+			fail("Should have failed since a column name was used and not an ID.");
+		} catch (Exception e) {
+			assertEquals("PartialRow.value.key: '789' is not a valid column ID for row ID: 999", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValidatePartialRowHappy(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(999L);
+		partialRow.setValues(ImmutableMap.of("456", "updated value 2"));
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowNullRow(){
+		PartialRow partialRow = null;
+		Set<Long> columnIds = ImmutableSet.of(123l,456L);
+		TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidatePartialRowNullSet(){
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(null);
+		partialRow.setValues(ImmutableMap.of("foo", "updated value 2"));
+		Set<Long> columnIds = null;
+		TableRowManagerImpl.validatePartialRow(partialRow, columnIds);
 	}
 
 	@Test
