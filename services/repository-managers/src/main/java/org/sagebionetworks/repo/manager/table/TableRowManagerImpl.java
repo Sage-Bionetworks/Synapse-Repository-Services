@@ -221,9 +221,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		if(row != null){
 			if(row.getValues() != null){
-				if(row.getValues().isEmpty()){
-					throw new IllegalArgumentException("PartialRow.values() was empty for row id: "+row.getRowId());
-				}
 				for(String key: row.getValues().keySet()){
 					try {
 						Long columnId = Long.parseLong(key);

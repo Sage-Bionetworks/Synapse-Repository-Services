@@ -832,9 +832,10 @@ public class TableWorkerIntegrationTest {
 		schema.add(columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.STRING)));
 		headers = TableModelUtils.getIds(schema);
 		columnManager.bindColumnToObject(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
-
+		String newColumnId = ""+headers.get(headers.size()-1);
 		// set data on new column
-		PartialRow firstRow = TableModelTestUtils.createPartialRow(queryResult.getQueryResults().getRows().get(0).getRowId(), "col2", "b");
+		
+		PartialRow firstRow = TableModelTestUtils.createPartialRow(queryResult.getQueryResults().getRows().get(0).getRowId(), newColumnId, "b");
 		PartialRowSet firstRowChange = new PartialRowSet();
 		firstRowChange.setRows(Lists.newArrayList(firstRow));
 		firstRowChange.setTableId(tableId);
@@ -859,7 +860,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals(1, queryResult.getQueryResults().getRows().get(0).getValues().size());
 
 		// set data again
-		firstRow = TableModelTestUtils.createPartialRow(queryResult.getQueryResults().getRows().get(0).getRowId(), "col2", "c");
+		firstRow = TableModelTestUtils.createPartialRow(queryResult.getQueryResults().getRows().get(0).getRowId(), newColumnId, "c");
 		firstRowChange = new PartialRowSet();
 		firstRowChange.setRows(Lists.newArrayList(firstRow));
 		firstRowChange.setTableId(tableId);
