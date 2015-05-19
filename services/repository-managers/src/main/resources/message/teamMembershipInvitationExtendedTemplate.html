@@ -1,21 +1,28 @@
 <html>
-<body>
-<p>Hello,
-</p>
-<p>
-You have been invited to join the team #teamName#. 
-#inviterMessage# 
-To join the team, just click <a href=#oneClickJoin#>this link</a>.  If you are not interested in joining
-the team, please disregard this message.
-</p>
-<p>
-Sincerely,
-</p>
-<p>
-Synapse Administration
-</p>
-<p>
-To turn off email notifications, <a href=#oneClickUnsubscribe#>click here.</a>
-</p>
-</body>
+	<head>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="https://www.synapse.org/Portal/css/SynapseColor.css" />
+	</head>
+	<body>
+		<div class="container" style="margin-top: 10px;">
+			<p class="lead">Hello,</p>
+			<p>You have been invited to join the team <strong>#teamName#</strong>.</p>
+			<blockquote>
+				#inviterMessage#
+			</blockquote>
+			<a class="btn btn-primary btn-lg" href=#oneClickJoin#>Join the Team!</a>
+			<p style="margin-top: 10px;">If you are not interested in joining the team, please disregard this message.</p>
+			<br>
+			<p>
+				Sincerely,
+			</p>
+			<p>
+				<img src="https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png"  style="display: inline; width: 40px; height: 40px;"/> Synapse Administration
+			</p>
+			<hr>
+			<p>
+				<small><a href=#oneClickUnsubscribe#>Unsubscribe</a> from email notifications</small>
+			</p>
+		</div>
+	</body>
 </html>

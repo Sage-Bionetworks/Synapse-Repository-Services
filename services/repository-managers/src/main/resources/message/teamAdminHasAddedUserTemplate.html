@@ -1,19 +1,25 @@
 <html>
-<body>
-<p>Hello,
-</p>
-<p>
-#displayName# has accepted you into team #teamName#.  For further information, visit the team page,
-<a href=#teamWebLink#>here</a>.
-</p>
-<p>
-Sincerely,
-</p>
-<p>
-Synapse Administration
-</p>
-<p>
-To turn off email notifications, <a href=#oneClickUnsubscribe#>click here.</a>
-</p>
-</body>
+	<head>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="https://www.synapse.org/Portal/css/SynapseColor.css" />
+	</head>
+	<body>
+		<div class="container" style="margin-top: 10px;">
+			<p class="lead">Hello,</p>
+			<p><strong>#displayName#</strong> has accepted you into team <strong>#teamName#</strong>.</p>
+			
+			<p>For further information, visit the <a href=#teamWebLink#>team page</a>.</p>
+			<br>
+			<p>
+				Sincerely,
+			</p>
+			<p>
+				<img src="https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png"  style="display: inline; width: 40px; height: 40px;"/> Synapse Administration
+			</p>
+			<hr>
+			<p>
+				<small><a href=#oneClickUnsubscribe#>Unsubscribe</a> from these emails</small>
+			</p>
+		</div>
+	</body>
 </html>
