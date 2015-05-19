@@ -70,9 +70,11 @@ public class EmailUtils {
 
 	public static SendEmailRequest createEmailRequest(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
 		// Construct whom the email is from 
-		String source = StackConfiguration.getNotificationEmailAddress();
+		String source;
 		if (sender != null) {
-			source = sender + " <" + source + ">";
+			source = sender;
+		} else {
+			source = StackConfiguration.getNotificationEmailAddress();
 		}
 		
 		// Construct an object to contain the recipient address

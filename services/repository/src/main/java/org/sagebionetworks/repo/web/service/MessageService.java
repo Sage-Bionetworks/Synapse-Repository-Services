@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -11,12 +10,15 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MessageService {
 
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException;
+
+	public void create(Message toCreate);
 
 	public PaginatedResults<MessageBundle> getInbox(Long userId,
 			List<MessageStatusType> inclusionFilter, MessageSortBy sortBy,

@@ -11,15 +11,19 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -63,9 +67,13 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -854,5 +862,27 @@ public class MessageManagerImplTest {
 			// We shouldn't get a nasty DB error
 			assertFalse(e.getMessage().contains("foreign key"));
 		}
+	}
+	
+	private static Message getJSONFileAsObject(String filename) throws JSONObjectAdapterException, JSONException {
+		InputStream is = MessageManagerImplTest.class.getClassLoader().
+				getResourceAsStream("CloudMailInMessages/"+filename);
+		String content =  IOTestUtil.readFromInputStream(is, "utf-8");
+		
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter = adapter.createNew(content);
+		Message message = new Message();
+		message.initializeFromJSONObject(adapter);
+		return message;
+	}
+
+	
+	@Test
+	public void testCloudMailInJSONMessages() throws Exception {
+		Message message;
+		message = getJSONFileAsObject("foo.json");
+		
+		message = getJSONFileAsObject("bar.json");
+		message = getJSONFileAsObject("baz.json");
 	}
 }

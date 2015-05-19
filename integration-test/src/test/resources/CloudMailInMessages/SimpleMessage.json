@@ -1,0 +1,38 @@
+{
+  "headers": {
+    "Received": [
+      "by labbd9 with SMTP id bd9so196259320lab.2 for <1c6935ef9dc4a31c75f8@cloudmailin.net>; Sun, 17 May 2015 17:35:34 -0700",
+      "by 10.112.171.102 with HTTP; Sun, 17 May 2015 17:35:34 -0700"
+    ],
+    "Date": "Sun, 17 May 2015 17:35:34 -0700",
+    "From": "Bruce Hoff <hoff.bruce.r@gmail.com>",
+    "To": "1c6935ef9dc4a31c75f8@cloudmailin.net",
+    "Message-ID": "<CAOojBgYwckRPGzbW9sQhVD-foVwUz=vJJ=YOUGkBkr2HfYF0tA@mail.gmail.com>",
+    "In-Reply-To": "<CAOojBgZimCPqhr965b8_-GhAR8H9ZYPqShyeDBTO083wpsAxvg@mail.gmail.com>",
+    "References": "<CAOojBgZimCPqhr965b8_-GhAR8H9ZYPqShyeDBTO083wpsAxvg@mail.gmail.com>",
+    "Subject": "Fwd: test subject",
+    "Mime-Version": "1.0",
+    "Content-Type": "multipart/alternative; boundary=001a11c34a3c39ef7f0516505fb7",
+    "DKIM-Signature": "v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=20120113; h=mime-version:in-reply-to:references:date:message-id:subject:from:to :content-type; bh=RgJqileayGKOTznU8YkbntbZOTDBIMYo9LrSNsRmWTQ=; b=axKjkrmXKshsVBUkmDckArPqMld8RZkjsskyMlbuPPjaT5oHz2xLD1Iu9QY+D+ZXUN p7L1H9m/REjd7GFfT5lGYHCZsX9upuSrosFQa74pXO4EAOsg0mESp62UBbffbQoj6BaI zqe31TMnhT92hZ0db1eooV+cmxQoGARkXlbNDWWqwoslZ5vmS67oO5amagOOq/lzNnAq 2WSYfMT54172CQlWm9cpl5jjtpBkbtjV30PmE01cbUK1SOr9eHVybaLTzNrYLvhwsQhl QtbnKV9dMYA8BOrvlm87N85kubcBoCxlD+Mk99cAOLiZXPb/XzXOR5MxL+7usogXq4Be jNyw==",
+    "X-Received": "by 10.112.172.35 with SMTP id az3mr14668083lbc.99.1431909334378; Sun, 17 May 2015 17:35:34 -0700 (PDT)"
+  },
+  "envelope": {
+    "to": "1c6935ef9dc4a31c75f8@cloudmailin.net",
+    "recipients": [
+      "1c6935ef9dc4a31c75f8@cloudmailin.net"
+    ],
+    "from": "hoff.bruce.r@gmail.com",
+    "helo_domain": "mail-la0-f49.google.com",
+    "remote_ip": "209.85.215.49",
+    "spf": {
+      "result": "neutral",
+      "domain": "gmail.com"
+    }
+  },
+  "plain": "Hi:\nMy dog has fleas.\nCheers!\nMe\n",
+  "html": "<div dir=\"ltr\"><div class=\"gmail_quote\"><div dir=\"ltr\">Hi:<div>My dog has fleas.</div><div>Cheers!</div><div>Me</div></div>\n</div><br></div>\n",
+  "reply_plain": null,
+  "attachments": [
+
+  ]
+}

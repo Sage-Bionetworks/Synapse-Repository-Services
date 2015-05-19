@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
@@ -124,4 +125,5 @@ public interface MessageManager {
 	 * Sends a delivery failure notification based on a template
 	 */
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
+
 }

@@ -1,0 +1,34 @@
+{
+	"title": "Attachment",
+	"description":"Message Attachment",
+	"properties":{
+		"content": {
+			"type": "string",
+			"description":"The content of the attachment in base-64 encoding, if the message isn't using an attachment store."
+		}, 
+		"content_id": {
+			"type": "string",
+			"description":"The ID used to reference the content elsewhere in the multipart message."
+		},					
+		"url": {
+			"type": "string",
+			"description":"A URL to the attachment if the attachment is within an attachment store."
+		}, 					
+		"file_name": {
+			"type": "string",
+			"description":"The original file name of the attachment."
+		}, 					
+		"content_type": {
+			"type": "string",
+			"description":"The content type of the attachment."
+		}, 					
+		"size": {
+			"type": "string",
+			"description":"The size of the attachment."
+		}, 					
+		"disposition": {
+			"type": "string",
+			"description":"The disposition of the attachment either attachment or inline."
+		}					
+	}
+}

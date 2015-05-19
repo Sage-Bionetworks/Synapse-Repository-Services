@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.CloudMailInManager;
 import org.sagebionetworks.repo.manager.MessageManager;
+import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -15,6 +18,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -25,12 +29,25 @@ public class MessageServiceImpl implements MessageService {
 
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private CloudMailInManager cloudMailInManager;
+	
+	@Autowired
+	private NotificationManager notificationManager;
 
 	@Override
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return messageManager.createMessage(userInfo, toCreate);
+	}
+
+	@Override
+	public void create(Message toCreate) {
+		MessageToUserAndBody mtub = cloudMailInManager.convertMessage(toCreate);
+		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(mtub.getMetadata().getCreatedBy()));
+		notificationManager.sendNotifications(userInfo, Collections.singletonList(mtub));
 	}
 
 	@Override

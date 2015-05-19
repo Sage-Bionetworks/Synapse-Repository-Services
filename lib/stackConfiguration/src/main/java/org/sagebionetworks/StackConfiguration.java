@@ -1605,6 +1605,20 @@ public class StackConfiguration {
 		return Boolean.parseBoolean(emailDeliveredString);
 	}
 	
+	/*
+	 * Credentials used by CloudMailIn to send authenticated requests to the repo services.
+	 */
+	public static String getCloudMailInUser() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.user");
+	}
+	
+	/*
+	 * Credentials used by CloudMailIn to send authenticated requests to the repo services.
+	 */
+	public static String getCloudMailInPassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.password");
+	}
+	
 	/**
 	 * 
 	 * @return if missing or false then certified user restrictions are in effect.  Setting to true disables.

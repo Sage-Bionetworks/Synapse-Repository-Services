@@ -48,14 +48,13 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendEmailResult;
 import com.google.common.collect.Lists;
 
 
@@ -84,12 +83,6 @@ public class MessageManagerImpl implements MessageManager {
 	 * The maximum number of targets of a message
 	 */
 	protected static final long MAX_NUMBER_OF_RECIPIENTS = 50L;
-	
-	/**
-	 * This is the name that appears next to notification emails
-	 * i.e. FROM: Synapse Admin <notifications@sagebase.org> 
-	 */
-	private static final String DEFAULT_NOTIFICATION_DISPLAY_NAME = null;
 	
 	@Autowired
 	private MessageDAO messageDAO;
@@ -463,7 +456,7 @@ public class MessageManagerImpl implements MessageManager {
 							dto.getSubject(),
 							messageBody, 
 							isHtml,
-							senderUserName);
+							senderUserName, null /*TODO:username@synapse.org*/);
 						
 					// Should the message be marked as READ?
 					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
@@ -554,12 +547,11 @@ public class MessageManagerImpl implements MessageManager {
 		return false;
 	}
 	
-	/**
-	 * See {@link #sendEmail(String, String, String)}
-	 * 
-	 * @param sender The username of the sender (null tolerant)
-	 */
-	private void sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
+	private void sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String senderDisplayName, String senderEmail) {
+		String sender = null;
+		if (senderDisplayName!=null && senderEmail!=null) {
+			sender = senderDisplayName + "<" + senderEmail +">";
+		}
 		SendEmailRequest request = EmailUtils.createEmailRequest(recipientEmail, subject, body, isHtml, sender);
         // Send the email
         sesClient.sendEmail(request);  
@@ -601,7 +593,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(email, subject, messageBody, false, alias, email);
 	}
 	
 	@Override
@@ -619,7 +611,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(email, subject, messageBody, false, alias, email);
 	}
 	
 	@Override
@@ -639,7 +631,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		String email = getEmailForUser(sender.getId());
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
-		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(email, subject, messageBody, false, null, null);
 	}
 	
 	
