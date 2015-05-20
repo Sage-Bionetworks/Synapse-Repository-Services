@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -99,8 +98,12 @@ public class MessageController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_MESSAGE, method = RequestMethod.POST)
-	public void createCloudMailInMessage(@RequestBody Message toCreate) throws NotFoundException {
-		serviceProvider.getMessageService().create(toCreate);
+	public void createCloudMailInMessage(
+			@RequestBody Message toCreate,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, 
+			required = false) String notificationUnsubscribeEndpoint
+			) throws NotFoundException {
+		serviceProvider.getMessageService().create(toCreate, notificationUnsubscribeEndpoint);
 	}
 	
 	/**

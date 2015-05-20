@@ -1,10 +1,21 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMultipart;
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.parser.ParserDelegator;
 
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -21,6 +32,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class CloudMailInManagerImpl implements CloudMailInManager {
 	
+	private static final String FROM_HEADER = "From";
+	private static final String TO_HEADER = "To";
+	private static final String SUBJECT_HEADER = "Subject";
+	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
 	
@@ -32,7 +47,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public MessageToUserAndBody convertMessage(Message message) throws NotFoundException {
+	public MessageToUserAndBody convertMessage(Message message, String notificationUnsubscribeEndpoint) throws NotFoundException {
 		try {
 			List<String> to = new ArrayList<String>();
 			String from = null;
@@ -41,11 +56,9 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			Iterator<String> it = headers.keys();
 			while (it.hasNext()) {
 				String key = it.next();
-				// if you know the value's an array you can call headers.getJSONArray(key)
-				System.out.println("key: "+key+" value: "+headers.get(key));
-				if ("Subject".equals(key)) {
+				if (SUBJECT_HEADER.equals(key)) {
 					subject = headers.getString(key);
-				} else if ("To".equals(key)) {
+				} else if (TO_HEADER.equals(key)) {
 					try {
 						JSONArray array = headers.getJSONArray(key);
 						for (int i=0; i<array.length(); i++) {
@@ -55,7 +68,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 						// it's a singleton, not an array
 						to.add(headers.getString(key));
 					}
-				} else if ("From".equals(key)) {
+				} else if (FROM_HEADER.equals(key)) {
 					from = headers.getString(key);
 				}
 			}
@@ -69,17 +82,22 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			}
 			mtu.setRecipients(recipients);
 			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddress(from).toString());
-			MessageToUserAndBody mtub = createEmailBody(message.getPlain(), message.getHtml(), message.getAttachments());
+			// TODO just serialize the CloudMailIn json and use mime-type application/x-cloudmailin-json
+			MessageToUserAndBody mtub = createEmailBody(
+					message.getPlain(), message.getHtml(), 
+					message.getAttachments());
 			mtub.setMetadata(mtu);
 	
 			return mtub;
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (MessagingException e) {
+			throw new RuntimeException(e);
 		}
 		
 	}
-	
-	private static final String EMAIL_SUFFIX_LOWER_CASE = "@synapse.org";
 	
 	/*
 	 * Allow user name, principal ID, 'scrubbed' name
@@ -102,23 +120,57 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		return alias.getPrincipalId();
 	}
 	
-	// TODO add one-click unsubscribe footer
-	public static MessageToUserAndBody createEmailBody(String plain, String html, List<Attachment> attachments) {
+	public static MessageToUserAndBody createEmailBody(
+			String plain, 
+			String html, 
+			List<Attachment> attachments, 
+			String userId,
+			String notificationUnsubscribeEndpoint) throws MessagingException, IOException {
+		
+    	String unsubscribeLink = EmailUtils.
+    			createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, userId);
+
+	    MimeMultipart mp = new MimeMultipart();
+	    if (html!=null) {
+	    	BodyPart part = new MimeBodyPart();
+	    	StringBuilder bodyWithFooter = new StringBuilder(html);
+	    	bodyWithFooter.append("<div>This message was forwarded by Synapse.  To unsubscribe, follow <a href=\"");
+	    	bodyWithFooter.append(unsubscribeLink);
+	    	bodyWithFooter.append("\">this link</a>.</div>");
+	    	part.setContent(bodyWithFooter.toString(), ContentType.TEXT_HTML.getMimeType());
+	    	mp.addBodyPart(part);
+	    }
+	 
+	    if (plain!=null) {
+	    	BodyPart part = new MimeBodyPart();
+	    	StringBuilder bodyWithFooter = new StringBuilder(plain);
+	    	bodyWithFooter.append("\r\n.  This message was forwarded by Synapse.  To unsubscribe, follow this link:\r\n");
+	    	bodyWithFooter.append(unsubscribeLink);
+	    	bodyWithFooter.append("\r\n");
+	    	part.setContent(bodyWithFooter.toString(), ContentType.TEXT_PLAIN.getMimeType());
+	    	mp.addBodyPart(part);
+	    }
+	    
+	    if (attachments!=null) {
+	    	for (Attachment attachment : attachments) {
+		    	BodyPart part = new MimeBodyPart();
+		    	// TODO what do we do with the other attachment metadata?
+		    	part.setContent(attachment.getContent(), attachment.getContent_type());
+		    	mp.addBodyPart(part);
+	    	}
+	    }
+	    
+	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	    try {
+	    	mp.writeTo(baos);
+	    } finally {
+	    	baos.close();
+	    }
+	    
 		MessageToUserAndBody result = new MessageToUserAndBody();
-		if (attachments==null || attachments.size()==0) {
-			if (html!=null) {
-				result.setBody(html);
-				result.setMimeType(ContentType.TEXT_HTML.getMimeType());
-			} else if (plain!=null) {
-				result.setBody(plain);
-				result.setMimeType(ContentType.TEXT_PLAIN.getMimeType());
-			} else {
-				result.setBody("");
-				result.setMimeType(ContentType.TEXT_PLAIN.getMimeType());
-			}
-		} else {
-			throw new IllegalArgumentException("TODO");
-		}
+		result.setBody(baos.toString());
+		result.setMimeType(mp.getContentType());
+	 
 		return result;
 	}
 

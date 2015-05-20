@@ -222,5 +222,18 @@
 		<filter-name>CORSFilter</filter-name>
 		<url-pattern>*</url-pattern>
 	</filter-mapping>
+	
+	<filter>
+		<filter-name>cloudMailInAuthFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+	</filter>
+	
+
+	<filter-mapping>
+		<filter-name>cloudMailInAuthFilter</filter-name>
+		<url-pattern>/repo/v1/cloudMailInMessage</url-pattern>
+	</filter-mapping>
+
+	
 
 </web-app>

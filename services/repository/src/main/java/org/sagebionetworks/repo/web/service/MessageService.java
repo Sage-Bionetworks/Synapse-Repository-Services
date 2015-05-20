@@ -18,7 +18,7 @@ public interface MessageService {
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException;
 
-	public void create(Message toCreate);
+	public void create(Message toCreate, String notificationUnsubscribeEndpoint);
 
 	public PaginatedResults<MessageBundle> getInbox(Long userId,
 			List<MessageStatusType> inclusionFilter, MessageSortBy sortBy,

@@ -44,8 +44,8 @@ public class MessageServiceImpl implements MessageService {
 	}
 
 	@Override
-	public void create(Message toCreate) {
-		MessageToUserAndBody mtub = cloudMailInManager.convertMessage(toCreate);
+	public void create(Message toCreate, String notificationUnsubscribeEndpoint) {
+		MessageToUserAndBody mtub = cloudMailInManager.convertMessage(toCreate, notificationUnsubscribeEndpoint);
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(mtub.getMetadata().getCreatedBy()));
 		notificationManager.sendNotifications(userInfo, Collections.singletonList(mtub));
 	}
