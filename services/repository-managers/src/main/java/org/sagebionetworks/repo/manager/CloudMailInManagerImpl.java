@@ -84,8 +84,8 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddress(from).toString());
 			// TODO just serialize the CloudMailIn json and use mime-type application/x-cloudmailin-json
 			MessageToUserAndBody mtub = createEmailBody(
-					message.getPlain(), message.getHtml(), 
-					message.getAttachments());
+					message.getPlain(), message.getHtml(),
+					message.getAttachments(), /*userid*/"0", notificationUnsubscribeEndpoint);
 			mtub.setMetadata(mtu);
 	
 			return mtub;
