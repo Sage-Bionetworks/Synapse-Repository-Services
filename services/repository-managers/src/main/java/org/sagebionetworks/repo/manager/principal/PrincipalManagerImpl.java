@@ -231,7 +231,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
-			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, true, null);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, true, null, null);
 			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
@@ -362,7 +362,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
 			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
-			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, true, null);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, true, null, null);
 			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);

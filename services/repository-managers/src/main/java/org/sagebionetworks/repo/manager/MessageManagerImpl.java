@@ -48,7 +48,6 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -97,7 +96,7 @@ public class MessageManagerImpl implements MessageManager {
 	private UserManager userManager;
 	
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private NotificationEmailDAO notificationEmailDao;
@@ -142,7 +141,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
 		this.userManager = userManager;
-		this.userProfileDAO = userProfileDAO;
+		this.userProfileManager = userProfileManager;
 		this.notificationEmailDao = notificationEmailDao;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
@@ -421,6 +420,13 @@ public class MessageManagerImpl implements MessageManager {
 		} catch (NotFoundException e) {
 			senderUserName = null;
 		}
+		String displayName = null;
+		try {
+			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
+			displayName = EmailUtils.getDisplayName(userProfile);
+		} catch (NotFoundException e) {
+			displayName = null;
+		}
 		
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
@@ -436,7 +442,7 @@ public class MessageManagerImpl implements MessageManager {
 			try {
 				// Get the user's settings
 				Settings settings = null;
-				UserProfile profile = userProfileDAO.get(user);
+				UserProfile profile = userProfileManager.getUserProfile(user);
 				settings = profile.getNotificationSettings();
 				if(settings == null){
 					settings = new Settings();
@@ -456,7 +462,7 @@ public class MessageManagerImpl implements MessageManager {
 							dto.getSubject(),
 							messageBody, 
 							isHtml,
-							senderUserName, null /*TODO:username@synapse.org*/);
+							displayName, senderUserName );
 						
 					// Should the message be marked as READ?
 					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
@@ -547,12 +553,8 @@ public class MessageManagerImpl implements MessageManager {
 		return false;
 	}
 	
-	private void sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String senderDisplayName, String senderEmail) {
-		String sender = null;
-		if (senderDisplayName!=null && senderEmail!=null) {
-			sender = senderDisplayName + "<" + senderEmail +">";
-		}
-		SendEmailRequest request = EmailUtils.createEmailRequest(recipientEmail, subject, body, isHtml, sender);
+	private void sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String senderDisplayName, String senderUserName) {
+		SendEmailRequest request = EmailUtils.createEmailRequest(recipientEmail, subject, body, isHtml, senderDisplayName, senderUserName);
         // Send the email
         sesClient.sendEmail(request);  
 	}
@@ -578,6 +580,9 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
 		String alias = principalAliasDAO.getUserName(recipientId);
+		String displayName = null;
+		UserProfile userProfile = userProfileManager.getUserProfile(recipientId.toString());
+		displayName = EmailUtils.getDisplayName(userProfile);
 
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
@@ -593,7 +598,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		sendEmail(email, subject, messageBody, false, alias, email);
+		sendEmail(email, subject, messageBody, false, displayName, alias);
 	}
 	
 	@Override

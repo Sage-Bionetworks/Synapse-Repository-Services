@@ -277,7 +277,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		fieldValues.put(TEMPLATE_KEY_CHALLENGE_WEB_LINK, challengeEntityURL);
 		String submitterId = submission.getUserId();			
 		UserProfile userProfile = userProfileManager.getUserProfile(submitterId);
-		String displayName = EmailUtils.getDisplayName(userProfile);
+		String displayName = EmailUtils.getDisplayNameWithUserName(userProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		// notify all but the one who submitted.  If there is no one else on the team
 		// then this list will be empty and no notification will be sent.

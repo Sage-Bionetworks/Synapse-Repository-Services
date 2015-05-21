@@ -520,7 +520,7 @@ public class TeamManagerImpl implements TeamManager {
 		fieldValues.put(TEMPLATE_KEY_TEAM_WEB_LINK, teamUrl);
 		if (userJoiningTeamIsSelf) {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
-			String memberDisplayName = EmailUtils.getDisplayName(memberUserProfile);
+			String memberDisplayName = EmailUtils.getDisplayNameWithUserName(memberUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
 			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
 				MessageToUser mtu = new MessageToUser();
@@ -533,7 +533,7 @@ public class TeamManagerImpl implements TeamManager {
 			}
 		} else {
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
-			String joinerDisplayName = EmailUtils.getDisplayName(joinerUserProfile);
+			String joinerDisplayName = EmailUtils.getDisplayNameWithUserName(joinerUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
 			String recipient = memberInfo.getId().toString();
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(

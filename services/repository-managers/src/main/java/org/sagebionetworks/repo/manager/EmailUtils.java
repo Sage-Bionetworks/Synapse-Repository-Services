@@ -51,30 +51,48 @@ public class EmailUtils {
 	
 	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
 	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";
+	
+	public static final String DEFAULT_EMAIL_ADDRESS_LOCAL_PART = "notifications";
 
 	public static String getDisplayName(UserProfile userProfile) {
-		String userName = userProfile.getUserName();
-		if (userName==null) throw new IllegalArgumentException("userName is required");
-		String inviteeFirstName = userProfile.getFirstName();
-		String inviteeLastName = userProfile.getLastName();
+		String firstName = userProfile.getFirstName();
+		String lastName = userProfile.getLastName();
+		if (firstName==null && lastName==null) return null;
 		StringBuilder displayName = new StringBuilder();
-		if (inviteeFirstName!=null || inviteeLastName!=null) {
-			if (inviteeFirstName!=null) displayName.append(inviteeFirstName+" ");
-			if (inviteeLastName!=null) displayName.append(inviteeLastName+" ");
-			displayName.append("("+userName+")");
-		} else {
-			displayName.append(userName);
+		if (firstName!=null) displayName.append(firstName);
+		if (lastName!=null) {
+			if (firstName!=null) displayName.append(" ");
+			displayName.append(lastName);
 		}
 		return displayName.toString();
 	}
 
-	public static SendEmailRequest createEmailRequest(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
+	public static String getDisplayNameWithUserName(UserProfile userProfile) {
+		String userName = userProfile.getUserName();
+		if (userName==null) throw new IllegalArgumentException("userName is required");
+		String displayName = getDisplayName(userProfile);
+		if (displayName!=null) {
+			displayName = displayName+" ("+userName+")";
+		} else {
+			displayName = userName;
+		}
+		return displayName;
+	}
+
+	/*
+	 * If sender is null then the 'notification email address' is used
+	 */
+	public static SendEmailRequest createEmailRequest(
+			String recipientEmail, String subject, String body, 
+			boolean isHtml, String senderDisplayName, String senderUserName) {
+		if (senderUserName==null) senderUserName=DEFAULT_EMAIL_ADDRESS_LOCAL_PART;
+		String senderEmailAddress = senderUserName+StackConfiguration.getNotificationEmailSuffix();
 		// Construct whom the email is from 
 		String source;
-		if (sender != null) {
-			source = sender;
+		if (senderDisplayName==null) {
+			source = senderEmailAddress;
 		} else {
-			source = StackConfiguration.getNotificationEmailAddress();
+			source = senderDisplayName + " <" + senderEmailAddress + ">";
 		}
 		
 		// Construct an object to contain the recipient address

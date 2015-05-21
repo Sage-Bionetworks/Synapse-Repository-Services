@@ -535,9 +535,9 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.logging.sweeper.delete.enabled"));
 	}
 	
-	public static String getNotificationEmailAddress() {
+	public static String getNotificationEmailSuffix() {
 		return configuration
-				.getProperty("org.sagebionetworks.notification.email.address");
+				.getProperty("org.sagebionetworks.notification.email.suffix");
 	}
 	
 	public static String getSynapseOpsEmailAddress() {

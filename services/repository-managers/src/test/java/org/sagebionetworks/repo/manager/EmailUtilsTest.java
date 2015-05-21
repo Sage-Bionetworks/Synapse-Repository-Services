@@ -24,7 +24,7 @@ public class EmailUtilsTest {
 	@Test
 	public void testCreateEmailRequest() {
 		SendEmailRequest request = EmailUtils.
-				createEmailRequest("foo@bar.com", "foo", "bar", false, "foobar");
+				createEmailRequest("foo@bar.com", "foo", "bar", false, "foobar", null);
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
 		assertEquals("foo", request.getMessage().getSubject().getData());
 		assertEquals("bar", request.getMessage().getBody().getText().getData());
@@ -32,7 +32,7 @@ public class EmailUtilsTest {
 		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
 
 		request = EmailUtils.
-				createEmailRequest("foo@bar.com", "foo", "<html>bar</html>", true, "foobar");
+				createEmailRequest("foo@bar.com", "foo", "<html>bar</html>", true, "foobar", null);
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
 		assertEquals("foo", request.getMessage().getSubject().getData());
 		assertEquals("<html>bar</html>", request.getMessage().getBody().getHtml().getData());
@@ -57,13 +57,17 @@ public class EmailUtilsTest {
 	public void testGetDisplayName() {
 		UserProfile up = new UserProfile();
 		up.setUserName("jh");
-		assertEquals("jh", EmailUtils.getDisplayName(up));
+		
+		assertNull(EmailUtils.getDisplayName(up));
+		assertEquals("jh", EmailUtils.getDisplayNameWithUserName(up));
 		
 		up.setFirstName("J");
-		assertEquals("J (jh)", EmailUtils.getDisplayName(up));
+		assertEquals("J", EmailUtils.getDisplayName(up));
+		assertEquals("J (jh)", EmailUtils.getDisplayNameWithUserName(up));
 		
 		up.setLastName("H");
-		assertEquals("J H (jh)", EmailUtils.getDisplayName(up));
+		assertEquals("J H", EmailUtils.getDisplayName(up));
+		assertEquals("J H (jh)", EmailUtils.getDisplayNameWithUserName(up));
 	}
 	
 	
