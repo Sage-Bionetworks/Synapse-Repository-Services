@@ -863,26 +863,5 @@ public class MessageManagerImplTest {
 			assertFalse(e.getMessage().contains("foreign key"));
 		}
 	}
-	
-	private static Message getJSONFileAsObject(String filename) throws JSONObjectAdapterException, JSONException {
-		InputStream is = MessageManagerImplTest.class.getClassLoader().
-				getResourceAsStream("CloudMailInMessages/"+filename);
-		String content =  IOTestUtil.readFromInputStream(is, "utf-8");
-		
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		adapter = adapter.createNew(content);
-		Message message = new Message();
-		message.initializeFromJSONObject(adapter);
-		return message;
-	}
 
-	
-	@Test
-	public void testCloudMailInJSONMessages() throws Exception {
-		Message message;
-		message = getJSONFileAsObject("foo.json");
-		
-		message = getJSONFileAsObject("bar.json");
-		message = getJSONFileAsObject("baz.json");
-	}
 }
