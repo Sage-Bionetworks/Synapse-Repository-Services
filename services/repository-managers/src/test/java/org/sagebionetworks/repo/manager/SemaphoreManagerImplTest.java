@@ -7,19 +7,19 @@ import static org.mockito.Mockito.verify;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphore;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SemaphoreManagerImplTest {
 	
-	MultipleLockSemaphore mockSemaphoreDao;
+	CountingSemaphore mockSemaphoreDao;
 	SemaphoreManagerImpl manager;
 	
 	@Before
 	public void before(){
-		mockSemaphoreDao = Mockito.mock(MultipleLockSemaphore.class);
+		mockSemaphoreDao = Mockito.mock(CountingSemaphore.class);
 		manager = new SemaphoreManagerImpl();
 		ReflectionTestUtils.setField(manager,"semaphoreDao", mockSemaphoreDao);
 	}

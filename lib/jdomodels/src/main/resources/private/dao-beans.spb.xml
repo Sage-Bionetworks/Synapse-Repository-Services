@@ -316,8 +316,10 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOQuizResponseDAOImpl" />
 		
 	<!-- Misc beans -->
-	<bean id="multipleLockSemaphore"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphoreImpl" init-method="init"/>	
+	<bean id="countingSemaphore"
+		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl">
+		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
+	</bean>	
 
 	<bean id="exclusiveOrSharedSemaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreDaoImpl">

@@ -5,13 +5,14 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.PropertyAccessor;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Another abstraction over the multiple lock semaphore.
+ * Another abstraction over of a counting semaphore.
  * 
  */
 public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameAware {
@@ -19,7 +20,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	public static final int KEY_NAME_LENGTH = 100;
 
 	@Autowired
-	private MultipleLockSemaphore multipleLockSemaphore;
+	private CountingSemaphore countingSemaphore;
 
 	private long lockTimeoutMS;
 	private String key;
@@ -84,7 +85,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	@Override
 	public void extendLockLease(String token) throws NotFoundException {
 		long timeoutSec = lockTimeoutMS/1000;
-		multipleLockSemaphore.refreshLockTimeout(key, token, timeoutSec);
+		countingSemaphore.refreshLockTimeout(key, token, timeoutSec);
 	}
 
 	@Override
@@ -95,12 +96,12 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	private String doAttemptToAcquireLock(String extraKey) {
 		final String keyName = getKeyName(extraKey);
 		long timeoutSec = lockTimeoutMS/1000;
-		return this.multipleLockSemaphore.attemptToAcquireLock(keyName, timeoutSec, maxCount.get());
+		return this.countingSemaphore.attemptToAcquireLock(keyName, timeoutSec, maxCount.get());
 	}
 
 	private void doReleaseLock(String token, String extraKey) {
 		String keyName = getKeyName(extraKey);
-		this.multipleLockSemaphore.releaseLock(keyName, token);
+		this.countingSemaphore.releaseLock(keyName, token);
 	}
 
 	private String getKeyName(String extraKey) {
@@ -115,6 +116,6 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	}
 
 	public void forceReleaseAllLocks() {
-		this.multipleLockSemaphore.releaseAllLocks();
+		this.countingSemaphore.releaseAllLocks();
 	}
 }

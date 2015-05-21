@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
@@ -24,7 +25,6 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphore;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class EntityBootstrapperSemaphoreUnitTest {
@@ -36,7 +36,7 @@ public class EntityBootstrapperSemaphoreUnitTest {
 	private AuthenticationDAO mockAuthenticationDao;
 	private AccessControlListDAO mockAclDao;
 	private NodeInheritanceDAO mockNodeInheritanceDao;
-	private MultipleLockSemaphore mockSemaphoreDao;
+	private CountingSemaphore mockSemaphoreDao;
 	
 	private List<EntityBootstrapData> bootstrapData;
 	
@@ -51,7 +51,7 @@ public class EntityBootstrapperSemaphoreUnitTest {
 		mockAuthenticationDao = Mockito.mock(AuthenticationDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		mockNodeInheritanceDao = Mockito.mock(NodeInheritanceDAO.class);
-		mockSemaphoreDao = Mockito.mock(MultipleLockSemaphore.class);
+		mockSemaphoreDao = Mockito.mock(CountingSemaphore.class);
 		// Inject
 		bootstrapper = new EntityBootstrapperImpl();
 		ReflectionTestUtils.setField(bootstrapper, "nodeDao", mockNodeDao);

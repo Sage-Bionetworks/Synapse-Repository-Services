@@ -8,9 +8,10 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.collections.Maps2;
+import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
-import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	public static long MIN_TIMEOUT_MS = 10*1000;
 	
 	@Autowired
-	private MultipleLockSemaphore multiLockSemaphore;
+	private CountingSemaphore countingSemaphore;
 	private String semaphoreKey;
 	private PropertyAccessor<Integer> maxNumberRunners;
 	private Object runner;
@@ -72,8 +73,8 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 * 
 	 * @param semaphoreDao
 	 */
-	public void setSemaphoreDao(MultipleLockSemaphore multiLockSemaphore) {
-		this.multiLockSemaphore = multiLockSemaphore;
+	public void setSemaphoreDao(CountingSemaphore countingSemaphore) {
+		this.countingSemaphore = countingSemaphore;
 	}
 
 	/**
@@ -86,7 +87,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		// This checks to make sure that we don't use the same key twice. For testing, we reload the context multiple
 		// times, which leads to these beans being recreated multiple times. This check uses a singleton bean to make
 		// sure we only check for duplicates within a single bean context and not across bean contexts.
-		if (!USED_KEY_SET.get(multiLockSemaphore).add(semaphoreKey)) {
+		if (!USED_KEY_SET.get(countingSemaphore).add(semaphoreKey)) {
 			throw new IllegalArgumentException("The key: '" + semaphoreKey + "' is already in use. Duplicate key name?");
 		}
 		this.semaphoreKey = semaphoreKey;
@@ -139,7 +140,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	@Override
 	public void attemptToRun() {
 		if(this.semaphoreKey == null) throw new IllegalArgumentException("semaphoreKey cannot be null");
-		if(this.multiLockSemaphore == null) throw new IllegalArgumentException("semaphoreDao cannot be null");
+		if(this.countingSemaphore == null) throw new IllegalArgumentException("countingSemaphore cannot be null");
 		if(this.runner == null) throw new IllegalArgumentException("Runner cannot be null");
 		if(this.timeoutMS < MIN_TIMEOUT_MS) throw new IllegalArgumentException("The lock timeout is below the minimum timeout of "+MIN_TIMEOUT_MS+" MS");
 		// do nothing if the max number of of runner is less than one
@@ -151,7 +152,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		}
 		// randomly generate a lock number to attempt
 		final long timeoutSec = timeoutMS/1000L;
-		final String token = multiLockSemaphore.attemptToAcquireLock(semaphoreKey, timeoutSec, maxNumberRunners.get());
+		final String token = countingSemaphore.attemptToAcquireLock(semaphoreKey, timeoutSec, maxNumberRunners.get());
 		if(token != null){
 			try{
 				// Make a run
@@ -169,7 +170,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 				log.error("runner failed: ", e);
 			}finally{
 				try {
-					multiLockSemaphore.releaseLock(semaphoreKey, token);
+					countingSemaphore.releaseLock(semaphoreKey, token);
 				} catch (LockReleaseFailedException e) {
 					log.info(e.getMessage());
 				}
@@ -209,7 +210,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			if(now > halfExpirationTime){
 				// Refresh the timer
 				long timeoutSec = timeoutMS/1000L;
-				multiLockSemaphore.refreshLockTimeout(key,token, timeoutSec);
+				countingSemaphore.refreshLockTimeout(key,token, timeoutSec);
 				// Reset the local expiration time.
 				resetHalfExpirationTime();
 			}

@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.TestClock;
@@ -27,7 +28,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  */
 public class SemaphoreGatedRunnerImplTest {
 	
-	MultipleLockSemaphore mockSemaphoreDao;
+	CountingSemaphore mockSemaphoreDao;
 	TestClock testClock = new TestClock();
 	String semaphoreKey;
 	int maxNumberRunners;
@@ -39,7 +40,7 @@ public class SemaphoreGatedRunnerImplTest {
 	
 	@Before
 	public void before(){
-		mockSemaphoreDao = Mockito.mock(MultipleLockSemaphore.class);
+		mockSemaphoreDao = Mockito.mock(CountingSemaphore.class);
 		mockRunner = Mockito.mock(Runnable.class);
 		semaphoreKey = "someKey";
 		maxNumberRunners = 1;

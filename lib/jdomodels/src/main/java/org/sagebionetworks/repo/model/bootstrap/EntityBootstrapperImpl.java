@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -25,7 +26,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphore;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +63,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	private NodeInheritanceDAO nodeInheritanceDao;
 	
 	@Autowired
-	private MultipleLockSemaphore semaphoreDao;
+	private CountingSemaphore semaphoreDao;
 
 	private List<EntityBootstrapData> bootstrapEntities;
 	/**

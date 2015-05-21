@@ -61,6 +61,11 @@
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>database-semaphore</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>javax.transaction</groupId>

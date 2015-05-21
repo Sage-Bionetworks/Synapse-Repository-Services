@@ -18,9 +18,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphore;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,7 +43,7 @@ public class MergeWorkerTest {
 	private SemaphoreGatedRunner auditMergeWorkerSemaphoreGatedRunner;
 	
 	@Autowired
-	private MultipleLockSemaphore semaphoreDAO;
+	private CountingSemaphore semaphoreDAO;
 	
 	private String lockToken;
 	private String semaphoreKey;

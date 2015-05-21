@@ -17,10 +17,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
-import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

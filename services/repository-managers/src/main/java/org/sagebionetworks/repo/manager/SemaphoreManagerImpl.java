@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.semaphore.MultipleLockSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class SemaphoreManagerImpl implements SemaphoreManager {
 	
 	@Autowired
-	MultipleLockSemaphore semaphoreDao;
+	CountingSemaphore semaphoreDao;
 
 	@Override
 	public void releaseAllLocksAsAdmin(UserInfo admin) {
