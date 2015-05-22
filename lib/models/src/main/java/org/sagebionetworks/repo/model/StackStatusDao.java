@@ -28,5 +28,12 @@ public interface StackStatusDao {
 	 * @param status
 	 */
 	public void updateStatus(StackStatus status);
+	
+	/**
+	 * Is the stack currently in READ_WRITE mode?
+	 * 
+	 * @return
+	 */
+	public boolean isStackReadWrite();
 
 }

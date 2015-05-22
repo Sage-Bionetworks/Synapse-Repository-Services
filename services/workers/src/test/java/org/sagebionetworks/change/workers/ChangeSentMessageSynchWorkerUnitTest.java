@@ -60,24 +60,16 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(worker, "workerLogger", mockLogger);
 		ReflectionTestUtils.setField(worker, "random", mockRandom);
-		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		when(mockStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(new ImmutablePropertyAccessor(pageSize));
 		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(1000L));
 		when(mockRandom.nextInt(anyInt())).thenReturn(1);
 	}
-	
-	
-	@Test
-	public void testStackDown(){
-		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
-		worker.run(mockCallback);
-		verify(mockChangeDao, never()).getMinimumChangeNumber();
-		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class));
-	}
+
 	
 	@Test
-	public void testStackReadOnly(){
-		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+	public void testStackNotReadWrite(){
+		when(mockStatusDao.isStackReadWrite()).thenReturn(false);
 		worker.run(mockCallback);
 		verify(mockChangeDao, never()).getMinimumChangeNumber();
 		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(),  any(Timestamp.class));

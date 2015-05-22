@@ -1,6 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_EXPIRES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_EXPIRES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_LOCK_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_EXCLUSIVE_SEMAPHORE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SHARED_SEMAPHORE;
 
 import java.util.UUID;
 
@@ -18,8 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-
 /**
  * Basic database backed implementation of the ExclusiveOrSharedSemaphoreDao.
  * 
@@ -36,7 +42,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 	private static final String SQL_RELEASE_SHARED_LOCK = "DELETE FROM "+TABLE_SHARED_SEMAPHORE+" WHERE "+COL_SHARED_SEMAPHORE_KEY+" = ? AND "+COL_SHARED_SEMAPHORE_LOCK_TOKEN+" = ?";
 	private static final String SQL_RELEASE_EXCLUSIVE_LOCK = "UPDATE "+TABLE_EXCLUSIVE_SEMAPHORE+" SET "+COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN+" = NULL,"+COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN+" = NULL, "+COL_EXCLUSIVE_SEMAPHORE_EXPIRES+" = NULL WHERE "+COL_EXCLUSIVE_SEMAPHORE_KEY+" = ? AND "+COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN+" = ?";
 
-	static private Logger log = LogManager.getLogger(DBOSemaphoreDaoImpl.class);
+	static private Logger log = LogManager.getLogger(ExclusiveOrSharedSemaphoreDaoImpl.class);
 	
 	/**
 	 * Write-lock-precursor cannot be held for more than this time.

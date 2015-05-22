@@ -8,10 +8,8 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -20,8 +18,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +33,8 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MergeWorkerTest {
 	
-	private long MAX_WAIT = 1000*208;
+	private long MAX_WAIT_SEC = 208;
+	private long MAX_WAIT_MS = MAX_WAIT_SEC*1000;
 
 	@Autowired
 	private AccessRecordDAO accessRecordDAO;
@@ -44,23 +43,22 @@ public class MergeWorkerTest {
 	private SemaphoreGatedRunner auditMergeWorkerSemaphoreGatedRunner;
 	
 	@Autowired
-	private SemaphoreDao semaphoreDAO;
+	private CountingSemaphore semaphoreDAO;
 	
-	private Map<String, String> lockTokens;
+	private String lockToken;
+	private String semaphoreKey;
+	private int maxLockCount;
 	
 	@Before
 	public void before() {
 		// Prevent the main scheduler from running another instance of the MergeWorker
-		lockTokens = new HashMap<String, String>();
-		
+		semaphoreKey = auditMergeWorkerSemaphoreGatedRunner.getSemaphoreKey();
+		maxLockCount = 1;
 		long start = System.currentTimeMillis();
-		for (String key : auditMergeWorkerSemaphoreGatedRunner.getAllLockKeys(null)) {
-			lockTokens.put(key, null);
-			while (lockTokens.get(key) == null) {
-				lockTokens.put(key, semaphoreDAO.attemptToAcquireLock(key, MAX_WAIT));
-				long elapse = System.currentTimeMillis() - start;
-				assertTrue("Timed out waiting for merge worker to acquire lock", elapse < MAX_WAIT);
-			}
+		while (lockToken == null) {
+			lockToken = semaphoreDAO.attemptToAcquireLock(semaphoreKey, MAX_WAIT_SEC, maxLockCount);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for merge worker to acquire lock", elapse < MAX_WAIT_MS);
 		}
 	}
 	
@@ -68,11 +66,8 @@ public class MergeWorkerTest {
 	public void after(){
 		// Delete all data created by this test.
 		accessRecordDAO.deleteAllStackInstanceBatches();
-		
-		for (String key : lockTokens.keySet()) {
-			if (lockTokens.get(key)!=null) {
-				semaphoreDAO.releaseLock(key, lockTokens.get(key));
-			}
+		if(lockToken != null){
+			semaphoreDAO.releaseLock(semaphoreKey, lockToken);
 		}
 	}
 	
@@ -109,7 +104,7 @@ public class MergeWorkerTest {
 		while(hasMore){
 			hasMore = worker.mergeOneBatch();
 			long elapse = System.currentTimeMillis()-start;
-			assertTrue("Timed out waiting for merge worker to finish",elapse < MAX_WAIT);
+			assertTrue("Timed out waiting for merge worker to finish",elapse < MAX_WAIT_MS);
 		}
 		verify(mockProgressCallback, times(18)).progressMade(null);
 		
