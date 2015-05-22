@@ -95,7 +95,9 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		}
 		finally {
 			// Release token
-			semaphoreDao.releaseLock(ENTITY_BOOTSTRAPPER_LOCK, token);
+			if(token != null){
+				semaphoreDao.releaseLock(ENTITY_BOOTSTRAPPER_LOCK, token);
+			}
 		}
 		
 	}
