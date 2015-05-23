@@ -81,6 +81,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Sets;
 
 /**
@@ -205,6 +206,12 @@ public class MessageManagerImplTest {
 					@Override
 					public void sendEmail(SendEmailRequest emailRequest) {
 						amazonSESClient.sendEmail(emailRequest);
+					}
+
+					@Override
+					public void sendRawEmail(
+							SendRawEmailRequest sendRawEmailRequest) {
+						amazonSESClient.sendRawEmail(sendRawEmailRequest);
 					}});
 		
 

@@ -20,25 +20,6 @@ import org.sagebionetworks.util.SerializationUtils;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
 public class EmailUtilsTest {
-
-	@Test
-	public void testCreateEmailRequest() {
-		SendEmailRequest request = EmailUtils.
-				createEmailRequest("foo@bar.com", "foo", "bar", false, "foobar", null);
-		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
-		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("bar", request.getMessage().getBody().getText().getData());
-		assertNull(request.getMessage().getBody().getHtml());
-		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
-
-		request = EmailUtils.
-				createEmailRequest("foo@bar.com", "foo", "<html>bar</html>", true, "foobar", null);
-		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
-		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("<html>bar</html>", request.getMessage().getBody().getHtml().getData());
-		assertNull(request.getMessage().getBody().getText());
-		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
-}
 	
 	@Test
 	public void testReadMailTemplate() {

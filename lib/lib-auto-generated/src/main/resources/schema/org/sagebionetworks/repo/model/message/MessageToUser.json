@@ -20,6 +20,10 @@
         "inReplyToRoot": {
 			"type": "string",
 			"description":"The unique identifier of the root message being replied to"
+		}, 
+        "notificationUnsubscribeEndpoint": {
+			"type": "string",
+			"description":"the portal prefix for one-click email unsubscription.  A signed, serialized token is appended to create the complete URL."
 		}
 	}
 }

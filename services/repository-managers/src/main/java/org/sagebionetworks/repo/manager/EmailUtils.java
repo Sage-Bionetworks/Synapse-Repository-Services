@@ -17,18 +17,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
 
-import com.amazonaws.services.simpleemail.model.Body;
-import com.amazonaws.services.simpleemail.model.Content;
-import com.amazonaws.services.simpleemail.model.Destination;
-import com.amazonaws.services.simpleemail.model.Message;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-
 public class EmailUtils {
-	/**
-	 * The specified encoding for the generated email message sent to the end user
-	 */
-	private static final String EMAIL_CHARSET = "UTF-8";
-		
 	//////////////////////////////////////////
 	// Email template constants and methods //
 	//////////////////////////////////////////
@@ -52,7 +41,10 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
 	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";
 	
-	public static final String DEFAULT_EMAIL_ADDRESS_LOCAL_PART = "notifications";
+	/*
+	 * The default local/name part of the email address
+	 */
+	public static final String DEFAULT_EMAIL_ADDRESS_LOCAL_PART = "noreply";
 
 	public static String getDisplayName(UserProfile userProfile) {
 		String firstName = userProfile.getFirstName();
@@ -79,51 +71,6 @@ public class EmailUtils {
 		return displayName;
 	}
 
-	/*
-	 * If sender is null then the 'notification email address' is used
-	 */
-	public static SendEmailRequest createEmailRequest(
-			String recipientEmail, String subject, String body, 
-			boolean isHtml, String senderDisplayName, String senderUserName) {
-		if (senderUserName==null) senderUserName=DEFAULT_EMAIL_ADDRESS_LOCAL_PART;
-		String senderEmailAddress = senderUserName+StackConfiguration.getNotificationEmailSuffix();
-		// Construct whom the email is from 
-		String source;
-		if (senderDisplayName==null) {
-			source = senderEmailAddress;
-		} else {
-			source = senderDisplayName + " <" + senderEmailAddress + ">";
-		}
-		
-		// Construct an object to contain the recipient address
-        Destination destination = new Destination().withToAddresses(recipientEmail);
-        
-        // Create the subject and body of the message
-        if (subject == null) {
-        	subject = "";
-        }
-        Content textSubject = new Content().withData(subject);
-        
-        // we specify the text encoding to use when sending the email
-        Content bodyContent = new Content().withData(body).withCharset(EMAIL_CHARSET);
-        Body messageBody = new Body();
-        if (isHtml) {
-        	messageBody.setHtml(bodyContent);
-        } else {
-        	messageBody.setText(bodyContent);
-        }
-        
-        // Create a message with the specified subject and body
-        Message message = new Message().withSubject(textSubject).withBody(messageBody);
-        
-        // Assemble the email
-		SendEmailRequest request = new SendEmailRequest()
-				.withSource(source)
-				.withDestination(destination)
-				.withMessage(message);
-		return request;
-	}
-	
 	/**
 	 * 
 	 * Reads a resource into a string
@@ -169,6 +116,19 @@ public class EmailUtils {
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	
+	public static String createSource(String senderDisplayName, String senderUserName) {
+		if (senderUserName==null) senderUserName=DEFAULT_EMAIL_ADDRESS_LOCAL_PART;
+		String senderEmailAddress = senderUserName+StackConfiguration.getNotificationEmailSuffix();
+		// Construct whom the email is from 
+		String source;
+		if (senderDisplayName==null) {
+			source = senderEmailAddress;
+		} else {
+			source = senderDisplayName + " <" + senderEmailAddress + ">";
+		}
+		return source;
+	}
+	
 
 	
 	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId) {
@@ -185,6 +145,7 @@ public class EmailUtils {
 	}
 	
 	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
+		if (endpoint==null || userId==null) throw new IllegalArgumentException("endpoint and userId are required.");
 		NotificationSettingsSignedToken token = new NotificationSettingsSignedToken();
 		token.setCreatedOn(new Date());
 		token.setUserId(userId);
@@ -196,6 +157,38 @@ public class EmailUtils {
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
+	}
+	
+	public static String createHtmlUnsubscribeFooter(String unsubscribeLink) {
+    	StringBuilder footer = new StringBuilder();
+    	footer.append("<p></p><br/><div>This message was forwarded by Synapse.  To unsubscribe, follow <a href=\"");
+    	footer.append(unsubscribeLink);
+    	footer.append("\">this link</a>.</div>");
+		return footer.toString();
+	}
+	
+	public static String createTextUnsubscribeFooter(String unsubscribeLink) {
+    	StringBuilder footer = new StringBuilder();
+    	footer.append("\r\n.  This message was forwarded by Synapse.  To unsubscribe, follow this link:\r\n");
+    	footer.append(unsubscribeLink);
+    	footer.append("\r\n");
+		return footer.toString();
+	}
+	
+	public static String createEmailBodyFromHtml(String messageBody,
+			String unsubscribeLink) {
+		if (unsubscribeLink==null) return messageBody;
+    	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
+    	bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
+    	return bodyWithFooter.toString();
+	}
+	
+	public static String createEmailBodyFromText(String messageBody,
+			String unsubscribeLink) {
+		if (unsubscribeLink==null) return messageBody;
+    	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
+    	bodyWithFooter.append(createTextUnsubscribeFooter(unsubscribeLink));
+    	return bodyWithFooter.toString();
 	}
 	
 

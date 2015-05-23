@@ -16,6 +16,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.amazonaws.util.StringInputStream;
 
 /**
@@ -45,8 +46,28 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		}
 	}
 	
+	@Override
+	public void sendRawEmail(SendRawEmailRequest sendRawEmailRequest) {
+		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
+			amazonSESClient.sendRawEmail(sendRawEmailRequest);
+		} else {
+			writeToFile(sendRawEmailRequest);
+		}
+	}
+
+
+	
 	public void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
+		writeObjectToFile(emailRequest, to);
+	}
+	
+	public void writeToFile(SendRawEmailRequest rawEmailRequest) {
+		String to = rawEmailRequest.getDestinations().get(0);
+		writeObjectToFile(rawEmailRequest, to);
+	}
+	
+	public void writeObjectToFile(Object emailRequest, String to) {
 		String fileName = to+".json";
 		StringWriter writer=null;
 		InputStream is;
@@ -70,4 +91,6 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		}
 		log.info("\n\nWrote email to S3 file: "+fileName+"\n\n");
 	}
+	
+	
 }
