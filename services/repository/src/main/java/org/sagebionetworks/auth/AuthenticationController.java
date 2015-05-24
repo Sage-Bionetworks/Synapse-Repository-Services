@@ -115,9 +115,11 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(
 			@RequestBody NewUser user,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client) {
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
+			) {
 		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.createUser(user, domain);
+		authenticationService.createUser(user, domain, notificationUnsubscribeEndpoint);
 	}
 
 	/**
@@ -129,10 +131,12 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendPasswordEmail(
 			@RequestBody Username user,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
+			)
 			throws NotFoundException {
 		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.sendPasswordEmail(user.getEmail(), domain);
+		authenticationService.sendPasswordEmail(user.getEmail(), domain, notificationUnsubscribeEndpoint);
 	}
 
 	/**

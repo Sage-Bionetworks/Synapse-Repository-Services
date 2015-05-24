@@ -51,13 +51,13 @@ public interface AuthenticationService {
 	 * Initializes a new user into the system
 	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
-	public void createUser(NewUser user, DomainType domain);
+	public void createUser(NewUser user, DomainType domain, String notificationUnsubscribeEndpoint);
 	
 	/**
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(Long userId, DomainType domain)
+	public void sendPasswordEmail(Long userId, DomainType domain, String notificationUnsubscribeEndpoint)
 			 throws NotFoundException;
 	
 	/**
@@ -115,7 +115,7 @@ public interface AuthenticationService {
 	 */
 	public Session processOpenIDInfo(OpenIDInfo info, DomainType domain) throws NotFoundException;
 
-	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException;
+	public void sendPasswordEmail(String email, DomainType domain, String notificationUnsubscribeEndpoint) throws NotFoundException;
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 

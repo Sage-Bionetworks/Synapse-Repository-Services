@@ -776,10 +776,10 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?", null);
 		
 		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE);
+		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE, null);
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();
