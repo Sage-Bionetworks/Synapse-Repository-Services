@@ -13,6 +13,8 @@ import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
+import org.sagebionetworks.repo.model.message.multipart.Attachment;
+import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -74,13 +76,35 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			MessageToUserAndBody result = new MessageToUserAndBody();
 			result.setMetadata(mtu);
 			result.setMimeType(ContentType.APPLICATION_JSON.getMimeType());
-			result.setBody(EntityFactory.createJSONStringForEntity(message));
+			MessageBody messageBody = copyMessageToMessageBody(message);
+			result.setBody(EntityFactory.createJSONStringForEntity(messageBody));
 			return result;
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static MessageBody copyMessageToMessageBody(Message message) {
+		MessageBody result = new MessageBody();
+		result.setPlain(message.getPlain());
+		result.setHtml(message.getHtml());
+		List<Attachment> attachments = new ArrayList<Attachment>();
+		for (org.sagebionetworks.repo.model.message.cloudmailin.Attachment cloudMailInAttachment : 
+				message.getAttachments()) {
+			Attachment attachment = new Attachment();
+			attachment.setContent(cloudMailInAttachment.getContent());
+			attachment.setContent_id(cloudMailInAttachment.getContent_id());
+			attachment.setContent_type(cloudMailInAttachment.getContent_type());
+			attachment.setDisposition(cloudMailInAttachment.getDisposition());
+			attachment.setFile_name(cloudMailInAttachment.getFile_name());
+			attachment.setSize(cloudMailInAttachment.getSize());
+			attachment.setUrl(cloudMailInAttachment.getUrl());
+			attachments.add(attachment);
+		}
+		result.setAttachments(attachments);
+		return result;
 	}
 
 	/*

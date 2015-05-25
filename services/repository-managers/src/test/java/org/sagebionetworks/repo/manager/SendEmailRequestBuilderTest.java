@@ -18,24 +18,28 @@ public class SendEmailRequestBuilderTest {
 				.withSubject("foo")
 				.withBody("bar")
 				.withIsHtml(false)
-				.withSenderUserName("foobar").build();
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("foobar")
+				.build();
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
 		assertEquals("foo", request.getMessage().getSubject().getData());
 		assertEquals("bar", request.getMessage().getBody().getText().getData());
 		assertNull(request.getMessage().getBody().getHtml());
-		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
+		assertEquals("foobar <foobar@sagebase.org>", request.getSource());
 
 		request = (new SendEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
 				.withSubject("foo")
 				.withBody("<div>bar</div>")
 				.withIsHtml(true)
-				.withSenderUserName("foobar").build();
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("foobar")
+				.build();
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
 		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("<html>bar</html>", request.getMessage().getBody().getHtml().getData());
+		assertEquals("<div>bar</div>", request.getMessage().getBody().getHtml().getData());
 		assertNull(request.getMessage().getBody().getText());
-		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
+		assertEquals("foobar <foobar@sagebase.org>", request.getSource());
 	}
 	
 }

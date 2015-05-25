@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.mail.MessagingException;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
 import org.apache.http.entity.ContentType;
@@ -126,7 +124,7 @@ public class MessageManagerImpl implements MessageManager {
 	 */
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
-			UserProfileDAO userProfileDAO,
+			UserProfileManager userProfileManager,
 			NotificationEmailDAO notificationEmailDao,
 			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,

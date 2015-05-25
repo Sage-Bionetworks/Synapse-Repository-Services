@@ -31,8 +31,6 @@ public class ITCloudMailIn {
 	private static Long user1ToDelete;
 
 	private static String oneId;
-
-	private Project project;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -57,11 +55,6 @@ public class ITCloudMailIn {
 
 	@After
 	public void after() throws Exception {
-		if (project != null) {
-			try {
-				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (SynapseException e) { }
-		}
 	}
 	
 	@AfterClass
@@ -88,8 +81,6 @@ public class ITCloudMailIn {
 		
 		// get the underlying SharedClientConnection so we can add the basic authentication header
 		SharedClientConnection conn = synapseOne.getSharedClientConnection();
-		// before issuing the request, set the User-Agent to indicate the affected Python client
-		// Per Chris, if there's 'python-request' in the string and no 'synapseclient' then it's python client <0.5 and affected
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Authorization", "Basic: "+Base64.encodeBase64((username+":"+password).getBytes()));
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
@@ -100,7 +91,9 @@ public class ITCloudMailIn {
 			         getResourceAsStream("CloudMailInMessages/"+sampleFileName);
 			try {
 				String messageJson = IOTestUtil.readFromInputStream(is, "utf-8");
-				HttpResponse response = conn.performRequest(repoEndpoint+URI, "POST", messageJson, requestHeaders);
+				HttpResponse response = conn.performRequest(
+						repoEndpoint+URI+"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe"
+						, "POST", messageJson, requestHeaders);
 				assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
 			
 				// TODO check that file is created

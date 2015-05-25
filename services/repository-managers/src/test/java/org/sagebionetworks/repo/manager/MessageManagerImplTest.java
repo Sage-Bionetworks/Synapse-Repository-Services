@@ -11,19 +11,15 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -67,13 +63,9 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -109,7 +101,7 @@ public class MessageManagerImplTest {
 	private FileHandleDao fileDAO;
 	
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -190,7 +182,7 @@ public class MessageManagerImplTest {
 		ReflectionTestUtils.setField(messageManager, "userGroupDAO", userGroupDAO);
 		ReflectionTestUtils.setField(messageManager, "groupMembersDAO", groupMembersDao);
 		ReflectionTestUtils.setField(messageManager, "userManager", userManager);
-		ReflectionTestUtils.setField(messageManager, "userProfileDAO", userProfileDAO);
+		ReflectionTestUtils.setField(messageManager, "userProfileManager", userProfileManager);
 		ReflectionTestUtils.setField(messageManager, "notificationEmailDao", notificationEmailDao);
 		ReflectionTestUtils.setField(messageManager, "principalAliasDAO", principalAliasDAO);
 		ReflectionTestUtils.setField(messageManager, "authorizationManager", authorizationManager);
@@ -441,9 +433,9 @@ public class MessageManagerImplTest {
 		}
 		
 		// Reset the test user's notification settings to the default
-		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
-		userProfileDAO.update(profile);
+		userProfileManager.updateUserProfile(testUser, profile);
 		
 		// Restore the old fileHandleManager
 		messageManager.setFileHandleManager(fileHandleManager);
@@ -748,10 +740,10 @@ public class MessageManagerImplTest {
 		assertEquals(message, inbox.getResults().get(0).getMessage());
 		
 		// Emails are sent by default
-		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		profile.getNotificationSettings().setMarkEmailedMessagesAsRead(true);
-		profile = userProfileDAO.update(profile);
+		profile = userProfileManager.updateUserProfile(testUser, profile);
 		
 		// Now this second message will be marked as READ
 		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserIdSet, null);
@@ -764,7 +756,7 @@ public class MessageManagerImplTest {
 		
 		// If you disable the sending of emails, the auto-READ-marking gets disabled too
 		profile.getNotificationSettings().setSendEmailNotifications(false);
-		profile = userProfileDAO.update(profile);
+		profile = userProfileManager.updateUserProfile(testUser, profile);
 		
 		// Now the third message appears UNREAD
 		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserIdSet, null);
