@@ -13,10 +13,12 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class UserThrottleFilter implements Filter {
 
+	private static Logger log = LogManager.getLogger(UserThrottleFilter.class);
 	private CountingSemaphoreDao userThrottleGate;
 
 	@Autowired
@@ -54,7 +57,12 @@ public class UserThrottleFilter implements Filter {
 					try {
 						chain.doFilter(request, response);
 					} finally {
-						userThrottleGate.releaseLock(lockToken, userId);
+						try {
+							userThrottleGate.releaseLock(lockToken, userId);
+						} catch (LockReleaseFailedException e) {
+							// This happens when test force the release of all locks.
+							log.info(e.getMessage());
+						}
 					}
 				} else {
 					ProfileData lockUnavailableEvent = new ProfileData();

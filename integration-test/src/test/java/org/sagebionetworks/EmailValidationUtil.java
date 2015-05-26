@@ -42,6 +42,7 @@ public class EmailValidationUtil {
 		// the email is written to a local file.  Read it and extract the link
 		String body = EmailValidationUtil.readFile(key);
 		int endpointIndex = body.indexOf(startString);
+		assertTrue(endpointIndex>=0);
 		int tokenStart = endpointIndex+startString.length();
 		assertTrue(tokenStart>=0);
 		int tokenEnd = body.indexOf(endString, tokenStart);

@@ -75,7 +75,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
-		if (!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())) {
+		if (!stackStatusDao.isStackReadWrite()) {
 			if (log.isTraceEnabled()) {
 				log.trace("Skipping synchronization since the stack is not in read-write mode");
 			}
