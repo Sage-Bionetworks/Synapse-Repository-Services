@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -17,11 +16,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
-	
-	/**
-	 * For testing
-	 */
-	public void setFileHandleManager(FileHandleManager fileHandleManager);
 	
 	/**
 	 * Retrieves a single message by ID.  

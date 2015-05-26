@@ -11,6 +11,8 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -48,7 +50,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -63,9 +64,11 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.message.multipart.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -73,7 +76,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendEmailResult;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import com.amazonaws.util.IOUtils;
 import com.google.common.collect.Sets;
 
 /**
@@ -106,8 +111,7 @@ public class MessageManagerImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	@Autowired
-	private FileHandleManager fileHandleManager;
+	
 	private FileHandleManager mockFileHandleManager;
 	
 	@Autowired
@@ -186,7 +190,6 @@ public class MessageManagerImplTest {
 		ReflectionTestUtils.setField(messageManager, "notificationEmailDao", notificationEmailDao);
 		ReflectionTestUtils.setField(messageManager, "principalAliasDAO", principalAliasDAO);
 		ReflectionTestUtils.setField(messageManager, "authorizationManager", authorizationManager);
-		ReflectionTestUtils.setField(messageManager, "fileHandleManager", fileHandleManager);
 		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileDAO);
 		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
 		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
@@ -205,6 +208,8 @@ public class MessageManagerImplTest {
 							SendRawEmailRequest sendRawEmailRequest) {
 						amazonSESClient.sendRawEmail(sendRawEmailRequest);
 					}});
+		mockFileHandleManager = mock(FileHandleManager.class);
+		ReflectionTestUtils.setField(messageManager, "fileHandleManager", mockFileHandleManager);
 		
 
 		aliasesToDelete = new ArrayList<PrincipalAlias>();
@@ -258,10 +263,9 @@ public class MessageManagerImplTest {
 		final String testTeamId = testTeam.getId();
 		
 		// Mock out the file handle manager so that the fake file handle won't result in broken downloads
-		mockFileHandleManager = mock(FileHandleManager.class);
 		String url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
-		messageManager.setFileHandleManager(mockFileHandleManager);
+		ReflectionTestUtils.setField(messageManager, "fileHandleManager", mockFileHandleManager);
 		
 		// This user info needs to be updated to contain the team
 		testUser = userManager.getUserInfo(testUser.getId());
@@ -326,6 +330,7 @@ public class MessageManagerImplTest {
 		dto.setSubject(subject);
 		dto.setRecipients(recipients);
 		dto.setInReplyTo(inReplyTo);
+		dto.setNotificationUnsubscribeEndpoint("https://www.synapse.org/#unsubscribeEndpoint:");
 		// Note: InReplyToRoot is calculated by the DAO
 		
 		// Insert the message
@@ -436,9 +441,6 @@ public class MessageManagerImplTest {
 		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		userProfileManager.updateUserProfile(testUser, profile);
-		
-		// Restore the old fileHandleManager
-		messageManager.setFileHandleManager(fileHandleManager);
 		
 		userManager.deletePrincipal(adminUserInfo, testUser.getId());
 		userManager.deletePrincipal(adminUserInfo, otherTestUser.getId());
@@ -862,5 +864,4 @@ public class MessageManagerImplTest {
 			assertFalse(e.getMessage().contains("foreign key"));
 		}
 	}
-
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,7 +10,6 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -21,17 +21,15 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.manager.IOTestUtil;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserSessionData;
+
+import com.amazonaws.util.IOUtils;
 
 public class ITCloudMailIn {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
 	private static Long user1ToDelete;
 
-	private static String oneId;
-	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Create 2 users
@@ -44,11 +42,8 @@ public class ITCloudMailIn {
 		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
-		oneId = synapseOne.getMyProfile().getOwnerId();
-		
 	}
 	
-	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
 	}
@@ -89,8 +84,10 @@ public class ITCloudMailIn {
 		for (String sampleFileName : SAMPLE_MESSAGES) {
 			InputStream is = ITCloudMailIn.class.getClassLoader().
 			         getResourceAsStream("CloudMailInMessages/"+sampleFileName);
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			try {
-				String messageJson = IOTestUtil.readFromInputStream(is, "utf-8");
+				IOUtils.copy(is, out);
+				String messageJson = out.toString("utf-8");
 				HttpResponse response = conn.performRequest(
 						repoEndpoint+URI+"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe"
 						, "POST", messageJson, requestHeaders);
@@ -99,6 +96,7 @@ public class ITCloudMailIn {
 				// TODO check that file is created
 			} finally {
 				is.close();
+				out.close();
 			}
 		}
 

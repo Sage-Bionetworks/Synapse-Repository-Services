@@ -82,6 +82,7 @@ public class MessageUtils {
 		bundle.setInReplyToRoot(toString(info.getRootMessageId()));
 		bundle.setInReplyTo(toString(info.getInReplyTo()));
 		bundle.setSubject(info.getSubject());
+		bundle.setNotificationUnsubscribeEndpoint(info.getNotificationsEndpoint());
 	}
 	
 	/**
@@ -207,6 +208,7 @@ public class MessageUtils {
 		info.setRootMessageId(parseLong(dto.getInReplyToRoot()));
 		info.setInReplyTo(parseLong(dto.getInReplyTo()));
 		info.setSubject(dto.getSubject());
+		info.setNotificationsEndpoint(dto.getNotificationUnsubscribeEndpoint());
 	}
 	
 	/**

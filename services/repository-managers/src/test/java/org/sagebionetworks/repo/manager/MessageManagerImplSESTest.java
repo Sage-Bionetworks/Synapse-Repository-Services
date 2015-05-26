@@ -1,14 +1,18 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
+import static junit.framework.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.mail.internet.MimeBodyPart;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -23,20 +27,23 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.message.multipart.Attachment;
+import org.sagebionetworks.repo.model.message.multipart.Message;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.util.IOUtils;
 
 /**
  * Checks how the message manager handles sending emails to Amazon SES
@@ -148,7 +155,6 @@ public class MessageManagerImplSESTest {
 		String urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
 		when(mockFileHandleManager.downloadFileToString(anyString())).thenReturn("my dog has fleas");
-		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check
 		when(mockMessageDAO.getMessageSent(anyString())).thenReturn(false);

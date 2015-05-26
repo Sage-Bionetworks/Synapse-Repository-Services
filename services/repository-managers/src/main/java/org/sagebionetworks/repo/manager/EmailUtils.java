@@ -169,7 +169,7 @@ public class EmailUtils {
 	
 	public static String createTextUnsubscribeFooter(String unsubscribeLink) {
     	StringBuilder footer = new StringBuilder();
-    	footer.append("\r\n.  This message was forwarded by Synapse.  To unsubscribe, follow this link:\r\n");
+    	footer.append("\r\nThis message was forwarded by Synapse.  To unsubscribe, follow this link:\r\n");
     	footer.append(unsubscribeLink);
     	footer.append("\r\n");
 		return footer.toString();
@@ -178,9 +178,10 @@ public class EmailUtils {
 	public static String createEmailBodyFromHtml(String messageBody,
 			String unsubscribeLink) {
 		if (unsubscribeLink==null) return messageBody;
-    	StringBuilder bodyWithFooter = new StringBuilder(messageBody);
-    	bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
-    	return bodyWithFooter.toString();
+	   	StringBuilder bodyWithFooter = new StringBuilder();
+	   	bodyWithFooter.append(messageBody);
+	    bodyWithFooter.append(createHtmlUnsubscribeFooter(unsubscribeLink));
+   	return bodyWithFooter.toString();
 	}
 	
 	public static String createEmailBodyFromText(String messageBody,

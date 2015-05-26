@@ -23,7 +23,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID), 
 		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
 		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
-		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT)
+		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
+		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT)
 	};
 	
 	private Long messageId;
@@ -31,6 +32,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Long inReplyTo;
 	private String subject;
 	private Boolean sent;
+	private String notificationsEndpoint;
 
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
@@ -47,6 +49,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				};
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
 				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
+				result.setNotificationsEndpoint(rs.getString(SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT));
 				return result;
 			}
 			
@@ -112,6 +115,14 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.sent = sent;
 	}
 
+	public String getNotificationsEndpoint() {
+		return notificationsEndpoint;
+	}
+
+	public void setNotificationsEndpoint(String notificationsEndpoint) {
+		this.notificationsEndpoint = notificationsEndpoint;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.MESSAGE_TO_USER;
@@ -157,6 +168,10 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
 		result = prime * result
 				+ ((messageId == null) ? 0 : messageId.hashCode());
+		result = prime
+				* result
+				+ ((notificationsEndpoint == null) ? 0 : notificationsEndpoint
+						.hashCode());
 		result = prime * result
 				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
@@ -184,6 +199,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!messageId.equals(other.messageId))
 			return false;
+		if (notificationsEndpoint == null) {
+			if (other.notificationsEndpoint != null)
+				return false;
+		} else if (!notificationsEndpoint.equals(other.notificationsEndpoint))
+			return false;
 		if (rootMessageId == null) {
 			if (other.rootMessageId != null)
 				return false;
@@ -207,7 +227,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public String toString() {
 		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId="
 				+ rootMessageId + ", inReplyTo=" + inReplyTo + ", subject="
-				+ subject + ", sent=" + sent + "]";
+				+ subject + ", sent=" + sent + ", notificationsEndpoint="
+				+ notificationsEndpoint + "]";
 	}
 
 }

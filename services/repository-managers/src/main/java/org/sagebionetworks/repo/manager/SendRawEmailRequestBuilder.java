@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
@@ -16,6 +17,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
@@ -91,9 +93,6 @@ public class SendRawEmailRequestBuilder {
 		Properties props = new Properties();
 		// sets SMTP server properties
 		props.setProperty("mail.transport.protocol", "aws");
-		// TODO:  Do we need to set these?
-		//props.setProperty("mail.aws.user", credentials.getAWSAccessKeyId());
-		//props.setProperty("mail.aws.password", credentials.getAWSSecretKey());
 
 		Session mailSession = Session.getInstance(props);
 		MimeMessage msg = new MimeMessage(mailSession);
@@ -104,7 +103,7 @@ public class SendRawEmailRequestBuilder {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		msg.writeTo(out);
 		RawMessage rawMessage = new RawMessage();
-		rawMessage.setData(ByteBuffer.wrap(out.toString().getBytes()));
+		rawMessage.setData(ByteBuffer.wrap(out.toByteArray()));
 		// Assemble the email
 		SendRawEmailRequest request = new SendRawEmailRequest()
 		.withSource(source)
@@ -125,33 +124,49 @@ public class SendRawEmailRequestBuilder {
 				// just send the content as plain text
 			}
 			
-			MimeMultipart mp = new MimeMultipart();
+			MimeMultipart mp = new MimeMultipart("related");
 			
 			if (canDeserializeJSON) {
 				String plain = messageBody.getPlain();
 				String html = messageBody.getHtml();
 				List<Attachment> attachments = messageBody.getAttachments();
-				if (html!=null) {
-					BodyPart part = new MimeBodyPart();
-					part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink), 
+				
+				if (html!=null || plain!=null) {
+					MimeBodyPart alternativeBodyPart = new MimeBodyPart();
+					MimeMultipart alternativeMultiPart = new MimeMultipart("alternative");
+					alternativeBodyPart.setContent(alternativeMultiPart);
+					if (html!=null) {
+						BodyPart part = new MimeBodyPart();
+						part.setContent(EmailUtils.createEmailBodyFromHtml(html, unsubscribeLink), 
 							ContentType.TEXT_HTML.getMimeType());
-					mp.addBodyPart(part);
-				}
-
-				if (plain!=null) {
-					BodyPart part = new MimeBodyPart();
-					part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink), 
-							ContentType.TEXT_PLAIN.getMimeType());
-					mp.addBodyPart(part);
+						alternativeMultiPart.addBodyPart(part);
+					} else if (plain!=null) {
+						BodyPart part = new MimeBodyPart();
+						part.setContent(EmailUtils.createEmailBodyFromText(plain, unsubscribeLink), 
+								ContentType.TEXT_PLAIN.getMimeType());
+						alternativeMultiPart.addBodyPart(part);						
+					}
+					mp.addBodyPart(alternativeBodyPart);
 				}
 
 				if (attachments!=null) {
 					for (Attachment attachment : attachments) {
-						BodyPart part = new MimeBodyPart();
-						part.setContent(attachment.getContent(), attachment.getContent_type());
+						MimeBodyPart part = new MimeBodyPart();
+						String content = attachment.getContent();
+						String contentType = attachment.getContent_type();
+						// CloudMailIn doesn't provide the Content-Transfer-Encoding
+						// header, so we assume it's base64 encoded, which is the norm
+						try {
+							byte[] decoded = Base64.decodeBase64(content);
+							part.setContent(decoded, contentType);
+						} catch (Exception e) {
+							part.setContent(content, contentType);
+							
+						}
 						part.setDisposition(attachment.getDisposition());
-						if (attachment.getContent_id()!=null) part.setHeader("content_id", attachment.getContent_id());
-						if (attachment.getFile_name()!=null) part.setHeader("file_name", attachment.getFile_name());
+						part.setContentID(attachment.getContent_id());
+						part.setFileName(attachment.getFile_name());
+						
 						if (attachment.getSize()!=null) part.setHeader("size", attachment.getSize());
 						if (attachment.getUrl()!=null) part.setHeader("url", attachment.getUrl());
 						mp.addBodyPart(part);
@@ -164,7 +179,6 @@ public class SendRawEmailRequestBuilder {
 						ContentType.TEXT_PLAIN.getMimeType());
 				mp.addBodyPart(part);
 			}
-
 			return mp;
 		} catch (MessagingException e) {
 			throw new RuntimeException(e);

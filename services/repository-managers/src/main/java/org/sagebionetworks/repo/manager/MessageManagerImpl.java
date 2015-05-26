@@ -148,11 +148,6 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	public void setFileHandleManager(FileHandleManager fileHandleManager) {
-		this.fileHandleManager = fileHandleManager;
-	}
-	
-	@Override
 	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException {
 		MessageToUser message = messageDAO.getMessage(messageId);
 		
