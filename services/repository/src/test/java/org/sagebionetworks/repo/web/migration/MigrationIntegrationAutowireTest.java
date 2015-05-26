@@ -227,6 +227,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private Challenge challenge;
 	private ChallengeTeam challengeTeam;
 
+	private Long externalSftpStorageLocationId;
+
 	@Before
 	public void before() throws Exception {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -244,6 +246,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createEntities();
 		createFavorite();
 		createProjectSetting();
+		createExternalSftpFileHandle();
 		createProjectStat();
 		createEvaluation();
 		createAccessRequirement();
@@ -291,6 +294,27 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		settings.setSettingsType(ProjectSettingsType.upload);
 		settings.setLocations(Collections.singletonList(uploadId));
 		projectSettingsDAO.create(settings);
+	}
+
+	private void createExternalSftpFileHandle() {
+		ExternalStorageLocationSetting externalStorageLocationSetting = new ExternalStorageLocationSetting();
+		externalStorageLocationSetting.setDescription("upload normal");
+		externalStorageLocationSetting.setUploadType(UploadType.SFTP);
+		externalStorageLocationSetting.setBanner("warning");
+		externalStorageLocationSetting.setCreatedOn(new Date());
+		externalStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		externalStorageLocationSetting.setSupportsSubfolders(false);
+		externalStorageLocationSetting.setUrl("sftp://mysftp.server.org");
+		externalSftpStorageLocationId = storageLocationDAO.create(externalStorageLocationSetting);
+
+		sftpFileHandle = new ExternalFileHandle();
+		sftpFileHandle.setCreatedBy(adminUserIdString);
+		sftpFileHandle.setCreatedOn(new Date());
+		sftpFileHandle.setEtag("etag");
+		sftpFileHandle.setFileName("file.name");
+		sftpFileHandle.setExternalURL("sftp://mysftp.server.org/somewhereonthis/server");
+		sftpFileHandle.setStorageLocationId(null);
+		sftpFileHandle = fileMetadataDao.createFile(sftpFileHandle);
 	}
 
 	private void createProjectStat() {
@@ -763,6 +787,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
 			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
 		}
+
+		validateExternalSftpFileHandle();
 	}
 
 	private static class BackupInfo {
@@ -805,6 +831,12 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 			assertTrue("This test requires at least one object to exist for each MigrationType.  Please create a new object of type: "
 					+ count.getType() + " in the before() method of this test.", count.getCount() > 0);
 		}
+	}
+
+	private void validateExternalSftpFileHandle() {
+		Map<String, FileHandle> allFileHandlesBatch = fileMetadataDao.getAllFileHandlesBatch(Collections.singleton(sftpFileHandle.getId()));
+		FileHandle fileHandle = Iterables.getOnlyElement(allFileHandlesBatch.values());
+		assertEquals(externalSftpStorageLocationId, fileHandle.getStorageLocationId());
 	}
 
 	/**
