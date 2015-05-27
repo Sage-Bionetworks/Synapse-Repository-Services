@@ -35,7 +35,21 @@ public class MessageServiceImpl implements MessageService {
 	
 	@Autowired
 	private NotificationManager notificationManager;
-
+	
+	public MessageServiceImpl() {}
+	
+	public MessageServiceImpl(MessageManager messageManager,
+			UserManager userManager,
+			CloudMailInManager cloudMailInManager,
+			NotificationManager notificationManager
+			) {
+		this.messageManager=messageManager;
+		this.userManager=userManager;
+		this.cloudMailInManager=cloudMailInManager;
+		this.notificationManager=notificationManager;
+	}
+	
+	
 	@Override
 	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException {

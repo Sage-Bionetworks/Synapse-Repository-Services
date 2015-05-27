@@ -29,6 +29,7 @@ public interface MembershipInvitationManager {
 	 * 
 	 * @param mis
 	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws NotFoundException
 	 */

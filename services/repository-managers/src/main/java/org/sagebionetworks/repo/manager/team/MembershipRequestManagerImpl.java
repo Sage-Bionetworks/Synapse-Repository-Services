@@ -109,7 +109,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint) {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (acceptRequestEndpoint==null) return result;
+		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
 		String displayName = EmailUtils.getDisplayNameWithUserName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();

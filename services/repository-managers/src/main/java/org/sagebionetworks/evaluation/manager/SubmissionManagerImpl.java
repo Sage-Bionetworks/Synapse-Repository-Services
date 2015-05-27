@@ -1,5 +1,10 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -62,8 +67,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import static org.sagebionetworks.repo.manager.EmailUtils.*;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -249,7 +252,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			Submission submission, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint) {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (challengeEndpoint==null) return result;
+		if (challengeEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
 			// no contributors to notify, so just return an empty list
 			return result;
