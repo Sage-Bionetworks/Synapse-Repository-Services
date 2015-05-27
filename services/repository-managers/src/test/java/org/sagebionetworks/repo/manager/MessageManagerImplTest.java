@@ -11,8 +11,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -64,11 +62,9 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.model.message.multipart.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -76,9 +72,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendEmailResult;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.amazonaws.util.IOUtils;
 import com.google.common.collect.Sets;
 
 /**
@@ -110,7 +104,6 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
 	
 	private FileHandleManager mockFileHandleManager;
 	
@@ -279,6 +272,7 @@ public class MessageManagerImplTest {
 			handle = fileDAO.createFile(handle);
 			this.fileHandleId = handle.getId();
 			when(mockFileHandleManager.createCompressedFileFromString(eq(testUserId), any(Date.class), anyString())).thenReturn(handle);
+			when(mockFileHandleManager.downloadFileToString(fileHandleId)).thenReturn("some message body");
 		}
 		
 		{
@@ -288,6 +282,7 @@ public class MessageManagerImplTest {
 			this.tmsFileHandleId = handle.getId();
 			when(mockFileHandleManager.
 					createCompressedFileFromString(eq(tmsUserId), any(Date.class), anyString())).thenReturn(handle);
+			when(mockFileHandleManager.downloadFileToString(tmsFileHandleId)).thenReturn("some other message body");
 		}
 		
 		// Create all the messages
@@ -313,6 +308,10 @@ public class MessageManagerImplTest {
 	public void tearDown() throws Exception {
 		for (PrincipalAlias alias : aliasesToDelete) {
 			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
+		}
+		if (testTeam!=null) {
+			teamManager.delete(adminUserInfo, testTeam.getId());
+			testTeam=null;
 		}
 	}
 	

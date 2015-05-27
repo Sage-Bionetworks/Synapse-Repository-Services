@@ -79,6 +79,7 @@ public class EmailUtils {
 	public static String readMailTemplate(String filename, Map<String,String> fieldValues) {
 		try {
 			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(filename);
+			if (is==null) throw new RuntimeException("Could not find file "+filename);
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
 			StringBuilder sb = new StringBuilder();
 			try {
@@ -163,13 +164,13 @@ public class EmailUtils {
 	public static String createHtmlUnsubscribeFooter(String unsubscribeLink) {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);
-		return readMailTemplate("unsubscribeFooter.html",fieldValues);
+		return readMailTemplate("message/unsubscribeFooter.html",fieldValues);
 	}
 	
 	public static String createTextUnsubscribeFooter(String unsubscribeLink) {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);
-		return readMailTemplate("unsubscribeFooter.txt",fieldValues);
+		return readMailTemplate("message/unsubscribeFooter.txt",fieldValues);
 	}
 	
 	public static String createEmailBodyFromHtml(String messageBody,

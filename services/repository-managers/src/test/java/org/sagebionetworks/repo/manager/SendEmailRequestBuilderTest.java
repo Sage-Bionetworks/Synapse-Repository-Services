@@ -25,7 +25,7 @@ public class SendEmailRequestBuilderTest {
 		assertEquals("foo", request.getMessage().getSubject().getData());
 		assertEquals("bar", request.getMessage().getBody().getText().getData());
 		assertNull(request.getMessage().getBody().getHtml());
-		assertEquals("foobar <foobar@sagebase.org>", request.getSource());
+		assertEquals("foobar <foobar@synapse.org>", request.getSource());
 
 		request = (new SendEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
@@ -39,7 +39,7 @@ public class SendEmailRequestBuilderTest {
 		assertEquals("foo", request.getMessage().getSubject().getData());
 		assertEquals("<div>bar</div>", request.getMessage().getBody().getHtml().getData());
 		assertNull(request.getMessage().getBody().getText());
-		assertEquals("foobar <foobar@sagebase.org>", request.getSource());
+		assertEquals("foobar <foobar@synapse.org>", request.getSource());
 	}
 	
 }
