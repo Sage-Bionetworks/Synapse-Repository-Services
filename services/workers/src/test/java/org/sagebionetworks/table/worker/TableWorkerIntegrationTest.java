@@ -105,7 +105,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000 * 60 * 100;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 3;
 	
 	@Autowired
 	StackConfiguration config;
