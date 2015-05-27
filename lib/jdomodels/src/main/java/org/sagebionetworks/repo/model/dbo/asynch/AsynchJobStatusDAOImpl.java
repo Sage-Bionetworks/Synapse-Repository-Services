@@ -14,6 +14,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -43,7 +45,7 @@ import org.springframework.jdbc.core.RowMapper;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
-	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_REQUEST_HASH+" = ? AND "+COL_ASYNCH_JOB_OBJECT_ETAG+" = ? AND "+COL_ASYNCH_JOB_STARTED_BY+" = ?";
+	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_REQUEST_HASH+" = ? AND "+COL_ASYNCH_JOB_OBJECT_ETAG+" = ? AND "+COL_ASYNCH_JOB_STARTED_BY+" = ? AND "+COL_ASYNCH_JOB_STATE+" = ? ";
 	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
 			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
 			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
@@ -129,28 +131,30 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
-		AsynchronousJobStatus dto = getJobStatus(jobId);
+		DBOAsynchJobStatus dbo =  jdbcTemplate.queryForObject("SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_ID+" = ? FOR UPDATE", statusRowMapper, jobId);
 		// Calculate the runtime
 		long now = System.currentTimeMillis();
-		long runtimeMS = now - dto.getStartedOn().getTime();
-		dto.setRuntimeMS(runtimeMS);
+		long runtimeMS = now - dbo.getStartedOn().getTime();
+		dbo.setRuntimeMS(runtimeMS);
 		String newEtag = UUID.randomUUID().toString();
-		dto.setEtag(newEtag);
-		dto.setProgressCurrent(dto.getProgressTotal());
-		dto.setProgressMessage("Complete");
-		dto.setChangedOn(new Date(now));
-		dto.setErrorDetails(null);
-		dto.setErrorMessage(null);
-		dto.setJobState(AsynchJobState.COMPLETE);
-		dto.setResponseBody(body);
-		// Convert to DBO.
-		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(dto);
+		dbo.setEtag(newEtag);
+		dbo.setProgressMessage("Complete");
+		dbo.setChangedOn(new Date(now));
+		dbo.setErrorDetails(null);
+		dbo.setErrorMessage(null);
+		dbo.setJobState(JobState.COMPLETE);
+		dbo.setProgressCurrent(dbo.getProgressTotal());
+		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(dbo.getJobType(), body));
 		basicDao.update(dbo);
 		return newEtag;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO#findCompletedJobStatus(java.lang.String, java.lang.String, java.lang.Long)
+	 */
 	@Override
-	public AsynchronousJobStatus findJobStatus(String requestHash, String objectEtag, Long userId) {
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, String objectEtag, Long userId) {
 		if(requestHash == null){
 			throw new IllegalArgumentException("requestHash cannot be null");
 		}
@@ -160,8 +164,13 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(userId == null){
 			throw new IllegalArgumentException("userId cannot be null");
 		}
-		DBOAsynchJobStatus dbo = jdbcTemplate.queryForObject(SQL_SELECT_BY_HASH_ETAG_STARTED_BY, statusRowMapper, requestHash, objectEtag, userId);
-		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
+		Object[] args = {requestHash, objectEtag, userId, AsynchJobState.COMPLETE.name()};
+		List<DBOAsynchJobStatus> dbos = jdbcTemplate.query(SQL_SELECT_BY_HASH_ETAG_STARTED_BY, args , statusRowMapper);
+		List<AsynchronousJobStatus> results = new LinkedList<AsynchronousJobStatus>();
+		for(DBOAsynchJobStatus dbo: dbos){
+			results.add(AsynchJobStatusUtils.createDTOFromDBO(dbo));
+		}
+		return results;
 	}
 
 	

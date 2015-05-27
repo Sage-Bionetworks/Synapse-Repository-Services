@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -66,31 +68,49 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		String requestHash = jobHashProvider.getJobHash(body);
 		// Lookup the current etag for the request object.
 		String objectEtag = jobHashProvider.getRequestObjectEtag(body);
+		// Does this job already exist
+		AsynchronousJobStatus status = findJobsMatching(requestHash, objectEtag, body, user.getId());
+		if(status != null){
+			/*
+			 * If here then the caller has already made this exact request
+			 * and the object has not changed since the last request.
+			 * Therefore, we return the same job status as before without
+			 * starting a new job.
+			 */
+			log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, objectEtag, status.getJobId()));
+			return status;
+		}
+		// Start the job.
+		status = asynchJobStatusDao.startJob(user.getId(), body, requestHash, objectEtag);
+		// publish a message to get the work started
+		asynchJobQueuePublisher.publishMessage(status);
+		return status;
+	}
+	
+	/**
+	 * Find a job that matches the given requestHash, objectEtag, body and userId.
+	 * 
+	 * @param requestHash
+	 * @param objectEtag
+	 * @param body
+	 * @param userId
+	 * @return
+	 */
+	private AsynchronousJobStatus findJobsMatching(String requestHash, String objectEtag, AsynchronousRequestBody body, Long userId){
 		if (objectEtag != null) {
-			// Is there already a job with this hash, object etag and started by
-			// this user?
-			AsynchronousJobStatus existingStatus = asynchJobStatusDao
-					.findJobStatus(requestHash, objectEtag, user.getId());
-			if (existingStatus != null) {
-				if(body.equals(existingStatus.getRequestBody())){
-					if(AsynchJobState.COMPLETE.equals(existingStatus.getJobState())){
-						/*
-						 * If here then the caller has already made this exact request
-						 * and the object has not changed since the last request.
-						 * Therefore, we return the same job status as before without
-						 * starting a new job.
-						 */
-						log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, objectEtag, existingStatus.getJobId()));
-						return existingStatus;
+			// Find all jobs that match this request.
+			List<AsynchronousJobStatus> matches = asynchJobStatusDao
+					.findCompletedJobStatus(requestHash, objectEtag, userId);
+			if (matches != null) {
+				for(AsynchronousJobStatus match: matches){
+					if(body.equals(match.getRequestBody())){
+						return match;
 					}
 				}
 			}
 		}
-		// Start the job.
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body, requestHash, objectEtag);
-		// publish a message to get the work started
-		asynchJobQueuePublisher.publishMessage(status);
-		return status;
+		// no match found
+		return null;
 	}
 
 

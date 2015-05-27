@@ -5,10 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.stub;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
+
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -298,7 +299,7 @@ public class AsynchJobStatusManagerImplTest {
 		existingJob.setJobId("123456");
 		existingJob.setRequestBody(body);
 		existingJob.setJobState(AsynchJobState.COMPLETE);
-		when(mockAsynchJobStatusDao.findJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(existingJob);
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(Arrays.asList(existingJob));
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		// The status should match the exiting job
@@ -308,31 +309,45 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testStartJobCacheHitJobFailed(){
+	public void testStartJobMultipleCacheHit(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
 		body.setSql("select * from syn123");
+		
+		DownloadFromTableRequest body2 = new DownloadFromTableRequest();
+		body2.setEntityId("syn123");
+		body2.setSql("select * from syn123 limit 1");
+		
 		// setup hash and etag.
 		String bodyHash = "aBodyHash";
 		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
 		String objectEtag = "anObjectEtag";
 		when(mockJobHashProvider.getRequestObjectEtag(body)).thenReturn(objectEtag);
 		// Match request to existing job
-		AsynchronousJobStatus existingJob = new AsynchronousJobStatus();
-		existingJob.setStartedByUserId(user.getId());
-		existingJob.setJobId("123456");
-		existingJob.setRequestBody(body);
-		// A failed job should be ignored by the cache.
-		existingJob.setJobState(AsynchJobState.FAILED);
-		when(mockAsynchJobStatusDao.findJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(existingJob);
+		List<AsynchronousJobStatus> hits = new LinkedList<AsynchronousJobStatus>();
+		// First hit is not a match.
+		AsynchronousJobStatus hitOne = new AsynchronousJobStatus();
+		hitOne.setStartedByUserId(user.getId());
+		hitOne.setJobId("123456");
+		hitOne.setRequestBody(body2);
+		hitOne.setJobState(AsynchJobState.COMPLETE);
+		hits.add(hitOne);
+		// this one should match.
+		AsynchronousJobStatus hitTwo = new AsynchronousJobStatus();
+		hitTwo.setStartedByUserId(user.getId());
+		hitTwo.setJobId("123456");
+		hitTwo.setRequestBody(body);
+		hitTwo.setJobState(AsynchJobState.COMPLETE);
+		hits.add(hitTwo);
+		
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(hits);
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
-		assertNotNull(status);
-		assertEquals(startedJobId, status.getJobId());
-		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString());
-		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
+		// The status should match the exiting job
+		assertEquals(hitTwo, status);
+		// The job should not be started.
+		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString());
 	}
 	
 	@Test
@@ -347,8 +362,8 @@ public class AsynchJobStatusManagerImplTest {
 		String objectEtag = "anObjectEtag";
 		when(mockJobHashProvider.getRequestObjectEtag(body)).thenReturn(objectEtag);
 		// For this case, no job exists
-		AsynchronousJobStatus existingJob = null;
-		when(mockAsynchJobStatusDao.findJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(existingJob);
+		List<AsynchronousJobStatus> existingJob = new LinkedList<AsynchronousJobStatus>();
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(existingJob);
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
@@ -381,7 +396,7 @@ public class AsynchJobStatusManagerImplTest {
 		existingJob.setJobId("123456");
 		existingJob.setRequestBody(cachedBody);
 		// There is a job with this hash but the body does not match the request's body.
-		when(mockAsynchJobStatusDao.findJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(existingJob);
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(Arrays.asList(existingJob));
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);

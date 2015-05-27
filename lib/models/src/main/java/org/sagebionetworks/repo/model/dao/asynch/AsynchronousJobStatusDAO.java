@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao.asynch;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -65,13 +67,13 @@ public interface AsynchronousJobStatusDAO {
 	public void truncateAllAsynchTableJobStatus();
 
 	/**
-	 * Find a job status for the request hash and object etag. If no such job exists, then null will be returned.
+	 * Find a job status for the request hash, object etag, user id and with a jobState=COMPLETE. If no such job exists, then null will be returned.
 	 * 
 	 * @param requestHash
 	 * @param objectEtag
 	 * @return
 	 */
-	public AsynchronousJobStatus findJobStatus(String requestHash, String objectEtag, Long userId);
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, String objectEtag, Long userId);
 	
 
 }

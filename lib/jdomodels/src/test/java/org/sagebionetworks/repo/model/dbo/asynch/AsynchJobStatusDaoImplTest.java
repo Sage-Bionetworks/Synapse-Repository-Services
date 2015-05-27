@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
@@ -350,7 +351,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testHashEtagLookup() throws DatastoreException, NotFoundException{
+	public void testFindCompletedJobStatusNotCompleted() throws DatastoreException, NotFoundException{
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
@@ -360,9 +361,56 @@ public class AsynchJobStatusDaoImplTest {
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// Find the job with the hash, etag, and user id.
-		AsynchronousJobStatus foundStatus = asynchJobStatusDao.findJobStatus(requestHash, objectEtag, creatorUserGroupId);
+		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, objectEtag, creatorUserGroupId);
 		assertNotNull(foundStatus);
-		assertEquals(status, foundStatus);
+		assertTrue(foundStatus.isEmpty());
+	}
+	
+	@Test
+	public void testFindCompletedJobStatusCompleted() throws DatastoreException, NotFoundException{
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId("syn456");
+		body.setUploadFileHandleId("123");
+		String requestHash = "sd1zQvpC67saUigIElscOgHash";
+		String objectEtag = UUID.randomUUID().toString();;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		asynchJobStatusDao.setComplete(status.getJobId(), new UploadToTableResult());
+		status = asynchJobStatusDao.getJobStatus(status.getJobId());
+		// Find the job with the hash, etag, and user id.
+		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, objectEtag, creatorUserGroupId);
+		assertNotNull(foundStatus);
+		assertEquals(1, foundStatus.size());
+		assertEquals(status, foundStatus.get(0));
+	}
+	
+	@Test
+	public void testFindCompletedJobStatusMultiple() throws DatastoreException, NotFoundException{
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId("syn456");
+		body.setUploadFileHandleId("123");
+		String requestHash = "sd1zQvpC67saUigIElscOgHash";
+		String objectEtag = UUID.randomUUID().toString();;
+		AsynchronousJobStatus one = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
+		assertNotNull(one);
+		assertNotNull(one.getEtag());
+		asynchJobStatusDao.setComplete(one.getJobId(), new UploadToTableResult());
+		one = asynchJobStatusDao.getJobStatus(one.getJobId());
+		
+		// create another with the same data
+		AsynchronousJobStatus two = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
+		assertNotNull(two);
+		assertNotNull(two.getEtag());
+		asynchJobStatusDao.setComplete(two.getJobId(), new UploadToTableResult());
+		two = asynchJobStatusDao.getJobStatus(two.getJobId());
+		
+		// Find the job with the hash, etag, and user id.
+		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, objectEtag, creatorUserGroupId);
+		assertNotNull(foundStatus);
+		assertEquals(2, foundStatus.size());
+		assertEquals(one, foundStatus.get(0));
+		assertEquals(two, foundStatus.get(1));
 	}
 	
 }

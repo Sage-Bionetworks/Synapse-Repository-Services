@@ -86,13 +86,24 @@ public class AsynchJobStatusUtils {
 			throw new RuntimeException(e);
 		}
 		if(dto.getResponseBody() != null){
-			try {
-				dbo.setResponseBody(JDOSecondaryPropertyUtils.compressObject(dto.getResponseBody(), type.name()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+			dbo.setResponseBody(getBytesForResponseBody(type, dto.getResponseBody()));
 		}
 		return dbo;
+	}
+	
+	/**
+	 * Get the bytes for a compressed response body.
+	 * 
+	 * @param type
+	 * @param body
+	 * @return
+	 */
+	public static byte[] getBytesForResponseBody(AsynchJobType type, AsynchronousResponseBody body){
+		try {
+			return JDOSecondaryPropertyUtils.compressObject(body, type.name());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**

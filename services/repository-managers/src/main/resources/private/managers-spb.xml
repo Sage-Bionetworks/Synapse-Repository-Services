@@ -265,6 +265,8 @@
         init-method="initialize" scope="singleton" >
     </bean>
 	
+	<bean id="jobHashProvider" class="org.sagebionetworks.repo.manager.asynch.JobHashProviderImpl" scope="singleton" />
+	
    	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />
 
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
