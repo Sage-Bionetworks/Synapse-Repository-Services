@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * @author John
  *
  */
-@Table(name = ASYNCH_JOB_STATUS)
+@Table(name = ASYNCH_JOB_STATUS, constraints ={"INDEX ("+COL_ASYNCH_JOB_REQUEST_HASH+")"})
 public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	
 	/**
@@ -96,6 +96,12 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 
 	@Field(name = COL_ASYNCH_JOB_RUNTIME_MS, nullable = false)
 	private Long runtimeMS;
+	
+	@Field(name= COL_ASYNCH_JOB_REQUEST_HASH, varchar=36, nullable = true)
+	private String requestHash;
+	
+	@Field(name= COL_ASYNCH_JOB_OBJECT_ETAG, varchar=36, nullable = true)
+	private String objectEtag;
 	
 	public Long getRuntimeMS() {
 		return runtimeMS;
@@ -215,6 +221,22 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 
 	public void setResponseBody(byte[] responseBody) {
 		this.responseBody = responseBody;
+	}
+
+	public String getRequestHash() {
+		return requestHash;
+	}
+
+	public void setRequestHash(String requestHash) {
+		this.requestHash = requestHash;
+	}
+
+	public String getObjectEtag() {
+		return objectEtag;
+	}
+
+	public void setObjectEtag(String objectEtag) {
+		this.objectEtag = objectEtag;
 	}
 
 	public static void setTableMapping(

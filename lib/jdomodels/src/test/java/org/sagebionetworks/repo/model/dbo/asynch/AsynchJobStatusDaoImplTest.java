@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -78,7 +79,9 @@ public class AsynchJobStatusDaoImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		String requestHash = null;
+		String objectEtag = null;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body ,requestHash, objectEtag);
 		assertNotNull(status.getJobId());
 		assertNotNull(status.getEtag());
 		assertNotNull(status.getChangedOn());
@@ -104,7 +107,9 @@ public class AsynchJobStatusDaoImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		String requestHash = null;
+		String objectEtag = null;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// update the progress
@@ -122,7 +127,9 @@ public class AsynchJobStatusDaoImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		String requestHash = null;
+		String objectEtag = null;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// update the progress
@@ -166,7 +173,9 @@ public class AsynchJobStatusDaoImplTest {
 								UploadToTableRequest body = new UploadToTableRequest();
 								body.setTableId("syn456");
 								body.setUploadFileHandleId("123");
-								AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+								String requestHash = null;
+								String objectEtag = null;
+								AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
 								assertNotNull(status);
 								assertNotNull(status.getEtag());
 								jobId.set(status.getJobId());
@@ -257,7 +266,9 @@ public class AsynchJobStatusDaoImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		String requestHash = null;
+		String objectEtag = null;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// update the progress
@@ -277,7 +288,9 @@ public class AsynchJobStatusDaoImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		String requestHash = null;
+		String objectEtag = null;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String startEtag = status.getEtag();
@@ -303,7 +316,9 @@ public class AsynchJobStatusDaoImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		String requestHash = null;
+		String objectEtag = null;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String previousEtag = status.getEtag();
@@ -332,6 +347,22 @@ public class AsynchJobStatusDaoImplTest {
 		assertTrue(result.getChangedOn().getTime() > result.getStartedOn().getTime());
 		assertEquals(body, result.getRequestBody());
 		assertEquals(response, result.getResponseBody());
+	}
+	
+	@Test
+	public void testHashEtagLookup() throws DatastoreException, NotFoundException{
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId("syn456");
+		body.setUploadFileHandleId("123");
+		String requestHash = "sd1zQvpC67saUigIElscOgHash";
+		String objectEtag = UUID.randomUUID().toString();;
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body, requestHash, objectEtag);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		// Find the job with the hash, etag, and user id.
+		AsynchronousJobStatus foundStatus = asynchJobStatusDao.findJobStatus(requestHash, objectEtag, creatorUserGroupId);
+		assertNotNull(foundStatus);
+		assertEquals(status, foundStatus);
 	}
 	
 }

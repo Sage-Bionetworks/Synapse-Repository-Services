@@ -19,7 +19,7 @@ public interface AsynchronousJobStatusDAO {
 	 * @param body
 	 * @return
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
+	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body, String requestHash, String objectEtag);
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -63,6 +63,15 @@ public interface AsynchronousJobStatusDAO {
 	 * Clear all job status data from the database.
 	 */
 	public void truncateAllAsynchTableJobStatus();
+
+	/**
+	 * Find a job status for the request hash and object etag. If no such job exists, then null will be returned.
+	 * 
+	 * @param requestHash
+	 * @param objectEtag
+	 * @return
+	 */
+	public AsynchronousJobStatus findJobStatus(String requestHash, String objectEtag, Long userId);
 	
 
 }

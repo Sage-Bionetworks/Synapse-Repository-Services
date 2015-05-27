@@ -729,13 +729,18 @@ public class IT100TableControllerTest {
 		}
 
 		final String tableId = table.getId();
-		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true, 0xff, tableId);
+		String queryString = "select * from " + table.getId();
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, true, 0xff, tableId);
 		QueryResultBundle result = waitForAsync(new Callable<QueryResultBundle>() {
 			@Override
 			public QueryResultBundle call() throws Exception {
 				return synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
 			}
 		});
+		// Test that we if we issue the same query again, we get the same asynchToken (see PLFM-3284).
+		String secondAsynchToken = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, true, 0xff, tableId);
+		assertEquals(asyncToken, secondAsynchToken);
+		
 		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowsNeeded, result.getQueryCount().intValue());
 		assertNotNull(result.getQueryResult().getNextPageToken());

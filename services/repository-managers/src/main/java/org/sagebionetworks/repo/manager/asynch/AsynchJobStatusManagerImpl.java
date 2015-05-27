@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -12,12 +13,17 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
+	
+	private static final String CACHED_MESSAGE_TEMPLATE = "Returning a cached job for user: %d, requestHash: %s, objectEtag: %s, and jobId: %s";
+
+
+	static private Log log = LogFactory.getLog(AsynchJobStatusManagerImpl.class);	
+	
 	
 	private static final String JOB_ABORTED_MESSAGE = "Job aborted because the stack was not in: "+StatusEnum.READ_WRITE;
 
@@ -29,6 +35,8 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	StackStatusDao stackStatusDao;
 	@Autowired
 	AsynchJobQueuePublisher asynchJobQueuePublisher;
+	@Autowired
+	JobHashProvider jobHashProvider;
 	
 	@Override
 	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
@@ -51,8 +59,35 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		// Dao does the rest.
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
+		/*
+		 *  Before we start the job, we need to determine if a job already exists
+		 *  for this request, object etag, and user.
+		 */
+		String requestHash = jobHashProvider.getJobHash(body);
+		// Lookup the current etag for the request object.
+		String objectEtag = jobHashProvider.getRequestObjectEtag(body);
+		if (objectEtag != null) {
+			// Is there already a job with this hash, object etag and started by
+			// this user?
+			AsynchronousJobStatus existingStatus = asynchJobStatusDao
+					.findJobStatus(requestHash, objectEtag, user.getId());
+			if (existingStatus != null) {
+				if(body.equals(existingStatus.getRequestBody())){
+					if(AsynchJobState.COMPLETE.equals(existingStatus.getJobState())){
+						/*
+						 * If here then the caller has already made this exact request
+						 * and the object has not changed since the last request.
+						 * Therefore, we return the same job status as before without
+						 * starting a new job.
+						 */
+						log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, objectEtag, existingStatus.getJobId()));
+						return existingStatus;
+					}
+				}
+			}
+		}
+		// Start the job.
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body, requestHash, objectEtag);
 		// publish a message to get the work started
 		asynchJobQueuePublisher.publishMessage(status);
 		return status;

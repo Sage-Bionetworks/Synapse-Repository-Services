@@ -1,14 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_CURRENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_TOTAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.util.Date;
 import java.util.UUID;
@@ -29,7 +20,7 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-
+import org.springframework.jdbc.core.RowMapper;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
@@ -40,6 +31,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
+	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_REQUEST_HASH+" = ? AND "+COL_ASYNCH_JOB_OBJECT_ETAG+" = ? AND "+COL_ASYNCH_JOB_STARTED_BY+" = ?";
 	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
 			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
 			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
@@ -55,6 +47,8 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	RowMapper<DBOAsynchJobStatus> statusRowMapper = new DBOAsynchJobStatus().getTableMapping();
 
 
 	@Override
@@ -75,7 +69,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 */
 	@NewWriteTransaction
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body, String requestHash, String objectEtag) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -89,6 +83,8 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setRuntimeMS(0L);
 		status.setRequestBody(body);
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
+		dbo.setRequestHash(requestHash);
+		dbo.setObjectEtag(objectEtag);
 		dbo = basicDao.createNew(dbo);
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
@@ -139,6 +135,21 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(dto);
 		basicDao.update(dbo);
 		return newEtag;
+	}
+
+	@Override
+	public AsynchronousJobStatus findJobStatus(String requestHash, String objectEtag, Long userId) {
+		if(requestHash == null){
+			throw new IllegalArgumentException("requestHash cannot be null");
+		}
+		if(objectEtag == null){
+			throw new IllegalArgumentException("objectEtag cannot be null");
+		}
+		if(userId == null){
+			throw new IllegalArgumentException("userId cannot be null");
+		}
+		DBOAsynchJobStatus dbo = jdbcTemplate.queryForObject(SQL_SELECT_BY_HASH_ETAG_STARTED_BY, statusRowMapper, requestHash, objectEtag, userId);
+		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
 	
