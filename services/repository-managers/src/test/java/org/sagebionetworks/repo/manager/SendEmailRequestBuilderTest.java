@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
@@ -19,13 +20,15 @@ public class SendEmailRequestBuilderTest {
 				.withBody("bar")
 				.withIsHtml(false)
 				.withSenderUserName("foobar")
-				.withSenderDisplayName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint("https://www.synapse.org/#unsub:")
+				.withUserId("101")
 				.build();
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
 		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("bar", request.getMessage().getBody().getText().getData());
+		assertTrue(request.getMessage().getBody().getText().getData().startsWith("bar"));
 		assertNull(request.getMessage().getBody().getHtml());
-		assertEquals("foobar <foobar@synapse.org>", request.getSource());
+		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
 
 		request = (new SendEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
@@ -33,13 +36,15 @@ public class SendEmailRequestBuilderTest {
 				.withBody("<div>bar</div>")
 				.withIsHtml(true)
 				.withSenderUserName("foobar")
-				.withSenderDisplayName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint("https://www.synapse.org/#unsub:")
+				.withUserId("101")
 				.build();
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
 		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("<div>bar</div>", request.getMessage().getBody().getHtml().getData());
+		assertTrue(request.getMessage().getBody().getHtml().getData().startsWith("<div>bar</div>"));
 		assertNull(request.getMessage().getBody().getText());
-		assertEquals("foobar <foobar@synapse.org>", request.getSource());
+		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
 	}
 	
 }

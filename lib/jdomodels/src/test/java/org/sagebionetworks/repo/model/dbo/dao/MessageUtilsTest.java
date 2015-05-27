@@ -97,6 +97,7 @@ public class MessageUtilsTest {
 			add("4");
 			add("5");
 		}});
+		dto.setNotificationUnsubscribeEndpoint("foo");
 
 		DBOMessageContent content = new DBOMessageContent();
 		DBOMessageToUser info = new DBOMessageToUser();
@@ -146,6 +147,7 @@ public class MessageUtilsTest {
 		dto.setInReplyTo("456");
 		dto.setInReplyToRoot("789");
 		dto.setSubject("foo");
+		dto.setNotificationUnsubscribeEndpoint("bar");
 		
 		DBOMessageToUser info = new DBOMessageToUser();
 		MessageUtils.copyDTOToDBO(dto, info);

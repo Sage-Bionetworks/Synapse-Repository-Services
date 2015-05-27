@@ -136,6 +136,7 @@ public class DBOMessageDAOImplTest {
 		dto.setSubject(subject);
 		dto.setRecipients(recipients);
 		dto.setInReplyTo(inReplyTo);
+		dto.setNotificationUnsubscribeEndpoint("https://www.synapse.org/#foo:");
 		// Note: InReplyToRoot is calculated by the DAO
 		
 		// Insert the message
