@@ -510,7 +510,6 @@ public class TeamManagerImpl implements TeamManager {
 			UserInfo memberInfo, String teamId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws NotFoundException {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (notificationUnsubscribeEndpoint==null) return result;
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
@@ -525,10 +524,9 @@ public class TeamManagerImpl implements TeamManager {
 			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
 				MessageToUser mtu = new MessageToUser();
 				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
-				fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-						notificationUnsubscribeEndpoint, recipient));
 				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
 				mtu.setRecipients(Collections.singleton(recipient));
+				mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 				result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 			}
 		} else {
@@ -536,12 +534,11 @@ public class TeamManagerImpl implements TeamManager {
 			String joinerDisplayName = EmailUtils.getDisplayNameWithUserName(joinerUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
 			String recipient = memberInfo.getId().toString();
-			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-					notificationUnsubscribeEndpoint, recipient));
 			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();
 			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
 			mtu.setRecipients(Collections.singleton(recipient));
+			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}	
 		return result;

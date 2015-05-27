@@ -187,20 +187,20 @@ public class MembershipRequestManagerImplTest {
 		mrs.setMessage("Please let me in your team.");
 		List<MessageToUserAndBody> resultList = membershipRequestManagerImpl.
 				createMembershipRequestNotification(mrs,
-						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
+						acceptRequestEndpoint,
+						notificationUnsubscribeEndpoint);
 		assertEquals(teamAdmins.size(), resultList.size());
 		for (int i=0; i<resultList.size(); i++) {
 			MessageToUserAndBody result = resultList.get(i);
 			assertEquals("someone has requested to join your team", result.getMetadata().getSubject());
 			assertEquals(Collections.singleton(teamAdmins.get(i)), result.getMetadata().getRecipients());
 
-			// this will give us eleven pieces...
+			// this will give us nine pieces...
 			List<String> delims = Arrays.asList(new String[] {
 					TEMPLATE_KEY_DISPLAY_NAME,
 					TEMPLATE_KEY_TEAM_NAME,
 					TEMPLATE_KEY_REQUESTER_MESSAGE,
-					TEMPLATE_KEY_ONE_CLICK_JOIN,
-					TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+					TEMPLATE_KEY_ONE_CLICK_JOIN
 			});
 			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipRequestManagerImpl.TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, delims);
 
@@ -214,7 +214,7 @@ public class MembershipRequestManagerImplTest {
 			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
 			String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
 			assertTrue(inviterMessage.indexOf("Please let me in your team.")>=0);
-			assertTrue(result.getBody().indexOf(templatePieces.get(8))>0);
+			assertTrue(result.getBody().endsWith(templatePieces.get(8)));
 			String acceptRequestToken = 
 					EmailParseUtil.getTokenFromString(result.getBody(), 
 					templatePieces.get(6)+acceptRequestEndpoint, templatePieces.get(8));
@@ -223,15 +223,6 @@ public class MembershipRequestManagerImplTest {
 			assertEquals(TEAM_ID, jtst.getTeamId());
 			assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
 			assertEquals(teamAdmins.get(i), jtst.getUserId());
-			assertTrue(result.getBody().endsWith(templatePieces.get(10)));
-			String unsubscribeToken = EmailParseUtil.getTokenFromString(
-					result.getBody(), templatePieces.get(8)+notificationUnsubscribeEndpoint, templatePieces.get(10));
-			NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
-					(unsubscribeToken, NotificationSettingsSignedToken.class);
-			SignedTokenUtil.validateToken(nsst);
-			assertEquals(teamAdmins.get(i), nsst.getUserId());
-			assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
-			assertFalse(nsst.getSettings().getSendEmailNotifications());
 		}
 
 	}

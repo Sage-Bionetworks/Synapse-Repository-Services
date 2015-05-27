@@ -133,7 +133,6 @@ public class SubmissionManagerTest {
 	private static final String TEAM_ID = "999";
 	private static final String CHALLENGE_END_POINT = "https://synapse.org/#ENTITY:";
 	private static final String NOTIFICATION_UNSUBSCRIBE_END_POINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
@@ -762,19 +761,19 @@ public class SubmissionManagerTest {
 		List<MessageToUserAndBody> result = 
 				submissionManager.createSubmissionNotifications(
 						userInfo, sub, ""+submissionEligibilityHash,
-						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
+						CHALLENGE_END_POINT,
+						NOTIFICATION_UNSUBSCRIBE_END_POINT);
 		assertEquals(1, result.size());
 		assertEquals("Team Challenge Submission", result.get(0).getMetadata().getSubject());
 		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		String body = result.get(0).getBody();
 		
-		// this will give us eleven pieces...
+		// this will give us nine pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,
 				TEMPLATE_KEY_CHALLENGE_NAME,
 				TEMPLATE_KEY_TEAM_NAME,
-				TEMPLATE_KEY_CHALLENGE_WEB_LINK,
-				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+				TEMPLATE_KEY_CHALLENGE_WEB_LINK
 		});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(SubmissionManagerImpl.TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, delims);
 
@@ -788,19 +787,10 @@ public class SubmissionManagerTest {
 		assertTrue(body.indexOf(templatePieces.get(6))>0);
 		String teamName = EmailParseUtil.getTokenFromString(body, templatePieces.get(4), templatePieces.get(6));
 		assertEquals("test team", teamName);
-		assertTrue(body.indexOf(templatePieces.get(8))>0);
+		assertTrue(body.endsWith(templatePieces.get(8)));
 		String challengeEntityId = EmailParseUtil.
 				getTokenFromString(body, templatePieces.get(6)+CHALLENGE_END_POINT, templatePieces.get(8));
-		assertEquals("syn101", challengeEntityId);
-		assertTrue(body.endsWith(templatePieces.get(10)));
-		String unsubscribeToken = EmailParseUtil.getTokenFromString(
-				body, templatePieces.get(8)+NOTIFICATION_UNSUBSCRIBE_END_POINT, templatePieces.get(10));
-		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
-				(unsubscribeToken, NotificationSettingsSignedToken.class);
-		SignedTokenUtil.validateToken(nsst);
-		assertEquals("99", nsst.getUserId());
-		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
-		assertFalse(nsst.getSettings().getSendEmailNotifications());
+		assertEquals("syn101", challengeEntityId);		
 	}
 	
 	@Test
@@ -809,7 +799,8 @@ public class SubmissionManagerTest {
 		sub.setTeamId(null);
 		List<MessageToUserAndBody> result = 
 				submissionManager.createSubmissionNotifications(userInfo, sub, null,
-						CHALLENGE_END_POINT, NOTIFICATION_UNSUBSCRIBE_END_POINT);
+						CHALLENGE_END_POINT,
+						NOTIFICATION_UNSUBSCRIBE_END_POINT);
 		assertTrue(result.isEmpty());
 		
 	}

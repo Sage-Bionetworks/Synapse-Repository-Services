@@ -62,6 +62,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import static org.sagebionetworks.repo.manager.EmailUtils.*;
 
 public class SubmissionManagerImpl implements SubmissionManager {
@@ -248,7 +249,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			Submission submission, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint) {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (challengeEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
+		if (challengeEndpoint==null) return result;
 		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
 			// no contributors to notify, so just return an empty list
 			return result;
@@ -283,12 +284,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// then this list will be empty and no notification will be sent.
 		for (SubmissionContributor contributor : submission.getContributors()) {
 			if (submitterId.equals(contributor.getPrincipalId())) continue;
-			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.
-					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, 
-							contributor.getPrincipalId()));
 			MessageToUser mtu = new MessageToUser();
 			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
 			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
+			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
 			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}

@@ -97,16 +97,15 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
-		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
+		if (acceptInvitationEndpoint==null) return null;
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
+		mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mis.getTeamId()).getName());
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId()));
-		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-				notificationUnsubscribeEndpoint, mis.getInviteeId()));
 		if (mis.getMessage()==null || mis.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {

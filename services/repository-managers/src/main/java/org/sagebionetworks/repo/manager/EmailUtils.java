@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
@@ -160,19 +161,15 @@ public class EmailUtils {
 	}
 	
 	public static String createHtmlUnsubscribeFooter(String unsubscribeLink) {
-    	StringBuilder footer = new StringBuilder();
-    	footer.append("<p></p><br/><div>This message was forwarded by Synapse.  To unsubscribe, follow <a href=\"");
-    	footer.append(unsubscribeLink);
-    	footer.append("\">this link</a>.</div>");
-		return footer.toString();
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);
+		return readMailTemplate("unsubscribeFooter.html",fieldValues);
 	}
 	
 	public static String createTextUnsubscribeFooter(String unsubscribeLink) {
-    	StringBuilder footer = new StringBuilder();
-    	footer.append("\r\nThis message was forwarded by Synapse.  To unsubscribe, follow this link:\r\n");
-    	footer.append(unsubscribeLink);
-    	footer.append("\r\n");
-		return footer.toString();
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);
+		return readMailTemplate("unsubscribeFooter.txt",fieldValues);
 	}
 	
 	public static String createEmailBodyFromHtml(String messageBody,
