@@ -11,11 +11,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobHashProviderImplTest {
@@ -104,18 +107,20 @@ public class JobHashProviderImplTest {
 	public void testGetRequestObjectEtagQueryBundleRequest() throws NotFoundException, IOException{
 		QueryBundleRequest body1 = new QueryBundleRequest();
 		body1.setEntityId("syn123");
+		Query query = new Query();
+		query.setSql("select * from syn123");
+		body1.setQuery(query);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("fd8O/19tdy+e22+2prHyfQ==", hash);
+		assertEquals("zDd20N2fIcYzgLRRSvqsKQ==", hash);
 	}
 	
 	@Test
 	public void testGetRequestObjectEtagQueryNextPageToken() throws NotFoundException, IOException{
-		QueryNextPageToken body1 = new QueryNextPageToken();
-		body1.setEntityId("syn123");
+		QueryNextPageToken body1 = TableRowManagerImpl.createNextPageToken("SELECT * FROM SYN123", 100L, 10L, true);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("ews2Ed37Q7e5aMDIJ4OhtA==", hash);
+		assertEquals("x8tcKLkdrj/UDW+ORBXrdQ==", hash);
 	}
 	
 }

@@ -4,14 +4,18 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.HasEntityId;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.util.Md5Utils;
@@ -59,6 +63,53 @@ public class JobHashProviderImpl implements JobHashProvider {
 			throw new IllegalArgumentException("Unknown request body type: "+body.getClass());
 		}
 	}
+	
+	/**
+	 * See: {@link #getTableEtag(String)}
+	 * @param body
+	 * @return
+	 */
+	private String getTableEtag(QueryNextPageToken body){
+		Query query = TableRowManagerImpl.createQueryFromNextPageToken(body);
+		String tableId = extractTableIdFromSql(query.getSql());
+		return getTableEtag(tableId);
+	}
+	
+	/**
+	 * See: {@link #getTableEtag(String)}
+	 * @param body
+	 * @return
+	 */
+	private String getTableEtag(QueryBundleRequest body){
+		if(body.getQuery() == null){
+			throw new IllegalArgumentException("QueryBundleRequest.query cannot be null");
+		}
+		String tableId = extractTableIdFromSql(body.getQuery().getSql());
+		return getTableEtag(tableId);
+	}
+	
+	/**
+	 * See: {@link #getTableEtag(String)}
+	 * @param body
+	 * @return
+	 */
+	private String getTableEtag(DownloadFromTableRequest body){
+		String tableId = extractTableIdFromSql(body.getSql());
+		return getTableEtag(tableId);
+	}
+	
+	/**
+	 * Helper to determine the tableId from the SQL.
+	 * @param sql
+	 * @return
+	 */
+	private String extractTableIdFromSql(String sql){
+		try {
+			return new TableQueryParser(sql).querySpecification().getTableExpression().getFromClause().getTableReference().getTableName();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
 
 	/**
 	 * Get an Etag for a table. The etag used here is the concatenation of:
@@ -68,10 +119,10 @@ public class JobHashProviderImpl implements JobHashProvider {
 	 * @param body
 	 * @return
 	 */
-	private String getTableEtag(HasEntityId body){
+	private String getTableEtag(String tableId){
 		// Base the etag on the table status
 		try {
-			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(body.getEntityId());
+			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
 			return status.getLastTableChangeEtag() + status.getResetToken();
 		}  catch (IOException e) {
 			throw new RuntimeException(e);
