@@ -67,6 +67,7 @@ public class SendEmailRequestBuilder {
 	public SendEmailRequest build() {
 		String source = EmailUtils.createSource(senderDisplayName, senderUserName);
 		// Construct an object to contain the recipient address
+		if (recipientEmail==null) throw new IllegalStateException("recipient is missing");
         Destination destination = new Destination().withToAddresses(recipientEmail);
         
         // Create the subject and body of the message

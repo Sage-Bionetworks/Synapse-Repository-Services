@@ -10,6 +10,7 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -21,7 +22,10 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.util.IOUtils;
 
@@ -81,16 +85,27 @@ public class ITCloudMailIn {
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		requestHeaders.put("sessionToken", sessionToken);
+		requestHeaders.put("Content-Type", "application/json"); // Note, without this header we get a 415 response code
 		for (String sampleFileName : SAMPLE_MESSAGES) {
 			InputStream is = ITCloudMailIn.class.getClassLoader().
 			         getResourceAsStream("CloudMailInMessages/"+sampleFileName);
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete.toString());
+			String myemail = userProfile.getEmails().get(0);
+			String myusername = userProfile.getUserName();
 			try {
 				IOUtils.copy(is, out);
 				String messageJson = out.toString("utf-8");
+				Message message = EntityFactory.createEntityFromJSONString(messageJson, Message.class);
+				JSONObject origHeaders = new JSONObject(message.getHeaders());
+				JSONObject newHeaders = new JSONObject();
+				newHeaders.put("Subject", origHeaders.get("Subject")); // can copy other headers too
+				newHeaders.put("From", myemail);
+				newHeaders.put("To", myusername+"@synapse.org");
+				message.setHeaders(newHeaders.toString());
 				HttpResponse response = conn.performRequest(
 						repoEndpoint+URI+"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe"
-						, "POST", messageJson, requestHeaders);
+						, "POST", EntityFactory.createJSONStringForEntity(message), requestHeaders);
 				assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
 			
 				// TODO check that file is created
@@ -101,6 +116,4 @@ public class ITCloudMailIn {
 		}
 
 	}
-	
-
 }

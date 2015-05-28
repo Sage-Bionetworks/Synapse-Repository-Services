@@ -44,6 +44,8 @@ public class SendRawEmailRequestBuilderTest {
 		
 		
 		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
+		assertEquals(1, request.getDestinations().size());
+		assertEquals("foo@bar.com", request.getDestinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(request.getRawMessage().getData().array()));
 		assertEquals(1, mimeMessage.getFrom().length);

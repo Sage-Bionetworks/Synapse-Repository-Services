@@ -106,7 +106,8 @@ public class SendRawEmailRequestBuilder {
 		// Assemble the email
 		SendRawEmailRequest request = new SendRawEmailRequest()
 		.withSource(source)
-		.withRawMessage(rawMessage);
+		.withRawMessage(rawMessage)
+		.withDestinations(recipientEmail);
 
 		return request;
 	}

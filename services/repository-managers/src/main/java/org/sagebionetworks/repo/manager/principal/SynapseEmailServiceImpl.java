@@ -55,8 +55,6 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		}
 	}
 
-
-	
 	public void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
 		writeObjectToFile(emailRequest, to);

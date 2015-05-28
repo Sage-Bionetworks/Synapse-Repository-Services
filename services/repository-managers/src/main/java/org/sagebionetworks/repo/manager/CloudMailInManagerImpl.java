@@ -123,9 +123,6 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		return result;
 	}
 
-	/*
-	 * Allow user name, principal ID, 'scrubbed' name
-	 */
 	public Long lookupPrincipalIdForSynapseEmailAddress(String email) {
 		// first, make sure it's actually an email address
 		AliasEnum.USER_EMAIL.validateAlias(email);
@@ -135,6 +132,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		String aliasString = emailLowerCase.substring(0,  
 				emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length());
 		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(aliasString);
+		if (alias==null) throw new IllegalArgumentException("Specified user, "+aliasString+" is unknown to Synapse.");
 		return alias.getPrincipalId();
 	}
 	
@@ -142,6 +140,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		// first, make sure it's actually an email address
 		AliasEnum.USER_EMAIL.validateAlias(email);
 		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(email);
+		if (alias==null) throw new IllegalArgumentException("Specified address "+email+" is not registered with Synapse.");
 		return alias.getPrincipalId();
 	}
 	

@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +38,83 @@ public class CloudMailInManagerImplTest {
 		JSONObject headers = new JSONObject();
 		headers.put("From", "foo@bar.com");
 		headers.put("To", "baz@synapse.org");
+		headers.put("Cc", "baz2@synapse.org");
+		headers.put("Bcc", "baz3@synapse.org");
 		headers.put("Subject", "test subject");
 		message.setHeaders(headers.toString());
+		String html = "<html><body>html content</body></html>";
+		message.setHtml(html);
+		String plain = "plain content";
+		message.setPlain(plain);
+		Attachment attachment = new Attachment();
+		message.setAttachments(Collections.singletonList(attachment));
+		
+		Set<String> expectedRecipients = new HashSet<String>();
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias("baz");
+		toAlias.setPrincipalId(101L);
+		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
+		expectedRecipients.add("101");
+		
+		PrincipalAlias ccAlias = new PrincipalAlias();
+		ccAlias.setAlias("baz2");
+		ccAlias.setPrincipalId(102L);
+		when(principalAliasDAO.findPrincipalWithAlias("baz2")).thenReturn(ccAlias);
+		expectedRecipients.add("102");
+		
+		PrincipalAlias bccAlias = new PrincipalAlias();
+		bccAlias.setAlias("baz3");
+		bccAlias.setPrincipalId(103L);
+		when(principalAliasDAO.findPrincipalWithAlias("baz3")).thenReturn(bccAlias);
+		expectedRecipients.add("103");
+		
+		PrincipalAlias fromAlias = new PrincipalAlias();
+		fromAlias.setAlias("foo@bar.com");
+		fromAlias.setPrincipalId(104L);
+		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
+		
+		MessageToUserAndBody mtub = 
+				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		assertEquals("application/json", mtub.getMimeType());
+		MessageBody messageBody = EntityFactory.createEntityFromJSONString(mtub.getBody(), MessageBody.class);
+		assertEquals(1, messageBody.getAttachments().size());
+		assertEquals(html, messageBody.getHtml());
+		assertEquals(plain, messageBody.getPlain());
+		
+		MessageToUser mtu = mtub.getMetadata();
+
+		assertEquals("104", mtu.getCreatedBy());
+		assertEquals("test subject", mtu.getSubject());
+		assertEquals(expectedRecipients, mtu.getRecipients());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, mtu.getNotificationUnsubscribeEndpoint());
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testConvertMessageNoFrom() throws Exception {
+		Message message = new Message();
+		JSONObject headers = new JSONObject();
+		headers.put("To", "baz@synapse.org");
+		headers.put("Subject", "test subject");
+		message.setHeaders(headers.toString());
+		
+		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testConvertMessageNoTo() throws Exception {
+		Message message = new Message();
+		JSONObject headers = new JSONObject();
+		headers.put("From", "foo@bar.com");
+		headers.put("Subject", "test subject");
+		message.setHeaders(headers.toString());
+		
+		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+	}
+	
+	@Test
+	public void testCopyMessageToMessageBody() throws Exception {
+		Message message = new Message();
 		String html = "<html><body>html content</body></html>";
 		message.setHtml(html);
 		String plain = "plain content";
@@ -50,23 +127,9 @@ public class CloudMailInManagerImplTest {
 		attachment.setFile_name("filename.txt");
 		attachment.setSize("100");
 		attachment.setUrl("http://foo.bar.com");
-		message.setAttachments(Collections.singletonList(attachment));
+		message.setAttachments(Collections.singletonList(attachment));	
 		
-		PrincipalAlias toAlias = new PrincipalAlias();
-		toAlias.setAlias("baz");
-		toAlias.setPrincipalId(101L);
-		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
-		
-		PrincipalAlias fromAlias = new PrincipalAlias();
-		fromAlias.setAlias("foo@bar.com");
-		fromAlias.setPrincipalId(102L);
-		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
-		
-		MessageToUserAndBody mtub = 
-				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
-		
-		assertEquals("application/json", mtub.getMimeType());
-		MessageBody messageBody = EntityFactory.createEntityFromJSONString(mtub.getBody(), MessageBody.class);
+		MessageBody messageBody = CloudMailInManagerImpl.copyMessageToMessageBody(message);
 		assertEquals(1, messageBody.getAttachments().size());
 		org.sagebionetworks.repo.model.message.multipart.Attachment actual = 
 				 messageBody.getAttachments().get(0);
@@ -79,12 +142,57 @@ public class CloudMailInManagerImplTest {
 		assertEquals(attachment.getUrl(), actual.getUrl());
 		assertEquals(html, messageBody.getHtml());
 		assertEquals(plain, messageBody.getPlain());
-		
-		MessageToUser mtu = mtub.getMetadata();
+	}
 
-		assertEquals("102", mtu.getCreatedBy());
-		assertEquals("test subject", mtu.getSubject());
-		assertEquals(Collections.singleton("101"), mtu.getRecipients());
+	@Test
+	public void testCopyMessageToMessageBodyWithReply() throws Exception {
+		Message message = new Message();
+		String html = "<html><body>html content</body></html>";
+		message.setHtml(html);
+		String plain = "plain content";
+		message.setPlain(plain);
+		String reply = "reply content";
+		message.setReply_plain(reply);
+		Attachment attachment = new Attachment();
+		attachment.setContent("attachment content");
+		attachment.setContent_id("999");
+		attachment.setContent_type("text/plain");
+		attachment.setDisposition("disposition");
+		attachment.setFile_name("filename.txt");
+		attachment.setSize("100");
+		attachment.setUrl("http://foo.bar.com");
+		message.setAttachments(Collections.singletonList(attachment));	
+		
+		MessageBody messageBody = CloudMailInManagerImpl.copyMessageToMessageBody(message);
+		assertEquals(1, messageBody.getAttachments().size());
+		org.sagebionetworks.repo.model.message.multipart.Attachment actual = 
+				 messageBody.getAttachments().get(0);
+		assertEquals(attachment.getContent(), actual.getContent());
+		assertEquals(attachment.getContent_id(), actual.getContent_id());
+		assertEquals(attachment.getContent_type(), actual.getContent_type());
+		assertEquals(attachment.getDisposition(), actual.getDisposition());
+		assertEquals(attachment.getFile_name(), actual.getFile_name());
+		assertEquals(attachment.getSize(), actual.getSize());
+		assertEquals(attachment.getUrl(), actual.getUrl());
+		assertNull(messageBody.getHtml());
+		assertEquals(reply, messageBody.getPlain());
+	}
+	
+	
+	@Test
+	public void testLookupPrincipalIdForSynapseEmailAddress() throws Exception {
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias("baz");
+		Long principalId = 101L;
+		toAlias.setPrincipalId(principalId);
+		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
+		
+		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("baz@synapse.org"));
+	}
+
+	@Test
+	public void testLookupPrincipalIdForRegisteredEmailAddress() throws Exception {
+		// TODO
 	}
 
 }
