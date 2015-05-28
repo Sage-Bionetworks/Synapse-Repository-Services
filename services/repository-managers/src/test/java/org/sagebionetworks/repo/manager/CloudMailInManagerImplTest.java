@@ -187,12 +187,49 @@ public class CloudMailInManagerImplTest {
 		toAlias.setPrincipalId(principalId);
 		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
 		
-		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("baz@synapse.org"));
+		// check that case doesn't matter
+		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("bAz@syNapse.oRg"));
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testLookupPrincipalIdForSynapseEmailAddressUnknwonAlias() throws Exception {
+		cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("bAz@syNapse.oRg");
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testLookupPrincipalIdForSynapseEmailAddressBADADDRESS() throws Exception {
+		cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("bazXXXsynapse.org");
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testLookupPrincipalIdForSynapseEmailAddressWRONGdomain() throws Exception {
+		cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("baz@google.com");
 	}
 
 	@Test
 	public void testLookupPrincipalIdForRegisteredEmailAddress() throws Exception {
-		// TODO
+		String email = "foo@bar.com";
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias(email);
+		Long principalId = 101L;
+		toAlias.setPrincipalId(principalId);
+		when(principalAliasDAO.findPrincipalWithAlias(email)).thenReturn(toAlias);
+		
+		// check that case doesn't matter
+		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email));
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testLookupPrincipalIdForRegisteredEmailAddressUnknownAlias() throws Exception {
+		String email = "foo@bar.com";
+		cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testLookupPrincipalIdForRegisteredEmailAddressBADADDRESS() throws Exception {
+		String email = "fooXXXbar.com";
+
+		cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
 	}
 
 }
