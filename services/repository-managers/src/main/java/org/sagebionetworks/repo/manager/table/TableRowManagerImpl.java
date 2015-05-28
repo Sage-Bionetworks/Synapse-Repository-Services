@@ -787,15 +787,35 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
+	
+	/**
+	 * Create a QueryNextPageToken from a sql query.
+	 * @param sql
+	 * @param nextOffset
+	 * @param limit
+	 * @param isConsistent
+	 * @return
+	 */
+	public static QueryNextPageToken createNextPageToken(SqlQuery sql, Long nextOffset, Long limit, boolean isConsistent) {
+		return createNextPageToken(sql.getModel().toString(), nextOffset, limit, isConsistent);
+	}
 
-	private QueryNextPageToken createNextPageToken(SqlQuery sql, Long nextOffset, Long limit, boolean isConsistent) {
+	/**
+	 * Create a QueryNextPageToken from a sql string.
+	 * @param sql
+	 * @param nextOffset
+	 * @param limit
+	 * @param isConsistent
+	 * @return
+	 */
+	public static QueryNextPageToken createNextPageToken(String sql, Long nextOffset, Long limit, boolean isConsistent) {
 		Query query = new Query();
-		query.setSql(sql.getModel().toString());
+		query.setSql(sql);
 		query.setOffset(nextOffset);
 		query.setLimit(limit);
 		query.setIsConsistent(isConsistent);
 
-		StringWriter writer = new StringWriter(sql.getOutputSQL().length() + 50);
+		StringWriter writer = new StringWriter(sql.length() + 50);
 		XStream xstream = new XStream();
 		xstream.alias("Query", Query.class);
 		xstream.toXML(query, writer);
@@ -805,7 +825,12 @@ public class TableRowManagerImpl implements TableRowManager {
 		return nextPageToken;
 	}
 
-	private Query createQueryFromNextPageToken(QueryNextPageToken nextPageToken) {
+	/**
+	 * Extract a query from a next page token.
+	 * @param nextPageToken
+	 * @return
+	 */
+	public static Query createQueryFromNextPageToken(QueryNextPageToken nextPageToken) {
 		if (nextPageToken == null || StringUtils.isEmpty(nextPageToken.getToken())) {
 			throw new IllegalArgumentException("Next page token cannot be empty");
 		}

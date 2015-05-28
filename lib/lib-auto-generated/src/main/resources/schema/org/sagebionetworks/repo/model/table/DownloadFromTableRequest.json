@@ -2,7 +2,7 @@
 	"description": "A CSV table download request.",
 	"implements": [
 		{
-            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+            "$ref":"org.sagebionetworks.repo.model.asynch.CacheableRequestBody"
 		},
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.HasEntityId"

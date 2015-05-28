@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao.asynch;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -17,9 +19,11 @@ public interface AsynchronousJobStatusDAO {
 	 * Start a new 
 	 * @param startedByUserId The ID of the user that is starting the job.
 	 * @param body
+	 * @param requestHash For jobs that are cacheable a hash of the job body + object etag will be included.
+	 * This hash can then be used to find existing jobs with the same hash. See {@link #findCompletedJobStatus(String, Long)}
 	 * @return
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
+	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body, String requestHash);
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -63,6 +67,17 @@ public interface AsynchronousJobStatusDAO {
 	 * Clear all job status data from the database.
 	 */
 	public void truncateAllAsynchTableJobStatus();
+
+	/**
+	 * Find a job status for the request hash and user id and with a jobState=COMPLETE. If no such job exists, then null will be returned.
+	 * 
+	 * @param requestHash
+	 * @param objectEtag
+	 * @return A list of all AsynchronousJobStatus with the given request hash and userId.  Will return an empty list if there are no matches.
+	 * 
+	 * Note: This method will never return more than five results.
+	 */
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId);
 	
 
 }

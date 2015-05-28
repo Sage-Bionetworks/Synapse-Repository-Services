@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -10,14 +13,20 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
+	
+	private static final String CACHED_MESSAGE_TEMPLATE = "Returning a cached job for user: %d, requestHash: %s, and jobId: %s";
+
+
+	static private Log log = LogFactory.getLog(AsynchJobStatusManagerImpl.class);	
+	
 	
 	private static final String JOB_ABORTED_MESSAGE = "Job aborted because the stack was not in: "+StatusEnum.READ_WRITE;
 
@@ -29,6 +38,8 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	StackStatusDao stackStatusDao;
 	@Autowired
 	AsynchJobQueuePublisher asynchJobQueuePublisher;
+	@Autowired
+	JobHashProvider jobHashProvider;
 	
 	@Override
 	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
@@ -51,11 +62,54 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		// Dao does the rest.
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
+		String requestHash = null;
+		if(body instanceof CacheableRequestBody){
+			/*
+			 *  Before we start a CacheableRequestBody job, we need to determine if a job already exists
+			 *  for this request and user.
+			 */
+			requestHash = jobHashProvider.getJobHash((CacheableRequestBody) body);
+			// Does this job already exist
+			AsynchronousJobStatus status = findJobsMatching(requestHash, body, user.getId());
+			if(status != null){
+				/*
+				 * If here then the caller has already made this exact request
+				 * and the object has not changed since the last request.
+				 * Therefore, we return the same job status as before without
+				 * starting a new job.
+				 */
+				log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, status.getJobId()));
+				return status;
+			}
+		}
+		// Start the job.
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body, requestHash);
 		// publish a message to get the work started
 		asynchJobQueuePublisher.publishMessage(status);
 		return status;
+	}
+	
+	/**
+	 * Find a job that matches the given requestHash, objectEtag, body and userId.
+	 * 
+	 * @param requestHash
+	 * @param objectEtag
+	 * @param body
+	 * @param userId
+	 * @return
+	 */
+	private AsynchronousJobStatus findJobsMatching(String requestHash, AsynchronousRequestBody body, Long userId){
+		// Find all jobs that match this request.
+		List<AsynchronousJobStatus> matches = asynchJobStatusDao.findCompletedJobStatus(requestHash, userId);
+		if (matches != null) {
+			for(AsynchronousJobStatus match: matches){
+				if(body.equals(match.getRequestBody())){
+					return match;
+				}
+			}
+		}
+		// no match found
+		return null;
 	}
 
 
