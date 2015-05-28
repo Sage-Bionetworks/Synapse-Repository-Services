@@ -737,13 +737,22 @@ public class IT100TableControllerTest {
 				return synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
 			}
 		});
-		// Test that we if we issue the same query again, we get the same asynchToken (see PLFM-3284).
-		String secondAsynchToken = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, true, 0xff, tableId);
-		assertEquals(asyncToken, secondAsynchToken);
 		
 		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowsNeeded, result.getQueryCount().intValue());
 		assertNotNull(result.getQueryResult().getNextPageToken());
+		
+		// now that the table index is ready run the query again.
+		final String asyncToken2 = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, true, 0xff, tableId);
+		waitForAsync(new Callable<QueryResultBundle>() {
+			@Override
+			public QueryResultBundle call() throws Exception {
+				return synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
+			}
+		});
+		// Since the table has not changed running the same query again should return the same job id.
+		final String asyncToken3 = synapse.queryTableEntityBundleAsyncStart(queryString, null, null, true, 0xff, tableId);
+		assertEquals(asyncToken2, asyncToken3);
 
 		final String nextPageAsyncToken = synapse.queryTableEntityNextPageAsyncStart(result.getQueryResult().getNextPageToken().getToken(), tableId);
 		QueryResult nextPageResult = waitForAsync(new Callable<QueryResult>() {
@@ -755,6 +764,7 @@ public class IT100TableControllerTest {
 		assertEquals(rowsNeeded - result.getMaxRowsPerPage().intValue(), nextPageResult.getQueryResults().getRows().size());
 		assertNull(nextPageResult.getNextPageToken());
 	}
+	
 
 	private TableEntity createTable(List<String> columns) throws SynapseException {
 		// Create a project to contain it all
