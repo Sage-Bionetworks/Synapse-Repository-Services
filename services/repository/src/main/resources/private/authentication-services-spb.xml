@@ -17,9 +17,9 @@
 	
 	
 	<bean id="cloudMailInAuthFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
-  		<property name="authenticationManager" ref="cloudMailInAuthenticationManager"/>
-  		<property name="authenticationEntryPoint" ref="authenticationEntryPoint"/>
-		</bean>
+  		<constructor-arg ref="cloudMailInAuthenticationManager"/>
+ 		<constructor-arg ref="authenticationEntryPoint"/>
+	</bean>
 
 	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
   		<property name="realmName" value="www.synapse.org"/>
