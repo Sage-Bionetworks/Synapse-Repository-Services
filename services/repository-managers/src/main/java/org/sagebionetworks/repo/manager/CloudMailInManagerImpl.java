@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class CloudMailInManagerImpl implements CloudMailInManager {
 	private static final String FROM_HEADER = "From";
 	private static final String TO_HEADER = "To";
+	private static final String CC_HEADER = "Cc";
+	private static final String BCC_HEADER = "Bcc";
 	private static final String SUBJECT_HEADER = "Subject";
 	
 	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfiguration.getNotificationEmailSuffix().toLowerCase();
@@ -33,6 +35,11 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
 	
+	public CloudMailInManagerImpl() {}
+	
+	public CloudMailInManagerImpl(PrincipalAliasDAO principalAliasDAO) {
+		this.principalAliasDAO=principalAliasDAO;
+	}
 
 	@Override
 	public MessageToUserAndBody convertMessage(Message message,
@@ -46,9 +53,11 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			Iterator<String> it = headers.keys();
 			while (it.hasNext()) {
 				String key = it.next();
-				if (SUBJECT_HEADER.equals(key)) {
+				if (SUBJECT_HEADER.equalsIgnoreCase(key)) {
 					subject = headers.getString(key);
-				} else if (TO_HEADER.equals(key)) {
+				} else if (TO_HEADER.equalsIgnoreCase(key) ||
+						CC_HEADER.equalsIgnoreCase(key) ||
+						BCC_HEADER.equalsIgnoreCase(key)) {
 					try {
 						JSONArray array = headers.getJSONArray(key);
 						for (int i=0; i<array.length(); i++) {
@@ -58,7 +67,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 						// it's a singleton, not an array
 						to.add(headers.getString(key));
 					}
-				} else if (FROM_HEADER.equals(key)) {
+				} else if (FROM_HEADER.equalsIgnoreCase(key)) {
 					from = headers.getString(key);
 				}
 			}
@@ -72,7 +81,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			}
 			mtu.setRecipients(recipients);
 			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddress(from).toString());		
-			
+			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			MessageToUserAndBody result = new MessageToUserAndBody();
 			result.setMetadata(mtu);
 			result.setMimeType(ContentType.APPLICATION_JSON.getMimeType());
@@ -88,20 +97,27 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	
 	public static MessageBody copyMessageToMessageBody(Message message) {
 		MessageBody result = new MessageBody();
-		result.setPlain(message.getPlain());
-		result.setHtml(message.getHtml());
+		// Note, if this is a reply we simply take the reply field and drop the html and plain fields
+		if (message.getReply_plain()!=null && message.getReply_plain().length()>0) {
+			result.setPlain(message.getReply_plain());
+		} else {
+			result.setPlain(message.getPlain());
+			result.setHtml(message.getHtml());
+		}
 		List<Attachment> attachments = new ArrayList<Attachment>();
-		for (org.sagebionetworks.repo.model.message.cloudmailin.Attachment cloudMailInAttachment : 
-				message.getAttachments()) {
-			Attachment attachment = new Attachment();
-			attachment.setContent(cloudMailInAttachment.getContent());
-			attachment.setContent_id(cloudMailInAttachment.getContent_id());
-			attachment.setContent_type(cloudMailInAttachment.getContent_type());
-			attachment.setDisposition(cloudMailInAttachment.getDisposition());
-			attachment.setFile_name(cloudMailInAttachment.getFile_name());
-			attachment.setSize(cloudMailInAttachment.getSize());
-			attachment.setUrl(cloudMailInAttachment.getUrl());
-			attachments.add(attachment);
+		if (message.getAttachments()!=null) {
+			for (org.sagebionetworks.repo.model.message.cloudmailin.Attachment cloudMailInAttachment : 
+					message.getAttachments()) {
+				Attachment attachment = new Attachment();
+				attachment.setContent(cloudMailInAttachment.getContent());
+				attachment.setContent_id(cloudMailInAttachment.getContent_id());
+				attachment.setContent_type(cloudMailInAttachment.getContent_type());
+				attachment.setDisposition(cloudMailInAttachment.getDisposition());
+				attachment.setFile_name(cloudMailInAttachment.getFile_name());
+				attachment.setSize(cloudMailInAttachment.getSize());
+				attachment.setUrl(cloudMailInAttachment.getUrl());
+				attachments.add(attachment);
+			}
 		}
 		result.setAttachments(attachments);
 		return result;
@@ -116,8 +132,9 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		String emailLowerCase = email.toLowerCase();
 		if (!emailLowerCase.endsWith(EMAIL_SUFFIX_LOWER_CASE))
 			throw new IllegalArgumentException("Email must end with "+EMAIL_SUFFIX_LOWER_CASE);
-		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(emailLowerCase.substring(0,  
-				emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length()));
+		String aliasString = emailLowerCase.substring(0,  
+				emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length());
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(aliasString);
 		return alias.getPrincipalId();
 	}
 	
