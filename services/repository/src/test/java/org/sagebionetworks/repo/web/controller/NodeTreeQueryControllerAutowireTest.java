@@ -9,6 +9,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
+@Ignore
 public class NodeTreeQueryControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
