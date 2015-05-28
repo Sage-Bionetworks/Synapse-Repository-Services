@@ -5,5 +5,5 @@
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
 		}
-	],
+	]
 }
