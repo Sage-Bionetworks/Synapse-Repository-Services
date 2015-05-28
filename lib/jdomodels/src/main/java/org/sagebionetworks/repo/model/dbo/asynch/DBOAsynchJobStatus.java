@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
@@ -10,6 +9,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_CURRENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_TOTAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_REQUEST_BODY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_RESPONSE_BODY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_RUNTIME_MS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
@@ -99,9 +101,7 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	
 	@Field(name= COL_ASYNCH_JOB_REQUEST_HASH, varchar=36, nullable = true)
 	private String requestHash;
-	
-	@Field(name= COL_ASYNCH_JOB_OBJECT_ETAG, varchar=36, nullable = true)
-	private String objectEtag;
+
 	
 	public Long getRuntimeMS() {
 		return runtimeMS;
@@ -229,14 +229,6 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 
 	public void setRequestHash(String requestHash) {
 		this.requestHash = requestHash;
-	}
-
-	public String getObjectEtag() {
-		return objectEtag;
-	}
-
-	public void setObjectEtag(String objectEtag) {
-		this.objectEtag = objectEtag;
 	}
 
 	public static void setTableMapping(

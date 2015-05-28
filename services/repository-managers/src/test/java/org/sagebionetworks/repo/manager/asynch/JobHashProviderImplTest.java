@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager.asynch;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -14,7 +12,6 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobHashProviderImplTest {
@@ -35,7 +32,7 @@ public class JobHashProviderImplTest {
 		body.setEntityId("syn123");
 		body.setSql("select * from syn123");
 		String hash = provider.getJobHash(body);
-		assertEquals("sd1zQvpC67saUigIElscOg==", hash);
+		assertEquals("FJhnG6NpTFnOrubTYtrwjA==", hash);
 	}
 	
 	@Test
@@ -77,8 +74,8 @@ public class JobHashProviderImplTest {
 		// null for empty tables.
 		when(mockTableDao.getLastTableRowChange(body1.getEntityId())).thenReturn(null);
 		// call under test
-		String etag = provider.getRequestObjectEtag(body1);
-		assertEquals(null, etag);
+		String etag = provider.getJobHash(body1);
+		assertEquals("FJhnG6NpTFnOrubTYtrwjA==", etag);
 	}
 	
 	@Test
@@ -91,8 +88,8 @@ public class JobHashProviderImplTest {
 		lastChange.setEtag("theEtag");
 		when(mockTableDao.getLastTableRowChange(body1.getEntityId())).thenReturn(lastChange);
 		// call under test
-		String etag = provider.getRequestObjectEtag(body1);
-		assertEquals(lastChange.getEtag(), etag);
+		String hash = provider.getJobHash(body1);
+		assertEquals("BSZBXxn0GVOWMQWFIyYy+Q==", hash);
 	}
 	
 	@Test
@@ -104,8 +101,8 @@ public class JobHashProviderImplTest {
 		lastChange.setEtag("theEtag");
 		when(mockTableDao.getLastTableRowChange(body1.getEntityId())).thenReturn(lastChange);
 		// call under test
-		String etag = provider.getRequestObjectEtag(body1);
-		assertEquals(lastChange.getEtag(), etag);
+		String hash = provider.getJobHash(body1);
+		assertEquals("2kkYg2oBk5X1X1fpfKGyXg==", hash);
 	}
 	
 	@Test
@@ -117,21 +114,8 @@ public class JobHashProviderImplTest {
 		lastChange.setEtag("theEtag");
 		when(mockTableDao.getLastTableRowChange(body1.getEntityId())).thenReturn(lastChange);
 		// call under test
-		String etag = provider.getRequestObjectEtag(body1);
-		assertEquals(lastChange.getEtag(), etag);
+		String hash = provider.getJobHash(body1);
+		assertEquals("dLvK33yjE4iQHwOEuM2aWA==", hash);
 	}
 	
-	@Test
-	public void testGetRequestObjectEtagUploadToTableRequest(){
-		UploadToTableRequest body1 = new UploadToTableRequest();
-		body1.setTableId("syn123");
-		// Not null
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setEtag("theEtag");
-		when(mockTableDao.getLastTableRowChange(body1.getTableId())).thenReturn(lastChange);
-		// call under test
-		String etag = provider.getRequestObjectEtag(body1);
-		assertEquals(null, etag);
-		verify(mockTableDao, never()).getLastTableRowChange(anyString());
-	}
 }

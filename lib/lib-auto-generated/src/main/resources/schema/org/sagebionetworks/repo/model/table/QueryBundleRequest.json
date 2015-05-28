@@ -2,7 +2,7 @@
     "title":"Query",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+			"$ref": "org.sagebionetworks.repo.model.asynch.CacheableRequestBody"
 		},
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.HasEntityId"

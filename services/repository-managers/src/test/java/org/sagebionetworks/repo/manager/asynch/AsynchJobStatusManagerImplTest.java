@@ -67,7 +67,7 @@ public class AsynchJobStatusManagerImplTest {
 		ReflectionTestUtils.setField(manager, "asynchJobQueuePublisher", mockAsynchJobQueuePublisher);
 		ReflectionTestUtils.setField(manager, "jobHashProvider", mockJobHashProvider);
 		startedJobId = "99999";
-		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString())).toAnswer(new Answer<AsynchronousJobStatus>() {
+		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class), anyString())).toAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
@@ -93,8 +93,6 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		// default with no object etag.
-		when(mockJobHashProvider.getRequestObjectEtag(any(AsynchronousRequestBody.class))).thenReturn(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -291,21 +289,19 @@ public class AsynchJobStatusManagerImplTest {
 		// setup hash and etag.
 		String bodyHash = "aBodyHash";
 		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
-		String objectEtag = "anObjectEtag";
-		when(mockJobHashProvider.getRequestObjectEtag(body)).thenReturn(objectEtag);
 		// Match request to existing job
 		AsynchronousJobStatus existingJob = new AsynchronousJobStatus();
 		existingJob.setStartedByUserId(user.getId());
 		existingJob.setJobId("123456");
 		existingJob.setRequestBody(body);
 		existingJob.setJobState(AsynchJobState.COMPLETE);
-		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(Arrays.asList(existingJob));
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(Arrays.asList(existingJob));
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		// The status should match the exiting job
 		assertEquals(existingJob, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString());
+		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
 	}
 	
 	@Test
@@ -322,8 +318,6 @@ public class AsynchJobStatusManagerImplTest {
 		// setup hash and etag.
 		String bodyHash = "aBodyHash";
 		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
-		String objectEtag = "anObjectEtag";
-		when(mockJobHashProvider.getRequestObjectEtag(body)).thenReturn(objectEtag);
 		// Match request to existing job
 		List<AsynchronousJobStatus> hits = new LinkedList<AsynchronousJobStatus>();
 		// First hit is not a match.
@@ -341,13 +335,13 @@ public class AsynchJobStatusManagerImplTest {
 		hitTwo.setJobState(AsynchJobState.COMPLETE);
 		hits.add(hitTwo);
 		
-		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(hits);
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(hits);
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		// The status should match the exiting job
 		assertEquals(hitTwo, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString());
+		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
 	}
 	
 	@Test
@@ -359,17 +353,15 @@ public class AsynchJobStatusManagerImplTest {
 		// setup hash and etag.
 		String bodyHash = "aBodyHash";
 		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
-		String objectEtag = "anObjectEtag";
-		when(mockJobHashProvider.getRequestObjectEtag(body)).thenReturn(objectEtag);
 		// For this case, no job exists
 		List<AsynchronousJobStatus> existingJob = new LinkedList<AsynchronousJobStatus>();
-		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(existingJob);
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(existingJob);
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString());
+		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -385,8 +377,6 @@ public class AsynchJobStatusManagerImplTest {
 		// setup hash and etag.
 		String bodyHash = "aBodyHash";
 		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
-		String objectEtag = "anObjectEtag";
-		when(mockJobHashProvider.getRequestObjectEtag(body)).thenReturn(objectEtag);
 		// The cached request body does not equal the body for this request. 
 		DownloadFromTableRequest cachedBody = new DownloadFromTableRequest();
 		cachedBody.setEntityId("syn123");
@@ -396,13 +386,13 @@ public class AsynchJobStatusManagerImplTest {
 		existingJob.setJobId("123456");
 		existingJob.setRequestBody(cachedBody);
 		// There is a job with this hash but the body does not match the request's body.
-		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, objectEtag, user.getId())).thenReturn(Arrays.asList(existingJob));
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(Arrays.asList(existingJob));
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString(), anyString());
+		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 }

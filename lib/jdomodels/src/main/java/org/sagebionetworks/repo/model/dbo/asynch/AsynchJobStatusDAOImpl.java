@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_OBJECT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_CURRENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_TOTAL;
@@ -45,7 +44,7 @@ import org.springframework.jdbc.core.RowMapper;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
-	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_REQUEST_HASH+" = ? AND "+COL_ASYNCH_JOB_OBJECT_ETAG+" = ? AND "+COL_ASYNCH_JOB_STARTED_BY+" = ? AND "+COL_ASYNCH_JOB_STATE+" = ? ";
+	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_REQUEST_HASH+" = ? AND "+COL_ASYNCH_JOB_STARTED_BY+" = ? AND "+COL_ASYNCH_JOB_STATE+" = ? LIMIT 5";
 	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
 			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
 			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
@@ -83,7 +82,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 */
 	@NewWriteTransaction
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body, String requestHash, String objectEtag) {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body, String requestHash) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -98,7 +97,6 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setRequestBody(body);
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 		dbo.setRequestHash(requestHash);
-		dbo.setObjectEtag(objectEtag);
 		dbo = basicDao.createNew(dbo);
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
@@ -131,7 +129,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
-		DBOAsynchJobStatus dbo =  jdbcTemplate.queryForObject("SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_ID+" = ? FOR UPDATE", statusRowMapper, jobId);
+		DBOAsynchJobStatus dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobId));
 		// Calculate the runtime
 		long now = System.currentTimeMillis();
 		long runtimeMS = now - dbo.getStartedOn().getTime();
@@ -154,18 +152,14 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 * @see org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO#findCompletedJobStatus(java.lang.String, java.lang.String, java.lang.Long)
 	 */
 	@Override
-	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, String objectEtag, Long userId) {
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) {
 		if(requestHash == null){
 			throw new IllegalArgumentException("requestHash cannot be null");
-		}
-		if(objectEtag == null){
-			throw new IllegalArgumentException("objectEtag cannot be null");
 		}
 		if(userId == null){
 			throw new IllegalArgumentException("userId cannot be null");
 		}
-		Object[] args = {requestHash, objectEtag, userId, AsynchJobState.COMPLETE.name()};
-		List<DBOAsynchJobStatus> dbos = jdbcTemplate.query(SQL_SELECT_BY_HASH_ETAG_STARTED_BY, args , statusRowMapper);
+		List<DBOAsynchJobStatus> dbos = jdbcTemplate.query(SQL_SELECT_BY_HASH_ETAG_STARTED_BY, statusRowMapper, requestHash, userId, AsynchJobState.COMPLETE.name() );
 		List<AsynchronousJobStatus> results = new LinkedList<AsynchronousJobStatus>();
 		for(DBOAsynchJobStatus dbo: dbos){
 			results.add(AsynchJobStatusUtils.createDTOFromDBO(dbo));
