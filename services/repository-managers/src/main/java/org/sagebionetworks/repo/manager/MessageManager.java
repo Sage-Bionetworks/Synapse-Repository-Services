@@ -107,7 +107,7 @@ public interface MessageManager {
 	/**
 	 * Sends a password reset email based on a template via Amazon SES
 	 */
-	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException;
 	
 	/**
 	 * Sends a welcome email based on a template via Amazon SES

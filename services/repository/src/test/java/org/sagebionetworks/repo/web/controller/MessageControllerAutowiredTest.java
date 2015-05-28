@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +71,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	private Set<String> toBob;
 	private Set<String> toEve;
 	
+	private String aliceEmail;
+	private String bobUsername;
+	
 	private List<String> cleanup;
 	
 	@SuppressWarnings("serial")
@@ -83,13 +88,15 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		
 		// Need 3 users
 		NewUser user = new NewUser(); 
-		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		aliceEmail = UUID.randomUUID().toString() + "@test.com";
+		user.setEmail(aliceEmail);
 		user.setUserName(UUID.randomUUID().toString());
 		alice = userManager.createUser(user);
 		aliceId = "" + alice;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
-		user.setUserName(UUID.randomUUID().toString());
+		bobUsername = UUID.randomUUID().toString();
+		user.setUserName(bobUsername);
 		bob = userManager.createUser(user);
 		bobId = "" + bob;
 		
@@ -122,15 +129,19 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	
 	@After
 	public void after() throws Exception {
-		for (String id : cleanup) {
-			messageService.deleteMessage(adminUserInfo.getId(), id);
+		try {
+			for (String id : cleanup) {
+				messageService.deleteMessage(adminUserInfo.getId(), id);
+			}
+			
+			fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
+			
+			userManager.deletePrincipal(adminUserInfo, Long.parseLong(aliceId));
+			userManager.deletePrincipal(adminUserInfo, Long.parseLong(bobId));
+			userManager.deletePrincipal(adminUserInfo, Long.parseLong(eveId));
+		} catch (Exception e) {
+			
 		}
-		
-		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
-		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(aliceId));
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(bobId));
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(eveId));
 	}
 	
 	/**
@@ -295,5 +306,17 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(0, inboxOfBob.getResults().size());
+	}
+	
+	@Test
+	public void testCloudInMessage() throws Exception {
+		Message message = new Message();
+		JSONObject headers = new JSONObject();
+		headers.put("Subject", "subject");
+		headers.put("From", aliceEmail);
+		headers.put("To", bobUsername+"@synapse.org");
+		message.setHeaders(headers.toString());
+		message.setPlain("this is the message body");
+		servletTestHelper.createCloudInMessage(message);
 	}
 }

@@ -133,7 +133,7 @@
 
 	<filter>
 		<filter-name>userThrottleFilter</filter-name>
-		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<filter-class>org.springframework.web.filter.userThrottleFilter</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
 			<param-name>targetFilterLifecycle</param-name>

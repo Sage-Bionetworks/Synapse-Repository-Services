@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -576,7 +575,7 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@WriteTransaction
-	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken, String notificationUnsubscribeEndpoint) throws NotFoundException {
+	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
 		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Set " + domain + " Password";
@@ -609,7 +608,6 @@ public class MessageManagerImpl implements MessageManager {
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
 				.withUserId(recipientId.toString())
-				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
 				.build();
 		sesClient.sendEmail(sendEmailRequest);
 	}

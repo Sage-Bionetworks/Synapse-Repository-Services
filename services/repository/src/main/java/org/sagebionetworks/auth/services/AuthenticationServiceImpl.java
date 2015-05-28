@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -100,14 +101,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@WriteTransaction
-	public void createUser(NewUser user, DomainType domain, String notificationUnsubscribeEndpoint) {
+	public void createUser(NewUser user, DomainType domain) {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Email must be specified");
 		}
 		
 		Long userid = userManager.createUser(user);
 		try {
-			sendPasswordEmail(userid, domain, notificationUnsubscribeEndpoint);
+			sendPasswordEmail(userid, domain);
 		} catch (NotFoundException e) {
 			throw new DatastoreException("Could not find user that was just created", e);
 		}
@@ -115,7 +116,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@WriteTransaction
-	public void sendPasswordEmail(Long principalId, DomainType domain, String notificationUnsubscribeEndpoint) throws NotFoundException {
+	public void sendPasswordEmail(Long principalId, DomainType domain) throws NotFoundException {
 		if (principalId == null) {
 			throw new IllegalArgumentException("PrincipalId may not be null");
 		}
@@ -127,7 +128,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		String sessionToken = authManager.authenticate(principalId, null, domain).getSessionToken();
 		
 		// Send the email
-		messageManager.sendPasswordResetEmail(principalId, domain, sessionToken, notificationUnsubscribeEndpoint);
+		messageManager.sendPasswordResetEmail(principalId, domain, sessionToken);
 	}
 	
 	@Override
@@ -263,10 +264,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public void sendPasswordEmail(String email, DomainType domain, String notificationUnsubscribeEndpoint) throws NotFoundException {
+	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException {
 		PrincipalAlias pa = lookupUserForAuthentication(email);
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
-		sendPasswordEmail(pa.getPrincipalId(), domain, notificationUnsubscribeEndpoint);
+		sendPasswordEmail(pa.getPrincipalId(), domain);
 		
 	}
 
