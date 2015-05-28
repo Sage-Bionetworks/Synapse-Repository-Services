@@ -643,17 +643,17 @@ public class MessageManagerImpl implements MessageManager {
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException {
 		// Build the subject and body of the message
 		MessageToUser dto = messageDAO.getMessage(messageId);
-		UserInfo sender = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		Long senderId = Long.parseLong(dto.getCreatedBy());
 		String subject = "Message " + messageId + " Delivery Failure(s)";
 		
-		String alias = principalAliasDAO.getUserName(sender.getId());
+		String alias = principalAliasDAO.getUserName(senderId);
 
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_ID, messageId);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
-		String email = getEmailForUser(sender.getId());
+		String email = getEmailForUser(senderId);
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
 		
 		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
@@ -662,10 +662,9 @@ public class MessageManagerImpl implements MessageManager {
 				.withBody(messageBody)
 				.withIsHtml(false)
 				.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
-				.withUserId(sender.getId().toString())
+				.withUserId(senderId.toString())
 				.build();
 		sesClient.sendEmail(sendEmailRequest);
-
 	}
 	
 	
