@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
@@ -163,10 +162,9 @@ public class SendRawEmailRequestBuilder {
 							part.setContent(content, contentType);
 							
 						}
-						part.setDisposition(attachment.getDisposition());
-						part.setContentID(attachment.getContent_id());
-						part.setFileName(attachment.getFile_name());
-						
+						if (attachment.getDisposition()!=null) part.setDisposition(attachment.getDisposition());
+						if (attachment.getContent_id()!=null) part.setContentID(attachment.getContent_id());
+						if (attachment.getFile_name()!=null) part.setFileName(attachment.getFile_name());
 						if (attachment.getSize()!=null) part.setHeader("size", attachment.getSize());
 						if (attachment.getUrl()!=null) part.setHeader("url", attachment.getUrl());
 						mp.addBodyPart(part);

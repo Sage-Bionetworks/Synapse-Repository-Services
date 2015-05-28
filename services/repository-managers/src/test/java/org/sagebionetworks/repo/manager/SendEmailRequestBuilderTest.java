@@ -16,7 +16,7 @@ public class SendEmailRequestBuilderTest {
 	public void testCreateEmailRequest() {
 		SendEmailRequest request = (new SendEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
-				.withSubject("foo")
+				.withSubject("subject")
 				.withBody("bar")
 				.withIsHtml(false)
 				.withSenderUserName("foobar")
@@ -25,14 +25,14 @@ public class SendEmailRequestBuilderTest {
 				.withUserId("101")
 				.build();
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
-		assertEquals("foo", request.getMessage().getSubject().getData());
+		assertEquals("subject", request.getMessage().getSubject().getData());
 		assertTrue(request.getMessage().getBody().getText().getData().startsWith("bar"));
 		assertNull(request.getMessage().getBody().getHtml());
 		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
 
 		request = (new SendEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
-				.withSubject("foo")
+				.withSubject("subject")
 				.withBody("<div>bar</div>")
 				.withIsHtml(true)
 				.withSenderUserName("foobar")
@@ -41,7 +41,7 @@ public class SendEmailRequestBuilderTest {
 				.withUserId("101")
 				.build();
 		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
-		assertEquals("foo", request.getMessage().getSubject().getData());
+		assertEquals("subject", request.getMessage().getSubject().getData());
 		assertTrue(request.getMessage().getBody().getHtml().getData().startsWith("<div>bar</div>"));
 		assertNull(request.getMessage().getBody().getText());
 		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
