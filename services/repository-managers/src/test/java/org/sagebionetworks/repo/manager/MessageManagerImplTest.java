@@ -769,7 +769,7 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?", null);
+		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
 		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE, null);
