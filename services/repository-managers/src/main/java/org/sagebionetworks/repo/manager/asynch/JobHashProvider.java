@@ -12,7 +12,7 @@ public interface JobHashProvider {
 	/**
 	 * Generate a hash for the given given request body and user ID.
 	 * Note: The returned hash is the MD5 of the following:
-	 * <body_json_> + <object_etaga>
+	 * <body_json_> + <object_etag>
 	 * @param body
 	 * @return
 	 */

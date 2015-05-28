@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
-import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.HasEntityId;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 	
 	private static final String NULL = "NULL";
 	@Autowired
-	TableRowTruthDAO tableRowTruthDao;
+	TableRowManager tableRowManager;
 
 	@Override
 	public String getJobHash(CacheableRequestBody body) {
@@ -47,24 +48,33 @@ public class JobHashProviderImpl implements JobHashProvider {
 		if(body == null){
 			throw new IllegalArgumentException("Body cannot be null");
 		}
-		// For now we only provide etags for tables. We can extend this if needed.
-		String tableId = null;
+		// Etag lookup is dependent on the type of request body provided.
 		if(body instanceof DownloadFromTableRequest){
-			tableId = ((DownloadFromTableRequest)body).getEntityId();
+			return getTableEtag((DownloadFromTableRequest)body);
 		}else if(body instanceof QueryBundleRequest){
-			tableId = ((QueryBundleRequest)body).getEntityId();
+			return getTableEtag((QueryBundleRequest)body);
 		}else if(body instanceof QueryNextPageToken){
-			tableId = ((QueryNextPageToken)body).getEntityId();
+			return getTableEtag((QueryNextPageToken)body);
 		}else{
 			throw new IllegalArgumentException("Unknown request body type: "+body.getClass());
 		}
-		if(tableId != null){
-			TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId);
-			if(change != null){
-				return change.getEtag();
-			}
-		}
-		return null;
 	}
 
+	/**
+	 * Get an Etag for a table. The etag used here is the concatenation of:
+	 * TableStatus.lastTableChangeEtag + TableStatus.resetToken
+	 * This ensure any change to the table or its status will produce a different etag.
+	 * 
+	 * @param body
+	 * @return
+	 */
+	private String getTableEtag(HasEntityId body){
+		// Base the etag on the table status
+		try {
+			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(body.getEntityId());
+			return status.getLastTableChangeEtag() + status.getResetToken();
+		}  catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }
