@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.sagebionetworks.util.TestStreams;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +72,7 @@ public class S3FileCopyIntegrationTest {
 	public static final long MAX_WAIT = 30 * 1000; // 30 seconds
 
 	@Autowired
-	AsynchJobStatusManager asynchJobStatusManager;
+	private AsynchJobStatusManager asynchJobStatusManager;
 
 	@Autowired
 	private FileHandleManager fileUploadManager;
@@ -150,6 +151,9 @@ public class S3FileCopyIntegrationTest {
 
 	@Test
 	public void testCopyLargeFile() throws Exception {
+		// set part sizes to minimum required for multipart upload (5gb)
+		ReflectionStaticTestUtils.setField(s3FileCopyWorker, "S3_COPY_PART_SIZE", 5 * 1024 * 1024);
+		ReflectionStaticTestUtils.setField(s3FileCopyWorker, "MULTIPART_UPLOAD_TRIGGER_SIZE", 5 * 1024 * 1024);
 		testCopyFile(TOO_BIG_FOR_SINGLE_COPY);
 	}
 
