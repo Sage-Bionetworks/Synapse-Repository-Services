@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -67,7 +68,7 @@ public class AsynchJobStatusManagerImplTest {
 		ReflectionTestUtils.setField(manager, "asynchJobQueuePublisher", mockAsynchJobQueuePublisher);
 		ReflectionTestUtils.setField(manager, "jobHashProvider", mockJobHashProvider);
 		startedJobId = "99999";
-		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class), anyString())).toAnswer(new Answer<AsynchronousJobStatus>() {
+		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).toAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
@@ -259,12 +260,36 @@ public class AsynchJobStatusManagerImplTest {
 	@Test
 	public void testSetCompleteHappy() throws DatastoreException, NotFoundException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class))).thenReturn("etag");
+		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
 		body.setEtag("etag");
 		String result = manager.setComplete("456", body);
 		assertEquals("etag", result);
+		String requestHash = null;
+		verify(mockAsynchJobStatusDao).setComplete("456", body, requestHash);
+	}
+	
+	@Test
+	public void testSetCompleteCacheable() throws DatastoreException, NotFoundException{
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
+		
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("8888");
+		DownloadFromTableRequest requestbody = new DownloadFromTableRequest();
+		requestbody.setSql("select * from syn123");
+		status.setRequestBody(requestbody);
+		String requestHash = "aRequestHash";
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		when(mockJobHashProvider.getJobHash(requestbody)).thenReturn(requestHash);
+		
+		DownloadFromTableResult resultBody = new DownloadFromTableResult();
+		resultBody.setTableId("syn123");
+		String result = manager.setComplete("456", resultBody);
+		assertEquals("etag", result);
+		verify(mockAsynchJobStatusDao).setComplete("456", resultBody, requestHash);
 	}
 	
 	/**
@@ -301,7 +326,7 @@ public class AsynchJobStatusManagerImplTest {
 		// The status should match the exiting job
 		assertEquals(existingJob, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
+		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class));
 	}
 	
 	@Test
@@ -341,7 +366,7 @@ public class AsynchJobStatusManagerImplTest {
 		// The status should match the exiting job
 		assertEquals(hitTwo, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
+		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class));
 	}
 	
 	@Test
@@ -361,7 +386,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
+		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -392,7 +417,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class), anyString());
+		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 }

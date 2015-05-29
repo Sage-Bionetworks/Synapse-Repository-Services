@@ -62,13 +62,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		String requestHash = null;
 		if(body instanceof CacheableRequestBody){
 			/*
 			 *  Before we start a CacheableRequestBody job, we need to determine if a job already exists
 			 *  for this request and user.
 			 */
-			requestHash = jobHashProvider.getJobHash((CacheableRequestBody) body);
+			String requestHash = jobHashProvider.getJobHash((CacheableRequestBody) body);
 			// Does this job already exist
 			AsynchronousJobStatus status = findJobsMatching(requestHash, body, user.getId());
 			if(status != null){
@@ -83,7 +82,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 			}
 		}
 		// Start the job.
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body, requestHash);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
 		// publish a message to get the work started
 		asynchJobQueuePublisher.publishMessage(status);
 		return status;
@@ -145,7 +144,17 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 			throws DatastoreException, NotFoundException {
 		// Job can only be completed if the stack is in read-write mode.
 		checkStackReadWrite();
-		return asynchJobStatusDao.setComplete(jobId, body);
+		/*
+		 *  For a cacheable requests we need to calculate a request hash.
+		 *  This hash can be used to find jobs that already match an existing request.
+		 */
+		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
+		String requestHash = null;
+		if(status.getRequestBody() instanceof CacheableRequestBody){
+			CacheableRequestBody request = (CacheableRequestBody) status.getRequestBody();
+			requestHash = jobHashProvider.getJobHash(request);
+		}
+		return asynchJobStatusDao.setComplete(jobId, body, requestHash);
 	}
 
 	@Override

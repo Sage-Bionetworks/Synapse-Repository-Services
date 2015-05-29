@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -72,5 +73,7 @@ public interface AsynchJobStatusManager {
 	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException;
 
 	public void emptyAllQueues();
+
+
 
 }
