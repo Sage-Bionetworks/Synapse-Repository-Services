@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager.asynch;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
+import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
-import org.sagebionetworks.repo.model.table.HasEntityId;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -40,7 +40,8 @@ public class JobHashProviderImpl implements JobHashProvider {
 			}else{
 				builder.append(NULL);
 			}
-			return Md5Utils.md5AsBase64(builder.toString().getBytes("UTF-8"));
+			byte[] md5Bytes = Md5Utils.computeMD5Hash(builder.toString().getBytes("UTF-8"));
+			return new String(Hex.encodeHex(md5Bytes));
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalArgumentException(e);
 		} catch (UnsupportedEncodingException e) {

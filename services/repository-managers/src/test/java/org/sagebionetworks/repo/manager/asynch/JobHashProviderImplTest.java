@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.SqlQuery;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobHashProviderImplTest {
@@ -45,7 +44,7 @@ public class JobHashProviderImplTest {
 		body.setEntityId("syn123");
 		body.setSql("select * from syn123");
 		String hash = provider.getJobHash(body);
-		assertEquals("EE5aWStFPTGljab55OyZig==", hash);
+		assertEquals("104e5a592b453d31a58da6f9e4ec998a", hash);
 	}
 	
 	@Test
@@ -90,7 +89,7 @@ public class JobHashProviderImplTest {
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
-		assertEquals("FyvNlH3dkEFV5Mw14GpBDQ==", etag);
+		assertEquals("172bcd947ddd904155e4cc35e06a410d", etag);
 	}
 	
 	@Test
@@ -100,7 +99,7 @@ public class JobHashProviderImplTest {
 		body1.setSql("select * from syn123");
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("EE5aWStFPTGljab55OyZig==", hash);
+		assertEquals("104e5a592b453d31a58da6f9e4ec998a", hash);
 	}
 	
 	@Test
@@ -112,7 +111,7 @@ public class JobHashProviderImplTest {
 		body1.setQuery(query);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("zDd20N2fIcYzgLRRSvqsKQ==", hash);
+		assertEquals("cc3776d0dd9f21c63380b4514afaac29", hash);
 	}
 	
 	@Test
@@ -120,7 +119,7 @@ public class JobHashProviderImplTest {
 		QueryNextPageToken body1 = TableRowManagerImpl.createNextPageToken("SELECT * FROM SYN123", 100L, 10L, true);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("x8tcKLkdrj/UDW+ORBXrdQ==", hash);
+		assertEquals("c7cb5c28b91dae3fd40d6f8e4415eb75", hash);
 	}
 	
 }

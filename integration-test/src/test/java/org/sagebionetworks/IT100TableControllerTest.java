@@ -747,7 +747,7 @@ public class IT100TableControllerTest {
 		waitForAsync(new Callable<QueryResultBundle>() {
 			@Override
 			public QueryResultBundle call() throws Exception {
-				return synapse.queryTableEntityBundleAsyncGet(asyncToken, tableId);
+				return synapse.queryTableEntityBundleAsyncGet(asyncToken2, tableId);
 			}
 		});
 		// Since the table has not changed running the same query again should return the same job id.
