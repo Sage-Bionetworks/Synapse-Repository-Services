@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
@@ -116,6 +117,10 @@ public class PreviewManagerImpl implements  PreviewManager {
 			return null;
 		}
 		// Try to find a generator for this type
+		if (StringUtils.isEmpty(metadata.getContentType())) {
+			log.info("Cannot generate preview for file with empty content type");
+			return null;
+		}
 		ContentType contentType = ContentType.parse(metadata.getContentType());
 		final PreviewGenerator generator = findPreviewGenerator(contentType.getMimeType());
 		// there is nothing to do if we do not have a generator for this type
