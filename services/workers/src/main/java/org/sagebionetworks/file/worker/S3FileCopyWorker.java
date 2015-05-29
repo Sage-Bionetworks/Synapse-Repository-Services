@@ -56,7 +56,12 @@ import com.google.common.collect.Lists;
 
 public class S3FileCopyWorker extends AbstractWorker {
 
-	private static final long MAX_S3_COPY_PART_SIZE = 5 * 1024 * 1024; // max part size for S3 copy is 5MB
+	// these two value not static final, for testing (so test frame work can change them to allow testing with small
+	// files)
+	private long S3_COPY_PART_SIZE = 5L * 1024L * 1024L * 1024L; // max part size for S3 copy is 5GB
+	private long MULTIPART_UPLOAD_TRIGGER_SIZE = S3_COPY_PART_SIZE;
+
+	private static final String ORIGINAL_MD5 = "original_md5";
 
 	static private Logger log = LogManager.getLogger(S3FileCopyWorker.class);
 
@@ -257,12 +262,21 @@ public class S3FileCopyWorker extends AbstractWorker {
 						+ ". Either delete that key in your S3 bucket or specify overwrite=true.");
 				return 0;
 			}
-			// check the etag, which is not a good indicator, as it is very much dependent on how the file was
-			// uploaded (multipart uploads and part size)
-			if (originalFile.getETag() != null && originalFile.getETag().equals(existingCopy.getETag())) {
-				// the file already exists, so lets not copy it again
-				entry.getFileCopyResult().setResultType(S3FileCopyResultType.UPTODATE);
-				return 0;
+			if (originalFile.getETag() != null) {
+				// check the etag, which is not a good indicator, as it is very much dependent on how the file was
+				// uploaded (multipart uploads and part size)
+				if (originalFile.getETag().equals(existingCopy.getETag())) {
+					// the file already exists, so lets not copy it again
+					entry.getFileCopyResult().setResultType(S3FileCopyResultType.UPTODATE);
+					return 0;
+				}
+				// next check our custom meta data against the etag of the original
+				if (existingCopy.getUserMetaDataOf(ORIGINAL_MD5) != null
+						&& existingCopy.getUserMetaDataOf(ORIGINAL_MD5).equals(originalFile.getETag())) {
+					// the file already exists, so lets not copy it again
+					entry.getFileCopyResult().setResultType(S3FileCopyResultType.UPTODATE);
+					return 0;
+				}
 			}
 		} catch (AmazonServiceException e) {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
@@ -289,26 +303,26 @@ public class S3FileCopyWorker extends AbstractWorker {
 		ObjectMetadata metadataResult = s3Client.getObjectMetadata(new GetObjectMetadataRequest(s3FileHandle.getBucketName(), s3FileHandle
 				.getKey()));
 
-		// s3 calculates the etag different dependent on how the file is uploaded. We try to preserve the same etag
-		// here. etag is either hex encoded md5 (single upload) or hex encoded md5 sum - number of parts (multipart
-		// upload). The s3 docs say to look for that '-' as the distinguisher
-		boolean multipPartUpload = metadataResult.getETag() == null || metadataResult.getETag().indexOf('-') >= 0;
+		ObjectMetadata copyObjectMetadata = metadataResult.clone();
+		copyObjectMetadata.getUserMetadata().put(ORIGINAL_MD5, metadataResult.getETag());
 
 		long objectSize = metadataResult.getContentLength(); // in bytes
-		if (!multipPartUpload) {
+		if (objectSize < MULTIPART_UPLOAD_TRIGGER_SIZE) {
 			// small enough to do a simple copy
 			CopyObjectRequest copyObjectRequest = new CopyObjectRequest(s3FileHandle.getBucketName(), s3FileHandle.getKey(),
-					destinationBucket, destinationKey).withCannedAccessControlList(CannedAccessControlList.BucketOwnerFullControl);
+					destinationBucket, destinationKey).withCannedAccessControlList(CannedAccessControlList.BucketOwnerFullControl)
+					.withNewObjectMetadata(copyObjectMetadata);
 			s3Client.copyObject(copyObjectRequest);
 
 			progress.progressMade(objectSize);
 		} else {
 			List<PartETag> parts = Lists.newArrayList();
-			InitiateMultipartUploadResult initResult = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(destinationBucket,
-					destinationKey).withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
+			InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(destinationBucket,
+					destinationKey).withCannedACL(CannedAccessControlList.BucketOwnerFullControl).withObjectMetadata(copyObjectMetadata);
+			InitiateMultipartUploadResult initResult = s3Client.initiateMultipartUpload(initiateMultipartUploadRequest);
 			int partNumber = 1;
-			for (long offset = 0; offset < objectSize; offset += MAX_S3_COPY_PART_SIZE, partNumber++) {
-				long size = MAX_S3_COPY_PART_SIZE;
+			for (long offset = 0; offset < objectSize; offset += S3_COPY_PART_SIZE, partNumber++) {
+				long size = S3_COPY_PART_SIZE;
 				if (offset + size > objectSize) {
 					size = objectSize - offset;
 				}
