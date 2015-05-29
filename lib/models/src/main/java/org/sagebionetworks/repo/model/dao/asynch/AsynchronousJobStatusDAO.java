@@ -20,10 +20,10 @@ public interface AsynchronousJobStatusDAO {
 	 * @param startedByUserId The ID of the user that is starting the job.
 	 * @param body
 	 * @param requestHash For jobs that are cacheable a hash of the job body + object etag will be included.
-	 * This hash can then be used to find existing jobs with the same hash. See {@link #findCompletedJobStatus(String, Long)}
+	 * This hash can then be used to find existing jobs with the same hash.
 	 * @return
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body, String requestHash);
+	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -57,11 +57,15 @@ public interface AsynchronousJobStatusDAO {
 	 * Set a job to complete
 	 * 
 	 * @param body The final body of the job.
+	 * @param requestHash Set the request hash for cacheable requests.  This hash is used to find cached jobs for the same
+	 * request from the same user.  See: {@link #findCompletedJobStatus(String, Long)}.
+	 * 
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException;
+	public String setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
+
 	
 	/**
 	 * Clear all job status data from the database.

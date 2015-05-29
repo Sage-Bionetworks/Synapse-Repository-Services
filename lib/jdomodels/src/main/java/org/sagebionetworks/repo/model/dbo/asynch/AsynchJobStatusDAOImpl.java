@@ -82,7 +82,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 */
 	@NewWriteTransaction
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body, String requestHash) {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -96,7 +96,6 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setRuntimeMS(0L);
 		status.setRequestBody(body);
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
-		dbo.setRequestHash(requestHash);
 		dbo = basicDao.createNew(dbo);
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
@@ -125,7 +124,8 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 	@WriteTransaction
 	@Override
-	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException {
+	public String setComplete(String jobId, AsynchronousResponseBody body,
+			String requestHash) throws DatastoreException, NotFoundException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
@@ -143,6 +143,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		dbo.setJobState(JobState.COMPLETE);
 		dbo.setProgressCurrent(dbo.getProgressTotal());
 		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(dbo.getJobType(), body));
+		dbo.setRequestHash(requestHash);
 		basicDao.update(dbo);
 		return newEtag;
 	}
@@ -166,6 +167,5 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		}
 		return results;
 	}
-
 	
 }
