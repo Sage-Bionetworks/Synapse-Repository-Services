@@ -317,9 +317,8 @@ public class S3FileCopyWorker extends AbstractWorker {
 			progress.progressMade(objectSize);
 		} else {
 			List<PartETag> parts = Lists.newArrayList();
-			InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(destinationBucket,
-					destinationKey).withCannedACL(CannedAccessControlList.BucketOwnerFullControl).withObjectMetadata(copyObjectMetadata);
-			InitiateMultipartUploadResult initResult = s3Client.initiateMultipartUpload(initiateMultipartUploadRequest);
+			InitiateMultipartUploadResult initResult = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(destinationBucket,
+					destinationKey).withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
 			int partNumber = 1;
 			for (long offset = 0; offset < objectSize; offset += S3_COPY_PART_SIZE, partNumber++) {
 				long size = S3_COPY_PART_SIZE;
