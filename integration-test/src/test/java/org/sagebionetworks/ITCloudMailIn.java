@@ -49,14 +49,6 @@ public class ITCloudMailIn {
 		
 	}
 	
-	@Before
-	public void before() throws Exception {
-	}
-
-	@After
-	public void after() throws Exception {
-	}
-	
 	@AfterClass
 	public static void afterClass() throws Exception {	
 		try {

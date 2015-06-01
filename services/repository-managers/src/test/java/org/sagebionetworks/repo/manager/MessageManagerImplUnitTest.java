@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,21 +14,28 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 
 public class MessageManagerImplUnitTest {
@@ -39,15 +48,19 @@ public class MessageManagerImplUnitTest {
 	private NotificationEmailDAO notificationEmailDao;
 	private PrincipalAliasDAO principalAliasDAO;
 	private AuthorizationManager authorizationManager;
-	private FileHandleDao fileDAO;
+	private FileHandleDao fileHandleDAO;
 	private NodeDAO nodeDAO;
 	private EntityPermissionsManager entityPermissionsManager;
 	private SynapseEmailService sesClient;
+	private FileHandleManager fileHandleManager;
+	
+	private MessageToUser mtu;
+	private FileHandle fileHandle;
 	
 	private static final String MESSAGE_ID = "101";
 	private static final Long CREATOR_ID = 999L;
 	private static final Long RECIPIENT_ID = 888L;
-	private MessageToUser mtu = null;
+	private static final String FILE_HANDLE_ID = "222";
 	private UserInfo creatorUserInfo = null;
 	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
 	
@@ -61,10 +74,11 @@ public class MessageManagerImplUnitTest {
 		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
 		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		authorizationManager = Mockito.mock(AuthorizationManager.class);
-		fileDAO = Mockito.mock(FileHandleDao.class);
+		fileHandleDAO = Mockito.mock(FileHandleDao.class);
 		nodeDAO = Mockito.mock(NodeDAO.class);
 		entityPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
 		sesClient = Mockito.mock(SynapseEmailService.class);
+		fileHandleManager = Mockito.mock(FileHandleManager.class);
 		
 		messageManager = new MessageManagerImpl();
 		ReflectionTestUtils.setField(messageManager, "messageDAO", messageDAO);
@@ -75,29 +89,125 @@ public class MessageManagerImplUnitTest {
 		ReflectionTestUtils.setField(messageManager, "notificationEmailDao", notificationEmailDao);
 		ReflectionTestUtils.setField(messageManager, "principalAliasDAO", principalAliasDAO);
 		ReflectionTestUtils.setField(messageManager, "authorizationManager", authorizationManager);
-		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileDAO);
+		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileHandleDAO);
 		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
 		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
 		ReflectionTestUtils.setField(messageManager, "sesClient", sesClient);
+		ReflectionTestUtils.setField(messageManager, "fileHandleManager", fileHandleManager);
 		
-		mtu = new MessageToUser();
-		mtu.setCreatedBy(CREATOR_ID.toString());
-		mtu.setRecipients(Collections.singleton(RECIPIENT_ID.toString()));
-		mtu.setSubject("subject");
-		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
 		when(principalAliasDAO.getUserName(CREATOR_ID)).thenReturn("foo");
 		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
 		
 		creatorUserInfo = new UserInfo(false);
 		creatorUserInfo.setId(CREATOR_ID);
+		creatorUserInfo.setGroups(Collections.singleton(CREATOR_ID));
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		
 		when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn("foo@sagebase.org");
 		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn("bar@sagebase.org");
 		
-		UserProfile recipientUserProfile = new UserProfile();
+		{
+			UserProfile userProfile = new UserProfile();
+			userProfile.setFirstName("Foo");
+			userProfile.setLastName("FOO");
+			userProfile.setOwnerId(CREATOR_ID.toString());
+			userProfile.setUserName("foo");
+			when(userProfileManager.getUserProfile(CREATOR_ID.toString())).thenReturn(userProfile);
+		}
 		
-		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(recipientUserProfile);
+		{
+			UserProfile userProfile = new UserProfile();
+			userProfile.setFirstName("Bar");
+			userProfile.setLastName("BAR");
+			userProfile.setOwnerId(RECIPIENT_ID.toString());
+			userProfile.setUserName("bar");
+			when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfile);
+		}
+		
+		
+		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), 
+				anyLong(), anyLong())).thenReturn(true);
+		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID)).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		UserGroup ug = new UserGroup();
+		ug.setId(RECIPIENT_ID.toString());
+		ug.setIsIndividual(true);
+		when(userGroupDAO.get(eq(RECIPIENT_ID))).thenReturn(ug);
+		when(userGroupDAO.get(eq(Collections.singletonList(RECIPIENT_ID.toString())))).
+		thenReturn(Collections.singletonList(ug));
+		
+		mtu = new MessageToUser();
+		mtu.setId(MESSAGE_ID);
+		mtu.setCreatedBy(CREATOR_ID.toString());
+		mtu.setRecipients(Collections.singleton(RECIPIENT_ID.toString()));
+		mtu.setSubject("subject");
+		mtu.setFileHandleId(FILE_HANDLE_ID);
+		mtu.setNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT);
+		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
+
+		when(messageDAO.createMessage(mtu)).thenReturn(mtu);
+		fileHandle = new S3FileHandle();
+		fileHandle.setId(FILE_HANDLE_ID);
+
+	}
+	
+	@Test
+	public void testCreateMessagePLAIN() throws Exception {
+		fileHandle.setContentType("text/plain");
+		String messageBody = "message body";
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		messageManager.createMessage(creatorUserInfo, mtu);
+		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
+		verify(sesClient).sendEmail(argument.capture());
+		SendEmailRequest ser = argument.getValue();
+		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
+		assertEquals(1, ser.getDestination().getToAddresses().size());
+		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
+		String body = ser.getMessage().getBody().getText().getData();
+		assertTrue(body.indexOf(messageBody)>=0);
+		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+	}
+
+	@Test
+	public void testCreateMessageHTML() throws Exception {
+		fileHandle.setContentType("text/html");
+		String messageBody = "<div>message body</div>";
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		messageManager.createMessage(creatorUserInfo, mtu);
+		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
+		verify(sesClient).sendEmail(argument.capture());
+		SendEmailRequest ser = argument.getValue();
+		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
+		assertEquals(1, ser.getDestination().getToAddresses().size());
+		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
+		String body = ser.getMessage().getBody().getHtml().getData();
+		assertTrue(body.indexOf(messageBody)>=0);
+		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
+	}
+
+	@Test
+	public void testCreateMessageJSON() throws Exception {
+		fileHandle.setContentType("application/json");
+		MessageBody messageBody = new MessageBody();
+		messageBody.setPlain("message body");
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).
+		thenReturn(EntityFactory.createJSONStringForEntity(messageBody));
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
+		messageManager.createMessage(creatorUserInfo, mtu);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		String body = new String(ser.getRawMessage().getData().array());
+		assertTrue(body.indexOf("message body")>=0);
+		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 	}
 
 	@Test
@@ -119,7 +229,7 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
 		verify(sesClient).sendEmail(argument.capture());
 		SendEmailRequest ser = argument.getValue();
-		assertEquals("bar@synapse.org", ser.getSource());
+		assertEquals("Bar BAR <bar@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestination().getToAddresses().size());
 		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
 		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
