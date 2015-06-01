@@ -13,16 +13,5 @@
 	
 	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
 	
-	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />
-	
-	
-	<bean id="cloudMailInAuthFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
-  		<constructor-arg ref="cloudMailInAuthenticationManager"/>
- 		<constructor-arg ref="authenticationEntryPoint"/>
-	</bean>
-
-	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
-  		<property name="realmName" value="www.synapse.org"/>
-	</bean>
-	
+	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />	
 </beans>
