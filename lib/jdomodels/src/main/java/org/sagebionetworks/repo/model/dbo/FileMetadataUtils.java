@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
@@ -27,161 +28,141 @@ public class FileMetadataUtils {
 	 * @return
 	 * @throws MalformedURLException 
 	 */
-	public static DBOFileHandle createDBOFromDTO(FileHandle dto) {
-		if(dto == null) throw new IllegalArgumentException("DTO cannot be null");
-		if(dto instanceof ExternalFileHandle){
-			return createDBOFromDTO((ExternalFileHandle)dto);
-		}else if(dto instanceof S3FileHandle){
-			return createDBOFromDTO((S3FileHandle)dto);
-		}else if(dto instanceof PreviewFileHandle){
-			return createDBOFromDTO((PreviewFileHandle)dto);
-		}else{
-			throw new IllegalArgumentException("Unknown FileMetadata implementaion: "+dto.getClass().getName());
+	public static DBOFileHandle createDBOFromDTO(FileHandle fileHandle) {
+		if (fileHandle == null)
+			throw new IllegalArgumentException("DTO cannot be null");
+
+		DBOFileHandle dbo = new DBOFileHandle();
+
+		if (fileHandle instanceof ExternalFileHandle) {
+			dbo.setMetadataType(MetadataType.EXTERNAL);
+			createDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
+		} else if (fileHandle instanceof S3FileHandle) {
+			dbo.setMetadataType(MetadataType.S3);
+		} else if (fileHandle instanceof PreviewFileHandle) {
+			dbo.setMetadataType(MetadataType.PREVIEW);
+		} else {
+			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
+		}
+
+		createDBOFromDTO(dbo, fileHandle);
+		if (fileHandle instanceof HasPreviewId) {
+			createDBOFromDTO(dbo, (HasPreviewId) fileHandle);
+		}
+		if (fileHandle instanceof S3FileHandleInterface) {
+			createDBOFromDTO(dbo, (S3FileHandleInterface) fileHandle);
+		}
+
+		return dbo;
+	}
+
+	private static void createDBOFromDTO(DBOFileHandle dbo, FileHandle fileHandle) {
+		dbo.setEtag(fileHandle.getEtag());
+		if (fileHandle.getCreatedBy() != null) {
+			dbo.setCreatedBy(Long.parseLong(fileHandle.getCreatedBy()));
+		}
+		if (fileHandle.getId() != null) {
+			dbo.setId(Long.parseLong(fileHandle.getId()));
+		}
+		if (fileHandle.getCreatedOn() != null) {
+			dbo.setCreatedOn(new Timestamp(fileHandle.getCreatedOn().getTime()));
+		}
+		dbo.setName(fileHandle.getFileName());
+		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
+		dbo.setContentType(fileHandle.getContentType());
+		dbo.setContentMD5(fileHandle.getContentMd5());
+	}
+
+	private static void createDBOFromDTO(DBOFileHandle dbo, HasPreviewId fileHandle) {
+		if (fileHandle.getPreviewId() != null) {
+			dbo.setPreviewId(Long.parseLong(fileHandle.getPreviewId()));
 		}
 	}
-	
-	/**
-	 * Convert from the DTO to the DBO.
-	 * @param dto
-	 * @return
-	 * @throws MalformedURLException 
-	 */
-	private static DBOFileHandle createDBOFromDTO(ExternalFileHandle dto) {
-		DBOFileHandle dbo = new DBOFileHandle();
-		dbo.setMetadataType(MetadataType.EXTERNAL);
+
+	private static void createDBOFromDTO(DBOFileHandle dbo, ExternalFileHandle fileHandle) {
 		// Validate the URL
-		ValidateArgument.validUrl(dto.getExternalURL());
-		dbo.setKey(dto.getExternalURL());
-		dbo.setEtag(dto.getEtag());
-		if(dto.getCreatedBy() != null){
-			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		}
-		if(dto.getPreviewId() != null){
-			dbo.setPreviewId(Long.parseLong(dto.getPreviewId()));
-		}
-		if(dto.getId() != null){
-			dbo.setId(Long.parseLong(dto.getId()));
-		}
-		if(dto.getCreatedOn() != null){
-			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
-		}
-		dbo.setName(dto.getFileName());
-		dbo.setStorageLocationId(dto.getStorageLocationId());
-		dbo.setContentType(dto.getContentType());
-		return dbo;
+		ValidateArgument.validUrl(fileHandle.getExternalURL());
+		dbo.setKey(fileHandle.getExternalURL());
 	}
-	
-	/**
-	 * Convert from the DTO to the DBO.
-	 * @param dto
-	 * @return
-	 */
-	private static DBOFileHandle createDBOFromDTO(S3FileHandle dto){
-		DBOFileHandle dbo = new DBOFileHandle();
-		dbo.setMetadataType(MetadataType.S3);
-		if(dto.getPreviewId() != null){
-			dbo.setPreviewId(new Long(dto.getPreviewId()));
-		}
-		// Fill in the common data.
-		setDBOFromDTO(dbo, dto);
-		return dbo;
+
+	private static void createDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface fileHandle) {
+		dbo.setBucketName(fileHandle.getBucketName());
+		dbo.setKey(fileHandle.getKey());
+		dbo.setContentSize(fileHandle.getContentSize());
 	}
-	
-	private static DBOFileHandle createDBOFromDTO(PreviewFileHandle dto){
-		DBOFileHandle dbo = new DBOFileHandle();
-		dbo.setMetadataType(MetadataType.PREVIEW);
-		// Fill in the common data.
-		setDBOFromDTO(dbo, dto);
-		return dbo;
-	}
-	/**
-	 * Fill in the data common to all S3FileInterface implementations.
-	 * @param dbo
-	 * @param dto
-	 */
-	private static void setDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface dto){
-		if(dto.getId() != null){
-			dbo.setId(new Long(dto.getId()));
-		}
-		dbo.setEtag(dto.getEtag());
-		dbo.setBucketName(dto.getBucketName());
-		dbo.setKey(dto.getKey());
-		dbo.setContentMD5(dto.getContentMd5());
-		dbo.setContentSize(dto.getContentSize());
-		dbo.setContentType(dto.getContentType());
-		if(dto.getCreatedBy() != null){
-			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		}
-		if(dto.getCreatedOn() != null){
-			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
-		}
-		dbo.setName(dto.getFileName());
-		dbo.setStorageLocationId(dto.getStorageLocationId());
-	}
-	
+
 	/**
 	 * Create a DTO from the DBO.
+	 * 
 	 * @param dbo
 	 * @return
 	 */
-	public static FileHandle createDTOFromDBO(DBOFileHandle dbo){
-		// First determine the type
-		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
+	public static FileHandle createDTOFromDBO(DBOFileHandle dbo) {
+		FileHandle fileHandle;
+		// First determine the type and create the correct type
+		switch (dbo.getMetadataTypeEnum()) {
+		case EXTERNAL:
 			// External
-			ExternalFileHandle external = new ExternalFileHandle();
-			if(dbo.getCreatedBy() != null){
-				external.setCreatedBy(dbo.getCreatedBy().toString());
-			}
-			external.setCreatedOn(dbo.getCreatedOn());
-			if(dbo.getPreviewId() != null){
-				external.setPreviewId(dbo.getPreviewId().toString());
-			}
-			if(dbo.getId() != null){
-				external.setId(dbo.getId().toString());
-			}
-			external.setEtag(dbo.getEtag());
-			external.setExternalURL(dbo.getKey());
-			external.setFileName(dbo.getName());
-			external.setContentType(dbo.getContentType());
-			external.setStorageLocationId(dbo.getStorageLocationId());
-			return external;
-		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
-			S3FileHandleInterface metaInterface = null;
-			// Is this a S3 file or a preview.
-			if(MetadataType.S3 == dbo.getMetadataTypeEnum()){
-				S3FileHandle meta = new S3FileHandle();
-				metaInterface = meta;
-				if(dbo.getPreviewId() != null){
-					meta.setPreviewId(dbo.getPreviewId().toString());
-				}
-			}else if(MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
-				PreviewFileHandle meta = new PreviewFileHandle();
-				metaInterface = meta;
-			}else{
-				throw new IllegalArgumentException("Must be S3 or Preview but was: "+dbo.getMetadataTypeEnum());
-			}
-			// Set the common data.
-			if(dbo.getId() != null){
-				metaInterface.setId(dbo.getId().toString());
-			}
-			metaInterface.setBucketName(dbo.getBucketName());
-			metaInterface.setKey(dbo.getKey());
-			metaInterface.setContentMd5(dbo.getContentMD5());
-			metaInterface.setContentType(dbo.getContentType());
-			metaInterface.setContentSize(dbo.getContentSize());
-			metaInterface.setFileName(dbo.getName());
-			metaInterface.setEtag(dbo.getEtag());
-			if(dbo.getCreatedBy() != null){
-				metaInterface.setCreatedBy(dbo.getCreatedBy().toString());
-			}
-			metaInterface.setCreatedOn(dbo.getCreatedOn());
-			metaInterface.setStorageLocationId(dbo.getStorageLocationId());
-			return metaInterface;
-		}else{
-			throw new IllegalArgumentException("Unknown metadata type: "+dbo.getMetadataTypeEnum());
+			fileHandle = new ExternalFileHandle();
+			break;
+		case S3:
+			// S3 file
+			fileHandle = new S3FileHandle();
+			break;
+		case PREVIEW:
+			// preview
+			fileHandle = new PreviewFileHandle();
+			break;
+		default:
+			throw new IllegalArgumentException("Must be External, S3 or Preview but was: " + dbo.getMetadataTypeEnum());
 		}
+
+		// now fill in the information
+		createDTOFromDBO(fileHandle, dbo);
+		if (fileHandle instanceof HasPreviewId) {
+			createDTOFromDBO((HasPreviewId) fileHandle, dbo);
+		}
+		if (fileHandle instanceof ExternalFileHandle) {
+			createDTOFromDBO((ExternalFileHandle) fileHandle, dbo);
+		}
+		if (fileHandle instanceof S3FileHandleInterface) {
+			createDTOFromDBO((S3FileHandleInterface) fileHandle, dbo);
+		}
+		return fileHandle;
 	}
-	
+
+	private static void createDTOFromDBO(FileHandle fileHandle, DBOFileHandle dbo) {
+		if (dbo.getCreatedBy() != null) {
+			fileHandle.setCreatedBy(dbo.getCreatedBy().toString());
+		}
+		fileHandle.setCreatedOn(dbo.getCreatedOn());
+		if (dbo.getId() != null) {
+			fileHandle.setId(dbo.getId().toString());
+		}
+		fileHandle.setEtag(dbo.getEtag());
+		fileHandle.setStorageLocationId(dbo.getStorageLocationId());
+		fileHandle.setContentType(dbo.getContentType());
+		fileHandle.setContentMd5(dbo.getContentMD5());
+		fileHandle.setFileName(dbo.getName());
+	}
+
+	private static void createDTOFromDBO(HasPreviewId fileHandle, DBOFileHandle dbo) {
+		if (dbo.getPreviewId() != null) {
+			fileHandle.setPreviewId(dbo.getPreviewId().toString());
+		}
+
+	}
+
+	private static void createDTOFromDBO(ExternalFileHandle fileHandle, DBOFileHandle dbo) {
+		fileHandle.setExternalURL(dbo.getKey());
+	}
+
+	private static void createDTOFromDBO(S3FileHandleInterface fileHandle, DBOFileHandle dbo) {
+		fileHandle.setBucketName(dbo.getBucketName());
+		fileHandle.setKey(dbo.getKey());
+		fileHandle.setContentSize(dbo.getContentSize());
+	}
+
 	/**
 	 * Create a backup copy of a DBO object
 	 * @param dbo

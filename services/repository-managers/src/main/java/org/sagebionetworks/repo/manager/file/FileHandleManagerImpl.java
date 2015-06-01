@@ -1054,8 +1054,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		try {
 			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
-			fileHandle.setContentMd5(summary.getETag());
-			fileHandle.setContentSize(summary.getContentLength());
+			// set content MD5 and lenght if they were not passed in
+			if (fileHandle.getContentMd5() == null) {
+				fileHandle.setContentMd5(summary.getETag());
+			}
+			if (fileHandle.getContentSize() == null) {
+				fileHandle.setContentSize(summary.getContentLength());
+			}
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to ready metadata for bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey(), e);
 		} 
