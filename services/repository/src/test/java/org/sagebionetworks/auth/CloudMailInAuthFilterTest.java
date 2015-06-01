@@ -43,14 +43,45 @@ public class CloudMailInAuthFilterTest {
 		filter.doFilter(request, response, filterChain);	
 		verify(filterChain).doFilter(request, response);
 	}
+	
+	private  void checkForUnauthorizedStatus() {
+		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
+		verify(response).setStatus((Integer)captor.capture());
+		assertEquals(new Integer(HttpStatus.SC_UNAUTHORIZED), captor.getValue());		
+	}
 
 	@Test
 	public void testNoCredentials() throws Exception {
-		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 		filter.doFilter(request, response, filterChain);	
 		verify(filterChain, never()).doFilter(request, response);
-		verify(response).setStatus((Integer)captor.capture());
-		assertEquals(new Integer(HttpStatus.SC_UNAUTHORIZED), captor.getValue());
+		checkForUnauthorizedStatus();
+	}
+
+	@Test
+	public void testMissingBasicPrefix() throws Exception {
+		when(request.getHeader(eq(AUTHORIZATION))).thenReturn("XXX "+
+				new String(Base64.encodeBase64(CORRECT_CREDENTIALS.getBytes())));
+		filter.doFilter(request, response, filterChain);	
+		verify(filterChain, never()).doFilter(request, response);
+		checkForUnauthorizedStatus();
+	}
+
+	@Test
+	public void testMissingColon() throws Exception {
+		when(request.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
+				new String(Base64.encodeBase64("NO-COLON-HERE".getBytes())));
+		filter.doFilter(request, response, filterChain);	
+		verify(filterChain, never()).doFilter(request, response);
+		checkForUnauthorizedStatus();
+	}
+
+	@Test
+	public void testWrongCredentials() throws Exception {
+		when(request.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
+				new String(Base64.encodeBase64("foo:bar".getBytes())));
+		filter.doFilter(request, response, filterChain);	
+		verify(filterChain, never()).doFilter(request, response);
+		checkForUnauthorizedStatus();
 	}
 
 
