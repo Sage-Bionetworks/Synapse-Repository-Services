@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -97,6 +98,13 @@ public class PreviewManagerImplTest {
 		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 	}
 	
+	@Test
+	public void testContentTypeEmpty() throws Exception {
+		testMetadata.setContentType("");
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
+		assertNull(pfm);
+	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testContentSizelNull() throws Exception{
 		testMetadata.setContentSize(null);
