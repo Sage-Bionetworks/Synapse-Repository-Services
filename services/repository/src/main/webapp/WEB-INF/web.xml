@@ -225,7 +225,7 @@
 	
 	<filter>
 		<filter-name>cloudMailInAuthFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.services.CloudMailInAuthFilter</filter-class>
+		<filter-class>org.sagebionetworks.auth.CloudMailInAuthFilter</filter-class>
 	</filter>
 
 	<filter-mapping>
