@@ -82,7 +82,7 @@ public class ITCloudMailIn {
 		// get the underlying SharedClientConnection so we can add the basic authentication header
 		SharedClientConnection conn = synapseOne.getSharedClientConnection();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.put("Authorization", "Basic: "+Base64.encodeBase64((username+":"+password).getBytes()));
+		requestHeaders.put("Authorization", "Basic "+Base64.encodeBase64((username+":"+password).getBytes()));
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		requestHeaders.put("sessionToken", sessionToken);

@@ -1,4 +1,6 @@
 package org.sagebionetworks.repo.manager;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -8,15 +10,16 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -41,11 +44,12 @@ public class MessageManagerImplUnitTest {
 	private EntityPermissionsManager entityPermissionsManager;
 	private SynapseEmailService sesClient;
 	
-	private static String MESSAGE_ID = "101";
-	private static Long CREATOR_ID = 999L;
-	private static Long RECIPIENT_ID = 888L;
+	private static final String MESSAGE_ID = "101";
+	private static final Long CREATOR_ID = 999L;
+	private static final Long RECIPIENT_ID = 888L;
 	private MessageToUser mtu = null;
 	private UserInfo creatorUserInfo = null;
+	private static final String UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
 	
 	@Before
 	public void setUp() throws Exception {
@@ -89,7 +93,39 @@ public class MessageManagerImplUnitTest {
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		
 		when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn("foo@sagebase.org");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn("bar@sagebase.org");
+		
+		UserProfile recipientUserProfile = new UserProfile();
+		
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(recipientUserProfile);
 	}
+
+	@Test
+	public void testWelcomeEmail() {
+		messageManager.sendWelcomeEmail(RECIPIENT_ID, DomainType.SYNAPSE, UNSUBSCRIBE_ENDPOINT);
+		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
+		verify(sesClient).sendEmail(argument.capture());
+		SendEmailRequest ser = argument.getValue();
+		assertEquals("noreply@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestination().getToAddresses().size());
+		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
+		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
+				"Welcome to Synapse!")>=0);
+	}
+
+	@Test
+	public void testPasswordResetEmail() {
+		messageManager.sendPasswordResetEmail(RECIPIENT_ID, DomainType.SYNAPSE, "abcdefg");
+		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
+		verify(sesClient).sendEmail(argument.capture());
+		SendEmailRequest ser = argument.getValue();
+		assertEquals("bar@synapse.org", ser.getSource());
+		assertEquals(1, ser.getDestination().getToAddresses().size());
+		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
+		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
+				"Please follow the link below to set your password.")>=0);
+	}
+
 
 	@Test
 	public void testSendDeliveryFailureEmail() {
@@ -101,7 +137,8 @@ public class MessageManagerImplUnitTest {
 		assertEquals("noreply@synapse.org", ser.getSource());
 		assertEquals(1, ser.getDestination().getToAddresses().size());
 		assertEquals("foo@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		assertTrue(ser.getMessage().getBody().getText().getData().indexOf("The following errors were experienced while delivering message")>=0);
+		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
+				"The following errors were experienced while delivering message")>=0);
 	}
 
 }
