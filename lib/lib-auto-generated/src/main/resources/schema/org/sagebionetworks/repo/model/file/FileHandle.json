@@ -27,6 +27,10 @@
 			"description": "Must be: http://en.wikipedia.org/wiki/Internet_media_type",
 			"type": "string"
 		},
+		"contentMd5": {
+			"description": "The file's content MD5.",
+			"type": "string"
+		},
 		"fileName": {
 			"type": "string",
 			"description": "The short, user visible name for this file."

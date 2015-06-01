@@ -18,10 +18,6 @@
 		"contentSize": {
 			"description": "The size of the file in bytes.",
 			"type": "integer"
-		},
-		"contentMd5": {
-			"description": "The file's content MD5.",
-			"type": "string"
 		}
 	}
 }
