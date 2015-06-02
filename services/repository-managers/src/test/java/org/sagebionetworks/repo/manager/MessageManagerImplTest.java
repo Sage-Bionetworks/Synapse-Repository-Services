@@ -48,7 +48,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -73,6 +72,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Sets;
 
 /**
@@ -100,13 +100,11 @@ public class MessageManagerImplTest {
 	private FileHandleDao fileDAO;
 	
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	@Autowired
-	private FileHandleManager fileHandleManager;
 	private FileHandleManager mockFileHandleManager;
 	
 	@Autowired
@@ -181,11 +179,10 @@ public class MessageManagerImplTest {
 		ReflectionTestUtils.setField(messageManager, "userGroupDAO", userGroupDAO);
 		ReflectionTestUtils.setField(messageManager, "groupMembersDAO", groupMembersDao);
 		ReflectionTestUtils.setField(messageManager, "userManager", userManager);
-		ReflectionTestUtils.setField(messageManager, "userProfileDAO", userProfileDAO);
+		ReflectionTestUtils.setField(messageManager, "userProfileManager", userProfileManager);
 		ReflectionTestUtils.setField(messageManager, "notificationEmailDao", notificationEmailDao);
 		ReflectionTestUtils.setField(messageManager, "principalAliasDAO", principalAliasDAO);
 		ReflectionTestUtils.setField(messageManager, "authorizationManager", authorizationManager);
-		ReflectionTestUtils.setField(messageManager, "fileHandleManager", fileHandleManager);
 		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileDAO);
 		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
 		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
@@ -197,7 +194,15 @@ public class MessageManagerImplTest {
 					@Override
 					public void sendEmail(SendEmailRequest emailRequest) {
 						amazonSESClient.sendEmail(emailRequest);
+					}
+
+					@Override
+					public void sendRawEmail(
+							SendRawEmailRequest sendRawEmailRequest) {
+						amazonSESClient.sendRawEmail(sendRawEmailRequest);
 					}});
+		mockFileHandleManager = mock(FileHandleManager.class);
+		ReflectionTestUtils.setField(messageManager, "fileHandleManager", mockFileHandleManager);
 		
 
 		aliasesToDelete = new ArrayList<PrincipalAlias>();
@@ -251,10 +256,9 @@ public class MessageManagerImplTest {
 		final String testTeamId = testTeam.getId();
 		
 		// Mock out the file handle manager so that the fake file handle won't result in broken downloads
-		mockFileHandleManager = mock(FileHandleManager.class);
 		String url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
-		messageManager.setFileHandleManager(mockFileHandleManager);
+		ReflectionTestUtils.setField(messageManager, "fileHandleManager", mockFileHandleManager);
 		
 		// This user info needs to be updated to contain the team
 		testUser = userManager.getUserInfo(testUser.getId());
@@ -268,6 +272,7 @@ public class MessageManagerImplTest {
 			handle = fileDAO.createFile(handle);
 			this.fileHandleId = handle.getId();
 			when(mockFileHandleManager.createCompressedFileFromString(eq(testUserId), any(Date.class), anyString())).thenReturn(handle);
+			when(mockFileHandleManager.downloadFileToString(fileHandleId)).thenReturn("some message body");
 		}
 		
 		{
@@ -277,6 +282,7 @@ public class MessageManagerImplTest {
 			this.tmsFileHandleId = handle.getId();
 			when(mockFileHandleManager.
 					createCompressedFileFromString(eq(tmsUserId), any(Date.class), anyString())).thenReturn(handle);
+			when(mockFileHandleManager.downloadFileToString(tmsFileHandleId)).thenReturn("some other message body");
 		}
 		
 		// Create all the messages
@@ -303,6 +309,10 @@ public class MessageManagerImplTest {
 		for (PrincipalAlias alias : aliasesToDelete) {
 			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
 		}
+		if (testTeam!=null) {
+			teamManager.delete(adminUserInfo, testTeam.getId());
+			testTeam=null;
+		}
 	}
 	
 	/**
@@ -319,6 +329,7 @@ public class MessageManagerImplTest {
 		dto.setSubject(subject);
 		dto.setRecipients(recipients);
 		dto.setInReplyTo(inReplyTo);
+		dto.setNotificationUnsubscribeEndpoint("https://www.synapse.org/#unsubscribeEndpoint:");
 		// Note: InReplyToRoot is calculated by the DAO
 		
 		// Insert the message
@@ -426,12 +437,9 @@ public class MessageManagerImplTest {
 		}
 		
 		// Reset the test user's notification settings to the default
-		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
-		userProfileDAO.update(profile);
-		
-		// Restore the old fileHandleManager
-		messageManager.setFileHandleManager(fileHandleManager);
+		userProfileManager.updateUserProfile(testUser, profile);
 		
 		userManager.deletePrincipal(adminUserInfo, testUser.getId());
 		userManager.deletePrincipal(adminUserInfo, otherTestUser.getId());
@@ -633,32 +641,6 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
 	}
 	
-	@Ignore // see PLFM-3278
-	@Test
-	public void testSendMessageTo_AUTH_USERS() throws Exception {
-		// This should fail since no one has permission to send to this public group
-		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", 
-				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
-		List<String> errors = messageManager.processMessage(notAllowedToSend.getId());
-		String joinedErrors = StringUtils.join(errors, "\n");
-		assertTrue(joinedErrors.contains("may not send"));
-		
-		// But an admin can do it
-		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", 
-				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
-		errors = messageManager.processMessage(spam.getId());
-		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
-		
-		// Now everyone has been spammed
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(spam, messages.getResults().get(0).getMessage());
-		
-		messages = messageManager.getInbox(otherTestUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(spam, messages.getResults().get(0).getMessage());
-	}
-	
 	@Test
 	public void testCreateMessage_TooManyRecipients() throws Exception {
 		Set<String> tooMany = new HashSet<String>();
@@ -733,10 +715,10 @@ public class MessageManagerImplTest {
 		assertEquals(message, inbox.getResults().get(0).getMessage());
 		
 		// Emails are sent by default
-		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		profile.getNotificationSettings().setMarkEmailedMessagesAsRead(true);
-		profile = userProfileDAO.update(profile);
+		profile = userProfileManager.updateUserProfile(testUser, profile);
 		
 		// Now this second message will be marked as READ
 		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserIdSet, null);
@@ -749,7 +731,7 @@ public class MessageManagerImplTest {
 		
 		// If you disable the sending of emails, the auto-READ-marking gets disabled too
 		profile.getNotificationSettings().setSendEmailNotifications(false);
-		profile = userProfileDAO.update(profile);
+		profile = userProfileManager.updateUserProfile(testUser, profile);
 		
 		// Now the third message appears UNREAD
 		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserIdSet, null);
@@ -764,7 +746,7 @@ public class MessageManagerImplTest {
 		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE);
+		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE, null);
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();

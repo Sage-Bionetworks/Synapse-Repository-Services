@@ -1,0 +1,35 @@
+{
+	"title": "Message",
+	"description": "JSON schema for the CloudMainIn message format", 
+	"properties": {
+		"envelope": {
+			"type": "object",
+			"description":"Message envelope",
+			"$ref":"org.sagebionetworks.repo.model.message.cloudmailin.Envelope"
+		}, 
+		"headers": {
+			"description": "The headers from the message, represented as a map.",
+			"type": "string"
+		},
+		"plain": {
+			"type": "string",
+			"description":"Message body, as plain text."
+		}, 
+		"html": {
+			"type": "string",
+			"description":"Message body, as html."
+		}, 
+		"reply_plain": {
+			"type": "string",
+			"description":"Message reply if found."
+		}, 
+		"attachments": {
+			"type": "array",
+			"description":"Attachments to the message.",
+			"items": {
+				"type": "object",
+				"$ref":"org.sagebionetworks.repo.model.message.cloudmailin.Attachment"
+			}
+		}
+	}
+}

@@ -14,6 +14,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +52,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
+import com.amazonaws.util.IOUtils;
+
 public class CertifiedUserManagerImplTest {
 	
 	private CertifiedUserManagerImpl certifiedUserManager;
@@ -69,12 +73,19 @@ public class CertifiedUserManagerImplTest {
 		
 	}
 	
-	private static String getDefaultQuizGeneratorAsString() {
+	private static String getDefaultQuizGeneratorAsString() throws IOException {
 		InputStream is = CertifiedUserManagerImplTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
-		return IOTestUtil.readFromInputStream(is, "utf-8");
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		try {
+			IOUtils.copy(is, out);
+			return out.toString("utf-8");
+		} finally {
+			is.close();
+			out.close();
+		}
 	}
 
-	private static QuizGenerator getDefaultQuizGenerator() throws JSONObjectAdapterException {
+	private static QuizGenerator getDefaultQuizGenerator() throws JSONObjectAdapterException, IOException {
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter = adapter.createNew(getDefaultQuizGeneratorAsString());
 		QuizGenerator quizGenerator = new QuizGenerator();

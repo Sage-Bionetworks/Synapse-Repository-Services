@@ -1,5 +1,10 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -62,7 +67,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import static org.sagebionetworks.repo.manager.EmailUtils.*;
 
 public class SubmissionManagerImpl implements SubmissionManager {
 
@@ -277,18 +281,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		fieldValues.put(TEMPLATE_KEY_CHALLENGE_WEB_LINK, challengeEntityURL);
 		String submitterId = submission.getUserId();			
 		UserProfile userProfile = userProfileManager.getUserProfile(submitterId);
-		String displayName = EmailUtils.getDisplayName(userProfile);
+		String displayName = EmailUtils.getDisplayNameWithUserName(userProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		// notify all but the one who submitted.  If there is no one else on the team
 		// then this list will be empty and no notification will be sent.
 		for (SubmissionContributor contributor : submission.getContributors()) {
 			if (submitterId.equals(contributor.getPrincipalId())) continue;
-			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.
-					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, 
-							contributor.getPrincipalId()));
 			MessageToUser mtu = new MessageToUser();
 			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
 			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
+			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
 			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}

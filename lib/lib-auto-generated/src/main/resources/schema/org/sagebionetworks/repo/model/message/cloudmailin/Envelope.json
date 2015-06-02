@@ -1,0 +1,33 @@
+{
+	"title": "Envelope",
+	"description":"Message Envelope",
+	"properties":{
+		"to":{
+			"type":"string",
+			"description":"The email address the server is sending to. Note this might not always be the address within the message headers. For that reason you should also look at the headers parameter."
+		},
+		"recipients":{
+			"type":"array",
+			"items": {
+				"type": "string"
+			},
+			"description":"The full list of recipients that the remote server is attempting to send to in this transaction."
+		},
+		"from":{
+			"type":"string",
+			"description":"The email address that the server was sending from. Note this might not always be the address within the message headers. For that reason you should also look at the headers parameter."
+		},
+		"helo_domain":{
+			"type":"string",
+			"description":"The domain reported by the sending server as it sends the helo or ehlo command."
+		},
+		"remote_ip":{
+			"type":"string",
+			"description":"The remote IP address of the sending server if available."
+		},
+		"spf":{
+			"type":"string",
+			"description":"The SPF result for the given IP address and Domain."
+		}
+	} 
+}

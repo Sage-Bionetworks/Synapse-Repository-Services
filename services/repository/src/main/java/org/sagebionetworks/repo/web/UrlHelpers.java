@@ -547,6 +547,7 @@ public class UrlHelpers {
 	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + CONVERSATION;
 	public static final String MESSAGE_ID_FILE            = MESSAGE_ID + FILE;
 	public static final String ENTITY_ID_MESSAGE          = ENTITY_ID + MESSAGE;
+	public static final String CLOUDMAILIN_MESSAGE        = "/cloudMailInMessage";
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes

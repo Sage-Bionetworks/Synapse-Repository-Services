@@ -273,14 +273,13 @@ public class MembershipInvitationManagerImplTest {
 				createInvitationNotification(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		assertEquals("you have been invited to join a team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
+		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
 		
-		
-		// this will give us nine pieces...
+		// this will give us seven pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_TEAM_NAME,
 				TEMPLATE_KEY_INVITER_MESSAGE,
-				TEMPLATE_KEY_ONE_CLICK_JOIN,
-				TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE
+				TEMPLATE_KEY_ONE_CLICK_JOIN
 		});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipInvitationManagerImpl.TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, delims);
 
@@ -291,7 +290,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
 		String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
 		assertTrue(inviterMessage.indexOf("Please join our team.")>=0);
-		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
 		String acceptInvitationToken = 
 				EmailParseUtil.getTokenFromString(result.getBody(), 
 				templatePieces.get(4)+acceptInvitationEndpoint, templatePieces.get(6));
@@ -300,15 +299,6 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(TEAM_ID, jtst.getTeamId());
 		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
 		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getUserId());
-		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
-		String unsubscribeToken = EmailParseUtil.getTokenFromString(
-				result.getBody(), templatePieces.get(6)+notificationUnsubscribeEndpoint, templatePieces.get(8));
-		NotificationSettingsSignedToken nsst = SerializationUtils.hexDecodeAndDeserialize
-				(unsubscribeToken, NotificationSettingsSignedToken.class);
-		SignedTokenUtil.validateToken(nsst);
-		assertEquals(MEMBER_PRINCIPAL_ID, nsst.getUserId());
-		assertNull(nsst.getSettings().getMarkEmailedMessagesAsRead());
-		assertFalse(nsst.getSettings().getSendEmailNotifications());
 	}
 	
 

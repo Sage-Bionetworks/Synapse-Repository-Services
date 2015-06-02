@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -17,11 +16,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
-	
-	/**
-	 * For testing
-	 */
-	public void setFileHandleManager(FileHandleManager fileHandleManager);
 	
 	/**
 	 * Retrieves a single message by ID.  
@@ -118,10 +112,11 @@ public interface MessageManager {
 	/**
 	 * Sends a welcome email based on a template via Amazon SES
 	 */
-	public void sendWelcomeEmail(Long recipientId, DomainType domain) throws NotFoundException;
+	public void sendWelcomeEmail(Long recipientId, DomainType domain, String notificationUnsubscribeEndpoint) throws NotFoundException;
 	
 	/**
 	 * Sends a delivery failure notification based on a template
 	 */
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
+
 }

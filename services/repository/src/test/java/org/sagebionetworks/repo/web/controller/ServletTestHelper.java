@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -815,6 +816,15 @@ public class ServletTestHelper {
 
 		return ServletTestHelperUtils.readResponse(response,
 				MessageToUser.class);
+	}
+
+	public void createCloudInMessage(Message message)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.CLOUDMAILIN_MESSAGE, null, message);
+
+		ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	private Map<String, String> fillInMessagingParams(

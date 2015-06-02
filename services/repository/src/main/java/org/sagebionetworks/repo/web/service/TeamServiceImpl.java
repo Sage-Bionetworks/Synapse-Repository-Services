@@ -227,7 +227,7 @@ public class TeamServiceImpl implements TeamService {
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
 		Team team = teamManager.get(joinTeamToken.getTeamId());
 		responseMessage.setMessage("User "+
-		EmailUtils.getDisplayName(userProfile)+
+		EmailUtils.getDisplayNameWithUserName(userProfile)+
 		" has been added to team "+team.getName()+".");
 		return responseMessage;
 	}

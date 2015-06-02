@@ -4,6 +4,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +19,8 @@ import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+
+import com.amazonaws.util.IOUtils;
 
 public class PrivateFieldUtilsTest {
 
@@ -49,9 +52,17 @@ public class PrivateFieldUtilsTest {
 	@Test
 	public void testQuiz() throws Exception {
 		InputStream is = PrivateFieldUtilsTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
-
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		adapter = adapter.createNew(IOTestUtil.readFromInputStream(is, "utf-8"));
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		try {
+			IOUtils.copy(is, out);
+			String s = out.toString("utf-8");
+			adapter = adapter.createNew(s);
+		} finally {
+			is.close();
+			out.close();
+		}
+
 		QuizGenerator quizGenerator = new QuizGenerator();
 		// if the resource file does not contain a valid Quiz, this will fail
 		quizGenerator.initializeFromJSONObject(adapter);

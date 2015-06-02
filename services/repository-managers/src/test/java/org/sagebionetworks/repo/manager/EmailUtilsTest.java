@@ -6,11 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -20,25 +23,6 @@ import org.sagebionetworks.util.SerializationUtils;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
 public class EmailUtilsTest {
-
-	@Test
-	public void testCreateEmailRequest() {
-		SendEmailRequest request = EmailUtils.
-				createEmailRequest("foo@bar.com", "foo", "bar", false, "foobar");
-		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
-		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("bar", request.getMessage().getBody().getText().getData());
-		assertNull(request.getMessage().getBody().getHtml());
-		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
-
-		request = EmailUtils.
-				createEmailRequest("foo@bar.com", "foo", "<html>bar</html>", true, "foobar");
-		assertEquals(Collections.singletonList("foo@bar.com"), request.getDestination().getToAddresses());
-		assertEquals("foo", request.getMessage().getSubject().getData());
-		assertEquals("<html>bar</html>", request.getMessage().getBody().getHtml().getData());
-		assertNull(request.getMessage().getBody().getText());
-		assertEquals("foobar <notifications@sagebase.org>", request.getSource());
-}
 	
 	@Test
 	public void testReadMailTemplate() {
@@ -57,13 +41,25 @@ public class EmailUtilsTest {
 	public void testGetDisplayName() {
 		UserProfile up = new UserProfile();
 		up.setUserName("jh");
-		assertEquals("jh", EmailUtils.getDisplayName(up));
+		
+		assertNull(EmailUtils.getDisplayName(up));
+		assertEquals("jh", EmailUtils.getDisplayNameWithUserName(up));
 		
 		up.setFirstName("J");
-		assertEquals("J (jh)", EmailUtils.getDisplayName(up));
+		assertEquals("J", EmailUtils.getDisplayName(up));
+		assertEquals("J (jh)", EmailUtils.getDisplayNameWithUserName(up));
 		
 		up.setLastName("H");
-		assertEquals("J H (jh)", EmailUtils.getDisplayName(up));
+		assertEquals("J H", EmailUtils.getDisplayName(up));
+		assertEquals("J H (jh)", EmailUtils.getDisplayNameWithUserName(up));
+	}
+	
+	@Test
+	public void testCreateSource() {
+		assertEquals("noreply@synapse.org", EmailUtils.createSource(null, null));
+		assertEquals("someuser@synapse.org", EmailUtils.createSource(null, "someuser"));
+		assertEquals("Some User <noreply@synapse.org>", EmailUtils.createSource("Some User", null));
+		assertEquals("Some User <someuser@synapse.org>", EmailUtils.createSource("Some User", "someuser"));
 	}
 	
 	
@@ -115,5 +111,45 @@ public class EmailUtilsTest {
 		assertFalse(token.getSettings().getSendEmailNotifications());
 	}
 
+	@Test
+	public void testCreateHtmlUnsubscribeFooter() throws Exception {
+		String unsubscribeLink = "https://foo.bar.com#baz:12345";
+		String footer = EmailUtils.createHtmlUnsubscribeFooter(unsubscribeLink);
+		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeFooter.html", delims);
+		assertEquals(3, templatePieces.size());
+		assertTrue(footer.startsWith(templatePieces.get(0)));
+		assertTrue(footer.endsWith(templatePieces.get(2)));
+		assertEquals(unsubscribeLink, EmailParseUtil.getTokenFromString(
+				footer, templatePieces.get(0), templatePieces.get(2)));
+	}
 
+	@Test
+	public void testCreateTextUnsubscribeFooter() throws Exception {
+		String unsubscribeLink = "https://foo.bar.com#baz:12345";
+		String footer = EmailUtils.createTextUnsubscribeFooter(unsubscribeLink);
+		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE});
+		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeFooter.txt", delims);
+		assertEquals(3, templatePieces.size());
+		assertTrue(footer.startsWith(templatePieces.get(0)));
+		assertTrue(footer.endsWith(templatePieces.get(2)));
+		assertEquals(unsubscribeLink, EmailParseUtil.getTokenFromString(
+				footer, templatePieces.get(0), templatePieces.get(2)));
+	}
+
+	@Test
+	public void testCreateEmailBodyFromHtml() throws Exception {
+		assertEquals("foo", EmailUtils.createEmailBodyFromHtml("foo", null));		
+		String messageWithFooter = EmailUtils.createEmailBodyFromHtml("foo", "link");
+		assertTrue(messageWithFooter.startsWith(messageWithFooter));
+		assertTrue(messageWithFooter.endsWith(EmailUtils.createHtmlUnsubscribeFooter("link")));
+	}
+
+	@Test
+	public void testCreateEmailBodyFromText() throws Exception {
+		assertEquals("foo", EmailUtils.createEmailBodyFromText("foo", null));
+		String messageWithFooter = EmailUtils.createEmailBodyFromText("foo", "link");
+		assertTrue(messageWithFooter.startsWith(messageWithFooter));
+		assertTrue(messageWithFooter.endsWith(EmailUtils.createTextUnsubscribeFooter("link")));		
+	}
 }

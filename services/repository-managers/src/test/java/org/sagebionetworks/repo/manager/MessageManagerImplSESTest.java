@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -37,7 +36,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
 
 /**
  * Checks how the message manager handles sending emails to Amazon SES
@@ -68,7 +66,7 @@ public class MessageManagerImplSESTest {
 	private UserGroupDAO mockUserGroupDAO;
 	private GroupMembersDAO mockGroupMembersDAO;
 	private UserManager mockUserManager;
-	private UserProfileDAO mockUserProfileDAO;
+	private UserProfileManager mockUserProfileManager;
 	private NotificationEmailDAO mockNotificationEmailDao;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private AuthorizationManager mockAuthorizationManager;
@@ -109,7 +107,7 @@ public class MessageManagerImplSESTest {
 		mockUserGroupDAO  = mock(UserGroupDAO.class);
 		mockGroupMembersDAO = mock(GroupMembersDAO.class);
 		mockUserManager = mock(UserManager.class);
-		mockUserProfileDAO = mock(UserProfileDAO.class);
+		mockUserProfileManager = mock(UserProfileManager.class);
 		mockNotificationEmailDao = mock(NotificationEmailDAO.class);
 		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 		mockAuthorizationManager = mock(AuthorizationManager.class);
@@ -120,7 +118,7 @@ public class MessageManagerImplSESTest {
 		
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
-				mockUserProfileDAO, mockNotificationEmailDao, mockPrincipalAliasDAO, 
+				mockUserProfileManager, mockNotificationEmailDao, mockPrincipalAliasDAO, 
 				mockAuthorizationManager, synapseEmailService,
 				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
 				mockFileHandleDao);
@@ -149,7 +147,6 @@ public class MessageManagerImplSESTest {
 		String urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
 		when(mockFileHandleManager.downloadFileToString(anyString())).thenReturn("my dog has fleas");
-		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check
 		when(mockMessageDAO.getMessageSent(anyString())).thenReturn(false);
@@ -163,14 +160,14 @@ public class MessageManagerImplSESTest {
 		// Mocks the getting of settings
 		UserProfile mockUserProfile = new UserProfile();
 		mockUserProfile.setNotificationSettings(new Settings());
-		when(mockUserProfileDAO.get(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
+		when(mockUserProfileManager.getUserProfile(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
 		
 		mockRecipientPrincipalAlias = new PrincipalAlias();
 		mockRecipientPrincipalAlias.setType(AliasType.USER_EMAIL);
 
 		UserProfile mockSenderUserProfile = new UserProfile();
 		mockSenderUserProfile.setUserName("foo");
-		when(mockUserProfileDAO.get(eq(mockUserIdString))).thenReturn(mockSenderUserProfile);
+		when(mockUserProfileManager.getUserProfile(eq(mockUserIdString))).thenReturn(mockSenderUserProfile);
 
 		PrincipalAlias senderPrincipalAlias = new PrincipalAlias();
 		senderPrincipalAlias.setType(AliasType.USER_EMAIL);

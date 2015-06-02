@@ -7,6 +7,7 @@ public class MessageToUserAndBody {
 	private String body;
 	private String mimeType;
 	
+	public MessageToUserAndBody() {}
 	
 	public MessageToUserAndBody(MessageToUser metadata, String body, String mimeType) {
 		super();

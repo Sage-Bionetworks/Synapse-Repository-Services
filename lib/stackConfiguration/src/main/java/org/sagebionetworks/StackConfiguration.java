@@ -535,9 +535,9 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.logging.sweeper.delete.enabled"));
 	}
 	
-	public static String getNotificationEmailAddress() {
+	public static String getNotificationEmailSuffix() {
 		return configuration
-				.getProperty("org.sagebionetworks.notification.email.address");
+				.getProperty("org.sagebionetworks.notification.email.suffix");
 	}
 	
 	public static String getSynapseOpsEmailAddress() {
@@ -1603,6 +1603,20 @@ public class StackConfiguration {
 		}
 		if (emailDeliveredString==null || emailDeliveredString.length()==0) return false;
 		return Boolean.parseBoolean(emailDeliveredString);
+	}
+	
+	/*
+	 * Credentials used by CloudMailIn to send authenticated requests to the repo services.
+	 */
+	public static String getCloudMailInUser() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.user");
+	}
+	
+	/*
+	 * Credentials used by CloudMailIn to send authenticated requests to the repo services.
+	 */
+	public static String getCloudMailInPassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.password");
 	}
 	
 	/**

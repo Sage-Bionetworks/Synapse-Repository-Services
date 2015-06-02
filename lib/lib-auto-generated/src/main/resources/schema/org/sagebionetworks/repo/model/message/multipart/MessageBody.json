@@ -1,0 +1,22 @@
+{
+	"title": "MessageBody",
+	"description": "JSON schema for a multipart message body", 
+	"properties": {
+		"plain": {
+			"type": "string",
+			"description":"Message body, as plain text."
+		}, 
+		"html": {
+			"type": "string",
+			"description":"Message body, as html."
+		}, 
+		"attachments": {
+			"type": "array",
+			"description":"Attachments to the message.",
+			"items": {
+				"type": "object",
+				"$ref":"org.sagebionetworks.repo.model.message.multipart.Attachment"
+			}
+		}
+	}
+}

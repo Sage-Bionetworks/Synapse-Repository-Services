@@ -111,7 +111,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
-		String displayName = EmailUtils.getDisplayName(userProfile);
+		String displayName = EmailUtils.getDisplayNameWithUserName(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mrs.getTeamId()).getName());
@@ -127,12 +127,11 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		for (String recipientPrincipalId : teamAdmins) {
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId()));
-			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, EmailUtils.createOneClickUnsubscribeLink(
-					notificationUnsubscribeEndpoint, recipientPrincipalId));
 			String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();
 			mtu.setRecipients(Collections.singleton(recipientPrincipalId));
 			mtu.setSubject(TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT);
+			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}
 		return result;

@@ -317,6 +317,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MESSAGE_ORDER_BY_PARAM = "orderBy";
 	private static final String MESSAGE_DESCENDING_PARAM = "descending";
 
+	private static final String PORTAL_NOTIFICATION_SETTINGS_ENDPOINT = "https://www.synapse.org/#!SignedToken:Settings/";
+	
 	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 
 	protected static final String ASYNC_START = "/async/start";
@@ -3958,10 +3960,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return builder.toString();
 	}
+	
+	private static void setNotificationSettingsEndpointIfMissing(MessageToUser message) {
+		if (message.getNotificationUnsubscribeEndpoint()==null)
+			message.setNotificationUnsubscribeEndpoint(PORTAL_NOTIFICATION_SETTINGS_ENDPOINT);
+	}
 
 	@Override
 	public MessageToUser sendMessage(MessageToUser message)
 			throws SynapseException {
+		setNotificationSettingsEndpointIfMissing(message);
 		String uri = MESSAGE;
 		try {
 			String jsonBody = EntityFactory.createJSONStringForEntity(message);
@@ -4152,6 +4160,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendMessage(MessageToUser message, String entityId)
 			throws SynapseException {
+		setNotificationSettingsEndpointIfMissing(message);
 		String uri = ENTITY + "/" + entityId + "/" + MESSAGE;
 		try {
 			String jsonBody = EntityFactory.createJSONStringForEntity(message);
