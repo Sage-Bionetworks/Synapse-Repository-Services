@@ -139,11 +139,6 @@ public interface TemplatedConfiguration {
 	public String getSearchServiceEndpoint();
 
 	/**
-	 * @return portal endpoint
-	 */
-	public String getPortalEndpoint();
-
-	/**
 	 * The repository Apache HttpClient connection pool properties
 	 * 
 	 * @return the max number of connections per route
