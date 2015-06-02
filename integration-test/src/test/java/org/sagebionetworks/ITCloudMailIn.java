@@ -14,7 +14,9 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -33,7 +35,20 @@ public class ITCloudMailIn {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
 	private static Long user1ToDelete;
-
+	private static String repoEndpoint;
+	private static String username;
+	private static String password;
+	private static final String[] SAMPLE_MESSAGES = {
+		"SimpleMessage.json",
+		"MessageWithAttachment.json"
+	};
+	
+	private static final String URI = "/cloudMailInMessage";
+	
+	private SharedClientConnection conn;
+	Map<String, String> requestHeaders;
+	
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Create 2 users
@@ -45,7 +60,23 @@ public class ITCloudMailIn {
 		synapseOne = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		username = StackConfiguration.getCloudMailInUser();
+		password = StackConfiguration.getCloudMailInPassword();
 		
+	}
+	
+	@Before
+	public void before() throws Exception {
+		// get the underlying SharedClientConnection so we can add the basic authentication header
+		conn = synapseOne.getSharedClientConnection();
+		requestHeaders = new HashMap<String, String>();
+		UserSessionData userSessionData = synapseOne.getUserSessionData();
+		String sessionToken = userSessionData.getSession().getSessionToken();
+		requestHeaders.put("sessionToken", sessionToken);
+		requestHeaders.put("Content-Type", "application/json"); // Note, without this header we get a 415 response code
+		requestHeaders.put("Authorization", "Basic "+(new String(
+				Base64.encodeBase64((username+":"+password).getBytes()))));
 	}
 	
 	@AfterClass
@@ -56,123 +87,52 @@ public class ITCloudMailIn {
 
 	}
 	
-	private static final String[] SAMPLE_MESSAGES = {
-		"SimpleMessage.json",
-		"MessageWithAttachment.json"
-	};
-	
-	private static final String URI = "/cloudMailInMessage";
-	
-	@Test
-	public void testCloudMailInMessage() throws Exception {
-		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		String username = StackConfiguration.getCloudMailInUser();
-		String password = StackConfiguration.getCloudMailInPassword();
-
-		
-		// get the underlying SharedClientConnection so we can add the basic authentication header
-		SharedClientConnection conn = synapseOne.getSharedClientConnection();
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.put("Authorization", "Basic "+(new String(
-				Base64.encodeBase64((username+":"+password).getBytes()))));
-		UserSessionData userSessionData = synapseOne.getUserSessionData();
-		String sessionToken = userSessionData.getSession().getSessionToken();
-		requestHeaders.put("sessionToken", sessionToken);
-		requestHeaders.put("Content-Type", "application/json"); // Note, without this header we get a 415 response code
-		for (String sampleFileName : SAMPLE_MESSAGES) {
-			InputStream is = ITCloudMailIn.class.getClassLoader().
-			         getResourceAsStream("CloudMailInMessages/"+sampleFileName);
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete.toString());
-			String myemail = userProfile.getEmails().get(0);
-			String myusername = userProfile.getUserName();
-			try {
-				IOUtils.copy(is, out);
-				String messageJson = out.toString("utf-8");
-				Message message = EntityFactory.createEntityFromJSONString(messageJson, Message.class);
-				JSONObject origHeaders = new JSONObject(message.getHeaders());
-				JSONObject newHeaders = new JSONObject();
-				newHeaders.put("Subject", origHeaders.get("Subject")); // can copy other headers too
-				newHeaders.put("From", myemail);
-				newHeaders.put("To", myusername+"@synapse.org");
-				message.setHeaders(newHeaders.toString());
-				
-				
-				String emailMessageKey = EmailValidationUtil.getBucketKeyForEmail(myemail);
-				if (EmailValidationUtil.doesFileExist(emailMessageKey)) 
-					EmailValidationUtil.deleteFile(emailMessageKey);
-
-				URL url = new URL(repoEndpoint+URI+
-						"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe");
-				HttpResponse response = conn.performRequest(url.toString(), "POST", 
-						EntityFactory.createJSONStringForEntity(message), requestHeaders);
-				assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
+	private HttpResponse sendMessage(String jsonFileName, String fromemail) throws Exception {
+		InputStream is = ITCloudMailIn.class.getClassLoader().
+		         getResourceAsStream(jsonFileName);
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete.toString());
+		String myusername = userProfile.getUserName();
+		try {
+			IOUtils.copy(is, out);
+			String messageJson = out.toString("utf-8");
+			Message message = EntityFactory.createEntityFromJSONString(messageJson, Message.class);
+			JSONObject origHeaders = new JSONObject(message.getHeaders());
+			JSONObject newHeaders = new JSONObject();
+			newHeaders.put("Subject", origHeaders.get("Subject")); // can copy other headers too
+			newHeaders.put("From", fromemail);
+			newHeaders.put("To", myusername+"@synapse.org");
+			String toemail = userProfile.getEmails().get(0);
+			message.setHeaders(newHeaders.toString());
 			
-				// check that message is sent (file is created)
-				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey));
-			} finally {
-				is.close();
-				out.close();
-			}
-		}
+			String emailMessageKey = EmailValidationUtil.getBucketKeyForEmail(toemail);
+			if (EmailValidationUtil.doesFileExist(emailMessageKey)) 
+				EmailValidationUtil.deleteFile(emailMessageKey);
 
+			URL url = new URL(repoEndpoint+URI+
+					"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe");
+			HttpResponse response = conn.performRequest(url.toString(), "POST", 
+					EntityFactory.createJSONStringForEntity(message), requestHeaders);
+			
+			if (response.getStatusLine().getStatusCode()==HttpStatus.SC_NO_CONTENT) {
+				// check that message is sent (file is created)
+				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey));				
+			}
+			return response;
+		
+		} finally {
+			is.close();
+			out.close();
+		}		
 	}
 	
 	@Test
-	public void testCloudMailInMessageWithCredentialsInURL() throws Exception {
-		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		String username = StackConfiguration.getCloudMailInUser();
-		String password = StackConfiguration.getCloudMailInPassword();
-
-		
-		// get the underlying SharedClientConnection so we can add the basic authentication header
-		SharedClientConnection conn = synapseOne.getSharedClientConnection();
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		UserSessionData userSessionData = synapseOne.getUserSessionData();
-		String sessionToken = userSessionData.getSession().getSessionToken();
-		requestHeaders.put("sessionToken", sessionToken);
-		requestHeaders.put("Content-Type", "application/json"); // Note, without this header we get a 415 response code
+	public void testCloudMailInMessage() throws Exception {
 		for (String sampleFileName : SAMPLE_MESSAGES) {
-			InputStream is = ITCloudMailIn.class.getClassLoader().
-			         getResourceAsStream("CloudMailInMessages/"+sampleFileName);
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete.toString());
-			String myemail = userProfile.getEmails().get(0);
-			String myusername = userProfile.getUserName();
-			try {
-				IOUtils.copy(is, out);
-				String messageJson = out.toString("utf-8");
-				Message message = EntityFactory.createEntityFromJSONString(messageJson, Message.class);
-				JSONObject origHeaders = new JSONObject(message.getHeaders());
-				JSONObject newHeaders = new JSONObject();
-				newHeaders.put("Subject", origHeaders.get("Subject")); // can copy other headers too
-				newHeaders.put("From", myemail);
-				newHeaders.put("To", myusername+"@synapse.org");
-				message.setHeaders(newHeaders.toString());
-				
-				
-				String emailMessageKey = EmailValidationUtil.getBucketKeyForEmail(myemail);
-				if (EmailValidationUtil.doesFileExist(emailMessageKey)) 
-					EmailValidationUtil.deleteFile(emailMessageKey);
-
-				URL urlWithoutAuthorityOrQuery = new URL(repoEndpoint+URI);
-				
-				URL urlWithAuthorityAndQuery = new URL(urlWithoutAuthorityOrQuery.getProtocol()+"://"+username+":"+password+
-						"@"+urlWithoutAuthorityOrQuery.getHost()+":"+urlWithoutAuthorityOrQuery.getPort()+urlWithoutAuthorityOrQuery.getPath()+
-						"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe");
-				
-				String urlString = urlWithAuthorityAndQuery.toString();
-				
-				HttpResponse response = conn.performRequest(urlString, "POST", 
-						EntityFactory.createJSONStringForEntity(message), requestHeaders);
-				assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
-			
-				// check that message is sent (file is created)
-				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey));
-			} finally {
-				is.close();
-				out.close();
-			}
+			String fromemail = userProfile.getEmails().get(0);
+			HttpResponse response = sendMessage("CloudMailInMessages/"+sampleFileName, fromemail);
+			assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
 		}
 
 	}
@@ -181,43 +141,27 @@ public class ITCloudMailIn {
 	// This tests that the Synapse authentication filter rejects bad credentials.
 	@Test
 	public void testCloudMailInMessageWrongCredentials() throws Exception {
-		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		String username = StackConfiguration.getCloudMailInUser();
-		String password = "ThisIsTheWrongPassword!!!";
-
-		// get the underlying SharedClientConnection so we can add the basic authentication header
-		SharedClientConnection conn = synapseOne.getSharedClientConnection();
-		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Authorization", "Basic "+(new String(
-				Base64.encodeBase64((username+":"+password).getBytes()))));
-		UserSessionData userSessionData = synapseOne.getUserSessionData();
-		String sessionToken = userSessionData.getSession().getSessionToken();
-		requestHeaders.put("sessionToken", sessionToken);
-		requestHeaders.put("Content-Type", "application/json"); // Note, without this header we get a 415 response code
+				Base64.encodeBase64((username+":ThisIsTheWrongPassword!!!").getBytes()))));
 		String sampleFileName = SAMPLE_MESSAGES[0];
-		InputStream is = ITCloudMailIn.class.getClassLoader().
-		         getResourceAsStream("CloudMailInMessages/"+sampleFileName);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete.toString());
-		String myemail = userProfile.getEmails().get(0);
-		String myusername = userProfile.getUserName();
-		try {
-			IOUtils.copy(is, out);
-			String messageJson = out.toString("utf-8");			
-			Message message = EntityFactory.createEntityFromJSONString(messageJson, Message.class);
-			JSONObject origHeaders = new JSONObject(message.getHeaders());
-			JSONObject newHeaders = new JSONObject();
-			newHeaders.put("Subject", origHeaders.get("Subject")); // can copy other headers too
-			newHeaders.put("From", myemail);
-			newHeaders.put("To", myusername+"@synapse.org");
-			message.setHeaders(newHeaders.toString());
-			HttpResponse response = conn.performRequest(
-					repoEndpoint+URI+"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe"
-					, "POST", EntityFactory.createJSONStringForEntity(message), requestHeaders);
-			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
-				} finally {
-			is.close();
-			out.close();
-		}
+		String fromemail = userProfile.getEmails().get(0);
+		HttpResponse response = sendMessage("CloudMailInMessages/"+sampleFileName, fromemail);
+		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
+	}
+	
+	@Ignore
+	// send from an invalid email and check that the error comes back
+	@Test
+	public void testResponseMessage() throws Exception {
+		String sampleFileName = SAMPLE_MESSAGES[0];
+		String fromemail = "notArealUser@sagebase.org";
+		HttpResponse response = sendMessage("CloudMailInMessages/"+sampleFileName, fromemail);
+		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode());
+		assertTrue(response.getEntity().getContentType().getValue().startsWith("text/plain"));
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		IOUtils.copy(response.getEntity().getContent(), baos);
+		assertEquals("Specified address notArealUser@sagebase.org is not registered with Synapse.", 
+				new String(baos.toByteArray()));
 	}
 }
