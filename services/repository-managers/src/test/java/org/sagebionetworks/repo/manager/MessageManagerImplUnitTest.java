@@ -1,5 +1,5 @@
 package org.sagebionetworks.repo.manager;
-import static org.junit.Assert.assertEquals;
+import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -10,16 +10,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -250,5 +254,42 @@ public class MessageManagerImplUnitTest {
 		assertTrue(ser.getMessage().getBody().getText().getData().indexOf(
 				"The following errors were experienced while delivering message")>=0);
 	}
+	
+	@Test
+	public void testSendMessageTo_AUTH_USERS() throws Exception {
+		Long authUsersId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		UserGroup ug = new UserGroup();
+		ug.setId(authUsersId.toString());
+		ug.setIsIndividual(false);
+		when(userGroupDAO.get(eq(authUsersId))).thenReturn(ug);
+
+		fileHandle.setContentType("text/plain");
+		String messageBody = "message body";
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+
+		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
+				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);	
+		
+		// This will fail since non-admin users do not have permission to send to the public group
+		mtu.setRecipients(Collections.singleton(authUsersId.toString()));
+		List<String> errors = messageManager.processMessage(MESSAGE_ID);
+		String joinedErrors = StringUtils.join(errors, "\n");
+		assertTrue(joinedErrors.contains("may not send"));
+		
+		// But an admin can do it
+		UserInfo adminUserInfo = new UserInfo(true);
+		adminUserInfo.setId(CREATOR_ID);
+		adminUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(adminUserInfo);
+		
+		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
+				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);	
+		
+		errors = messageManager.processMessage(MESSAGE_ID);
+		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
+	}
+	
+
 
 }

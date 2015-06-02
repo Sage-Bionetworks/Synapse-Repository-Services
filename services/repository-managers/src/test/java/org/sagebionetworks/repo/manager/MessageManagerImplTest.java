@@ -641,32 +641,6 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
 	}
 	
-	@Ignore // see PLFM-3278
-	@Test
-	public void testSendMessageTo_AUTH_USERS() throws Exception {
-		// This should fail since no one has permission to send to this public group
-		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", 
-				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
-		List<String> errors = messageManager.processMessage(notAllowedToSend.getId());
-		String joinedErrors = StringUtils.join(errors, "\n");
-		assertTrue(joinedErrors.contains("may not send"));
-		
-		// But an admin can do it
-		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", 
-				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
-		errors = messageManager.processMessage(spam.getId());
-		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
-		
-		// Now everyone has been spammed
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(spam, messages.getResults().get(0).getMessage());
-		
-		messages = messageManager.getInbox(otherTestUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(spam, messages.getResults().get(0).getMessage());
-	}
-	
 	@Test
 	public void testCreateMessage_TooManyRecipients() throws Exception {
 		Set<String> tooMany = new HashSet<String>();
