@@ -96,11 +96,19 @@ public class MessageController extends BaseController {
 		return serviceProvider.getMessageService().create(userId, toCreate);
 	}
 	
+	/**
+	 * Note:  This service is designed to be used by CloudMailIn, not by clients in general.
+	 * Calling the service requires Basic Authentication credentials owned by the 
+	 * the Synapse CloudMailIn account.
+	 * 
+	 * @param toCreate the CloudMailIn message in JSON format
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_MESSAGE, method = RequestMethod.POST)
 	public void createCloudMailInMessage(
 			@RequestBody Message toCreate,
-			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, 
+			 @RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, 
 			required = false) String notificationUnsubscribeEndpoint
 			) throws NotFoundException {
 		serviceProvider.getMessageService().create(toCreate, notificationUnsubscribeEndpoint);

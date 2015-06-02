@@ -3,11 +3,8 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -1617,6 +1614,10 @@ public class StackConfiguration {
 	 */
 	public static String getCloudMailInPassword() {
 		return configuration.getDecryptedProperty("org.sagebionetworks.email.cloudmailin.password");
+	}
+	
+	public static String getDefaultPortalNotificationEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.notification.portal.endpoint");
 	}
 	
 	/**

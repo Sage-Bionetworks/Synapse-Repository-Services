@@ -131,6 +131,9 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			throw new IllegalArgumentException("Email must end with "+EMAIL_SUFFIX_LOWER_CASE);
 		String aliasString = emailLowerCase.substring(0,  
 				emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length());
+		if (aliasString.equals(EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART)) 
+			throw new IllegalArgumentException("You may not contact a '"+
+					EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+"' email address.");
 		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(aliasString);
 		if (alias==null) throw new IllegalArgumentException("Specified user, "+aliasString+" is unknown to Synapse.");
 		return alias.getPrincipalId();

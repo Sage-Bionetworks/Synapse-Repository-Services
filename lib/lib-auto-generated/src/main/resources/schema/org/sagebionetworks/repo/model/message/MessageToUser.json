@@ -23,7 +23,7 @@
 		}, 
         "notificationUnsubscribeEndpoint": {
 			"type": "string",
-			"description":"the portal prefix for one-click email unsubscription.  A signed, serialized token is appended to create the complete URL."
+			"description":"the portal prefix for one-click email unsubscription.  A signed, serialized token is appended to create the complete URL.  If omitted, the default endpoint will be used."
 		}
 	}
 }

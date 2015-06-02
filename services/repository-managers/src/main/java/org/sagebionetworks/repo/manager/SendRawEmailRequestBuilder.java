@@ -18,6 +18,7 @@ import javax.mail.internet.MimeMultipart;
 
 import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -82,7 +83,10 @@ public class SendRawEmailRequestBuilder {
 		if (subject == null) subject = "";
 
 		String unsubscribeLink = null;
-		if (notificationUnsubscribeEndpoint!=null && userId!=null) {
+        if (notificationUnsubscribeEndpoint==null) {
+        	notificationUnsubscribeEndpoint = StackConfiguration.getDefaultPortalNotificationEndpoint();
+        }
+		if (userId!=null) {
 			unsubscribeLink = EmailUtils.
 					createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, userId);
 		}

@@ -25,7 +25,6 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -71,9 +70,6 @@ public class ITCloudMailIn {
 		// get the underlying SharedClientConnection so we can add the basic authentication header
 		conn = synapseOne.getSharedClientConnection();
 		requestHeaders = new HashMap<String, String>();
-		UserSessionData userSessionData = synapseOne.getUserSessionData();
-		String sessionToken = userSessionData.getSession().getSessionToken();
-		requestHeaders.put("sessionToken", sessionToken);
 		requestHeaders.put("Content-Type", "application/json"); // Note, without this header we get a 415 response code
 		requestHeaders.put("Authorization", "Basic "+(new String(
 				Base64.encodeBase64((username+":"+password).getBytes()))));
@@ -109,8 +105,7 @@ public class ITCloudMailIn {
 			if (EmailValidationUtil.doesFileExist(emailMessageKey)) 
 				EmailValidationUtil.deleteFile(emailMessageKey);
 
-			URL url = new URL(repoEndpoint+URI+
-					"?notificationUnsubscribeEndpoint=https://www.synapse.org/#:unsubscribe");
+			URL url = new URL(repoEndpoint+URI);
 			HttpResponse response = conn.performRequest(url.toString(), "POST", 
 					EntityFactory.createJSONStringForEntity(message), requestHeaders);
 			
