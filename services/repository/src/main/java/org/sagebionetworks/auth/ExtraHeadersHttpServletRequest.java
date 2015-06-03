@@ -36,11 +36,25 @@ public class ExtraHeadersHttpServletRequest extends HttpServletRequestWrapper {
 	}
 	
 	@Override
+	public Enumeration<String> getHeaders(String name) {
+		Vector<String> v = new Vector<String>();
+		Enumeration<String> en = super.getHeaders(name);
+		if (en!=null) {
+			while (en.hasMoreElements()) v.add(en.nextElement());
+		}
+		String extraValue = extraHeaders.get(name);
+		if (extraValue!=null) v.add(extraValue);
+		return v.elements();
+	}
+	
+	@Override
 	public Enumeration<String> getHeaderNames() {
 		Vector<String> v = new Vector<String>();
 		Enumeration<String> en = super.getHeaderNames();
-		while (en.hasMoreElements()) v.add(en.nextElement());
-		for (String key : extraHeaders.keySet()) v.add(extraHeaders.get(key));
+		if (en!=null) {
+			while (en.hasMoreElements()) v.add(en.nextElement());
+		}
+		for (String key : extraHeaders.keySet()) v.add(key);
 		return v.elements();
     }
     

@@ -151,10 +151,11 @@ public class ITCloudMailIn {
 		String fromemail = "notArealUser@sagebase.org";
 		HttpResponse response = sendMessage("CloudMailInMessages/"+sampleFileName, fromemail);
 		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode());
-		assertTrue(response.getEntity().getContentType().getValue().startsWith("text/plain"));
+		String contentType = response.getEntity().getContentType().getValue();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		IOUtils.copy(response.getEntity().getContent(), baos);
 		assertEquals("Specified address notArealUser@sagebase.org is not registered with Synapse.", 
 				new String(baos.toByteArray()));
+		assertTrue(contentType, contentType.startsWith("text/plain"));
 	}
 }
