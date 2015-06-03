@@ -123,6 +123,12 @@ public class AsynchJobStatusManagerImplTest {
 		manager.getJobStatus(user,"999");
 	}
 	
+	@Test(expected = UnauthorizedException.class)
+	public void testCancelJobStatusUnauthorizedException() throws DatastoreException, NotFoundException {
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(false);
+		manager.cancelJob(user, "999");
+	}
+
 	@Test
 	public void testGetJobStatusHappy() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);

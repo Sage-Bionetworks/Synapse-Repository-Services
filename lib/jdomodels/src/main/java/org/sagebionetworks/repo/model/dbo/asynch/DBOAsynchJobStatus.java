@@ -49,7 +49,6 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	public enum JobState{
 		PROCESSING,
 		FAILED,
-		CANCELING,
 		COMPLETE,
 	}
 
@@ -67,7 +66,7 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	@Field(name = COL_ASYNCH_JOB_TYPE, nullable = false, varchar=1000)
 	private AsynchJobType jobType;
 	
-	@Field(name = COL_ASYNCH_JOB_CANCELING, varchar = 36, nullable = false)
+	@Field(name = COL_ASYNCH_JOB_CANCELING, nullable = false)
 	private Boolean canceling;
 
 	@Field(name = COL_ASYNCH_JOB_ERROR_MESSAGE, varchar=MAX_MESSAGE_CHARS, nullable = true)

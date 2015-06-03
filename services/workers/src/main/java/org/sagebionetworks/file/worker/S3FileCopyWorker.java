@@ -2,12 +2,12 @@ package org.sagebionetworks.file.worker;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.AbstractWorker;
+import org.sagebionetworks.asynchronous.workers.sqs.JobCanceledException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -171,7 +171,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 						// check for canceled status
 						AsynchronousJobStatus jobStatus = asynchJobStatusManager.getJobStatus(userInfo, status.getJobId());
 						if (jobStatus.getJobCanceling()) {
-							throw new AsynchJobStatusManager.JobCanceledException();
+							throw new JobCanceledException();
 						}
 
 						S3CopyFileProgressCallback progress = new S3CopyFileProgressCallback(message, progressTotal, progressCurrent, file
@@ -202,7 +202,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 			// done
 			asynchJobStatusManager.setComplete(status.getJobId(), resultBody);
 			return message;
-		} catch (AsynchJobStatusManager.JobCanceledException e) {
+		} catch (JobCanceledException e) {
 			log.error("Worker canceled");
 			// Record the cancelation
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
