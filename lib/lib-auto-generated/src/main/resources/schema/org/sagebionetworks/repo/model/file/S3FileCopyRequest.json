@@ -10,6 +10,10 @@
 			"description": "The s3 bucket to copy to",
 			"type": "string"
 		},
+		"baseKey": {
+			"description": "The optional baseKey to prepend to all copied keys",
+			"type": "string"
+		},
 		"overwrite": {
 			"description": "overwrite existing files on destination (default false)",
 			"type": "boolean"

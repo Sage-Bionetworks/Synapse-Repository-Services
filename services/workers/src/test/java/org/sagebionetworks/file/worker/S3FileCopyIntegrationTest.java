@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
+import org.sagebionetworks.repo.model.file.S3FileCopyResult;
 import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -340,6 +341,26 @@ public class S3FileCopyIntegrationTest {
 		assertEquals(status.toString(), AsynchJobState.COMPLETE, status.getJobState());
 		results = (S3FileCopyResults) status.getResponseBody();
 		assertEquals(S3FileCopyResultType.ERROR, results.getResults().get(0).getResultType());
+	}
+
+	@Test
+	public void testCancel() throws Exception {
+		S3FileCopyRequest request = new S3FileCopyRequest();
+		request.setFiles(Lists.<String> newArrayList());
+		request.setBucket(DESTINATION_TEST_BUCKET);
+		request.setOverwrite(true);
+
+		for (int i = 0; i < 2; i++) {
+			String fileEntityId = createFileEntity(i, i, 200, null);
+			request.getFiles().add(fileEntityId);
+		}
+
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		asynchJobStatusManager.setJobCanceling(status.getJobId());
+		// Wait for the job to complete.
+		status = waitForStatus(adminUserInfo, status);
+		assertEquals(status.toString(), AsynchJobState.FAILED, status.getJobState());
+		assertEquals(status.toString(), "Canceled", status.getErrorMessage());
 	}
 
 	private String createFileEntity(int index) throws IOException, ServiceUnavailableException {

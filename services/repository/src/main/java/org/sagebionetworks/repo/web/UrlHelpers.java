@@ -177,6 +177,7 @@ public class UrlHelpers {
 	public static final String ASYNC_GET_REQUEST = "/async/get/{asyncToken}";
 	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB + "/{jobId}";
+	public static final String ASYNCHRONOUS_JOB_CANCEL = ASYNCHRONOUS_JOB_ID + "/cancel";
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.

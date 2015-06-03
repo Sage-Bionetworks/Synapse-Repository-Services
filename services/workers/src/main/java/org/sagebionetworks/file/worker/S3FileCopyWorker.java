@@ -2,6 +2,7 @@ package org.sagebionetworks.file.worker;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
@@ -156,7 +157,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 
 				asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 0L, "Intializing " + fileEntityId);
 
-				progressTotal += precheckFile(entry, userInfo, BooleanUtils.isTrue(request.getOverwrite()));
+				progressTotal += precheckFile(entry, userInfo, BooleanUtils.isTrue(request.getOverwrite()), request.getBaseKey());
 			}
 
 			boolean skipRestOfCopy = anyErrors(files);
@@ -167,6 +168,12 @@ public class S3FileCopyWorker extends AbstractWorker {
 				asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
 				for (Entry file : files) {
 					if (file.getFileCopyResult().getResultType() == S3FileCopyResultType.NOTCOPIED) {
+						// check for canceled status
+						AsynchronousJobStatus jobStatus = asynchJobStatusManager.getJobStatus(userInfo, status.getJobId());
+						if (jobStatus.getJobCanceling()) {
+							throw new AsynchJobStatusManager.JobCanceledException();
+						}
+
 						S3CopyFileProgressCallback progress = new S3CopyFileProgressCallback(message, progressTotal, progressCurrent, file
 								.getFileHandle().getFileName(), status);
 						try {
@@ -195,6 +202,11 @@ public class S3FileCopyWorker extends AbstractWorker {
 			// done
 			asynchJobStatusManager.setComplete(status.getJobId(), resultBody);
 			return message;
+		} catch (AsynchJobStatusManager.JobCanceledException e) {
+			log.error("Worker canceled");
+			// Record the cancelation
+			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			return message;
 		} catch (Throwable e) {
 			log.error("Worker failed:", e);
 			// Record the error
@@ -212,7 +224,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 		return false;
 	}
 
-	private long precheckFile(Entry entry, UserInfo userInfo, boolean overwrite) {
+	private long precheckFile(Entry entry, UserInfo userInfo, boolean overwrite, String baseKey) {
 		Entity entity;
 		try {
 			entity = entityManager.getEntity(userInfo, entry.getFileCopyResult().getFile());
@@ -231,7 +243,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 		FileEntity fileEntity = (FileEntity) entity;
 
 		String path = entityManager.getEntityPathAsFilePath(userInfo, entry.getFileCopyResult().getFile());
-		entry.getFileCopyResult().setResultKey(path);
+		entry.getFileCopyResult().setResultKey(baseKey == null ? path : (baseKey + path));
 
 		FileHandleResults fileHandleResults = fileHandleManager.getAllFileHandles(
 				Collections.singletonList(fileEntity.getDataFileHandleId()), false);

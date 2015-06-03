@@ -302,6 +302,21 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
+	public void testSetCanceling() throws DatastoreException, NotFoundException {
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId("syn456");
+		body.setUploadFileHandleId("123");
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		assertFalse(status.getJobCanceling());
+		// update the progress
+		asynchJobStatusDao.setJobCanceling(status.getJobId());
+		// Get the status
+		AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId());
+		assertEquals(AsynchJobState.PROCESSING, clone.getJobState());
+		assertTrue(clone.getJobCanceling());
+	}
+
+	@Test
 	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException{
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
@@ -337,7 +352,7 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals(body, result.getRequestBody());
 		assertEquals(response, result.getResponseBody());
 	}
-		
+
 	@Test
 	public void testFindCompletedJobStatusCompleted() throws DatastoreException, NotFoundException{
 		UploadToTableRequest body = new UploadToTableRequest();

@@ -53,6 +53,19 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 	}
 
 	@Override
+	public void cancelJob(Long userId, String jobId) throws NotFoundException {
+		if (userId == null) {
+			throw new IllegalArgumentException("UserId cannot be null");
+		}
+		if (jobId == null) {
+			throw new IllegalArgumentException("JobId cannot be null");
+		}
+
+		UserInfo user = userManager.getUserInfo(userId);
+		asynchJobStatusManager.cancelJob(user, jobId);
+	}
+
+	@Override
 	public AsynchronousJobStatus getJobStatusAndThrow(Long userId, String jobId) throws NotFoundException, AsynchJobFailedException,
 			NotReadyException {
 		if (userId == null) {

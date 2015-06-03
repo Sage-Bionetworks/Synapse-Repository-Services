@@ -653,7 +653,7 @@ public interface SynapseClient extends BaseClient {
 
 	public void clearPreview(String fileHandleId) throws SynapseException;
 
-	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
+	public String s3FileCopyAsyncStart(List<String> fileEntityIds, String destinationBucket, Boolean overwrite, String baseKey)
 			throws SynapseException;
 
 	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
@@ -1311,10 +1311,20 @@ public interface SynapseClient extends BaseClient {
 	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException;
 	
 	/**
+	 * Attempt to cancel an Asynchronous job. Not all jobs can be canceled and cancelation is not immediate (wait for
+	 * job to finish with ERROR if you need to make sure it was canceled)
+	 * 
+	 * @param request The request body.
+	 * @return The jobId is used to get the job results.
+	 */
+	public void cancelAsynchJob(String jobId) throws SynapseException;
+
+	/**
 	 * Get the results of an Asynchronous job.
+	 * 
 	 * @param type The type of job.
 	 * @param jobId The JobId.
-	 * @param request 
+	 * @param request
 	 * @throws SynapseResultNotReadyException if the job is not ready.
 	 * @return
 	 */

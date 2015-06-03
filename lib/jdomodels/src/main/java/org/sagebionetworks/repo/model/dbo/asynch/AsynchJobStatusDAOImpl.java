@@ -1,16 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_CURRENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_TOTAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_REQUEST_HASH;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -49,6 +38,8 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
 			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
 	private static final String SQL_SET_FAILED = "UPDATE "+ASYNCH_JOB_STATUS+" SET "+COL_ASYNCH_JOB_ERROR_MESSAGE+" = ?, "+COL_ASYNCH_JOB_ERROR_DETAILS+" = ?, "+COL_ASYNCH_JOB_STATE+" = ?, "+COL_ASYNCH_JOB_ETAG+" = ?, "+COL_ASYNCH_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_JOB_ID+" = ?";
+	private static final String SQL_SET_CANCELING = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_CANCELING + " = true WHERE "
+			+ COL_ASYNCH_JOB_ID + " = ?";
 
 	private static final String TRUNCATE_ALL = "DELETE FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_ID+" > -1";
 
@@ -93,6 +84,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setChangedOn(new Date(now));
 		status.setStartedOn(new Date(now));
 		status.setJobState(AsynchJobState.PROCESSING);
+		status.setJobCanceling(false);
 		status.setRuntimeMS(0L);
 		status.setRequestBody(body);
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
@@ -120,6 +112,14 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		long now = System.currentTimeMillis();
 		jdbcTemplate.update(SQL_SET_FAILED, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
 		return newEtag;
+	}
+
+	@WriteTransaction
+	@Override
+	public void setJobCanceling(String jobId) {
+		if (jobId == null)
+			throw new IllegalArgumentException("JobId cannot be null");
+		jdbcTemplate.update(SQL_SET_CANCELING, jobId);
 	}
 
 	@WriteTransaction

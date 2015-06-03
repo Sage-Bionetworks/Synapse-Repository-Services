@@ -83,4 +83,20 @@ public class AsynchronousJobController extends BaseController {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
 
+	/**
+	 * Once a job is launched it can be cancelled if the job is set up to be cancelable.
+	 * 
+	 * @param userId
+	 * @param jobId The jobId issued to a job that has been launched with <a href="${POST.asynchronous.job}">POST
+	 *        /asynchronous/job</a>
+	 * @throws NotFoundException
+	 * @throws NotReadyException
+	 * @throws AsynchJobFailedException
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_CANCEL, method = RequestMethod.GET)
+	public void stopJob(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
+		serviceProvider.getAsynchronousJobServices().cancelJob(userId, jobId);
+	}
 }

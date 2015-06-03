@@ -3,13 +3,16 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -20,16 +23,27 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileCopyResult;
+import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.base.Predicate;
 
 public class IT054FileEntityTest {
 
@@ -40,8 +54,10 @@ public class IT054FileEntityTest {
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
 
+	private static AmazonS3Client s3Client;
 	private File imageFile;
 	private S3FileHandle fileHandle;
+	private String baseKey;
 	private PreviewFileHandle previewFileHandle;
 	private Project project;
 	
@@ -55,6 +71,8 @@ public class IT054FileEntityTest {
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
+		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}
 	
 	@Before
@@ -75,6 +93,7 @@ public class IT054FileEntityTest {
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
+		baseKey = UUID.randomUUID().toString() + '/';
 	}
 
 	@After
@@ -92,6 +111,7 @@ public class IT054FileEntityTest {
 				synapse.deleteFileHandle(previewFileHandle.getId());
 			} catch (Exception e) {}
 		}
+		S3TestUtils.doDeleteAfter(s3Client);
 	}
 	
 	@AfterClass
@@ -179,6 +199,87 @@ public class IT054FileEntityTest {
 		results = synapse.getEntityHeaderByMd5(md5);
 		assertNotNull(results);
 		assertEquals(1, results.size());
+	}
+
+	@Test
+	public void testS3FileCopy() throws Exception {
+		FileEntity file = new FileEntity();
+		file.setName("file.nopreview");
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle.getId());
+		file = synapse.createEntity(file);
+
+		final String asyncJobToken = synapse.s3FileCopyAsyncStart(Collections.singletonList(file.getId()), StackConfiguration
+				.singleton().getExternalS3TestBucketName(), true, baseKey);
+
+		S3FileCopyResults s3FileCopyResults = TimeUtils.waitFor(20000, 100, new Callable<Pair<Boolean, S3FileCopyResults>>() {
+			@Override
+			public Pair<Boolean, S3FileCopyResults> call() throws Exception {
+				try {
+					S3FileCopyResults s3FileCopyResults = synapse.s3FileCopyAsyncGet(asyncJobToken);
+					return Pair.create(true, s3FileCopyResults);
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.create(false, null);
+				}
+			}
+		});
+
+		assertEquals(1, s3FileCopyResults.getResults().size());
+		S3FileCopyResult s3FileCopyResult = s3FileCopyResults.getResults().get(0);
+		assertEquals(S3FileCopyResultType.COPIED, s3FileCopyResult.getResultType());
+		S3TestUtils.addObjectToDelete(s3FileCopyResult.getResultBucket(), s3FileCopyResult.getResultKey());
+		s3Client.getObjectMetadata(s3FileCopyResult.getResultBucket(), s3FileCopyResult.getResultKey());
+
+		final String asyncJobToken2 = synapse.s3FileCopyAsyncStart(Collections.singletonList(file.getId()), StackConfiguration.singleton()
+				.getExternalS3TestBucketName(), true, baseKey);
+
+		s3FileCopyResults = TimeUtils.waitFor(20000, 100, new Callable<Pair<Boolean, S3FileCopyResults>>() {
+			@Override
+			public Pair<Boolean, S3FileCopyResults> call() throws Exception {
+				try {
+					S3FileCopyResults s3FileCopyResults = synapse.s3FileCopyAsyncGet(asyncJobToken2);
+					return Pair.create(true, s3FileCopyResults);
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.create(false, null);
+				}
+			}
+		});
+
+		assertEquals(1, s3FileCopyResults.getResults().size());
+		s3FileCopyResult = s3FileCopyResults.getResults().get(0);
+		assertEquals(S3FileCopyResultType.UPTODATE, s3FileCopyResult.getResultType());
+	}
+
+	@Test
+	public void testS3FileCopyCancel() throws Exception {
+		FileEntity file = new FileEntity();
+		file.setName("file.nopreview");
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle.getId());
+		file = synapse.createEntity(file);
+
+		final String asyncJobToken = synapse.s3FileCopyAsyncStart(Collections.singletonList(file.getId()), StackConfiguration.singleton()
+				.getExternalS3TestBucketName(), true, baseKey);
+
+		synapse.cancelAsynchJob(asyncJobToken);
+
+		assertTrue(TimeUtils.waitFor(20000, 100, asyncJobToken, new Predicate<String>() {
+			@Override
+			public boolean apply(String asyncJobToken) {
+				try {
+					synapse.s3FileCopyAsyncGet(asyncJobToken);
+					fail("Should have been canceled, maybe test is too time sensitive?");
+					return true;
+				} catch (SynapseBadRequestException e) {
+					return true;
+				} catch (SynapseResultNotReadyException e) {
+					return false;
+				} catch (SynapseException e) {
+					fail(e.getMessage());
+					return true;
+				}
+			}
+		}));
 	}
 
 	/**

@@ -450,6 +450,7 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_ETAG					= "ETAG";
 	public static final String COL_ASYNCH_JOB_STATE					= "JOB_STATE";
 	public static final String COL_ASYNCH_JOB_TYPE					= "JOB_TYPE";
+	public static final String COL_ASYNCH_JOB_CANCELING				= "CANCELING";
 	public static final String COL_ASYNCH_JOB_PROGRESS_CURRENT		= "PROGRESS_CURRENT";
 	public static final String COL_ASYNCH_JOB_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
 	public static final String COL_ASYNCH_JOB_PROGRESS_MESSAGE		= "PROGRESS_MESSAGE";
@@ -462,7 +463,7 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_RESPONSE_BODY			= "COMPRESSED_RESPONSE_BODY";
 	public static final String COL_ASYNCH_JOB_REQUEST_HASH			= "REQUEST_HASH";
 	public static final String COL_ASYNCH_JOB_RUNTIME_MS			= "RUNTIME_MS";
-	
+
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";

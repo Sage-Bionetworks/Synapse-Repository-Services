@@ -59,6 +59,19 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	@Override
+	public void cancelJob(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
+		if (userInfo == null)
+			throw new IllegalArgumentException("UserInfo cannot be null");
+		// Get the status
+		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
+		// Only the user that started a job can read it
+		if (!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())) {
+			throw new UnauthorizedException("Only the user that created a job can stop the job.");
+		}
+		asynchJobStatusDao.setJobCanceling(jobId);
+	}
+
+	@Override
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
@@ -137,6 +150,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		return asynchJobStatusDao.setJobFailed(jobId, error);
 	}
 
+	@WriteTransaction
+	@Override
+	public void setJobCanceling(String jobId) {
+		// We allow a job to cancel even if the stack is not in read-write mode.
+		asynchJobStatusDao.setJobCanceling(jobId);
+	}
 
 	@WriteTransaction
 	@Override
