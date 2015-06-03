@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.principal;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -98,6 +99,40 @@ public class PrincipalAliasDaoImplTest {
 		// The ID should not have changed
 		assertEquals("Binding the same alias to the same principal twice should not change the original alias id.",firstId, result.getAliasId());
 		assertFalse("Binding the same alias to the same principal twice should have changed the etag.", firstEtag.equals(result.getEtag()));
+	}
+	
+	@Test
+	public void testFindPrincipalForAlias() throws NotFoundException{
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setPrincipalId(principalId);
+		
+		PrincipalAlias expected = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		PrincipalAlias actual = principalAliasDao.findPrincipalWithAlias(alias.getAlias());
+		assertEquals(expected, actual);
+		
+		// this alias does not exist
+		assertNull(principalAliasDao.findPrincipalWithAlias(UUID.randomUUID().toString()));
+	}
+	
+	
+	@Test
+	public void testFindPrincipalsForAliases() throws NotFoundException{
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setPrincipalId(principalId);
+		
+		PrincipalAlias created = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		Set<String> aliases = new HashSet<String>();
+		aliases.add(alias.getAlias());
+		aliases.add(UUID.randomUUID().toString()); // does not exist
+		Set<PrincipalAlias> actual = principalAliasDao.findPrincipalsWithAliases(aliases);
+		Set<PrincipalAlias> expected = Collections.singleton(created);
+		assertEquals(expected, actual);	
 	}
 	
 	@Test (expected=NotFoundException.class)

@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.http.entity.ContentType;
@@ -46,7 +48,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			String notificationUnsubscribeEndpoint) throws NotFoundException {
 
 		try {
-			List<String> to = new ArrayList<String>();
+			Set<String> to = new HashSet<String>();
 			String from = null;
 			String subject = null;
 			JSONObject headers = new JSONObject(message.getHeaders());
@@ -74,13 +76,14 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			if (from==null) throw new IllegalArgumentException("Sender ('From') is required.");
 			if (to.isEmpty()) throw new IllegalArgumentException("There must be at least one recipient.");
 			MessageToUser mtu = new MessageToUser();
+			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddress(from).toString());		
 			mtu.setSubject(subject);
 			Set<String> recipients = new HashSet<String>();
-			for (String email : to) {
-				recipients.add(lookupPrincipalIdForSynapseEmailAddress(email).toString());
-			}
+			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(to);
+			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient(s): "+to);
+			// TODO PLFM-3414 will handle the case in which there is a mix of valid and invalid recipients
+			recipients.addAll(recipientPrincipals.values());
 			mtu.setRecipients(recipients);
-			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddress(from).toString());		
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			MessageToUserAndBody result = new MessageToUserAndBody();
 			result.setMetadata(mtu);
@@ -123,20 +126,33 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		return result;
 	}
 
-	public Long lookupPrincipalIdForSynapseEmailAddress(String email) {
-		// first, make sure it's actually an email address
-		AliasEnum.USER_EMAIL.validateAlias(email);
-		String emailLowerCase = email.toLowerCase();
-		if (!emailLowerCase.endsWith(EMAIL_SUFFIX_LOWER_CASE))
-			throw new IllegalArgumentException("Email must end with "+EMAIL_SUFFIX_LOWER_CASE);
-		String aliasString = emailLowerCase.substring(0,  
-				emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length());
-		if (aliasString.equals(EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART)) 
-			throw new IllegalArgumentException("You may not contact a '"+
-					EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+"' email address.");
-		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(aliasString);
-		if (alias==null) throw new IllegalArgumentException("Specified user, "+aliasString+" is unknown to Synapse.");
-		return alias.getPrincipalId();
+	/**
+	 * 
+	 * @param emails
+	 * @return a map whose keys are the given email addresses and whose values are the 
+	 * corresponding principal ids.  Any invalid addresses are skipped.
+	 */
+	public Map<String,String> lookupPrincipalIdsForSynapseEmailAddresses(Set<String> emails) {
+		Set<String> aliasStrings = new HashSet<String>();
+		for (String email : emails) {
+			// first, make sure it's actually an email address
+			try {
+				AliasEnum.USER_EMAIL.validateAlias(email);
+			} catch (IllegalArgumentException e) {
+				continue;
+			}
+			String emailLowerCase = email.toLowerCase();
+			if (!emailLowerCase.endsWith(EMAIL_SUFFIX_LOWER_CASE)) continue;
+			String aliasString = emailLowerCase.substring(0,  
+					emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length());
+			if (aliasString.equals(EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART)) 
+				continue; // someone's trying to email 'noreply@synapse.org'
+			aliasStrings.add(aliasString);
+		}
+		Set<PrincipalAlias> aliases = principalAliasDAO.findPrincipalsWithAliases(aliasStrings);
+		Map<String,String> result = new HashMap<String,String>();
+		for (PrincipalAlias alias : aliases) result.put(alias.getAlias(), alias.getPrincipalId().toString());
+		return result;
 	}
 	
 	public Long lookupPrincipalIdForRegisteredEmailAddress(String email) {
