@@ -188,22 +188,23 @@ public class CloudMailInManagerImplTest {
 		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
 		
 		// check that case doesn't matter
-		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("bAz@syNapse.oRg"));
+		assertEquals(Collections.singleton(principalId.toString()), cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testLookupPrincipalIdForSynapseEmailAddressUnknwonAlias() throws Exception {
-		cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("bAz@syNapse.oRg");
+		cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg"));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testLookupPrincipalIdForSynapseEmailAddressBADADDRESS() throws Exception {
-		cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("bazXXXsynapse.org");
+		cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testLookupPrincipalIdForSynapseEmailAddressWRONGdomain() throws Exception {
-		cloudMailInManager.lookupPrincipalIdForSynapseEmailAddress("baz@google.com");
+		cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"));
 	}
 
 	@Test
