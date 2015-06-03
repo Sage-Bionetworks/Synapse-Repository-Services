@@ -13,6 +13,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -26,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+
 
 public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSONEntity> {
 
@@ -50,6 +52,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public JSONEntityHttpMessageConverter() {
 		supportedMedia = new ArrayList<MediaType>();
 		supportedMedia.add(MediaType.APPLICATION_JSON);
+		supportedMedia.add(MediaType.TEXT_PLAIN);
 	}
 
 	@Override
@@ -74,7 +77,8 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz);
+		return MediaType.TEXT_PLAIN.includes(mediaType) || 
+				(isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz));
 	}
 
 	@Override
@@ -218,7 +222,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 			}
 			HttpHeaders headers = outputMessage.getHeaders();
 			headers.setContentType(contentTypeForResponseHeader);
-			String jsonString = EntityFactory.createJSONStringForEntity(entity);
+			String jsonString;
+			if (contentTypeForResponseHeader.includes(MediaType.TEXT_PLAIN)) {
+				jsonString = convertEntityToPlainText(entity);
+			} else {
+				jsonString = EntityFactory.createJSONStringForEntity(entity);
+			}
 			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 			if (headers.getContentLength() == -1) {
 				headers.setContentLength(length);
@@ -227,6 +236,14 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 			throw new HttpMessageNotWritableException(e.getMessage(), e);
 		}
 
+	}
+	
+	public static String convertEntityToPlainText(JSONEntity entity) throws JSONObjectAdapterException {
+		if (entity instanceof ErrorResponse) {
+			return ((ErrorResponse)entity).getReason();
+		} else {
+			return EntityFactory.createJSONStringForEntity(entity);
+		}
 	}
 
 	/**

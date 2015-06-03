@@ -1,6 +1,8 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -12,12 +14,21 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
+import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 
 import com.sun.jersey.core.util.Base64;
 
 public class CloudMailInAuthFilter implements Filter {
-
+	
+	private static final String BASIC_PREFIX = "Basic ";
+	
+	private static final Map<String,String> ACCEPT_PLAIN_TEXT_HEADER;
+	
+	static {
+		ACCEPT_PLAIN_TEXT_HEADER = new HashMap<String,String>();
+		ACCEPT_PLAIN_TEXT_HEADER.put("Accept", ContentType.TEXT_PLAIN.getMimeType());
+	}
 	
 	private String cloudMailInUser;
 	private String cloudMailInPassword;
@@ -26,8 +37,6 @@ public class CloudMailInAuthFilter implements Filter {
 		cloudMailInUser = StackConfiguration.getCloudMailInUser();
 		cloudMailInPassword = StackConfiguration.getCloudMailInPassword();
 	}
-	
-	private static final String BASIC_PREFIX = "Basic ";
 	
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
@@ -46,7 +55,9 @@ public class CloudMailInAuthFilter implements Filter {
 				String password = basicCredentials.substring(colon+1);
 				if (cloudMailInUser.equals(name) && cloudMailInPassword.equals(password)) {
 					// authenticated!!
-					chain.doFilter(request, response);
+					ExtraHeadersHttpServletRequest plainTextRequest = 
+							new ExtraHeadersHttpServletRequest(httpRequest, ACCEPT_PLAIN_TEXT_HEADER);
+					chain.doFilter(plainTextRequest, response);
 					return;
 				}
 			}

@@ -53,7 +53,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -612,22 +611,4 @@ public class SynapseTest {
 		JSONObjectAdapter adapter = act.writeToJSONObject(new JSONObjectAdapterImpl());
 		return adapter.toJSONString();
 	}
-	
-	
-	@Test
-	public void testSendMessageAndFillInPortalEndpoint() throws Exception {
-		MessageToUser mtu = new MessageToUser();
-		configureMockHttpResponse(201, EntityFactory.createJSONStringForEntity(mtu));
-		synapse.sendMessage(mtu);
-		assertNotNull(mtu.getNotificationUnsubscribeEndpoint());
-	}
-	
-	@Test
-	public void testSendMessageToEntityOwnerAndFillInPortalEndpoint() throws Exception {
-		MessageToUser mtu = new MessageToUser();
-		configureMockHttpResponse(201, EntityFactory.createJSONStringForEntity(mtu));
-		synapse.sendMessage(mtu, "syn123");
-		assertNotNull(mtu.getNotificationUnsubscribeEndpoint());
-	}
-	
 }

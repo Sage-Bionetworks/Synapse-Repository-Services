@@ -38,6 +38,17 @@ public interface PrincipalAliasDAO {
 	public PrincipalAlias findPrincipalWithAlias(String alias);
 	
 	/**
+	 * Return the principals having the given aliases.
+	 * The size of the result is less than or equal to the
+	 * size of the passed in set.  Any unknown aliases
+	 * are simply omitted from the results
+	 * 
+	 * @param aliases
+	 * @return List of principals matching the given aliases
+	 */
+	public Set<PrincipalAlias> findPrincipalsWithAliases(Set<String> aliases);
+	
+	/**
 	 * List all aliases for a given principal.
 	 * @param principalId
 	 * @return

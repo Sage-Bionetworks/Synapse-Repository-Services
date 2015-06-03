@@ -13,11 +13,13 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.sample.Example;
@@ -34,6 +36,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
 import com.amazonaws.util.StringInputStream;
+
 
 public class JSONEntityHttpMessageConverterTest {
 	
@@ -105,6 +108,38 @@ public class JSONEntityHttpMessageConverterTest {
 		assertEquals(container, results);
 	}
 	
+	@Test
+	public void testRoundTripWithPlainTextMediaType() throws HttpMessageNotWritableException, IOException{
+		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
+		// Write it out.
+		converter.write(container, MediaType.TEXT_PLAIN, mockOutMessage);
+		
+		ByteArrayInputStream in  = new ByteArrayInputStream(outStream.toByteArray());
+		Mockito.when(mockInMessage.getBody()).thenReturn(in);
+		// Make sure we can read it back
+		JSONEntity results = converter.read(ExampleContainer.class, mockInMessage);
+		assertEquals(container, results);
+	}
+	
+	@Test
+	public void testErrorResponseRoundTripWithPlainTextMediaType() throws HttpMessageNotWritableException, IOException{
+		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
+		ErrorResponse error = new ErrorResponse();
+		error.setReason("foo");
+		// Write it out.
+		converter.write(error, MediaType.TEXT_PLAIN, mockOutMessage);
+		
+		ByteArrayInputStream in  = new ByteArrayInputStream(outStream.toByteArray());
+		assertEquals("foo", IOUtils.toString(in));
+	}
+	
+	@Test
+	public void testConvertEntityToPlainText() throws Exception {
+		ErrorResponse error = new ErrorResponse();
+		error.setReason("foo");
+		assertEquals("foo", JSONEntityHttpMessageConverter.convertEntityToPlainText(error));
+	}
+	
 	@Test 
 	public void testReadToString() throws IOException{
 		String value = "This string should make a round trip!";
@@ -149,7 +184,7 @@ public class JSONEntityHttpMessageConverterTest {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Test (expected=IllegalArgumentException.class)
-	public void testCreateEntityFromeAdapterClassNotFound() throws JSONObjectAdapterException{
+	public void testCreateEntityFromAdapterClassNotFound() throws JSONObjectAdapterException{
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter.put("concreteType", "org.sagebionetworks.FakeClass");
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
@@ -160,7 +195,7 @@ public class JSONEntityHttpMessageConverterTest {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Test (expected=JSONObjectAdapterException.class)
-	public void testCreateEntityFromeAdapterBadJSON() throws JSONObjectAdapterException{
+	public void testCreateEntityFromAdapterBadJSON() throws JSONObjectAdapterException{
 		// Test a vaild entity type with a field that does not exist on that type.
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter.put("entityType", ExampleEntity.class.getName());

@@ -449,7 +449,7 @@ public class MessageManagerImpl implements MessageManager {
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
 					String email = getEmailForUser(Long.parseLong(userId));
 					if (ContentType.APPLICATION_JSON.getMimeType().equals(mimeType)) {
-						SendRawEmailRequest sendRawEmailRequest = (new SendRawEmailRequestBuilder())
+						SendRawEmailRequest sendRawEmailRequest = new SendRawEmailRequestBuilder()
 								.withRecipientEmail(email)
 								.withSubject(dto.getSubject())
 								.withBody(messageBody)
@@ -461,7 +461,7 @@ public class MessageManagerImpl implements MessageManager {
 						sesClient.sendRawEmail(sendRawEmailRequest);
 					} else {
 						boolean isHtml= ContentType.TEXT_HTML.getMimeType().equals(mimeType);
-						SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+						SendEmailRequest sendEmailRequest = new SendEmailRequestBuilder()
 								.withRecipientEmail(email)
 								.withSubject(dto.getSubject())
 								.withBody(messageBody)

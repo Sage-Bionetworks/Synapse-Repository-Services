@@ -1,10 +1,14 @@
 package org.sagebionetworks.auth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Enumeration;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
@@ -40,8 +44,34 @@ public class CloudMailInAuthFilterTest {
 	public void testAuthenticated() throws Exception {
 		when(request.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
 				new String(Base64.encodeBase64(CORRECT_CREDENTIALS.getBytes())));
-		filter.doFilter(request, response, filterChain);	
-		verify(filterChain).doFilter(request, response);
+		filter.doFilter(request, response, filterChain);
+		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
+		verify(filterChain).doFilter(requestCaptor.capture(), (HttpServletResponse)anyObject());
+		HttpServletRequest modifiedRequest = requestCaptor.getValue();
+		assertEquals("text/plain", modifiedRequest.getHeader("Accept"));
+		{
+			Enumeration<String> headers = modifiedRequest.getHeaders("Accept");
+			boolean foundit = false;
+			int acceptHeaderCount = 0;
+			while (headers.hasMoreElements()) {
+				acceptHeaderCount++;
+				if ("text/plain".equals(headers.nextElement())) foundit=true;
+			}
+			assertEquals(1, acceptHeaderCount);
+			assertTrue(foundit);
+		}
+		{
+			Enumeration<String> headerNames = modifiedRequest.getHeaderNames();
+			boolean foundit = false;
+			int acceptHeaderNameCount = 0;
+			while (headerNames.hasMoreElements()) {
+				acceptHeaderNameCount++;
+				String headerName = headerNames.nextElement();
+				if ("Accept".equals(headerName)) foundit=true;
+			}
+			assertEquals(1, acceptHeaderNameCount);
+			assertTrue(foundit);
+		}
 	}
 	
 	private  void checkForUnauthorizedStatus() {

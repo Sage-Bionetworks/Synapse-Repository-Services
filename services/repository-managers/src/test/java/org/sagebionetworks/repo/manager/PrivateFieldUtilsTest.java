@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -20,7 +21,6 @@ import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
-import com.amazonaws.util.IOUtils;
 
 public class PrivateFieldUtilsTest {
 
@@ -53,16 +53,12 @@ public class PrivateFieldUtilsTest {
 	public void testQuiz() throws Exception {
 		InputStream is = PrivateFieldUtilsTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
-			IOUtils.copy(is, out);
-			String s = out.toString("utf-8");
+			String s = IOUtils.toString(is);
 			adapter = adapter.createNew(s);
 		} finally {
 			is.close();
-			out.close();
 		}
-
 		QuizGenerator quizGenerator = new QuizGenerator();
 		// if the resource file does not contain a valid Quiz, this will fail
 		quizGenerator.initializeFromJSONObject(adapter);

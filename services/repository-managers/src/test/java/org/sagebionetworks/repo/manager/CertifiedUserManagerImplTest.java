@@ -14,7 +14,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -52,8 +52,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
-import com.amazonaws.util.IOUtils;
-
 public class CertifiedUserManagerImplTest {
 	
 	private CertifiedUserManagerImpl certifiedUserManager;
@@ -75,13 +73,10 @@ public class CertifiedUserManagerImplTest {
 	
 	private static String getDefaultQuizGeneratorAsString() throws IOException {
 		InputStream is = CertifiedUserManagerImplTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
-			IOUtils.copy(is, out);
-			return out.toString("utf-8");
+			return IOUtils.toString(is);
 		} finally {
 			is.close();
-			out.close();
 		}
 	}
 

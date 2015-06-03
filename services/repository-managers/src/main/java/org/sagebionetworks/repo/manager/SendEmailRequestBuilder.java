@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.StackConfiguration;
+
 import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
 import com.amazonaws.services.simpleemail.model.Destination;
@@ -76,7 +78,10 @@ public class SendEmailRequestBuilder {
         Content textSubject = new Content().withData(subject);
         
         String unsubscribeLink = null;
-        if (notificationUnsubscribeEndpoint!=null && userId!=null) {
+        if (notificationUnsubscribeEndpoint==null) {
+        	notificationUnsubscribeEndpoint = StackConfiguration.getDefaultPortalNotificationEndpoint();
+        }
+        if (userId!=null) {
         	unsubscribeLink = EmailUtils.
     			createOneClickUnsubscribeLink(notificationUnsubscribeEndpoint, userId);
         }
