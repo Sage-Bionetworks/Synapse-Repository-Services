@@ -145,7 +145,6 @@ public class ITCloudMailIn {
 		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
 	}
 	
-	@Ignore
 	// send from an invalid email and check that the error comes back
 	@Test
 	public void testResponseMessage() throws Exception {
