@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -50,28 +54,35 @@ public class CloudMailInManagerImplTest {
 		message.setAttachments(Collections.singletonList(attachment));
 		
 		Set<String> expectedRecipients = new HashSet<String>();
+		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
+		Set<String> recipientUserNames = new HashSet<String>();
 		PrincipalAlias toAlias = new PrincipalAlias();
 		toAlias.setAlias("baz");
 		toAlias.setPrincipalId(101L);
-		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
 		expectedRecipients.add("101");
+		recipientPrincipalAliases.add(toAlias);
+		recipientUserNames.add("baz");
 		
 		PrincipalAlias ccAlias = new PrincipalAlias();
 		ccAlias.setAlias("baz2");
 		ccAlias.setPrincipalId(102L);
-		when(principalAliasDAO.findPrincipalWithAlias("baz2")).thenReturn(ccAlias);
 		expectedRecipients.add("102");
+		recipientPrincipalAliases.add(ccAlias);
+		recipientUserNames.add("baz2");
 		
 		PrincipalAlias bccAlias = new PrincipalAlias();
 		bccAlias.setAlias("baz3");
 		bccAlias.setPrincipalId(103L);
-		when(principalAliasDAO.findPrincipalWithAlias("baz3")).thenReturn(bccAlias);
 		expectedRecipients.add("103");
-		
+		recipientPrincipalAliases.add(bccAlias);
+		recipientUserNames.add("baz3");
+				
 		PrincipalAlias fromAlias = new PrincipalAlias();
 		fromAlias.setAlias("foo@bar.com");
 		fromAlias.setPrincipalId(104L);
 		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
+		
+		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
 		MessageToUserAndBody mtub = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
@@ -181,30 +192,41 @@ public class CloudMailInManagerImplTest {
 	
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddress() throws Exception {
+		Set<String> recipientUserNames = new HashSet<String>();
+		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
 		PrincipalAlias toAlias = new PrincipalAlias();
 		toAlias.setAlias("baz");
 		Long principalId = 101L;
 		toAlias.setPrincipalId(principalId);
-		when(principalAliasDAO.findPrincipalWithAlias("baz")).thenReturn(toAlias);
+		
+		recipientUserNames.add("baz");
+		recipientPrincipalAliases.add(toAlias);
+		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
 		// check that case doesn't matter
-		assertEquals(Collections.singleton(principalId.toString()), cloudMailInManager.
+		Map<String,String> expected = Collections.singletonMap("baz", principalId.toString());
+		assertEquals(expected, cloudMailInManager.
 				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")));
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressUnknwonAlias() throws Exception {
-		cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg"));
+		assertTrue(cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")).isEmpty());
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressBADADDRESS() throws Exception {
-		cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"));
+		assertTrue(
+				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"))
+				.isEmpty());;
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressWRONGdomain() throws Exception {
-		cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"));
+		assertTrue(
+				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"))
+				.isEmpty());;
 	}
 
 	@Test
