@@ -2,7 +2,7 @@ package org.sagebionetworks.auth;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +41,7 @@ public class CloudMailInAuthFilterTest {
 		when(request.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
 				new String(Base64.encodeBase64(CORRECT_CREDENTIALS.getBytes())));
 		filter.doFilter(request, response, filterChain);	
-		verify(filterChain).doFilter(request, response);
+		verify(filterChain).doFilter((HttpServletRequest)anyObject(), (HttpServletResponse)anyObject());
 	}
 	
 	private  void checkForUnauthorizedStatus() {
