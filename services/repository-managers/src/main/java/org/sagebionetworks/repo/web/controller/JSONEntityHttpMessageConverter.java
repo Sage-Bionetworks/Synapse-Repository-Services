@@ -52,6 +52,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public JSONEntityHttpMessageConverter() {
 		supportedMedia = new ArrayList<MediaType>();
 		supportedMedia.add(MediaType.APPLICATION_JSON);
+		supportedMedia.add(MediaType.TEXT_PLAIN);
 	}
 
 	@Override
@@ -76,7 +77,8 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz);
+		return MediaType.TEXT_PLAIN.includes(mediaType) || 
+				(isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz));
 	}
 
 	@Override

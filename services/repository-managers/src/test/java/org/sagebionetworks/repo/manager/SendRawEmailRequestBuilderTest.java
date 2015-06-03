@@ -6,17 +6,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.Properties;
 
 import javax.mail.BodyPart;
-import javax.mail.Header;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -40,9 +39,6 @@ public class SendRawEmailRequestBuilderTest {
 				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
 				.withUserId("101")
 				.build();
-		
-		
-		
 		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
 		assertEquals(1, request.getDestinations().size());
 		assertEquals("foo@bar.com", request.getDestinations().get(0));
@@ -58,7 +54,40 @@ public class SendRawEmailRequestBuilderTest {
 		assertTrue(content.getContentType().startsWith("multipart/related"));
 		BodyPart bodyPart = content.getBodyPart(0);
 		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
-		assertTrue(((String)bodyPart.getContent()).startsWith(body));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
+	}
+	
+	@Test
+	public void testCreateRawEmailRequestNoUnsubEndpoint() throws Exception {
+		String body = "this is the message body";
+		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withUserId("101")
+				.build();
+		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
+		assertEquals(1, request.getDestinations().size());
+		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+		assertEquals(1, mimeMessage.getFrom().length);
+		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
+		assertEquals("subject", mimeMessage.getSubject());
+
+		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
+		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
+		assertEquals(1, content.getCount());
+		assertTrue(content.getContentType().startsWith("multipart/related"));
+		BodyPart bodyPart = content.getBodyPart(0);
+		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+		String bodyContent = ((String)bodyPart.getContent());
+		assertTrue(bodyContent.startsWith(body));
+		assertTrue(bodyContent.indexOf(StackConfiguration.getDefaultPortalNotificationEndpoint())>0);
 	}
 	
 	@Test
