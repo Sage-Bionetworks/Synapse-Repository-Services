@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -16,6 +15,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public interface AsynchJobStatusManager {
 	
+	public class JobCanceledException extends RuntimeException {
+		private static final long serialVersionUID = 702027841349569661L;
+
+		public JobCanceledException() {
+			super("Canceled");
+		}
+	}
+
 	/**
 	 * Start a new job.
 	 * 
@@ -37,6 +44,17 @@ public interface AsynchJobStatusManager {
 	 * @throws DatastoreException 
 	 */
 	public AsynchronousJobStatus getJobStatus(UserInfo user, String jobId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Stop a job.
+	 * 
+	 * @param user
+	 * @param jobId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public void cancelJob(UserInfo user, String jobId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Update the progress of a job.
@@ -62,18 +80,23 @@ public interface AsynchJobStatusManager {
 	public String setJobFailed(String jobId, Throwable error);
 	
 	/**
-	 * Set a job to complete.
-	 * This method should only be called by a worker.
+	 * Set a job to canceled. This method should only be called by a worker.
+	 * 
+	 * @param jobId
+	 * @param error
+	 * @return
+	 */
+	public void setJobCanceling(String jobId);
+
+	/**
+	 * Set a job to complete. This method should only be called by a worker.
 	 * 
 	 * @param body The final body of the job.
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
 	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException;
 
 	public void emptyAllQueues();
-
-
-
 }

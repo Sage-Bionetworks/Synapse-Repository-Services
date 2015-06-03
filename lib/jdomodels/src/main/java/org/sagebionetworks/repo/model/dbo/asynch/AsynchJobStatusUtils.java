@@ -47,6 +47,7 @@ public class AsynchJobStatusUtils {
 		dto.setEtag(dbo.getEtag());
 		dto.setJobId(dbo.getJobId().toString());
 		dto.setJobState(AsynchJobState.valueOf(dbo.getJobState().name()));
+		dto.setJobCanceling(dbo.getCanceling());
 		dto.setProgressCurrent(dbo.getProgressCurrent());
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setProgressMessage(dbo.getProgressMessage());
@@ -73,6 +74,7 @@ public class AsynchJobStatusUtils {
 		dbo.setJobId(Long.parseLong(dto.getJobId()));
 		dbo.setJobState(JobState.valueOf(dto.getJobState().name()));
 		dbo.setJobType(type);
+		dbo.setCanceling(dto.getJobCanceling());
 		dbo.setProgressCurrent(dto.getProgressCurrent());
 		dbo.setProgressTotal(dto.getProgressTotal());
 		dbo.setProgressMessage(truncateMessageStringIfNeeded(dto.getProgressMessage()));

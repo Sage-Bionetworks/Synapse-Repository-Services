@@ -54,6 +54,15 @@ public interface AsynchronousJobStatusDAO {
 	public String setJobFailed(String jobId, Throwable error);
 	
 	/**
+	 * Set a job to canceling.
+	 * 
+	 * @param jobId
+	 * @param error
+	 * @return
+	 */
+	public void setJobCanceling(String jobId);
+
+	/**
 	 * Set a job to complete
 	 * 
 	 * @param body The final body of the job.

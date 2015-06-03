@@ -12,6 +12,10 @@
 				"COMPLETE"
 			]
 		},
+		"jobCanceling":{
+			"type": "boolean",
+			"description": "Was the job being asked to cancel.",
+		},
 		"requestBody":{
 			"type": "object",
 			"description": "Data specific by the caller when the job was started.",

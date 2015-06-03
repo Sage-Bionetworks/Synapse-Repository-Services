@@ -37,6 +37,18 @@ public interface AsynchronousJobServices {
 	AsynchronousJobStatus getJobStatus(Long userId, String jobId) throws NotFoundException;
 
 	/**
+	 * Stop an existing job.
+	 * 
+	 * @param userId
+	 * @param jobId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws NotReadyException
+	 * @throws AsynchJobFailedException
+	 */
+	void cancelJob(Long userId, String jobId) throws NotFoundException;
+
+	/**
 	 * Get the status for an existing job and throw exceptions on error and not done.
 	 * 
 	 * @param userId

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CANCELING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
@@ -48,6 +49,7 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	public enum JobState{
 		PROCESSING,
 		FAILED,
+		CANCELING,
 		COMPLETE,
 	}
 
@@ -65,6 +67,9 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	@Field(name = COL_ASYNCH_JOB_TYPE, nullable = false, varchar=1000)
 	private AsynchJobType jobType;
 	
+	@Field(name = COL_ASYNCH_JOB_CANCELING, varchar = 36, nullable = false)
+	private Boolean canceling;
+
 	@Field(name = COL_ASYNCH_JOB_ERROR_MESSAGE, varchar=MAX_MESSAGE_CHARS, nullable = true)
 	private String errorMessage;
 	
@@ -102,37 +107,11 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	@Field(name= COL_ASYNCH_JOB_REQUEST_HASH, varchar=36, nullable = true)
 	private String requestHash;
 
-	
-	public Long getRuntimeMS() {
-		return runtimeMS;
-	}
-
-	public void setRuntimeMS(Long runtimeMS) {
-		this.runtimeMS = runtimeMS;
-	}
-
 	public Long getJobId() {
 		return jobId;
 	}
-
 	public void setJobId(Long jobId) {
 		this.jobId = jobId;
-	}
-
-	public JobState getJobState() {
-		return jobState;
-	}
-
-	public void setJobState(JobState jobState) {
-		this.jobState = jobState;
-	}
-
-	public AsynchJobType getJobType() {
-		return jobType;
-	}
-
-	public void setJobType(AsynchJobType jobType) {
-		this.jobType = jobType;
 	}
 
 	public String getEtag() {
@@ -142,61 +121,61 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	public void setEtag(String etag) {
 		this.etag = etag;
 	}
+	public JobState getJobState() {
+		return jobState;
+	}
+	public void setJobState(JobState jobState) {
+		this.jobState = jobState;
+	}
+	public AsynchJobType getJobType() {
+		return jobType;
+	}
+	public void setJobType(AsynchJobType jobType) {
+		this.jobType = jobType;
+	}
 
+	public Boolean getCanceling() {
+		return canceling;
+	}
+
+	public void setCanceling(Boolean canceling) {
+		this.canceling = canceling;
+	}
 	public String getErrorMessage() {
 		return errorMessage;
 	}
-
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
 	}
-	
 	public String getErrorDetails() {
 		return errorDetails;
 	}
-
 	public void setErrorDetails(String errorDetails) {
 		this.errorDetails = errorDetails;
 	}
-
 	public Long getProgressCurrent() {
 		return progressCurrent;
 	}
-
 	public void setProgressCurrent(Long progressCurrent) {
 		this.progressCurrent = progressCurrent;
 	}
-
 	public Long getProgressTotal() {
 		return progressTotal;
 	}
-
 	public void setProgressTotal(Long progressTotal) {
 		this.progressTotal = progressTotal;
 	}
-
 	public String getProgressMessage() {
 		return progressMessage;
 	}
-
 	public void setProgressMessage(String progressMessage) {
 		this.progressMessage = progressMessage;
 	}
-
 	public Date getStartedOn() {
 		return startedOn;
 	}
-
 	public void setStartedOn(Date startedOn) {
 		this.startedOn = startedOn;
-	}
-
-	public Date getChangedOn() {
-		return changedOn;
-	}
-
-	public void setChangedOn(Date changedOn) {
-		this.changedOn = changedOn;
 	}
 
 	public Long getStartedByUserId() {
@@ -206,31 +185,38 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	public void setStartedByUserId(Long startedByUserId) {
 		this.startedByUserId = startedByUserId;
 	}
-
+	public Date getChangedOn() {
+		return changedOn;
+	}
+	public void setChangedOn(Date changedOn) {
+		this.changedOn = changedOn;
+	}
 	public byte[] getRequestBody() {
 		return requestBody;
 	}
-
 	public void setRequestBody(byte[] requestBody) {
 		this.requestBody = requestBody;
 	}
-
 	public byte[] getResponseBody() {
 		return responseBody;
 	}
-
 	public void setResponseBody(byte[] responseBody) {
 		this.responseBody = responseBody;
 	}
 
+	public Long getRuntimeMS() {
+		return runtimeMS;
+	}
+
+	public void setRuntimeMS(Long runtimeMS) {
+		this.runtimeMS = runtimeMS;
+	}
 	public String getRequestHash() {
 		return requestHash;
 	}
-
 	public void setRequestHash(String requestHash) {
 		this.requestHash = requestHash;
 	}
-
 	public static void setTableMapping(
 			TableMapping<DBOAsynchJobStatus> tableMapping) {
 		DBOAsynchJobStatus.tableMapping = tableMapping;

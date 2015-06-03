@@ -2543,18 +2543,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public String s3FileCopyAsyncStart(List<String> fileHandleIds, String destinationBucket, boolean updateOnly, Boolean overwrite)
+	public String s3FileCopyAsyncStart(List<String> fileEntityIds, String destinationBucket, Boolean overwrite, String baseKey)
 			throws SynapseException {
 		S3FileCopyRequest s3FileCopyRequest = new S3FileCopyRequest();
-		s3FileCopyRequest.setFiles(fileHandleIds);
+		s3FileCopyRequest.setFiles(fileEntityIds);
 		s3FileCopyRequest.setBucket(destinationBucket);
 		s3FileCopyRequest.setOverwrite(overwrite);
-		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest);
+		s3FileCopyRequest.setBaseKey(baseKey);
+		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest, getFileEndpoint());
 	}
 
 	@Override
 	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
+		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null, getFileEndpoint());
 	}
 
 	/**
@@ -3753,24 +3754,44 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException {
+		return startAsynchJob(type, request, getRepoEndpoint());
+	}
+
+	private String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request, String endpoint) throws SynapseException {
 		String url = type.getStartUrl(request);
-		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, request,
+		AsyncJobId jobId = asymmetricalPost(endpoint, url, request,
 				AsyncJobId.class, null);
 		return jobId.getToken();
 	}
 
 	@Override
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request)
-			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
-		String url = type.getResultUrl(jobId, request);
-		return getAsynchJobResponse(url, type.getReponseClass());
+	public void cancelAsynchJob(String jobId) throws SynapseException {
+		String url = ASYNCHRONOUS_JOB + "/" + jobId + "/cancel";
+		getSharedClientConnection().getJson(getRepoEndpoint(), url, getUserAgent());
 	}
 
 	@Override
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId)
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request)
+			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
+		return getAsyncResult(type, jobId, request, getRepoEndpoint());
+	}
+
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request, String endpoint)
+			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
+		String url = type.getResultUrl(jobId, request);
+		return getAsynchJobResponse(url, type.getReponseClass(), endpoint);
+	}
+
+	@Override
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId) throws SynapseException,
+			SynapseClientException, SynapseResultNotReadyException {
+		return getAsyncResult(type, jobId, entityId, getRepoEndpoint());
+	}
+
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId, String endpoint)
 			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
 		String url = type.getResultUrl(jobId, entityId);
-		return getAsynchJobResponse(url, type.getReponseClass());
+		return getAsynchJobResponse(url, type.getReponseClass(), endpoint);
 	}
 
 	/**
@@ -3780,9 +3801,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz) throws SynapseException {
+	private AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz, String endpoint) throws SynapseException {
 		JSONObject responseBody = getSharedClientConnection().getJson(
-				getRepoEndpoint(), url, getUserAgent(),
+				endpoint, url, getUserAgent(),
 				new SharedClientConnection.ErrorHandler() {
 					@Override
 					public void handleError(int code, String responseBody)
