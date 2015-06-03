@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.util.JSONEntityUtil;
@@ -101,17 +102,22 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	
 	@Override
 	public boolean canRead(Class<?> clazz, MediaType mediaType) {
-		return jacksonConverter.canRead(clazz, mediaType);
+		return jacksonConverter.canRead(clazz, mediaType) || 
+				jsonEntityConverter.canRead(clazz, mediaType);
 	}
 	
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return jacksonConverter.canWrite(clazz, mediaType);
+		return jacksonConverter.canWrite(clazz, mediaType) ||
+				jsonEntityConverter.canWrite(clazz, mediaType);
 	}
 
 	@Override
 	public List<MediaType> getSupportedMediaTypes() {
-		return jacksonConverter.getSupportedMediaTypes();
+		List<MediaType> result = new ArrayList<MediaType>();
+		result.addAll(jacksonConverter.getSupportedMediaTypes());
+		result.addAll(jsonEntityConverter.getSupportedMediaTypes());
+		return result;
 	}
 
 
