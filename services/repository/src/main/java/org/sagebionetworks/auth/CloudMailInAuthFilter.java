@@ -54,7 +54,13 @@ public class CloudMailInAuthFilter implements Filter {
 				String name = basicCredentials.substring(0, colon);
 				String password = basicCredentials.substring(colon+1);
 				if (cloudMailInUser.equals(name) && cloudMailInPassword.equals(password)) {
-					// authenticated!!
+					// We are now authenticated!!
+					
+					// To return error messages to the sender, CloudMailIn requires
+					// that the response content type is text/plain.  It does not however add
+					// the Accept header that Synapse requires to generate such a content-type.
+					// To fill the gap we leverage the filter to add the header before 
+					// forwarding the CloudMailIn request down the chain.
 					ExtraHeadersHttpServletRequest plainTextRequest = 
 							new ExtraHeadersHttpServletRequest(httpRequest, ACCEPT_PLAIN_TEXT_HEADER);
 					chain.doFilter(plainTextRequest, response);
