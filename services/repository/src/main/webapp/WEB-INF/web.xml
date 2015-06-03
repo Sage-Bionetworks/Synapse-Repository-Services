@@ -20,14 +20,14 @@
 	 It is our last chance to capture and log unexpected exceptions.  
 	 Without it, users could see errors that never make it into our logs.
 	 See PLFM-3205 & PLFM-3206  -->
-	<!--filter>
+	<filter>
 		<filter-name>unexpectedExceptionFilter</filter-name>
 		<filter-class>org.sagebionetworks.repo.web.filter.UnexpectedExceptionFilter</filter-class>
 	</filter>
 	<filter-mapping>
 		<filter-name>unexpectedExceptionFilter</filter-name>
 		<url-pattern>/*</url-pattern>
-	</filter-mapping-->
+	</filter-mapping>
 
 
 	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
