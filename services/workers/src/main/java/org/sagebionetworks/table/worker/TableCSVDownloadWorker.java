@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -53,6 +54,8 @@ public class TableCSVDownloadWorker implements Worker {
 	private UserManager userManger;
 	@Autowired
 	private FileHandleManager fileHandleManager;
+	@Autowired
+	Clock clock;
 
 	private int retryTimeoutOnTableUnavailableInSeconds = 5;
 
@@ -112,7 +115,7 @@ public class TableCSVDownloadWorker implements Worker {
 									.getSeparator()));
 			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
-			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId());
+			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId(), clock);
 			boolean includeRowIdAndVersion = BooleanUtils.isNotFalse(request.getIncludeRowIdAndRowVersion());
 			boolean writeHeaders = BooleanUtils.isNotFalse(request.getWriteHeader());
 			// Execute the actual query and stream the results to the file.
