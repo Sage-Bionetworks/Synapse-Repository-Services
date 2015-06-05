@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -30,6 +31,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	long currentProgress;
 	long totalProgress;
 	String jobId;
+	Clock clock;
 	/**
 	 * The time of the last progress update.
 	 */
@@ -49,7 +51,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	public ProgressingCSVWriterStream(CSVWriter writer,
 			WorkerProgress progress, Message originatingMessage,
 			AsynchJobStatusManager asynchJobStatusManager,
-			long currentProgress, long totalProgress, String jobId) {
+			long currentProgress, long totalProgress, String jobId, Clock clock) {
 		super();
 		this.writer = writer;
 		this.progress = progress;
@@ -58,7 +60,8 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 		this.currentProgress = currentProgress;
 		this.totalProgress = totalProgress;
 		this.jobId = jobId;
-		this.lastUpdateTimeMS = System.currentTimeMillis();
+		this.clock = clock;
+		this.lastUpdateTimeMS = clock.currentTimeMillis();
 	}
 
 
@@ -66,14 +69,22 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	@Override
 	public void writeNext(String[] nextLine) {
 		// We do not want to spam the listeners, so we only update progress every few seconds.
-		if(System.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
+		if(clock.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
 			// It is time to update the progress
 			// notify that progress is still being made for this message
 			progress.progressMadeForMessage(originatingMessage);
 			// Update the status
 			asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, BUILDING_THE_CSV);
 			// reset the clock
-			this.lastUpdateTimeMS = System.currentTimeMillis();
+			this.lastUpdateTimeMS = clock.currentTimeMillis();
+			
+			try {
+				// Since we have been running at 100% for two seconds we need to sleep
+				// avoid being a greedy, long running worker.  See PLFM-3410.
+				clock.sleep(UPDATE_FEQUENCY_MS/2);
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		// Write the line
