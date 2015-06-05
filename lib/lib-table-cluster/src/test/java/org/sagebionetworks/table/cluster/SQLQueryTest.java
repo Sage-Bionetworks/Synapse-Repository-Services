@@ -40,7 +40,8 @@ public class SQLQueryTest {
 	List<ColumnModel> tableSchema;
 	
 	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
-	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN + " AS _C777_, _C888_";
+	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN
+			+ " AS _C777_, _C888_, _C999_";
 
 	@Before
 	public void before(){
@@ -48,11 +49,12 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("foo", TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING));
 		columnNameToModelMap.put("has space", TableModelTestUtils.createColumn(222L, "has space", ColumnType.STRING));
 		columnNameToModelMap.put("bar", TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING));
-		columnNameToModelMap.put("foobar", TableModelTestUtils.createColumn(444L, "foobar", ColumnType.STRING));
+		columnNameToModelMap.put("foo_bar", TableModelTestUtils.createColumn(444L, "foo_bar", ColumnType.STRING));
 		columnNameToModelMap.put("Foo", TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING));
 		columnNameToModelMap.put("datetype", TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE));
 		columnNameToModelMap.put("doubletype", TableModelTestUtils.createColumn(777L, "doubletype", ColumnType.DOUBLE));
 		columnNameToModelMap.put("inttype", TableModelTestUtils.createColumn(888L, "inttype", ColumnType.INTEGER));
+		columnNameToModelMap.put("has-hyphen", TableModelTestUtils.createColumn(999L, "has-hyphen", ColumnType.STRING));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
 	}
 	
@@ -130,9 +132,20 @@ public class SQLQueryTest {
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		assertNotNull(translator.getSelectColumnModels());
-		assertEquals(translator.getSelectColumnModels().selectColumnCount(), 8);
+		assertEquals(translator.getSelectColumnModels().selectColumnCount(), 9);
 		assertEquals(this.tableSchema, translator.getSelectColumnModels().getColumnModels());
 	}
+
+	@Test
+	public void testSelectStarEscaping() throws ParseException {
+		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		String sql = translator.getModel().toString();
+		assertEquals("SELECT foo, \"has space\", bar, foo_bar, Foo, datetype, doubletype, inttype, \"has-hyphen\" FROM syn123", sql);
+		translator = new SqlQuery(sql, tableSchema);
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+	}
+
 	@Test
 	public void testSelectSingleColumns() throws ParseException {
 		SqlQuery translator = new SqlQuery("select foo from syn123", tableSchema);
@@ -465,7 +478,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereNested() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foobar = 3", tableSchema);
+		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foo_bar = 3", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ = :b0 AND _C333_ = :b1 ) OR _C444_ = :b2",
 				translator.getOutputSQL());
@@ -557,7 +570,7 @@ public class SQLQueryTest {
 
 	@Test
 	public void testAllParts() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo, bar from syn123 where foobar >= 1.89e4 order by bar desc limit 10 offset 0",
+		SqlQuery translator = new SqlQuery("select foo, bar from syn123 where foo_bar >= 1.89e4 order by bar desc limit 10 offset 0",
 				tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C444_ >= :b0 ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
@@ -570,7 +583,7 @@ public class SQLQueryTest {
 	@Test
 	public void testAllPartsWithGrouping() throws ParseException {
 		SqlQuery translator = new SqlQuery(
-				"select found_rows(), foo, bar from syn123 where foobar >= 1.89e4 group by foo order by bar desc limit 10 offset 0",
+				"select found_rows(), foo, bar from syn123 where foo_bar >= 1.89e4 group by foo order by bar desc limit 10 offset 0",
 				tableSchema);
 		// The value should be bound in the SQL
 		assertEquals(

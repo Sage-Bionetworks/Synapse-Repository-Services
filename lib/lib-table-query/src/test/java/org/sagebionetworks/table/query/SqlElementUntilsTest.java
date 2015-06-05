@@ -53,6 +53,24 @@ public class SqlElementUntilsTest {
 	}
 
 	@Test
+	public void testConvertToSortedEscaped() throws ParseException {
+		QuerySpecification model = TableQueryParser
+				.parserQuery("select \"foo-bar\", bar from syn123 where \"foo-bar\" = 1 order by bar limit 1");
+		SortItem sort1 = new SortItem();
+		sort1.setColumn("foo-bar");
+		SortItem sort2 = new SortItem();
+		sort2.setColumn("zoo");
+		sort2.setDirection(SortDirection.ASC);
+		SortItem sort3 = new SortItem();
+		sort3.setColumn("zaa");
+		sort3.setDirection(SortDirection.DESC);
+		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
+		assertNotNull(converted);
+		assertEquals("SELECT \"foo-bar\", bar FROM syn123 WHERE \"foo-bar\" = 1 ORDER BY \"foo-bar\" ASC, zoo ASC, zaa DESC, bar LIMIT 1",
+				converted.toString());
+	}
+
+	@Test
 	public void testReplaceSorted() throws ParseException {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1");
 		SortItem sort1 = new SortItem();

@@ -1174,4 +1174,44 @@ public class TableRowManagerImplTest {
 		// This should fail as the table does not exist
 		manager.getTableStatusOrCreateIfNotExists(tableId);
 	}
+
+	@Test
+	public void testNextPageToken() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		TableStatus tableStatus = new TableStatus();
+		tableStatus.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(tableStatus);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Collections.nCopies(100000, new Row()));
+		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(rowSet);
+
+		Pair<QueryResult, Long> query = manager.query(user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		assertNotNull(query.getFirst().getNextPageToken());
+	}
+
+	@Test
+	public void testNextPageTokenEscaping() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		TableStatus tableStatus = new TableStatus();
+		tableStatus.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(tableStatus);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Collections.nCopies(100000, new Row()));
+		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(rowSet);
+
+		// introduce escape-needed column names
+		for (int i = 0; i < models.size(); i++) {
+			String name = models.get(i).getName();
+			name = name.substring(0, 1) + "-" + name.substring(1);
+			models.get(i).setName(name);
+		}
+
+		Pair<QueryResult, Long> query = manager.query(user, "select \"i-0\" from " + tableId, null, 0L, 100000L, true, false, false);
+		assertNotNull(query.getFirst().getNextPageToken());
+		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
+
+		query = manager.query(user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
+		assertNotNull(query.getFirst().getNextPageToken());
+		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
+	}
 }
