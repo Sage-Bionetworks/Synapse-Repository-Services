@@ -516,7 +516,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>1.0.1</version>
+				<version>1.0.2</version>
 			</dependency>
 
 			<dependency>
