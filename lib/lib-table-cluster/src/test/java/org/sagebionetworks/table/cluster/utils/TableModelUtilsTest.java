@@ -233,6 +233,23 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
+	public void testHappyCaseWithTrailingLineBreak() throws IOException {
+		// Write the following data
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		outWritter.write('\n');
+		String csv = outWritter.toString();
+		StringReader reader = new StringReader(csv);
+		// There should be two rows
+		CsvNullReader in = new CsvNullReader(reader);
+		List<String[]> results = in.readAll();
+		in.close();
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertArrayEquals(new String[] { "456", "2", "true", "9999" }, results.get(0));
+		assertArrayEquals(new String[] { "457", "2", "false", "0" }, results.get(1));
+	}
+
+	@Test
 	public void testHappyDeleteNullValues() throws IOException {
 		validRowSet.getRows().get(1).setValues(null);
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);

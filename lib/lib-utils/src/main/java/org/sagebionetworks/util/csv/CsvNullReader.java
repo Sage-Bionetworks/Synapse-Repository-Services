@@ -47,6 +47,8 @@ public class CsvNullReader implements Closeable {
 
 	private boolean linesSkiped;
 
+	private String lineAfterEmptyLine = null;
+
 	/** The default separator to use if none is supplied to the constructor. */
 	public static final char DEFAULT_SEPARATOR = ',';
 
@@ -175,9 +177,23 @@ public class CsvNullReader implements Closeable {
 			}
 			this.linesSkiped = true;
 		}
-		String nextLine = br.readLine();
-		if (nextLine == null) {
-			hasNext = false;
+		String nextLine;
+		if (lineAfterEmptyLine != null) {
+			nextLine = lineAfterEmptyLine;
+			lineAfterEmptyLine = null;
+		} else {
+			nextLine = br.readLine();
+			if (nextLine == null) {
+				hasNext = false;
+			}
+		}
+		if (nextLine != null && nextLine.isEmpty()) {
+			// handling the case of the last empty line in a csv (trailing linebreak), which we want to ignore.
+			// but we don't want to ignore empty lines elsewhere
+			lineAfterEmptyLine = br.readLine();
+			if (lineAfterEmptyLine == null) {
+				hasNext = false;
+			}
 		}
 		return hasNext ? nextLine : null;
 	}
