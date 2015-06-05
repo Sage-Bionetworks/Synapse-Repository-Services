@@ -22,6 +22,10 @@ import com.google.common.collect.Maps;
  *
  */
 public class SqlElementUntils {
+
+	// it so happens that javas definition of word characters matches exactly with sqls non-escapable characters
+	// [0-9a-zA-z_])
+	private static final java.util.regex.Pattern NON_ESCAPABLE_COLUMN_NAME_CHARACTERS = java.util.regex.Pattern.compile("\\W");
 	
 	/**
 	 * Create a value expression from an input SQL.
@@ -492,7 +496,7 @@ public class SqlElementUntils {
 					: OrderingSpecification.ASC;
 			originalSortSpecifications.remove(sortItem.getColumn());
 			sortSpecifications.add(new SortSpecification(new SortKey(new ValueExpressionPrimary(new ColumnReference(new ColumnName(
-					new Identifier(new ActualIdentifier(sortItem.getColumn(), null))), null))), direction));
+					new Identifier(createActualIdentifier(sortItem.getColumn()))), null))), direction));
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
 		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
@@ -502,5 +506,13 @@ public class SqlElementUntils {
 				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), orderByClause,
 				currentTableExpression.getPagination());
 		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+	}
+
+	public static ActualIdentifier createActualIdentifier(String columnName) {
+		if (NON_ESCAPABLE_COLUMN_NAME_CHARACTERS.matcher(columnName).find()) {
+			return new ActualIdentifier(null, columnName);
+		} else {
+			return new ActualIdentifier(columnName, null);
+		}
 	}
 }

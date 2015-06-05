@@ -22,6 +22,7 @@ import org.sagebionetworks.table.query.model.*;
 import org.sagebionetworks.table.query.model.visitors.ColumnTypeVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToNameStringVisitor;
 import org.sagebionetworks.table.query.model.visitors.ToTranslatedSqlVisitor;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -85,8 +86,8 @@ public class SQLTranslatorUtils {
 
 	public static DerivedColumn createDerivedColumn(String columnName) {
 		return new DerivedColumn(new ValueExpression(new StringValueExpression(new CharacterValueExpression(new CharacterFactor(
-				new CharacterPrimary(new ValueExpressionPrimary(new ColumnReference(null, new ColumnName(new Identifier(new ActualIdentifier(
-						columnName, null)))))))))), null);
+				new CharacterPrimary(new ValueExpressionPrimary(new ColumnReference(null, new ColumnName(new Identifier(
+						SqlElementUntils.createActualIdentifier(columnName)))))))))), null);
 	}
 
 	public static DerivedColumn createDerivedColumn(MysqlFunction mysqlFunction) {

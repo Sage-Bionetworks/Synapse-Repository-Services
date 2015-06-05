@@ -700,7 +700,7 @@ public class IT100TableControllerTest {
 		List<String> columnIds = Lists.newArrayList();
 		for (int i = 0; i < columnCount; i++) {
 			ColumnModel one = new ColumnModel();
-			one.setName("col" + i);
+			one.setName("col-" + i);
 			one.setColumnType(ColumnType.STRING);
 			one.setMaximumSize((long) stringSize);
 			one = synapse.createColumnModel(one);
