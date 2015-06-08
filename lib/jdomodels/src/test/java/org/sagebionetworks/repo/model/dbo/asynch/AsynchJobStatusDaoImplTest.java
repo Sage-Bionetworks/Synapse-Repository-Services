@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
@@ -297,10 +298,24 @@ public class AsynchJobStatusDaoImplTest {
 		assertNotNull(clone.getErrorDetails());
 		assertTrue(clone.getErrorDetails().contains("This is bad"));
 		assertEquals(newEtag, clone.getEtag());
+		assertEquals("java.lang.Throwable", clone.getException());
 		assertEquals(body, status.getRequestBody());
 		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
 	}
 	
+	@Test
+	public void testSetFailedNonStringConstructor() throws DatastoreException, NotFoundException {
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId("syn456");
+		body.setUploadFileHandleId("123");
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		// update the progress
+		Throwable error = new TermsOfUseException();
+		asynchJobStatusDao.setJobFailed(status.getJobId(), error);
+		AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId());
+		assertEquals(null, clone.getException());
+	}
+
 	@Test
 	public void testSetCanceling() throws DatastoreException, NotFoundException {
 		UploadToTableRequest body = new UploadToTableRequest();

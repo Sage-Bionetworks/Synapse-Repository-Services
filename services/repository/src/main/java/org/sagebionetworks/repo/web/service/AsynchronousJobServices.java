@@ -54,10 +54,7 @@ public interface AsynchronousJobServices {
 	 * @param userId
 	 * @param jobId
 	 * @return
-	 * @throws NotFoundException
-	 * @throws NotReadyException
-	 * @throws AsynchJobFailedException
+	 * @throws Throwable 
 	 */
-	AsynchronousJobStatus getJobStatusAndThrow(Long userId, String jobId) throws NotFoundException, AsynchJobFailedException,
-			NotReadyException;
+	AsynchronousJobStatus getJobStatusAndThrow(Long userId, String jobId) throws Throwable;
 }

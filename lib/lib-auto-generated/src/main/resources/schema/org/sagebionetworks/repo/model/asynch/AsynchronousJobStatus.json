@@ -60,6 +60,10 @@
 			"type": "integer",
 			"description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
 		},
+		"exception": {
+			"type": "string",
+			"description": "The exception that needs to be thrown"
+		},
 		"errorMessage": {
 			"type": "string",
 			"description": "When processing fails, this is a one line error message."
