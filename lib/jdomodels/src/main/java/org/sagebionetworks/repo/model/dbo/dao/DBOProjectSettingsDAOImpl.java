@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -76,7 +77,17 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		if (dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());
 		}
-		dbo = basicDao.createNew(dbo);
+		try{
+			dbo = basicDao.createNew(dbo);
+		} catch (IllegalArgumentException e) {
+			// we want to catch the common case of an existing setting and tell the user nicely about that
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new IllegalArgumentException("A project setting of type '" + dto.getSettingsType().name() + "' for project "
+						+ dto.getProjectId() + " already exists.");
+			} else {
+				throw e;
+			}
+		}
 		String projectSettingsId = dbo.getId().toString();
 
 		NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();

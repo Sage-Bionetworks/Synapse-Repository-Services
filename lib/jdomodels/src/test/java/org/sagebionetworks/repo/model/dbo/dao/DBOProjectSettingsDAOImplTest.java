@@ -204,4 +204,14 @@ public class DBOProjectSettingsDAOImplTest {
 		assertEquals(uploadBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.upload).size());
 		assertEquals(extSyncBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.external_sync).size());
 	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testFailOnDuplicatEntry() {
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setProjectId(projectId);
+		setting.setSettingsType(ProjectSettingsType.upload);
+		setting.setLocations(Lists.<Long> newArrayList());
+		projectSettingsDao.create(setting);
+		projectSettingsDao.create(setting);
+	}
 }
