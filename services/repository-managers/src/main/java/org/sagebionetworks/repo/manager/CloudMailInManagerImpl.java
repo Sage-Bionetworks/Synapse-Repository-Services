@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -91,6 +94,8 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			MessageBody messageBody = copyMessageToMessageBody(message);
 			result.setBody(EntityFactory.createJSONStringForEntity(messageBody));
 			return result;
+		} catch (AddressException e) {
+			throw new RuntimeException(e);
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
 		} catch (JSONObjectAdapterException e) {
@@ -131,10 +136,17 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	 * @param emails
 	 * @return a map whose keys are the given email addresses and whose values are the 
 	 * corresponding principal ids.  Any invalid addresses are skipped.
+	 * @throws AddressException 
 	 */
-	public Map<String,String> lookupPrincipalIdsForSynapseEmailAddresses(Set<String> emails) {
-		Set<String> aliasStrings = new HashSet<String>();
+	public Map<String,String> lookupPrincipalIdsForSynapseEmailAddresses(Set<String> emails) throws AddressException {
+		Set<String> extractedAddresses = new HashSet<String>();
 		for (String email : emails) {
+			for (InternetAddress address : InternetAddress.parse(email)) {
+				extractedAddresses.add(address.getAddress());
+			}
+		}		
+		Set<String> aliasStrings = new HashSet<String>();
+		for (String email : extractedAddresses) {
 			// first, make sure it's actually an email address
 			try {
 				AliasEnum.USER_EMAIL.validateAlias(email);
@@ -155,11 +167,15 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		return result;
 	}
 	
-	public Long lookupPrincipalIdForRegisteredEmailAddress(String email) {
+	public Long lookupPrincipalIdForRegisteredEmailAddress(String email) throws AddressException {
 		// first, make sure it's actually an email address
-		AliasEnum.USER_EMAIL.validateAlias(email);
-		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(email);
-		if (alias==null) throw new IllegalArgumentException("Specified address "+email+" is not registered with Synapse.");
+		InternetAddress[] address = InternetAddress.parse(email);
+		if (address.length!=1) throw new IllegalArgumentException(
+				"Expected one address but found "+address.length+" in "+email);
+		String extractedAddress = address[0].getAddress();
+		AliasEnum.USER_EMAIL.validateAlias(extractedAddress);
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(extractedAddress);
+		if (alias==null) throw new IllegalArgumentException("Specified address "+extractedAddress+" is not registered with Synapse.");
 		return alias.getPrincipalId();
 	}
 	

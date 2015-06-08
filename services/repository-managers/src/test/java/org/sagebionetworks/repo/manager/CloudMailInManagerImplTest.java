@@ -207,6 +207,10 @@ public class CloudMailInManagerImplTest {
 		Map<String,String> expected = Collections.singletonMap("baz", principalId.toString());
 		assertEquals(expected, cloudMailInManager.
 				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")));
+		
+		// make sure that we accept personal name + address format
+		assertEquals(expected, cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("Baz ZZZ <bAz@syNapse.oRg>")));
 	}
 
 	@Test
@@ -219,14 +223,14 @@ public class CloudMailInManagerImplTest {
 	public void testLookupPrincipalIdForSynapseEmailAddressBADADDRESS() throws Exception {
 		assertTrue(
 				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"))
-				.isEmpty());;
+				.isEmpty());
 	}
 
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressWRONGdomain() throws Exception {
 		assertTrue(
 				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"))
-				.isEmpty());;
+				.isEmpty());
 	}
 
 	@Test
@@ -240,6 +244,11 @@ public class CloudMailInManagerImplTest {
 		
 		// check that case doesn't matter
 		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email));
+		
+		// make sure that we accept personal name + address format
+		String namePlusEmail = "AAA BBB <"+email+">";
+		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(namePlusEmail));
+		
 	}
 
 	@Test(expected=IllegalArgumentException.class)
