@@ -319,8 +319,7 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	RowReferenceSetResults getAppendRowsResult(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws NotReadyException,
-			NotFoundException, AsynchJobFailedException {
+			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -452,11 +451,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	RowReferenceSetResults getAppendRowsResult(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			@PathVariable String asyncToken) throws NotReadyException,
-			NotFoundException, AsynchJobFailedException {
+	RowReferenceSetResults getAppendRowsResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
@@ -679,10 +675,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	QueryResultBundle queryAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws NotReadyException,
-			NotFoundException, AsynchJobFailedException {
+	QueryResultBundle queryAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -821,10 +815,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	QueryResultBundle queryAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @PathVariable String asyncToken)
-			throws NotReadyException, NotFoundException, AsynchJobFailedException {
+	QueryResultBundle queryAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
@@ -852,11 +844,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	QueryResult queryNextPageAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws DatastoreException,
-			NotFoundException, IOException, AsynchJobFailedException,
-			NotReadyException {
+	QueryResult queryNextPageAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -922,11 +911,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	QueryResult queryNextPageAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @PathVariable String asyncToken)
-			throws DatastoreException, NotFoundException, IOException,
-			AsynchJobFailedException, NotReadyException {
+	QueryResult queryNextPageAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
@@ -956,9 +942,7 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	DownloadFromTableResult csvDownloadAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws DatastoreException,
-			NotFoundException, IOException, AsynchJobFailedException,
-			NotReadyException {
+			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -1021,11 +1005,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	DownloadFromTableResult csvDownloadAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @PathVariable String asyncToken)
-			throws DatastoreException, NotFoundException, IOException,
-			AsynchJobFailedException, NotReadyException {
+	DownloadFromTableResult csvDownloadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider
@@ -1091,9 +1072,7 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	UploadToTablePreviewResult csvUploadPreviewAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws DatastoreException,
-			NotFoundException, IOException, AsynchJobFailedException,
-			NotReadyException {
+			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -1121,9 +1100,7 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	UploadToTableResult csvUploadAsyncGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws DatastoreException,
-			NotFoundException, IOException, AsynchJobFailedException,
-			NotReadyException {
+			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
@@ -1186,11 +1163,8 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	UploadToTableResult csvUploadAsyncGet(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id, @PathVariable String asyncToken)
-			throws DatastoreException, NotFoundException, IOException,
-			AsynchJobFailedException, NotReadyException {
+	UploadToTableResult csvUploadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus jobStatus = serviceProvider

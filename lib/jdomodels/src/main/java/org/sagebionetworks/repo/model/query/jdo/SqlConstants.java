@@ -454,6 +454,7 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_PROGRESS_CURRENT		= "PROGRESS_CURRENT";
 	public static final String COL_ASYNCH_JOB_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
 	public static final String COL_ASYNCH_JOB_PROGRESS_MESSAGE		= "PROGRESS_MESSAGE";
+	public static final String COL_ASYNCH_JOB_EXCEPTION				= "EXCEPTION";
 	public static final String COL_ASYNCH_JOB_ERROR_MESSAGE			= "ERROR_MESSAGE";
 	public static final String COL_ASYNCH_JOB_ERROR_DETAILS			= "ERROR_DETAILS";
 	public static final String COL_ASYNCH_JOB_STARTED_ON			= "STARTED_ON";

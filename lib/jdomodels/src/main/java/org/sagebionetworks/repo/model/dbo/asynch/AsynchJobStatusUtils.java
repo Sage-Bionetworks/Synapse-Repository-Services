@@ -42,6 +42,7 @@ public class AsynchJobStatusUtils {
 		}
 		// The database contains the truth data for all generic data.
 		dto.setChangedOn(dbo.getChangedOn());
+		dto.setException(dbo.getException());
 		dto.setErrorDetails(dbo.getErrorDetails());
 		dto.setErrorMessage(dbo.getErrorMessage());
 		dto.setEtag(dbo.getEtag());
@@ -68,6 +69,7 @@ public class AsynchJobStatusUtils {
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(dto.getRequestBody().getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
 		dbo.setChangedOn(dto.getChangedOn()); 
+		dbo.setException(dto.getException());
 		dbo.setErrorDetails(dto.getErrorDetails());
 		dbo.setErrorMessage(truncateMessageStringIfNeeded(dto.getErrorMessage()));
 		dbo.setEtag(dto.getEtag());

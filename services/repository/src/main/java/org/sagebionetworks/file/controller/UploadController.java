@@ -665,7 +665,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = UrlHelpers.S3_FILE_COPY_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	S3FileCopyResults getS3FileCopyResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws NotReadyException, NotFoundException, AsynchJobFailedException {
+			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
 		return (S3FileCopyResults) jobStatus.getResponseBody();
 	}

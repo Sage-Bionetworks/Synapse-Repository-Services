@@ -31,7 +31,9 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -399,6 +401,20 @@ public class IT100TableControllerTest {
 		assertEquals(0L, count.longValue());
 	}
 
+	@Test(expected = SynapseForbiddenException.class)
+	public void testPermissionsFailure() throws Exception {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = adminSynapse.createColumnModel(one);
+
+		TableEntity table = createTable(Lists.newArrayList(one.getId()), adminSynapse);
+
+		// Now attempt to query for the table results
+		waitForCountResults("select * from " + table.getId(), table.getId());
+	}
+
 	@Test
 	public void testAdminRebuild() throws Exception {
 		// Create a few columns to add to a table entity
@@ -623,7 +639,7 @@ public class IT100TableControllerTest {
 		try{
 			synapse.appendRowsToTable(queryResults, MAX_APPEND_TIMEOUT, table.getId());
 			fail("Should not be able to apply the same change twice.  It should result in a SynapseConflictingUpdateException update exception.");
-		}catch(SynapseBadRequestException e){
+		} catch (SynapseConflictingUpdateException e) {
 			// expected
 			System.out.println(e.getMessage());
 			assertTrue(e.getMessage().contains("Row id:"));
@@ -757,8 +773,11 @@ public class IT100TableControllerTest {
 		assertNull(nextPageResult.getNextPageToken());
 	}
 	
-
 	private TableEntity createTable(List<String> columns) throws SynapseException {
+		return createTable(columns, synapse);
+	}
+
+	private TableEntity createTable(List<String> columns, SynapseClient synapse) throws SynapseException {
 		// Create a project to contain it all
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());

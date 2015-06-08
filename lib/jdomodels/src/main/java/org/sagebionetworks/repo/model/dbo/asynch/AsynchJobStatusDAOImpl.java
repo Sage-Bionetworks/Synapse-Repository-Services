@@ -37,7 +37,9 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
 			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
 			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
-	private static final String SQL_SET_FAILED = "UPDATE "+ASYNCH_JOB_STATUS+" SET "+COL_ASYNCH_JOB_ERROR_MESSAGE+" = ?, "+COL_ASYNCH_JOB_ERROR_DETAILS+" = ?, "+COL_ASYNCH_JOB_STATE+" = ?, "+COL_ASYNCH_JOB_ETAG+" = ?, "+COL_ASYNCH_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_JOB_ID+" = ?";
+	private static final String SQL_SET_FAILED = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_EXCEPTION + " = ?, "
+			+ COL_ASYNCH_JOB_ERROR_MESSAGE + " = ?, " + COL_ASYNCH_JOB_ERROR_DETAILS + " = ?, " + COL_ASYNCH_JOB_STATE + " = ?, "
+			+ COL_ASYNCH_JOB_ETAG + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON + " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ?";
 	private static final String SQL_SET_CANCELING = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_CANCELING + " = true WHERE "
 			+ COL_ASYNCH_JOB_ID + " = ?";
 
@@ -110,7 +112,17 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		String errorMessage = AsynchJobStatusUtils.truncateMessageStringIfNeeded(error.getMessage());
 		byte[] errorDetails = AsynchJobStatusUtils.stringToBytes(ExceptionUtils.getStackTrace(error));
 		long now = System.currentTimeMillis();
-		jdbcTemplate.update(SQL_SET_FAILED, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
+		String exceptionClass = null;
+		try {
+			if(error.getClass().getConstructor(String.class)!=null){
+				exceptionClass = error.getClass().getName();
+			}
+		} catch (NoSuchMethodException e) {
+			// ignore
+		} catch (SecurityException e) {
+			// ignore
+		}
+		jdbcTemplate.update(SQL_SET_FAILED, exceptionClass, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
 		return newEtag;
 	}
 
@@ -138,6 +150,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		dbo.setEtag(newEtag);
 		dbo.setProgressMessage("Complete");
 		dbo.setChangedOn(new Date(now));
+		dbo.setException(null);
 		dbo.setErrorDetails(null);
 		dbo.setErrorMessage(null);
 		dbo.setJobState(JobState.COMPLETE);

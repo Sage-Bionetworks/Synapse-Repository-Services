@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.lang.reflect.InvocationTargetException;
+
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
@@ -66,8 +68,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 	}
 
 	@Override
-	public AsynchronousJobStatus getJobStatusAndThrow(Long userId, String jobId) throws NotFoundException, AsynchJobFailedException,
-			NotReadyException {
+	public AsynchronousJobStatus getJobStatusAndThrow(Long userId, String jobId) throws Throwable {
 		if (userId == null) {
 			throw new IllegalArgumentException("UserId cannot be null");
 		}
@@ -79,6 +80,20 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 		AsynchronousJobStatus jobStatus = asynchJobStatusManager.getJobStatus(user, jobId);
 
 		if (jobStatus.getJobState() == AsynchJobState.FAILED) {
+			if (jobStatus.getException() != null) {
+				Throwable exception = null;
+				try {
+					@SuppressWarnings("unchecked")
+					Class<Throwable> exceptionClass = (Class<Throwable>) Class.forName(jobStatus.getException());
+					exception = exceptionClass.getConstructor(String.class).newInstance(jobStatus.getErrorMessage());
+				} catch (Throwable t) {
+					// ignore, just throw async job failed exception on any failure in trying to get a better exception
+					// here
+				}
+				if (exception != null) {
+					throw exception;
+				}
+			}
 			throw new AsynchJobFailedException(jobStatus);
 		}
 		if (jobStatus.getJobState() == AsynchJobState.PROCESSING) {
