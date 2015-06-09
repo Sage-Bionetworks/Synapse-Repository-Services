@@ -7,7 +7,7 @@
 		},
 		"etag": {
 			"type": "string",
-			"description": "The title etag of this object"
+			"description": "The etag of this object"
 		},
 		"createdOn": {
 			"type": "string",
@@ -33,7 +33,7 @@
 		},
 		"title": {
 			"type": "string",
-			"description": "The title to of this page."
+			"description": "The title of this page."
 		},
 		"markdown": {
 			"type": "string",
