@@ -52,8 +52,7 @@ public class ProgressingCSVWriterStreamTest {
 		String[] two = new String[]{"2"};
 		stream.writeNext(two);
 		verify(mockWriter).writeNext(two);
-		// We added a sleep for PLFM-3410
-		verify(mockClock).sleep(1000L);
+		verify(mockClock).sleep(1L);
 		verify(mockProgress).progressMadeForMessage(any(Message.class));
 		verify(mockAsynchJobStatusManager).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
 	}

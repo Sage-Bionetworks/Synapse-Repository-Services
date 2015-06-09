@@ -81,7 +81,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 			try {
 				// Since we have been running at 100% for two seconds we need to sleep
 				// avoid being a greedy, long running worker.  See PLFM-3410.
-				clock.sleep(UPDATE_FEQUENCY_MS/2);
+				clock.sleep(1);
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
