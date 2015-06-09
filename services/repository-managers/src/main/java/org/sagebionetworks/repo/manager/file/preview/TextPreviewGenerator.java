@@ -59,8 +59,8 @@ public class TextPreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public float getMemoryMultiplierForContentType(String contentType) {
-		return 1;
+	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize) {
+		return contentSize;
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException, InstantiationException, IllegalAccessException{
