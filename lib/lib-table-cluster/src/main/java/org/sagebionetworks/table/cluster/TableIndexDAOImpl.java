@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -67,7 +68,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// This will manage transactions for calls that need it.
 		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);
 		this.readTransactionTemplate = createTransactionTemplate(this.transactionManager, true);
-		this.template = new JdbcTemplate(dataSource);
+		/*
+		 * By default the MySQL driver will read all query results into memory
+		 * which can cause memory problems for large query results. (see:
+		 * <a hreft="http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html"/>) 
+		 * According to the MySQL driver docs the only way to get
+		 * the driver to change this default behavior is to create a statement
+		 * with TYPE_FORWARD_ONLY & CONCUR_READ_ONLY and then set statement
+		 * fetch size to Integer.MIN_VALUE. However, JdbcTemplate will not
+		 * set a fetch size less than zero. Therefore, we must override the
+		 * JdbcTemplate to force the fetch size of Integer.MIN_VALUE. See:
+		 * PLFM-3429
+		 */
+		this.template = new JdbcTemplate(dataSource) {
+			@Override
+			protected void applyStatementSettings(Statement stmt) throws SQLException {
+				super.applyStatementSettings(stmt);
+				if (getFetchSize() == Integer.MIN_VALUE) {
+					stmt.setFetchSize(getFetchSize());
+				}
+			}
+		};
+		// See comments above.
+		this.template.setFetchSize(Integer.MIN_VALUE);
 	}
 
 	private static TransactionTemplate createTransactionTemplate(DataSourceTransactionManager transactionManager, boolean readOnly) {
