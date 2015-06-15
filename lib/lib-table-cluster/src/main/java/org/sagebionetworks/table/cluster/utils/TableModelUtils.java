@@ -1012,7 +1012,9 @@ public class TableModelUtils {
 			}
 			if(!nameMap.containsKey(value)){
 				// The values are not column names so this was not a header row.
-				return null;
+				throw new IllegalArgumentException(
+						"The first line is expected to be a header but the values do not match the names of of the columns of the table ("
+								+ value + " is not a vaild column name or id). Header row: " + StringUtils.join(rowValues, ','));
 			}
 		}
 		// Build the map from the names
@@ -1022,6 +1024,25 @@ public class TableModelUtils {
 			Long id = TableConstants.getReservedColumnId(name);
 			if (id == null) {
 				id = nameMap.get(name);
+			}
+			columnIdToIndex.put(id, i);
+		}
+		return columnIdToIndex;
+	}
+
+	public static Map<Long, Integer> createColumnIdToIndexMapFromColumnIds(List<String> columnIds, List<ColumnModel> resultSchema) {
+		Set<Long> existingColumnIds = Sets.newHashSet(Lists.transform(resultSchema, COLUMN_MODEL_TO_ID));
+		// Build the map from the ids
+		Map<Long, Integer> columnIdToIndex = Maps.newHashMap();
+		for (int i = 0; i < columnIds.size(); i++) {
+			String columnIdString = columnIds.get(i);
+			Long id = TableConstants.getReservedColumnId(columnIdString);
+			if (id == null) {
+				id = Long.parseLong(columnIdString);
+				// make sure the column ID is a valid one for this schema
+				if (!existingColumnIds.contains(id)) {
+					throw new IllegalArgumentException("The column ID " + columnIdString + " is not a valid column ID for this table");
+				}
 			}
 			columnIdToIndex.put(id, i);
 		}

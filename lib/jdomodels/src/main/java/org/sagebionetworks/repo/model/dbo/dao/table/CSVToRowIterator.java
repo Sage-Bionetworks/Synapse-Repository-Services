@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Provides an Iterator<Row> abstraction over a raw CSV reader.
@@ -21,51 +22,54 @@ import org.sagebionetworks.util.csv.CsvNullReader;
  */
 public class CSVToRowIterator implements Iterator<Row> {
 
-	private List<ColumnModel> resultSchema;
-	private List<Long> ids;
-	private CsvNullReader reader;
+	private final List<ColumnModel> resultSchema;
+	private final CsvNullReader reader;
+	private final Integer rowIdIndex;
+	private final Integer rowVersionIndex;
+	private final int[] indexMapping;
+
 	private String[] lastRow;
 	private int rowLineNumber;
-	private Integer rowIdIndex;
-	private Integer rowVersionIndex;
-	private int[] indexMapping;
 
 	/**
 	 * Create a new object for each use.
 	 * 
-	 * @param resultSchema
-	 *            Each row returned will match this schema.
-	 * @param reader
-	 *            The CSV stream that contains the source data. Data will be
-	 *            read from this stream and translated into rows. It is the job
-	 *            of the caller to close this stream when finished.
+	 * @param resultSchema Each row returned will match this schema.
+	 * @param reader The CSV stream that contains the source data. Data will be read from this stream and translated
+	 *        into rows. It is the job of the caller to close this stream when finished.
+	 * @param columnIds
 	 * @param progressReporter
 	 * @throws IOException
 	 */
-	public CSVToRowIterator(List<ColumnModel> resultSchema, CsvNullReader reader, boolean isFirstLineHeader)
+	public CSVToRowIterator(List<ColumnModel> resultSchema, CsvNullReader reader, boolean isFirstLineHeader, List<String> columnIds)
 			throws IOException {
 		this.resultSchema = resultSchema;
 		this.reader = reader;
-		this.ids = TableModelUtils.getIds(resultSchema);
 		this.rowLineNumber = 1;
+
 		// We need to read the first row to determine if it a header
 		lastRow = reader.readNext();
+
 		// We need a map of column ID to index.
-		Map<Long, Integer> idToIndexMap;
+		String[] headers = null;
 		if (isFirstLineHeader) {
-			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(lastRow, resultSchema);
-			if (idToIndexMap == null) {
-				throw new IllegalArgumentException(
-						"The first line was expected to be a header but the values did not match the names of of the columns of the table. Header row: "
-								+ StringUtils.join(lastRow, ','));
-			}
+			headers = lastRow;
 			// Since the first row was a header, we need to next row to start.
 			lastRow = reader.readNext();
 			rowLineNumber++;
-		} else {
-			// This means the row is not a header. So just map from the schema
-			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(this.ids);
 		}
+
+		Map<Long, Integer> idToIndexMap;
+		if (!CollectionUtils.isEmpty(columnIds)) {
+			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromColumnIds(columnIds, resultSchema);
+		} else if (headers != null) {
+			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(headers, resultSchema);
+		} else {
+			// This means the row is not a header and no header was given. So just map from the schema
+			List<Long> ids = TableModelUtils.getIds(resultSchema);
+			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(ids);
+		}
+
 		// Does contain RowId?
 		rowIdIndex = idToIndexMap.get(TableConstants.ROW_ID_ID);
 		rowVersionIndex = idToIndexMap.get(TableConstants.ROW_VERSION_ID);
