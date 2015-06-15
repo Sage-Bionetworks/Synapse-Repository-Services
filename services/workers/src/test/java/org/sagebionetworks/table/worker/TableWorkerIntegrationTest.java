@@ -1624,7 +1624,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				null, null, null);
 		// Now wait for the table index to be ready
@@ -1675,7 +1675,7 @@ public class TableWorkerIntegrationTest {
 		copy.get(3)[2] = "FFF";
 		reader = TableModelTestUtils.createReader(copy);
 		// Use the data to update the table
-		iterator = new CSVToRowIterator(schema, reader, true);
+		iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				response.getEtag(), null, null);
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
@@ -1713,7 +1713,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), iterator,
 				null,
 				null, null);

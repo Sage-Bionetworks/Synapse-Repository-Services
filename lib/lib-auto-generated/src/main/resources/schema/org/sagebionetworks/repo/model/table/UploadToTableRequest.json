@@ -24,6 +24,13 @@
 		},
 		"csvTableDescriptor": {
 			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
+		"columnIds": {
+		    "description":"The optional list of ColumnModel IDs that matches the columns in the CSV. If not specified, the CSV columns are taken from the csv (if a header row is given) or assumed to match the columns in the table entity. Order is important. If specified, the number of columns in the CSV must be at less or equal to the number of columns in this list",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
 		}
 	}
 }

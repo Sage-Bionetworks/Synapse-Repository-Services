@@ -123,7 +123,19 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testRoundTrip() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
+	public void testRoundTripWithCSVHeaders() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
+			IOException, InterruptedException {
+		doTestRoundTrip(true);
+	}
+
+	@Test
+	public void testRoundTripWithColumnIds() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
+			IOException, InterruptedException {
+		doTestRoundTrip(false);
+	}
+
+	private void doTestRoundTrip(boolean useCSVHeader) throws DatastoreException, InvalidModelException, UnauthorizedException,
+			NotFoundException, IOException,
 			InterruptedException {
 		this.schema = new LinkedList<ColumnModel>();
 		// Create a project
@@ -162,8 +174,10 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		CSVWriter csv = new CSVWriter(new FileWriter(tempFile));
 		int rowCount = 100;
 		try {
-			// Write the header
-			csv.writeNext(new String[] { schema.get(1).getName(), schema.get(0).getName() });
+			if (useCSVHeader) {
+				// Write the header
+				csv.writeNext(new String[] { schema.get(1).getName(), schema.get(0).getName() });
+			}
 			// Write some rows
 			for (int i = 0; i < rowCount; i++) {
 				csv.writeNext(new String[] { "" + i, "stringdata" + i });
@@ -186,6 +200,12 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
+		CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor();
+		csvTableDescriptor.setIsFirstLineHeader(useCSVHeader);
+		body.setCsvTableDescriptor(csvTableDescriptor);
+		if (!useCSVHeader) {
+			body.setColumnIds(Lists.newArrayList(schema.get(1).getId(), schema.get(0).getId()));
+		}
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
