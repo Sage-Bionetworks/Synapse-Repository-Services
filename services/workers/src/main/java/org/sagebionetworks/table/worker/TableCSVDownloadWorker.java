@@ -3,15 +3,11 @@ package org.sagebionetworks.table.worker;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.Writer;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.Worker;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -56,42 +52,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	Clock clock;
-
-	private int retryTimeoutOnTableUnavailableInSeconds = 5;
-//
-//	@Override
-//	public void setMessages(List<Message> messages) {
-//		this.messages = messages;
-//	}
-//
-//	@Override
-//	public void setWorkerProgress(WorkerProgress workerProgress) {
-//		this.workerProgress = workerProgress;
-//	}
-
-	public void setRetryTimeoutOnTableUnavailableInSeconds(int retryTimeoutOnTableUnavailableInSeconds) {
-		this.retryTimeoutOnTableUnavailableInSeconds = retryTimeoutOnTableUnavailableInSeconds;
-	}
-
-//	@Override
-//	public List<Message> call() throws Exception {
-//		List<Message> toDelete = new LinkedList<Message>();
-//		for(Message message: messages){
-//			try{
-//				Message returned = processMessage(message);
-//				if(returned != null){
-//					toDelete.add(returned);
-//				}
-//			}catch(Throwable e){
-//				// Treat unknown errors as unrecoverable and return them
-//				toDelete.add(message);
-//				log.error("Worker Failed", e);
-//			}
-//		}
-//		return toDelete;
-//	}
-	
+	Clock clock;	
 
 	@Override
 	public void run(ProgressCallback<Message> progressCallback, Message message) throws Exception {
