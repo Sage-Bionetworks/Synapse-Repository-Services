@@ -27,6 +27,9 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -40,11 +43,9 @@ import com.amazonaws.services.sqs.model.Message;
  * @author jmhill
  *
  */
-public class TableCSVDownloadWorker implements Worker {
+public class TableCSVDownloadWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(TableCSVDownloadWorker.class);
-	private List<Message> messages;
-	private WorkerProgress workerProgress;
 
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
@@ -58,40 +59,42 @@ public class TableCSVDownloadWorker implements Worker {
 	Clock clock;
 
 	private int retryTimeoutOnTableUnavailableInSeconds = 5;
-
-	@Override
-	public void setMessages(List<Message> messages) {
-		this.messages = messages;
-	}
-
-	@Override
-	public void setWorkerProgress(WorkerProgress workerProgress) {
-		this.workerProgress = workerProgress;
-	}
+//
+//	@Override
+//	public void setMessages(List<Message> messages) {
+//		this.messages = messages;
+//	}
+//
+//	@Override
+//	public void setWorkerProgress(WorkerProgress workerProgress) {
+//		this.workerProgress = workerProgress;
+//	}
 
 	public void setRetryTimeoutOnTableUnavailableInSeconds(int retryTimeoutOnTableUnavailableInSeconds) {
 		this.retryTimeoutOnTableUnavailableInSeconds = retryTimeoutOnTableUnavailableInSeconds;
 	}
 
-	@Override
-	public List<Message> call() throws Exception {
-		List<Message> toDelete = new LinkedList<Message>();
-		for(Message message: messages){
-			try{
-				Message returned = processMessage(message);
-				if(returned != null){
-					toDelete.add(returned);
-				}
-			}catch(Throwable e){
-				// Treat unknown errors as unrecoverable and return them
-				toDelete.add(message);
-				log.error("Worker Failed", e);
-			}
-		}
-		return toDelete;
-	}
+//	@Override
+//	public List<Message> call() throws Exception {
+//		List<Message> toDelete = new LinkedList<Message>();
+//		for(Message message: messages){
+//			try{
+//				Message returned = processMessage(message);
+//				if(returned != null){
+//					toDelete.add(returned);
+//				}
+//			}catch(Throwable e){
+//				// Treat unknown errors as unrecoverable and return them
+//				toDelete.add(message);
+//				log.error("Worker Failed", e);
+//			}
+//		}
+//		return toDelete;
+//	}
+	
 
-	private Message processMessage(Message message) throws Throwable {
+	@Override
+	public void run(ProgressCallback<Message> progressCallback, Message message) throws Exception {
 		AsynchronousJobStatus status = extractStatus(message);
 		String fileName = "Job-"+status.getJobId();
 		File temp = null;
@@ -115,7 +118,7 @@ public class TableCSVDownloadWorker implements Worker {
 									.getSeparator()));
 			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
-			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId(), clock);
+			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId(), clock);
 			boolean includeRowIdAndVersion = BooleanUtils.isNotFalse(request.getIncludeRowIdAndRowVersion());
 			boolean writeHeaders = BooleanUtils.isNotFalse(request.getWriteHeader());
 			// Execute the actual query and stream the results to the file.
@@ -132,29 +135,25 @@ public class TableCSVDownloadWorker implements Worker {
 			long startProgress = totalProgress/2; // we are half done at this point
 			double bytesPerRow = rowCount == 0 ? 1 : temp.length() / rowCount;
 			// This will keep the progress updated as the file is uploaded.
-			UploadProgressListener uploadListener = new UploadProgressListener(workerProgress, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
+			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
 			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, CSVUtils.guessContentType(request
 					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()), uploadListener);
 			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
-			return message;
 		}catch (TableUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
-			// do not return the message because we do not want it to be deleted.
-			// but we don't want to wait too long, so set the visibility timeout to something smaller
-			workerProgress.retryMessage(message, retryTimeoutOnTableUnavailableInSeconds);
-			return null;
+			// Throwing this will put the message back on the queue in 5 seconds.
+			throw new RecoverableMessageException();
 		} catch (TableFailedException e) {
 			// This means we cannot use this table
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
-			return message;
 		}catch(Throwable e){
 			// The job failed
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
-			throw e;
+			log.error("Worker Failed", e);
 		}finally{
 			if(writer != null){
 				try {
@@ -228,4 +227,5 @@ public class TableCSVDownloadWorker implements Worker {
 		// Create the reader.
 		return new CSVWriter(writer, separator, quotechar, escape, lineEnd);
 	}
+
 }
