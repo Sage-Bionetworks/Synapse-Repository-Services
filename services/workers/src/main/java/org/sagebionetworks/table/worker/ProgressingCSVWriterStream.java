@@ -4,6 +4,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -25,7 +26,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 */
 	public static final long UPDATE_FEQUENCY_MS = 2000;
 	CSVWriter writer;
-	WorkerProgress progress;
+	ProgressCallback<Message> progressCallback;
 	Message originatingMessage;
 	AsynchJobStatusManager asynchJobStatusManager;
 	long currentProgress;
@@ -49,12 +50,12 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 *            continues to be made.
 	 */
 	public ProgressingCSVWriterStream(CSVWriter writer,
-			WorkerProgress progress, Message originatingMessage,
+			ProgressCallback<Message> progressCallback, Message originatingMessage,
 			AsynchJobStatusManager asynchJobStatusManager,
 			long currentProgress, long totalProgress, String jobId, Clock clock) {
 		super();
 		this.writer = writer;
-		this.progress = progress;
+		this.progressCallback = progressCallback;
 		this.originatingMessage = originatingMessage;
 		this.asynchJobStatusManager = asynchJobStatusManager;
 		this.currentProgress = currentProgress;
@@ -72,19 +73,11 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 		if(clock.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
 			// It is time to update the progress
 			// notify that progress is still being made for this message
-			progress.progressMadeForMessage(originatingMessage);
+			progressCallback.progressMade(originatingMessage);
 			// Update the status
 			asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, BUILDING_THE_CSV);
 			// reset the clock
 			this.lastUpdateTimeMS = clock.currentTimeMillis();
-			
-			try {
-				// Since we have been running at 100% for two seconds we need to sleep
-				// avoid being a greedy, long running worker.  See PLFM-3410.
-				clock.sleep(1);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
 		}
 
 		// Write the line

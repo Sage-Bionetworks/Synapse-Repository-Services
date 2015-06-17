@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -16,7 +17,7 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class ProgressingCSVWriterStreamTest {
 	CSVWriter mockWriter;
-	WorkerProgress mockProgress;
+	ProgressCallback<Message> mockProgress;
 	Message mockMessage;
 	AsynchJobStatusManager mockAsynchJobStatusManager;
 	long currentProgress;
@@ -28,7 +29,7 @@ public class ProgressingCSVWriterStreamTest {
 	@Before
 	public void before(){
 		mockWriter = Mockito.mock(CSVWriter.class);
-		mockProgress = Mockito.mock(WorkerProgress.class);
+		mockProgress = Mockito.mock(ProgressCallback.class);
 		mockAsynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
 		currentProgress = 0L;
 		totalProgress = 100;
@@ -46,14 +47,13 @@ public class ProgressingCSVWriterStreamTest {
 		stream.writeNext(one);
 		verify(mockWriter).writeNext(one);
 		verify(mockClock, never()).sleep(anyLong());
-		verify(mockProgress, never()).progressMadeForMessage(any(Message.class));
+		verify(mockProgress, never()).progressMade(any(Message.class));
 		verify(mockAsynchJobStatusManager, never()).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
 		// Now a little over two seconds have elapse sine the start.
 		String[] two = new String[]{"2"};
 		stream.writeNext(two);
 		verify(mockWriter).writeNext(two);
-		verify(mockClock).sleep(1L);
-		verify(mockProgress).progressMadeForMessage(any(Message.class));
+		verify(mockProgress).progressMade(any(Message.class));
 		verify(mockAsynchJobStatusManager).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
 	}
 

@@ -518,7 +518,11 @@
 				<artifactId>database-semaphore</artifactId>
 				<version>1.0.4</version>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>worker-utilities</artifactId>
+				<version>1.0.1</version>
+			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>
 				<artifactId>gwt-servlet</artifactId>

@@ -1,7 +1,7 @@
 package org.sagebionetworks.table.worker;
 
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
@@ -17,7 +17,7 @@ public class UploadProgressListener implements ProgressListener {
 
 	public static final String MESSAGE_CREATE_CSV_FILE_HANDLE = "Create CSV FileHandle";
 	
-	WorkerProgress progress;
+	ProgressCallback<Message> progressCallback;
 	Message originatingMessage;
 	long startProgress;
 	double bytesTransferedSoFar;
@@ -36,12 +36,12 @@ public class UploadProgressListener implements ProgressListener {
 	 * @param asynchJobStatusManager
 	 * @param jobId
 	 */
-	public UploadProgressListener(WorkerProgress progress,
+	public UploadProgressListener(ProgressCallback<Message> progressCallback,
 			Message originatingMessage, long startProgress, double bytesPerRow,
 			long totalProgress, AsynchJobStatusManager asynchJobStatusManager,
 			String jobId) {
 		super();
-		this.progress = progress;
+		this.progressCallback = progressCallback;
 		this.originatingMessage = originatingMessage;
 		this.startProgress = startProgress;
 		this.bytesPerRow = bytesPerRow;
@@ -63,7 +63,7 @@ public class UploadProgressListener implements ProgressListener {
 		}
 		// It is time to update the progress
 		// notify that progress is still being made for this message
-		progress.progressMadeForMessage(originatingMessage);
+		progressCallback.progressMade(originatingMessage);
 		// Update the status
 		asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, MESSAGE_CREATE_CSV_FILE_HANDLE);
 	}
