@@ -14,6 +14,8 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.util.CollectionUtils;
 
+import com.google.common.collect.Lists;
+
 /**
  * Provides an Iterator<Row> abstraction over a raw CSV reader.
  * 
@@ -22,11 +24,9 @@ import org.springframework.util.CollectionUtils;
  */
 public class CSVToRowIterator implements Iterator<Row> {
 
-	private final List<ColumnModel> resultSchema;
 	private final CsvNullReader reader;
-	private final Integer rowIdIndex;
-	private final Integer rowVersionIndex;
-	private final int[] indexMapping;
+	private final Map<Long, Integer> columnIdToCsvColumnIndexMap;
+	private final List<ColumnModel> resultSchema;
 
 	private String[] lastRow;
 	private int rowLineNumber;
@@ -59,31 +59,13 @@ public class CSVToRowIterator implements Iterator<Row> {
 			rowLineNumber++;
 		}
 
-		Map<Long, Integer> idToIndexMap;
 		if (!CollectionUtils.isEmpty(columnIds)) {
-			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromColumnIds(columnIds, resultSchema);
+			columnIdToCsvColumnIndexMap = TableModelUtils.createColumnIdToColumnIndexMapFromColumnIds(columnIds, resultSchema);
 		} else if (headers != null) {
-			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(headers, resultSchema);
+			columnIdToCsvColumnIndexMap = TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(headers, resultSchema);
 		} else {
 			// This means the row is not a header and no header was given. So just map from the schema
-			List<Long> ids = TableModelUtils.getIds(resultSchema);
-			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(ids);
-		}
-
-		// Does contain RowId?
-		rowIdIndex = idToIndexMap.get(TableConstants.ROW_ID_ID);
-		rowVersionIndex = idToIndexMap.get(TableConstants.ROW_VERSION_ID);
-		// build the index mapping
-		this.indexMapping = new int[resultSchema.size()];
-		int index = 0;
-		for(ColumnModel cm: this.resultSchema){
-			// Lookup the mapping for this column
-			Integer valueIndex = idToIndexMap.get(Long.parseLong(cm.getId()));
-			if(valueIndex == null){
-				throw new IllegalArgumentException("Expected a column with the name: "+cm.getName()+" but did not find it");
-			}
-			indexMapping[index] = valueIndex;
-			index++;
+			columnIdToCsvColumnIndexMap = TableModelUtils.createColumnIdToSchemaIndexMap(resultSchema);
 		}
 	}
 
@@ -96,32 +78,42 @@ public class CSVToRowIterator implements Iterator<Row> {
 	public Row next() {
 		// Convert the row.
 		Row row = new Row();
-		// Do we have ROW_ID?
-		if(rowIdIndex != null){
-			String value = lastRow[rowIdIndex];
-			if(value != null){
-				row.setRowId(new Long(value));
+		ArrayList<String> values = Lists.<String> newArrayListWithCapacity(resultSchema.size());
+		boolean anyValues = false; // no values at all in a row denotes a deletion
+		for (int i = 0; i < resultSchema.size(); i++) {
+			Long columnId = Long.parseLong(resultSchema.get(i).getId());
+			Integer csvColumnIndex = columnIdToCsvColumnIndexMap.get(columnId);
+			String value = null;
+			if (csvColumnIndex != null) {
+				if (lastRow.length > csvColumnIndex) {
+					anyValues = true;
+					value = lastRow[csvColumnIndex];
+				}
 			}
+			values.add(value);
+		}
+		if (anyValues) {
+			row.setValues(values);
+		}
 
-		}
-		// Do we have a row version?
-		if(rowVersionIndex != null){
-			String value = lastRow[rowVersionIndex];
-			if(value != null){
-				row.setVersionNumber(new Long(value));
+		Integer csvColumnIndex = columnIdToCsvColumnIndexMap.get(TableConstants.ROW_ID_ID);
+		if (csvColumnIndex != null) {
+			if (lastRow.length > csvColumnIndex) {
+				String value = lastRow[csvColumnIndex];
+				if (!StringUtils.isEmpty(value)) {
+					row.setRowId(Long.parseLong(value));
+				}
 			}
 		}
-		List<String> values = new ArrayList<String>(this.resultSchema.size());
-		// Copy over the values according to the mapping
-		for(int i=0; i<this.resultSchema.size(); i++){
-			int index = this.indexMapping[i];
-			if (index >= lastRow.length) {
-				throw new IllegalArgumentException("Line number " + rowLineNumber + ": column index " + index + " out of bounds for row "
-						+ lastRow);
+		csvColumnIndex = columnIdToCsvColumnIndexMap.get(TableConstants.ROW_VERSION_ID);
+		if (csvColumnIndex != null) {
+			if (lastRow.length > csvColumnIndex) {
+				String value = lastRow[csvColumnIndex];
+				if (!StringUtils.isEmpty(value)) {
+					row.setVersionNumber(Long.parseLong(value));
+				}
 			}
-			values.add(lastRow[index]);
 		}
-		row.setValues(values);
 
 		// Net the next row
 		try {

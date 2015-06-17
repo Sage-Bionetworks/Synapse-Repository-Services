@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -106,6 +107,15 @@ public class IT099AsynchronousJobTest {
 	
 	@Test
 	public void testUploadCSVToTable() throws Exception{
+		doTestUploadCSVToTable(false);
+	}
+
+	@Test
+	public void testUploadCSVToTableWithColumnIdList() throws Exception {
+		doTestUploadCSVToTable(true);
+	}
+
+	private void doTestUploadCSVToTable(boolean useColumnIdList) throws Exception{
 		File temp = File.createTempFile("UploadCSVTest", ".csv");
 		File tempUpdate = File.createTempFile("UpdateCSVTest", ".csv");
 		try{
@@ -147,7 +157,7 @@ public class IT099AsynchronousJobTest {
 			final long rowCount = 2;
 			try{
 				// Write the header
-				csv.writeNext(new String[]{cm1.getName(), cm2.getName()});
+				csv.writeNext(new String[] { cm1.getName(), cm2.getName() });
 				// Write some rows
 				for(int i=0; i<rowCount; i++){
 					csv.writeNext(new String[]{""+i, "data"+i});
@@ -156,6 +166,7 @@ public class IT099AsynchronousJobTest {
 				csv.flush();
 				csv.close();
 			}
+
 			// Now upload this CSV as a file handle
 			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
@@ -185,7 +196,11 @@ public class IT099AsynchronousJobTest {
 			assertEquals(new Long(rowCount), uploadPreviewResult.getRowsScanned());
 			
 			// We now have enough to apply the data to the table
-			final String uploadToken = synapse.uploadCsvToTableAsyncStart(tableId, fileHandle.getId(), null, null, null);
+			List<String> columnIds = null;
+			if (useColumnIdList) {
+				columnIds = Lists.newArrayList(cm1.getId(), cm2.getId());
+			}
+			final String uploadToken = synapse.uploadCsvToTableAsyncStart(tableId, fileHandle.getId(), null, null, null, columnIds);
 			try {
 				synapse.uploadCsvToTableAsyncGet(uploadToken, tableId);
 			} catch (SynapseResultNotReadyException e) {
@@ -298,8 +313,8 @@ public class IT099AsynchronousJobTest {
 			fileHandle = synapse.createFileHandle(tempUpdate, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
-			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), 
-					downloadResult.getEtag(), null, null);
+			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), downloadResult.getEtag(),
+					null, null, null);
 			try {
 				synapse.uploadCsvToTableAsyncGet(updateUploadToken, tableId);
 			} catch (SynapseResultNotReadyException e) {
