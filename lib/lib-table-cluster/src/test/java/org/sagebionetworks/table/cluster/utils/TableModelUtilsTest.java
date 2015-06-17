@@ -948,7 +948,7 @@ public class TableModelUtilsTest {
 			names.add(cm.getName());
 		}
 		Collections.shuffle(names);
-		Map<Long, Integer> map = TableModelUtils.createColumnIdToIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
+		Map<Long, Integer> map = TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
 		assertNotNull(map);
 		assertEquals(all.size(), map.size());
 		Map<String, Long> nameToIdMap = TableModelUtils.createNameToIDMap(all);
@@ -968,7 +968,7 @@ public class TableModelUtilsTest {
 			names.add(cm.getName() + "not");
 		}
 		Collections.shuffle(names);
-		TableModelUtils.createColumnIdToIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
+		TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
 	}
 	
 	@Test

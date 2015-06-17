@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -994,7 +995,7 @@ public class TableModelUtils {
 		}
 		return map;
 	}
-	
+
 	/**
 	 * Given the first row of a CSV create a columnId to Index map.
 	 * If the row does not contain the names of the columns then null.
@@ -1002,51 +1003,57 @@ public class TableModelUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static Map<Long, Integer> createColumnIdToIndexMapFromFirstRow(String[] rowValues, List<ColumnModel> schema) {
+	public static Map<Long, Integer> createColumnIdToColumnIndexMapFromFirstRow(String[] rowValues, List<ColumnModel> schema) {
 		Map<String, Long> nameMap = createNameToIDMap(schema);
-		// Are all of the values names?
-		for(String value: rowValues){
-			// skip reserved column names
-			if(TableConstants.isReservedColumnName(value)){
-				continue;
-			}
-			if(!nameMap.containsKey(value)){
-				// The values are not column names so this was not a header row.
-				throw new IllegalArgumentException(
-						"The first line is expected to be a header but the values do not match the names of of the columns of the table ("
-								+ value + " is not a vaild column name or id). Header row: " + StringUtils.join(rowValues, ','));
-			}
-		}
 		// Build the map from the names
-		Map<Long, Integer> columnIdToIndex = Maps.newHashMap();
-		for(int i=0; i<rowValues.length; i++){
+		Map<Long, Integer> columnIdToColumnIndexMap = Maps.newHashMap();
+		for (int i = 0; i < rowValues.length; i++) {
 			String name = rowValues[i];
-			Long id = TableConstants.getReservedColumnId(name);
-			if (id == null) {
-				id = nameMap.get(name);
+			if (name != null) {
+				Long id = TableConstants.getReservedColumnId(name);
+				if (id == null) {
+					id = nameMap.get(name);
+					if (id == null) {
+						// The values are not column names so this was not a header row.
+						throw new IllegalArgumentException(
+								"The first line is expected to be a header but the values do not match the names of of the columns of the table ("
+										+ name + " is not a vaild column name or id). Header row: " + StringUtils.join(rowValues, ','));
+					}
+				}
+				columnIdToColumnIndexMap.put(id, i);
 			}
-			columnIdToIndex.put(id, i);
 		}
-		return columnIdToIndex;
+		return columnIdToColumnIndexMap;
 	}
 
-	public static Map<Long, Integer> createColumnIdToIndexMapFromColumnIds(List<String> columnIds, List<ColumnModel> resultSchema) {
+	public static Map<Long, Integer> createColumnIdToColumnIndexMapFromColumnIds(List<String> columnIds, List<ColumnModel> resultSchema) {
 		Set<Long> existingColumnIds = Sets.newHashSet(Lists.transform(resultSchema, COLUMN_MODEL_TO_ID));
 		// Build the map from the ids
-		Map<Long, Integer> columnIdToIndex = Maps.newHashMap();
+		Map<Long, Integer> columnIdToColumnIndexMap = Maps.newHashMap();
 		for (int i = 0; i < columnIds.size(); i++) {
 			String columnIdString = columnIds.get(i);
-			Long id = TableConstants.getReservedColumnId(columnIdString);
-			if (id == null) {
-				id = Long.parseLong(columnIdString);
-				// make sure the column ID is a valid one for this schema
-				if (!existingColumnIds.contains(id)) {
-					throw new IllegalArgumentException("The column ID " + columnIdString + " is not a valid column ID for this table");
+			Long id = null;
+			if (columnIdString != null) {
+				id = TableConstants.getReservedColumnId(columnIdString);
+				if (id == null) {
+					id = Long.parseLong(columnIdString);
+					// make sure the column ID is a valid one for this schema
+					if (!existingColumnIds.contains(id)) {
+						throw new IllegalArgumentException("The column ID " + columnIdString + " is not a valid column ID for this table");
+					}
 				}
+				columnIdToColumnIndexMap.put(id, i);
 			}
-			columnIdToIndex.put(id, i);
 		}
-		return columnIdToIndex;
+		return columnIdToColumnIndexMap;
+	}
+
+	public static Map<Long, Integer> createColumnIdToSchemaIndexMap(List<ColumnModel> resultSchema) {
+		Map<Long, Integer> columnIdToSchemaIndexMap = Maps.newHashMap();
+		for (int i = 0; i < resultSchema.size(); i++) {
+			columnIdToSchemaIndexMap.put(Long.parseLong(resultSchema.get(i).getId()), i);
+		}
+		return columnIdToSchemaIndexMap;
 	}
 
 	public static RowSetAccessor getRowSetAccessor(final List<Row> rows, final ColumnMapper columnMapper) {

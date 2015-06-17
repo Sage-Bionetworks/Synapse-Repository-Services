@@ -6243,15 +6243,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
+			CsvTableDescriptor csvDescriptor) throws SynapseException {
+		return uploadCsvToTableAsyncStart(tableId, fileHandleId, etag, linesToSkip, csvDescriptor, null);
+	}
+
+	@Override
 	public String uploadCsvToTableAsyncStart(String tableId,
 			String fileHandleId, String etag, Long linesToSkip,
-			CsvTableDescriptor csvDescriptor) throws SynapseException {
+			CsvTableDescriptor csvDescriptor, List<String> columnIds) throws SynapseException {
 		UploadToTableRequest uploadRequest = new UploadToTableRequest();
 		uploadRequest.setTableId(tableId);
 		uploadRequest.setUploadFileHandleId(fileHandleId);
 		uploadRequest.setUpdateEtag(etag);
 		uploadRequest.setLinesToSkip(linesToSkip);
 		uploadRequest.setCsvTableDescriptor(csvDescriptor);
+		uploadRequest.setColumnIds(null);
 		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest);
 	}
 
