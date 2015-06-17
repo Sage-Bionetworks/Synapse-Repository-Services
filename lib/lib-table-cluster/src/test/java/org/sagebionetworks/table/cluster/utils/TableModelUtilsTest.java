@@ -948,7 +948,7 @@ public class TableModelUtilsTest {
 			names.add(cm.getName());
 		}
 		Collections.shuffle(names);
-		Map<Long, Integer> map = TableModelUtils.createColumnIdToIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
+		Map<Long, Integer> map = TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
 		assertNotNull(map);
 		assertEquals(all.size(), map.size());
 		Map<String, Long> nameToIdMap = TableModelUtils.createNameToIDMap(all);
@@ -960,7 +960,7 @@ public class TableModelUtilsTest {
 		}
 	}
 	
-	@Test
+	@Test(expected = IllegalArgumentException.class)
 	public void createColumnIdToIndexMapFromNotFirstRow() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		List<String> names = new LinkedList<String>();
@@ -968,8 +968,7 @@ public class TableModelUtilsTest {
 			names.add(cm.getName() + "not");
 		}
 		Collections.shuffle(names);
-		Map<Long, Integer> map = TableModelUtils.createColumnIdToIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
-		assertNull(map);
+		TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
 	}
 	
 	@Test

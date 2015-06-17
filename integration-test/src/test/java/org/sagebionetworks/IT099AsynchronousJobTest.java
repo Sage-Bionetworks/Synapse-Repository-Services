@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -147,7 +148,7 @@ public class IT099AsynchronousJobTest {
 			final long rowCount = 2;
 			try{
 				// Write the header
-				csv.writeNext(new String[]{cm1.getName(), cm2.getName()});
+				csv.writeNext(new String[] { cm1.getName(), cm2.getName() });
 				// Write some rows
 				for(int i=0; i<rowCount; i++){
 					csv.writeNext(new String[]{""+i, "data"+i});
@@ -156,6 +157,7 @@ public class IT099AsynchronousJobTest {
 				csv.flush();
 				csv.close();
 			}
+
 			// Now upload this CSV as a file handle
 			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
@@ -185,7 +187,7 @@ public class IT099AsynchronousJobTest {
 			assertEquals(new Long(rowCount), uploadPreviewResult.getRowsScanned());
 			
 			// We now have enough to apply the data to the table
-			final String uploadToken = synapse.uploadCsvToTableAsyncStart(tableId, fileHandle.getId(), null, null, null);
+			final String uploadToken = synapse.uploadCsvToTableAsyncStart(tableId, fileHandle.getId(), null, null, null, null);
 			try {
 				synapse.uploadCsvToTableAsyncGet(uploadToken, tableId);
 			} catch (SynapseResultNotReadyException e) {
@@ -298,8 +300,8 @@ public class IT099AsynchronousJobTest {
 			fileHandle = synapse.createFileHandle(tempUpdate, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
-			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), 
-					downloadResult.getEtag(), null, null);
+			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), downloadResult.getEtag(),
+					null, null, null);
 			try {
 				synapse.uploadCsvToTableAsyncGet(updateUploadToken, tableId);
 			} catch (SynapseResultNotReadyException e) {
@@ -345,6 +347,103 @@ public class IT099AsynchronousJobTest {
 		} finally{
 			temp.delete();
 			tempUpdate.delete();
+		}
+	}
+	
+	@Test
+	public void testUploadCSVToTableWithColumnIdList() throws Exception {
+		File temp = File.createTempFile("UploadCSVTest", ".csv");
+		try{
+			// Create a table with some columns
+			ColumnModel cm1 = new ColumnModel();
+			cm1.setColumnType(ColumnType.INTEGER);
+			cm1.setName("sampleLong");
+			cm1 = synapse.createColumnModel(cm1);
+			// String
+			ColumnModel cm2 = new ColumnModel();
+			cm2.setColumnType(ColumnType.STRING);
+			cm2.setMaximumSize(10L);
+			cm2.setName("sampleString");
+			cm2 = synapse.createColumnModel(cm2);
+			
+			// Now create a table entity with this column model
+			// Create a project to contain it all
+			Project project = new Project();
+			project.setName(UUID.randomUUID().toString());
+			project = synapse.createEntity(project);
+			assertNotNull(project);
+			entitiesToDelete.add(project);
+			
+			// now create a table entity
+			TableEntity table = new TableEntity();
+			table.setName("Table");
+			List<String> idList = new LinkedList<String>();
+			idList.add(cm1.getId());
+			idList.add(cm2.getId());
+			table.setColumnIds(idList);
+			table.setParentId(project.getId());
+			table = synapse.createEntity(table);
+			entitiesToDelete.add(table);
+			
+			final String tableId = table.getId();
+			
+			// Now create a CSV
+			CSVWriter csv = new CSVWriter(new FileWriter(temp));
+			final long rowCount = 2;
+			try{
+				// Write the header
+				csv.writeNext(new String[] { "dummy" });
+				// Write some rows
+				for(int i=0; i<rowCount; i++){
+					csv.writeNext(new String[]{""+i, "data"+i});
+				}
+			}finally{
+				csv.flush();
+				csv.close();
+			}
+
+			// Now upload this CSV as a file handle
+			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
+			filesToDelete.add(fileHandle);
+			
+			// We now have enough to apply the data to the table
+			List<String> columnIds = Lists.newArrayList(cm1.getId(), cm2.getId());
+			final String uploadToken = synapse.uploadCsvToTableAsyncStart(tableId, fileHandle.getId(), null, null, null, columnIds);
+			try {
+				synapse.uploadCsvToTableAsyncGet(uploadToken, tableId);
+			} catch (SynapseResultNotReadyException e) {
+				AsynchronousJobStatus status = e.getJobStatus();
+				assertNotNull(status);
+				assertNotNull(status.getJobId());
+			}
+			// Now make sure we can get the status
+			AsynchronousJobStatus status = synapse.getAsynchronousJobStatus(uploadToken);
+			assertNotNull(status);
+			assertNotNull(status.getJobId());
+
+			// Wait for the job to finish
+			UploadToTableResult uploadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTableResult>>() {
+				@Override
+				public Pair<Boolean, UploadToTableResult> call() throws Exception {
+					try {
+						UploadToTableResult uploadResult = synapse.uploadCsvToTableAsyncGet(uploadToken, tableId);
+						return Pair.create(true, uploadResult);
+					} catch (SynapseResultNotReadyException e) {
+						return Pair.create(false, null);
+					}
+				}
+			});
+			assertNotNull(uploadResult.getEtag());
+			assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());
+
+			// Wait for the table to be ready
+			String sql = "select * from "+table.getId();
+			final RowSet results = waitForQuery(sql, tableId);
+			assertEquals(rowCount, results.getRows().size());
+
+			assertEquals(rowCount, waitForCount(sql, tableId).longValue());
+		} finally{
+			temp.delete();
 		}
 	}
 	

@@ -125,7 +125,7 @@ public class TableCSVAppenderWorker implements Worker {
 			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
 			// Create the iterator
 			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(body.getCsvTableDescriptor());
-			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader);
+			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, body.getColumnIds());
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
 			// Append the data to the table
 			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(),

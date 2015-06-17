@@ -1365,6 +1365,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseTableUnavailableException
 	 */
 	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
+			CsvTableDescriptor csvDescriptor, List<String> columnIds) throws SynapseException;
+
+	/**
+	 * @Deprecated
+	 */
+	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
 			CsvTableDescriptor csvDescriptor) throws SynapseException;
 
 	/**
