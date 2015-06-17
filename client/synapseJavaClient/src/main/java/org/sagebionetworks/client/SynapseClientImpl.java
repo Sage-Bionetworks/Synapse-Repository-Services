@@ -6258,7 +6258,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		uploadRequest.setUpdateEtag(etag);
 		uploadRequest.setLinesToSkip(linesToSkip);
 		uploadRequest.setCsvTableDescriptor(csvDescriptor);
-		uploadRequest.setColumnIds(null);
+		uploadRequest.setColumnIds(columnIds);
 		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest);
 	}
 
