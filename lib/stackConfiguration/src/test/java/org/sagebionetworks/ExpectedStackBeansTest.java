@@ -73,6 +73,8 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.stackInstanceNumber",
 			
 			"stackConfiguration.logBucketName",
+			
+			"stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]",
 	};
 	
 	@Before

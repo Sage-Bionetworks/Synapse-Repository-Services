@@ -11,61 +11,51 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Setups the acl message queue. -->
-	<bean id="aclMessageQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
-			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
-		<constructor-arg index="2">
-			<list>
-				<value>ACCESS_CONTROL_LIST</value>
-			</list>
-		</constructor-arg>
-		<constructor-arg index="3" value="true" />
-	</bean>
-
-	<!-- provides acl message queue workers -->
-	<bean id="aclQueueWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-		<property name="worker" value="org.sagebionetworks.acl.worker.AclSnapshotWorker" />
-	</bean>
-
-	<!-- This gate ensures we never run more than the max number of runners for this worker  -->
-	<bean id="aclWorkerSemaphore"
-			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
-			scope="singleton">
-		<property name="lockTimeoutMS" value="60000" />
-		<property name="maxCount" value="1" />
-	</bean>
-
-	<!-- Pull messages off the search queue, create works, deletes successfully 
-		processed messages -->
-	<bean id="aclQueueMessageReveiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
-		depends-on="stackConfiguration"
-		scope="singleton">
-		<property name="messageQueue" ref="aclMessageQueue" />
-		<property name="workerFactory" ref="aclQueueWorkerFactory" />
-		<property name="workerSemaphore" ref="aclWorkerSemaphore" />
-		<property name="maxNumberOfWorkerThreads" value="1" />
-		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="10" />
-	</bean>
-
 	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="aclQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="aclQueueMessageReveiver" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.acl.worker.AclSnapshotWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="aclSnapshotWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="60" />
+								<property name="queueName"
+									ref="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref
+											bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
+									</list>
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="37" />
-		<property name="repeatInterval" value="987" />
+		<property name="repeatInterval" value="1987" />
 	</bean>
+
 
 </beans>
