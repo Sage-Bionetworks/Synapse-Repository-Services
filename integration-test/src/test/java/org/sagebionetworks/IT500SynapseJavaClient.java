@@ -1542,7 +1542,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, inviteeEmails.size());
 		String inviteeEmail = inviteeEmails.get(0);
 		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
-		if (EmailValidationUtil.doesFileExist(inviteeNotification)) 
+		if (EmailValidationUtil.doesFileExist(inviteeNotification, 2000L))
 			EmailValidationUtil.deleteFile(inviteeNotification);
 		
 		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
@@ -1555,11 +1555,11 @@ public class IT500SynapseJavaClient {
 		synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		// check that a notification was sent to the invitee
-		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification));
+		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification, 60000L));
 		
 		// make sure there's no lingering inviter notification
 		String inviterNotification = EmailValidationUtil.getBucketKeyForEmail(synapseOneProfile.getEmails().get(0));
-		if (EmailValidationUtil.doesFileExist(inviterNotification))
+		if (EmailValidationUtil.doesFileExist(inviterNotification, 2000L))
 			EmailValidationUtil.deleteFile(inviterNotification);
 		
 		// now get the embedded tokens
@@ -1594,7 +1594,7 @@ public class IT500SynapseJavaClient {
 		assertFalse(inviteeUserProfile.getNotificationSettings().getSendEmailNotifications());
 		
 		// finally, the invitER should have been notified that the invitEE joined the team
-		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification));
+		assertTrue(EmailValidationUtil.doesFileExist(inviterNotification, 60000L));
 		EmailValidationUtil.deleteFile(inviterNotification);
 	}
 
@@ -1619,7 +1619,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, inviteeEmails.size());
 		String inviteeEmail = inviteeEmails.get(0);
 		String inviteeNotification = EmailValidationUtil.getBucketKeyForEmail(inviteeEmail);
-		if (EmailValidationUtil.doesFileExist(inviteeNotification)) 
+		if (EmailValidationUtil.doesFileExist(inviteeNotification, 2000L))
 			EmailValidationUtil.deleteFile(inviteeNotification);
 		
 		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
@@ -1632,11 +1632,11 @@ public class IT500SynapseJavaClient {
 		synapseOne.createMembershipInvitation(dto, null, null);
 		
 		// check that NO notification was sent to the invitee
-		assertFalse(EmailValidationUtil.doesFileExist(inviteeNotification));
+		assertFalse(EmailValidationUtil.doesFileExist(inviteeNotification, 60000L));
 		
 		// inviter notification
 		String inviterNotification = EmailValidationUtil.getBucketKeyForEmail(synapseOneProfile.getEmails().get(0));
-		if (EmailValidationUtil.doesFileExist(inviterNotification))
+		if (EmailValidationUtil.doesFileExist(inviterNotification, 2000L))
 			EmailValidationUtil.deleteFile(inviterNotification);
 		
 		
@@ -1647,7 +1647,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getIsMember());
 				
 		// finally, the invitER should NOT have been notified that the invitEE joined the team
-		assertFalse(EmailValidationUtil.doesFileExist(inviterNotification));
+		assertFalse(EmailValidationUtil.doesFileExist(inviterNotification, 60000L));
 	}
 
 	@Test
@@ -1669,7 +1669,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, adminEmails.size());
 		String adminEmail = adminEmails.get(0);
 		String adminNotification = EmailValidationUtil.getBucketKeyForEmail(adminEmail);
-		if (EmailValidationUtil.doesFileExist(adminNotification)) 
+		if (EmailValidationUtil.doesFileExist(adminNotification, 2000L))
 			EmailValidationUtil.deleteFile(adminNotification);
 
 		// create a request
@@ -1684,11 +1684,11 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 
 		// check that a notification was sent to the admin
-		assertTrue(EmailValidationUtil.doesFileExist(adminNotification));
+		assertTrue(EmailValidationUtil.doesFileExist(adminNotification, 60000L));
 		
 		// make sure there's no lingering requester notification
 		String requesterNotification = EmailValidationUtil.getBucketKeyForEmail(requesterProfile.getEmails().get(0));
-		if (EmailValidationUtil.doesFileExist(requesterNotification))
+		if (EmailValidationUtil.doesFileExist(requesterNotification, 2000L))
 			EmailValidationUtil.deleteFile(requesterNotification);
 		
 		// now get the embedded tokens
@@ -1745,7 +1745,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, adminEmails.size());
 		String adminEmail = adminEmails.get(0);
 		String adminNotification = EmailValidationUtil.getBucketKeyForEmail(adminEmail);
-		if (EmailValidationUtil.doesFileExist(adminNotification)) 
+		if (EmailValidationUtil.doesFileExist(adminNotification, 2000L))
 			EmailValidationUtil.deleteFile(adminNotification);
 
 		// create a request
@@ -1760,11 +1760,11 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createMembershipRequest(dto, null, null);
 
 		// check that a notification was NOT sent to the admin
-		assertFalse(EmailValidationUtil.doesFileExist(adminNotification));
+		assertFalse(EmailValidationUtil.doesFileExist(adminNotification, 60000L));
 		
 		// requester notification
 		String requesterNotification = EmailValidationUtil.getBucketKeyForEmail(requesterProfile.getEmails().get(0));
-		if (EmailValidationUtil.doesFileExist(requesterNotification))
+		if (EmailValidationUtil.doesFileExist(requesterNotification, 2000L))
 			EmailValidationUtil.deleteFile(requesterNotification);
 	
 		synapseOne.addTeamMember(createdTeam.getId(), requesterPrincipalId, null, null);
@@ -1774,7 +1774,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getIsMember());
 				
 		// finally, the requester should NOT have been notified that the admin added her to the team
-		assertFalse(EmailValidationUtil.doesFileExist(requesterNotification));
+		assertFalse(EmailValidationUtil.doesFileExist(requesterNotification, 60000L));
 	}
 
 	@Test
