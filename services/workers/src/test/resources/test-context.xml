@@ -11,6 +11,11 @@
 
 	<import resource="classpath:main-scheduler-spb.xml" />
 
+	<bean id="queueCleaner"
+		class="org.sagebionetworks.workers.util.aws.message.QueueCleaner">
+		<constructor-arg ref="awsSQSClient" />
+	</bean>
+
 	<bean id="dynamoQueueRemoverFactory"
 		class="org.sagebionetworks.dynamo.workers.sqs.DynamoQueueRemoverFactory"
 		scope="singleton" />
