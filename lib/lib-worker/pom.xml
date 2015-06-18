@@ -30,7 +30,6 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-utils</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
@@ -84,7 +83,7 @@
 			<artifactId>junit</artifactId>
 		</dependency>
 		<dependency>
-		    <groupId>org.quartz-scheduler</groupId>
+			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
 		</dependency>
 
