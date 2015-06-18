@@ -28,7 +28,10 @@
 	<bean name="stackConfiguration.workerQueueName[ProjectStatsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncFolderWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-
+	
+	<!-- Topics -->
+	<bean name="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
