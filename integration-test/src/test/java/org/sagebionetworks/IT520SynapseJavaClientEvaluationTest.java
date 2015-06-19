@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -597,7 +596,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String contributorEmail = contributorEmails.get(0);
 		String contributorNotification = EmailValidationUtil.getBucketKeyForEmail(contributorEmail);
 		// make sure there is no notification before the submission is created
-		if (EmailValidationUtil.doesFileExist(contributorNotification)) 
+		if (EmailValidationUtil.doesFileExist(contributorNotification, 2000L))
 			EmailValidationUtil.deleteFile(contributorNotification);
 
 		TeamSubmissionEligibility tse = synapseOne.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
@@ -615,7 +614,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		submissionsToDelete.add(sub1.getId());
 
 		// contributor should get notification
-		assertTrue(EmailValidationUtil.doesFileExist(contributorNotification));
+		assertTrue(EmailValidationUtil.doesFileExist(contributorNotification, 60000L));
 	}
 	
 	@Test
@@ -648,7 +647,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String contributorEmail = contributorEmails.get(0);
 		String contributorNotification = EmailValidationUtil.getBucketKeyForEmail(contributorEmail);
 		// make sure there is no notification before the submission is created
-		if (EmailValidationUtil.doesFileExist(contributorNotification)) 
+		if (EmailValidationUtil.doesFileExist(contributorNotification, 2000L))
 			EmailValidationUtil.deleteFile(contributorNotification);
 
 		TeamSubmissionEligibility tse = synapseOne.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
@@ -667,7 +666,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		submissionsToDelete.add(sub1.getId());
 
 		// contributor should get notification
-		assertFalse(EmailValidationUtil.doesFileExist(contributorNotification));
+		assertFalse(EmailValidationUtil.doesFileExist(contributorNotification, 60000L));
 	}
 	
 	@Test

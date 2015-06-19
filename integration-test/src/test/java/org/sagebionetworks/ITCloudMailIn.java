@@ -116,7 +116,7 @@ public class ITCloudMailIn {
 
 			String emailMessageKey = EmailValidationUtil
 					.getBucketKeyForEmail(toemail);
-			if (EmailValidationUtil.doesFileExist(emailMessageKey))
+			if (EmailValidationUtil.doesFileExist(emailMessageKey, 2000L))
 				EmailValidationUtil.deleteFile(emailMessageKey);
 
 			URL url = new URL(repoEndpoint + URI);
@@ -126,7 +126,7 @@ public class ITCloudMailIn {
 
 			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
 				// check that message is sent (file is created)
-				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey));
+				assertTrue(EmailValidationUtil.doesFileExist(emailMessageKey, 60000L));
 			}
 			return response;
 
