@@ -170,13 +170,6 @@ public class TabCsvTextPreviewTest {
 	}
 	
 	@Test
-	public void testCalculateMax() throws IOException {
-		assertEquals(20L, tabPreviewGenerator.calculateNeededMemoryBytesForPreview(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES, 20L));
-		assertEquals(77670L,
-				tabPreviewGenerator.calculateNeededMemoryBytesForPreview(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES, 2000000L));
-	}
-
-	@Test
 	public void testEmptyFile() throws IOException {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		String s = "";
