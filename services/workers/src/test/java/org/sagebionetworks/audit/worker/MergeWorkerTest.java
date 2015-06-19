@@ -2,7 +2,7 @@ package org.sagebionetworks.audit.worker;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -39,44 +39,21 @@ public class MergeWorkerTest {
 	@Autowired
 	private AccessRecordDAO accessRecordDAO;
 	
-	@Autowired
-	private SemaphoreGatedRunner auditMergeWorkerSemaphoreGatedRunner;
-	
-	@Autowired
-	private CountingSemaphore semaphoreDAO;
-	
-	private String lockToken;
-	private String semaphoreKey;
-	private int maxLockCount;
-	
 	@Before
 	public void before() {
 		// Prevent the main scheduler from running another instance of the MergeWorker
-		semaphoreKey = auditMergeWorkerSemaphoreGatedRunner.getSemaphoreKey();
-		maxLockCount = 1;
-		long start = System.currentTimeMillis();
-		while (lockToken == null) {
-			lockToken = semaphoreDAO.attemptToAcquireLock(semaphoreKey, MAX_WAIT_SEC, maxLockCount);
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for merge worker to acquire lock", elapse < MAX_WAIT_MS);
-		}
 	}
 	
 	@After
 	public void after(){
 		// Delete all data created by this test.
 		accessRecordDAO.deleteAllStackInstanceBatches();
-		if(lockToken != null){
-			semaphoreDAO.releaseLock(semaphoreKey, lockToken);
-		}
 	}
 	
 	@Test
-	public void testIntegration() throws IOException{
+	public void testIntegration() throws IOException, InterruptedException{
 		// Start this test with no data in the bucket
 		accessRecordDAO.deleteAllStackInstanceBatches();
-		
-		ProgressCallback<Void> mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		
 		// Setup the times
 	    Calendar cal = Calendar.getInstance();
@@ -96,17 +73,8 @@ public class MergeWorkerTest {
 		// Create three days worth of data
 		
 		Set<String> dayTwoSessionIds = createBatchesForDay(dayTwoTimeStamp, count, 1);
-		// Now let the worker do the its thing
-		MergeWorker worker = new MergeWorker(accessRecordDAO, mockProgressCallback);
-		long start = System.currentTimeMillis();
-		boolean hasMore = true;
-		// Wait until the worker merges all files
-		while(hasMore){
-			hasMore = worker.mergeOneBatch();
-			long elapse = System.currentTimeMillis()-start;
-			assertTrue("Timed out waiting for merge worker to finish",elapse < MAX_WAIT_MS);
-		}
-		verify(mockProgressCallback, times(18)).progressMade(null);
+		
+		waitForListings(3);
 		
 		// Now list the files for each day.
 		ObjectListing listing = accessRecordDAO.listBatchKeys(null);
@@ -132,6 +100,36 @@ public class MergeWorkerTest {
 		Set<String> dayTwo = getSessionIdsForKey(sumThree.getKey());
 		assertEquals("Did not find the expected number of records merged into a single day's folder",dayTwoSessionIds.size() , dayTwo.size());
 		assertEquals("The merged files did not have the expected records", dayTwoSessionIds, dayTwo);
+	}
+
+	/**
+	 * Wait for the expected count of files.  
+	 * @param expectedSize
+	 * @throws InterruptedException
+	 */
+	private void waitForListings(int expectedSize) throws InterruptedException {
+		long start = System.currentTimeMillis();
+		while(true){
+			ObjectListing listing = accessRecordDAO.listBatchKeys(null);
+			if(listing != null){
+				if(listing.getObjectSummaries() != null && listing.getObjectSummaries().size() == expectedSize){
+					boolean stillRolling = false;
+					for(S3ObjectSummary sum:  listing.getObjectSummaries()){
+						if(sum.getKey().contains("rolling")){
+							stillRolling = true;
+						}
+					}
+					if(!stillRolling){
+						// done
+						return;
+					}
+				}
+			}
+			if(System.currentTimeMillis() - start > MAX_WAIT_MS){
+				fail("Timed out waiting for worker.");
+			}
+			Thread.sleep(2000);
+		}
 	}
 
 	/**

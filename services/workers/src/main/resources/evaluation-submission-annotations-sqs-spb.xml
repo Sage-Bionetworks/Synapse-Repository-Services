@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-		<!-- This trigger is used to process messages from the search queue. -->
+	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="evaluationSubmissionAnnotationsWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -27,22 +27,24 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.annotations.worker.EvaluationSubmissionAnnotationsWorker" />
+									<bean
+										class="org.sagebionetworks.annotations.worker.EvaluationSubmissionAnnotationsWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="evaluationSubmissionAnnotationsIndexWorker" />
+								<property name="semaphoreLockKey"
+									value="evaluationSubmissionAnnotationsIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="60" />
 								<property name="queueName"
 									ref="stackConfiguration.annotationsUpdateQueueName" />
-								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
-								</property>
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref
 											bean="stackConfiguration.repositoryChangeTopic[EVALUATION_SUBMISSIONS]" />
 									</list>
+								</property>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 							</bean>
 						</constructor-arg>
@@ -56,6 +58,6 @@
 		<property name="startDelay" value="256" />
 		<property name="repeatInterval" value="937" />
 	</bean>
-	
+
 
 </beans>

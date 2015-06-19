@@ -35,14 +35,14 @@
 									value="60" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" />
-								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
-								</property>
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref
 											bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
 									</list>
+								</property>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 							</bean>
 						</constructor-arg>

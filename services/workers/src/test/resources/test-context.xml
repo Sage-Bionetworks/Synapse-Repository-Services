@@ -45,22 +45,6 @@
 		<property name="repeatInterval" value="200" />
 	</bean>
 
-	<bean id="auditMergeWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
-		scope="singleton">
-		<property name="jobDetail">
-			<bean
-				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="auditMergeWorkerSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="31" />
-		<!-- This is a slow worker and does not need to be run more than once every 1 hour. -->
-		<property name="repeatInterval" value="3000" />
-	</bean>
-
 	<!-- This is a shared  Scheduler-->
 	<bean id="repositoryManagerTestScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="triggers">

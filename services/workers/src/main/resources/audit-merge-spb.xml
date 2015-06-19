@@ -11,35 +11,40 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="auditMergeWorkerFactory" class="org.sagebionetworks.audit.worker.MergeWorkerFactory"/>
-
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="auditMergeWorkerSemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<!-- The timeout on this worker is set to five minutes. This is longer than is needed for most cases. -->
-		<property name="timeoutMS" value="300000" />
-		<!-- There must never be more than one instances of this worker running at a time! 
-		 If more than one worker is run then the workers will duplicate the audit data!!!! -->
-		<property name="maxNumberRunners" value="1" />
-		<property name="semaphoreKey" value="auditMergeWorkerFactory" />		
-		<property name="runner" ref="auditMergeWorkerFactory" />
-	</bean>
-
 	<!-- This is the trigger used to fire this worker -->
 	<bean id="auditMergeWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="auditMergeWorkerSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean
+								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner">
+									<bean class="org.sagebionetworks.audit.worker.MergeWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="auditMergeWorkerFactory" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="300" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="31" />
-		<!-- This worker runs every minute.  It will do nothing if there is no work to do. -->
-		<property name="repeatInterval" value="60000" />
+		<property name="repeatInterval" value="10000" />
 	</bean>
 
 </beans>
