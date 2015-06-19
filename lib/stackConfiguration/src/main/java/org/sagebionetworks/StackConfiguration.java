@@ -1563,6 +1563,15 @@ public class StackConfiguration {
 	public String getResourceAccessRecordBucketName() {
 		return String.format(StackConstants.RESOURCE_ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
 	}
+
+	/**
+	 * Get the name of the audit ACL record bucket.
+	 * 
+	 * @return
+	 */
+	public String getObjectRecordBucketName() {
+		return String.format(StackConstants.OBJECT_RECORD_BUCKET, StackConfiguration.getStack());
+	}
 	
 	/**
 	 * Get the name of the stack log bucket.
