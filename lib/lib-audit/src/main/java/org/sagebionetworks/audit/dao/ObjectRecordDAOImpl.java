@@ -54,7 +54,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	
 	@Override
 	public String saveBatch(List<ObjectRecord> records) throws IOException {
-		return objectCsvDao.write(records, System.currentTimeMillis(), false);
+		return objectCsvDao.write(records, records.get(0).getObjectType(), System.currentTimeMillis(), false);
 	}
 
 	@Override
