@@ -65,7 +65,7 @@ public class PreviewManagerImplTest {
 		when(mockFileProvider.createFileInputStream(mockDownloadFile)).thenReturn(mockInputStream);
 		when(mockFileProvider.createFileOutputStream(mockUploadFile)).thenReturn(mockOutputStream);
 		when(mockPreviewGenerator.supportsContentType(testContentType)).thenReturn(true);
-		when(mockPreviewGenerator.calculateNeededMemoryBytesForPreview(testContentType, maxPreviewSize + 1)).thenReturn(maxPreviewSize + 1);
+		when(mockPreviewGenerator.getMemoryMultiplierForContentType(testContentType)).thenReturn(multiplerForContentType);
 		when(mockPreviewGenerator.generatePreview(mockInputStream, mockOutputStream)).thenReturn(previewContentType);
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		List<PreviewGenerator> genList = new LinkedList<PreviewGenerator>();
@@ -122,21 +122,12 @@ public class PreviewManagerImplTest {
 	@Test
 	public void testContentSizeTooLarge() throws Exception{
 		// set the file size to be one byte too large.
-		long size = maxPreviewSize + 1;
+		long size = ((long) ((maxPreviewSize+1)/multiplerForContentType));
 		testMetadata.setContentSize(size);
 		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
-		assertNull(pfm);
+		assertTrue(pfm == null);
 	}
-
-	@Test
-	public void testContentSizeNoTooLarge() throws Exception {
-		// set the file size to be one byte too large.
-		long size = maxPreviewSize;
-		testMetadata.setContentSize(size);
-		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
-		assertNotNull(pfm);
-	}
-
+	
 	@Test (expected=TemporarilyUnavailableException.class)
 	public void testTemporarilyUnavailable() throws Exception{
 		// Simulate a TemporarilyUnavailable exception.
