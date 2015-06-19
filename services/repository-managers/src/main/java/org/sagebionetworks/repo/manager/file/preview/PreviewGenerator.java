@@ -31,17 +31,19 @@ public interface PreviewGenerator {
 	
 	
 	/**
-	 * The amount of memory needed to generate a Preview based on the size of the input file.
+	 * The amount of memory needed (as a multiple of the original file size) to generate a Preview.
 	 * 
-	 * @param mimeType The mime type of the file to load.
-	 * @param contentSize The size of the file to preview.
-	 * @return If the memory needs are a function of the file size then return a multiple of the file size. For example,
-	 *         to generate a preview of a PNG image, the entire image might need be loaded into memory. Since the PNG
-	 *         image format is compressed on disk, a 1 MB image on disk could take upwards to 50 MB to load in memory.
+	 * @param contentType The content type of the file to load.
+	 * @return If the memory needs are not a function of the file size then return zero.  Otherwise 
+	 * return the multiple of the file size.  For example, to generate a preview of a PNG image, the entire
+	 * image might need be loaded into memory.  Since the PNG image format is compressed on disk,
+	 * a 1 MB image on disk could take upwards to 50 MB to load in memory.
 	 * 
-	 *         Note: Error on setting this too high rather than too low. If it is too low, the application could run out
-	 *         of memory and crash. If it is too high previews will not be generated for very large files.
+	 * Note: Error on setting this too high rather than too low.  If it is too low, the application 
+	 * could run out of memory and crash.  If it is too high previews will not be generated for very large
+	 * files. 
 	 */
-	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize);
+	public float getMemoryMultiplierForContentType(String contentType);
+
 
 }

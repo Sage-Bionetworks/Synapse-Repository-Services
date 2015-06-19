@@ -93,9 +93,8 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize) {
-		double multiplier = SUPPORTED_CONTENT_TYPES.get(mimeType);
-		long memoryNeededBytes = (long) Math.ceil((((double) contentSize) * multiplier));
-		return memoryNeededBytes;
+	public float getMemoryMultiplierForContentType(String contentType) {
+		return SUPPORTED_CONTENT_TYPES.get(contentType);
 	}
+
 }
