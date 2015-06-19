@@ -10,7 +10,9 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressingRunner;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -21,35 +23,28 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  * @author John
  *
  */
-public class MergeWorker {
+public class MergeWorker implements ProgressingRunner<Void>{
 		
 	static private Log log = LogFactory.getLog(MergeWorker.class);
+	@Autowired
 	private AccessRecordDAO accessRecordDAO;
-	private ProgressCallback<Void> callback;
 
-	/**
-	 * All dependencies are provide at construction time.
-	 * @param accessRecordDAO
-	 * @param minFileSize
-	 */
-	public MergeWorker(AccessRecordDAO accessRecordDAO, ProgressCallback<Void> callback) {
-		super();
-		this.accessRecordDAO = accessRecordDAO;
-		this.callback = callback;
-	}
 
 	/**
 	 * Merge one batch of files.
+	 * @param progressCallback 
 	 * 
 	 * @return True if there are more files to be merged, else False.
 	 */
-	public boolean mergeOneBatch() {
+	public boolean mergeOneBatch(ProgressCallback<Void> progressCallback) {
 		try {
 			// Walk all files for this stack looking for files that are under the minimum
 			String marker = null;
 			BatchData batchData = null;
 			do{
 				ObjectListing listing = accessRecordDAO.listBatchKeys(marker);
+				// progress made
+				progressCallback.progressMade(null);
 				marker = listing.getNextMarker();
 				if(listing.getObjectSummaries() != null){
 					List<String> rollingKeys = new ArrayList<String>();
@@ -63,6 +58,8 @@ public class MergeWorker {
 					// matches the current date and hour
 					String currentDateHour = KeyGeneratorUtil.getDateAndHourFromTimeMS(System.currentTimeMillis());
 					for(String key: rollingKeys){
+						// progress made
+						progressCallback.progressMade(null);
 						// Bucket by date/hour
 						String fileDateHour = KeyGeneratorUtil.getDateAndHourFromKey(key);
 						// skip files that are in the current date an hour
@@ -78,7 +75,7 @@ public class MergeWorker {
 							if (!batchData.batchDateString.equals(fileDateHour)) {
 								// This method will save the current batch and
 								// delete all of the original files.
-								if (mergeBatch(batchData)) {
+								if (mergeBatch(progressCallback, batchData)) {
 									// The batch was merged to completion and we
 									// are done for this round
 									return true;
@@ -104,7 +101,7 @@ public class MergeWorker {
 			}while(marker != null);
 			// If there is any batch data left then complete it.
 			if(batchData != null){
-				mergeBatch(batchData);
+				mergeBatch(progressCallback, batchData);
 			}
 			// If we made it this far then there is no more data.
 			return false;
@@ -117,10 +114,11 @@ public class MergeWorker {
 	
 	/**
 	 * This will save the new batch file and delete all of the sub files that were merged.
+	 * @param progressCallback 
 	 * @param data
 	 * @return True if the batch was merged.  False if there was nothing to merge or the batch was empty.
 	 */
-	private boolean mergeBatch(BatchData data) {
+	private boolean mergeBatch(ProgressCallback<Void> progressCallback, BatchData data) {
 		if(data != null){
 			if(data.mergedKeys.size() > 0){
 				try {
@@ -131,9 +129,7 @@ public class MergeWorker {
 						try {
 							subBatch = accessRecordDAO.getBatch(key);
 							mergedBatches.addAll(subBatch);
-							if (this.callback != null) {
-								this.callback.progressMade(null);
-							}
+							progressCallback.progressMade(null);
 						} catch (Exception e) {
 							// We need to continue even if one file is bad.
 							log.error("Failed to read: "+key, e);
@@ -155,9 +151,7 @@ public class MergeWorker {
 					log.info("Merged: "+data.mergedKeys.size()+" files into new file: "+newfileKey+" in "+elapse+" ms rate of: "+msPerfile+" ms/file");
 					
 					// Extend semaphore timeout after writing collated log file
-					if (this.callback != null) {
-						this.callback.progressMade(null);
-					}
+					progressCallback.progressMade(null);
 					
 					// We merged this batch successfully
 					return true;
@@ -184,6 +178,12 @@ public class MergeWorker {
 			this.batchDateString = batchDateString;
 			this.startMs = System.currentTimeMillis();
 		}
+	}
+
+	@Override
+	public void run(ProgressCallback<Void> progressCallback)
+			throws Exception {
+		mergeOneBatch(progressCallback);
 	}
 
 }

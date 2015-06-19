@@ -12,7 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -46,7 +47,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AnnotationsWorkerIntegrationTest {
+public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 
 	public static final long MAX_WAIT = 30*1000; // 30 seconds	
 	
@@ -66,10 +67,10 @@ public class AnnotationsWorkerIntegrationTest {
 	private NodeDAO nodeDAO;
 	
 	@Autowired
-	private MessageReceiver annotationsQueueMessageReceiver;
+	private SemaphoreManager semphoreManager;
 	
 	@Autowired
-	private SemaphoreManager semphoreManager;
+	private QueueCleaner queueCleaner;
 	
 	private String nodeId;
     private String submissionId;
@@ -85,8 +86,7 @@ public class AnnotationsWorkerIntegrationTest {
 	    userInfo = new UserInfo(true);
 	    userInfo.setId(userId);
 		semphoreManager.releaseAllLocksAsAdmin(userInfo);
-		// Before we start, make sure the queue is empty
-		annotationsQueueMessageReceiver.emptyQueue();
+		queueCleaner.purgeQueue(StackConfiguration.singleton().getAnnotationsUpdateQueueName());
 		
 		// create a node
   		Node node = new Node();
