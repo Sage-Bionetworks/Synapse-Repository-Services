@@ -23,8 +23,13 @@ import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +77,16 @@ public class AuthenticationFilter implements Filter {
 		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
 		//      http://www.ietf.org/rfc/rfc2617.txt
 		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
-		resp.getWriter().println("{\"reason\": \""+reason+"\"}");
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(reason);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		try {
+			er.writeToJSONObject(joa);
+			resp.getWriter().println(joa.toJSONString());
+		} catch (JSONObjectAdapterException e) {
+			// give up here, use old method, so we at least send something back
+			resp.getWriter().println("{\"reason\": \"" + reason + "\"}");
+		}
 	}
 
 	@Override

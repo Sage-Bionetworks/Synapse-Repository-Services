@@ -45,17 +45,15 @@ public class SynapseEmailServiceImplTest {
 	
 	@After
 	public void after() throws Exception {
-		if (s3KeyToDelete!=null && S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client)) {
-			S3TestUtils.deleteFile(BUCKET, s3KeyToDelete, s3Client);
-		}
-		s3KeyToDelete = null;
+		S3TestUtils.doDeleteAfter(s3Client);
 	}
 
 	@Test
 	public void testWriteToFile() throws Exception {
 		String to = UUID.randomUUID().toString()+"@foo.bar";
 		s3KeyToDelete = to+".json";
-		assertFalse(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client));
+		assertFalse(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client, 2000L));
+		S3TestUtils.addObjectToDelete(BUCKET, s3KeyToDelete);
 		SendEmailRequest emailRequest = new SendEmailRequest();
 		Destination destination = new Destination();
 		destination.setToAddresses(Collections.singletonList(to));
@@ -69,7 +67,7 @@ public class SynapseEmailServiceImplTest {
 		emailRequest.setMessage(message);
 		emailRequest.setSource("me@foo.bar");
 		sesClient.sendEmail(emailRequest);
-		assertTrue(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client));
+		assertTrue(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client, 60000L));
 	}
 
 }

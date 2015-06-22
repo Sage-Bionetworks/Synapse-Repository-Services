@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This trigger is used to process messages from the search queue. -->
-	<bean id="aclQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="evaluationSubmissionAnnotationsWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -27,18 +27,20 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.acl.worker.AclSnapshotWorker" />
+									<bean
+										class="org.sagebionetworks.annotations.worker.EvaluationSubmissionAnnotationsWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="aclSnapshotWorker" />
+								<property name="semaphoreLockKey"
+									value="evaluationSubmissionAnnotationsIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="60" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" />
+									ref="stackConfiguration.annotationsUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref
-											bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
+											bean="stackConfiguration.repositoryChangeTopic[EVALUATION_SUBMISSIONS]" />
 									</list>
 								</property>
 								<property name="gate">
@@ -53,8 +55,8 @@
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="37" />
-		<property name="repeatInterval" value="1987" />
+		<property name="startDelay" value="256" />
+		<property name="repeatInterval" value="937" />
 	</bean>
 
 

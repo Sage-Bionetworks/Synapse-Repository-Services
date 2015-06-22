@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -35,6 +36,8 @@ public class AclSnapshotWorkerTest {
 	private ResourceAccessRecordDAO mockResourceAccessRecordDao;
 	private DBOChangeDAO mockChangeDao;
 	private AccessControlListDAO mockAccessControlListDao;
+	private ProgressCallback<Message> mockProgressCallback;
+	AclSnapshotWorker worker;
 
 	@Before
 	public void setUp() {
@@ -42,6 +45,8 @@ public class AclSnapshotWorkerTest {
 		mockResourceAccessRecordDao = Mockito.mock(ResourceAccessRecordDAO.class);
 		mockChangeDao = Mockito.mock(DBOChangeDAO.class);
 		mockAccessControlListDao = Mockito.mock(AccessControlListDAO.class);
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		worker = new AclSnapshotWorker(mockAclRecordDao, mockResourceAccessRecordDao, mockChangeDao, mockAccessControlListDao);
 	}
 
 	@Test
@@ -49,13 +54,9 @@ public class AclSnapshotWorkerTest {
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
 		List<Message> messages = Arrays.asList(one, two);
-		// Create the worker
-		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
 		// Make the call
-		List<Message> results = worker.call();
-		// It should just return the results unchanged
-		assertNotNull(results);
-		assertEquals(messages, results);
+		worker.run(mockProgressCallback, one);
+		worker.run(mockProgressCallback, two);
 		// Confirm that no DAO has been called
 		verify(mockAccessControlListDao, never()).get(Matchers.anyLong());
 		verify(mockAccessControlListDao, never()).getOwnerType(Matchers.anyLong());
@@ -77,12 +78,8 @@ public class AclSnapshotWorkerTest {
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
 
 		List<Message> messages = Arrays.asList(one);
-		// Create the worker
-		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
 		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		worker.run(mockProgressCallback, one);
 		// confirm that the DAOs have been called
 		verify(mockAccessControlListDao, Mockito.times(1)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
@@ -118,7 +115,6 @@ public class AclSnapshotWorkerTest {
 		aclRecord.setTimestamp(timestamp);
 
 		// Create the worker
-		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
 		assertEquals(aclRecord, worker.buildAclRecord(MessageUtils.extractMessageBody(one), acl));
 	}
 
@@ -150,9 +146,6 @@ public class AclSnapshotWorkerTest {
 		aclRecord.setOwnerType(ObjectType.ENTITY);
 		aclRecord.setTimestamp(timestamp);
 
-		// Create the worker
-		AclSnapshotWorker worker = createNewAclSnapshotWorker(Arrays.asList(one));
-
 		Set<ResourceAccessRecord> expected = AclSnapshotWorkerTestUtils.createSetOfResourceAccessRecord(resourceAccess);
 		Set<ResourceAccessRecord> actual = new HashSet<ResourceAccessRecord>(
 				worker.buildResourceAccessRecordList(MessageUtils.extractMessageBody(one), acl));
@@ -176,13 +169,8 @@ public class AclSnapshotWorkerTest {
 		Mockito.when(mockAccessControlListDao.get(123L)).thenReturn(acl);
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
 		
-		List<Message> messages = Arrays.asList(one);
-		// Create the worker
-		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
 		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		worker.run(mockProgressCallback, one);
 		// confirm that the DAOs have been called
 		verify(mockAccessControlListDao, Mockito.times(1)).get(id);
 		verify(mockAccessControlListDao, Mockito.times(1)).getOwnerType(Matchers.anyLong());
@@ -204,35 +192,13 @@ public class AclSnapshotWorkerTest {
 		Mockito.when(mockAccessControlListDao.getOwnerType(123L)).thenReturn(ObjectType.ENTITY);
 		
 		List<Message> messages = Arrays.asList(one);
-		// Create the worker
-		AclSnapshotWorker worker = createNewAclSnapshotWorker(messages);
 		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		worker.run(mockProgressCallback, one);
 		// confirm that the DAOs have been called
 		verify(mockAccessControlListDao, Mockito.never()).get(id);
 		verify(mockAccessControlListDao, Mockito.never()).getOwnerType(Matchers.anyLong());
 		verify(mockAclRecordDao, Mockito.times(1)).saveBatch(Matchers.anyList());
 		verify(mockResourceAccessRecordDao, never()).saveBatch(Matchers.anyList());
-	}
-
-	/**
-	 * Helper to create a new worker for a list of messages.
-	 * @param messages
-	 * @return
-	 */
-	private AclSnapshotWorker createNewAclSnapshotWorker(List<Message> messages) {
-		AclSnapshotWorker worker = new AclSnapshotWorker(mockAclRecordDao, mockResourceAccessRecordDao, mockChangeDao, mockAccessControlListDao);
-		worker.setWorkerProgress(new WorkerProgress() {
-			@Override
-			public void progressMadeForMessage(Message message) {}
-			
-			@Override
-			public void retryMessage(Message message, int retryTimeoutInSeconds) {}
-		});
-		worker.setMessages(messages);
-		return worker;
 	}
 
 }

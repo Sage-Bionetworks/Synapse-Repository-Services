@@ -81,20 +81,14 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		 	servletTestHelper.deleteFile(adminUserId, mtu.getFileHandleId());
 		 }
 		 
-		 if (userEmail!=null) {
-			 try {
-				 S3TestUtils.deleteFile(StackConfiguration.getS3Bucket(), userEmail+".json", s3Client);
-			 } catch (Exception e) {
-				 // file didn't actually exist
-			 }
-			 userEmail=null;
-		 }
+		S3TestUtils.doDeleteAfter(s3Client);
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
 		String key = userEmail+".json"; // this is the target for 'sent' email messages to the invitee
-		assertFalse(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client));
+		assertFalse(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, 2000L));
+		S3TestUtils.addObjectToDelete(StackConfiguration.getS3Bucket(), key);
 		
 		// create an invitation
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
@@ -114,6 +108,6 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));
 		
-		assertTrue(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client));
+		assertTrue(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, 60000L));
 	}
 }

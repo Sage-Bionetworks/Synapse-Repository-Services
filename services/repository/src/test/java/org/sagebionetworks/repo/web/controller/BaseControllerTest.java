@@ -83,7 +83,7 @@ public class BaseControllerTest {
 			Class<? extends Throwable>[] exceptionsThrown = handler.getAnnotation(ExceptionHandler.class).value();
 			int statusCode = handler.getAnnotation(ResponseStatus.class).value().value();
 			for (Class<? extends Throwable> exceptionThrown : exceptionsThrown) {
-				assertNull("duplicate exception handler?", exceptions.put(exceptionThrown.getName(), statusCode));
+				assertNull("duplicate exception handler? " + exceptionThrown.getName(), exceptions.put(exceptionThrown.getName(), statusCode));
 			}
 		}
 

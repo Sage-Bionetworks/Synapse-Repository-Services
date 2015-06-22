@@ -3,15 +3,12 @@ package org.sagebionetworks.acl.worker;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.Worker;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -25,6 +22,8 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -32,11 +31,9 @@ import com.amazonaws.services.sqs.model.Message;
 /**
  * This worker writes ACL change messages to a file, and put the file to S3 
  */
-public class AclSnapshotWorker implements Worker{
+public class AclSnapshotWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(AclSnapshotWorker.class);
-	private List<Message> messages;
-	private WorkerProgress workerProgress;
 	@Autowired
 	private AclRecordDAO aclRecordDao;
 	@Autowired
@@ -57,38 +54,23 @@ public class AclSnapshotWorker implements Worker{
 		this.changeDao = changeDao;
 		this.accessControlListDao = accessControlListDao;
 	}
-	
-	@Override
-	public List<Message> call() throws Exception {
-		List<Message> toDelete = new LinkedList<Message>();
-		
-		for(Message message: messages){
-			try{
-				Message returned = process(message);
-				if(returned != null){
-					toDelete.add(returned);
-				}
-			} catch(Throwable e) {
-				log.error("Worker Failed", e);
-			}
-		}
-		return toDelete;
-	}
 
-	private Message process(Message message) throws IOException {
+
+	@Override
+	public void run(ProgressCallback<Message> progressCallback, Message message) throws IOException{
 		// Keep this message invisible
-		workerProgress.progressMadeForMessage(message);
+		progressCallback.progressMade(message);
 
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		if (changeMessage.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {
 			// do nothing when receive a non-acl message
-			return message;
+			return;
 		}
 
 		if (changeMessage.getChangeType() == ChangeType.DELETE) {
 			AclRecord aclRecord = buildAclRecord(changeMessage);
 			aclRecordDao.saveBatch(Arrays.asList(aclRecord));
-			return message;
+			return;
 		}
 
 		AccessControlList acl = null;
@@ -96,11 +78,11 @@ public class AclSnapshotWorker implements Worker{
 			acl = accessControlListDao.get(Long.parseLong(changeMessage.getObjectId()));
 			if (!acl.getEtag().equals(changeMessage.getObjectEtag())) {
 				log.info("Ignoring old message.");
-				return message;
+				return;
 			}
 		} catch (NotFoundException e) {
 			log.error("Cannot find acl for a " + changeMessage.getChangeType() + " message: " + changeMessage.toString(), e) ;
-			return message;
+			return;
 		}
 
 		try {
@@ -110,10 +92,10 @@ public class AclSnapshotWorker implements Worker{
 			if (!resourceAccessRecords.isEmpty()) {
 				resourceAccessRecordDao.saveBatch(resourceAccessRecords);
 			}
-			return message;
+			return;
 		} catch (NotFoundException e) {
 			log.info("Could not find ownerType for an acl record.");
-			return message;
+			return;
 		}
 	}
 
@@ -154,16 +136,6 @@ public class AclSnapshotWorker implements Worker{
 		record.setCreationDate(acl.getCreationDate());
 		record.setOwnerType(accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
 		return record;
-	}
-
-	@Override
-	public void setMessages(List<Message> messages) {
-		this.messages = messages;
-	}
-
-	@Override
-	public void setWorkerProgress(WorkerProgress workerProgress) {
-		this.workerProgress = workerProgress;
 	}
 	
 }

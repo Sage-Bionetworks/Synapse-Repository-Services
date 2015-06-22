@@ -33,6 +33,9 @@
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
 								<property name="queueName" ref="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]"/>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
+								</property>
 							</bean>
 						</constructor-arg>
 					</bean>

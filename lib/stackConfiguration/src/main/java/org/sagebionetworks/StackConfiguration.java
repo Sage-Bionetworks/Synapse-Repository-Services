@@ -888,6 +888,28 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * Get the full topic name for a given object type.
+	 * @param objectType
+	 * @return
+	 */
+	public String getRepositoryChangeTopic(String objectType){
+		return getRepositoryChangeTopicPrefix()+objectType;
+	}
+	
+	/**
+	 * Create the map used by spring to lookup full strings with keys.
+	 * @return
+	 */
+	public Map<String, String> getRepositoryChangeTopic() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getRepositoryChangeTopic(key.toString());
+			}
+		};
+	}
 
 	/**
 	 * The name of the AWS topic where repository changes messages are published.
