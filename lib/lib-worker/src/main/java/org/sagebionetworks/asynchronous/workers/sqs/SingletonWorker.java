@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public abstract class SingletonWorker {
+abstract class SingletonWorker {
 
 	private static final Logger log = LogManager.getLogger(SingletonWorker.class);
 
