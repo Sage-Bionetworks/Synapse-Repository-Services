@@ -30,6 +30,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 /**
  * The preview manager tracks memory allocation and bridges preview generators with
  * Actual file data.
@@ -167,7 +168,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 */
 	private PreviewFileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
 		File tempUpload = null;
-		InputStream in = null;
+		S3ObjectInputStream in = null;
 		OutputStream out = null;
 		try{
 			// The upload file will hold the newly created preview file.
@@ -198,8 +199,11 @@ public class PreviewManagerImpl implements  PreviewManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}finally{
+			// apparently, aborting (which also closes the stream) is an optimization for closing large streams that
+			// aren't fully read (see docs on the S3ObjectInputStream)
+			in.abort();
 			// unconditionally close the streams if they exist
-			Closer.closeQuietly(in, out);
+			Closer.closeQuietly(out);
 			// unconditionally delete the temp files if they exist
 			if(tempUpload != null){
 				tempUpload.delete();
