@@ -44,12 +44,12 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public float getMemoryMultiplierForContentType(String contentType) {
+	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize) {
 		//looking at the zipentries does not seem to depend on file size, so conservatively setting to 1
 		//Here's the output of a 1.6GB archive:
 		//Xcode.app.zip data:
 		//File size: 1664.05 MB, Peak memory usage: 261.07 MB, Start free: 1072.94 MB, Peak free: 811.87 MB, End free: 1077.34 MB, Memory used: 0.16 x fileSize
-		return 1;
+		return contentSize;
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException, InstantiationException, IllegalAccessException{
