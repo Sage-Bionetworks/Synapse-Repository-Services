@@ -2,11 +2,13 @@ package org.sagebionetworks.object.snapshot.worker;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -36,24 +38,22 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
-	private DBOChangeDAO changeDao;
-	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 	@Autowired
-	TeamDAO teamDAO;
-
-	public ObjectSnapshotWorker() {
-	}
+	private TeamDAO teamDAO;
+	@Autowired
+	private GroupMembersDAO groupMemberDAO;
 
 	// for unit test only
-	ObjectSnapshotWorker(ObjectRecordDAO objectRecordDao, DBOChangeDAO changeDao, 
-			UserProfileDAO userProfileDAO, TeamDAO teamDAO) {
+	ObjectSnapshotWorker(ObjectRecordDAO objectRecordDao, UserGroupDAO userGroupDAO,
+			UserProfileDAO userProfileDAO, TeamDAO teamDAO, GroupMembersDAO groupMemberDAO) {
 		this.objectRecordDAO = objectRecordDao;
-		this.changeDao = changeDao;
 		this.userProfileDAO = userProfileDAO;
 		this.teamDAO = teamDAO;
+		this.userGroupDAO = userGroupDAO;
+		this.groupMemberDAO = groupMemberDAO;
 	}
 
 
@@ -92,8 +92,11 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 			Team team = teamDAO.get(changeMessage.getObjectId());
 			// what to do in case of exception?
 			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(team, changeMessage)));
-			TeamMember member = teamDAO.getMember(team.getId(), changeMessage.getObjectId());
-			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(member, changeMessage)));
+			List<UserGroup> members = groupMemberDAO.getMembers(changeMessage.getObjectId());
+			for (UserGroup member : members) {
+				TeamMember teamMember = teamDAO.getMember(team.getId(), member.getId());
+				objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(teamMember, changeMessage)));
+			}
 		}
 	}
 

@@ -304,8 +304,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	public void touch(Long principalId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
+		String etag = UUID.randomUUID().toString();
+		param.addValue(ETAG_PARAM_NAME, etag);
 		simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
+		// Send a UPDATE message
+		transactionalMessenger.sendMessageAfterCommit(principalId.toString(), ObjectType.PRINCIPAL, etag, ChangeType.UPDATE);
+
 	}
 
 }
