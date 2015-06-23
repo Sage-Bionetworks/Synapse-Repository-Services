@@ -270,7 +270,7 @@ public class EntityQueryManagerImplAutowireTest {
 	
 	@Test
 	public void testQueryFromEntityNotProjects() {
-		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.type, Operator.EQUALS, "Project");
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.type, Operator.NOT_EQUALS, "Project");
 		// add this condition
 		query.getConditions().clear();
 		query.getConditions().add(parentIdCondition);
