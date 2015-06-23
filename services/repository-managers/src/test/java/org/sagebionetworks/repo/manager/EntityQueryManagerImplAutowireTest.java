@@ -270,7 +270,23 @@ public class EntityQueryManagerImplAutowireTest {
 	
 	@Test
 	public void testQueryFromEntityNotProjects() {
-		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.type, Operator.NOT_EQUALS, "Project");
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.nodeType, Operator.NOT_EQUALS, "folder");
+		// add this condition
+		query.getConditions().clear();
+		query.getConditions().add(parentIdCondition);
+		query.getConditions().add(condition);
+		System.out.println(query.toString());
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(1, results.getEntities().size());
+		// there should be only 1.
+		assertTrue(results.getTotalEntityCount() == 1);
+	}
+	
+	@Test
+	public void testQueryFromEntityNotProjectsTables() {
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.nodeType, Operator.IN, new String[]{"table","folder"});
 		// add this condition
 		query.getConditions().clear();
 		query.getConditions().add(parentIdCondition);
@@ -280,7 +296,7 @@ public class EntityQueryManagerImplAutowireTest {
 		assertNotNull(results);
 		assertNotNull(results.getEntities());
 		assertEquals(2, results.getEntities().size());
-		// there should be only two.
+		// there should be zero.
 		assertTrue(results.getTotalEntityCount() == 2);
 	}
 }

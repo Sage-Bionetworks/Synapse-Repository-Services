@@ -45,7 +45,6 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 		for(EntityFieldName name: EntityFieldName.values()){
 			selectTemp.add(name.name());
 		}
-		//selectTemp.add(NODE_TYPE);
 		selectColumns = ImmutableList.copyOf(selectTemp);
 	}
 	
@@ -224,10 +223,7 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 		translated.setBenefactorId((Long) map.get(EntityFieldName.benefactorId.name()));
 		translated.setProjectId((Long) map.get(EntityFieldName.projectId.name()));
 		translated.setActivityId((String) map.get(EntityFieldName.activityId.name()));
-		translated.setEntityType((String) map.get(EntityFieldName.type.name()));
-		// type is special as it is an index in the database but a string to the user.
-//		EntityType type = EntityType.valueOf((((String)map.get(NODE_TYPE))));
-//		translated.setEntityType(type.name());
+		translated.setEntityType((String) map.get(EntityFieldName.nodeType.name()));
 		return translated;
 	}
 
