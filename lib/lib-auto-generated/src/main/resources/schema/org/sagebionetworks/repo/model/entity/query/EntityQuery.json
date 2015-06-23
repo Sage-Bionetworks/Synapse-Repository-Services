@@ -12,7 +12,8 @@
 				"folder",
 				"file",
 				"table",
-				"link"
+				"link",
+				"entity"
 			]
 		},
 		"conditions": {

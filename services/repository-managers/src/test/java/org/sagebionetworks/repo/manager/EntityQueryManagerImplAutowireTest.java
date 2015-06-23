@@ -267,4 +267,20 @@ public class EntityQueryManagerImplAutowireTest {
 		// there should be only two.
 		assertTrue(results.getTotalEntityCount() == 3);
 	}
+	
+	@Test
+	public void testQueryFromEntityNotProjects() {
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.type, Operator.EQUALS, "Project");
+		// add this condition
+		query.getConditions().clear();
+		query.getConditions().add(parentIdCondition);
+		query.getConditions().add(condition);
+		System.out.println(query.toString());
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(2, results.getEntities().size());
+		// there should be only two.
+		assertTrue(results.getTotalEntityCount() == 2);
+	}
 }
