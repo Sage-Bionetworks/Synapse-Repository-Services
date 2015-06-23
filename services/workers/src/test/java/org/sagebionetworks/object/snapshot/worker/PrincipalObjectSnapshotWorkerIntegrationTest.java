@@ -3,7 +3,6 @@ package org.sagebionetworks.object.snapshot.worker;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -59,46 +57,25 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 	public void tearDown() throws Exception {
 		
 	}
-	
-	@Test
-	public void createTeamTest() {
-		Set<String> keys = objectRecordDAO.listAllKeys();
-		teamDAO.create(team);
-	}
-	
-	@Test
-	public void deleteTeamTest() {
-		
-	}
 
 	@Test
-	public void updateTeamTest() {
+	public void teamTest() {
+		// create a team
 		
+		// add a member
+		
+		// add another member
+		
+		// remove a member
+		
+		// remove a team
 	}
 	
 	@Test
-	public void createUserGroupTest() {
+	public void userProfileTest() {
+		// create a user profile
 		
-	}
-	
-	@Test
-	public void updateUserGroupTest() {
-		
-	}
-	
-	@Test
-	public void updateUserProfileTest() {
-		
-	}
-	
-	@Test
-	public void removeTeamMemberTest() {
-		
-	}
-	
-	@Test
-	public void addTeamMemberTest() {
-		
+		// update the user profile
 	}
 	
 	/**
