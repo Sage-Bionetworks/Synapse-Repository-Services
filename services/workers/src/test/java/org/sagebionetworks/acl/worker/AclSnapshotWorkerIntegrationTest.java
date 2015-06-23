@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -44,8 +43,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class AclSnapshotWorkerIntegrationTest {
 
-	@Autowired
-	private IdGenerator idGenerator;
 	@Autowired
 	StackConfiguration config;
 	@Autowired
@@ -77,7 +74,6 @@ public class AclSnapshotWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws Exception {
-		assertNotNull(idGenerator);
 		assertNotNull(config);
 		assertNotNull(aclRecordDao);
 		assertNotNull(resourceAccessRecordDao);
