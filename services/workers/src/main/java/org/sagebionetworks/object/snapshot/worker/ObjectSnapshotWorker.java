@@ -17,8 +17,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -64,6 +64,11 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		
+		if (changeMessage.getChangeType() == ChangeType.DELETE) {
+			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(changeMessage, changeMessage)));
+			return;
+		}
+		
 		switch (changeMessage.getObjectType()) {
 			case PRINCIPAL: 
 				processPrincipalRecords(changeMessage);
@@ -99,8 +104,8 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 			}
 		}
 	}
-
-	private ObjectRecord buildObjectRecord(JSONEntity entity, ChangeMessage changeMessage) {
+	
+	public static ObjectRecord buildObjectRecord(JSONEntity entity, ChangeMessage changeMessage) {
 		ObjectRecord record = new ObjectRecord();
 		record.setChangeNumber(changeMessage.getChangeNumber());
 		record.setTimestamp(changeMessage.getTimestamp().getTime());

@@ -44,6 +44,8 @@ public class PrincipalObjectSnapshotWorkerTest {
 	private Long timestamp = System.currentTimeMillis();
 	
 	UserGroup ug;
+	UserGroup ug2;
+	UserGroup ug1;
 	Team team;
 	UserProfile up;
 	TeamMember teamMember1;
@@ -72,6 +74,18 @@ public class PrincipalObjectSnapshotWorkerTest {
 		team.setId(teamId);
 		team.setModifiedBy("444");
 		team.setModifiedOn(modifiedOn);
+		
+		ug2 = new UserGroup();
+		ug2.setCreationDate(createdOn);
+		ug2.setEtag(etag);
+		ug2.setId("2");
+		ug2.setIsIndividual(true);
+		
+		ug1 = new UserGroup();
+		ug1.setCreationDate(createdOn);
+		ug1.setEtag(etag);
+		ug1.setId("1");
+		ug1.setIsIndividual(true);
 		
 		up = new UserProfile();
 		up.setCompany("Sage");
@@ -132,14 +146,43 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
-	public void deleteTeamTest() {
-		
+	public void deleteTeamTest() throws IOException {
+		ug.setIsIndividual(false);
+		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
+		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
+		Mockito.when(mockGroupMemberDAO.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
+		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
+		worker.run(mockProgressCallback, message);
+		Mockito.verify(mockProgressCallback).progressMade(message);
+		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
+		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
+		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
+		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
+		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
+		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
-	public void updateTeamTest() {
-		
+	public void updateTeamTest() throws IOException {
+		ug.setIsIndividual(false);
+		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
+		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
+		Mockito.when(mockGroupMemberDAO.getMembers(principalID.toString())).thenReturn(Arrays.asList(ug2, ug1));
+		Mockito.when(mockTeamDAO.getMember(teamId, "1")).thenReturn(teamMember1);
+		Mockito.when(mockTeamDAO.getMember(teamId, "2")).thenReturn(teamMember2);
+		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
+		worker.run(mockProgressCallback, message);
+		Mockito.verify(mockProgressCallback).progressMade(message);
+		Mockito.verify(mockObjectRecordDAO, Mockito.times(3)).saveBatch(Mockito.anyList());
+		Mockito.verify(mockUserGroupDAO).get(principalID);
+		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
+		Mockito.verify(mockGroupMemberDAO).getMembers(principalID.toString());
+		Mockito.verify(mockTeamDAO).get(principalID.toString());
+		Mockito.verify(mockTeamDAO).getMember(teamId, "1");
+		Mockito.verify(mockTeamDAO).getMember(teamId, "2");
 	}
 	
 	@Test
@@ -156,15 +199,4 @@ public class PrincipalObjectSnapshotWorkerTest {
 	public void updateUserProfileTest() {
 		
 	}
-	
-	@Test
-	public void removeTeamMemberTest() {
-		
-	}
-	
-	@Test
-	public void addTeamMemberTest() {
-		
-	}
-
 }
