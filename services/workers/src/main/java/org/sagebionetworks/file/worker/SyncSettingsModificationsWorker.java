@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.HasQueueUrl;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.MessageQueue;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -42,10 +43,10 @@ public class SyncSettingsModificationsWorker implements MessageDrivenRunner {
 	@Autowired
 	AmazonSQSClient awsSQSClient;
 
-	private MessageQueue messageQueue;
+	private HasQueueUrl messageQueue;
 
 	@Required
-	public void setFolderSyncQueue(MessageQueue messageQueue) {
+	public void setFolderSyncQueue(HasQueueUrl messageQueue) {
 		this.messageQueue = messageQueue;
 	}
 
@@ -74,7 +75,7 @@ public class SyncSettingsModificationsWorker implements MessageDrivenRunner {
 								syncFolderMessage.setEntityId(modificationMessage.getObjectId());
 								String bodyJson = EntityFactory.createJSONStringForEntity(syncFolderMessage);
 								// publish the message
-								awsSQSClient.sendMessage(new SendMessageRequest(messageQueue.getQueueName(), bodyJson));
+								awsSQSClient.sendMessage(new SendMessageRequest(messageQueue.getQueueUrl(), bodyJson));
 							}
 						}
 					}
