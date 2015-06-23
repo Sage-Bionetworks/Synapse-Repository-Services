@@ -1,8 +1,11 @@
 package org.sagebionetworks.object.snapshot.worker;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -13,11 +16,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -31,51 +33,52 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
-	private TeamDAO teamDAO;
-	@Autowired
-	private AccessControlListDAO aclDAO;
-	@Autowired
 	private UserGroupDAO userGroupDAO;
-
-	private Team team;
 	
+	UserGroup ug;
+	List<String> toRemove = new ArrayList<String>();
+	
+
 	@Before
 	public void setup() throws Exception {
 		assertNotNull(objectRecordDAO);
-		assertNotNull(teamDAO);
-		assertNotNull(aclDAO);
 		assertNotNull(userGroupDAO);
 		
-		team = new Team();
-		team.setId("345");
-		team.setEtag("etag");
-		team.setCreatedBy("678");
-		team.setCreatedOn(new Date());
+		ug = new UserGroup();
+		ug = new UserGroup();
+		ug.setCreationDate(new Date());
+		ug.setEtag("etag");
+		ug.setId("635421");
+		ug.setIsIndividual(true);
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		
-	}
-
-	@Test
-	public void teamTest() {
-		// create a team
-		
-		// add a member
-		
-		// add another member
-		
-		// remove a member
-		
-		// remove a team
+		for (String id : toRemove) {
+			userGroupDAO.delete(id);
+		}
 	}
 	
 	@Test
-	public void userProfileTest() {
-		// create a user profile
+	public void userGroupTest() throws Exception {
+		Set<String> keys = objectRecordDAO.listAllKeys();
 		
-		// update the user profile
+		// create a userGroup
+		Long principalId = userGroupDAO.create(ug);
+		toRemove.add(principalId.toString());
+		UserGroup toLog = userGroupDAO.get(principalId);
+		ObjectRecord expectedRecord = new ObjectRecord();
+		expectedRecord.setObjectType(toLog.getClass().getSimpleName());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(toLog));
+		assertTrue(waitForObjects(keys, Arrays.asList(expectedRecord)));
+		
+		// update a userGroup
+		userGroupDAO.update(toLog);
+		toLog = userGroupDAO.get(principalId);
+		expectedRecord = new ObjectRecord();
+		expectedRecord.setObjectType(toLog.getClass().getSimpleName());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(toLog));
+		assertTrue(waitForObjects(keys, Arrays.asList(expectedRecord)));
 	}
 	
 	/**
@@ -101,17 +104,19 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 	}
 
 	private boolean findRecords(List<ObjectRecord> expectedRecords, Set<String> newKeys) throws IOException {
+		List<ObjectRecord> newRecords = new ArrayList<ObjectRecord>();
 		for (String key : newKeys) {
-			List<ObjectRecord> newRecords = objectRecordDAO.getBatch(key);
-			if (compareRecords(new HashSet<ObjectRecord>(newRecords), expectedRecords)) {
-				return true;
-			}
+			 newRecords.addAll(objectRecordDAO.getBatch(key));
 		}
-		return false;
+		return compareRecords(new HashSet<ObjectRecord>(newRecords), expectedRecords);
 	}
 
 	private boolean compareRecords(HashSet<ObjectRecord> actualRecords,
 			List<ObjectRecord> expectedRecords) {
+		for (ObjectRecord record: actualRecords) {
+			record.setChangeNumber(null);
+			record.setTimestamp(null);
+		}
 		for (ObjectRecord record : expectedRecords) {
 			if (!actualRecords.contains(record)) {
 				return false;
