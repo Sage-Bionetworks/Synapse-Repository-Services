@@ -6,8 +6,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,8 +14,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,56 +30,54 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class PrincipalObjectSnapshotWorkerIntegrationTest {
 
-	private static final int TIME_OUT = 60 * 1000;
+	private static final int TIME_OUT = 2 * 60 * 1000;
 
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private TeamDAO teamDAO;
+	@Autowired
+	private TeamManager teamManager;
+	@Autowired
+	private UserManager userManager;
 	
-	UserGroup ug;
-	List<String> toRemove = new ArrayList<String>();
+	UserInfo admin;
+	Team team;
+	Long teamId;
 	
 
 	@Before
-	public void setup() throws Exception {
+	public void before() throws Exception {
 		assertNotNull(objectRecordDAO);
-		assertNotNull(userGroupDAO);
-		
-		ug = new UserGroup();
-		ug = new UserGroup();
-		ug.setCreationDate(new Date());
-		ug.setEtag("etag");
-		ug.setId("635421");
-		ug.setIsIndividual(true);
+		assertNotNull(teamDAO);
+		assertNotNull(teamManager);
+		assertNotNull(userManager);
 	}
-
+	
 	@After
-	public void tearDown() throws Exception {
-		for (String id : toRemove) {
-			userGroupDAO.delete(id);
+	public void after(){
+		if(team != null){
+			try {
+				teamManager.delete(admin, team.getId());
+			} catch (Exception e) {}
 		}
 	}
 	
 	@Test
-	public void userGroupTest() throws Exception {
+	public void teamTest() throws Exception {
 		Set<String> keys = objectRecordDAO.listAllKeys();
 		
-		// create a userGroup
-		Long principalId = userGroupDAO.create(ug);
-		toRemove.add(principalId.toString());
-		UserGroup toLog = userGroupDAO.get(principalId);
-		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(toLog.getClass().getSimpleName());
-		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(toLog));
-		assertTrue(waitForObjects(keys, Arrays.asList(expectedRecord)));
+		// Create a user and a team.
+		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		team = new Team();
+		team.setName("team");
+		team = teamManager.create(admin, team);
+		teamId = Long.parseLong(team.getId());
 		
-		// update a userGroup
-		userGroupDAO.update(toLog);
-		toLog = userGroupDAO.get(principalId);
-		expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(toLog.getClass().getSimpleName());
-		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(toLog));
+		Team expectedTeam = teamManager.get(team.getId());
+		ObjectRecord expectedRecord = new ObjectRecord();
+		expectedRecord.setObjectType(expectedTeam.getClass().getSimpleName());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeam));
 		assertTrue(waitForObjects(keys, Arrays.asList(expectedRecord)));
 	}
 	
@@ -92,7 +92,6 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		while (System.currentTimeMillis() < start + TIME_OUT) {
 			Set<String> newKeys = objectRecordDAO.listAllKeys();
 			newKeys.removeAll(oldKeys);
-
 			if (newKeys.size() != 0) {
 				return findRecords(expectedRecords, newKeys);
 			}
@@ -108,11 +107,10 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		for (String key : newKeys) {
 			 newRecords.addAll(objectRecordDAO.getBatch(key));
 		}
-		return compareRecords(new HashSet<ObjectRecord>(newRecords), expectedRecords);
+		return compareRecords(newRecords, expectedRecords);
 	}
 
-	private boolean compareRecords(HashSet<ObjectRecord> actualRecords,
-			List<ObjectRecord> expectedRecords) {
+	private boolean compareRecords(List<ObjectRecord> actualRecords, List<ObjectRecord> expectedRecords) {
 		for (ObjectRecord record: actualRecords) {
 			record.setChangeNumber(null);
 			record.setTimestamp(null);

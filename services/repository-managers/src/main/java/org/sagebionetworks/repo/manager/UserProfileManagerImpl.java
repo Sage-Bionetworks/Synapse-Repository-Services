@@ -1,25 +1,39 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.FavoriteDAO;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 

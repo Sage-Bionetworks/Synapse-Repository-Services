@@ -45,6 +45,9 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 	private TeamDAO teamDAO;
 	@Autowired
 	private GroupMembersDAO groupMemberDAO;
+	
+	ObjectSnapshotWorker(){
+	}
 
 	// for unit test only
 	ObjectSnapshotWorker(ObjectRecordDAO objectRecordDao, UserGroupDAO userGroupDAO,
@@ -90,12 +93,10 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 		if(userGroup.getIsIndividual()){
 			// User
 			UserProfile profile = userProfileDAO.get(changeMessage.getObjectId());
-			// what to do in case of exception?
 			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(profile, changeMessage)));
 		}else{
 			// Team
 			Team team = teamDAO.get(changeMessage.getObjectId());
-			// what to do in case of exception?
 			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(team, changeMessage)));
 			List<UserGroup> members = groupMemberDAO.getMembers(changeMessage.getObjectId());
 			for (UserGroup member : members) {

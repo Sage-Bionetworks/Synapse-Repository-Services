@@ -25,7 +25,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	 */
 	private String objectRecordBucketName;
 	private ObjectCSVDAO<ObjectRecord> objectCsvDao;
-
+	
 	/**
 	 * Injected via Spring
 	 */
@@ -67,7 +67,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	}
 	@Override
 	public Set<String> listAllKeys() {
-		return objectCsvDao.listAllKeys();
+		return objectCsvDao.listAllKeysWithoutPrefix();
 	}
 	@Override
 	public void deleteBactch(String key) {

@@ -54,6 +54,7 @@
     <import resource="classpath:change-synch-worker-spb.xml" />
     <import resource="classpath:project-stats-sqs-spb.xml" />
     <import resource="classpath:acl-snapshot-sqs-spb.xml"/>
+    <import resource="classpath:object-snapshot-sqs-spb.xml"/>
     <import resource="classpath:principal-prefix-sqs-spb.xml"/>
 
 	<bean id="mainScheduler"
@@ -90,6 +91,7 @@
 				<ref bean="tableQueryNextPageQueueMessageReveiverTrigger" />
 				<ref bean="projectStatsQueueMessageReveiverTrigger" />
 				<ref bean="aclQueueMessageReveiverTrigger"/>
+				<ref bean="objectQueueMessageReveiverTrigger"/>
 				<ref bean="s3FileCopyMessageReveiverTrigger"/>
 				<ref bean="syncSettingsModificationsMessageReveiverTrigger"/>
 				<ref bean="folderSyncMessageReveiverTrigger"/>
