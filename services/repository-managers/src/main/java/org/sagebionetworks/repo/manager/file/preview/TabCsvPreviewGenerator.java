@@ -29,6 +29,8 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 	public static final int MAX_ROW_COUNT = 30;
 	public static final int MAX_COLUMN_COUNT = 20;
 	public static final int MAX_CELL_CHARACTER_COUNT = 40;
+	public static final long MAX_PREVIEW_CHARACTERS = MAX_ROW_COUNT * (MAX_COLUMN_COUNT * (MAX_CELL_CHARACTER_COUNT + 3) + 3);
+
 	public Character delimiter;
 	
 	public static Character getComma() {
@@ -167,10 +169,11 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 		return ch != NEWLINE && ch != CR && ch != delimiter;
 	}
 	
-	public float getMemoryMultiplierForContentType(String contentType) {
-		return 1;
+	@Override
+	public long calculateNeededMemoryBytesForPreview(String mimeType, long contentSize) {
+		return Math.min(contentSize, MAX_PREVIEW_CHARACTERS * 3);
 	}
-	
+
 	@Override
 	public boolean supportsContentType(String contentType) {
 		if (delimiter == COMMA)
