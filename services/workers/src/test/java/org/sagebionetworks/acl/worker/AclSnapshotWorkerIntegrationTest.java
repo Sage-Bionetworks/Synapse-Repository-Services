@@ -13,6 +13,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Resource;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -62,6 +65,12 @@ public class AclSnapshotWorkerIntegrationTest {
 	
 	@Autowired
 	private AmazonS3Client s3Client;
+	
+	@Autowired
+	QueueCleaner queueCleaner;
+	
+	@Resource (name="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]")
+	String queueName;
 
 	private Node node;
 	private UserGroup group;
@@ -73,10 +82,11 @@ public class AclSnapshotWorkerIntegrationTest {
 	private Long createdById;
 	private Long modifiedById;
 	
-	private static final int TIME_OUT = 60 * 1000;
+	private static final int TIME_OUT = 2 * 60 * 1000;
 	
 	@Before
 	public void before() throws Exception {
+		queueCleaner.purgeQueue(queueName);
 		assertNotNull(idGenerator);
 		assertNotNull(config);
 		assertNotNull(aclRecordDao);
