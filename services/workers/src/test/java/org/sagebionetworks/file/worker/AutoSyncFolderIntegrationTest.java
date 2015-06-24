@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.Resource;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.TimedAssert;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -51,7 +54,7 @@ import com.google.common.collect.Sets;
 public class AutoSyncFolderIntegrationTest {
 
 	private static final String DESTINATION_TEST_BUCKET = "dev.test.destination.bucket.sagebase.org";
-	public static final long MAX_WAIT = 30 * 1000; // 30 seconds
+	public static final long MAX_WAIT = 60 * 1000; // 30 seconds
 
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -73,6 +76,15 @@ public class AutoSyncFolderIntegrationTest {
 
 	@Autowired
 	private NodeDAO nodeDao;
+	
+	@Autowired
+	private QueueCleaner queueCleaner;
+	
+	@Resource (name="stackConfiguration.workerQueueName[SyncFolderWorker]")
+	private String sychFolderQueueName;
+	
+	@Resource (name="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]")
+	private String settingsQueueName;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
@@ -90,6 +102,9 @@ public class AutoSyncFolderIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		s3Client.createBucket(DESTINATION_TEST_BUCKET);
+		
+		queueCleaner.purgeQueue(sychFolderQueueName);
+		queueCleaner.purgeQueue(settingsQueueName);
 
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
