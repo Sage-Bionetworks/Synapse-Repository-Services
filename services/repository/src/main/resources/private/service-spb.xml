@@ -93,10 +93,6 @@
 	<!-- The Activity Service -->
 	<bean id="activityService"
 		class="org.sagebionetworks.repo.web.service.ActivityServiceImpl" />
-
-	<!-- The NodeLineageQuery Service -->
-	<bean id="nodeTreeQueryService"
-		class="org.sagebionetworks.repo.web.service.NodeTreeQueryServiceImpl" />
 		
 	<!-- The Evaluation Service -->
 	<bean id="evaluationService"

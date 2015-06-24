@@ -147,11 +147,6 @@ public interface AdministrationService {
 	void clearDoi(Long userId) throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
-	 * Clears the specified dynamo table.
-	 */
-	void clearDynamoTable(Long userId, String tableName, String hashKeyName, String rangeKeyName) throws NotFoundException, UnauthorizedException, DatastoreException;
-
-	/**
 	 * Creates a test user
 	 */
 	public EntityId createTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;

@@ -247,20 +247,6 @@ public class AdministrationController extends BaseController {
 	}
 
 	/**
-	 * Clears the specified dynamo table.
-	 */
-	@RequestMapping(value = {UrlHelpers.ADMIN_DYNAMO_CLEAR_TABLE}, method = RequestMethod.DELETE)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void clearDynamoTable(
-			@PathVariable String tableName,
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.DYNAMO_HASH_KEY_NAME_PARAM, required = true) String hashKeyName,
-			@RequestParam(value = ServiceConstants.DYNAMO_RANGE_KEY_NAME_PARAM, required = true) String rangeKeyName,
-			HttpServletRequest request) throws DatastoreException, NotFoundException {
-		serviceProvider.getAdministrationService().clearDynamoTable(userId, tableName, hashKeyName, rangeKeyName);
-	}
-
-	/**
 	 * Creates a user with specific state to be used for integration testing
 	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)

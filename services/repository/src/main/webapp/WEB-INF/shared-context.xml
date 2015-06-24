@@ -11,7 +11,6 @@
   <context:annotation-config />
   
   <import resource="classpath:jdomodels-import.xml" />
-  <import resource="classpath:dynamo-import.xml" />
   <import resource="classpath:search-import.xml" />
   <import resource="classpath:audit-dao.spb.xml" />
   <import resource="classpath:id-generator.spb.xml" />

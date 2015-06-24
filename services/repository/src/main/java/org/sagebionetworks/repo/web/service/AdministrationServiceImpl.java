@@ -13,13 +13,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
-import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
@@ -52,6 +50,7 @@ import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -59,8 +58,6 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 /**
@@ -92,9 +89,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	private DoiAdminManager doiAdminManager;
-	
-	@Autowired
-	private DynamoAdminManager dynamoAdminManager;
 	
 	@Autowired
 	SemaphoreManager semaphoreManager;
@@ -243,13 +237,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		FireMessagesResult res = new FireMessagesResult();
 		res.setNextChangeNumber(lastChgNum);
 		return res;
-	}
-
-	@Override
-	public void clearDynamoTable(Long userId, String tableName,
-			String hashKeyName, String rangeKeyName) throws NotFoundException,
-			UnauthorizedException, DatastoreException {
-		dynamoAdminManager.clear(userId, tableName, hashKeyName, rangeKeyName);
 	}
 	
 	@Override
