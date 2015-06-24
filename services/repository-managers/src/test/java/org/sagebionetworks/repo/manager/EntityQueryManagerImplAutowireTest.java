@@ -5,7 +5,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -238,7 +240,6 @@ public class EntityQueryManagerImplAutowireTest {
 		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.GREATER_THAN_OR_EQUALS, KeyFactory.stringToKey(folder.getId()));
 		// add this condition
 		query.getConditions().add(condition);
-		System.out.println(query.toString());
 		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
 		assertNotNull(results);
 		assertNotNull(results.getEntities());
@@ -259,12 +260,56 @@ public class EntityQueryManagerImplAutowireTest {
 		// add this condition
 		query.getConditions().clear();
 		query.getConditions().add(condition);
-		System.out.println(query.toString());
 		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
 		assertNotNull(results);
 		assertNotNull(results.getEntities());
 		assertEquals(3, results.getEntities().size());
 		// there should be only two.
 		assertTrue(results.getTotalEntityCount() == 3);
+	}
+	
+	@Test
+	public void testQueryFromEntityNotProjects() {
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.nodeType, Operator.NOT_EQUALS, "folder");
+		// add this condition
+		query.getConditions().clear();
+		query.getConditions().add(parentIdCondition);
+		query.getConditions().add(condition);
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		List<EntityQueryResult> entityQueryResults = results.getEntities();
+		assertNotNull(entityQueryResults);
+		Set<String> queryResultTypes = entityQueryResultToEntityTypes(entityQueryResults);
+		assertTrue(queryResultTypes.contains("table"));
+		assertTrue(queryResultTypes.size() == 1);
+		// there should be only 1.
+		assertTrue(results.getTotalEntityCount() == 1);
+	}
+	
+	@Test
+	public void testQueryFromEntityNotProjectsTables() {
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.nodeType, Operator.IN, new String[]{"table","folder"});
+		// add this condition
+		query.getConditions().clear();
+		query.getConditions().add(parentIdCondition);
+		query.getConditions().add(condition);
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		List<EntityQueryResult> entityQueryResults = results.getEntities();
+		assertNotNull(entityQueryResults);
+		Set<String> queryResultTypes = entityQueryResultToEntityTypes(entityQueryResults);
+		assertTrue(queryResultTypes.contains("table"));
+		assertTrue(queryResultTypes.contains("folder"));
+		assertTrue(queryResultTypes.size() == 2);
+		// there should be two.
+		assertTrue(results.getTotalEntityCount() == 2);
+	}
+	
+	private Set<String> entityQueryResultToEntityTypes(List<EntityQueryResult> entityQueryResults) {
+		Set<String> typeSet = new HashSet<String>();
+		for (EntityQueryResult result: entityQueryResults) {
+			typeSet.add(result.getEntityType());
+		}
+		return typeSet;
 	}
 }
