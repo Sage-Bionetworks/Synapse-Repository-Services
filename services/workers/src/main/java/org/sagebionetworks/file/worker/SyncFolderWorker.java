@@ -3,8 +3,6 @@ package org.sagebionetworks.file.worker;
 import java.util.Date;
 import java.util.UUID;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -12,8 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.SingletonWorker;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -36,6 +32,9 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
 
@@ -43,9 +42,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.util.BinaryUtils;
 
-public class SyncFolderWorker extends SingletonWorker {
+public class SyncFolderWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(SyncFolderWorker.class);
 
@@ -75,7 +73,8 @@ public class SyncFolderWorker extends SingletonWorker {
 	 * This is where the real work happens
 	 */
 	@Override
-	protected Message processMessage(Message message, WorkerProgress workerProgress) throws Throwable {
+	public void run(ProgressCallback<Message> progressCallback, Message message)
+			throws RecoverableMessageException, Exception {
 		SyncFolderMessage syncFolderMessage = extractStatus(message);
 		try {
 			UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -87,10 +86,10 @@ public class SyncFolderWorker extends SingletonWorker {
 				String lockToken = syncFolderGate.attemptToAcquireLock(externalSyncSetting.getProjectId());
 				if (lockToken == null) {
 					// try again later
-					return null;
+					throw new RecoverableMessageException();
 				}
 				try {
-					handleAutoSync(externalSyncSetting, message, workerProgress);
+					handleAutoSync(externalSyncSetting, message, progressCallback);
 				} finally {
 					syncFolderGate.releaseLock(lockToken, externalSyncSetting.getProjectId());
 				}
@@ -98,10 +97,9 @@ public class SyncFolderWorker extends SingletonWorker {
 		} catch (NotFoundException e) {
 			// the entity no longer exists, no need to log that
 		}
-		return message;
 	}
 
-	private void handleAutoSync(ExternalSyncSetting externalSyncSetting, Message message, WorkerProgress workerProgress) {
+	private void handleAutoSync(ExternalSyncSetting externalSyncSetting, Message message, ProgressCallback<Message> progressCallback) {
 		Long storageLocationId = externalSyncSetting.getLocationId();
 		StorageLocationSetting storageLocationSetting = projectSettingsManager.getStorageLocationSetting(storageLocationId);
 		if (!(storageLocationSetting instanceof ExternalS3StorageLocationSetting)) {
@@ -122,7 +120,7 @@ public class SyncFolderWorker extends SingletonWorker {
 		ObjectListing listObjects = s3Client.listObjects(externalS3StorageLocationSetting.getBucket(),
 				externalS3StorageLocationSetting.getBaseKey());
 		for (;;) {
-			workerProgress.progressMadeForMessage(message);
+			progressCallback.progressMade(message);
 			for (S3ObjectSummary objectSummary : listObjects.getObjectSummaries()) {
 				syncNode(topNode, owner, externalSyncSetting.getLocationId(), externalSyncSetting.getProjectId(),
 						externalS3StorageLocationSetting.getBaseKey(), objectSummary);
@@ -257,4 +255,5 @@ public class SyncFolderWorker extends SingletonWorker {
 		SyncFolderMessage syncFolderMessage = MessageUtils.readMessageBody(message, SyncFolderMessage.class);
 		return syncFolderMessage;
 	}
+
 }

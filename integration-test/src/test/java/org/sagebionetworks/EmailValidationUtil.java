@@ -12,11 +12,11 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 public class EmailValidationUtil {
 	
-	public static boolean doesFileExist(String key) throws Exception {
+	public static boolean doesFileExist(String key, long maxWaitTimeInMillis) throws Exception {
 		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(
 				StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
 		
-		return S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client);
+		return S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, maxWaitTimeInMillis);
 	}
 	
 	public static void deleteFile(String key) throws Exception {
@@ -50,7 +50,4 @@ public class EmailValidationUtil {
 		String token = body.substring(tokenStart, tokenEnd);
 		return token;
 	}
-	
-	
-
 }

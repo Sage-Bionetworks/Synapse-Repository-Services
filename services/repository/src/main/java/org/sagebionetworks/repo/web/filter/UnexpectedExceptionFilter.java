@@ -16,6 +16,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.auth.AuthenticationController;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * This filter is our last chance to log any type of unexpected error. Errors
@@ -61,7 +65,16 @@ public class UnexpectedExceptionFilter implements Filter {
 			 */
 			HttpServletResponse res = (HttpServletResponse) response;
 			res.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-			res.getWriter().println(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
+			ErrorResponse er = new ErrorResponse();
+			er.setReason("Server error, try again later: " + e.getMessage());
+			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+			try {
+				er.writeToJSONObject(joa);
+				res.getWriter().println(joa.toJSONString());
+			} catch (JSONObjectAdapterException e2) {
+				// give up here, just write constant string
+				res.getWriter().println(AuthorizationConstants.REASON_SERVER_ERROR);
+			}
 		}catch(Error e){
 			/*
 			 * Errors are far worse than exceptions.

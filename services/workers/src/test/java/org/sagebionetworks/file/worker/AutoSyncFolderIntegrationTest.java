@@ -6,16 +6,13 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.S3TestUtils;
-import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -35,7 +32,6 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.TimedAssert;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -48,7 +44,6 @@ import com.google.common.collect.Sets;
  * This test validates that when a file is created, the message propagates to the preview queue, is processed by the
  * preview worker and a preview is created.
  * 
- * @author John
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -74,16 +69,10 @@ public class AutoSyncFolderIntegrationTest {
 	private FileHandleDao fileMetadataDao;
 
 	@Autowired
-	private SemaphoreManager semphoreManager;
-
-	@Autowired
 	private EntityManager entityManager;
 
 	@Autowired
 	private NodeDAO nodeDao;
-
-	@Autowired
-	private AutowireCapableBeanFactory factory;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;

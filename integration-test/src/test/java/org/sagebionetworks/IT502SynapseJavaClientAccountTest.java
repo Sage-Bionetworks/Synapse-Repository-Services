@@ -115,7 +115,7 @@ public class IT502SynapseJavaClientAccountTest {
 		// start the email validation process
 		String email = UUID.randomUUID().toString()+"@foo.com";
 		s3KeyToDelete = EmailValidationUtil.getBucketKeyForEmail(email);
-		assertFalse(EmailValidationUtil.doesFileExist(s3KeyToDelete));
+		assertFalse(EmailValidationUtil.doesFileExist(s3KeyToDelete, 2000L));
 		String endpoint = "https://www.synapse.org?";
 		synapseOne.additionalEmailValidation(
 				Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 

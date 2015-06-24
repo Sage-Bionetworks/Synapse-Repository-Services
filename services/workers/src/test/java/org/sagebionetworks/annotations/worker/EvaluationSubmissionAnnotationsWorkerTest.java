@@ -1,7 +1,5 @@
 package org.sagebionetworks.annotations.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -22,21 +20,31 @@ import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Test for AnnotationsWorker
  */
-public class AnnotationsWorkerTest {
+public class EvaluationSubmissionAnnotationsWorkerTest {
 	
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
 	WorkerLogger mockWorkerLogger;
+	EvaluationSubmissionAnnotationsWorker worker;
+	ProgressCallback<Message> mockProgressCallback;
 	
 	@Before
 	public void before(){
 		mockDAO = Mockito.mock(SubmissionStatusAnnotationsAsyncManager.class);
 		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		worker = new EvaluationSubmissionAnnotationsWorker();
+		ReflectionTestUtils.setField(worker, "ssAsyncMgr", mockDAO);
+		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
 	}
 	
 	/**
@@ -49,14 +57,8 @@ public class AnnotationsWorkerTest {
 		message.setObjectType(ObjectType.ENTITY);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		List<Message> list = new LinkedList<Message>();
-		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
-		List<Message> resultList = worker.call();
-		assertNotNull(resultList);
-		// Non-Submission messages should be returned so they can be removed from the queue.
-		assertEquals("Non-Submission messages must be returned so they can be removed from the queue!",list, resultList);
+		worker.run(mockProgressCallback, awsMessage);
 		// the DAO should not be called
 		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
@@ -69,12 +71,8 @@ public class AnnotationsWorkerTest {
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		List<Message> list = new LinkedList<Message>();
-		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
-		list = worker.call();
-		assertNotNull(list);
+		worker.run(mockProgressCallback, awsMessage);
 		// the manager should not be called
 		verify(mockDAO).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
@@ -87,12 +85,8 @@ public class AnnotationsWorkerTest {
 		message.setChangeType(ChangeType.DELETE);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		List<Message> list = new LinkedList<Message>();
-		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
-		list = worker.call();
-		assertNotNull(list);
+		worker.run(mockProgressCallback, awsMessage);
 		// the manager should not be called
 		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 		verify(mockDAO).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
@@ -125,9 +119,7 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// Simulate a not found
 		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
-		List<Message> resultLIst = worker.call();
-		assertEquals(list, resultLIst);
+		worker.run(mockProgressCallback, awsMessage);
 	}
 	
 	/**
@@ -156,8 +148,16 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// Simulate a runtime exception
 		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
-		List<Message> resultLIst = worker.call();
-		assertEquals(list, resultLIst);
+		worker.run(mockProgressCallback, awsMessage);
+	}
+	
+	@Test (expected=RecoverableMessageException.class)
+	public void testDeadlockException() throws Exception {
+		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "101", ObjectType.EVALUATION_SUBMISSIONS, "98976");
+		doThrow(new TransientDataAccessException("foo", null) {
+			private static final long serialVersionUID = 1L;
+		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString(), anyString());
+		// Make the call
+		worker.run(mockProgressCallback, message);
 	}
 }

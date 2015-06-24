@@ -45,7 +45,8 @@ public class S3TestUtils {
 	/*
 	 * We use exponential retry to let the 'eventually complete' S3 service make the file available.
 	 */
-	public static boolean doesFileExist(final String bucket, final String key, final AmazonS3Client s3Client) {
+	public static boolean doesFileExist(final String bucket, final String key, final AmazonS3Client s3Client, final long maxWaitTimeInMillis) {
+		final long startTime = System.currentTimeMillis();
 		boolean result = false;
 		try {
 			result = TimeUtils.waitForExponentialMaxRetry(10, 1000L, new Callable<Boolean>() {
@@ -57,7 +58,11 @@ public class S3TestUtils {
 					} catch (AmazonClientException e) {
 						result = false;
 					}
-					if (!result) throw new RetryException("file does not exist");
+					if (!result) {
+						if (System.currentTimeMillis() - startTime < maxWaitTimeInMillis) {
+							throw new RetryException("file does not exist");
+						}
+					}
 					return result;
 				}
 			});

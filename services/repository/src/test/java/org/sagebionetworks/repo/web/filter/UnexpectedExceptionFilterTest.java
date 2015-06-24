@@ -57,7 +57,7 @@ public class UnexpectedExceptionFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockChain);
 		// The response should not be changed
 		verify(mockResponse).setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
-		verify(mockWriter).println(AuthorizationConstants.REASON_TOO_MANY_CONCURRENT_REQUESTS);
+		verify(mockWriter).println("{\"reason\":\"Server error, try again later: Exception\"}");
 	}
 	
 	/**
