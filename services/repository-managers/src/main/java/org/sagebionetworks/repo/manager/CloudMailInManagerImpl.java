@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -12,11 +13,11 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.apache.http.entity.ContentType;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
@@ -30,9 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class CloudMailInManagerImpl implements CloudMailInManager {
 	private static final String FROM_HEADER = "From";
-	private static final String TO_HEADER = "To";
-	private static final String CC_HEADER = "Cc";
-	private static final String BCC_HEADER = "Bcc";
 	private static final String SUBJECT_HEADER = "Subject";
 	
 	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfiguration.getNotificationEmailSuffix().toLowerCase();
@@ -51,8 +49,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			String notificationUnsubscribeEndpoint) throws NotFoundException {
 
 		try {
-			Set<String> to = new HashSet<String>();
-			String from = null;
+			String headerFrom = null;
 			String subject = null;
 			JSONObject headers = new JSONObject(message.getHeaders());
 			Iterator<String> it = headers.keys();
@@ -60,31 +57,24 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 				String key = it.next();
 				if (SUBJECT_HEADER.equalsIgnoreCase(key)) {
 					subject = headers.getString(key);
-				} else if (TO_HEADER.equalsIgnoreCase(key) ||
-						CC_HEADER.equalsIgnoreCase(key) ||
-						BCC_HEADER.equalsIgnoreCase(key)) {
-					try {
-						JSONArray array = headers.getJSONArray(key);
-						for (int i=0; i<array.length(); i++) {
-							to.add(array.getString(i));
-						}
-					} catch (JSONException e) {
-						// it's a singleton, not an array
-						to.add(headers.getString(key));
-					}
 				} else if (FROM_HEADER.equalsIgnoreCase(key)) {
-					from = headers.getString(key);
+					headerFrom = headers.getString(key);
 				}
 			}
-			if (from==null) throw new IllegalArgumentException("Sender ('From') is required.");
-			if (to.isEmpty()) throw new IllegalArgumentException("There must be at least one recipient.");
+			// per CloudMailIn support, the way to determine the recipient ('to') is via the Envelope
+			// the way to determine the sender ('from') is by checking the Envelope and then (if not valid)
+			// checking the header
+			Envelope envelope = message.getEnvelope();
+			String envelopeFrom = envelope.getFrom();
+			String envelopeTo = envelope.getTo();
+			if (envelopeFrom==null && headerFrom==null) throw new IllegalArgumentException("Sender ('From') is required.");
+			if (envelopeTo==null) throw new IllegalArgumentException("Recipient ('to') is required.");
 			MessageToUser mtu = new MessageToUser();
-			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddress(from).toString());		
+			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom).toString());		
 			mtu.setSubject(subject);
 			Set<String> recipients = new HashSet<String>();
-			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(to);
-			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient(s): "+to);
-			// TODO PLFM-3414 will handle the case in which there is a mix of valid and invalid recipients
+			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton(envelopeTo));
+			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient: "+envelopeTo);
 			recipients.addAll(recipientPrincipals.values());
 			mtu.setRecipients(recipients);
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
@@ -165,6 +155,18 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		Map<String,String> result = new HashMap<String,String>();
 		for (PrincipalAlias alias : aliases) result.put(alias.getAlias(), alias.getPrincipalId().toString());
 		return result;
+	}
+	
+	public Long lookupPrincipalIdForRegisteredEmailAddressAndAlternate(String primaryEmail, String alternateEmail) throws AddressException {
+		try {
+			return lookupPrincipalIdForRegisteredEmailAddress(primaryEmail);
+		} catch (Exception e) {
+			try {
+				return lookupPrincipalIdForRegisteredEmailAddress(alternateEmail);
+			} catch (Exception e2) {
+				throw new IllegalArgumentException("Neither "+primaryEmail+" nor "+alternateEmail+" is a recognized, registered Synapse address.");
+			}
+		}
 	}
 	
 	public Long lookupPrincipalIdForRegisteredEmailAddress(String email) throws AddressException {
