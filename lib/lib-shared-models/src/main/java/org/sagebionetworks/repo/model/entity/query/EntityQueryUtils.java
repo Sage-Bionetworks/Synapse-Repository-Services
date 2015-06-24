@@ -28,7 +28,7 @@ public class EntityQueryUtils {
 	}
 	
 	/**
-	 * Build a list of vlaues from an array.
+	 * Build a list of values from an array.
 	 * @param values
 	 * @return
 	 */
