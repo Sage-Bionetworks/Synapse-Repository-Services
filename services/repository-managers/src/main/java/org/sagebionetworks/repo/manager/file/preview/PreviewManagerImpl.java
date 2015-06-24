@@ -22,14 +22,12 @@ import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.util.Closer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
 /**
  * The preview manager tracks memory allocation and bridges preview generators with
  * Actual file data.
@@ -166,14 +164,18 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @throws IOException 
 	 */
 	private PreviewFileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
+		// First download the file from S3
+		File tempDownload = null;
 		File tempUpload = null;
 		InputStream in = null;
 		OutputStream out = null;
 		try{
+			// The download file will hold the original file from S3.
+			tempDownload = tempFileProvider.createTempFile("PreviewManagerImpl_download", ".tmp");
 			// The upload file will hold the newly created preview file.
 			tempUpload = tempFileProvider.createTempFile("PreviewManagerImpl_upload", ".tmp");
-			S3Object s3Object = s3Client.getObject(new GetObjectRequest(metadata.getBucketName(), metadata.getKey()));
-			in = s3Object.getObjectContent();
+			ObjectMetadata s3Meta = s3Client.getObject(new GetObjectRequest(metadata.getBucketName(), metadata.getKey()), tempDownload);
+			in = tempFileProvider.createFileInputStream(tempDownload);
 			out = tempFileProvider.createFileOutputStream(tempUpload);
 			// Let the preview generator do all of the work.
 			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
@@ -199,8 +201,20 @@ public class PreviewManagerImpl implements  PreviewManager {
 			throw new RuntimeException(e);
 		}finally{
 			// unconditionally close the streams if they exist
-			Closer.closeQuietly(in, out);
+			if(in != null){
+				try {
+					in.close();
+				} catch (IOException e) {}
+			}
+			if(out != null){
+				try {
+					out.close();
+				} catch (IOException e) {}
+			}
 			// unconditionally delete the temp files if they exist
+			if(tempDownload != null){
+				tempDownload.delete();
+			}
 			if(tempUpload != null){
 				tempUpload.delete();
 			}
