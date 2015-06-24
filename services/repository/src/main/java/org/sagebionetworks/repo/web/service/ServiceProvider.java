@@ -34,8 +34,6 @@ public interface ServiceProvider {
 	
 	public MessageService getMessageService();
 
-	public NodeTreeQueryService getNodeTreeQueryService();
-
 	public EvaluationService getEvaluationService();
 	
 	public WikiService getWikiService();

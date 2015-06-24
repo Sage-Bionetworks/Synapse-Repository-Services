@@ -309,41 +309,6 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_DOI = ENTITY_VERSION_NUMBER + DOI;
 
 	/**
-	 * Gets the root node.
-	 */
-	public static final String ENTITY_ROOT = ENTITY + "/root";
-
-	/**
-	 * Gets the ancestors for the specified node.
-	 */
-	public static final String ENTITY_ANCESTORS = ENTITY_ID + "/ancestors";
-
-	/**
-	 * Gets the descendants for the specified node.
-	 */
-	public static final String ENTITY_DESCENDANTS = ENTITY_ID + "/descendants";
-
-	/**
-	 * Gets the descendants of a particular generation for the specified node.
-	 */
-	public static final String GENERATION = "generation";
-
-	/**
-	 * Gets the descendants of a particular generation for the specified node.
-	 */
-	public static final String ENTITY_DESCENDANTS_GENERATION = ENTITY_ID + "/descendants/{" + GENERATION + "}";
-
-	/**
-	 * Gets the parent for the specified node.
-	 */
-	public static final String ENTITY_PARENT = ENTITY_ID + "/parent";
-
-	/**
-	 * Gets the children for the specified node.
-	 */
-	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";
-
-	/**
 	 * For trash can APIs.
 	 */
 	public static final String TRASHCAN = "/trashcan";
