@@ -130,9 +130,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}
 		// First determine how much memory will be need to generate this preview
 		String mimeType = ContentType.parse(metadata.getContentType()).getMimeType();
-		// double multiper = generator.getMemoryMultiplierForContentType(mimeType);
-		// long memoryNeededBytes = (long) Math.ceil((((double)metadata.getContentSize())*multiper));
-		long memoryNeededBytes = generator.calculateNeededMemoryBytesForPreview(mimeType, metadata.getContentSize());
+		double multiper = generator.getMemoryMultiplierForContentType(mimeType);
+		long memoryNeededBytes = (long) Math.ceil((((double)metadata.getContentSize())*multiper));
 		if(memoryNeededBytes > maxPreviewMemory){
 			log.info(String.format("Preview cannot be generated.  Memory needed: '%1$s' (bytes) exceed preview memory pool size: '%2$s' (bytes). Metadata: %3$s", memoryNeededBytes, maxPreviewMemory, metadata.toString())); ;
 			return null;
