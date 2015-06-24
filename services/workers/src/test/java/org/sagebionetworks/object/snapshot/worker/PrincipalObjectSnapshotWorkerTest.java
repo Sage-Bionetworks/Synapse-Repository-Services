@@ -65,6 +65,55 @@ public class PrincipalObjectSnapshotWorkerTest {
 		
 		ug = new UserGroup();
 		
+		buildTeam();
+		
+		ug1 = buildUserGroup("1");
+		ug2 = buildUserGroup("2");
+		
+		buildUserProfile();
+		
+		member1 = buildMember("employee@sagebase.org");
+		member2 = buildMember("employee@gmail.com");
+		
+		teamMember1 = buildTeamMember(teamId, member1, true);
+		teamMember2 = buildTeamMember(teamId, member2, false);
+		
+	}
+
+	private UserGroupHeader buildMember(String email) {
+		UserGroupHeader member = new UserGroupHeader();
+		member.setEmail(email);
+		member.setIsIndividual(true);
+		return member;
+	}
+
+	private void buildUserProfile() {
+		up = new UserProfile();
+		up.setCompany("Sage");
+		up.setEmail("employee@sagebase.org");
+		up.setEmails(Arrays.asList("employee@sagebase.org", "employee@gmail.com"));
+		up.setEtag(etag);
+		up.setOwnerId(principalID.toString());
+	}
+
+	private TeamMember buildTeamMember(String teamId, UserGroupHeader member, boolean isAdmin) {
+		TeamMember teamMember = new TeamMember();
+		teamMember.setTeamId(teamId);
+		teamMember.setIsAdmin(isAdmin);
+		teamMember.setMember(member);
+		return teamMember;
+	}
+
+	private UserGroup buildUserGroup(String id) {
+		UserGroup ug = new UserGroup();
+		ug.setCreationDate(createdOn);
+		ug.setEtag(etag);
+		ug.setId(id);
+		ug.setIsIndividual(true);
+		return ug;
+	}
+
+	private void buildTeam() {
 		team = new Team();
 		team.setCanPublicJoin(true);
 		team.setCreatedBy("333");
@@ -74,44 +123,6 @@ public class PrincipalObjectSnapshotWorkerTest {
 		team.setId(teamId);
 		team.setModifiedBy("444");
 		team.setModifiedOn(modifiedOn);
-		
-		ug2 = new UserGroup();
-		ug2.setCreationDate(createdOn);
-		ug2.setEtag(etag);
-		ug2.setId("2");
-		ug2.setIsIndividual(true);
-		
-		ug1 = new UserGroup();
-		ug1.setCreationDate(createdOn);
-		ug1.setEtag(etag);
-		ug1.setId("1");
-		ug1.setIsIndividual(true);
-		
-		up = new UserProfile();
-		up.setCompany("Sage");
-		up.setEmail("employee@sagebase.org");
-		up.setEmails(Arrays.asList("employee@sagebase.org", "employee@gmail.com"));
-		up.setEtag(etag);
-		up.setOwnerId(principalID.toString());
-		
-		member1 = new UserGroupHeader();
-		member1.setEmail("employee@sagebase.org");
-		member1.setIsIndividual(true);
-		
-		member1 = new UserGroupHeader();
-		member1.setEmail("employee@gmail.com");
-		member1.setIsIndividual(true);
-		
-		teamMember1 = new TeamMember();
-		teamMember1.setTeamId(teamId);
-		teamMember1.setIsAdmin(true);
-		teamMember1.setMember(member1);
-		
-		teamMember2 = new TeamMember();
-		teamMember2.setTeamId(teamId);
-		teamMember2.setIsAdmin(false);
-		teamMember2.setMember(member2);
-		
 	}
 	
 	@SuppressWarnings("unchecked")

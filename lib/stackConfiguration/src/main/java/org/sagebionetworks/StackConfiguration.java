@@ -1565,7 +1565,7 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * Get the name of the audit ACL record bucket.
+	 * Get the name of the audit object record bucket.
 	 * 
 	 * @return
 	 */

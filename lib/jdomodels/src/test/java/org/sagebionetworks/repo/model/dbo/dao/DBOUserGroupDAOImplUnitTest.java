@@ -55,7 +55,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		ug = new UserGroup();
 		ug.setCreationDate(new Date());
 		ug.setEtag("etag");
-		ug.setId("1");
+		ug.setId(id.toString());
 		ug.setIsIndividual(false);
 		
 		Mockito.when(mockIdGenerator.generateNewId(TYPE.PRINCIPAL_ID)).thenReturn(id);
@@ -102,7 +102,7 @@ public class DBOUserGroupDAOImplUnitTest {
 	
 	@Test
 	public void touchSendMessageTest() {
-		userGroupDAO.touch(1L);
+		userGroupDAO.touch(id);
 		ArgumentCaptor<Long> idCapture = ArgumentCaptor.forClass(Long.class);
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
