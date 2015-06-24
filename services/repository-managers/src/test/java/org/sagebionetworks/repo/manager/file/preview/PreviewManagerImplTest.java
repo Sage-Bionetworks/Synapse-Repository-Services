@@ -174,7 +174,7 @@ public class PreviewManagerImplTest {
 		}
 		// Validate the streams were closed
 		verify(mockOutputStream, atLeast(1)).close();
-		verify(mockS3ObjectInputStream, atLeast(1)).abort();
+		verify(mockS3ObjectInputStream, atLeast(1)).close();
 	}
 
 	@Test
