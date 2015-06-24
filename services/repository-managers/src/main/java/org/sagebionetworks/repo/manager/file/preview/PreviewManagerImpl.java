@@ -22,15 +22,12 @@ import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.util.Closer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 /**
  * The preview manager tracks memory allocation and bridges preview generators with
  * Actual file data.
@@ -133,7 +130,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}
 		// First determine how much memory will be need to generate this preview
 		String mimeType = ContentType.parse(metadata.getContentType()).getMimeType();
-		long memoryNeededBytes = generator.calculateNeededMemoryBytesForPreview(mimeType, metadata.getContentSize());
+		double multiper = generator.getMemoryMultiplierForContentType(mimeType);
+		long memoryNeededBytes = (long) Math.ceil((((double)metadata.getContentSize())*multiper));
 		if(memoryNeededBytes > maxPreviewMemory){
 			log.info(String.format("Preview cannot be generated.  Memory needed: '%1$s' (bytes) exceed preview memory pool size: '%2$s' (bytes). Metadata: %3$s", memoryNeededBytes, maxPreviewMemory, metadata.toString())); ;
 			return null;
@@ -167,14 +165,18 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @throws IOException 
 	 */
 	private PreviewFileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
+		// First download the file from S3
+		File tempDownload = null;
 		File tempUpload = null;
-		S3ObjectInputStream in = null;
+		InputStream in = null;
 		OutputStream out = null;
 		try{
+			// The download file will hold the original file from S3.
+			tempDownload = tempFileProvider.createTempFile("PreviewManagerImpl_download", ".tmp");
 			// The upload file will hold the newly created preview file.
 			tempUpload = tempFileProvider.createTempFile("PreviewManagerImpl_upload", ".tmp");
-			S3Object s3Object = s3Client.getObject(new GetObjectRequest(metadata.getBucketName(), metadata.getKey()));
-			in = s3Object.getObjectContent();
+			ObjectMetadata s3Meta = s3Client.getObject(new GetObjectRequest(metadata.getBucketName(), metadata.getKey()), tempDownload);
+			in = tempFileProvider.createFileInputStream(tempDownload);
 			out = tempFileProvider.createFileOutputStream(tempUpload);
 			// Let the preview generator do all of the work.
 			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
@@ -199,12 +201,21 @@ public class PreviewManagerImpl implements  PreviewManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}finally{
-			// apparently, aborting (which also closes the stream) is an optimization for closing large streams that
-			// aren't fully read (see docs on the S3ObjectInputStream)
-			in.abort();
 			// unconditionally close the streams if they exist
-			Closer.closeQuietly(out);
+			if(in != null){
+				try {
+					in.close();
+				} catch (IOException e) {}
+			}
+			if(out != null){
+				try {
+					out.close();
+				} catch (IOException e) {}
+			}
 			// unconditionally delete the temp files if they exist
+			if(tempDownload != null){
+				tempDownload.delete();
+			}
 			if(tempUpload != null){
 				tempUpload.delete();
 			}
