@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
@@ -28,10 +27,9 @@ import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class TrashManagerImpl implements TrashManager {
 
@@ -49,9 +47,6 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private AccessControlListDAO aclDAO;
-
-	@Autowired
-	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Autowired
 	private TrashCanDao trashCanDao;
@@ -79,20 +74,6 @@ public class TrashManagerImpl implements TrashManager {
 		String userName = currentUser.getId().toString();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
-
-		// Whether it is too big for the trash can
-		if (stackConfig.getDynamoEnabled()) {
-			List<String> idList = nodeTreeQueryDao.getDescendants(
-					KeyFactory.stringToKey(nodeId).toString(), TrashConstants.MAX_TRASHABLE + 1, null);
-			if (idList != null && idList.size() > TrashConstants.MAX_TRASHABLE) {
-				throw new TooBigForTrashcanException(
-						"Too big to fit into trashcan. Entity " + nodeId +
-						" has more than " + TrashConstants.MAX_TRASHABLE + " descendants. " +
-						" Possible actions include: " +
-						" 1) deleting the child entities first before deleting this entity, " +
-						" 2) permanently deleting this entity instead of moving it to the trashcan.");
-			}
-		}
 
 		// Move the node to the trash can folder
 		Node node = nodeDao.getNode(nodeId);

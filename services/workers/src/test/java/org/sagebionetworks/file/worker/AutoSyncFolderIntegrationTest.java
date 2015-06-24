@@ -5,17 +5,16 @@ import static org.junit.Assert.assertEquals;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.Resource;
+
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.S3TestUtils;
-import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -34,8 +33,8 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.TimedAssert;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -48,7 +47,6 @@ import com.google.common.collect.Sets;
  * This test validates that when a file is created, the message propagates to the preview queue, is processed by the
  * preview worker and a preview is created.
  * 
- * @author John
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -56,7 +54,7 @@ import com.google.common.collect.Sets;
 public class AutoSyncFolderIntegrationTest {
 
 	private static final String DESTINATION_TEST_BUCKET = "dev.test.destination.bucket.sagebase.org";
-	public static final long MAX_WAIT = 30 * 1000; // 30 seconds
+	public static final long MAX_WAIT = 60 * 1000; // 30 seconds
 
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -74,16 +72,19 @@ public class AutoSyncFolderIntegrationTest {
 	private FileHandleDao fileMetadataDao;
 
 	@Autowired
-	private SemaphoreManager semphoreManager;
-
-	@Autowired
 	private EntityManager entityManager;
 
 	@Autowired
 	private NodeDAO nodeDao;
-
+	
 	@Autowired
-	private AutowireCapableBeanFactory factory;
+	private QueueCleaner queueCleaner;
+	
+	@Resource (name="stackConfiguration.workerQueueName[SyncFolderWorker]")
+	private String sychFolderQueueName;
+	
+	@Resource (name="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]")
+	private String settingsQueueName;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
@@ -101,6 +102,9 @@ public class AutoSyncFolderIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		s3Client.createBucket(DESTINATION_TEST_BUCKET);
+		
+		queueCleaner.purgeQueue(sychFolderQueueName);
+		queueCleaner.purgeQueue(settingsQueueName);
 
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 

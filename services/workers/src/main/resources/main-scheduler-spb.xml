@@ -13,7 +13,6 @@
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:jdomodels-import.xml" />
-	<import resource="classpath:dynamo-import.xml" />
 	<import resource="classpath:managers-import.xml" />
 	<import resource="classpath:managers-topic-publisher-import.xml" />
     <import resource="classpath:cloudwatch-spb.xml" />
@@ -30,8 +29,7 @@
 	<import resource="classpath:stack-configuration-trigger.spb.xml" />
 	<import resource="classpath:cloudwatch-trigger-spb.xml" />
 	<import resource="classpath:search-triggers-import.xml" />
-
-	<import resource="classpath:dynamo-spb.xml" />
+	
 	<import resource="classpath:rds-sqs-manager-spb.xml" />
 	<import resource="classpath:aws-worker.spb.xml" />
 	<import resource="classpath:search-sqs-spb.xml" />
@@ -68,8 +66,6 @@
 			<list>
 				<!-- workers -->
 				<ref bean="principalPrefixQueueMessageReveiverTrigger" />
-				<ref bean="dynamoQueueMessageRetrieverTrigger" />
- 				<ref bean="dynamoRdsSynchronizerTrigger" />
 				<ref bean="rdsQueueMessageReveiverTrigger" />
 				<ref bean="searchQueueMessageReveiverTrigger" />
 				<ref bean="fileQueueMessageReveiverTrigger" />

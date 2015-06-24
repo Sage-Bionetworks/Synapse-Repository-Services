@@ -38,8 +38,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private MessageService messageService;
 	@Autowired
-	private NodeTreeQueryService nodeLineageQueryService;
-	@Autowired
 	private EvaluationService competitionService;
 	@Autowired
 	private WikiService wikiService;
@@ -113,10 +111,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public MessageService getMessageService() {
 		return messageService;
-	}
-	@Override
-	public NodeTreeQueryService getNodeTreeQueryService() {
-		return nodeLineageQueryService;
 	}
 	@Override
 	public EvaluationService getEvaluationService() {

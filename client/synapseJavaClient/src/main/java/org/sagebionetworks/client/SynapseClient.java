@@ -948,12 +948,6 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId,
 			Integer limit, Integer offset) throws SynapseException;
 
-	public EntityIdList getDescendants(String nodeId, int pageSize,
-			String lastDescIdExcl) throws SynapseException;
-
-	public EntityIdList getDescendants(String nodeId, int generation, int pageSize,
-			String lastDescIdExcl) throws SynapseException;
-
 	public Evaluation createEvaluation(Evaluation eval) throws SynapseException;
 
 	public Evaluation getEvaluation(String evalId) throws SynapseException;
