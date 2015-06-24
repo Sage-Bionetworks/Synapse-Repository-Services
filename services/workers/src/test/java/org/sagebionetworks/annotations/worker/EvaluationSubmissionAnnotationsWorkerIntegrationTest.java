@@ -49,7 +49,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 
-	public static final long MAX_WAIT = 30*1000; // 30 seconds	
+	public static final long MAX_WAIT = 60*1000; // 60 seconds	
 	
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
