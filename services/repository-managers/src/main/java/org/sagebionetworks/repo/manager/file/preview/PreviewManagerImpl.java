@@ -201,7 +201,9 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}finally{
 			// apparently, aborting (which also closes the stream) is an optimization for closing large streams that
 			// aren't fully read (see docs on the S3ObjectInputStream)
-			in.abort();
+			if ( in != null ) {
+				in.abort();
+			}
 			// unconditionally close the streams if they exist
 			Closer.closeQuietly(out);
 			// unconditionally delete the temp files if they exist
