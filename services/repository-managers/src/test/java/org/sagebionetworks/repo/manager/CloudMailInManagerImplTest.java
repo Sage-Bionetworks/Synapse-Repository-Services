@@ -43,7 +43,7 @@ public class CloudMailInManagerImplTest {
 		Envelope envelope = new Envelope();
 		message.setEnvelope(envelope);
 		envelope.setFrom("foo@bar.com");
-		envelope.setTo("baz@synapse.org");
+		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
 		JSONObject headers = new JSONObject();
 		headers.put("Subject", "test subject");
 		message.setHeaders(headers.toString());
@@ -93,7 +93,7 @@ public class CloudMailInManagerImplTest {
 		Message message = new Message();
 		Envelope envelope = new Envelope();
 		message.setEnvelope(envelope);
-		envelope.setTo("baz@synapse.org");
+		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
 		JSONObject headers = new JSONObject();
 		headers.put("From", "foo@bar.com");
 		message.setHeaders(headers.toString());
@@ -124,7 +124,7 @@ public class CloudMailInManagerImplTest {
 		Message message = new Message();
 		Envelope envelope = new Envelope();
 		message.setEnvelope(envelope);
-		envelope.setTo("baz@synapse.org");
+		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
 		JSONObject headers = new JSONObject();
 		headers.put("Subject", "test subject");
 		message.setHeaders(headers.toString());

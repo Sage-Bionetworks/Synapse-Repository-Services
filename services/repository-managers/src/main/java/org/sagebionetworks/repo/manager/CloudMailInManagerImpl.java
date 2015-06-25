@@ -66,15 +66,16 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			// checking the header
 			Envelope envelope = message.getEnvelope();
 			String envelopeFrom = envelope.getFrom();
-			String envelopeTo = envelope.getTo();
+			List<String> envelopeRecipients = envelope.getRecipients();
 			if (envelopeFrom==null && headerFrom==null) throw new IllegalArgumentException("Sender ('From') is required.");
-			if (envelopeTo==null) throw new IllegalArgumentException("Recipient ('to') is required.");
+			if (envelopeRecipients==null || envelopeRecipients.isEmpty()) 
+				throw new IllegalArgumentException("Recipients list is required.");
 			MessageToUser mtu = new MessageToUser();
 			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom).toString());		
 			mtu.setSubject(subject);
 			Set<String> recipients = new HashSet<String>();
-			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton(envelopeTo));
-			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient: "+envelopeTo);
+			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(new HashSet<String>(envelopeRecipients));
+			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient(s): "+envelopeRecipients);
 			recipients.addAll(recipientPrincipals.values());
 			mtu.setRecipients(recipients);
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
