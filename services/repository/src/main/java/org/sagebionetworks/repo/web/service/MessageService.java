@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -19,6 +20,8 @@ public interface MessageService {
 			throws NotFoundException;
 
 	public void create(Message toCreate, String notificationUnsubscribeEndpoint);
+	
+	public void authorize(AuthorizationCheckHeader ach);
 
 	public PaginatedResults<MessageBundle> getInbox(Long userId,
 			List<MessageStatusType> inclusionFilter, MessageSortBy sortBy,

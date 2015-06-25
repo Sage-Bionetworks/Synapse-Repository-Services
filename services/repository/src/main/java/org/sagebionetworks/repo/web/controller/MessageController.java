@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -112,6 +113,21 @@ public class MessageController extends BaseController {
 			required = false) String notificationUnsubscribeEndpoint
 			) throws NotFoundException {
 		serviceProvider.getMessageService().create(toCreate, notificationUnsubscribeEndpoint);
+	}
+	
+	/**
+	 * Note:  This service is designed to be used by CloudMailIn, not by clients in general.
+	 * Calling the service requires Basic Authentication credentials owned by the 
+	 * the Synapse CloudMailIn account.
+	 * 
+	 * @param toAuthorize the header of the CloudMailIn message in JSON format
+	 * @throws IllegalArgumentException if not valid
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_AUTHORIZATION, method = RequestMethod.POST)
+	public void authorizeCloudMailInMessage(
+			@RequestBody AuthorizationCheckHeader toAuthorize) throws NotFoundException {
+		serviceProvider.getMessageService().authorize(toAuthorize);
 	}
 	
 	/**
