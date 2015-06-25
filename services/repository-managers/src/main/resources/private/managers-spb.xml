@@ -249,12 +249,6 @@
 	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
-	<bean id="dynamoAdminManager" class="org.sagebionetworks.repo.manager.dynamo.DynamoAdminManagerImpl" 
-		scope="singleton" />
-
-	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl"
-		scope="singleton" />
-
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
 		
@@ -271,11 +265,6 @@
 	<bean id="jobHashProvider" class="org.sagebionetworks.repo.manager.asynch.JobHashProviderImpl" scope="singleton" />
 	
    	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />
-
-	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
-		<constructor-arg index="0" ref="nodeTreeUpdateDao" />
-		<constructor-arg index="1" ref="nodeDao" />
-	</bean>
 
 	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
 		scope="singleton" />		

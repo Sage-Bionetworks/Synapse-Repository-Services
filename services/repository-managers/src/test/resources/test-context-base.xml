@@ -13,7 +13,6 @@
 	<import resource="classpath:managers-import.xml" />
 	<import resource="classpath:managers-topic-publisher-import.xml" />
 	<import resource="classpath:jdomodels-import.xml" />
-	<import resource="classpath:dynamo-import.xml" />
 	<import resource="classpath:audit-dao.spb.xml" />
 	<import resource="classpath:id-generator.spb.xml" />
 	<import resource="classpath:concept-dao-beans.spb.xml" />
