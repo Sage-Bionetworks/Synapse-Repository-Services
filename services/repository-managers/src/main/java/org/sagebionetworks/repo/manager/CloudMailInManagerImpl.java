@@ -74,6 +74,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom).toString());		
 			mtu.setSubject(subject);
 			Set<String> recipients = new HashSet<String>();
+			// TODO PLFM-3414 will handle the case in which there is a mix of valid and invalid recipients
 			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(new HashSet<String>(envelopeRecipients));
 			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient(s): "+envelopeRecipients);
 			recipients.addAll(recipientPrincipals.values());
