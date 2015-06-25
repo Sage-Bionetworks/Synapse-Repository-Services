@@ -152,7 +152,7 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO).getMembers(principalID.toString());
+		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -167,7 +167,7 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
+		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
@@ -187,13 +187,12 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO, Mockito.times(3)).saveBatch(Mockito.anyList());
+		Mockito.verify(mockObjectRecordDAO, Mockito.times(1)).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO).getMembers(principalID.toString());
+		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
-		Mockito.verify(mockTeamDAO).getMember(teamId, "1");
-		Mockito.verify(mockTeamDAO).getMember(teamId, "2");
+		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -239,7 +238,7 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
+		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());

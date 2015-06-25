@@ -99,18 +99,5 @@ public class DBOUserGroupDAOImplUnitTest {
 		assertNotNull(etagCapture.getValue());
 		assertEquals(ChangeType.UPDATE, typeCapture.getValue());
 	}
-	
-	@Test
-	public void touchSendMessageTest() {
-		userGroupDAO.touch(id);
-		ArgumentCaptor<Long> idCapture = ArgumentCaptor.forClass(Long.class);
-		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
-		ArgumentCaptor<String> etagCapture = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture().toString(), objectTypeCapture.capture(), etagCapture.capture(), typeCapture.capture());
-		assertEquals(idCapture.getValue(), id.toString());
-		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
-		assertNotNull(etagCapture.getValue());
-		assertEquals(ChangeType.UPDATE, typeCapture.getValue());
-	}
+
 }

@@ -2,7 +2,6 @@ package org.sagebionetworks.object.snapshot.worker;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,7 +58,6 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 		this.groupMemberDAO = groupMemberDAO;
 	}
 
-
 	@Override
 	public void run(ProgressCallback<Message> progressCallback, Message message) throws IOException{
 		// Keep this message invisible
@@ -68,7 +66,7 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		
 		if (changeMessage.getChangeType() == ChangeType.DELETE) {
-			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(changeMessage, changeMessage)));
+			// TODO: capture the deleted objects
 			return;
 		}
 		
@@ -76,8 +74,21 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 			case PRINCIPAL: 
 				processPrincipalRecords(changeMessage);
 				return;
+			case TEAM_MEMBER:
+				processTeamMemberRecords(changeMessage);
+				return;
 			default: 
 				return;
+		}
+	}
+
+	private void processTeamMemberRecords(ChangeMessage changeMessage) throws IOException {
+		try {
+			TeamMember teamMember = teamDAO.getMember(changeMessage.getParentId(), changeMessage.getObjectId());
+			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(teamMember, changeMessage)));
+		} catch (NotFoundException e) {
+			log.warn("Team member not found. TeamId = "+changeMessage.getParentId()+" principalId = "+changeMessage.getObjectId());
+			return;
 		}
 	}
 
@@ -86,22 +97,27 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 		UserGroup userGroup = null;
 		try {
 			userGroup = userGroupDAO.get(principalId);
-		} catch (NotFoundException e1) {
+		} catch (NotFoundException e) {
 			log.warn("Principal not found: "+principalId);
 			return;
 		}
 		if(userGroup.getIsIndividual()){
 			// User
-			UserProfile profile = userProfileDAO.get(changeMessage.getObjectId());
-			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(profile, changeMessage)));
-		}else{
+			try {
+				UserProfile profile = userProfileDAO.get(changeMessage.getObjectId());
+				objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(profile, changeMessage)));
+			} catch (NotFoundException e) {
+				log.warn("UserProfile not found: "+principalId);
+				return;
+			}
+		} else {
 			// Team
-			Team team = teamDAO.get(changeMessage.getObjectId());
-			objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(team, changeMessage)));
-			List<UserGroup> members = groupMemberDAO.getMembers(changeMessage.getObjectId());
-			for (UserGroup member : members) {
-				TeamMember teamMember = teamDAO.getMember(team.getId(), member.getId());
-				objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(teamMember, changeMessage)));
+			try {
+				Team team = teamDAO.get(changeMessage.getObjectId());
+				objectRecordDAO.saveBatch(Arrays.asList(buildObjectRecord(team, changeMessage)));
+			} catch (NotFoundException e) {
+				log.warn("Team not found: "+principalId);
+				return;
 			}
 		}
 	}

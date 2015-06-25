@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
@@ -563,7 +564,9 @@ public class TeamManagerImpl implements TeamManager {
 		// check that user is not already in Team
 		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId)) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
-
+			
+			transactionalMessenger.sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", teamId, ChangeType.UPDATE);
+			
 			TeamModificationMessage message = new TeamModificationMessage();
 			message.setObjectId(teamId);
 			message.setObjectType(ObjectType.TEAM);
@@ -612,6 +615,8 @@ public class TeamManagerImpl implements TeamManager {
 				throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 			}
 			groupMembersDAO.removeMembers(teamId, Collections.singletonList(principalId));
+			
+			transactionalMessenger.sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", teamId, ChangeType.DELETE);
 
 			TeamModificationMessage message = new TeamModificationMessage();
 			message.setObjectId(teamId);
