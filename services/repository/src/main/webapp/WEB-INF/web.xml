@@ -231,6 +231,7 @@
 	<filter-mapping>
 		<filter-name>cloudMailInAuthFilter</filter-name>
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
+		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
 
 	

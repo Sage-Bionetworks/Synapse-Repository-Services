@@ -162,12 +162,11 @@ public class ITCloudMailIn {
 	// credentials.
 	@Test
 	public void testCloudMailInMessageWrongCredentials() throws Exception {
-		requestHeaders
-				.put("Authorization",
-						"Basic "
-								+ (new String(
-										Base64.encodeBase64((username + ":ThisIsTheWrongPassword!!!")
-												.getBytes()))));
+		requestHeaders.put("Authorization",
+				"Basic "+ (new String(Base64.encodeBase64(
+						(username + ":ThisIsTheWrongPassword!!!")
+										.getBytes()))));
+
 		String sampleFileName = SAMPLE_MESSAGES[0];
 		UserProfile userProfile = synapseOne.getUserProfile(user1ToDelete
 				.toString());
@@ -243,4 +242,36 @@ public class ITCloudMailIn {
 				.getStatusCode());
 
 	}
+	
+	@Test
+	public void testCloudMailAuthorizationWrongBasicCredentials() throws Exception {
+		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
+				.toString());
+		String fromemail = fromUserProfile.getEmails().get(0);
+		
+		UserProfile toUserProfile = synapseOne.getUserProfile(user1ToDelete
+				.toString());
+		String toUsername = toUserProfile.getUserName();
+		
+		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
+		ach.setFrom(fromemail);
+		ach.setTo(toUsername+"@synapse.org");
+
+		URL url = new URL(repoEndpoint + AUTHORIZATION_URI);
+		
+		requestHeaders.put("Authorization",
+				"Basic "+ (new String(Base64.encodeBase64(
+						(username + ":ThisIsTheWrongPassword!!!")
+										.getBytes()))));
+
+		HttpResponse response = conn.performRequest(url.toString(), "POST",
+				EntityFactory.createJSONStringForEntity(ach),
+				requestHeaders);
+
+		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine()
+				.getStatusCode());
+
+	}
+
+
 }
