@@ -16,35 +16,6 @@
 		<constructor-arg ref="awsSQSClient" />
 	</bean>
 
-	<bean id="dynamoQueueRemoverFactory"
-		class="org.sagebionetworks.dynamo.workers.sqs.DynamoQueueRemoverFactory"
-		scope="singleton" />
-
-	<bean id="dynamoQueueMessageRemover"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
-		scope="singleton" depends-on="awsSQSClient">
-		<property name="messageQueue" ref="dynamoMessageQueue" />
-		<property name="workerFactory" ref="dynamoQueueRemoverFactory" />
-		<property name="maxNumberOfWorkerThreads" value="1" />
-		<property name="maxMessagePerWorker" value="10" />
-		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-
-	<!-- Redefine the dynamo worker trigger for shorter intervals during tests -->
-	<bean id="dynamoQueueMessageRetrieverTrigger"
-			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
-			scope="singleton">
-		<property name="jobDetail">
-			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="dynamoQueueMessageRetriever" />
-				<property name="targetMethod" value="triggerFired" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="200" />
-	</bean>
-
 	<!-- This is a shared  Scheduler-->
 	<bean id="repositoryManagerTestScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="triggers">

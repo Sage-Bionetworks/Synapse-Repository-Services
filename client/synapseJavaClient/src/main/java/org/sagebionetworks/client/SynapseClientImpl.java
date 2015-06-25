@@ -4600,68 +4600,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	}
 
-	/**
-	 * Gets the paginated list of descendants for the specified node.
-	 *
-	 * @param lastDescIdExcl
-	 *            Paging delimiter. The last descendant ID (exclusive).
-	 * @throws SynapseException
-	 */
-	@Override
-	public EntityIdList getDescendants(String nodeId, int pageSize,
-			String lastDescIdExcl) throws SynapseException {
-		StringBuilder url = new StringBuilder().append(ENTITY_URI_PATH)
-				.append("/").append(nodeId).append("/descendants").append("?")
-				.append(LIMIT).append("=").append(pageSize);
-		if (lastDescIdExcl != null) {
-			url.append("&").append("lastEntityId").append("=")
-					.append(lastDescIdExcl);
-		}
-		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint,
-				url.toString(), getUserAgent());
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		EntityIdList idList = new EntityIdList();
-		try {
-			idList.initializeFromJSONObject(adapter);
-			return idList;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	/**
-	 * Gets the paginated list of descendants of a particular generation for the
-	 * specified node.
-	 *
-	 * @param generation
-	 *            How many generations away from the node. Children are exactly
-	 *            1 generation away.
-	 * @param lastDescIdExcl
-	 *            Paging delimiter. The last descendant ID (exclusive).
-	 * @throws SynapseException
-	 */
-	@Override
-	public EntityIdList getDescendants(String nodeId, int generation,
-			int pageSize, String lastDescIdExcl) throws SynapseException {
-		StringBuilder url = new StringBuilder().append(ENTITY_URI_PATH)
-				.append("/").append(nodeId).append("/descendants").append("/")
-				.append(generation).append("?").append(LIMIT).append("=")
-				.append(pageSize);
-		if (lastDescIdExcl != null) {
-			url.append("&").append("lastEntityId").append("=")
-					.append(lastDescIdExcl);
-		}
-		JSONObject jsonObj = getSharedClientConnection().getJson(repoEndpoint,
-				url.toString(), getUserAgent());
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		EntityIdList idList = new EntityIdList();
-		try {
-			idList.initializeFromJSONObject(adapter);
-			return idList;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
 
 	@Override
 	public Evaluation createEvaluation(Evaluation eval) throws SynapseException {

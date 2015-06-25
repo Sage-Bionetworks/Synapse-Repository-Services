@@ -34,22 +34,21 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
 		</dependency>
-
 		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-dynamo</artifactId>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-id-generator</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-table-cluster</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
@@ -61,7 +60,7 @@
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>database-semaphore</artifactId>
@@ -149,7 +148,7 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.quartz-scheduler</groupId>
+			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
 		</dependency>
 
@@ -191,7 +190,8 @@
 						<phase>generate-test-sources</phase>
 						<configuration>
 							<!-- This will drop/create the database schema before running tests. -->
-							<mainClass>org.sagebionetworks.repo.model.bootstrap.DatabasePreparation</mainClass>
+							<mainClass>org.sagebionetworks.repo.model.bootstrap.DatabasePreparation
+							</mainClass>
 						</configuration>
 						<goals>
 							<goal>java</goal>
@@ -201,6 +201,9 @@
 			</plugin>
 		</plugins>
 	</build>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 
 </project>
 

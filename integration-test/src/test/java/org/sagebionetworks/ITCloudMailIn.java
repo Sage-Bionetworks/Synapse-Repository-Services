@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
@@ -24,6 +25,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -39,7 +41,8 @@ public class ITCloudMailIn {
 	private static final String[] SAMPLE_MESSAGES = { "SimpleMessage.json",
 			"MessageWithAttachment.json" };
 
-	private static final String URI = "/cloudMailInMessage";
+	private static final String MESSAGE_URI = "/cloudMailInMessage";
+	private static final String AUTHORIZATION_URI = "/cloudMailInAuthorization";
 
 	private SharedClientConnection conn;
 	Map<String, String> requestHeaders;
@@ -119,7 +122,7 @@ public class ITCloudMailIn {
 			if (EmailValidationUtil.doesFileExist(emailMessageKey, 2000L))
 				EmailValidationUtil.deleteFile(emailMessageKey);
 
-			URL url = new URL(repoEndpoint + URI);
+			URL url = new URL(repoEndpoint + MESSAGE_URI);
 			HttpResponse response = conn.performRequest(url.toString(), "POST",
 					EntityFactory.createJSONStringForEntity(message),
 					requestHeaders);
@@ -188,4 +191,54 @@ public class ITCloudMailIn {
 		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
 				.getStatusCode());
 	}
+	
+	
+	@Test
+	public void testCloudMailAuthorizationOK() throws Exception {
+		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
+				.toString());
+		String fromemail = fromUserProfile.getEmails().get(0);
+		
+		UserProfile toUserProfile = synapseOne.getUserProfile(user1ToDelete
+				.toString());
+		String toUsername = toUserProfile.getUserName();
+		
+		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
+		ach.setFrom(fromemail);
+		ach.setTo(toUsername+"@synapse.org");
+
+		URL url = new URL(repoEndpoint + AUTHORIZATION_URI);
+		HttpResponse response = conn.performRequest(url.toString(), "POST",
+				EntityFactory.createJSONStringForEntity(ach),
+				requestHeaders);
+
+		assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine()
+				.getStatusCode());
+
+	}
+
+	@Test
+	public void testCloudMailAuthorizationBadTo() throws Exception {
+		UserProfile fromUserProfile = synapseOne.getUserProfile(user1ToDelete
+				.toString());
+		String fromemail = fromUserProfile.getEmails().get(0);
+		
+		// this is not a valid recipient
+		String toUsername = UUID.randomUUID().toString();
+		
+		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
+		ach.setFrom(fromemail);
+		ach.setTo(toUsername+"@synapse.org");
+
+		URL url = new URL(repoEndpoint + AUTHORIZATION_URI);
+		HttpResponse response = conn.performRequest(url.toString(), "POST",
+				EntityFactory.createJSONStringForEntity(ach),
+				requestHeaders);
+
+		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
+				.getStatusCode());
+
+	}
+
+
 }
