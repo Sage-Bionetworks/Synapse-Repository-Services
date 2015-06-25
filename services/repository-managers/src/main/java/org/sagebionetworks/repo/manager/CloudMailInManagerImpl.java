@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -159,20 +158,33 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		return result;
 	}
 	
+	private Long lookupAlternateEmail(String primaryEmail, String alternateEmail) throws AddressException {
+		try {
+			return lookupPrincipalIdForRegisteredEmailAddress(alternateEmail);
+		} catch (IllegalArgumentException e) {
+			if (primaryEmail==null) throw e;
+			throw new IllegalArgumentException("Neither "+primaryEmail+" nor "+alternateEmail+" is a recognized, registered Synapse address.");
+		} catch (AddressException e) {
+			if (primaryEmail==null) throw e;
+			throw new IllegalArgumentException("Neither "+primaryEmail+" nor "+alternateEmail+" is a recognized, registered Synapse address.");
+		}
+	}
+	
 	public Long lookupPrincipalIdForRegisteredEmailAddressAndAlternate(String primaryEmail, String alternateEmail) throws AddressException {
 		try {
 			return lookupPrincipalIdForRegisteredEmailAddress(primaryEmail);
-		} catch (Exception e) {
-			try {
-				return lookupPrincipalIdForRegisteredEmailAddress(alternateEmail);
-			} catch (Exception e2) {
-				throw new IllegalArgumentException("Neither "+primaryEmail+" nor "+alternateEmail+" is a recognized, registered Synapse address.");
-			}
+		} catch (IllegalArgumentException e) {
+			if (alternateEmail==null) throw e;
+			return lookupAlternateEmail(primaryEmail, alternateEmail);
+		} catch (AddressException e) {
+			if (alternateEmail==null) throw e;
+			return lookupAlternateEmail(primaryEmail, alternateEmail);
 		}
 	}
 	
 	public Long lookupPrincipalIdForRegisteredEmailAddress(String email) throws AddressException {
 		// first, make sure it's actually an email address
+		if (email==null) throw new IllegalArgumentException("email address is missing");
 		InternetAddress[] address = InternetAddress.parse(email);
 		if (address.length!=1) throw new IllegalArgumentException(
 				"Expected one address but found "+address.length+" in "+email);
