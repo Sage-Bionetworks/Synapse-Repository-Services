@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +25,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -109,11 +111,13 @@ public class ITCloudMailIn {
 																	// other
 																	// headers
 																	// too
-			newHeaders.put("From", fromemail);
-			newHeaders.put("To", myusername + "@synapse.org");
 			String toemail = userProfile.getEmails().get(0);
 			message.setHeaders(newHeaders.toString());
-
+			
+			Envelope newEnvelope = new Envelope();
+			newEnvelope.setFrom(fromemail);
+			newEnvelope.setRecipients(Collections.singletonList(myusername + "@synapse.org"));
+			message.setEnvelope(newEnvelope);
 			String emailMessageKey = EmailValidationUtil
 					.getBucketKeyForEmail(toemail);
 			if (EmailValidationUtil.doesFileExist(emailMessageKey, 2000L))
