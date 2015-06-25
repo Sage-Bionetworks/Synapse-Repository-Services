@@ -308,7 +308,7 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_VERSION_DOI = ENTITY_VERSION_NUMBER + DOI;
 
-	/**
+ 	/**
 	 * Gets the root node.
 	 */
 	public static final String ENTITY_ROOT = ENTITY + "/root";
@@ -549,6 +549,7 @@ public class UrlHelpers {
 	public static final String MESSAGE_ID_FILE            = MESSAGE_ID + FILE;
 	public static final String ENTITY_ID_MESSAGE          = ENTITY_ID + MESSAGE;
 	public static final String CLOUDMAILIN_MESSAGE        = "/cloudMailInMessage";
+	public static final String CLOUDMAILIN_AUTHORIZATION  = "/cloudMailInAuthorization";
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
