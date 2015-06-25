@@ -1,0 +1,30 @@
+{
+	"title": "Envelope",
+	"description":"Message Envelope",
+	"properties":{
+		"to":{
+			"type":"string",
+			"description":"The message recipient, this could be your CloudMailin email address or custom domain email."
+		},
+		"from":{
+			"type":"string",
+			"description":"The message sender's email address."
+		},
+		"size":{
+			"type":"integer",
+			"description":"The size of the message the user is trying to send. This isn't always available as it relies on SIZE being sent to our servers with the message sender."
+		},
+		"helo_domain":{
+			"type":"string",
+			"description":"The domain that the remote server authenticated with when it connected to the CloudMailin email Servers"
+		},
+		"remote_ip":{
+			"type":"string",
+			"description":"The IP address of the server that is sending this message to the CloudMailin servers"
+		},
+		"spf": {
+			"type": "string",
+			"description":"The SPF result for the given IP address and Domain."
+		}
+	} 
+}
