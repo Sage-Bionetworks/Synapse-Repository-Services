@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,6 +18,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
@@ -177,6 +179,19 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(extractedAddress);
 		if (alias==null) throw new IllegalArgumentException("Specified address "+extractedAddress+" is not registered with Synapse.");
 		return alias.getPrincipalId();
+	}
+
+	@Override
+	public void authorizeMessage(AuthorizationCheckHeader header) {
+		try {
+			// this will throw an exception if 'from' is invalid
+			lookupPrincipalIdForRegisteredEmailAddress(header.getFrom());
+			if (lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton(header.getTo())).isEmpty()) {
+				throw new IllegalArgumentException(header.getTo()+" is not a known Synapse email recipient.");
+			}
+		} catch (AddressException e) {
+			throw new IllegalArgumentException("Invalid address encounted.", e);
+		}
 	}
 	
 }
