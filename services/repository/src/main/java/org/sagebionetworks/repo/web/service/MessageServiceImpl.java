@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +64,13 @@ public class MessageServiceImpl implements MessageService {
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(mtub.getMetadata().getCreatedBy()));
 		notificationManager.sendNotifications(userInfo, Collections.singletonList(mtub));
 	}
+	
+	@Override
+	public void authorize(AuthorizationCheckHeader ach) {
+		cloudMailInManager.authorizeMessage(ach);
+	}
+
+
 
 	@Override
 	public PaginatedResults<MessageBundle> getInbox(Long userId,
