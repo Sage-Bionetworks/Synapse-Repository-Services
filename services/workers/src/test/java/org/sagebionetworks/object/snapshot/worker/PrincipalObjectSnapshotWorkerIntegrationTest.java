@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.object.snapshot.worker.utils.ObjectSnapshotWorkerTestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -69,6 +70,6 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setObjectType(expectedTeam.getClass().getSimpleName());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeam));
-		assertTrue(ObjectSnapshotWorkerUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
+		assertTrue(ObjectSnapshotWorkerTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
 	}
 }

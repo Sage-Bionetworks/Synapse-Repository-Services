@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker;
+package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.Set;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 
-public class ObjectSnapshotWorkerUtils {
+public class ObjectSnapshotWorkerTestUtils {
 	
 
 	private static final int TIME_OUT = 2 * 60 * 1000;

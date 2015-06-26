@@ -11,13 +11,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.object.snapshot.worker.utils.ObjectSnapshotWorkerTestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -58,8 +57,8 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 		
 		// Create a user
 		user = new NewUser();
-		user.setFirstName("James");
-		user.setLastName("Bond");
+		user.setFirstName("FirstName");
+		user.setLastName("LastName");
 		user.setUserName("user");
 		user.setEmail("employee@sagebase.org");
 		userId = userManager.createUser(user);
@@ -89,10 +88,9 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 		teamManager.addMember(admin, teamId.toString(), userManager.getUserInfo(userId));
 		
 		TeamMember expectedTeamMember = teamManager.getMember(teamId.toString(), userId.toString());
-		System.out.println(expectedTeamMember.toString());
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setObjectType(expectedTeamMember.getClass().getSimpleName());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeamMember));
-		assertTrue(ObjectSnapshotWorkerUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
+		assertTrue(ObjectSnapshotWorkerTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
 	}
 }

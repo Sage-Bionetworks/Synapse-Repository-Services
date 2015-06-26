@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker;
+package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -8,7 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -16,20 +15,17 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class PrincipalObjectSnapshotWorkerTest {
+public class PrincipalObjectRecordBuilderTest {
 	
-	private ObjectSnapshotWorker worker;
-	private ObjectRecordDAO mockObjectRecordDAO;
+	private PrincipalObjectRecordBuilder builder;
 	private UserProfileDAO mockUserProfileDAO;
 	private UserGroupDAO mockUserGroupDAO;
 	private TeamDAO mockTeamDAO;
-	@SuppressWarnings("rawtypes")
-	private ProgressCallback mockProgressCallback;
 	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
@@ -44,12 +40,10 @@ public class PrincipalObjectSnapshotWorkerTest {
 	
 	@Before
 	public void setup() {
-		mockObjectRecordDAO = Mockito.mock(ObjectRecordDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		worker = new ObjectSnapshotWorker(mockObjectRecordDAO, mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO);	
+		builder = new PrincipalObjectRecordBuilder(mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO);	
 		
 		ug = new UserGroup();
 		
@@ -79,111 +73,80 @@ public class PrincipalObjectSnapshotWorkerTest {
 		team.setModifiedOn(modifiedOn);
 	}
 	
-	@SuppressWarnings("unchecked")
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void nonPrincipalChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
-		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
-		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void createTeamTest() throws IOException {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 	
-	@SuppressWarnings("unchecked")
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void deleteTeamTest() throws IOException {
-		ug.setIsIndividual(false);
-		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
-		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
-		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void updateTeamTest() throws IOException {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO, Mockito.times(1)).saveBatch(Mockito.anyList());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void createUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void updateUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 	
-	@SuppressWarnings("unchecked")
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void deleteUserProfileTest() throws IOException {
-		ug.setIsIndividual(true);
-		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
-		worker.run(mockProgressCallback, message);
-		Mockito.verify(mockProgressCallback).progressMade(message);
-		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
-		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
-		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		builder.build(changeMessage);
 	}
 }
