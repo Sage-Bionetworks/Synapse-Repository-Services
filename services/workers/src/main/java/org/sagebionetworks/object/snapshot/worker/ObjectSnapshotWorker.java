@@ -42,20 +42,17 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private TeamDAO teamDAO;
-	@Autowired
-	private GroupMembersDAO groupMemberDAO;
 	
 	ObjectSnapshotWorker(){
 	}
 
 	// for unit test only
 	ObjectSnapshotWorker(ObjectRecordDAO objectRecordDao, UserGroupDAO userGroupDAO,
-			UserProfileDAO userProfileDAO, TeamDAO teamDAO, GroupMembersDAO groupMemberDAO) {
+			UserProfileDAO userProfileDAO, TeamDAO teamDAO) {
 		this.objectRecordDAO = objectRecordDao;
 		this.userProfileDAO = userProfileDAO;
 		this.teamDAO = teamDAO;
 		this.userGroupDAO = userGroupDAO;
-		this.groupMemberDAO = groupMemberDAO;
 	}
 
 	@Override
@@ -126,8 +123,8 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 		ObjectRecord record = new ObjectRecord();
 		record.setChangeNumber(changeMessage.getChangeNumber());
 		record.setTimestamp(changeMessage.getTimestamp().getTime());
-		record.setObjectType(entity.getClass().getSimpleName());
 		try {
+			record.setObjectType(entity.getClass().getSimpleName());
 			record.setJsonString(EntityFactory.createJSONStringForEntity(entity));
 		} catch (JSONObjectAdapterException e) {
 			// TODO Auto-generated catch block

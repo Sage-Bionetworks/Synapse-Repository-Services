@@ -1,7 +1,6 @@
 package org.sagebionetworks.object.snapshot.worker;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -10,14 +9,11 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -32,7 +28,6 @@ public class PrincipalObjectSnapshotWorkerTest {
 	private UserProfileDAO mockUserProfileDAO;
 	private UserGroupDAO mockUserGroupDAO;
 	private TeamDAO mockTeamDAO;
-	private GroupMembersDAO mockGroupMemberDAO;
 	@SuppressWarnings("rawtypes")
 	private ProgressCallback mockProgressCallback;
 	
@@ -44,14 +39,8 @@ public class PrincipalObjectSnapshotWorkerTest {
 	private Long timestamp = System.currentTimeMillis();
 	
 	UserGroup ug;
-	UserGroup ug2;
-	UserGroup ug1;
 	Team team;
 	UserProfile up;
-	TeamMember teamMember1;
-	TeamMember teamMember2;
-	UserGroupHeader member1;
-	UserGroupHeader member2;
 	
 	@Before
 	public void setup() {
@@ -59,32 +48,14 @@ public class PrincipalObjectSnapshotWorkerTest {
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		mockGroupMemberDAO = Mockito.mock(GroupMembersDAO.class);
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		worker = new ObjectSnapshotWorker(mockObjectRecordDAO, mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO, mockGroupMemberDAO);	
+		worker = new ObjectSnapshotWorker(mockObjectRecordDAO, mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO);	
 		
 		ug = new UserGroup();
 		
 		buildTeam();
 		
-		ug1 = buildUserGroup("1");
-		ug2 = buildUserGroup("2");
-		
-		buildUserProfile();
-		
-		member1 = buildMember("employee@sagebase.org");
-		member2 = buildMember("employee@gmail.com");
-		
-		teamMember1 = buildTeamMember(teamId, member1, true);
-		teamMember2 = buildTeamMember(teamId, member2, false);
-		
-	}
-
-	private UserGroupHeader buildMember(String email) {
-		UserGroupHeader member = new UserGroupHeader();
-		member.setEmail(email);
-		member.setIsIndividual(true);
-		return member;
+		buildUserProfile();	
 	}
 
 	private void buildUserProfile() {
@@ -94,23 +65,6 @@ public class PrincipalObjectSnapshotWorkerTest {
 		up.setEmails(Arrays.asList("employee@sagebase.org", "employee@gmail.com"));
 		up.setEtag(etag);
 		up.setOwnerId(principalID.toString());
-	}
-
-	private TeamMember buildTeamMember(String teamId, UserGroupHeader member, boolean isAdmin) {
-		TeamMember teamMember = new TeamMember();
-		teamMember.setTeamId(teamId);
-		teamMember.setIsAdmin(isAdmin);
-		teamMember.setMember(member);
-		return teamMember;
-	}
-
-	private UserGroup buildUserGroup(String id) {
-		UserGroup ug = new UserGroup();
-		ug.setCreationDate(createdOn);
-		ug.setEtag(etag);
-		ug.setId(id);
-		ug.setIsIndividual(true);
-		return ug;
 	}
 
 	private void buildTeam() {
@@ -128,15 +82,13 @@ public class PrincipalObjectSnapshotWorkerTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void nonPrincipalChangeMessage() throws IOException {
-		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag", timestamp);
+		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
 		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -145,14 +97,12 @@ public class PrincipalObjectSnapshotWorkerTest {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
-		Mockito.when(mockGroupMemberDAO.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
 		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -163,14 +113,12 @@ public class PrincipalObjectSnapshotWorkerTest {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
-		Mockito.when(mockGroupMemberDAO.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
 		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -181,16 +129,12 @@ public class PrincipalObjectSnapshotWorkerTest {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
-		Mockito.when(mockGroupMemberDAO.getMembers(principalID.toString())).thenReturn(Arrays.asList(ug2, ug1));
-		Mockito.when(mockTeamDAO.getMember(teamId, "1")).thenReturn(teamMember1);
-		Mockito.when(mockTeamDAO.getMember(teamId, "2")).thenReturn(teamMember2);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		worker.run(mockProgressCallback, message);
 		Mockito.verify(mockProgressCallback).progressMade(message);
 		Mockito.verify(mockObjectRecordDAO, Mockito.times(1)).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -207,7 +151,6 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -224,7 +167,6 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Mockito.verify(mockObjectRecordDAO).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
@@ -241,7 +183,6 @@ public class PrincipalObjectSnapshotWorkerTest {
 		Mockito.verify(mockObjectRecordDAO, Mockito.never()).saveBatch(Mockito.anyList());
 		Mockito.verify(mockUserGroupDAO, Mockito.never()).get(Mockito.anyLong());
 		Mockito.verify(mockUserProfileDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockGroupMemberDAO, Mockito.never()).getMembers(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
