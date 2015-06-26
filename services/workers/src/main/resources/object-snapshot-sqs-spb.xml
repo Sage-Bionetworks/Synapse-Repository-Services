@@ -42,6 +42,8 @@
 									<list>
 										<ref
 											bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
+										<ref
+											bean="stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]" />
 									</list>
 								</property>
 							</bean>

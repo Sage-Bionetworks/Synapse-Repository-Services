@@ -33,6 +33,7 @@
 	<!-- Topics -->
 	<bean name="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[EVALUATION_SUBMISSIONS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Define each value that we want to be able to inject in other beans. -->

@@ -15,8 +15,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -24,7 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
-public class PrincipalObjectSnapshotWorkerIntegrationTest {
+public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
@@ -32,31 +36,18 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 	private TeamManager teamManager;
 	@Autowired
 	private UserManager userManager;
-	
 	UserInfo admin;
 	Team team;
 	Long teamId;
+	NewUser user;
+	Long userId;
+	
 
 	@Before
 	public void before() throws Exception {
 		assertNotNull(objectRecordDAO);
 		assertNotNull(teamManager);
 		assertNotNull(userManager);
-		objectRecordDAO.deleteAllStackInstanceBatches();
-	}
-	
-	@After
-	public void after(){
-		if(team != null){
-			try {
-				teamManager.delete(admin, team.getId());
-			} catch (Exception e) {}
-		}
-	}
-	
-	@Test
-	public void teamTest() throws Exception {
-		Set<String> keys = objectRecordDAO.listAllKeys();
 		
 		// Create a user and a team.
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -65,10 +56,43 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		team = teamManager.create(admin, team);
 		teamId = Long.parseLong(team.getId());
 		
-		Team expectedTeam = teamManager.get(team.getId());
+		// Create a user
+		user = new NewUser();
+		user.setFirstName("James");
+		user.setLastName("Bond");
+		user.setUserName("user");
+		user.setEmail("employee@sagebase.org");
+		userId = userManager.createUser(user);
+		
+		objectRecordDAO.deleteAllStackInstanceBatches();
+	}
+	
+	@After
+	public void after(){
+		teamManager.removeMember(admin, teamId.toString(), userId.toString());
+		if(team != null){
+			try {
+				teamManager.delete(admin, team.getId());
+			} catch (Exception e) {}
+		}
+		if(userId != null){
+			try {
+				userManager.deletePrincipal(admin, userId);
+			} catch (Exception e) {}
+		}
+	}
+	
+	@Test
+	public void addTeamMemberTest() throws Exception {
+		Set<String> keys = objectRecordDAO.listAllKeys();
+		
+		teamManager.addMember(admin, teamId.toString(), userManager.getUserInfo(userId));
+		
+		TeamMember expectedTeamMember = teamManager.getMember(teamId.toString(), userId.toString());
+		System.out.println(expectedTeamMember.toString());
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(expectedTeam.getClass().getSimpleName());
-		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeam));
+		expectedRecord.setObjectType(expectedTeamMember.getClass().getSimpleName());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeamMember));
 		assertTrue(ObjectSnapshotWorkerUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
 	}
 }

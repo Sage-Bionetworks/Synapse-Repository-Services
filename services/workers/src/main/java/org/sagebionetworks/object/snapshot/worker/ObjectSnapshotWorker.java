@@ -59,7 +59,6 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 	public void run(ProgressCallback<Message> progressCallback, Message message) throws IOException{
 		// Keep this message invisible
 		progressCallback.progressMade(message);
-
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		
 		if (changeMessage.getChangeType() == ChangeType.DELETE) {

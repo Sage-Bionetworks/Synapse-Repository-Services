@@ -76,6 +76,7 @@ public class ExpectedStackBeansTest {
 			
 			"stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]",
 			"stackConfiguration.repositoryChangeTopic[PRINCIPAL]",
+			"stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]",
 			"stackConfiguration.repositoryChangeTopic[EVALUATION_SUBMISSIONS]",
 	};
 	
