@@ -98,13 +98,8 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	
 	public static MessageBody copyMessageToMessageBody(Message message) {
 		MessageBody result = new MessageBody();
-		// Note, if this is a reply we simply take the reply field and drop the html and plain fields
-		if (message.getReply_plain()!=null && message.getReply_plain().length()>0) {
-			result.setPlain(message.getReply_plain());
-		} else {
-			result.setPlain(message.getPlain());
-			result.setHtml(message.getHtml());
-		}
+		result.setPlain(message.getPlain());
+		result.setHtml(message.getHtml());
 		List<Attachment> attachments = new ArrayList<Attachment>();
 		if (message.getAttachments()!=null) {
 			for (org.sagebionetworks.repo.model.message.cloudmailin.Attachment cloudMailInAttachment : 
