@@ -212,8 +212,8 @@ public class CloudMailInManagerImplTest {
 		assertEquals(attachment.getFile_name(), actual.getFile_name());
 		assertEquals(attachment.getSize(), actual.getSize());
 		assertEquals(attachment.getUrl(), actual.getUrl());
-		assertNull(messageBody.getHtml());
-		assertEquals(reply, messageBody.getPlain());
+		assertEquals(plain, messageBody.getPlain());
+		assertEquals(html, messageBody.getHtml());
 	}
 	
 	
