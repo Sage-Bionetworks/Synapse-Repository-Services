@@ -1,10 +1,16 @@
 package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.audit.utils.ObjectCSVDAO;
+import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
+import org.sagebionetworks.aws.utils.s3.BucketDao;
+import org.sagebionetworks.aws.utils.s3.BucketDaoImpl;
+import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectReader;
+import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectWriter;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -16,6 +22,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 
 	@Autowired
 	private AmazonS3Client s3Client;
+	
 	/**
 	 * Injected via Spring
 	 */
@@ -24,6 +31,11 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	 * Injected via Spring
 	 */
 	private String objectRecordBucketFormat;
+	
+	private GzipCsvS3ObjectReader<ObjectRecord> reader;
+	private GzipCsvS3ObjectWriter<ObjectRecord> writer;
+	private Map<String, BucketDao> bucketDaoMap;
+	private Map<String, String> bucketNameMap;
 	
 	/**
 	 * Injected via Spring
@@ -34,7 +46,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	public void setObjectRecordBucketName(String objectRecordBucketFormat) {
+	public void setObjectRecordBucketFormat(String objectRecordBucketFormat) {
 		this.objectRecordBucketFormat = objectRecordBucketFormat;
 	}
 	/**
@@ -44,27 +56,42 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	public void initialize() {
 		if (objectRecordBucketFormat == null)
 			throw new IllegalArgumentException(
-					"bucketName has not been set and cannot be null");
-		// Create the bucket if it does not exist
-		// s3Client.createBucket(objectRecordBucketFormat);
+					"bucket name format has not been set and cannot be null");
+		reader = new GzipCsvS3ObjectReader<ObjectRecord>(s3Client, ObjectRecord.class, HEADERS);
+		writer = new GzipCsvS3ObjectWriter<ObjectRecord>(s3Client, ObjectRecord.class, HEADERS);
+		bucketDaoMap = new HashMap<String, BucketDao>();
+		bucketNameMap = new HashMap<String, String>();
 	}
 	
 	@Override
-	public String saveBatch(List<ObjectRecord> records) throws IOException {
-		return null;
+	public String saveBatch(List<ObjectRecord> batch, String type) throws IOException {
+		if (!bucketDaoMap.containsKey(type)) {
+			String bucketName = String.format(objectRecordBucketFormat, type);
+			// Create the bucket if it does not exist
+			s3Client.createBucket(bucketName);
+			bucketNameMap.put(type, bucketName);
+			BucketDao bucketDao = new BucketDaoImpl(s3Client, bucketName);
+			bucketDaoMap.put(type, bucketDao);
+		}
+		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), true);
+		writer.write(batch, bucketNameMap.get(type), key);
+		return key;
 	}
 
 	@Override
-	public List<ObjectRecord> getBatch(String key) throws IOException {
-		return null;
+	public List<ObjectRecord> getBatch(String key, String type) throws IOException {
+		return reader.read(bucketNameMap.get(type), key);
 	}
+	
 	@Override
 	public void deleteAllStackInstanceBatches() {
 	}
+	
 	@Override
 	public Set<String> listAllKeys() {
 		return null;
 	}
+	
 	@Override
 	public void deleteBactch(String key) {
 	}

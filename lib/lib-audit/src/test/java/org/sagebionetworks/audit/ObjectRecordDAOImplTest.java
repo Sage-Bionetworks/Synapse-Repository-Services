@@ -1,8 +1,8 @@
 package org.sagebionetworks.audit;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -40,11 +40,11 @@ public class ObjectRecordDAOImplTest {
 	public void testRoundTrip() throws IOException{
 		List<ObjectRecord> toTest = AuditTestUtils.createObjectRecordList(5);
 		// create the batch
-		String key = objectRecordDao.saveBatch(toTest);
+		String key = objectRecordDao.saveBatch(toTest, "userprofile");
 		assertNotNull(key);
-		assertFalse(key.contains(KeyGeneratorUtil.ROLLING));
+		assertTrue(key.contains(KeyGeneratorUtil.ROLLING));
 
-		List<ObjectRecord> back = objectRecordDao.getBatch(key);
+		List<ObjectRecord> back = objectRecordDao.getBatch(key, "userprofile");
 		assertEquals(toTest, back);
 	}
 

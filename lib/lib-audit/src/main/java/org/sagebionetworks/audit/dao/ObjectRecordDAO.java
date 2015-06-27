@@ -15,20 +15,22 @@ public interface ObjectRecordDAO {
 	/**
 	 * Save a batch of object records to a file and pushes it to S3
 	 * 
-	 * @param records the object records to write
+	 * @param records - the object records to write
+	 * @param type - the type of the synapse object that is going to be written 
 	 * @return the path of the file that is stored in S3
 	 * @throws IOException
 	 */
-	String saveBatch(List<ObjectRecord> records) throws IOException;
+	String saveBatch(List<ObjectRecord> records, String type) throws IOException;
 	
 	/**
 	 * Get a batch of ObjectRecords from the permanent store using its key
 	 * 
 	 * @param key - The key of the batch
+	 * @param type - the type of the synapse object
 	 * @return a batch of ObjectRecords
 	 * @throws IOException 
 	 */
-	List<ObjectRecord> getBatch(String key) throws IOException;
+	List<ObjectRecord> getBatch(String key, String type) throws IOException;
 
 	/**
 	 * Delete all stack instance batches from the bucket.
