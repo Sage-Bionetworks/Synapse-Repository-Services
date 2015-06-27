@@ -33,7 +33,7 @@ public class ObjectRecordDAOImplTest {
 	@After
 	public void after(){
 		// Clear the data for this test instance.
-		objectRecordDao.deleteAllStackInstanceBatches();
+		objectRecordDao.deleteAllStackInstanceBatches("userprofile");
 	}
 
 	@Test

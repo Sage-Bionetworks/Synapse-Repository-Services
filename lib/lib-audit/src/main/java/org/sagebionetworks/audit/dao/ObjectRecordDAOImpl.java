@@ -2,11 +2,11 @@ package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
+import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.aws.utils.s3.BucketDao;
 import org.sagebionetworks.aws.utils.s3.BucketDaoImpl;
 import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectReader;
@@ -65,6 +65,13 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	
 	@Override
 	public String saveBatch(List<ObjectRecord> batch, String type) throws IOException {
+		typeCheck(type);
+		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), true);
+		writer.write(batch, bucketNameMap.get(type), key);
+		return key;
+	}
+
+	private void typeCheck(String type) {
 		if (!bucketDaoMap.containsKey(type)) {
 			String bucketName = String.format(objectRecordBucketFormat, type);
 			// Create the bucket if it does not exist
@@ -73,26 +80,22 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 			BucketDao bucketDao = new BucketDaoImpl(s3Client, bucketName);
 			bucketDaoMap.put(type, bucketDao);
 		}
-		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber, System.currentTimeMillis(), true);
-		writer.write(batch, bucketNameMap.get(type), key);
-		return key;
 	}
 
 	@Override
 	public List<ObjectRecord> getBatch(String key, String type) throws IOException {
+		typeCheck(type);
 		return reader.read(bucketNameMap.get(type), key);
 	}
 	
 	@Override
-	public void deleteAllStackInstanceBatches() {
+	public void deleteAllStackInstanceBatches(String type) {
+		typeCheck(type);
+		bucketDaoMap.get(type).deleteAllObjectsWithPrefix(KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber));
 	}
 	
 	@Override
-	public Set<String> listAllKeys() {
-		return null;
-	}
-	
-	@Override
-	public void deleteBactch(String key) {
+	public Iterator<String> keyIterator(String type) {
+		return bucketDaoMap.get(type).keyIterator(KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber));
 	}
 }

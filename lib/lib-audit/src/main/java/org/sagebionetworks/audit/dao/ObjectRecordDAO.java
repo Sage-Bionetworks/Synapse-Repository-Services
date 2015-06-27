@@ -1,8 +1,8 @@
 package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 
@@ -35,18 +35,14 @@ public interface ObjectRecordDAO {
 	/**
 	 * Delete all stack instance batches from the bucket.
 	 * This should never be called on a production system.
+	 * @param type - the type of the synapse object
 	 * 
 	 */
-	void deleteAllStackInstanceBatches();
+	void deleteAllStackInstanceBatches(String type);
 
 	/**
-	 * @return all keys found this this bucket
+	 * @param type - the type of the synapse object
+	 * @return the key iterator for a bucket of this type
 	 */
-	Set<String> listAllKeys();
-
-	/**
-	 * Delete a batch.
-	 * @param key
-	 */
-	void deleteBactch(String key);
+	Iterator<String> keyIterator(String type);
 }
