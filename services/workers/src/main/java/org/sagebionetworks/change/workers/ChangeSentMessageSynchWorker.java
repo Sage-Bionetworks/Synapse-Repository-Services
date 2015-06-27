@@ -37,6 +37,10 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
  */
 public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 
+	private static final String AVG_PUBLISH = "avg publish time";
+
+	private static final String ELAPSE_TIME = "elapse time";
+
 	private static final String SENT_COUNT = "sent count";
 
 	private static final String FAILURE_COUNT = "failure count";
@@ -98,6 +102,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 			long startTime = System.currentTimeMillis();
 			long countSuccess = 0;
 			long countFailures = 0;
+			long publishElapseSum = 0;
 			long upperBounds = lowerBounds-1+pageSize;
 			// Could the tables be out-of-synch for this range?
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
@@ -108,7 +113,9 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 						// For each message make progress
 						callback.progressMade(null);
 						// publish the message.
+						long pubStart = System.currentTimeMillis();
 						repositoryMessagePublisher.publishToTopic(send);
+						publishElapseSum += System.currentTimeMillis()-pubStart;
 						countSuccess++;
 					} catch (Exception e) {
 						countFailures++;
@@ -123,9 +130,13 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 			callback.progressMade(null);
 			// Create some metrics
 			long elapse = System.currentTimeMillis()-startTime;
-			workerLogger.logCustomMetric(createElapseProfileData(elapse));
+			workerLogger.logCustomMetric(createElapseProfileData(elapse, ELAPSE_TIME));
 			workerLogger.logCustomMetric(createSentCount(countSuccess));
 			workerLogger.logCustomMetric(createFailureCount(countFailures));
+			if(countSuccess > 0){
+				long avgPublishMS = publishElapseSum/countSuccess;
+				workerLogger.logCustomMetric(createElapseProfileData(avgPublishMS, AVG_PUBLISH));
+			}
 		}
 
 	}
@@ -135,10 +146,10 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	 * @param elapseMS
 	 * @return
 	 */
-	public static ProfileData createElapseProfileData(long elapseMS){
+	public static ProfileData createElapseProfileData(long elapseMS, String name){
 		ProfileData nextPD = new ProfileData();
 		nextPD.setNamespace(METRIC_NAMESPACE); 
-		nextPD.setName("elapse time");
+		nextPD.setName(name);
 		nextPD.setValue((double)elapseMS);
 		nextPD.setUnit(StandardUnit.Milliseconds.name());
 		nextPD.setTimestamp(new Date(System.currentTimeMillis()));
