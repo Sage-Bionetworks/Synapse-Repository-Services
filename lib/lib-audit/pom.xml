@@ -12,7 +12,6 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-auto-generated</artifactId>
@@ -20,6 +19,10 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>aws-utilities</artifactId>
 		</dependency>
 		<!-- Logging -->
 		<dependency>
