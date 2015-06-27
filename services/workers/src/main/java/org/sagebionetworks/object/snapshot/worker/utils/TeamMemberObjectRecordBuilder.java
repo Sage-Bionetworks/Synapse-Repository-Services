@@ -17,6 +17,8 @@ public class TeamMemberObjectRecordBuilder implements ObjectRecordBuilder{
 	@Autowired
 	private TeamDAO teamDAO;
 
+	TeamMemberObjectRecordBuilder(){}
+	
 	// for unit test only
 	public TeamMemberObjectRecordBuilder(TeamDAO mockTeamDAO) {
 		this.teamDAO = mockTeamDAO;

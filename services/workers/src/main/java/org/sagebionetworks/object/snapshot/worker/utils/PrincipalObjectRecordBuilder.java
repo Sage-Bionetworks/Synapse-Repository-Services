@@ -25,6 +25,8 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 	@Autowired
 	private TeamDAO teamDAO;
 	
+	PrincipalObjectRecordBuilder(){}
+	
 	// for unit test only
 	PrincipalObjectRecordBuilder(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, TeamDAO teamDAO) {
 		this.userGroupDAO = userGroupDAO;
