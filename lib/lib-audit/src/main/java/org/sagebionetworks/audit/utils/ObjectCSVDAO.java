@@ -71,37 +71,6 @@ public class ObjectCSVDAO<T> {
 		s3Client.putObject(bucketName, key, in, om);
 		return key;
 	}
-	
-	/**
-	 * Save a batch of T records to the permanent store using the current time as the timestamp.
-	 *
-	 * @param rolling  Whether the batch is saved as "rolling".
-	 */
-	public String write(List<T> batch, String objectType, long timestamp, boolean rolling) throws IOException {
-		// Write the data to a gzip
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		GZIPOutputStream zipOut = new GZIPOutputStream(out);
-		OutputStreamWriter osw = new OutputStreamWriter(zipOut);
-		ObjectCSVWriter<T> writer = new ObjectCSVWriter<T>(osw, objectClass, headers);
-		// Write all of the data
-		for (T ar : batch) {
-			writer.append(ar);
-		}
-		writer.close();
-		// Create an input stream
-		byte[] bytes = out.toByteArray();
-		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-		// Build a new key
-		String key = KeyGeneratorUtil.createNewKey(objectType, stackInstanceNumber,
-				timestamp, rolling);
-		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("application/x-gzip");
-		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
-		om.setContentLength(bytes.length);
-		s3Client.putObject(bucketName, key, in, om);
-		return key;
-	}
 
 	/**
 	 * Get a batch of T records from the permanent store using its key

@@ -23,8 +23,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	private String objectRecordBucketName;
-	private ObjectCSVDAO<ObjectRecord> objectCsvDao;
+	private String objectRecordBucketFormat;
 	
 	/**
 	 * Injected via Spring
@@ -35,42 +34,38 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	/**
 	 * Injected via Spring
 	 */
-	public void setObjectRecordBucketName(String objectRecordBucketName) {
-		this.objectRecordBucketName = objectRecordBucketName;
+	public void setObjectRecordBucketName(String objectRecordBucketFormat) {
+		this.objectRecordBucketFormat = objectRecordBucketFormat;
 	}
 	/**
 	 * Initialize is called when this bean is first created.
 	 * 
 	 */
 	public void initialize() {
-		if (objectRecordBucketName == null)
+		if (objectRecordBucketFormat == null)
 			throw new IllegalArgumentException(
 					"bucketName has not been set and cannot be null");
 		// Create the bucket if it does not exist
-		s3Client.createBucket(objectRecordBucketName);
-		objectCsvDao = new ObjectCSVDAO<ObjectRecord>(s3Client, stackInstanceNumber, 
-				objectRecordBucketName, ObjectRecord.class, HEADERS);
+		// s3Client.createBucket(objectRecordBucketFormat);
 	}
 	
 	@Override
 	public String saveBatch(List<ObjectRecord> records) throws IOException {
-		return objectCsvDao.write(records, records.get(0).getObjectType(), System.currentTimeMillis(), false);
+		return null;
 	}
 
 	@Override
 	public List<ObjectRecord> getBatch(String key) throws IOException {
-		return objectCsvDao.read(key);
+		return null;
 	}
 	@Override
 	public void deleteAllStackInstanceBatches() {
-		objectCsvDao.deleteAllStackInstanceBatches();
 	}
 	@Override
 	public Set<String> listAllKeys() {
-		return objectCsvDao.listAllKeysWithoutPrefix();
+		return null;
 	}
 	@Override
 	public void deleteBactch(String key) {
-		objectCsvDao.delete(key);
 	}
 }
