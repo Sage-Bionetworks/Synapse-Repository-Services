@@ -91,7 +91,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		// Progress should be made for each page.
 		verify(mockCallback, times(5)).progressMade(null);
 		verify(mockRepositoryMessagePublisher, times(2)).publishToTopic(any(ChangeMessage.class));
-		verify(mockLogger, times(9)).logCustomMetric(any(ProfileData.class));
+		verify(mockLogger, times(10)).logCustomMetric(any(ProfileData.class));
 		assertEquals(start + 3000, testClock.currentTimeMillis());
 	}
 
