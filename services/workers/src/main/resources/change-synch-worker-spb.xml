@@ -18,23 +18,32 @@
 		class="org.sagebionetworks.change.workers.ChangeSentMessageSynchWorker"
 		scope="singleton" />
 
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="changeSentMessageSynchSemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" value="600000" />
-		<property name="maxNumberRunners" value="1" />
-		<property name="semaphoreKey" value="changeSentMessageSynch" />		
-		<property name="runner" ref="changeSentMessageSynchWorker" />
-	</bean>
 
-	<!-- This trigger is used to drive the worker -->
+	<!-- This is the trigger used to fire this worker -->
 	<bean id="changeSentMessageSynchTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="changeSentMessageSynchSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean
+								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner" ref="changeSentMessageSynchWorker"/>
+								<property name="semaphoreLockKey" value="changeSentMessageSynch" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="60" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
