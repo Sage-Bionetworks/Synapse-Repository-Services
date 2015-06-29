@@ -11,7 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.object.snapshot.worker.utils.ObjectSnapshotWorkerTestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -37,13 +36,15 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 	UserInfo admin;
 	Team team;
 	Long teamId;
+	String type;
 
 	@Before
 	public void before() throws Exception {
 		assertNotNull(objectRecordDAO);
 		assertNotNull(teamManager);
 		assertNotNull(userManager);
-		objectRecordDAO.deleteAllStackInstanceBatches();
+		type = Team.class.getSimpleName().toLowerCase();
+		objectRecordDAO.deleteAllStackInstanceBatches(type);
 	}
 	
 	@After
@@ -57,7 +58,7 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 	
 	@Test
 	public void teamTest() throws Exception {
-		Set<String> keys = objectRecordDAO.listAllKeys();
+		Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
 		
 		// Create a user and a team.
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -68,8 +69,8 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		
 		Team expectedTeam = teamManager.get(team.getId());
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(expectedTeam.getClass().getSimpleName());
+		expectedRecord.setObjectType(expectedTeam.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeam));
-		assertTrue(ObjectSnapshotWorkerTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
+		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
 	}
 }

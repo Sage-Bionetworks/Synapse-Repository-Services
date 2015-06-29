@@ -11,7 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.object.snapshot.worker.utils.ObjectSnapshotWorkerTestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -40,7 +39,7 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 	Long teamId;
 	NewUser user;
 	Long userId;
-	
+	String type;
 
 	@Before
 	public void before() throws Exception {
@@ -63,7 +62,8 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 		user.setEmail("employee@sagebase.org");
 		userId = userManager.createUser(user);
 		
-		objectRecordDAO.deleteAllStackInstanceBatches();
+		type = TeamMember.class.getSimpleName().toLowerCase();
+		objectRecordDAO.deleteAllStackInstanceBatches(type);
 	}
 	
 	@After
@@ -83,14 +83,14 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 	
 	@Test
 	public void addTeamMemberTest() throws Exception {
-		Set<String> keys = objectRecordDAO.listAllKeys();
+		Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
 		
 		teamManager.addMember(admin, teamId.toString(), userManager.getUserInfo(userId));
 		
 		TeamMember expectedTeamMember = teamManager.getMember(teamId.toString(), userId.toString());
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(expectedTeamMember.getClass().getSimpleName());
+		expectedRecord.setObjectType(expectedTeamMember.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeamMember));
-		assertTrue(ObjectSnapshotWorkerTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO));
+		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
 	}
 }

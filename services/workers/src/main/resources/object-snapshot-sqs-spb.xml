@@ -64,9 +64,8 @@
 								</property>
 								<property name="topicNamesToSubscribe">
 									<list>
-										
 										<ref bean="stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]" />
-										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />										
 									</list>
 								</property>
 							</bean>

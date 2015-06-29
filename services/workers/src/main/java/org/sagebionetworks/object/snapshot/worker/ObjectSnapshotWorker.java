@@ -50,7 +50,7 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 		ObjectRecordBuilder objectRecordBuilder = builderFactory.getObjectRecordBuilder(changeMessage.getObjectType());
 		ObjectRecord record = objectRecordBuilder.build(changeMessage);
 		if (record != null) {
-			objectRecordDAO.saveBatch(Arrays.asList(record));
+			objectRecordDAO.saveBatch(Arrays.asList(record), record.getObjectType());
 		}
 	}
 }

@@ -12,7 +12,7 @@ public class ObjectRecordBuilderUtils {
 		record.setChangeNumber(changeMessage.getChangeNumber());
 		record.setTimestamp(changeMessage.getTimestamp().getTime());
 		try {
-			record.setObjectType(entity.getClass().getSimpleName());
+			record.setObjectType(entity.getClass().getSimpleName().toLowerCase());
 			record.setJsonString(EntityFactory.createJSONStringForEntity(entity));
 		} catch (JSONObjectAdapterException e) {
 			e.printStackTrace();
