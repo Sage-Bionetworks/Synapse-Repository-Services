@@ -16,6 +16,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Attachment;
+import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
+import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -39,11 +41,11 @@ public class CloudMailInManagerImplTest {
 	@Test
 	public void testConvertMessage() throws Exception {
 		Message message = new Message();
+		Envelope envelope = new Envelope();
+		message.setEnvelope(envelope);
+		envelope.setFrom("foo@bar.com");
+		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
 		JSONObject headers = new JSONObject();
-		headers.put("From", "foo@bar.com");
-		headers.put("To", "baz@synapse.org");
-		headers.put("Cc", "baz2@synapse.org");
-		headers.put("Bcc", "baz3@synapse.org");
 		headers.put("Subject", "test subject");
 		message.setHeaders(headers.toString());
 		String html = "<html><body>html content</body></html>";
@@ -62,20 +64,6 @@ public class CloudMailInManagerImplTest {
 		expectedRecipients.add("101");
 		recipientPrincipalAliases.add(toAlias);
 		recipientUserNames.add("baz");
-		
-		PrincipalAlias ccAlias = new PrincipalAlias();
-		ccAlias.setAlias("baz2");
-		ccAlias.setPrincipalId(102L);
-		expectedRecipients.add("102");
-		recipientPrincipalAliases.add(ccAlias);
-		recipientUserNames.add("baz2");
-		
-		PrincipalAlias bccAlias = new PrincipalAlias();
-		bccAlias.setAlias("baz3");
-		bccAlias.setPrincipalId(103L);
-		expectedRecipients.add("103");
-		recipientPrincipalAliases.add(bccAlias);
-		recipientUserNames.add("baz3");
 				
 		PrincipalAlias fromAlias = new PrincipalAlias();
 		fromAlias.setAlias("foo@bar.com");
@@ -101,11 +89,44 @@ public class CloudMailInManagerImplTest {
 		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, mtu.getNotificationUnsubscribeEndpoint());
 	}
 	
+	@Test
+	public void testConvertMessageAlternateFrom() throws Exception {
+		Message message = new Message();
+		Envelope envelope = new Envelope();
+		message.setEnvelope(envelope);
+		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
+		JSONObject headers = new JSONObject();
+		headers.put("From", "foo@bar.com");
+		message.setHeaders(headers.toString());
+		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
+		Set<String> recipientUserNames = new HashSet<String>();
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias("baz");
+		toAlias.setPrincipalId(101L);
+		recipientPrincipalAliases.add(toAlias);
+		recipientUserNames.add("baz");
+				
+		PrincipalAlias fromAlias = new PrincipalAlias();
+		fromAlias.setAlias("foo@bar.com");
+		fromAlias.setPrincipalId(104L);
+		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
+		
+		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
+		
+		MessageToUserAndBody mtub = 
+				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		MessageToUser mtu = mtub.getMetadata();
+		assertEquals("104", mtu.getCreatedBy());
+
+	}
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testConvertMessageNoFrom() throws Exception {
 		Message message = new Message();
+		Envelope envelope = new Envelope();
+		message.setEnvelope(envelope);
+		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
 		JSONObject headers = new JSONObject();
-		headers.put("To", "baz@synapse.org");
 		headers.put("Subject", "test subject");
 		message.setHeaders(headers.toString());
 		
@@ -115,8 +136,10 @@ public class CloudMailInManagerImplTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testConvertMessageNoTo() throws Exception {
 		Message message = new Message();
+		Envelope envelope = new Envelope();
+		envelope.setFrom("foo@bar.com");
+		message.setEnvelope(envelope);
 		JSONObject headers = new JSONObject();
-		headers.put("From", "foo@bar.com");
 		headers.put("Subject", "test subject");
 		message.setHeaders(headers.toString());
 		
@@ -126,6 +149,8 @@ public class CloudMailInManagerImplTest {
 	@Test
 	public void testCopyMessageToMessageBody() throws Exception {
 		Message message = new Message();
+		Envelope envelope = new Envelope();
+		message.setEnvelope(envelope);
 		String html = "<html><body>html content</body></html>";
 		message.setHtml(html);
 		String plain = "plain content";
@@ -158,6 +183,8 @@ public class CloudMailInManagerImplTest {
 	@Test
 	public void testCopyMessageToMessageBodyWithReply() throws Exception {
 		Message message = new Message();
+		Envelope envelope = new Envelope();
+		message.setEnvelope(envelope);
 		String html = "<html><body>html content</body></html>";
 		message.setHtml(html);
 		String plain = "plain content";
@@ -185,8 +212,8 @@ public class CloudMailInManagerImplTest {
 		assertEquals(attachment.getFile_name(), actual.getFile_name());
 		assertEquals(attachment.getSize(), actual.getSize());
 		assertEquals(attachment.getUrl(), actual.getUrl());
-		assertNull(messageBody.getHtml());
-		assertEquals(reply, messageBody.getPlain());
+		assertEquals(plain, messageBody.getPlain());
+		assertEquals(html, messageBody.getHtml());
 	}
 	
 	
@@ -262,6 +289,72 @@ public class CloudMailInManagerImplTest {
 		String email = "fooXXXbar.com";
 
 		cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
+	}
+
+	@Test
+	public void testAuthObject() throws Exception {
+		String jsonString = "{\"size\":102400,\"to\":\"to@example.net\",\"from\":\"from+test@example.com\",\"helo_domain\":\"localhost\",\"remote_ip\":\"127.0.0.1\",\"spf\":{\"result\":\"pass\",\"domain\":\"example.com\"}}";
+		AuthorizationCheckHeader ach = EntityFactory.createEntityFromJSONString(jsonString, AuthorizationCheckHeader.class);
+		assertEquals(new Long(102400L), ach.getSize());
+
+		assertEquals("from+test@example.com", ach.getFrom());
+		assertEquals("localhost", ach.getHelo_domain());
+		assertEquals("127.0.0.1", ach.getRemote_ip());
+		assertEquals("{\"result\":\"pass\",\"domain\":\"example.com\"}", ach.getSpf());
+		assertEquals("to@example.net", ach.getTo());
+	}
+	
+	@Test
+	public void testAuthCheckHappyCase() throws Exception {
+		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
+		ach.setFrom("foo@bar.com");
+		ach.setTo("baz@synapse.org");
+		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
+		Set<String> recipientUserNames = new HashSet<String>();
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias("baz");
+		toAlias.setPrincipalId(101L);
+		recipientPrincipalAliases.add(toAlias);
+		recipientUserNames.add("baz");
+
+		PrincipalAlias fromAlias = new PrincipalAlias();
+		fromAlias.setAlias("foo@bar.com");
+		fromAlias.setPrincipalId(104L);
+		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
+		
+		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
+		
+		cloudMailInManager.authorizeMessage(ach);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testAuthCheckBadFrom() throws Exception {
+		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
+		ach.setFrom("foo@bar.com");
+		ach.setTo("baz@synapse.org");
+		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
+		Set<String> recipientUserNames = new HashSet<String>();
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias("baz");
+		toAlias.setPrincipalId(101L);
+		recipientPrincipalAliases.add(toAlias);
+		recipientUserNames.add("baz");
+		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
+		
+		cloudMailInManager.authorizeMessage(ach);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testAuthCheckBadTo() throws Exception {
+		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
+		ach.setFrom("foo@bar.com");
+		ach.setTo("baz@synapse.org");
+		PrincipalAlias fromAlias = new PrincipalAlias();
+		fromAlias.setAlias("foo@bar.com");
+		fromAlias.setPrincipalId(104L);
+		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
+
+		cloudMailInManager.authorizeMessage(ach);
 	}
 
 }
