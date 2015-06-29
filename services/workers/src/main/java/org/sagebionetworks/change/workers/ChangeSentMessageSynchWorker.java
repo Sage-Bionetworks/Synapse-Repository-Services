@@ -12,12 +12,11 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
-import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
@@ -35,7 +34,7 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
  * @author jmhill
  * 
  */
-public class ChangeSentMessageSynchWorker implements ProgressingRunner {
+public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 
 	private static final String AVG_PUBLISH = "avg publish time";
 
@@ -75,7 +74,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	Random random = new Random(System.currentTimeMillis());
 
 	@Override
-	public void run(ProgressCallback<Void> callback) {
+	public void run(ProgressCallback<Void> progressCallback) throws Exception {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
@@ -111,7 +110,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 				for(ChangeMessage send: toSend){
 					try {
 						// For each message make progress
-						callback.progressMade(null);
+						progressCallback.progressMade(null);
 						// publish the message.
 						long pubStart = System.currentTimeMillis();
 						repositoryMessagePublisher.publishToTopic(send);
@@ -127,7 +126,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 			// Sleep between pages to keep from overloading the database.
 			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
 			// Extend the timeout for this worker by calling the callback
-			callback.progressMade(null);
+			progressCallback.progressMade(null);
 			// Create some metrics
 			long elapse = System.currentTimeMillis()-startTime;
 			workerLogger.logCustomMetric(createElapseProfileData(elapse, ELAPSE_TIME));

@@ -25,8 +25,8 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ChangeSentMessageSynchWorkerUnitTest {
@@ -68,7 +68,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 
 	
 	@Test
-	public void testStackNotReadWrite(){
+	public void testStackNotReadWrite() throws Exception{
 		when(mockStatusDao.isStackReadWrite()).thenReturn(false);
 		worker.run(mockCallback);
 		verify(mockChangeDao, never()).getMinimumChangeNumber();
@@ -76,7 +76,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 	}
 	
 	@Test
-	public void testHappy(){
+	public void testHappy() throws Exception{
 		long max = pageSize*2+3;
 		long min = 1;
 		when(mockChangeDao.getCurrentChangeNumber()).thenReturn(max);
