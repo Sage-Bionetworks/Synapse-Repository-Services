@@ -133,6 +133,13 @@ public class ObjectCSVDAO<T> {
 	}
 
 	/**
+	 * List all of the objects in this bucket with the stack instance prefix string and the provided marker.
+	 */
+	public ObjectListing listBatchKeys(String marker) {
+		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.bucketName).withPrefix(stackInstancePrefixString).withMarker(marker));
+	}
+	
+	/**
 	 * @return all keys found in this bucket
 	 */
 	public Set<String> listAllKeys() {
@@ -146,9 +153,5 @@ public class ObjectCSVDAO<T> {
 			}
 		}while(marker != null);
 		return foundKeys;
-	}
-
-	public ObjectListing listBatchKeys(String marker) {
-		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.bucketName).withPrefix(stackInstancePrefixString).withMarker(marker));
 	}
 }
