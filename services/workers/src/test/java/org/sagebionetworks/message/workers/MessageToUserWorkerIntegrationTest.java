@@ -53,9 +53,6 @@ public class MessageToUserWorkerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private MessageReceiver messageToUserQueueMessageReceiver;
-	
-	@Autowired
 	private SemaphoreManager semphoreManager;
 	
 	private UserInfo fromUserInfo;
@@ -69,8 +66,6 @@ public class MessageToUserWorkerIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
-		// Before we start, make sure the queue is empty
-		emptyQueue();
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
@@ -126,24 +121,6 @@ public class MessageToUserWorkerIntegrationTest {
 			}
 		});
 		message = messageManager.createMessage(fromUserInfo, message);
-	}
-
-	/**
-	 * Empty the queue by processing all messages on the queue.
-	 */
-	public void emptyQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do {
-			count = messageToUserQueueMessageReceiver.triggerFired();
-			System.out.println("Emptying the message (to user) queue, there were at least: "
-							+ count + " messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis() - start;
-			if (elapse > MAX_WAIT * 2)
-				throw new RuntimeException(
-						"Timed out waiting process all messages that were on the queue before the tests started.");
-		} while (count > 0);
 	}
 
 	@After

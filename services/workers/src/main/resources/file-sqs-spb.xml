@@ -11,7 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="fileQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -31,7 +30,7 @@
 								</property>
 								<property name="semaphoreLockKey" value="filePreviewWorker" />
 								<property name="semaphoreMaxLockCount"
-									ref="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" />
+									value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="1800" />
 								<property name="queueName" ref="stackConfiguration.fileUpdateQueueName" />
