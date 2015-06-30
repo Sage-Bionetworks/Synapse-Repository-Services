@@ -48,7 +48,7 @@
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
 	<bean id="searchSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
+		<property name="timeoutMS" value="30000" />
 		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersSearch" />
 		<property name="semaphoreKey" value="searchIndexWorker" />		
 		<property name="runner" ref="searchQueueMessageReveiver" />

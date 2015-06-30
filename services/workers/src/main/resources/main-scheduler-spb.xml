@@ -30,7 +30,7 @@
 	<import resource="classpath:cloudwatch-trigger-spb.xml" />
 	<import resource="classpath:search-triggers-import.xml" />
 	
-	<import resource="classpath:rds-sqs-manager-spb.xml" />
+	<import resource="classpath:entity-annotations-worker-spb.xml" />
 	<import resource="classpath:aws-worker.spb.xml" />
 	<import resource="classpath:search-sqs-spb.xml" />
 	<import resource="classpath:file-sqs-spb.xml" />	

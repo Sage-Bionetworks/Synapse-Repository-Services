@@ -35,6 +35,7 @@
 	<bean name="stackConfiguration.repositoryChangeTopic[FILE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[MESSAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.repositoryChangeTopic[ENTITY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -78,7 +79,6 @@
 	<bean id="stackConfiguration.repositoryModificationTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.searchUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.searchUpdateDeadLetterQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.dynamoUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.rdsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.messageUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.fileUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -109,12 +109,7 @@
 	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
 		
 	<!-- Semaphore gated runner configuration -->
-	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersRds" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersMessageToUser" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersSearch" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-    <bean id="stackConfiguration.semaphoreGatedMaxRunnersPrincipalHeaderFiller" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" /> 
     <bean id="stackConfiguration.semaphoreGatedMaxRunnersTableCluster" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
     <bean id="stackConfiguration.semaphoreExclusiveMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
     <bean id="stackConfiguration.semaphoreSharedMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  

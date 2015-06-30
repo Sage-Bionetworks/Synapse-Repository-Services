@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="aclQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="rdsQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -26,18 +26,18 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.acl.worker.AclSnapshotWorker" />
+									<bean class="org.sagebionetworks.rds.workers.EntityAnnotationsWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="aclSnapshotWorker" />
+								<property name="semaphoreLockKey" value="entityAnnotationsWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="30" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" />
+									ref="stackConfiguration.rdsUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref
-											bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
+											bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
 									</list>
 								</property>
 								<property name="gate">
@@ -55,6 +55,5 @@
 		<property name="startDelay" value="37" />
 		<property name="repeatInterval" value="1987" />
 	</bean>
-
 
 </beans>
