@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.service.MessageService;
@@ -311,10 +313,12 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	@Test
 	public void testCloudInMessage() throws Exception {
 		Message message = new Message();
+		Envelope envelope = new Envelope();
+		envelope.setFrom(aliceEmail);
+		envelope.setRecipients(Collections.singletonList(bobUsername+"@synapse.org"));
+		message.setEnvelope(envelope);
 		JSONObject headers = new JSONObject();
 		headers.put("Subject", "subject");
-		headers.put("From", aliceEmail);
-		headers.put("To", bobUsername+"@synapse.org");
 		message.setHeaders(headers.toString());
 		message.setPlain("this is the message body");
 		servletTestHelper.createCloudInMessage(message);

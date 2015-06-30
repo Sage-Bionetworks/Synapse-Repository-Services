@@ -12,12 +12,11 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
-import org.sagebionetworks.repo.model.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
@@ -35,7 +34,11 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
  * @author jmhill
  * 
  */
-public class ChangeSentMessageSynchWorker implements ProgressingRunner {
+public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
+
+	private static final String AVG_PUBLISH = "avg publish time";
+
+	private static final String ELAPSE_TIME = "elapse time";
 
 	private static final String SENT_COUNT = "sent count";
 
@@ -71,7 +74,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	Random random = new Random(System.currentTimeMillis());
 
 	@Override
-	public void run(ProgressCallback<Void> callback) {
+	public void run(ProgressCallback<Void> progressCallback) throws Exception {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
@@ -98,6 +101,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 			long startTime = System.currentTimeMillis();
 			long countSuccess = 0;
 			long countFailures = 0;
+			long publishElapseSum = 0;
 			long upperBounds = lowerBounds-1+pageSize;
 			// Could the tables be out-of-synch for this range?
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
@@ -106,9 +110,11 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 				for(ChangeMessage send: toSend){
 					try {
 						// For each message make progress
-						callback.progressMade(null);
+						progressCallback.progressMade(null);
 						// publish the message.
+						long pubStart = System.currentTimeMillis();
 						repositoryMessagePublisher.publishToTopic(send);
+						publishElapseSum += System.currentTimeMillis()-pubStart;
 						countSuccess++;
 					} catch (Exception e) {
 						countFailures++;
@@ -120,12 +126,16 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 			// Sleep between pages to keep from overloading the database.
 			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
 			// Extend the timeout for this worker by calling the callback
-			callback.progressMade(null);
+			progressCallback.progressMade(null);
 			// Create some metrics
 			long elapse = System.currentTimeMillis()-startTime;
-			workerLogger.logCustomMetric(createElapseProfileData(elapse));
+			workerLogger.logCustomMetric(createElapseProfileData(elapse, ELAPSE_TIME));
 			workerLogger.logCustomMetric(createSentCount(countSuccess));
 			workerLogger.logCustomMetric(createFailureCount(countFailures));
+			if(countSuccess > 0){
+				long avgPublishMS = publishElapseSum/countSuccess;
+				workerLogger.logCustomMetric(createElapseProfileData(avgPublishMS, AVG_PUBLISH));
+			}
 		}
 
 	}
@@ -135,10 +145,10 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 	 * @param elapseMS
 	 * @return
 	 */
-	public static ProfileData createElapseProfileData(long elapseMS){
+	public static ProfileData createElapseProfileData(long elapseMS, String name){
 		ProfileData nextPD = new ProfileData();
 		nextPD.setNamespace(METRIC_NAMESPACE); 
-		nextPD.setName("elapse time");
+		nextPD.setName(name);
 		nextPD.setValue((double)elapseMS);
 		nextPD.setUnit(StandardUnit.Milliseconds.name());
 		nextPD.setTimestamp(new Date(System.currentTimeMillis()));

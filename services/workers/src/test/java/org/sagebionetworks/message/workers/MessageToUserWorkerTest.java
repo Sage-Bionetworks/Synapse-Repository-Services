@@ -1,13 +1,10 @@
 package org.sagebionetworks.message.workers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,20 +16,28 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
 public class MessageToUserWorkerTest {
-	List<Message> messages;
+	
+	ProgressCallback<Message> mockCallback;
 	MessageManager mockMessageManager;
 	WorkerLogger mockWorkerLogger;
-
+	MessageToUserWorker worker;
+	
 
 	@Before
 	public void before() {
-		messages = new LinkedList<Message>();
+		mockCallback = Mockito.mock(ProgressCallback.class);
 		mockMessageManager = Mockito.mock(MessageManager.class);
 		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
+		worker = new MessageToUserWorker();
+		ReflectionTestUtils.setField(worker, "messageManager", mockMessageManager);
+		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
 	}
 	
 	@Test
@@ -46,12 +51,8 @@ public class MessageToUserWorkerTest {
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
-		messages.add(msg);
-		MessageToUserWorker worker = new MessageToUserWorker(messages, mockMessageManager, mockWorkerLogger);
-		List<Message> processedMsgs = worker.call();
-		assertNotNull(processedMsgs);
-		assertEquals(1, processedMsgs.size());
-		assertEquals(msg, processedMsgs.get(0));
+		// call under test
+		worker.run(mockCallback, msg);
 	}
 
 	@Test
@@ -65,15 +66,11 @@ public class MessageToUserWorkerTest {
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
-		messages.add(msg);
 		NotFoundException e = new NotFoundException();
 		when(mockMessageManager.processMessage(chgMsg.getObjectId())).thenThrow(e);
-		MessageToUserWorker worker = new MessageToUserWorker(messages, mockMessageManager, mockWorkerLogger);
-		List<Message> processedMsgs = worker.call();
+		// call under test
+		worker.run(mockCallback, msg);
 		verify(mockWorkerLogger).logWorkerFailure(MessageToUserWorker.class, chgMsg, e, false);
-		assertNotNull(processedMsgs);
-		assertEquals(1, processedMsgs.size());
-		assertEquals(msg, processedMsgs.get(0));
 	}
 
 	@Test
@@ -87,14 +84,16 @@ public class MessageToUserWorkerTest {
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
-		messages.add(msg);
 		RuntimeException e = new RuntimeException();
 		when(mockMessageManager.processMessage(chgMsg.getObjectId())).thenThrow(e);
-		MessageToUserWorker worker = new MessageToUserWorker(messages, mockMessageManager, mockWorkerLogger);
-		List<Message> processedMsgs = worker.call();
+		try {
+			// call under test
+			worker.run(mockCallback, msg);
+			fail("Should have thrown an exception");
+		} catch (RecoverableMessageException e1) {
+			//expected
+		}
 		verify(mockWorkerLogger).logWorkerFailure(MessageToUserWorker.class, chgMsg, e, true);
-		assertNotNull(processedMsgs);
-		assertEquals(0, processedMsgs.size());
 	}
 
 }

@@ -15,7 +15,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -57,9 +56,6 @@ public class PreviewIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private MessageReceiver fileQueueMessageReveiver;
-	
-	@Autowired
 	private AmazonS3Client s3Client;
 	
 	@Autowired
@@ -75,8 +71,6 @@ public class PreviewIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
-		// Before we start, make sure the queue is empty
-		fileQueueMessageReveiver.emptyQueue();
 		// Create a file
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		toDelete = new LinkedList<S3FileHandleInterface>();
