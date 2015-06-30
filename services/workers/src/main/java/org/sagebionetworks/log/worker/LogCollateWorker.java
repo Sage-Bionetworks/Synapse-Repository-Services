@@ -18,6 +18,9 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.logging.s3.LogDAO;
 import org.sagebionetworks.logging.s3.LogKeyUtils;
 import org.sagebionetworks.logging.s3.LogReader;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressingRunner;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -29,26 +32,16 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  * @author John
  *
  */
-public class LogCollateWorker {
+public class LogCollateWorker implements ProgressingRunner<Void>{
 		
 	static private Logger log = LogManager.getLogger(LogCollateWorker.class);
-	private LogDAO logDAO;
 
-	/**
-	 * All dependencies are provide at construction time.
-	 * @param logDAO
-	 */
-	public LogCollateWorker(LogDAO logDAO) {
-		super();
-		this.logDAO = logDAO;
-	}
+	@Autowired
+	LogDAO logDAO;
 
-	/**
-	 * Merge one batch of files.
-	 * 
-	 * @return True if there are more files to be merged, else False.
-	 */
-	public boolean mergeOneBatch() {
+
+	@Override
+	public void run(ProgressCallback<Void> progressCallback) throws Exception {
 		try {
 			// Walk all of the logs looking for multiple logs with the same type/date/hour
 			String marker = null;
@@ -58,6 +51,7 @@ public class LogCollateWorker {
 				marker = listing.getNextMarker();
 				if(listing.getObjectSummaries() != null){
 					for(S3ObjectSummary summ: listing.getObjectSummaries()){
+						progressCallback.progressMade(null);
 						// Bucket by type/date/hour
 						String typeDateHour = LogKeyUtils.getTypeDateAndHourFromKey(summ.getKey());
 						// Do we have a batch?
@@ -67,7 +61,7 @@ public class LogCollateWorker {
 							// batch.
 							if (!batchData.batchDateString.equals(typeDateHour)) {
 								// The next log does not belong in the current batch so
-								collateBatch(batchData);
+								collateBatch(batchData, progressCallback);
 								// We are done with this batch
 								batchData = null;
 							}
@@ -85,10 +79,8 @@ public class LogCollateWorker {
 			}while(marker != null);
 			// If there is any batch data left then complete it.
 			if(batchData != null){
-				collateBatch(batchData);
+				collateBatch(batchData, progressCallback);
 			}
-			// If we made it this far then there is no more data.
-			return false;
 		} catch (Exception e) {
 			log.error("Worker failed", e);
 			throw new RuntimeException(e);
@@ -101,7 +93,7 @@ public class LogCollateWorker {
 	 * @param data
 	 * @return True if the batch was merged.  False if there was nothing to merge or the batch was empty.
 	 */
-	private boolean collateBatch(BatchData data) {
+	private boolean collateBatch(BatchData data, ProgressCallback<Void> progressCallback) {
 		if(data != null){
 			if(data.mergedKeys.size() > 0){
 				// If this batch only contains one file there is nothing to do.
@@ -128,6 +120,7 @@ public class LogCollateWorker {
 							ObjectMetadata meta = logDAO.downloadLogFile(key, tempFiles[index]);
 							toCollate[index] = new LogReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(tempFiles[index])))));
 							index++;
+							progressCallback.progressMade(null);
 						}
 						// Now collate all of the files
 						CollateUtils.collateLogs(toCollate, outWriter);
@@ -189,5 +182,6 @@ public class LogCollateWorker {
 			this.startMs = System.currentTimeMillis();
 		}
 	}
+
 
 }
