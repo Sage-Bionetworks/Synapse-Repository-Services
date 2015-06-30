@@ -10,43 +10,44 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
+	
+	<bean id="s3FileCopyWorker" class="org.sagebionetworks.file.worker.S3FileCopyWorker" />
 
-	<!-- This trigger is used to process messages from the search queue. -->
-	<bean id="s3FileCopyMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean" scope="singleton">
+	<bean id="s3FileCopyMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+		scope="singleton">
 		<property name="jobDetail">
-			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
-					<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-						<property name="timeoutMS" value="60000" />
-						<property name="maxNumberRunners" value="20" />
-						<property name="semaphoreKey" value="s3FileCopy" />		
-						<property name="runner">
-							<bean class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl" scope="singleton">
-								<property name="messageQueue">
-									<bean class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
-											depends-on="stackConfiguration">
-										<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[S3_FILE_COPY]" />
-									</bean>
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner" ref="s3FileCopyWorker"/>
+								<property name="semaphoreLockKey" value="s3FileCopy" />
+								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="60" />
+								<property name="queueName"
+									ref="stackConfiguration.asyncQueueName[S3_FILE_COPY]" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
-								<property name="workerFactory">
-									<bean class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-										<property name="worker" value="org.sagebionetworks.file.worker.S3FileCopyWorker" />
-									</bean>
-								</property>
-								<property name="maxNumberOfWorkerThreads" value="5" />
-								<property name="maxMessagePerWorker" value="1" />
-								<property name="visibilityTimeoutSec" value="1800" />
 							</bean>
-						</property>
+						</constructor-arg>
 					</bean>
 				</property>
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="47" />
-		<property name="repeatInterval" value="1063" />
+		<property name="startDelay" value="37" />
+		<property name="repeatInterval" value="2063" />
 	</bean>
 
 </beans>
