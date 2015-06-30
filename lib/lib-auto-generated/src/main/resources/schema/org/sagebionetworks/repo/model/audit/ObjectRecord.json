@@ -1,0 +1,21 @@
+{
+	"description": "Data recored from a change message and its associated object",
+	"properties": {
+		"timestamp": {
+			"type": "integer",
+			"description": "The timestamp of the change event, in UTC milliseconds"
+		},
+		"changeNumber": {
+			"type": "integer",
+			"description": "The application change number created as a result of this change"
+		},
+		"objectType": {
+			"type": "string",
+			"description": "The type of object"
+		},
+		"jsonString": {
+			"type": "string",
+			"description": "The json string representation of the object"
+		}
+	}
+}

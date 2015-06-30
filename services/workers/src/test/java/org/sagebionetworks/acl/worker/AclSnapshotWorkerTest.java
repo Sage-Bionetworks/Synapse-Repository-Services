@@ -1,7 +1,6 @@
 package org.sagebionetworks.acl.worker;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -16,7 +15,6 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.audit.dao.AclRecordDAO;
 import org.sagebionetworks.audit.dao.ResourceAccessRecordDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -25,7 +23,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
@@ -34,7 +31,6 @@ import com.amazonaws.services.sqs.model.Message;
 public class AclSnapshotWorkerTest {
 	private AclRecordDAO mockAclRecordDao;
 	private ResourceAccessRecordDAO mockResourceAccessRecordDao;
-	private DBOChangeDAO mockChangeDao;
 	private AccessControlListDAO mockAccessControlListDao;
 	private ProgressCallback<Message> mockProgressCallback;
 	AclSnapshotWorker worker;
@@ -43,10 +39,9 @@ public class AclSnapshotWorkerTest {
 	public void setUp() {
 		mockAclRecordDao = Mockito.mock(AclRecordDAO.class);
 		mockResourceAccessRecordDao = Mockito.mock(ResourceAccessRecordDAO.class);
-		mockChangeDao = Mockito.mock(DBOChangeDAO.class);
 		mockAccessControlListDao = Mockito.mock(AccessControlListDAO.class);
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		worker = new AclSnapshotWorker(mockAclRecordDao, mockResourceAccessRecordDao, mockChangeDao, mockAccessControlListDao);
+		worker = new AclSnapshotWorker(mockAclRecordDao, mockResourceAccessRecordDao, mockAccessControlListDao);
 	}
 
 	@Test

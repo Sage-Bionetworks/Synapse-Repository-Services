@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -39,8 +38,6 @@ public class AclSnapshotWorker implements MessageDrivenRunner {
 	@Autowired
 	private ResourceAccessRecordDAO resourceAccessRecordDao;
 	@Autowired
-	private DBOChangeDAO changeDao;
-	@Autowired
 	private AccessControlListDAO accessControlListDao;
 
 	public AclSnapshotWorker() {
@@ -48,10 +45,9 @@ public class AclSnapshotWorker implements MessageDrivenRunner {
 
 	// for unit test only
 	AclSnapshotWorker(AclRecordDAO aclRecordDao, ResourceAccessRecordDAO resourceAccessRecordDao,
-			DBOChangeDAO changeDao, AccessControlListDAO accessControlListDao) {
+			AccessControlListDAO accessControlListDao) {
 		this.aclRecordDao = aclRecordDao;
 		this.resourceAccessRecordDao = resourceAccessRecordDao;
-		this.changeDao = changeDao;
 		this.accessControlListDao = accessControlListDao;
 	}
 

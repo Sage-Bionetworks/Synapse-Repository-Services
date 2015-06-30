@@ -102,7 +102,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	
 	@Override
 	public ObjectListing listBatchKeys(String marker) {
-		return objectCsvDao.listBatchKeys( marker);
+		return objectCsvDao.listBatchKeys(marker);
 	}
 
 	@Override
