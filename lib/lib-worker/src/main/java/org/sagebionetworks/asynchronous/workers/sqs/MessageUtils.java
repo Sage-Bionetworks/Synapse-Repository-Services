@@ -241,9 +241,8 @@ public class MessageUtils {
 	 * @param etag
 	 * @return
 	 */
-	@SuppressWarnings("null")
 	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag){
-		return buildMessage(changeType, objectId, objectType, (String) null, etag, (Long) null);
+		return buildMessage(changeType, objectId, objectType, null, etag, System.currentTimeMillis());
 	}
 
 	/**
@@ -256,7 +255,7 @@ public class MessageUtils {
 	 * @return
 	 */
 	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag, Long timestamp){
-		return buildMessage(changeType, objectId, objectType, (String) null, etag, timestamp);
+		return buildMessage(changeType, objectId, objectType, null, etag, timestamp);
 	}
 
 	/**
