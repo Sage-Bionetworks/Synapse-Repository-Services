@@ -1204,15 +1204,6 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * The maximum number of workers in the cluster that will send messages to users
-	 */
-	public Integer getSemaphoreGatedMaxRunnersMessageToUser() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.message.to.user"));
-	}
-
-	/**
 	 * The maximum number of workers in the cluster that will process search
 	 * index data
 	 * 
@@ -1222,61 +1213,6 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.search"));
-	}
-
-	/**
-	 * The maximum number of workers in the cluster that will process file
-	 * previews
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersFilePreview() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.file.preview"));
-	}
-
-	/**
-	 * The maximum number of workers in the cluster that will process Dynamo
-	 * index data
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersDynamoIndex() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.index"));
-	}
-
-	/**
-	 * The maximum number of workers in the cluster that will synchronize Dynamo
-	 * with RDS
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersDynamoSynchronize() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
-	}
-
-	
-	/**
-	 * The maximum number of workers in the cluster that will push UnsentMessageRanges to SQS
-	 */
-	public Integer getSemaphoreGatedMaxRunnersUnsentMessageQueuer() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.queuer"));
-	}
-	
-	/**
-	 * The maximum number of workers in the cluster that will pop UnsentMessageRanges from SQS
-	 */
-	public Integer getSemaphoreGatedMaxRunnersUnsentMessagePoppers() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
 	}
 	
 	/**

@@ -1,13 +1,10 @@
 package org.sagebionetworks.principal.worker;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.Worker;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -19,11 +16,14 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class PrincipalPrefixWorker implements Worker {
+public class PrincipalPrefixWorker implements MessageDrivenRunner {
 	
 	static private Logger log = LogManager.getLogger(PrincipalPrefixWorker.class);
 	
@@ -36,32 +36,15 @@ public class PrincipalPrefixWorker implements Worker {
 	@Autowired
 	UserGroupDAO userGroupDao;
 
-	List<Message> messages;
-	WorkerProgress workerProgress;
-	
 	@Override
-	public List<Message> call() throws Exception {
-		List<Message> toDelete = new LinkedList<Message>();
-		for(Message message: messages){
-			try{
-				Message returned = process(message);
-				if(returned != null){
-					toDelete.add(returned);
-				}
-			} catch(Throwable e) {
-				log.error("Worker Failed", e);
-			}
-		}
-		return toDelete;
-	}
-
-	private Message process(Message message) throws Throwable {
+	public void run(ProgressCallback<Message> progressCallback, Message message)
+			throws RecoverableMessageException, Exception {
 		// Keep this message invisible
-		workerProgress.progressMadeForMessage(message);
+		progressCallback.progressMade(message);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		if (changeMessage.getObjectType() != ObjectType.PRINCIPAL) {
 			// do nothing when receive a non-principal message
-			return message;
+			return;
 		}
 		// Get the user's profile for their first and last name
 		Long principalId = Long.parseLong(changeMessage.getObjectId());
@@ -74,7 +57,7 @@ public class PrincipalPrefixWorker implements Worker {
 			userGroup = userGroupDao.get(principalId);
 		} catch (NotFoundException e1) {
 			log.warn("Principal not found: "+principalId);
-			return message;
+			return;
 		}
 		if(userGroup.getIsIndividual()){
 			// User
@@ -93,22 +76,14 @@ public class PrincipalPrefixWorker implements Worker {
 				List<PrincipalAlias> names = principalAliasDAO.listPrincipalAliases(principalId, AliasType.TEAM_NAME);
 				for(PrincipalAlias alias: names){
 					principalPrefixDao.addPrincipalAlias(alias.getAlias(), principalId);
+					progressCallback.progressMade(message);
 				}
 			} catch (Exception e) {
 				log.warn("Did not find team names for principalId = "+principalId);
 			}
-		}	
-		return message;
+		}
 	}
 	
-	@Override
-	public void setMessages(List<Message> messages) {
-		this.messages = messages;
-	}
 
-	@Override
-	public void setWorkerProgress(WorkerProgress workerProgress) {
-		this.workerProgress = workerProgress;
-	}
 
 }

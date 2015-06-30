@@ -1,6 +1,8 @@
 package org.sagebionetworks.principal.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 
@@ -8,8 +10,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageQueue;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -37,8 +37,6 @@ public class PrincipalPrefixWorkerIntegrationTest {
 	TeamManager teamManager;
 	@Autowired
 	UserManager userManager;
-	@Autowired
-	MessageReceiver principalPrefixQueueMessageReveiver;
 	
 	UserInfo admin;
 	Team team;
@@ -49,7 +47,6 @@ public class PrincipalPrefixWorkerIntegrationTest {
 	@Before
 	public void before() throws NotFoundException, InterruptedException{
 		principalPrefixDao.truncateTable();
-		principalPrefixQueueMessageReveiver.emptyQueue();
 		commonPrefix = "PrincipalPrefixWorkerIntegrationTest";
 		// Create a user and a team.
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

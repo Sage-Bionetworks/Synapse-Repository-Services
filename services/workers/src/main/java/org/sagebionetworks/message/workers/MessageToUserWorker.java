@@ -1,8 +1,6 @@
 package org.sagebionetworks.message.workers;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,6 +10,10 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -19,68 +21,56 @@ import com.amazonaws.services.sqs.model.Message;
  * The worker that processes messages sending messages to users
  * 
  */
-public class MessageToUserWorker implements Callable<List<Message>> {
+public class MessageToUserWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(MessageToUserWorker.class);
 
-	private List<Message> messages;
+	@Autowired
 	private MessageManager messageManager;
-	WorkerLogger workerLogger;
 
-	public MessageToUserWorker(List<Message> messages,
-			MessageManager messageManager,
-			WorkerLogger workerProfiler) {
-		if (messages == null) {
-			throw new IllegalArgumentException("Messages cannot be null");
-		}
-		if (messageManager == null) {
-			throw new IllegalArgumentException("MessageManager cannot be null");
-		}
-		this.messages = messages;
-		this.messageManager = messageManager;
-		this.workerLogger = workerProfiler;
-	}
+	@Autowired
+	private WorkerLogger workerLogger;
 
 	@Override
-	public List<Message> call() throws Exception {
-		List<Message> processedMessages = new LinkedList<Message>();
-		for (Message message : messages) {
-			// Extract the ChangeMessage
-			ChangeMessage change = MessageUtils.extractMessageBody(message);
-			
-			// We only care about MESSAGE messages here
-			if (ObjectType.MESSAGE == change.getObjectType()) {
-				try {
-					List<String> errors;
-					switch (change.getChangeType()) {
-					case CREATE:
-						errors = messageManager.processMessage(change.getObjectId());
-						break;
-					default:
-						throw new IllegalArgumentException("Unknown change type: " + change.getChangeType());
-					}
-					
-					if (errors.size() > 0) {
-						messageManager.sendDeliveryFailureEmail(change.getObjectId(), errors);
-					}
-					
-					// This message was processed
-					processedMessages.add(message);
-				} catch (NotFoundException e) {
-					log.info("NotFound: " + e.getMessage() + ". The message will be returned as processed and removed from the queue");
-					workerLogger.logWorkerFailure(this.getClass(), change, e, false);
-					processedMessages.add(message);
-				} catch (Throwable e) {
-					// Something went wrong and we did not process the message
-					log.error("Failed to process message", e);
-					workerLogger.logWorkerFailure(this.getClass(), change, e, true);
+	public void run(ProgressCallback<Message> progressCallback, Message message)
+			throws RecoverableMessageException, Exception {
+
+		// Extract the ChangeMessage
+		ChangeMessage change = MessageUtils.extractMessageBody(message);
+
+		// We only care about MESSAGE messages here
+		if (ObjectType.MESSAGE == change.getObjectType()) {
+			try {
+				List<String> errors;
+				switch (change.getChangeType()) {
+				case CREATE:
+					errors = messageManager
+							.processMessage(change.getObjectId());
+					break;
+				default:
+					throw new IllegalArgumentException("Unknown change type: "
+							+ change.getChangeType());
 				}
-			} else {
-				// Non-MESSAGE messages must be returned so they can be removed from the queue.
-				processedMessages.add(message);
+
+				if (errors.size() > 0) {
+					messageManager.sendDeliveryFailureEmail(
+							change.getObjectId(), errors);
+				}
+
+			} catch (NotFoundException e) {
+				log.info("NotFound: "
+						+ e.getMessage()
+						+ ". The message will be returned as processed and removed from the queue");
+				workerLogger
+						.logWorkerFailure(this.getClass(), change, e, false);
+			} catch (Throwable e) {
+				// Something went wrong and we did not process the message
+				log.error("Failed to process message", e);
+				workerLogger.logWorkerFailure(this.getClass(), change, e, true);
+				// This is the wrong thing to do with a throwable.
+				throw new RecoverableMessageException();
 			}
 		}
-		return processedMessages;
 	}
 
 }
