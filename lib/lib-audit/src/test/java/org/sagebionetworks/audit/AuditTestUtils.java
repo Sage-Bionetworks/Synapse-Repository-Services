@@ -102,7 +102,7 @@ public class AuditTestUtils {
 		return list;
 	}
 
-	public static List<ObjectRecord> createObjectRecordList(int numberOfRecords) {
+	public static List<ObjectRecord> createUserProfileObjectRecordList(int numberOfRecords) {
 		UserProfile up = new UserProfile();
 		up.setCompany("Sage");
 		up.setEmail("employee@sagebase.org");

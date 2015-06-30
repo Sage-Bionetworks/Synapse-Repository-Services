@@ -19,7 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.sqs.model.Message;
 
 /**
- * This worker writes ACL change messages to a file, and put the file to S3 
+ * This worker listens to object change messages, takes a snapshot of the object, 
+ * writes it to a file, and put the file to S3.
  */
 public class ObjectSnapshotWorker implements MessageDrivenRunner {
 

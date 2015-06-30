@@ -9,10 +9,6 @@ import java.util.Set;
 
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class ObjectSnapshotWorkerIntegrationTestUtils {
 	
@@ -29,8 +25,8 @@ public class ObjectSnapshotWorkerIntegrationTestUtils {
 		while (System.currentTimeMillis() < start + TIME_OUT) {
 			Set<String> newKeys = listAllKeys(objectRecordDAO, type);
 			newKeys.removeAll(oldKeys);
-			if (newKeys.size() != 0) {
-				return findRecords(expectedRecords, newKeys, objectRecordDAO, type);
+			if (newKeys.size() != 0 && findRecords(expectedRecords, newKeys, objectRecordDAO, type)) {
+				return true;
 			}
 
 			// wait for 1 second before calling the service again
@@ -39,6 +35,12 @@ public class ObjectSnapshotWorkerIntegrationTestUtils {
 		return false;
 	}
 
+	/**
+	 * 
+	 * @param objectRecordDAO
+	 * @param type
+	 * @return all keys available for this type in S3
+	 */
 	public static Set<String> listAllKeys(ObjectRecordDAO objectRecordDAO, String type) {
 		Iterator<String> it = objectRecordDAO.keyIterator(type);
 		Set<String> keys = new HashSet<String>();
@@ -48,6 +50,10 @@ public class ObjectSnapshotWorkerIntegrationTestUtils {
 		return keys;
 	}
 
+	/**
+	 * @return true if newKeys contains information for all expectedRecords,
+	 * 		false otherwise.
+	 */
 	private static boolean findRecords(List<ObjectRecord> expectedRecords, Set<String> newKeys, ObjectRecordDAO objectRecordDAO, String type) throws IOException {
 		List<ObjectRecord> newRecords = new ArrayList<ObjectRecord>();
 		for (String key : newKeys) {
@@ -56,6 +62,14 @@ public class ObjectSnapshotWorkerIntegrationTestUtils {
 		return compareRecords(newRecords, expectedRecords);
 	}
 
+	/**
+	 * Compares two list of ObjectRecords
+	 * 
+	 * @param actualRecords
+	 * @param expectedRecords
+	 * @return true if actualRecords contains all expectedRecords regardless
+	 * of changeNumber and timestamp, false otherwise.
+	 */
 	private static boolean compareRecords(List<ObjectRecord> actualRecords, List<ObjectRecord> expectedRecords) {
 		for (ObjectRecord record: actualRecords) {
 			record.setChangeNumber(null);

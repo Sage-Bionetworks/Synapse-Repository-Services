@@ -38,7 +38,7 @@ public class ObjectRecordDAOImplTest {
 
 	@Test
 	public void testRoundTrip() throws IOException{
-		List<ObjectRecord> toTest = AuditTestUtils.createObjectRecordList(5);
+		List<ObjectRecord> toTest = AuditTestUtils.createUserProfileObjectRecordList(5);
 		// create the batch
 		String key = objectRecordDao.saveBatch(toTest, "userprofile");
 		assertNotNull(key);
