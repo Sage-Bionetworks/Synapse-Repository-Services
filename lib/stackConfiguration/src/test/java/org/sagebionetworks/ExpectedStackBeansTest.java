@@ -55,9 +55,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersRds",
 			"stackConfiguration.semaphoreGatedMaxRunnersSearch",
-			"stackConfiguration.semaphoreGatedMaxRunnersFilePreview",
-			"stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex",
-			"stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize",
 			"stackConfiguration.semaphoreExclusiveMaxTimeoutMS",
 			"stackConfiguration.semaphoreSharedMaxTimeoutMS",
 			
@@ -76,6 +73,9 @@ public class ExpectedStackBeansTest {
 			
 			"stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]",
 			"stackConfiguration.repositoryChangeTopic[EVALUATION_SUBMISSIONS]",
+			"stackConfiguration.repositoryChangeTopic[FILE]",
+			"stackConfiguration.repositoryChangeTopic[PRINCIPAL]",
+			"stackConfiguration.repositoryChangeTopic[MESSAGE]"
 	};
 	
 	@Before

@@ -11,60 +11,49 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Setups the search message queue. -->
-	<bean id="messageToUserMessageQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
-			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.messageUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
-		<constructor-arg index="2">
-			<list>
-				<value>MESSAGE</value>
-			</list>
-		</constructor-arg>
-		<constructor-arg index="3" value="true" />
-	</bean>
 
-	<!-- provides search message queue workers -->
-	<bean id="messageToUserQueueWorkerFactory"
-		class="org.sagebionetworks.message.workers.MessageToUserWorkerFactory"
-		scope="singleton" />
-
-	<!-- Pull messages off the search queue, create works, deletes successfully 
-		processed messages -->
-	<bean id="messageToUserQueueMessageReceiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
-		scope="singleton">
-		<property name="messageQueue" ref="messageToUserMessageQueue" />
-		<property name="workerFactory" ref="messageToUserQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="2" />
-		<property name="maxMessagePerWorker" value="5" />
-		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-	
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="messageToUserSemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
-		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersMessageToUser" />
-		<property name="semaphoreKey" value="messageSenderWorker" />		
-		<property name="runner" ref="messageToUserQueueMessageReceiver" />
-	</bean>
-
-	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="messageToUserQueueMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="messageToUserSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.message.workers.MessageToUserWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="messageSenderWorker" />
+								<property name="semaphoreMaxLockCount" value="2" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="60" />
+								<property name="queueName"
+									ref="stackConfiguration.messageUpdateQueueName" />
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref bean="stackConfiguration.repositoryChangeTopic[MESSAGE]" />
+									</list>
+								</property>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stagger the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="75" />
-		<property name="repeatInterval" value="500" />
+		<property name="repeatInterval" value="1500" />
 	</bean>
 
 </beans>
