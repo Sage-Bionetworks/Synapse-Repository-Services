@@ -1179,27 +1179,6 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.repo.model.dbo.migration.max.allowed.packet.byte"));
 	}
 
-
-	/**
-	 * The maximum number of workers in the cluster that will process search
-	 * index data
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersSearch() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.search"));
-	}
-	
-	/**
-	 * The maximum number of workers in the cluster that will update the PrincipalHeader table from SQS
-	 */
-	public Integer getSemaphoreGatedMaxRunnersPrincipalHeaderFiller() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
-	}
 	
 	public Integer getSemaphoreGatedMaxRunnersTableCluster() {
 		return Integer
