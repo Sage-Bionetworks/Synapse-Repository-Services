@@ -112,13 +112,8 @@
 	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersRds" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersMessageToUser" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersSearch" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersSearch" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessageQueuer" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
     <bean id="stackConfiguration.semaphoreGatedMaxRunnersPrincipalHeaderFiller" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" /> 
     <bean id="stackConfiguration.semaphoreGatedMaxRunnersTableCluster" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
     <bean id="stackConfiguration.semaphoreExclusiveMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  

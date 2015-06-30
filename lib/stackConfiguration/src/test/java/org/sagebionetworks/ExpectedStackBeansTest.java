@@ -55,9 +55,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersRds",
 			"stackConfiguration.semaphoreGatedMaxRunnersSearch",
-			"stackConfiguration.semaphoreGatedMaxRunnersFilePreview",
-			"stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex",
-			"stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize",
 			"stackConfiguration.semaphoreExclusiveMaxTimeoutMS",
 			"stackConfiguration.semaphoreSharedMaxTimeoutMS",
 			
