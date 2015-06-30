@@ -11,56 +11,45 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Setups the search message queue. -->
-	<bean id="fileMessageQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
-			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.fileUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
-		<constructor-arg index="2">
-			<list>
-				<value>FILE</value>
-			</list>
-		</constructor-arg>
-		<constructor-arg index="3" value="true" />
-		<constructor-arg index = "4" ref="stackConfiguration.fileUpdateDeadLetterQueueName" />
-		<constructor-arg index="5" value="5" />
-	</bean>
-
-	<!-- provides search message queue workers -->
-	<bean id="fileQueueWorkerFactory"
-		class="org.sagebionetworks.file.worker.FileMessageWorkerFactory"
-		scope="singleton" />
-
-	<!-- Pull messages off the search queue, create works, deletes successfully 
-		processed messages -->
-	<bean id="fileQueueMessageReveiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
-		scope="singleton">
-		<property name="messageQueue" ref="fileMessageQueue" />
-		<property name="workerFactory" ref="fileQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="10" />
-		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="fileSemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
-		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" />
-		<property name="semaphoreKey" value="filePreviewWorker" />		
-		<property name="runner" ref="fileQueueMessageReveiver" />
-	</bean>
-
-	<!-- This trigger is used to process messages from the file preview queue. -->
+	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="fileQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="fileSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.file.worker.PreviewWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="filePreviewWorker" />
+								<property name="semaphoreMaxLockCount"
+									ref="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="1800" />
+								<property name="queueName" ref="stackConfiguration.fileUpdateQueueName" />
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref bean="stackConfiguration.repositoryChangeTopic[FILE]" />
+									</list>
+								</property>
+								<property name="deadLetterQueueName" ref="stackConfiguration.fileUpdateDeadLetterQueueName"/>
+								<property name="deadLetterMaxFailureCount" value="5"/>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>

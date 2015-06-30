@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
-import org.sagebionetworks.repo.model.file.S3FileCopyResult;
 import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -61,8 +60,6 @@ import com.google.common.collect.Lists;
  * This test validates that when a file is created, the message propagates to the preview queue, is processed by the
  * preview worker and a preview is created.
  * 
- * @author John
- * 
  */
 @RunWith(ParallelizedSpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -80,9 +77,6 @@ public class S3FileCopyIntegrationTest {
 
 	@Autowired
 	private UserManager userManager;
-
-	@Autowired
-	private MessageReceiver fileQueueMessageReveiver;
 
 	@Autowired
 	private AmazonS3Client s3Client;
