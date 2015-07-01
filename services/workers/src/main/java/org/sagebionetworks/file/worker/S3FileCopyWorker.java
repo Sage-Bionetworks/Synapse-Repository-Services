@@ -295,7 +295,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 				throw new IllegalArgumentException(
 						"The bucket "
 								+ entry.getFileCopyResult().getResultBucket()
-								+ " could not be found or accessed. Check the name and permissions on that bucket. See www.synapse.org//#!HelpPages:CreatingADownloadBucket for details on how to set up a download bucket.");
+								+ " could not be found or accessed. Check the name and permissions on that bucket. See https://www.synapse.org//#!Help:CreateS3DownloadBucket for details on how to set up a download bucket.");
 			} else if (AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode()) || AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode())) {
 				// just doesn't exist. Nothing needs doing
 			} else {
