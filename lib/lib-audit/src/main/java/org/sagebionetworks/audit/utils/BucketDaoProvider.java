@@ -19,10 +19,12 @@ public class BucketDaoProvider {
 
 	private Map<String, BucketDao> bucketDaoMap;
 	private AmazonS3Client s3Client;
+	private String stack;
 
-	public BucketDaoProvider(AmazonS3Client s3Client) {
+	public BucketDaoProvider(AmazonS3Client s3Client, String stack) {
 		super();
 		this.s3Client = s3Client;
+		this.stack = stack;
 		this.bucketDaoMap = new HashMap<String, BucketDao>();
 	}
 	
@@ -57,6 +59,6 @@ public class BucketDaoProvider {
 	 * @return the bucketName of the requested type
 	 */
 	public String getBucketName(String type) {
-		return StackConfiguration.getObjectRecordBucketName(type);
+		return StackConfiguration.getObjectRecordBucketName(stack, type);
 	}
 }

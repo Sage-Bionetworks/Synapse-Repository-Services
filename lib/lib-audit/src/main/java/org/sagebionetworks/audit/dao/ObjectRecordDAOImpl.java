@@ -25,6 +25,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	 * Injected via Spring
 	 */
 	private int stackInstanceNumber;
+	private String stack;
 
 	private GzipCsvS3ObjectReader<ObjectRecord> reader;
 	private GzipCsvS3ObjectWriter<ObjectRecord> writer;
@@ -36,6 +37,12 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	public void setStackInstanceNumber(int stackInstanceNumber) {
 		this.stackInstanceNumber = stackInstanceNumber;
 	}
+	/**
+	 * Injected via Spring
+	 */
+	public void setStack(String stack) {
+		this.stack = stack;
+	}
 
 	/**
 	 * Initialize is called when this bean is first created.
@@ -46,7 +53,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 				ObjectRecord.class, HEADERS);
 		writer = new GzipCsvS3ObjectWriter<ObjectRecord>(s3Client,
 				ObjectRecord.class, HEADERS);
-		provider = new BucketDaoProvider(s3Client);
+		provider = new BucketDaoProvider(s3Client, stack);
 	}
 
 	@Override
