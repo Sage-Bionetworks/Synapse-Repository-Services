@@ -25,10 +25,6 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	 * Injected via Spring
 	 */
 	private int stackInstanceNumber;
-	/**
-	 * Injected via Spring
-	 */
-	private String objectRecordBucketFormat;
 
 	private GzipCsvS3ObjectReader<ObjectRecord> reader;
 	private GzipCsvS3ObjectWriter<ObjectRecord> writer;
@@ -42,20 +38,10 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	}
 
 	/**
-	 * Injected via Spring
-	 */
-	public void setObjectRecordBucketFormat(String objectRecordBucketFormat) {
-		this.objectRecordBucketFormat = objectRecordBucketFormat;
-	}
-
-	/**
 	 * Initialize is called when this bean is first created.
 	 * 
 	 */
 	public void initialize() {
-		if (objectRecordBucketFormat == null)
-			throw new IllegalArgumentException(
-					"bucket name format has not been set and cannot be null");
 		reader = new GzipCsvS3ObjectReader<ObjectRecord>(s3Client,
 				ObjectRecord.class, HEADERS);
 		writer = new GzipCsvS3ObjectWriter<ObjectRecord>(s3Client,
