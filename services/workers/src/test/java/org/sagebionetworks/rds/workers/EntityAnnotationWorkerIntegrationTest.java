@@ -7,7 +7,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -33,7 +32,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class RdsWorkerIntegrationTest {
+public class EntityAnnotationWorkerIntegrationTest {
 	
 	public static final long MAX_WAIT = 60*1000; // one minute
 	
@@ -47,9 +46,6 @@ public class RdsWorkerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private MessageReceiver rdsQueueMessageReveiver;
-	
-	@Autowired
 	private SemaphoreManager semphoreManager;
 	
 	private UserInfo adminUserInfo;
@@ -60,9 +56,6 @@ public class RdsWorkerIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
-		// Before we start, make sure the queue is empty
-		emptyQueue();
-		
 		// Create a project
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		project = new Project();
@@ -75,22 +68,6 @@ public class RdsWorkerIntegrationTest {
 		uniqueValue = UUID.randomUUID().toString();
 		annos.addAnnotation(key, uniqueValue);
 		entityManager.updateAnnotations(adminUserInfo, id, annos);
-	}
-
-	/**
-	 * Empty the queue by processing all messages on the queue.
-	 * @throws InterruptedException
-	 */
-	public void emptyQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do{
-			count = rdsQueueMessageReveiver.triggerFired();
-			System.out.println("Emptying the search message queue, there were at least: "+count+" messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis()-start;
-			if(elapse > MAX_WAIT*2) throw new RuntimeException("Timedout waiting process all messages that were on the queue before the tests started.");
-		}while(count > 0);
 	}
 	
 	@After

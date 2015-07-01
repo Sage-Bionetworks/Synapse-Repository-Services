@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
@@ -27,11 +26,12 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -49,12 +49,12 @@ import com.amazonaws.util.StringInputStream;
  */
 public class TableCSVAppenderWorkerTest {
 	
+	ProgressCallback<Message> mockProgressCallback;
 	AsynchJobStatusManager mockAasynchJobStatusManager;
 	TableRowManager mockTableRowManager;
 	FileHandleManager  mockFileHandleManger;
 	UserManager mockUserManager;
 	AmazonS3Client mockS3Client;
-	List<Message> messageList;
 	AsynchronousJobStatus status;
 	TableCSVAppenderWorker worker;
 	S3FileHandle fileHandle;
@@ -66,12 +66,12 @@ public class TableCSVAppenderWorkerTest {
 	
 	@Before
 	public void before() throws Exception {
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockAasynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
 		mockTableRowManager = Mockito.mock(TableRowManager.class);
 		mockFileHandleManger = Mockito.mock(FileHandleManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
-		messageList = new LinkedList<Message>();
 		// User
 		user = new UserInfo(false);
 		user.setId(999L);
@@ -103,7 +103,6 @@ public class TableCSVAppenderWorkerTest {
 		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManger);
 		ReflectionTestUtils.setField(worker, "userManger", mockUserManager);
 		ReflectionTestUtils.setField(worker, "s3Client", mockS3Client);
-		worker.setMessages(messageList);
 		// Create the CSV
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -123,30 +122,22 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testHappyCase() throws Exception {
 		Message message = MessageUtils.buildMessage(status);
-		messageList.add(message);
-		List<Message> resutls = worker.call();
-		assertNotNull(resutls);
+		// call under test
+		worker.run(mockProgressCallback, message);
 		// Status for this job should be marked as complete.
 		verify(mockAasynchJobStatusManager, times(1)).setComplete(anyString(), any(AsynchronousResponseBody.class));
-		// the results must contain the message
-		assertEquals(1, resutls.size());
-		assertEquals(message, resutls.get(0));
 	}
 	
 	@Test
 	public void testFailure() throws Exception {
 		when(mockUserManager.getUserInfo(user.getId())).thenThrow(new NotFoundException("Cannot find the user"));
 		Message message = MessageUtils.buildMessage(status);
-		messageList.add(message);
-		List<Message> resutls = worker.call();
-		assertNotNull(resutls);
+		// call under test
+		worker.run(mockProgressCallback, message);
 		// Status for this job should not be set to complete
 		verify(mockAasynchJobStatusManager, times(0)).setComplete(anyString(), any(AsynchronousResponseBody.class));
 		// The job just be set to failed.
 		verify(mockAasynchJobStatusManager, times(1)).setJobFailed(anyString(), any(Throwable.class));
-		// the results must contain the message
-		assertEquals(1, resutls.size());
-		assertEquals(message, resutls.get(0));
 	}
 	
 	@Test

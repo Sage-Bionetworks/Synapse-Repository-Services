@@ -1179,66 +1179,11 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.repo.model.dbo.migration.max.allowed.packet.byte"));
 	}
 
-	/**
-	 * The maximum number of workers in the cluster that will process RDS index
-	 * data
-	 * 
-	 * @return
-	 */
-	public Long getSemaphoreGatedLockTimeoutMS() {
-		return Long
-				.parseLong(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.lock.timeout.ms"));
-	}
-
-	/**
-	 * The maximum number of workers in the cluster that will process RDS index
-	 * data
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersRds() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.rds"));
-	}
-
-	/**
-	 * The maximum number of workers in the cluster that will process search
-	 * index data
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersSearch() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.search"));
-	}
-	
-	/**
-	 * The maximum number of workers in the cluster that will update the PrincipalHeader table from SQS
-	 */
-	public Integer getSemaphoreGatedMaxRunnersPrincipalHeaderFiller() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
-	}
 	
 	public Integer getSemaphoreGatedMaxRunnersTableCluster() {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.table.cluster"));
-	}
-	/**
-	 * The maximum number of workers in the cluster that will process
-	 * Annotations
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersAnnotations() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.annotations"));
 	}
 	
 	/**

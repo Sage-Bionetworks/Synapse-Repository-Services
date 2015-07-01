@@ -247,7 +247,7 @@ public class TableRowManagerImplTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set);
+		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), set, mockProgressCallback);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -264,7 +264,7 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenReturn(refSet);
-		RowReferenceSet results = manager.appendRows(user, tableId, mapper, set);
+		RowReferenceSet results = manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
@@ -276,7 +276,7 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, expectedRawRows)).thenReturn(refSet);
-		RowReferenceSet results = manager.appendPartialRows(user, tableId, mapper, partialSet);
+		RowReferenceSet results = manager.appendPartialRows(user, tableId, mapper, partialSet, mockProgressCallback);
 		assertEquals(refSet, results);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
@@ -302,7 +302,7 @@ public class TableRowManagerImplTest {
 		partialSet.setTableId(tableId);
 		partialSet.setRows(Arrays.asList(partialRow));
 		try {
-			manager.appendPartialRows(user, tableId, mapper, partialSet);
+			manager.appendPartialRows(user, tableId, mapper, partialSet, mockProgressCallback);
 			fail("Should have failed since a column name was used and not an ID.");
 		} catch (IllegalArgumentException e) {
 			assertEquals("PartialRow.value.key: 'foo' is not a valid column ID for row ID: null", e.getMessage());
@@ -401,7 +401,7 @@ public class TableRowManagerImplTest {
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenReturn(refSet);
 		try {
-			manager.appendRows(user, tableId, mapper, tooBigSet);
+			manager.appendRows(user, tableId, mapper, tooBigSet, mockProgressCallback);
 			fail("The passed RowSet should have been too large");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
@@ -445,7 +445,7 @@ public class TableRowManagerImplTest {
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		reset(mockTruthDao);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenThrow(new IllegalArgumentException());
-		manager.appendRows(user, tableId, mapper, set);
+		manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -457,7 +457,7 @@ public class TableRowManagerImplTest {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		ColumnMapper mapper = TableModelUtils.createColumnModelColumnMapper(models, false);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, mapper, rawSet)).thenThrow(new IllegalArgumentException());
-		manager.appendRows(user, tableId, mapper, set);
+		manager.appendRows(user, tableId, mapper, set, mockProgressCallback);
 	}
 
 	@Test
@@ -523,7 +523,7 @@ public class TableRowManagerImplTest {
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper)).thenReturn(originalAccessor);
-		manager.appendRows(user, tableId, mapper, replace);
+		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
 		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L, mapper);
@@ -561,7 +561,7 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace);
+		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), any(ColumnMapper.class), any(RawRowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
@@ -608,7 +608,7 @@ public class TableRowManagerImplTest {
 				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersionsWithRowData(eq(tableId), eq(Sets.newHashSet(0L)), eq(0L), any(ColumnMapper.class))).thenReturn(
 				originalAccessor);
-		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace);
+		manager.appendRows(user, tableId, TableModelUtils.createColumnModelColumnMapper(models, false), replace, mockProgressCallback);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -647,7 +647,7 @@ public class TableRowManagerImplTest {
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L, mapper)).thenReturn(originalAccessor);
-		manager.appendRows(user, tableId, mapper, replace);
+		manager.appendRows(user, tableId, mapper, replace, mockProgressCallback);
 	}
 
 	@Test

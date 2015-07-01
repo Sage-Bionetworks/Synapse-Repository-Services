@@ -5,7 +5,6 @@ import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,7 +40,32 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.*;
+import org.sagebionetworks.repo.model.table.ColumnMapper;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.RawRowSet;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
+import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
@@ -65,7 +89,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.base.Function;
@@ -137,7 +160,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@WriteTransaction
 	@Override
-	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, ColumnMapper columnMapper, RowSet delta, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
@@ -147,13 +170,13 @@ public class TableRowManagerImpl implements TableRowManager {
 		validateRequestSize(columnMapper, delta.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, columnMapper, delta.getRows().iterator(), delta.getEtag(), results, null);
+		appendRowsAsStream(user, tableId, columnMapper, delta.getRows().iterator(), delta.getEtag(), results, progressCallback);
 		return results;
 	}
 	
 	@Override
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, ColumnMapper columnMapper,
-			PartialRowSet rowsToAppendOrUpdateOrDelete)
+			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Long> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
@@ -165,7 +188,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		RowReferenceSet results = new RowReferenceSet();
 		RowSet fullRowsToAppendOrUpdateOrDelete = mergeWithLastVersion(tableId, rowsToAppendOrUpdateOrDelete, columnMapper);
 		appendRowsAsStream(user, tableId, columnMapper, fullRowsToAppendOrUpdateOrDelete.getRows().iterator(),
-				fullRowsToAppendOrUpdateOrDelete.getEtag(), results, null);
+				fullRowsToAppendOrUpdateOrDelete.getEtag(), results, progressCallback);
 		return results;
 	}
 

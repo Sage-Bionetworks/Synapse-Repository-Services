@@ -107,7 +107,7 @@ public class TableServicesImpl implements TableServices {
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		ColumnMapper columnMap = columnModelManager.getCurrentColumns(user, rows.getTableId(), rows.getHeaders());
-		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows);
+		return tableRowManager.appendRows(user, rows.getTableId(), columnMap, rows, null);
 	}
 	
 	@Deprecated // This is now asynchronous
@@ -119,7 +119,7 @@ public class TableServicesImpl implements TableServices {
 		UserInfo user = userManager.getUserInfo(userId);
 		List<ColumnModel> columnModelsForTable = columnModelManager.getColumnModelsForTable(user, rowsToAppendOrUpdateOrDelete.getTableId());
 		ColumnMapper columnMap = TableModelUtils.createColumnModelColumnMapper(columnModelsForTable, false);
-		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), columnMap, rowsToAppendOrUpdateOrDelete);
+		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), columnMap, rowsToAppendOrUpdateOrDelete, null);
 	}
 
 	@Override

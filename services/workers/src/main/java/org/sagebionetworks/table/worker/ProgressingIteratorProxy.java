@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import java.util.Iterator;
 
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 /**
  * A simple proxy for reporting progress on an iterator.
@@ -13,7 +14,7 @@ import org.sagebionetworks.repo.model.table.Row;
 public class ProgressingIteratorProxy implements Iterator<Row> {
 
 	private Iterator<Row> wrappedIterator;
-	ProgressReporter reporter;
+	ProgressCallback<Integer> progressCallback;
 	private int rowCount = 0;
 	
 	/**
@@ -23,10 +24,10 @@ public class ProgressingIteratorProxy implements Iterator<Row> {
 	 * @param reporter The progress reporter.
 	 */
 	public ProgressingIteratorProxy(Iterator<Row> wrappedIterator,
-			ProgressReporter reporter) {
+			ProgressCallback<Integer> progressCallback) {
 		super();
 		this.wrappedIterator = wrappedIterator;
-		this.reporter = reporter;
+		this.progressCallback = progressCallback;
 	}
 
 	@Override
@@ -37,7 +38,7 @@ public class ProgressingIteratorProxy implements Iterator<Row> {
 	@Override
 	public Row next() {
 		Row row = wrappedIterator.next();
-		reporter.tryReportProgress(rowCount);
+		progressCallback.progressMade(rowCount);
 		rowCount++;
 		return row;
 	}
