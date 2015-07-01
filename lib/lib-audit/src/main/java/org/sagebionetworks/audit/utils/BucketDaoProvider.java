@@ -40,7 +40,7 @@ public class BucketDaoProvider {
 
 		// first time seeing this type
 		
-		String bucketName = StackConfiguration.getObjectRecordBucketName(type);
+		String bucketName = getBucketName(type);
 		
 		// Create the bucket if it does not exist
 		s3Client.createBucket(bucketName);
