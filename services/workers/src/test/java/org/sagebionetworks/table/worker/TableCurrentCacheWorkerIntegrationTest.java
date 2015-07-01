@@ -14,6 +14,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -76,6 +78,8 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	@Autowired
 	SemaphoreManager semphoreManager;
 	
+	ProgressCallback<Long> mockProgressCallback;
+	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
@@ -83,6 +87,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws NotFoundException, DatastoreException, IOException, InterruptedException{
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		// Only run this test if the table feature is enabled.
 		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
@@ -138,7 +143,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 1000L).size());
 
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
-				rowSet);
+				rowSet, mockProgressCallback);
 
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override
@@ -186,7 +191,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 		rowSet.setTableId(tableId);
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
-				rowSet);
+				rowSet, mockProgressCallback);
 
 		rowSet.setEtag(referenceSet.getEtag());
 		for (int i = 0; i < 4; i++) {
@@ -202,7 +207,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		TableModelTestUtils.updateRow(schema, updateRows.get(2), 555);
 		rowSet.setRows(updateRows);
 		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId,
-				TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet);
+				TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockProgressCallback);
 		assertEquals(3, referenceSet2.getRows().size());
 
 		RowSelection rowsToDelete = new RowSelection();
