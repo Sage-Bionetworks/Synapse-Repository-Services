@@ -68,7 +68,6 @@ public class ExpectedStackBeansTest {
 			
 			"stackConfiguration.auditRecordBucketName",
 			"stackConfiguration.stackInstanceNumber",
-			"stackConfiguration.stackName",
 			
 			"stackConfiguration.logBucketName",
 			
