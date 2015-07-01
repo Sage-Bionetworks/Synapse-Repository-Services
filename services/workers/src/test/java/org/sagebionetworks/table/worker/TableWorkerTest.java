@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -15,7 +14,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -27,11 +25,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
@@ -46,6 +42,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.worker.TableWorker.State;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -54,16 +52,19 @@ import com.google.common.collect.Lists;
 
 public class TableWorkerTest {
 	
+	ProgressCallback<Message> mockProgressCallback;
 	ConnectionFactory mockTableConnectionFactory;
 	TableRowManager mockTableRowManager;
 	TableIndexDAO mockTableIndexDAO;
 	StackConfiguration mockConfiguration;
 	SimpleJdbcTemplate mockConnection;
 	NodeInheritanceManager mockNodeInheritanceManager;
+	TableWorker worker;
 
 
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception{
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableRowManager = Mockito.mock(TableRowManager.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
@@ -88,30 +89,13 @@ public class TableWorkerTest {
 				}
 			}
 		});
+		worker = new TableWorker();
+		ReflectionTestUtils.setField(worker, "tableConnectionFactory", mockTableConnectionFactory);
+		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
+		ReflectionTestUtils.setField(worker, "nodeInheritanceManager", mockNodeInheritanceManager);
 	}
 	
-	/**
-	 * Helper to create a new worker for a list of messages.
-	 * @param messages
-	 * @return
-	 */
-	public TableWorker createNewWorker(List<Message> messages){
-		TableWorker tableWorker = new TableWorker(mockTableConnectionFactory, mockTableRowManager, mockConfiguration,
-				mockNodeInheritanceManager);
-		tableWorker.setWorkerProgress(new WorkerProgress() {
-			@Override
-			public void progressMadeForMessage(Message message) {
-			}
-
-			@Override
-			public void retryMessage(Message message, int retryTimeoutInSeconds) {
-				// TODO Auto-generated method stub
-				
-			}
-		});
-		tableWorker.setMessages(messages);
-		return tableWorker;
-	}
 	
 	/**
 	 * Non-table messages should simply be returned so they can be removed from the queue.
@@ -121,14 +105,9 @@ public class TableWorkerTest {
 	public void testNonTableMessages() throws Exception{
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
-		List<Message> messages = Arrays.asList(one, two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		// It should just return the results unchanged
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, one);
+		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 	}
@@ -144,13 +123,9 @@ public class TableWorkerTest {
 		when(mockConfiguration.getTableEnabled()).thenReturn(false);
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.DELETE, "456", ObjectType.TABLE, "etag");
-		List<Message> messages = Arrays.asList(one, two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, one);
+		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 	}
@@ -163,13 +138,8 @@ public class TableWorkerTest {
 	@Test
 	public void testTableDelete() throws Exception{
 		Message two = MessageUtils.buildMessage(ChangeType.DELETE, "456", ObjectType.TABLE, "etag");
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// delete should be called
@@ -200,13 +170,8 @@ public class TableWorkerTest {
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
 		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
@@ -240,13 +205,8 @@ public class TableWorkerTest {
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
 		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
@@ -270,13 +230,8 @@ public class TableWorkerTest {
 		RuntimeException error = new RuntimeException("Something went horribly wrong!");
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenThrow(error);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
@@ -299,13 +254,13 @@ public class TableWorkerTest {
 		// Without a connection the message should go back to the queue
 		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(null);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("The message should not have been returned since this is a recoverable failure",0, results.size());
+		try {
+			// call under test
+			worker.run(mockProgressCallback, two);
+			fail();
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
 	}
 	
 	/**
@@ -323,13 +278,8 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken2);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken1);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
@@ -349,13 +299,8 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenThrow(new NotFoundException("This table does not exist"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 	}
@@ -375,13 +320,13 @@ public class TableWorkerTest {
 		// Simulate a failure to get the lock
 		when(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException("Cannot get a lock at this time"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("The message should not have been returned since this is a recoverable failure",0, results.size());
+		try {
+			// call under test
+			worker.run(mockProgressCallback, two);
+			fail();
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 	}
@@ -413,13 +358,13 @@ public class TableWorkerTest {
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
 		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("The message should not have been returned since this is a recoverable failure", 0, results.size());
+		try {
+			// call under test
+			worker.run(mockProgressCallback, two);
+			fail();
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
@@ -441,13 +386,13 @@ public class TableWorkerTest {
 		// Simulate a failure to get the lock
 		when(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new InterruptedException("Sop!!!"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("The message should not have been returned since this is a recoverable failure",0, results.size());
+		try {
+			// call under test
+			worker.run(mockProgressCallback, two);
+			fail();
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 	}
@@ -469,13 +414,8 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 1L, 0L, 16000L)).thenReturn(Collections.<Long, Long> emptyMap());
 		
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
 		verify(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 	}
@@ -486,12 +426,8 @@ public class TableWorkerTest {
 		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenReturn(true);
 		String resetToken = "reset-token";
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		// The connection factory should not be called
 		verifyZeroInteractions(mockTableConnectionFactory);
 	}
