@@ -25,7 +25,7 @@ public class DatabasePreparation {
 			// Drop the current schema
 			StackConfiguration config = new StackConfiguration();
 			// This is a safety check to prevent droping prod-database.
-			if(isNonProductionStack(StackConfiguration.getStack())){
+			if(isNonProductionStack(StackConfiguration.singleton().getStack())){
 				// Make the database connection.
 				BasicDataSource ds = new BasicDataSource();
 				ds.setDriverClassName(config.getRepositoryDatabaseDriver());
