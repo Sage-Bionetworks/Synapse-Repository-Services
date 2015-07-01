@@ -1501,12 +1501,12 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * Get the string format of the audit object record bucket.
+	 * Get the bucket name of the audit object record bucket.
 	 * 
 	 * @return
 	 */
-	public String getObjectRecordBucketFormat() {
-		return String.format(StackConstants.OBJECT_RECORD_BUCKET, StackConfiguration.getStack(), "%1$s");
+	public static String getObjectRecordBucketName(String type) {
+		return String.format(StackConstants.OBJECT_RECORD_BUCKET, StackConfiguration.getStack(), type);
 	}
 	
 	/**
@@ -1622,5 +1622,4 @@ public class StackConfiguration {
 	public static StackConfiguration singleton(){
 		return singleton;
 	}
-
 }
