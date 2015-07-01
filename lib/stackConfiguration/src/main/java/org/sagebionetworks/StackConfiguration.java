@@ -1508,7 +1508,7 @@ public class StackConfiguration {
 	 * @return the bucket name for the requested type
 	 */
 	public static String getObjectRecordBucketName(String stack, String type) {
-		return String.format(StackConstants.OBJECT_RECORD_BUCKET, singleton().getStack(), type);
+		return String.format(StackConstants.OBJECT_RECORD_BUCKET, stack, type);
 	}
 	
 	/**
