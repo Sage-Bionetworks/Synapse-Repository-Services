@@ -1503,10 +1503,21 @@ public class StackConfiguration {
 	/**
 	 * Get the bucket name of the audit object record bucket.
 	 * 
+	 * @param stack - the name of the stack
+	 * @type type
+	 * @return the bucket name for the requested type
+	 */
+	public static String getObjectRecordBucketName(String stack, String type) {
+		return String.format(StackConstants.OBJECT_RECORD_BUCKET, stack, type);
+	}
+	
+	/**
+	 * The name of the stack.
+	 * 
 	 * @return
 	 */
-	public static String getObjectRecordBucketName(String type) {
-		return String.format(StackConstants.OBJECT_RECORD_BUCKET, StackConfiguration.getStack(), type);
+	public String getStackName() {
+		return configuration.getStack();
 	}
 	
 	/**
