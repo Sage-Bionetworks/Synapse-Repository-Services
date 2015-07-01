@@ -16,7 +16,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 
 	private final static String[] HEADERS = new String[] { "timestamp",
-			"changeNumber", "objectType", "jsonString" };
+			"changeNumber", "jsonClassName", "changeMessageObjectType", "jsonString" };
 
 	@Autowired
 	private AmazonS3Client s3Client;

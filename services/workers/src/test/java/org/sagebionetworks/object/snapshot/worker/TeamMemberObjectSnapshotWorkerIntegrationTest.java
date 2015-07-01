@@ -89,7 +89,8 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 		
 		TeamMember expectedTeamMember = teamManager.getMember(teamId.toString(), userId.toString());
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(expectedTeamMember.getClass().getSimpleName().toLowerCase());
+		expectedRecord.setChangeMessageObjectType("team_member");
+		expectedRecord.setJsonClassName(expectedTeamMember.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeamMember));
 		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
 	}

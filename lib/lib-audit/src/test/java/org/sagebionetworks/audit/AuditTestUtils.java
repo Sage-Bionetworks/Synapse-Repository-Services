@@ -117,7 +117,8 @@ public class AuditTestUtils {
 			} catch (JSONObjectAdapterException e) {
 				newRecord.setJsonString("");
 			}
-			newRecord.setObjectType(up.getClass().getSimpleName());
+			newRecord.setChangeMessageObjectType("principal");
+			newRecord.setJsonClassName(up.getClass().getSimpleName());
 			newRecord.setTimestamp(System.currentTimeMillis());
 			list.add(newRecord);
 		}

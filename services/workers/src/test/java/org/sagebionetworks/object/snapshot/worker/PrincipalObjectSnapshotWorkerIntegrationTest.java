@@ -69,7 +69,8 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		
 		Team expectedTeam = teamManager.get(team.getId());
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setObjectType(expectedTeam.getClass().getSimpleName().toLowerCase());
+		expectedRecord.setChangeMessageObjectType("principal");
+		expectedRecord.setJsonClassName(expectedTeam.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(expectedTeam));
 		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
 	}

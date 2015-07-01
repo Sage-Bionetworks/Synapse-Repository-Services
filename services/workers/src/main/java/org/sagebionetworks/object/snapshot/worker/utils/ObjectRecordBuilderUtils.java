@@ -16,8 +16,9 @@ public class ObjectRecordBuilderUtils {
 		ObjectRecord record = new ObjectRecord();
 		record.setChangeNumber(changeMessage.getChangeNumber());
 		record.setTimestamp(changeMessage.getTimestamp().getTime());
+		record.setChangeMessageObjectType(changeMessage.getObjectType().toString().toLowerCase());
 		try {
-			record.setObjectType(entity.getClass().getSimpleName().toLowerCase());
+			record.setJsonClassName(entity.getClass().getSimpleName().toLowerCase());
 			record.setJsonString(EntityFactory.createJSONStringForEntity(entity));
 		} catch (JSONObjectAdapterException e) {
 			log.warn("Failed to build object record for change message " + changeMessage.getChangeNumber());
