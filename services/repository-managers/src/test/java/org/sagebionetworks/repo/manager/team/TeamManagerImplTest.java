@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.team;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -14,7 +13,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
 
@@ -64,7 +62,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -72,9 +70,7 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.SerializationUtils;
 
 import com.google.common.collect.Lists;
 
@@ -590,6 +586,7 @@ public class TeamManagerImplTest {
 		expectedMessage.setMemberId(987L);
 		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_ADDED);
 		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", TEAM_ID, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -608,6 +605,7 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO, never()).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(Mockito.anyString(), (ObjectType) any(), Mockito.anyString(), Mockito.anyString(), (ChangeType) any());
 	}
 	
 	private static List<UserGroup> ugList(String[] pids) {
@@ -655,6 +653,7 @@ public class TeamManagerImplTest {
 		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_REMOVED);
 		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
 		assertEquals(1, acl.getResourceAccess().size());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(memberPrincipalId, ObjectType.TEAM_MEMBER, "etag", TEAM_ID, ChangeType.DELETE);
 	}
 	
 	@Test(expected=InvalidModelException.class)
@@ -687,6 +686,7 @@ public class TeamManagerImplTest {
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
 		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));		
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(Mockito.anyString(), (ObjectType) any(), Mockito.anyString(), Mockito.anyString(), (ChangeType) any());
 	}
 	
 	@Test

@@ -124,6 +124,11 @@ public class StackConstants {
 	public static final String RESOURCE_ACCESS_RECORD_BUCKET = "%1$s.resource.access.record.sagebase.org";
 	
 	/**
+	 * The bucket containing all object record data.
+	 */
+	public static final String OBJECT_RECORD_BUCKET = "%1$s.snapshot.%2$s.record.sagebase.org";
+	
+	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String STACK_LOG_BUCKET = "%1$s.log.sagebase.org";

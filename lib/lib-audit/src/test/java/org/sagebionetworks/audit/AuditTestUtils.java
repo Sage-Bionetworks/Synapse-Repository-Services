@@ -2,17 +2,20 @@ package org.sagebionetworks.audit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AclRecord;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * 
@@ -94,6 +97,28 @@ public class AuditTestUtils {
 			newRecord.setChangeNumber(-1L);
 			newRecord.setPrincipalId(-1L);
 
+			list.add(newRecord);
+		}
+		return list;
+	}
+
+	public static List<ObjectRecord> createUserProfileObjectRecordList(int numberOfRecords) {
+		UserProfile up = new UserProfile();
+		up.setCompany("Sage");
+		up.setEmail("employee@sagebase.org");
+		up.setEmails(Arrays.asList("employee@sagebase.org", "employee@gmail.com", "employee@yahoo.com"));
+		up.setLocation("Seattle");
+		List<ObjectRecord> list = new ArrayList<ObjectRecord>();
+		for (int i = 0; i < numberOfRecords; i++) {
+			ObjectRecord newRecord = new ObjectRecord();
+			newRecord.setChangeNumber(-1L);
+			try {
+				newRecord.setJsonString(EntityFactory.createJSONStringForEntity(up));
+			} catch (JSONObjectAdapterException e) {
+				newRecord.setJsonString("");
+			}
+			newRecord.setObjectType(up.getClass().getSimpleName());
+			newRecord.setTimestamp(System.currentTimeMillis());
 			list.add(newRecord);
 		}
 		return list;
