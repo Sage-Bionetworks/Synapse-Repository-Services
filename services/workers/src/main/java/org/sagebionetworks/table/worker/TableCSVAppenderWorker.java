@@ -24,8 +24,11 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ThrottlingProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -38,11 +41,9 @@ import com.amazonaws.services.sqs.model.Message;
  * @author jmhill
  *
  */
-public class TableCSVAppenderWorker implements Worker {
+public class TableCSVAppenderWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(TableCSVAppenderWorker.class);
-	private List<Message> messages;
-	private WorkerProgress workerProgress;
 
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
@@ -56,49 +57,22 @@ public class TableCSVAppenderWorker implements Worker {
 	private AmazonS3Client s3Client;
 
 	@Override
-	public void setMessages(List<Message> messages) {
-		this.messages = messages;
-	}
-
-	@Override
-	public void setWorkerProgress(WorkerProgress workerProgress) {
-		this.workerProgress = workerProgress;
-	}
-
-	@Override
-	public List<Message> call() throws Exception {
-		// We should only get one message
-		List<Message> toDelete = new LinkedList<Message>();
-		for(Message message: messages){
-			try{
-				toDelete.add(processMessage(message));
-			}catch(Throwable e){
-				// Treat unknown errors as unrecoverable and return them
-				toDelete.add(message);
-				log.error("Worker Failed", e);
-			}
+	public void run(ProgressCallback<Message> progressCallback,
+			Message message) throws RecoverableMessageException, Exception {
+		try{
+			processStatus(progressCallback, message);
+		}catch(Throwable e){
+			// Treat unknown errors as unrecoverable and return them
+			log.error("Worker Failed", e);
 		}
-		return toDelete;
-	}
-	
-	/**
-	 * Process a single message
-	 * @param message
-	 * @return
-	 * @throws Throwable 
-	 */
-	public Message processMessage(Message message) throws Throwable{
-		// First read the body
-		AsynchronousJobStatus status = extractStatus(message);
-		processStatus(message, status);
-		return message;
 	}
 
 	/**
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(final Message message, AsynchronousJobStatus status) throws Throwable {
+	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
+		final AsynchronousJobStatus status = extractStatus(message);
 		CsvNullReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
@@ -110,23 +84,37 @@ public class TableCSVAppenderWorker implements Worker {
 			// Get the metadat for this file
 			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
-			long progressTotal = fileMetadata.getContentLength();
+			final long progressTotal = fileMetadata.getContentLength();
 			// Start the progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
 			// Open a stream to the file in S3.
 			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
 			// This stream is used to keep track of the bytes read.
-			CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
+			final CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
 			// Create a reader from the passed parameters
 			reader = CSVUtils.createCSVReader(new InputStreamReader(countingInputStream, "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
 			// Reports progress back the caller.
 			// Report progress every 2 seconds.
 			long progressIntervalMs = 2000;
+			ThrottlingProgressCallback<Integer> throttledProgressCallback = new ThrottlingProgressCallback<Integer>(new ProgressCallback<Integer>() {
+
+				@Override
+				public void progressMade(Integer rowNumber) {
+					// update the job progress.
+					asynchJobStatusManager.updateJobProgress(status.getJobId(),
+							countingInputStream.getByteCount(), progressTotal,
+							"Processed: " + rowNumber + " rows");
+					// update the message.
+					progressCallback.progressMade(message);
+					
+				}
+			}, progressIntervalMs);
+			
 			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
 			// Create the iterator
 			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(body.getCsvTableDescriptor());
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, body.getColumnIds());
-			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
+			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, throttledProgressCallback);
 			// Append the data to the table
 			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(),
 					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
@@ -178,5 +166,6 @@ public class TableCSVAppenderWorker implements Worker {
 		}
 		return status;
 	}
+
 	
 }
