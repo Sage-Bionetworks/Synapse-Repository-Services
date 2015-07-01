@@ -49,7 +49,7 @@ import com.google.common.collect.Lists;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
-	private static final String EXTERNAL_S3_HELP = "www.synapse.org//#!HelpPages:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
+	private static final String EXTERNAL_S3_HELP = "https://www.synapse.org/#!Help:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
 
 	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
 
@@ -344,7 +344,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		return false;
 	}
 
-	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has persmission to write to the bucket. Please create an S3 object in bucket '%s' with key '%s' that contains the user name '%s'. Also see "
+	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has permission to write to the bucket. Please create an S3 object in bucket '%s' with key '%s' that contains the user name '%s'. Also see "
 			+ EXTERNAL_S3_HELP;
 
 	private static String getExplanation(UserProfile userProfile, String bucket, String key) {
