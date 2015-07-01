@@ -55,6 +55,8 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private AmazonS3Client s3Client;
+	
+	private long rowCount;
 
 	@Override
 	public void run(ProgressCallback<Message> progressCallback,
@@ -103,32 +105,31 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 					// update the job progress.
 					asynchJobStatusManager.updateJobProgress(status.getJobId(),
 							countingInputStream.getByteCount(), progressTotal,
-							"Processed: " + rowNumber + " rows");
+							"Read: " + rowNumber + " rows");
 					// update the message.
 					progressCallback.progressMade(message);
-					
 				}
 			}, progressIntervalMs);
 			
-			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
 			// Create the iterator
 			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(body.getCsvTableDescriptor());
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, body.getColumnIds());
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, throttledProgressCallback);
 			// Append the data to the table
+			rowCount = 0;
 			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(),
 					TableModelUtils.createColumnModelColumnMapper(tableSchema, false), iteratorProxy, body.getUpdateEtag(), null,
-					new ProgressCallback<Long>() {
+					new org.sagebionetworks.util.ProgressCallback<Long>() {
 
 				@Override
 				public void progressMade(Long count) {
-					if(workerProgress != null){
-						workerProgress.progressMadeForMessage(message);
-					}
+					// update the message.
+					progressCallback.progressMade(message);
+					rowCount += count;
 				}});
 			// Done
 			UploadToTableResult result = new UploadToTableResult();
-			result.setRowsProcessed(Long.valueOf(progressReporter.getRowNumber() + 1));
+			result.setRowsProcessed(rowCount);
 			result.setEtag(etag);
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){
