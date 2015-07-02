@@ -2,6 +2,7 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -51,7 +52,7 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 			// User
 			try {
 				UserProfile profile = userProfileDAO.get(message.getObjectId());
-				return ObjectRecordBuilderUtils.buildObjectRecord(profile, message);
+				return ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
 			} catch (NotFoundException e) {
 				log.warn("UserProfile not found: "+principalId);
 				return null;
@@ -60,7 +61,7 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 			// Team
 			try {
 				Team team = teamDAO.get(message.getObjectId());
-				return ObjectRecordBuilderUtils.buildObjectRecord(team, message);
+				return ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
 			} catch (NotFoundException e) {
 				log.warn("Team not found: "+principalId);
 				return null;
