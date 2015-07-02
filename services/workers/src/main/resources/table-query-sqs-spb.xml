@@ -11,98 +11,83 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- provides table message queue workers -->
-	<bean id="tableQueryWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-		<property name="worker" value="org.sagebionetworks.table.worker.TableQueryWorker" />
-	</bean>
-	
-	<bean id="tableQueryQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
-			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[QUERY]" />
-	</bean>
-
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="tableQuerySemaphore"
-			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
-			scope="singleton">
-		<property name="lockTimeoutMS" value="60000" />
-		<property name="maxCount" value="4" />
-	</bean>
-
-	<bean id="tableQueryQueueMessageReveiver"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
-			depends-on="stackConfiguration"
-			scope="singleton">
-		<property name="messageQueue" ref="tableQueryQueue" />
-		<property name="workerFactory" ref="tableQueryWorkerFactory" />
-		<property name="workerSemaphore" ref="tableQuerySemaphore" />
-		<property name="maxNumberOfWorkerThreads" value="4" />
-		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-
-	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="tableQueryQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="tableQueryQueueMessageReveiver" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.table.worker.TableQueryWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="tableQueryWorker" />
+								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="120" />
+								<property name="queueName"
+									ref="stackConfiguration.asyncQueueName[QUERY]" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="15" />
-		<property name="repeatInterval" value="1087" />
+		<property name="repeatInterval" value="2187" />
 	</bean>
 
-	<!-- provides table message queue workers -->
-	<bean id="tableQueryNextPageWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-		<property name="worker" value="org.sagebionetworks.table.worker.TableQueryNextPageWorker" />
-	</bean>
-	
-	<bean id="tableQueryNextPageQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
-			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" />
-	</bean>
-
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="tableQueryNextPageSemaphore"
-			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
-			scope="singleton">
-		<property name="lockTimeoutMS" value="60000" />
-		<property name="maxCount" value="4" />
-	</bean>
-
-	<bean id="tableQueryNextPageQueueMessageReveiver"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
-			depends-on="stackConfiguration"
-			scope="singleton">
-		<property name="messageQueue" ref="tableQueryNextPageQueue" />
-		<property name="workerFactory" ref="tableQueryNextPageWorkerFactory" />
-		<property name="workerSemaphore" ref="tableQueryNextPageSemaphore" />
-		<property name="maxNumberOfWorkerThreads" value="4" />
-		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-
-	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="tableQueryNextPageQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="tableQueryNextPageQueueMessageReveiver" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.table.worker.TableQueryNextPageWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="tableQueryNextPageWorker" />
+								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="120" />
+								<property name="queueName"
+									ref="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="15" />
-		<property name="repeatInterval" value="1087" />
+		<property name="repeatInterval" value="2187" />
 	</bean>
+
 
 </beans>

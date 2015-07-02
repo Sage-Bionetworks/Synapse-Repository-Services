@@ -10,30 +10,38 @@
 
 	<aop:aspectj-autoproxy />
 
-	<bean id="trashWorkerFactory" class="org.sagebionetworks.trash.worker.TrashWorkerFactory"/>
-
-	<!-- This gate ensures we never run more than the max number of runners
-			across the entire cluster for this worker  -->
-	<bean id="trashWorkerSemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" value="3600000" />
-		<property name="maxNumberRunners" value="1" />
-		<property name="semaphoreKey" value="trashWorkerFactory" />		
-		<property name="runner" ref="trashWorkerFactory" />
-	</bean>
-
 	<bean id="trashWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="trashWorkerSemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean
+								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner">
+									<bean class="org.sagebionetworks.trash.worker.TrashWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="trashWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="3600" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<property name="startDelay" value="93867" />
-		<!-- Runs every 10 hours. A long interval to give a grace period for data migration. -->
+		<!-- Runs every 10 hours. A long interval to give a grace period for data 
+			migration. -->
 		<property name="repeatInterval" value="36000000" />
 	</bean>
 
