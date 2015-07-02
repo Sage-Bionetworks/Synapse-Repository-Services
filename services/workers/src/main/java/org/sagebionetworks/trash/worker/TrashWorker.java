@@ -6,25 +6,21 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ProgressingRunner;
+import org.springframework.beans.factory.annotation.Autowired;
 
-public class TrashWorker {
+public class TrashWorker implements ProgressingRunner<Void>{
 
 	private final static long SHIFT_ONE_DAY = 26;
 	private final static long MONTH = 1000L * 60L * 60L * 24L * 30L;
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
-	private final TrashManager trashManager;
+	@Autowired
+	private TrashManager trashManager;
 
-	public TrashWorker(TrashManager trashManager) {
-		if (trashManager == null) {
-			throw new IllegalArgumentException("Trash manager cannot be null.");
-		}
-		this.trashManager = trashManager;
-	}
-
-	public void purgeTrash() throws DatastoreException, NotFoundException {
+	@Override
+	public void run(ProgressCallback<Void> progressCallback) throws Exception {
 		long now = System.currentTimeMillis();
 		// Drop (very roughly) the hours, minutes, seconds so that the two workers,
 		// one in prod and the other in staging, will have a good chance
@@ -36,4 +32,5 @@ public class TrashWorker {
 					timestamp + ", from the trash can.");
 		trashManager.purgeTrash(trashList, null);
 	}
+
 }

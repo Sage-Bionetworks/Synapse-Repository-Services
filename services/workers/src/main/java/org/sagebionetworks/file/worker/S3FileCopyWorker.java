@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.sqs.AbstractWorker;
 import org.sagebionetworks.asynchronous.workers.sqs.JobCanceledException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.collections.Transform;
