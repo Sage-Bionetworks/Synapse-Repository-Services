@@ -1,75 +1,55 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.util.ProgressCallback;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
 public class TableCurrentCacheWorkerTest {
 
+	ProgressCallback<Message> mockProgressCallback;
 	TableRowManager mockTableRowManager;
 	StackConfiguration mockConfiguration;
 	NodeInheritanceManager mockNodeInheritanceManager;
+	TableCurrentCacheWorker worker;
 
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception {
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockTableRowManager = Mockito.mock(TableRowManager.class);
 		mockConfiguration = Mockito.mock(StackConfiguration.class);
 		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		// Turn on the feature by default
 		when(mockConfiguration.getTableEnabled()).thenReturn(true);
 		when(mockNodeInheritanceManager.isNodeInTrash(anyString())).thenReturn(false);
+		worker = new TableCurrentCacheWorker();
+		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
+		ReflectionTestUtils.setField(worker, "nodeInheritanceManager", mockNodeInheritanceManager);
+		ReflectionTestUtils.setField(worker, "stackConfiguration", mockConfiguration);
 	}
 
-	/**
-	 * Helper to create a new worker for a list of messages.
-	 * 
-	 * @param messages
-	 * @return
-	 */
-	public TableCurrentCacheWorker createNewWorker(List<Message> messages) {
-		return new TableCurrentCacheWorker(messages, mockTableRowManager, mockConfiguration, new WorkerProgress() {
-			@Override
-			public void progressMadeForMessage(Message message) {
-			}
-
-			@Override
-			public void retryMessage(Message message, int retryTimeoutInSeconds) {
-				// TODO Auto-generated method stub
-
-			}
-		}, mockNodeInheritanceManager);
-	}
 
 	/**
 	 * Non-table messages should simply be returned so they can be removed from the queue.
@@ -80,14 +60,9 @@ public class TableCurrentCacheWorkerTest {
 	public void testNonTableMessages() throws Exception {
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
-		List<Message> messages = Arrays.asList(one, two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		// It should just return the results unchanged
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, one);
+		worker.run(mockProgressCallback, two);
 		verifyNoMoreInteractions(mockTableRowManager);
 	}
 
@@ -103,13 +78,9 @@ public class TableCurrentCacheWorkerTest {
 		when(mockConfiguration.getTableEnabled()).thenReturn(false);
 		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag");
 		Message two = MessageUtils.buildMessage(ChangeType.DELETE, "456", ObjectType.TABLE, "etag");
-		List<Message> messages = Arrays.asList(one, two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, one);
+		worker.run(mockProgressCallback, two);
 		verifyNoMoreInteractions(mockTableRowManager);
 	}
 
@@ -122,13 +93,8 @@ public class TableCurrentCacheWorkerTest {
 	public void testTableDelete() throws Exception {
 		String tableId = "456";
 		Message two = MessageUtils.buildMessage(ChangeType.DELETE, tableId, ObjectType.TABLE, "etag");
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		verify(mockTableRowManager).removeCaches(tableId);
 	}
 
@@ -138,13 +104,8 @@ public class TableCurrentCacheWorkerTest {
 		String resetToken = "reset-token";
 		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenReturn(true);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		verifyNoMoreInteractions(mockTableRowManager);
 	}
 
@@ -154,13 +115,8 @@ public class TableCurrentCacheWorkerTest {
 		String resetToken = "reset-token";
 		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenThrow(new NotFoundException("dummy"));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		verifyNoMoreInteractions(mockTableRowManager);
 	}
 
@@ -178,14 +134,9 @@ public class TableCurrentCacheWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals(messages, results);
-		verify(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(ProgressCallback.class));
+		// call under test
+		worker.run(mockProgressCallback, two);
+		verify(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.util.ProgressCallback.class));
 	}
 
 	/**
@@ -201,13 +152,10 @@ public class TableCurrentCacheWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
-		doThrow(new IOException("mock")).when(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(ProgressCallback.class));
+		doThrow(new IOException("mock")).when(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.util.ProgressCallback.class));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		worker.call();
+		// call under test
+		worker.run(mockProgressCallback, two);
 	}
 
 	/**
@@ -226,13 +174,8 @@ public class TableCurrentCacheWorkerTest {
 		status.setResetToken(resetToken2);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken1);
-		List<Message> messages = Arrays.asList(two);
-		// Create the worker
-		TableCurrentCacheWorker worker = createNewWorker(messages);
-		// Make the call
-		List<Message> results = worker.call();
-		assertNotNull(results);
-		assertEquals("An old message should get returned so it can be removed from the queue", messages, results);
+		// call under test
+		worker.run(mockProgressCallback, two);
 		verify(mockTableRowManager).getTableStatusOrCreateIfNotExists(tableId);
 		verifyNoMoreInteractions(mockTableRowManager);
 	}

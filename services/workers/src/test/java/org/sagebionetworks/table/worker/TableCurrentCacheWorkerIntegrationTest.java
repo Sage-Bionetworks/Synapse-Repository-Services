@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -70,8 +69,6 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	MessagePollingReceiverImpl tableCurrentCacheQueueMessageReveiver;
-	@Autowired
 	TableRowCache tableRowCache;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
@@ -91,8 +88,6 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		// Only run this test if the table feature is enabled.
 		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
-		// Start with an empty queue.
-		tableCurrentCacheQueueMessageReveiver.emptyQueue();
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		this.tableId = null;
