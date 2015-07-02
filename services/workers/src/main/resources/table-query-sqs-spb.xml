@@ -31,7 +31,7 @@
 								<property name="semaphoreLockKey" value="tableQueryWorker" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="120" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[QUERY]" />
 								<property name="gate">
@@ -70,7 +70,7 @@
 								<property name="semaphoreLockKey" value="tableQueryNextPageWorker" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="120" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" />
 								<property name="gate">
