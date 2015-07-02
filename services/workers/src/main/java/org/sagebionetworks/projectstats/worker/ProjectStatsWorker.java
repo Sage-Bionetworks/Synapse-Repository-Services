@@ -1,23 +1,18 @@
 package org.sagebionetworks.projectstats.worker;
 
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.Worker;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.reflection.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
@@ -37,6 +32,9 @@ import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.TransientDataAccessException;
 
@@ -48,14 +46,12 @@ import com.google.common.base.Function;
  * FileHandle.
  * 
  */
-public class ProjectStatsWorker implements Worker {
+public class ProjectStatsWorker implements MessageDrivenRunner {
 
 	private static final long BATCH_SIZE = 200;
 
 	static private Logger log = LogManager.getLogger(ProjectStatsWorker.class);
-	private List<Message> messages;
-	private WorkerProgress workerProgress;
-	private EntityType projectEntityType = EntityType.getEntityTypeForClass(Project.class);
+
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDao;
@@ -69,38 +65,10 @@ public class ProjectStatsWorker implements Worker {
 	@Autowired
 	private TeamDAO teamDAO;
 
-	@Override
-	public void setMessages(List<Message> messages) {
-		this.messages = messages;
-	}
 
 	@Override
-	public void setWorkerProgress(WorkerProgress workerProgress) {
-		this.workerProgress = workerProgress;
-	}
-
-	@Override
-	public List<Message> call() throws Exception {
-		List<Message> toDelete = new LinkedList<Message>();
-		for (Message message : messages) {
-			try {
-				Message returned = processMessage(message);
-				if (returned != null) {
-					toDelete.add(returned);
-				}
-			}catch(NotFoundException e){
-				// entity no longer exists. Common case, so no reason to log an error
-				toDelete.add(message);
-			} catch (Throwable e) {
-				// Treat unknown errors as unrecoverable and return them
-				toDelete.add(message);
-				log.error("Worker Failed", e);
-			}
-		}
-		return toDelete;
-	}
-
-	private Message processMessage(Message message) throws Throwable {
+	public void run(ProgressCallback<Message> progressCallback, Message message)
+			throws RecoverableMessageException, Exception {
 		try {
 			ModificationMessage modificationMessage = extractStatus(message);
 
@@ -161,9 +129,8 @@ public class ProjectStatsWorker implements Worker {
 			} else {
 				throw new IllegalArgumentException("cannot handle modification type " + modificationMessage.getClass().getName());
 			}
-			return message;
 		} catch (TransientDataAccessException e) {
-			return null;
+			throw new RecoverableMessageException();
 		}
 	}
 
@@ -223,4 +190,6 @@ public class ProjectStatsWorker implements Worker {
 
 		return modificationMessage;
 	}
+
+
 }

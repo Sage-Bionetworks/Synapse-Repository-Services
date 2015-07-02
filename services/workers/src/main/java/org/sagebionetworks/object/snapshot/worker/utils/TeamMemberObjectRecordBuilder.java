@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TeamMemberObjectRecordBuilder implements ObjectRecordBuilder{
@@ -25,7 +26,7 @@ public class TeamMemberObjectRecordBuilder implements ObjectRecordBuilder{
 	}
 
 	@Override
-	public ObjectRecord build(ChangeMessage message) {
+	public ObjectRecord build(ChangeMessage message) throws JSONObjectAdapterException {
 		if (message.getObjectType() != ObjectType.TEAM_MEMBER || message.getChangeType() == ChangeType.DELETE) {
 			throw new IllegalArgumentException();
 		}

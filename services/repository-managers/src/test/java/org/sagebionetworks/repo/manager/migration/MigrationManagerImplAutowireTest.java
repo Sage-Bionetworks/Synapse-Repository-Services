@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -120,9 +121,11 @@ public class MigrationManagerImplAutowireTest {
 	private String tableId;
 	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
+	ProgressCallback<Long> mockProgressCallback;
 
 	@Before
 	public void before() throws Exception {
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		toDelete = new LinkedList<String>();
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		creatorUserGroupId = adminUser.getId().toString();
@@ -173,7 +176,7 @@ public class MigrationManagerImplAutowireTest {
 			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
 			rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
 			rowSet.setTableId(tableId);
-			tableRowManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet);
+			tableRowManager.appendRows(adminUser, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false), rowSet, mockProgressCallback);
 		}
 		stackConfig = new StackConfiguration();
 	}

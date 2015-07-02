@@ -57,7 +57,7 @@
 
 	<bean id="objectRecordDAO" class="org.sagebionetworks.audit.dao.ObjectRecordDAOImpl"
 		scope="singleton" init-method="initialize">
-		<property name="objectRecordBucketFormat" ref="stackConfiguration.objectRecordBucketFormat" />
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
+		<property name="stack" ref="stackConfiguration.stack" />
 	</bean>
 </beans>

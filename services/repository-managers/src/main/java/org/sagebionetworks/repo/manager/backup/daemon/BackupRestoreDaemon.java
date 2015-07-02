@@ -106,7 +106,7 @@ public class BackupRestoreDaemon implements Runnable{
 			// Before we start, make sure it has not been terminated.
 			checkForTermination();
 			// Create the temporary file to write the backup too.
-			String stack = StackConfiguration.getStack();
+			String stack = StackConfiguration.singleton().getStack();
 			String instance = StackConfiguration.getStackInstance();
 			final File tempBackup = File.createTempFile(stack+"-"+instance+"-"+status.getId()+"-", ".zip");
 			tempToDelete = tempBackup;

@@ -21,7 +21,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -44,12 +43,11 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.sagebionetworks.util.TestStreams;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.test.context.ContextConfiguration;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -91,9 +89,8 @@ public class S3FileCopyIntegrationTest {
 	private EntityManager entityManager;
 
 	@Autowired
-	private AutowireCapableBeanFactory factory;
-
 	private S3FileCopyWorker s3FileCopyWorker;
+	
 	private UserInfo adminUserInfo;
 	private List<S3FileHandleInterface> toDelete = Lists.newArrayList();
 	private List<String> s3ToDelete = Lists.newArrayList();
@@ -112,8 +109,6 @@ public class S3FileCopyIntegrationTest {
 
 	@Before
 	public void before() throws Exception {
-		s3FileCopyWorker = factory.createBean(S3FileCopyWorker.class);
-
 		// Create a file
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}

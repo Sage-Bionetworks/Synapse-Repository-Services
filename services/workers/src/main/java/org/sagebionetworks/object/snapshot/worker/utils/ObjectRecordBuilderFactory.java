@@ -13,6 +13,11 @@ public class ObjectRecordBuilderFactory {
 		this.builderMap = builderMap;
 	}
 
+	/**
+	 * 
+	 * @param type
+	 * @return the object record builder for the requested type
+	 */
 	public ObjectRecordBuilder getObjectRecordBuilder(ObjectType type){
 		return builderMap.get(type);
 	}

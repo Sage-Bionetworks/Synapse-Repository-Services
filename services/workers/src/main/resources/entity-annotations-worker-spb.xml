@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="tableCurrentCacheQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="rdsQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -26,17 +26,18 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableCurrentCacheWorker" />
+									<bean class="org.sagebionetworks.rds.workers.EntityAnnotationsWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="tableCurrentCache" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreLockKey" value="entityAnnotationsWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="30" />
 								<property name="queueName"
-									ref="stackConfiguration.tableCurrentCacheUpdateQueueName" />
+									ref="stackConfiguration.rdsUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
 									<list>
-										<ref bean="stackConfiguration.repositoryChangeTopic[TABLE]" />
+										<ref
+											bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
 									</list>
 								</property>
 								<property name="gate">
@@ -51,8 +52,8 @@
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="256" />
-		<property name="repeatInterval" value="1597" />
+		<property name="startDelay" value="37" />
+		<property name="repeatInterval" value="1987" />
 	</bean>
 
 </beans>

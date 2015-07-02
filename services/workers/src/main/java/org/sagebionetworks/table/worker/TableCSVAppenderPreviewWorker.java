@@ -2,15 +2,11 @@ package org.sagebionetworks.table.worker;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.asynchronous.workers.sqs.Worker;
-import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -22,6 +18,10 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.progress.ThrottlingProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -34,11 +34,9 @@ import com.amazonaws.services.sqs.model.Message;
  * @author jmhill
  *
  */
-public class TableCSVAppenderPreviewWorker implements Worker {
+public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(TableCSVAppenderPreviewWorker.class);
-	private List<Message> messages;
-	private WorkerProgress workerProgress;
 
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
@@ -51,50 +49,26 @@ public class TableCSVAppenderPreviewWorker implements Worker {
 	@Autowired
 	private AmazonS3Client s3Client;
 
-	@Override
-	public void setMessages(List<Message> messages) {
-		this.messages = messages;
-	}
 
 	@Override
-	public void setWorkerProgress(WorkerProgress workerProgress) {
-		this.workerProgress = workerProgress;
-	}
-
-	@Override
-	public List<Message> call() throws Exception {
+	public void run(ProgressCallback<Message> progressCallback, Message message)
+			throws RecoverableMessageException, Exception {
 		// We should only get one message
-		List<Message> toDelete = new LinkedList<Message>();
-		for(Message message: messages){
-			try{
-				toDelete.add(processMessage(message));
-			}catch(Throwable e){
-				// Treat unknown errors as unrecoverable and return them
-				toDelete.add(message);
-				log.error("Worker Failed", e);
-			}
+		try{
+			processStatus(progressCallback, message);
+		}catch(Throwable e){
+			// Treat unknown errors as unrecoverable and return them
+			log.error("Worker Failed", e);
 		}
-		return toDelete;
 	}
 	
-	/**
-	 * Process a single message
-	 * @param message
-	 * @return
-	 * @throws Throwable 
-	 */
-	public Message processMessage(Message message) throws Throwable{
-		// First read the body
-		AsynchronousJobStatus status = extractStatus(message);
-		processStatus(status);
-		return message;
-	}
 
 	/**
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(AsynchronousJobStatus status) throws Throwable {
+	public void processStatus(final ProgressCallback<Message> progressCallback, final Message message) throws Throwable {
+		final AsynchronousJobStatus status = extractStatus(message);
 		CsvNullReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
@@ -104,22 +78,31 @@ public class TableCSVAppenderPreviewWorker implements Worker {
 			// Get the metadat for this file
 			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
-			long progressTotal = fileMetadata.getContentLength();
+			final long progressTotal = fileMetadata.getContentLength();
 			// Start the progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
 			// Open a stream to the file in S3.
 			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
 			// This stream is used to keep track of the bytes read.
-			CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
+			final CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
 			// Create a reader from the passed parameters
 			reader = CSVUtils.createCSVReader(new InputStreamReader(countingInputStream, "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
-			// Done
-			// Reports progress back the caller.
+			
 			// Report progress every 2 seconds.
 			long progressIntervalMs = 2000;
-			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
+			ThrottlingProgressCallback<Integer> throttledProgressCallback = new ThrottlingProgressCallback<Integer>(new ProgressCallback<Integer>() {
+				@Override
+				public void progressMade(Integer rowNumber) {
+					// update the job progress.
+					asynchJobStatusManager.updateJobProgress(status.getJobId(),
+							countingInputStream.getByteCount(), progressTotal,
+							"Processed: " + rowNumber + " rows");
+					// update the message.
+					progressCallback.progressMade(message);
+				}
+			}, progressIntervalMs);
 			// This builder does the work of building an actual preview.
-			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressReporter, body);
+			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, throttledProgressCallback, body);
 			UploadToTablePreviewResult result = builder.buildResult();
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){

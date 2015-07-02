@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -74,14 +75,14 @@ public class PrincipalObjectRecordBuilderTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void nonPrincipalChangeMessage() throws IOException {
+	public void nonPrincipalChangeMessage() throws IOException, JSONObjectAdapterException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		builder.build(changeMessage);
 	}
 
 	@Test
-	public void createTeamTest() throws IOException {
+	public void createTeamTest() throws IOException, JSONObjectAdapterException {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
@@ -95,14 +96,14 @@ public class PrincipalObjectRecordBuilderTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void deleteTeamTest() throws IOException {
+	public void deleteTeamTest() throws IOException, JSONObjectAdapterException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		builder.build(changeMessage);
 	}
 
 	@Test
-	public void updateTeamTest() throws IOException {
+	public void updateTeamTest() throws IOException, JSONObjectAdapterException {
 		ug.setIsIndividual(false);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
@@ -116,7 +117,7 @@ public class PrincipalObjectRecordBuilderTest {
 	}
 	
 	@Test
-	public void createUserProfileTest() throws IOException {
+	public void createUserProfileTest() throws IOException, JSONObjectAdapterException {
 		ug.setIsIndividual(true);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
@@ -130,7 +131,7 @@ public class PrincipalObjectRecordBuilderTest {
 	}
 	
 	@Test
-	public void updateUserProfileTest() throws IOException {
+	public void updateUserProfileTest() throws IOException, JSONObjectAdapterException {
 		ug.setIsIndividual(true);
 		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
@@ -144,7 +145,7 @@ public class PrincipalObjectRecordBuilderTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void deleteUserProfileTest() throws IOException {
+	public void deleteUserProfileTest() throws IOException, JSONObjectAdapterException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		builder.build(changeMessage);

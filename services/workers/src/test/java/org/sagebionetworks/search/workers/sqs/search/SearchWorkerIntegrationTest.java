@@ -1,22 +1,16 @@
 package org.sagebionetworks.search.workers.sqs.search;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.apache.http.client.ClientProtocolException;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
-import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -30,8 +24,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -40,8 +32,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.util.TimeUtils;
-import org.sagebionetworks.utils.HttpClientHelperException;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -67,9 +57,6 @@ public class SearchWorkerIntegrationTest {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private MessageReceiver searchQueueMessageReveiver;
 	
 	@Autowired
 	private SearchDao searchDao;
@@ -102,8 +89,17 @@ public class SearchWorkerIntegrationTest {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Only run this test if search is enabled
 		Assume.assumeTrue(searchDao.isSearchEnabled());
-		// Before we start, make sure the search queue is empty
-		emptySearchQueue();
+		
+		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					return searchDao.postInitialize();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 
 		// Now delete all documents in the search index.
 		// wait for the searchindex to become available (we assume the queue is already there and only needs to be
@@ -149,21 +145,6 @@ public class SearchWorkerIntegrationTest {
 		page.setModifiedOn(page.getCreatedOn());
 		page.setEtag("Etag");
 		return page;
-	}
-	/**
-	 * Empty the search queue by processing all messages on the queue.
-	 * @throws InterruptedException
-	 */
-	public void emptySearchQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do{
-			count = searchQueueMessageReveiver.triggerFired();
-			System.out.println("Emptying the search message queue, there were at least: "+count+" messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis()-start;
-			if(elapse > MAX_WAIT*2) throw new RuntimeException("Timedout waiting process all messages that were on the queue before the tests started.");
-		}while(count > 0);
 	}
 	
 	@After
