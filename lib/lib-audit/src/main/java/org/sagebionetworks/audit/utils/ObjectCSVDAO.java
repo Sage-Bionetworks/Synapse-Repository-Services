@@ -138,7 +138,7 @@ public class ObjectCSVDAO<T> {
 	public ObjectListing listBatchKeys(String marker) {
 		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.bucketName).withPrefix(stackInstancePrefixString).withMarker(marker));
 	}
-
+	
 	/**
 	 * @return all keys found in this bucket
 	 */

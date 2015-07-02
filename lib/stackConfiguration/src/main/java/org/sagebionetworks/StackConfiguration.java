@@ -1444,6 +1444,15 @@ public class StackConfiguration {
 	public String getResourceAccessRecordBucketName() {
 		return String.format(StackConstants.RESOURCE_ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
 	}
+
+	/**
+	 * Get the string format of the audit object record bucket.
+	 * 
+	 * @return
+	 */
+	public String getObjectRecordBucketFormat() {
+		return String.format(StackConstants.OBJECT_RECORD_BUCKET, StackConfiguration.getStack(), "%1$s");
+	}
 	
 	/**
 	 * Get the name of the stack log bucket.
