@@ -86,7 +86,7 @@ public class SearchQueueWorker implements MessageDrivenRunner {
 					newMessage.setObjectId(key.getOwnerObjectId());
 					newMessage.setObjectType(ObjectType.ENTITY);
 					newMessage.setObjectEtag(null);
-					processCreateUpdate(change);
+					processCreateUpdate(newMessage);
 				}
 			} catch (NotFoundException e) {
 				// Nothing to do if the wiki does not exist

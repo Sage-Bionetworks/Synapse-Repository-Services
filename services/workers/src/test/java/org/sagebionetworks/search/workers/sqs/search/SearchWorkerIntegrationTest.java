@@ -90,6 +90,17 @@ public class SearchWorkerIntegrationTest {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Only run this test if search is enabled
 		Assume.assumeTrue(searchDao.isSearchEnabled());
+		
+		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					return searchDao.postInitialize();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 
 		// Now delete all documents in the search index.
 		// wait for the searchindex to become available (we assume the queue is already there and only needs to be
