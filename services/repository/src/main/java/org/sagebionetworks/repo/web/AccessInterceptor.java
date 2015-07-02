@@ -43,7 +43,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	Clock clock;
 
 	private String instancePrefix = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
-	private String stack = StackConfiguration.getStack();
+	private String stack = StackConfiguration.singleton().getStack();
 
 	/**
 	 * This is called before a controller runs.

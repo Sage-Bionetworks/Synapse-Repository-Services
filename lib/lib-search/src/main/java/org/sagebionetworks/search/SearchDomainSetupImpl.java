@@ -36,7 +36,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	private static final String SEARCH_ENDPOINT_TEMPALTE = "http://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/search";
 	private static final String DOCUMENT_ENDPOINT_TEMPALTE = "httpS://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/documents/batch";
 
-	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.getStack(),	StackConfiguration.getStackInstance());
+	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.singleton().getStack(),	StackConfiguration.getStackInstance());
 
 	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 

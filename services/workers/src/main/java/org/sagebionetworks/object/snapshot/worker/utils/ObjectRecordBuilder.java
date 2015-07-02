@@ -2,6 +2,7 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface ObjectRecordBuilder {
 	
@@ -10,6 +11,7 @@ public interface ObjectRecordBuilder {
 	 * 
 	 * @param message
 	 * @return the record that was built
+	 * @throws JSONObjectAdapterException 
 	 */
-	public ObjectRecord build(ChangeMessage message);
+	public ObjectRecord build(ChangeMessage message) throws JSONObjectAdapterException;
 }

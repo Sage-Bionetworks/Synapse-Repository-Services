@@ -64,7 +64,7 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final String S3_URL_PREFIX = "https://" + S3_DOMAIN + "/"
 			+ S3_BUCKET;
 	private static final Pattern ENTITY_FROM_S3KEY_REGEX = Pattern.compile("^(" + S3_URL_PREFIX + ")?(/)?(\\d+)/.*$");
-	private static final String STACK = StackConfiguration.getStack();
+	private static final String STACK = StackConfiguration.singleton().getStack();
 	private static final String FEDERATED_USERNAME_PREFIX = STACK + "-";
 	private static final String ENTITY_ID_PLACEHOLDER = "REPLACE_ME_WITH_AN_ENTITY_ID";
 	private static final String READONLY_DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"s3:GetObject\",\"Resource\": \"arn:aws:s3:::"

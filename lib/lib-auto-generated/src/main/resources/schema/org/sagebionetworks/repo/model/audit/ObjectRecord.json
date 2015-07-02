@@ -9,9 +9,13 @@
 			"type": "integer",
 			"description": "The application change number created as a result of this change"
 		},
-		"objectType": {
+		"jsonClassName": {
 			"type": "string",
-			"description": "The type of object"
+			"description": "The name of the json object"
+		},
+		"changeMessageObjectType":{
+			"type": "string",
+			"description": "The object type from the changeMessage"
 		},
 		"jsonString": {
 			"type": "string",
