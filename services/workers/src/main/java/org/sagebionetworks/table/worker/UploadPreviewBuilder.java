@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 /**
  * Builds a CSV upload preview for a file.
@@ -27,7 +28,7 @@ public class UploadPreviewBuilder {
 	public static final int MAX_ROWS_IN_PARTIAL_SCAN = 1000;
 	public static final int MAX_ROWS_IN_PREVIEW = 5;
 	CsvNullReader reader;
-	ProgressReporter reporter;
+	ProgressCallback<Integer> progressCallback;
 	boolean isFirstLineHeader;
 	List<String[]> startingRow;
 	ColumnModel[] testTypes;
@@ -39,9 +40,9 @@ public class UploadPreviewBuilder {
 	List<ColumnModel> suggestedColumns;
 
 	public UploadPreviewBuilder(CsvNullReader reader,
-			ProgressReporter reporter, UploadToTablePreviewRequest request) {
+			ProgressCallback<Integer> progressCallback, UploadToTablePreviewRequest request) {
 		this.reader = reader;
-		this.reporter = reporter;
+		this.progressCallback = progressCallback;
 		this.isFirstLineHeader = CSVUtils.isFirstRowHeader(request
 				.getCsvTableDescriptor());
 		this.startingRow = new ArrayList<String[]>(MAX_ROWS_IN_PREVIEW);
@@ -149,7 +150,7 @@ public class UploadPreviewBuilder {
 				// Check the schema from this row
 				CSVUtils.checkTypes(row, schema);
 				rowsScanned++;
-				reporter.tryReportProgress(rowsScanned);
+				progressCallback.progressMade(rowsScanned);
 				// Keep the first few rows
 				if (rowsScanned <= MAX_ROWS_IN_PREVIEW) {
 					startingRow.add(row);

@@ -33,8 +33,10 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.AmazonErrorCodes;
-import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.AmazonClientException;
@@ -55,7 +57,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class S3FileCopyWorker extends AbstractWorker {
+public class S3FileCopyWorker implements MessageDrivenRunner {
 
 	// these two value not static final, for testing (so test frame work can change them to allow testing with small
 	// files)
@@ -85,20 +87,22 @@ public class S3FileCopyWorker extends AbstractWorker {
 		private final String fileName;
 		private final AsynchronousJobStatus status;
 		private long progressCurrent = 0L;
+		private ProgressCallback<Message> progressCallback;
 
-		S3CopyFileProgressCallback(Message message, long progressTotal, long progressCurrent, String fileName, AsynchronousJobStatus status) {
+		S3CopyFileProgressCallback(Message message, long progressTotal, long progressCurrent, String fileName, AsynchronousJobStatus status, ProgressCallback<Message> progressCallback) {
 			this.message = message;
 			this.progressTotal = progressTotal;
 			this.progressCurrent = progressCurrent;
 			this.fileName = fileName;
 			this.status = status;
+			this.progressCallback = progressCallback;
 		}
 
 		@Override
 		public void progressMade(Long sizeTransfered) {
 			progressCurrent += sizeTransfered;
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Copying " + fileName);
-			getWorkerProgress().progressMadeForMessage(message);
+			progressCallback.progressMade(message);
 		}
 
 		long getProgressCurrent() {
@@ -142,7 +146,9 @@ public class S3FileCopyWorker extends AbstractWorker {
 	 * @return
 	 * @throws Throwable
 	 */
-	protected Message processMessage(Message message) throws Throwable {
+	@Override
+	public void run(ProgressCallback<Message> progressCallback,
+			Message message) throws RecoverableMessageException, Exception {
 		AsynchronousJobStatus status = extractStatus(message);
 		try {
 			UserInfo userInfo = userManager.getUserInfo(status.getStartedByUserId());
@@ -175,7 +181,7 @@ public class S3FileCopyWorker extends AbstractWorker {
 						}
 
 						S3CopyFileProgressCallback progress = new S3CopyFileProgressCallback(message, progressTotal, progressCurrent, file
-								.getFileHandle().getFileName(), status);
+								.getFileHandle().getFileName(), status, progressCallback);
 						try {
 							copyFile(file.getFileHandle(), file.getFileCopyResult().getResultBucket(), file.getFileCopyResult()
 									.getResultKey(), progress);
@@ -201,17 +207,15 @@ public class S3FileCopyWorker extends AbstractWorker {
 			}));
 			// done
 			asynchJobStatusManager.setComplete(status.getJobId(), resultBody);
-			return message;
 		} catch (JobCanceledException e) {
 			log.error("Worker canceled");
-			// Record the cancelation
+			// Record the cancellation
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
-			return message;
 		} catch (Throwable e) {
 			log.error("Worker failed:", e);
 			// Record the error
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
-			throw e;
+			throw new RecoverableMessageException();
 		}
 	}
 

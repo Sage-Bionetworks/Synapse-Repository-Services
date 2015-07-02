@@ -52,9 +52,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.allowCreationOfOldEntities",
 			
 			// Semaphore gated runner configuration.
-			"stackConfiguration.semaphoreGatedLockTimeoutMS",
-			"stackConfiguration.semaphoreGatedMaxRunnersRds",
-			"stackConfiguration.semaphoreGatedMaxRunnersSearch",
 			"stackConfiguration.semaphoreExclusiveMaxTimeoutMS",
 			"stackConfiguration.semaphoreSharedMaxTimeoutMS",
 			
@@ -76,6 +73,9 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.repositoryChangeTopic[FILE]",
 			"stackConfiguration.repositoryChangeTopic[PRINCIPAL]",
 			"stackConfiguration.repositoryChangeTopic[MESSAGE]",
+			"stackConfiguration.repositoryChangeTopic[ENTITY]",
+			"stackConfiguration.repositoryChangeTopic[WIKI]",
+			"stackConfiguration.repositoryChangeTopic[TABLE]",
 			"stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]"
 	};
 	

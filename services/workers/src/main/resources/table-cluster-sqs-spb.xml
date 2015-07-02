@@ -11,61 +11,48 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Setups the table message queue. -->
-	<bean id="tableMessageQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
-			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.tableUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
-		<constructor-arg index="2">
-			<list>
-				<value>TABLE</value>
-			</list>
-		</constructor-arg>
-		<constructor-arg index="3" ref="stackConfiguration.tableEnabled" />
-	</bean>
-
-	<!-- provides table message queue workers -->
-	<bean id="tableQueueWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-		<property name="worker" value="org.sagebionetworks.table.worker.TableWorker" />
-	</bean>
-
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="tableWorkerSemaphore"
-			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
-			scope="singleton">
-		<property name="lockTimeoutMS" value="1800000" />
-		<property name="maxCount" value="10" />
-	</bean>
-
-	<!-- Pull messages off the search queue, create works, deletes successfully 
-		processed messages -->
-	<bean id="tableQueueMessageReveiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
-		depends-on="stackConfiguration"
-		scope="singleton">
-		<property name="messageQueue" ref="tableMessageQueue" />
-		<property name="workerFactory" ref="tableQueueWorkerFactory" />
-		<property name="workerSemaphore" ref="tableWorkerSemaphore" />
-		<property name="maxNumberOfWorkerThreads" value="3" />
-		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
-	</bean>
-
-	<!-- This trigger is used to process messages from the search queue. -->
 	<bean id="tableQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="tableQueueMessageReveiver" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.table.worker.TableWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="tableIndexWorker" />
+								<property name="semaphoreMaxLockCount" value="10" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="60" />
+								<property name="queueName"
+									ref="stackConfiguration.tableUpdateQueueName" />
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref bean="stackConfiguration.repositoryChangeTopic[TABLE]" />
+									</list>
+								</property>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="15" />
-		<property name="repeatInterval" value="983" />
+		<property name="startDelay" value="256" />
+		<property name="repeatInterval" value="1797" />
 	</bean>
 
 </beans>
