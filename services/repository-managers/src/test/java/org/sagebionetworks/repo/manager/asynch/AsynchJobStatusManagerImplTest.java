@@ -3,10 +3,16 @@ package org.sagebionetworks.repo.manager.asynch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +22,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -26,6 +33,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.file.S3FileCopyResult;
+import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -47,6 +56,7 @@ public class AsynchJobStatusManagerImplTest {
 	StackStatusDao mockStackStatusDao;
 	AsynchJobQueuePublisher mockAsynchJobQueuePublisher;
 	JobHashProvider mockJobHashProvider;
+	ObjectRecordDAO mockObjectRecordDAO;
 	UserInfo user = null;
 	AsynchJobStatusManager manager;
 	String startedJobId;
@@ -59,6 +69,7 @@ public class AsynchJobStatusManagerImplTest {
 		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
 		mockAsynchJobQueuePublisher = Mockito.mock(AsynchJobQueuePublisher.class);
 		mockJobHashProvider = Mockito.mock(JobHashProvider.class);
+		mockObjectRecordDAO = Mockito.mock(ObjectRecordDAO.class);
 		manager = new AsynchJobStatusManagerImpl();
 		
 		
@@ -67,6 +78,7 @@ public class AsynchJobStatusManagerImplTest {
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "asynchJobQueuePublisher", mockAsynchJobQueuePublisher);
 		ReflectionTestUtils.setField(manager, "jobHashProvider", mockJobHashProvider);
+		ReflectionTestUtils.setField(manager, "objectRecordDAO", mockObjectRecordDAO);
 		startedJobId = "99999";
 		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).toAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
@@ -239,9 +251,10 @@ public class AsynchJobStatusManagerImplTest {
 	 * Cannot set complete when in read-only or down
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteReadOnlyMode() throws DatastoreException, NotFoundException{
+	public void testSetCompleteReadOnlyMode() throws DatastoreException, NotFoundException, IOException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
@@ -253,9 +266,10 @@ public class AsynchJobStatusManagerImplTest {
 	 * Cannot set complete when in read-only or down
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteDownMode() throws DatastoreException, NotFoundException{
+	public void testSetCompleteDownMode() throws DatastoreException, NotFoundException, IOException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
@@ -264,7 +278,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testSetCompleteHappy() throws DatastoreException, NotFoundException{
+	public void testSetCompleteHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		UploadToTableResult body = new UploadToTableResult();
@@ -277,7 +291,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testSetCompleteCacheable() throws DatastoreException, NotFoundException{
+	public void testSetCompleteCacheable() throws DatastoreException, NotFoundException, IOException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		
@@ -296,6 +310,28 @@ public class AsynchJobStatusManagerImplTest {
 		String result = manager.setComplete("456", resultBody);
 		assertEquals("etag", result);
 		verify(mockAsynchJobStatusDao).setComplete("456", resultBody, requestHash);
+	}
+	
+	@Test
+	public void testSetCompleteS3FileCopyResult() throws DatastoreException, NotFoundException, IOException{
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
+		
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("8888");
+		S3FileCopyResult responsebody = new S3FileCopyResult();
+		responsebody.setResultKey("downloadFile");
+		responsebody.setResultBucket("myFavoriteBucket");
+		responsebody.setFile("fileToDownload");
+		responsebody.setResultType(S3FileCopyResultType.COPIED);
+		String requestHash = null;
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		
+		String result = manager.setComplete("456", responsebody);
+		assertEquals("etag", result);
+		verify(mockAsynchJobStatusDao).setComplete("456", responsebody, requestHash);
+		verify(mockObjectRecordDAO).saveBatch(anyList(), Mockito.eq(S3FileCopyResult.class.getSimpleName().toLowerCase()));
 	}
 	
 	/**
