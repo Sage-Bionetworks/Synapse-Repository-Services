@@ -13,5 +13,5 @@ public interface ObjectRecordBuilder {
 	 * @return the record that was built
 	 * @throws JSONObjectAdapterException 
 	 */
-	public ObjectRecord build(ChangeMessage message) throws JSONObjectAdapterException;
+	public ObjectRecord build(ChangeMessage message);
 }

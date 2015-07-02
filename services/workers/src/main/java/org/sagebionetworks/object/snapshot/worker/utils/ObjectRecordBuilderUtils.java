@@ -16,13 +16,17 @@ public class ObjectRecordBuilderUtils {
 	 * @return the ObjectRecord that is being built
 	 * @throws JSONObjectAdapterException
 	 */
-	public static ObjectRecord buildObjectRecord(JSONEntity entity, ChangeMessage changeMessage) throws JSONObjectAdapterException {
+	public static ObjectRecord buildObjectRecord(JSONEntity entity, ChangeMessage changeMessage) {
 		ObjectRecord record = new ObjectRecord();
 		record.setChangeNumber(changeMessage.getChangeNumber());
 		record.setTimestamp(changeMessage.getTimestamp().getTime());
 		record.setChangeMessageObjectType(changeMessage.getObjectType().toString().toLowerCase());
 		record.setJsonClassName(entity.getClass().getSimpleName().toLowerCase());
-		record.setJsonString(EntityFactory.createJSONStringForEntity(entity));
+		try {
+			record.setJsonString(EntityFactory.createJSONStringForEntity(entity));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException();
+		}
 		return record;
 	}
 }
