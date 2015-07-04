@@ -14,8 +14,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.acl.worker.AclSnapshotWorkerTestUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -119,8 +119,8 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		aclList.add(acl);
 		Set<ResourceAccess> ras =
-				AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(
-						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2, false);
+				AclSnapshotUtils.createSetOfResourceAccess(Arrays.asList(
+						Long.parseLong(group.getId()), Long.parseLong(group2.getId())), 2);
 		acl.setResourceAccess(ras);
 		// create the acl
 		String aclId = aclDao.create(acl, ObjectType.ENTITY);
