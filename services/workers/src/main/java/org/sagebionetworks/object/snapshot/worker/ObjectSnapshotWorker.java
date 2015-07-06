@@ -12,7 +12,6 @@ import org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordBuilderFacto
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +39,7 @@ public class ObjectSnapshotWorker implements MessageDrivenRunner {
 	}
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message) throws IOException, JSONObjectAdapterException{
+	public void run(ProgressCallback<Message> progressCallback, Message message) throws IOException {
 		// Keep this message invisible
 		progressCallback.progressMade(message);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);

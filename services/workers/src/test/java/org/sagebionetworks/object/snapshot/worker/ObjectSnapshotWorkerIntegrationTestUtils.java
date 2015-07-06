@@ -67,12 +67,11 @@ public class ObjectSnapshotWorkerIntegrationTestUtils {
 	 * 
 	 * @param actualRecords
 	 * @param expectedRecords
-	 * @return true if actualRecords contains all expectedRecords regardless
-	 * of changeNumber and timestamp, false otherwise.
+	 * @return true if actualRecords contains all expectedRecords regardless of timestamp,
+	 * 		 false otherwise.
 	 */
 	private static boolean compareRecords(List<ObjectRecord> actualRecords, List<ObjectRecord> expectedRecords) {
 		for (ObjectRecord record: actualRecords) {
-			record.setChangeNumber(null);
 			record.setTimestamp(null);
 		}
 		for (ObjectRecord record : expectedRecords) {

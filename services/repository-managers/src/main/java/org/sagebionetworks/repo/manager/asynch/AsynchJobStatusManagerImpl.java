@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Snapshotable;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -14,6 +19,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -40,6 +46,8 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	AsynchJobQueuePublisher asynchJobQueuePublisher;
 	@Autowired
 	JobHashProvider jobHashProvider;
+	@Autowired
+	ObjectRecordDAO objectRecordDAO;
 	
 	@Override
 	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
@@ -160,7 +168,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@WriteTransaction
 	@Override
 	public String setComplete(String jobId, AsynchronousResponseBody body)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, IOException {
 		// Job can only be completed if the stack is in read-write mode.
 		checkStackReadWrite();
 		/*
@@ -172,6 +180,11 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		if(status.getRequestBody() instanceof CacheableRequestBody){
 			CacheableRequestBody request = (CacheableRequestBody) status.getRequestBody();
 			requestHash = jobHashProvider.getJobHash(request);
+		}
+		// capture the body of the response
+		if (body instanceof Snapshotable) {
+			ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(body, System.currentTimeMillis());
+			objectRecordDAO.saveBatch(Arrays.asList(record), record.getJsonClassName());
 		}
 		return asynchJobStatusDao.setComplete(jobId, body, requestHash);
 	}

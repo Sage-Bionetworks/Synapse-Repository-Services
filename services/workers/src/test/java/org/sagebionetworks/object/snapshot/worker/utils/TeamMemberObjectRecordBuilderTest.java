@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -44,14 +43,14 @@ public class TeamMemberObjectRecordBuilderTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void nonTeamMemberChangeMessage() throws IOException, JSONObjectAdapterException {
+	public void nonTeamMemberChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		builder.build(changeMessage);
 	}
 	
 	@Test
-	public void addTeamMemberTest() throws IOException, JSONObjectAdapterException {
+	public void addTeamMemberTest() throws IOException {
 		Mockito.when(mockTeamDAO.getMember(teamId, "1")).thenReturn(teamMember);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "1", ObjectType.TEAM_MEMBER, teamId, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
@@ -61,7 +60,7 @@ public class TeamMemberObjectRecordBuilderTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void removeTeamMemberTest() throws IOException, JSONObjectAdapterException {
+	public void removeTeamMemberTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "1", ObjectType.TEAM_MEMBER, teamId, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		builder.build(changeMessage);
