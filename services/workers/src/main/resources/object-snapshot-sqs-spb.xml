@@ -18,6 +18,9 @@
 	<bean id="teamMemberObjectRecordBuilder"
 		class="org.sagebionetworks.object.snapshot.worker.utils.TeamMemberObjectRecordBuilder"
 		scope="singleton" />
+	<bean id="aclObjectRecordBuilder"
+		class="org.sagebionetworks.object.snapshot.worker.utils.AclObjectRecordBuilder"
+		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.model.ObjectType enum -->
 	<bean id="objectRecordBuilderFactory"
@@ -30,6 +33,9 @@
 				</entry>
 				<entry key="TEAM_MEMBER">
 					<ref bean="teamMemberObjectRecordBuilder" />
+				</entry>
+				<entry key="ACCESS_CONTROL_LIST">
+					<ref bean="aclObjectRecordBuilder" />
 				</entry>
 			</map>
 		</property>
@@ -65,7 +71,8 @@
 								<property name="topicNamesToSubscribe">
 									<list>
 										<ref bean="stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]" />
-										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />										
+										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />											
 									</list>
 								</property>
 							</bean>

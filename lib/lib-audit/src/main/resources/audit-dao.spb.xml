@@ -43,18 +43,6 @@
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
 	</bean>
 
-	<bean id="aclRecordDAO" class="org.sagebionetworks.audit.dao.AclRecordDAOImpl"
-		scope="singleton" init-method="initialize">
-		<property name="aclRecordBucketName" ref="stackConfiguration.aclRecordBucketName" />
-		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
-	</bean>
-	
-	<bean id="resourceAccessRecordDAO" class="org.sagebionetworks.audit.dao.ResourceAccessRecordDAOImpl"
-		scope="singleton" init-method="initialize">
-		<property name="resourceAccessRecordBucketName" ref="stackConfiguration.resourceAccessRecordBucketName" />
-		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
-	</bean>
-
 	<bean id="objectRecordDAO" class="org.sagebionetworks.audit.dao.ObjectRecordDAOImpl"
 		scope="singleton" init-method="initialize">
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
