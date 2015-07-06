@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.file.S3FileCopyResult;
 import org.sagebionetworks.repo.model.file.S3FileCopyResultType;
+import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -254,7 +255,7 @@ public class AsynchJobStatusManagerImplTest {
 	 * @throws IOException 
 	 */
 	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteReadOnlyMode() throws DatastoreException, NotFoundException, IOException{
+	public void testSetCompleteReadOnlyMode() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
@@ -269,7 +270,7 @@ public class AsynchJobStatusManagerImplTest {
 	 * @throws IOException 
 	 */
 	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteDownMode() throws DatastoreException, NotFoundException, IOException{
+	public void testSetCompleteDownMode() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
@@ -278,7 +279,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testSetCompleteHappy() throws DatastoreException, NotFoundException, IOException{
+	public void testSetCompleteHappy() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		UploadToTableResult body = new UploadToTableResult();
@@ -291,7 +292,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testSetCompleteCacheable() throws DatastoreException, NotFoundException, IOException{
+	public void testSetCompleteCacheable() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		
@@ -313,25 +314,27 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testSetCompleteS3FileCopyResult() throws DatastoreException, NotFoundException, IOException{
+	public void testSetCompleteS3FileCopyResult() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
-		S3FileCopyResult responsebody = new S3FileCopyResult();
-		responsebody.setResultKey("downloadFile");
-		responsebody.setResultBucket("myFavoriteBucket");
-		responsebody.setFile("fileToDownload");
-		responsebody.setResultType(S3FileCopyResultType.COPIED);
+		S3FileCopyResult s3FileCopyResult = new S3FileCopyResult();
+		s3FileCopyResult.setResultKey("downloadFile");
+		s3FileCopyResult.setResultBucket("myFavoriteBucket");
+		s3FileCopyResult.setFile("fileToDownload");
+		s3FileCopyResult.setResultType(S3FileCopyResultType.COPIED);
+		S3FileCopyResults responseBody = new S3FileCopyResults();
+		responseBody.setResults(Arrays.asList(s3FileCopyResult));
 		String requestHash = null;
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		
-		String result = manager.setComplete("456", responsebody);
+		String result = manager.setComplete("456", responseBody);
 		assertEquals("etag", result);
-		verify(mockAsynchJobStatusDao).setComplete("456", responsebody, requestHash);
-		verify(mockObjectRecordDAO).saveBatch(anyList(), Mockito.eq(S3FileCopyResult.class.getSimpleName().toLowerCase()));
+		verify(mockAsynchJobStatusDao).setComplete("456", responseBody, requestHash);
+		verify(mockObjectRecordDAO).saveBatch(anyList(), Mockito.eq(S3FileCopyResults.class.getSimpleName().toLowerCase()));
 	}
 	
 	/**
