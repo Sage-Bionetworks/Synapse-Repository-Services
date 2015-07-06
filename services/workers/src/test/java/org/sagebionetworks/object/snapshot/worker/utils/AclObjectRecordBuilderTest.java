@@ -1,13 +1,18 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
@@ -39,11 +44,17 @@ public class AclObjectRecordBuilderTest {
 		builder.build(changeMessage);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void validChangeMessageTest() throws IOException {
-		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id+"", ObjectType.PRINCIPAL, "etag", System.currentTimeMillis());
+		AccessControlList acl = new AccessControlList();
+		acl.setEtag("etag");
+		Mockito.when(mockAccessControlListDao.get(id)).thenReturn(acl);
+		
+		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id+"", ObjectType.ACCESS_CONTROL_LIST, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(acl, changeMessage.getTimestamp().getTime());
+		ObjectRecord actual = builder.build(changeMessage);
 		Mockito.verify(mockAccessControlListDao).get(id);
+		assertEquals(expected, actual);
 	}
 }
