@@ -1,0 +1,4 @@
+{
+	"description": "This interface helps identify object that can be captured.",
+	"type": "interface"
+}

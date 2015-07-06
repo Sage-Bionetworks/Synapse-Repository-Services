@@ -17,7 +17,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 public class BucketDaoProvider {
 
-	private Map<String, BucketDao> bucketDaoMap;
 	private AmazonS3Client s3Client;
 	private String stack;
 	private Map<String, String> bucketNameMap;
@@ -26,29 +25,16 @@ public class BucketDaoProvider {
 		super();
 		this.s3Client = s3Client;
 		this.stack = stack;
-		this.bucketDaoMap = new HashMap<String, BucketDao>();
 		this.bucketNameMap = new HashMap<String, String>();
 	}
 	
 	/**
 	 * 
 	 * @param type
-	 * @effect if bucketDaoMap does not contain key type, before this method returns,
-	 * it adds a new pair <type, new bucketDao> to bucketDaoMap
 	 * @return the bucketDao of the requested type
 	 */
 	public BucketDao getBucketDao(String type) {
-		if (bucketDaoMap.containsKey(type)) {
-			return bucketDaoMap.get(type);
-		}
-
-		// first time seeing this type		
-		String bucketName = getBucketName(type);
-		
-		// create the bucketDao for this type and save it
-		BucketDao bucketDao = new BucketDaoImpl(s3Client, bucketName);
-		bucketDaoMap.put(type, bucketDao);
-		return bucketDao;
+		return new BucketDaoImpl(s3Client, getBucketName(type));
 	}
 	
 	/**
