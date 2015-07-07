@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -87,8 +89,9 @@ public interface AsynchJobStatusManager {
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws IOException 
 	 */
-	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException;
+	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException, IOException;
 
 	public void emptyAllQueues();
 }

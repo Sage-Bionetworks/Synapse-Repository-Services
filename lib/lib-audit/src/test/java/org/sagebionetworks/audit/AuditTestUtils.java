@@ -111,13 +111,11 @@ public class AuditTestUtils {
 		List<ObjectRecord> list = new ArrayList<ObjectRecord>();
 		for (int i = 0; i < numberOfRecords; i++) {
 			ObjectRecord newRecord = new ObjectRecord();
-			newRecord.setChangeNumber(-1L);
 			try {
 				newRecord.setJsonString(EntityFactory.createJSONStringForEntity(up));
 			} catch (JSONObjectAdapterException e) {
 				newRecord.setJsonString("");
 			}
-			newRecord.setChangeMessageObjectType("principal");
 			newRecord.setJsonClassName(up.getClass().getSimpleName());
 			newRecord.setTimestamp(System.currentTimeMillis());
 			list.add(newRecord);

@@ -1,21 +1,13 @@
 {
-	"description": "Data recored from a change message and its associated object",
+	"description": "Data recored from a Synapse object",
 	"properties": {
 		"timestamp": {
 			"type": "integer",
 			"description": "The timestamp of the change event, in UTC milliseconds"
 		},
-		"changeNumber": {
-			"type": "integer",
-			"description": "The application change number created as a result of this change"
-		},
 		"jsonClassName": {
 			"type": "string",
 			"description": "The name of the json object"
-		},
-		"changeMessageObjectType":{
-			"type": "string",
-			"description": "The object type from the changeMessage"
 		},
 		"jsonString": {
 			"type": "string",
