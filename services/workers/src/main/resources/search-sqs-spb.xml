@@ -18,13 +18,13 @@
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
 					<bean
-						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2" ref="awsSNSClient" />
 						<constructor-arg index="3">
 							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
 									<bean
 										class="org.sagebionetworks.search.workers.sqs.search.SearchQueueWorker" />
