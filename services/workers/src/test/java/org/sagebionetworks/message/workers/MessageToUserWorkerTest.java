@@ -9,7 +9,6 @@ import java.util.Date;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -20,11 +19,9 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.model.Message;
-
 public class MessageToUserWorkerTest {
 	
-	ProgressCallback<Message> mockCallback;
+	ProgressCallback<ChangeMessage> mockCallback;
 	MessageManager mockMessageManager;
 	WorkerLogger mockWorkerLogger;
 	MessageToUserWorker worker;
@@ -50,9 +47,8 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectType(ObjectType.ENTITY);
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
-		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
 		// call under test
-		worker.run(mockCallback, msg);
+		worker.run(mockCallback, chgMsg);
 	}
 
 	@Test
@@ -65,11 +61,10 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectType(ObjectType.MESSAGE);
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
-		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
 		NotFoundException e = new NotFoundException();
 		when(mockMessageManager.processMessage(chgMsg.getObjectId())).thenThrow(e);
 		// call under test
-		worker.run(mockCallback, msg);
+		worker.run(mockCallback, chgMsg);
 		verify(mockWorkerLogger).logWorkerFailure(MessageToUserWorker.class, chgMsg, e, false);
 	}
 
@@ -83,12 +78,11 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectType(ObjectType.MESSAGE);
 		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
-		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
 		RuntimeException e = new RuntimeException();
 		when(mockMessageManager.processMessage(chgMsg.getObjectId())).thenThrow(e);
 		try {
 			// call under test
-			worker.run(mockCallback, msg);
+			worker.run(mockCallback, chgMsg);
 			fail("Should have thrown an exception");
 		} catch (RecoverableMessageException e1) {
 			//expected

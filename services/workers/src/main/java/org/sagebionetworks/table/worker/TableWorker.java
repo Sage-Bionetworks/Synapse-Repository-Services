@@ -13,7 +13,7 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -32,12 +32,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.SetMultimap;
 
 /**
@@ -48,7 +46,7 @@ import com.google.common.collect.SetMultimap;
  * @author John
  * 
  */
-public class TableWorker implements MessageDrivenRunner {
+public class TableWorker implements ChangeMessageDrivenRunner {
 
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
@@ -68,15 +66,12 @@ public class TableWorker implements MessageDrivenRunner {
 	NodeInheritanceManager nodeInheritanceManager;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
 		if (!configuration.getTableEnabled()) {
 			return;
 		}
-		// process each message
-		// Extract the ChangeMessage
-		ChangeMessage change = MessageUtils.extractMessageBody(message);
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
@@ -102,7 +97,7 @@ public class TableWorker implements MessageDrivenRunner {
 				}
 				// this method does the real work.
 				State state = createOrUpdateTable(progressCallback, tableId,
-						change.getObjectEtag(), message);
+						change.getObjectEtag(), change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {
 					throw new RecoverableMessageException();
 				}
@@ -117,9 +112,9 @@ public class TableWorker implements MessageDrivenRunner {
 	 * @return
 	 */
 	public State createOrUpdateTable(
-			final ProgressCallback<Message> progressCallback,
+			final ProgressCallback<ChangeMessage> progressCallback,
 			final String tableId, final String tableResetToken,
-			final Message message) {
+			final ChangeMessage change) {
 		// Attempt to run with
 		try {
 			// If the passed token does not match the current token then this
@@ -142,7 +137,7 @@ public class TableWorker implements MessageDrivenRunner {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
 									progressCallback, tableId, tableResetToken,
-									message);
+									change);
 						}
 					});
 		} catch (LockUnavilableException e) {
@@ -178,8 +173,8 @@ public class TableWorker implements MessageDrivenRunner {
 	 * @throws ConflictingUpdateException
 	 */
 	private State createOrUpdateWhileHoldingLock(
-			ProgressCallback<Message> progressCallback, String tableId,
-			String tableResetToken, Message message)
+			ProgressCallback<ChangeMessage> progressCallback, String tableId,
+			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
 		log.info("Create index " + tableId);
@@ -194,7 +189,7 @@ public class TableWorker implements MessageDrivenRunner {
 			}
 			// This method will do the rest of the work.
 			String lastEtag = synchIndexWithTable(progressCallback, indexDAO,
-					tableId, tableResetToken, message);
+					tableId, tableResetToken, change);
 			// We are finished set the status
 			log.info("Create index " + tableId + " done");
 			tableRowManager.attemptToSetTableStatusToAvailable(tableId,
@@ -237,9 +232,9 @@ public class TableWorker implements MessageDrivenRunner {
 	 * @throws IOException
 	 * @throws TableUnavilableException
 	 */
-	String synchIndexWithTable(ProgressCallback<Message> progressCallback,
+	String synchIndexWithTable(ProgressCallback<ChangeMessage> progressCallback,
 			TableIndexDAO indexDao, String tableId, String resetToken,
-			Message message) throws DatastoreException, NotFoundException,
+			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
@@ -287,7 +282,7 @@ public class TableWorker implements MessageDrivenRunner {
 				Long version = versionWithRows.getKey();
 
 				// Keep this message invisible
-				progressCallback.progressMade(message);
+				progressCallback.progressMade(change);
 
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId, version,

@@ -7,13 +7,9 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
@@ -25,8 +21,6 @@ import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.model.Message;
-
 /**
  * Test for AnnotationsWorker
  */
@@ -35,7 +29,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
 	WorkerLogger mockWorkerLogger;
 	EvaluationSubmissionAnnotationsWorker worker;
-	ProgressCallback<Message> mockProgressCallback;
+	ProgressCallback<ChangeMessage> mockProgressCallback;
 	
 	@Before
 	public void before(){
@@ -56,9 +50,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectType(ObjectType.ENTITY);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		// Make the call
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the DAO should not be called
 		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
@@ -70,9 +63,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		// Make the call
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the manager should not be called
 		verify(mockDAO).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
@@ -84,9 +76,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.DELETE);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		// Make the call
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the manager should not be called
 		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 		verify(mockDAO).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
@@ -99,27 +90,21 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	 */
 	@Test
 	public void testNotFound() throws Exception{
-		// Test the case where an error occurs and and there is success
-		List<Message> list = new LinkedList<Message>();
 		// This will succeed
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		list.add(awsMessage);
 		// This will fail
-		message = new ChangeMessage();
-		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
-		message.setChangeType(ChangeType.UPDATE);
+		ChangeMessage message2 = new ChangeMessage();
+		message2.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
+		message2.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
-		message.setObjectId(failId);
-		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		list.add(awsMessage);
+		message2.setObjectId(failId);
 		// Simulate a not found
 		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message2);
 	}
 	
 	/**
@@ -128,32 +113,30 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	 */
 	@Test
 	public void testUnknownException() throws Exception{
-		// Test the case where an error occurs and and there is success
-		List<Message> list = new LinkedList<Message>();
 		// This will succeed
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		list.add(awsMessage);
 		// This will fail
-		message = new ChangeMessage();
-		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
-		message.setChangeType(ChangeType.UPDATE);
+		ChangeMessage message2 = new ChangeMessage();
+		message2.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
+		message2.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
-		message.setObjectId(failId);
-		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
-		list.add(awsMessage);
+		message2.setObjectId(failId);
 		// Simulate a runtime exception
 		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message2);
 	}
 	
 	@Test (expected=RecoverableMessageException.class)
 	public void testDeadlockException() throws Exception {
-		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "101", ObjectType.EVALUATION_SUBMISSIONS, "98976");
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectEtag("etag");
+		message.setObjectId("101");
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		doThrow(new TransientDataAccessException("foo", null) {
 			private static final long serialVersionUID = 1L;
 		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString(), anyString());
