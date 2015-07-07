@@ -2,25 +2,22 @@ package org.sagebionetworks.annotations.worker;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.TransientDataAccessException;
 
-import com.amazonaws.services.sqs.model.Message;
-
 /**
  * The worker that processes messages for SubmissionStatus Annotations jobs.
  *
  */
-public class EvaluationSubmissionAnnotationsWorker implements MessageDrivenRunner {
+public class EvaluationSubmissionAnnotationsWorker implements ChangeMessageDrivenRunner {
 	
 	static private Log log = LogFactory.getLog(EvaluationSubmissionAnnotationsWorker.class);
 	
@@ -30,10 +27,8 @@ public class EvaluationSubmissionAnnotationsWorker implements MessageDrivenRunne
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
-		// Extract the ChangeMessage
-		ChangeMessage change = MessageUtils.extractMessageBody(message);
 		// We only care about Submission messages here
 		if (ObjectType.EVALUATION_SUBMISSIONS == change.getObjectType()) {
 			try {
