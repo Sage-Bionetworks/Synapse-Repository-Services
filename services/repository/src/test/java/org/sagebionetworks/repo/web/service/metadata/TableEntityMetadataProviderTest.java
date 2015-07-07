@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;

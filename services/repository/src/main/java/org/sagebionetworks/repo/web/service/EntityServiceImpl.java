@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
@@ -103,7 +104,7 @@ public class EntityServiceImpl implements EntityService {
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
 		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne(paging.getOffset(), paging.getLimit());
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type =  EntityTypeUtils.getEntityTypeForClass(clazz);
+		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		// First build the query that will be used
 		BasicQuery query = QueryUtils.createFindPaginagedOfType(paging, type);
 		// Execute the query and convert to entities.

@@ -10,7 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
