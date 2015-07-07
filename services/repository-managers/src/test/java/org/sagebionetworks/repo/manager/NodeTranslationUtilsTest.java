@@ -16,15 +16,13 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.sample.Example;
@@ -188,7 +186,7 @@ public class NodeTranslationUtilsTest {
 	public void testIsPrimaryFieldNames(){
 		// check all of the fields for each object type.
 		for(EntityType type: EntityType.values()){
-			Field[] fields = type.getClassForType().getDeclaredFields();
+			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for(Field field: fields){
 				String name = field.getName();
 				assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
@@ -250,6 +248,7 @@ public class NodeTranslationUtilsTest {
 		assertEquals("123", newLink.getLinksTo().getTargetId());
 
 	}
+
 	/**
 	 * We must be able to clear values by passing null
 	 */

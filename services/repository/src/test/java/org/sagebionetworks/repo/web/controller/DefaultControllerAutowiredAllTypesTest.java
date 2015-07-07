@@ -259,11 +259,11 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	 */
 	private String findCompatableParentId(List<EntityHeader> path, EntityType type){
 		// Frist try null
-		if(type.isValidParentType(null)) return null;
+		if(EntityTypeUtils.isValidParentType(type, null)) return null;
 		// Try each entry in the list
 		for(EntityHeader header: path){
 			EntityType parentType = EntityType.valueOf(header.getType());
-			if(type.isValidParentType(parentType)){
+			if(EntityTypeUtils.isValidParentType(type, parentType)){
 				return header.getId();
 			}
 		}
@@ -364,13 +364,13 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
-			EntityType type = EntityType.getEntityTypeForClass(entity.getClass());
+			EntityType type = EntityTypeUtils.getEntityTypeForClass(entity.getClass());
 			// The last element should match this entity
 			EntityHeader myData = path.get(path.size()-1);
 			assertNotNull(myData);
 			assertEquals(entity.getId(), myData.getId());
 			assertEquals(entity.getName(), myData.getName());
-			assertEquals(type.getEntityTypeClassName(), myData.getType());
+			assertEquals(EntityTypeUtils.getEntityTypeClassName(type), myData.getType());
 		}
 	}
 	

@@ -29,6 +29,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -202,7 +203,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 				EntityHeader header = new EntityHeader();
 				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 				header.setName(rs.getString(COL_NODE_NAME));
-				header.setType(EntityType.valueOf(rs.getString(COL_NODE_TYPE)).getEntityTypeClassName());
+				header.setType(EntityTypeUtils.getEntityTypeClassName(EntityType.valueOf(rs.getString(COL_NODE_TYPE))));
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				return header;

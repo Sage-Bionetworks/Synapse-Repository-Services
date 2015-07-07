@@ -980,7 +980,7 @@ public class NodeDAOImplTest {
 		// Get the header of this node
 		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId, null);
 		assertNotNull(parentHeader);
-		assertEquals(EntityType.project.getEntityTypeClassName(), parentHeader.getType());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), parentHeader.getType());
 		assertEquals("parent", parentHeader.getName());
 		assertEquals(parentId, parentHeader.getId());
 		
@@ -993,7 +993,7 @@ public class NodeDAOImplTest {
 		// Get the header of this node
 		EntityHeader childHeader = nodeDao.getEntityHeader(childId, 1L);
 		assertNotNull(childHeader);
-		assertEquals(EntityType.folder.getEntityTypeClassName(), childHeader.getType());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), childHeader.getType());
 		assertEquals("child", childHeader.getName());
 		assertEquals(childId, childHeader.getId());
 

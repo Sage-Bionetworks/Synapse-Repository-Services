@@ -16,8 +16,8 @@ import java.util.logging.Logger;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
@@ -56,7 +56,7 @@ public class NodeTranslationUtils {
 		for (EntityType type : EntityType.values()) {
 			HashSet<String> set = new HashSet<String>();
 			// Add each field
-			Field[] fields = type.getClassForType().getDeclaredFields();
+			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for (Field field : fields) {
 				String name = field.getName();
 				// Add this name and the node name

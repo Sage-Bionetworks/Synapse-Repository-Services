@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.junit.Test;
@@ -23,7 +22,7 @@ public class EntityTypeTest {
 		EntityType[] values = EntityType.values();
 		assertNotNull(values);
 		for(EntityType type: values){
-			assertNotNull(type.getClassForType());
+			assertNotNull(EntityTypeUtils.getClassForType(type));
 		}
 	}
 	
@@ -32,8 +31,8 @@ public class EntityTypeTest {
 	public void testGetNodeTypeForClass(){
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
-			assertNotNull(type.getClassForType());
-			EntityType result = EntityType.getEntityTypeForClass(type.getClassForType());
+			assertNotNull(EntityTypeUtils.getClassForType(type));
+			EntityType result = EntityTypeUtils.getEntityTypeForClass(EntityTypeUtils.getClassForType(type));
 			assertEquals(type, result);
 		}
 	}
@@ -53,28 +52,26 @@ public class EntityTypeTest {
 	@Test
 	public void testProject(){
 		assertNotNull(EntityType.project);
-		assertEquals(Project.class, EntityType.project.getClassForType());
+		assertEquals(Project.class, EntityTypeUtils.getClassForType(EntityType.project));
 	}
 	
 	@Test
 	public void testFolder(){
 		assertNotNull(EntityType.folder);
-		assertEquals(Folder.class, EntityType.folder.getClassForType());
+		assertEquals(Folder.class, EntityTypeUtils.getClassForType(EntityType.folder));
 	}
 
 
 	@Test
 	public void testProjectAlais(){
-		LinkedHashSet<String> expected = new LinkedHashSet<String>();
-		Set<String> aliases = EntityType.project.getAllAliases();
+		Set<String> aliases = EntityTypeUtils.getAllAliases(EntityType.project);
 		assertTrue(aliases.contains("project"));
 		assertTrue(aliases.contains("entity"));
 	}
 	
 	@Test
 	public void testFolderAlais(){
-		LinkedHashSet<String> expected = new LinkedHashSet<String>();
-		Set<String> aliases = EntityType.folder.getAllAliases();
+		Set<String> aliases = EntityTypeUtils.getAllAliases(EntityType.folder);
 		assertTrue(aliases.contains("folder"));
 		assertTrue(aliases.contains("entity"));
 	}
