@@ -15,17 +15,22 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-shared-models</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>database-semaphore</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>worker-utilities</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-utils</artifactId>

@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -21,15 +20,13 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.model.Message;
-
 /**
  * Test for RdsWorker
  *
  */
 public class EntityAnnotationWorkerTest {
 	
-	ProgressCallback<Message> mockProgressCallback;
+	ProgressCallback<ChangeMessage> mockProgressCallback;
 	AsynchronousDAO mockManager;
 	WorkerLogger mockWorkerLogger;
 	EntityAnnotationsWorker worker;
@@ -53,9 +50,8 @@ public class EntityAnnotationWorkerTest {
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectType(ObjectType.PRINCIPAL);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		//call under test
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the manager should not be called
 		verify(mockManager, never()).createEntity(any(String.class));
 		verify(mockManager, never()).updateEntity(any(String.class));
@@ -68,9 +64,8 @@ public class EntityAnnotationWorkerTest {
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		//call under test
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the manager should not be called
 		verify(mockManager, times(1)).createEntity(message.getObjectId());
 		verify(mockManager, never()).updateEntity(any(String.class));
@@ -83,9 +78,8 @@ public class EntityAnnotationWorkerTest {
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		//call under test
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the manager should not be called
 		verify(mockManager, never()).createEntity(any(String.class));
 		verify(mockManager, times(1)).updateEntity(message.getObjectId());
@@ -98,9 +92,8 @@ public class EntityAnnotationWorkerTest {
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);
 		message.setObjectId("123");
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		//call under test
-		worker.run(mockProgressCallback, awsMessage);
+		worker.run(mockProgressCallback, message);
 		// the manager should not be called
 		verify(mockManager, never()).createEntity(any(String.class));
 		verify(mockManager, never()).updateEntity(any(String.class));
@@ -120,19 +113,17 @@ public class EntityAnnotationWorkerTest {
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		// This will fail
-		message = new ChangeMessage();
-		message.setObjectType(ObjectType.ENTITY);
-		message.setChangeType(ChangeType.UPDATE);
+		ChangeMessage messageFail = new ChangeMessage();
+		messageFail.setObjectType(ObjectType.ENTITY);
+		messageFail.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
-		message.setObjectId(failId);
-		Message awsMessageFail = MessageUtils.createMessage(message, "abc", "handle");
+		messageFail.setObjectId(failId);
 		// Simulate a not found
 		when(mockManager.updateEntity(failId)).thenThrow(new NotFoundException("NotFound"));
 		//call under test
-		worker.run(mockProgressCallback, awsMessage);
-		worker.run(mockProgressCallback, awsMessageFail);
+		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, messageFail);
 	}
 	
 	/**
@@ -148,29 +139,24 @@ public class EntityAnnotationWorkerTest {
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
-		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		// This will fail
-		message = new ChangeMessage();
-		message.setObjectType(ObjectType.ENTITY);
-		message.setChangeType(ChangeType.UPDATE);
+		ChangeMessage messageFailed = new ChangeMessage();
+		messageFailed.setObjectType(ObjectType.ENTITY);
+		messageFailed.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
-		message.setObjectId(failId);
-		Message awsMessageFail = MessageUtils.createMessage(message, "abc", "handle");
+		messageFailed.setObjectId(failId);
 		// Simulate a not found
 		Exception expectedException = new RuntimeException("Unknown exception");
 		when(mockManager.updateEntity(failId)).thenThrow(expectedException);
 		//call under test
-		worker.run(mockProgressCallback, awsMessage);
-		// The result list should only contain the success message.
+		worker.run(mockProgressCallback, message);
 		// The error message must stay on the queue.
-		//call under test
-		worker.run(mockProgressCallback, awsMessage);
 		try {
-			worker.run(mockProgressCallback, awsMessageFail);
+			worker.run(mockProgressCallback, messageFailed);
 			fail("Should have thrown an exception.");
 		} catch (RecoverableMessageException e) {
 			// expected
 		}
-		verify(mockWorkerLogger).logWorkerFailure(EntityAnnotationsWorker.class, message, expectedException, true);
+		verify(mockWorkerLogger).logWorkerFailure(EntityAnnotationsWorker.class, messageFailed, expectedException, true);
 	}
 }

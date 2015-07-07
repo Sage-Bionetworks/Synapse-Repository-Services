@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
@@ -32,7 +33,7 @@ import com.amazonaws.services.sqs.model.Message;
  * @author John
  * 
  */
-public class SearchQueueWorker implements MessageDrivenRunner {
+public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(SearchQueueWorker.class);
 
@@ -49,14 +50,12 @@ public class SearchQueueWorker implements MessageDrivenRunner {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
 		if (!searchDao.isSearchEnabled()) {
 			return;
 		}
-		// Extract the ChangeMessage
-		ChangeMessage change = MessageUtils.extractMessageBody(message);
 		// We only care about entity messages as this time
 		if (ObjectType.ENTITY == change.getObjectType()) {
 			// Is this a create or update
@@ -67,8 +66,7 @@ public class SearchQueueWorker implements MessageDrivenRunner {
 				processDelete(change);
 			} else {
 				throw new IllegalArgumentException("Unknown change type: "
-						+ change.getChangeType() + " for messageID ="
-						+ message.getMessageId());
+						+ change.getChangeType());
 			}
 		}
 		// Is this a wikipage?

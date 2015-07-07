@@ -42,6 +42,7 @@ import com.google.common.collect.Sets;
 
 public class IT970UserProfileController {
 
+	private static final int MAX_WAIT_MS = 40000;
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 	
@@ -189,7 +190,7 @@ public class IT970UserProfileController {
 		ebc.setEntity(folder);
 		synapse.updateEntityBundle(folder.getId(), ebc);
 
-		TimeUtils.waitFor(20000, 1000, Lists.reverse(projects.getResults()), new Predicate<List<ProjectHeader>>() {
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000, Lists.reverse(projects.getResults()), new Predicate<List<ProjectHeader>>() {
 			@Override
 			public boolean apply(List<ProjectHeader> expected) {
 				try {

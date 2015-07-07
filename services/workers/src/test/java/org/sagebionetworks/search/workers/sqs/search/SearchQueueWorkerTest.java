@@ -18,7 +18,9 @@ import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
@@ -30,12 +32,14 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class SearchQueueWorkerTest {
 	
-	private ProgressCallback<Message> mockCallback;
+	private ProgressCallback<ChangeMessage> mockCallback;
 	private SearchDao mockSearchDao;
 	private SearchDocumentDriver mockDocumentProvider;
 	private V2WikiPageDao mockWikiPageDao;
 	private WorkerLogger mockWorkerLogger;
 	private SearchQueueWorker worker;
+	private ChangeMessage message;
+	private ChangeMessage message2;
 	
 	@Before
 	public void before(){
@@ -50,12 +54,26 @@ public class SearchQueueWorkerTest {
 		ReflectionTestUtils.setField(worker, "searchDocumentDriver", mockDocumentProvider);
 		ReflectionTestUtils.setField(worker, "wikPageDao", mockWikiPageDao);
 		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
+		
+		message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectEtag("etag1");
+		message.setObjectId("one");
+		message.setParentId("parent1");
+		message.setObjectType(ObjectType.ENTITY);
+		
+		message2 = new ChangeMessage();
+		message2.setChangeType(ChangeType.CREATE);
+		message2.setObjectEtag("etag2");
+		message2.setObjectId("two");
+		message2.setParentId("parent2");
+		message2.setObjectType(ObjectType.ENTITY);
 	}
 	
 	@Test
 	public void testDelete() throws Exception{
 		// create a few delete messages.
-		Message message = MessageUtils.buildDeleteEntityMessage("one", "parent1", "1", "handle1");
+		message.setChangeType(ChangeType.DELETE);
 		// call under test
 		worker.run(mockCallback, message);
 		// Delete should be called
@@ -66,10 +84,6 @@ public class SearchQueueWorkerTest {
 	
 	@Test
 	public void testCreate() throws Exception{
-		// create a few delete messages.
-		Message message = MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1");
-		Message message2 = MessageUtils.buildCreateEntityMessage("two", "parent2", "etag2", "1", "handle2");
-		
 		Document docOne = new Document();
 		docOne.setId("one");
 		when(mockDocumentProvider.formulateSearchDocument("one")).thenReturn(docOne);
@@ -102,9 +116,6 @@ public class SearchQueueWorkerTest {
 	 */
 	@Test
 	public void testCreateAlreadyInSearchIndex() throws Exception{
-		// create a few delete messages.
-		Message message = MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1");
-		
 		// Create only occurs if the document exists in the repository
 		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
 		// Create only occurs if it is not already in the search index
@@ -127,9 +138,6 @@ public class SearchQueueWorkerTest {
 	 */
 	@Test
 	public void testCreateDoesNotExistInReposiroty() throws Exception{
-		// create a few delete messages.
-		Message message = MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1");
-		
 		// Create only occurs if the document exists in the repository
 		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(false);
 		// Create only occurs if it is not already in the search index
@@ -154,12 +162,8 @@ public class SearchQueueWorkerTest {
 	 */
 	@Test
 	public void testLogDeleteException() throws Exception {
-		// Create some delete messages
-		Message one = MessageUtils.buildDeleteEntityMessage("one", "parent1", "1", "handle1");
-		Message two = MessageUtils.buildDeleteEntityMessage("two", "parent2", "2", "handle2");
-		// Expected docIds to delete
-		// Expected change message to fail
-		ChangeMessage cMsg = MessageUtils.extractMessageBody(one);
+		message.setChangeType(ChangeType.DELETE);
+		message2.setChangeType(ChangeType.DELETE);
 		// Expected exception in for batch and retry
 		Exception eBatch = new RuntimeException("Batch exception");
 		Exception eRetry = new RuntimeException("Retry exception");
@@ -168,15 +172,15 @@ public class SearchQueueWorkerTest {
 		
 		// call under test
 		try {
-			worker.run(mockCallback, one);
+			worker.run(mockCallback, message);
 			fail();
 		} catch (RecoverableMessageException e) {
 			// expected
 		}
-		worker.run(mockCallback, two);
+		worker.run(mockCallback, message2);
 		
 		// Verify that error logged for "one" and "two" went through
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, cMsg, eRetry, true);
+		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, message, eRetry, true);
 		verify(mockSearchDao, times(1)).deleteDocument("two");
 	}
 	
@@ -185,17 +189,12 @@ public class SearchQueueWorkerTest {
 	 */
 	@Test
 	public void testLogCreateUpdateException() throws Exception {
-		// Create some create msgs
-		Message one = MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1");
-		Message two = MessageUtils.buildCreateEntityMessage("two", "parent2", "etag2", "2", "handle2");
 		// These docs should exist in repository
 		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
 		when(mockDocumentProvider.doesDocumentExist("two", "etag2")).thenReturn(true);
 		// These docs should not already exist in CloudSearch
 		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
 		when(mockSearchDao.doesDocumentExist("two", "etag2")).thenReturn(false);
-		// Expected change message to fail
-		ChangeMessage cMsg = MessageUtils.extractMessageBody(one);
 		// Expected search documents
 		Document docOne = new Document();
 		docOne.setId("one");
@@ -211,15 +210,15 @@ public class SearchQueueWorkerTest {
 		
 		// call under test
 		try {
-			worker.run(mockCallback, one);
+			worker.run(mockCallback, message);
 			fail();
 		} catch (RecoverableMessageException e) {
 			// expected
 		}
-		worker.run(mockCallback, two);
+		worker.run(mockCallback, message2);
 		
 		// Verify that error logged for "one" and "two" went through
-		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, cMsg, eRetry, true);
+		verify(mockWorkerLogger, times(1)).logWorkerFailure(SearchQueueWorker.class, message, eRetry, true);
 		verify(mockSearchDao, times(1)).createOrUpdateSearchDocument(docTwo);
 	}
 }
