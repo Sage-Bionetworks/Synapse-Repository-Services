@@ -1,0 +1,17 @@
+{
+	"description": "Data recored from a Synapse object",
+	"properties": {
+		"timestamp": {
+			"type": "integer",
+			"description": "The timestamp of the change event, in UTC milliseconds"
+		},
+		"jsonClassName": {
+			"type": "string",
+			"description": "The name of the json object"
+		},
+		"jsonString": {
+			"type": "string",
+			"description": "The json string representation of the object"
+		}
+	}
+}

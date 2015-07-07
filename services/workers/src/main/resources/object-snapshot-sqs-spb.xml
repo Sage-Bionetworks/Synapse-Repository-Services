@@ -10,8 +10,39 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
+	
+		<!-- ObjectRecord Builders -->
+	<bean id="principalObjectRecordBuilder"
+		class="org.sagebionetworks.object.snapshot.worker.utils.PrincipalObjectRecordBuilder"
+		scope="singleton" />
+	<bean id="teamMemberObjectRecordBuilder"
+		class="org.sagebionetworks.object.snapshot.worker.utils.TeamMemberObjectRecordBuilder"
+		scope="singleton" />
+	<bean id="aclObjectRecordBuilder"
+		class="org.sagebionetworks.object.snapshot.worker.utils.AclObjectRecordBuilder"
+		scope="singleton" />
 
-	<bean id="aclQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.model.ObjectType enum -->
+	<bean id="objectRecordBuilderFactory"
+		class="org.sagebionetworks.object.snapshot.worker.utils.ObjectRecordBuilderFactory"
+		scope="singleton">
+		<property name="builderMap">
+			<map>
+				<entry key="PRINCIPAL">
+					<ref bean="principalObjectRecordBuilder" />
+				</entry>
+				<entry key="TEAM_MEMBER">
+					<ref bean="teamMemberObjectRecordBuilder" />
+				</entry>
+				<entry key="ACCESS_CONTROL_LIST">
+					<ref bean="aclObjectRecordBuilder" />
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<!-- This trigger is used to process messages from the search queue. -->
+	<bean id="objectQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -26,22 +57,23 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.acl.worker.AclSnapshotWorker" />
+									<bean class="org.sagebionetworks.object.snapshot.worker.ObjectSnapshotWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="aclSnapshotWorker" />
+								<property name="semaphoreLockKey" value="objectSnapshotWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="60" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[ACCESS_CONTROL_LIST]" />
-								<property name="topicNamesToSubscribe">
-									<list>
-										<ref
-											bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
-									</list>
-								</property>
+									ref="stackConfiguration.asyncQueueName[OBJECT]" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref bean="stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />											
+									</list>
 								</property>
 							</bean>
 						</constructor-arg>
@@ -52,8 +84,8 @@
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="37" />
-		<property name="repeatInterval" value="1987" />
+		<property name="startDelay" value="39" />
+		<property name="repeatInterval" value="1979" />
 	</bean>
 
 

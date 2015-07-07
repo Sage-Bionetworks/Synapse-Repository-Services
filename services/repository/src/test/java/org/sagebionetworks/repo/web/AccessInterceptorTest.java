@@ -95,7 +95,7 @@ public class AccessInterceptorTest {
 		assertEquals(new Long(Thread.currentThread().getId()), result.getThreadId());
 		String stackInstanceNumber = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
 		assertEquals(stackInstanceNumber, result.getInstance());
-		assertEquals(StackConfiguration.getStack(), result.getStack());
+		assertEquals(StackConfiguration.singleton().getStack(), result.getStack());
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());

@@ -1,6 +1,5 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -229,16 +228,32 @@ public class MessageUtils {
 	 * @param changeType
 	 * @param objectId
 	 * @param objectType
+	 * @param parentId
 	 * @param etag
+	 * @param timestamp
 	 * @return
 	 */
-	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag){
+	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String parentId, String etag, long timestamp){
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
 		message.setObjectEtag(etag);
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
+		message.setParentId(parentId);
+		message.setTimestamp(new Date(timestamp));
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+	}
+	
+	/**
+	 * Build a generic message.
+	 * @param changeType
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @return
+	 */
+	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag){
+		return buildMessage(changeType, objectId, objectType, null, etag, System.currentTimeMillis());
 	}
 
 	/**
@@ -251,14 +266,10 @@ public class MessageUtils {
 	 * @return
 	 */
 	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag, Long timestamp){
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(changeType);
-		message.setObjectEtag(etag);
-		message.setObjectId(objectId);
-		message.setObjectType(objectType);
-		message.setTimestamp(new Date(timestamp));
-		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
-	}	
+		return buildMessage(changeType, objectId, objectType, null, etag, timestamp);
+	}
+
+	
 	/**
 	 * Read a JSON entity from the message body
 	 * @param e

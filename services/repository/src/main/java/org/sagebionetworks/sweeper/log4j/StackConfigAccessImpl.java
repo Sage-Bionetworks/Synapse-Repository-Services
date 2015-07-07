@@ -9,7 +9,7 @@ public class StackConfigAccessImpl implements StackConfigAccess {
 	}
 	@Override
 	public String getStack() {
-		return StackConfiguration.getStack();
+		return StackConfiguration.singleton().getStack();
 	}
 
 

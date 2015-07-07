@@ -1,10 +1,5 @@
 {
 	"description": "Response of an asynchronous s3 file copy operation",
-	"implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
-        }
-    ],
 	"properties": {
 		"file": {
 			"type": "string",

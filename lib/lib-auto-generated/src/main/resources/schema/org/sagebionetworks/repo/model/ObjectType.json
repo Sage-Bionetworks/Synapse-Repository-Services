@@ -17,6 +17,7 @@
     	"ACCESS_APPROVAL",
     	"TEAM",
     	"TABLE",
-    	"ACCESS_CONTROL_LIST"
+    	"ACCESS_CONTROL_LIST",
+    	"TEAM_MEMBER"
     ]
 }

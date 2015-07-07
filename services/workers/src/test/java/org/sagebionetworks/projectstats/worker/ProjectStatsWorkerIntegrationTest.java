@@ -18,7 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.acl.worker.AclSnapshotWorkerTestUtils;
+import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -384,7 +384,7 @@ public class ProjectStatsWorkerIntegrationTest {
 
 	private void addAcl(Long project, Long... usersToAdd) throws Exception {
 		AccessControlList acl = accessControlListDAO.get(project.toString(), ObjectType.ENTITY);
-		Set<ResourceAccess> ras = AclSnapshotWorkerTestUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), 14, false);
+		Set<ResourceAccess> ras = AclSnapshotUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), 14);
 		acl.getResourceAccess().addAll(ras);
 
 		// update the ACL
