@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -13,10 +17,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,11 +29,8 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
-import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.mysql.jdbc.exceptions.MySQLTransactionRollbackException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -389,10 +388,20 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testSentBatchMixed(){
+	public void testRegisterMessageSentMixedBatch(){
 		List<ChangeMessage> mixed = createList(1, ObjectType.ENTITY);
+		mixed  = changeDAO.replaceChange(mixed);
 		mixed.addAll(createList(1, ObjectType.ACTIVITY));
 		changeDAO.registerMessageSent(ObjectType.ENTITY, mixed);
+	}
+	
+	@Test
+	public void testRegisterMessageSentBatch(){
+		List<ChangeMessage> batch = createList(5, ObjectType.ENTITY);
+		batch  = changeDAO.replaceChange(batch);
+		changeDAO.registerMessageSent(ObjectType.ENTITY, batch);
+		List<ChangeMessage> unsent = changeDAO.listUnsentMessages(10L);
+		assertEquals(0, unsent.size());
 	}
 	
 	
