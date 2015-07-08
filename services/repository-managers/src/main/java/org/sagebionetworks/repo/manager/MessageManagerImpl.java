@@ -49,10 +49,12 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
 
 
@@ -246,7 +248,7 @@ public class MessageManagerImpl implements MessageManager {
 			if (ug.getIsIndividual()) {
 				List<String> errors;
 				try {
-					errors = processMessage(dto.getId(), true);
+					errors = processMessage(dto.getId(), true, null);
 				} catch (NotFoundException e) {
 					throw new DatastoreException("Could not find a message that was created in the same transaction");
 				}
@@ -354,8 +356,8 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
-	public List<String> processMessage(String messageId) throws NotFoundException {
-		return processMessage(messageId, false);
+	public List<String> processMessage(String messageId, ProgressCallback<Void> progressCallback) throws NotFoundException {
+		return processMessage(messageId, false, progressCallback);
 	}
 	
 	/**
@@ -369,7 +371,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * General usage of this method sets this parameter to false.
 	 * @throws  
 	 */
-	private List<String> processMessage(String messageId, boolean singleTransaction) throws NotFoundException {
+	private List<String> processMessage(String messageId, boolean singleTransaction, ProgressCallback<Void> progressCallback) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
@@ -377,7 +379,7 @@ public class MessageManagerImpl implements MessageManager {
 
 		try {
 			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
-			return processMessage(dto, singleTransaction, messageBody, mimeType);
+			return processMessage(dto, singleTransaction, messageBody, mimeType, progressCallback);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -392,7 +394,8 @@ public class MessageManagerImpl implements MessageManager {
 	 */
 	private List<String> processMessage(
 			MessageToUser dto, boolean singleTransaction, 
-			String messageBody, String mimeType) throws NotFoundException {
+			String messageBody, String mimeType,
+			ProgressCallback<Void> progressCallback) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		// Check to see if the message has already been sent
@@ -491,6 +494,7 @@ public class MessageManagerImpl implements MessageManager {
 						messageDAO.updateMessageStatus_NewTransaction(messageStatus);
 					}
 				}
+				if (progressCallback!=null) progressCallback.progressMade(null);
 			} catch (Exception e) {
 				log.info("Error caught while processing message", e);
 				errors.add("Failed while processing message for recipient (" + userId + "): " + e.getMessage());
