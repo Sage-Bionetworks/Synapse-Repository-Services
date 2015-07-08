@@ -23,13 +23,31 @@ import org.sagebionetworks.repo.model.table.TableEntity;
  */
 public class EntityTypeUtils {
 	
-	private static final EntityTypeMetadata project = buildMetadata(EntityType.project, Arrays.asList("DEFAULT"), Project.class, "Project");
-	private static final EntityTypeMetadata file = buildMetadata(EntityType.file, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class, "File");
-	private static final EntityTypeMetadata folder = buildMetadata(EntityType.folder, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class, "Folder");
-	private static final EntityTypeMetadata table = buildMetadata(EntityType.table, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table");
-	private static final EntityTypeMetadata link = buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link");
-	private static final EntityTypeMetadata[] metadataArray = new EntityTypeMetadata[] {project, file, folder, table, link};
+	private static final EntityTypeMetadata[] metadataArray;
 	
+	static {
+		metadataArray = new EntityTypeMetadata[] {
+				// project
+				buildMetadata(EntityType.project, Arrays.asList("DEFAULT"), Project.class, "Project"),
+				// file
+				buildMetadata(EntityType.file, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class, "File"),
+				// folder
+				buildMetadata(EntityType.folder, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class, "Folder"),
+				// table
+				buildMetadata(EntityType.table, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table"),
+				// link
+				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link")
+		};
+	}
+
+	/**
+	 * 
+	 * @param type
+	 * @param validParentTypes
+	 * @param clazz
+	 * @param displayName
+	 * @return the metadata of an entity type
+	 */
 	private static EntityTypeMetadata buildMetadata(EntityType type, List<String> validParentTypes, Class<? extends Entity> clazz, String displayName) {
 		EntityTypeMetadata metadata = new EntityTypeMetadata();
 		metadata.setAliases(Arrays.asList(type.name(),"entity"));
