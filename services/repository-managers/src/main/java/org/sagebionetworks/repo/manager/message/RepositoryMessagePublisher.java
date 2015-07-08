@@ -17,18 +17,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
  *
  */
 public interface RepositoryMessagePublisher extends TransactionalMessengerObserver {
-	
-	/**
-	 * Callback used to notify of progress made during a batch publish.
-	 *
-	 */
-	public static interface PublishProgressCallback {
-		/**
-		 * Called as progress is made for the publishing of a batch.s
-		 */
-		public void progressMade();
-	}
-	
+		
 	/**
 	 * Get the name of the topic where the messages are published.
 	 * 
@@ -64,11 +53,15 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	public void publishToTopic(ChangeMessage message);
 	
 	/**
-	 * Publish a batch of change messages to a topic.
-	 * @param list The batch of messages to publish to a topic.
-	 * @param progessCallback Callback used to notify the caller of progress made.
+	 * Publish a batch of change messages to a topic. All ChangeMessages in the
+	 * batch must be of the given Object type. The batch size cannot be larger
+	 * than the maximum number of change messages that can be written to a
+	 * single SQS message body.
+	 * 
+	 * @param type The object type of the batch.
+	 * @param batch
 	 */
-	public void publishBatchToTopic(List<ChangeMessage> list, PublishProgressCallback progessCallback);
+	public void publishBatchToTopic(ObjectType type, List<ChangeMessage> batch);
 
 	/**
 	 * Publish a message to the modification topic.

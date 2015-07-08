@@ -363,8 +363,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
 		assertEquals(batch, unSent);
 		// Now register one
-		assertTrue(changeDAO.registerMessageSent(batch.get(1)));
-		assertFalse("Registering the same change twice should not result in an update",changeDAO.registerMessageSent(batch.get(1)));
+		changeDAO.registerMessageSent(batch.get(1));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
@@ -389,29 +388,11 @@ public class DBOChangeDAOImplAutowiredTest {
 		changeDAO.registerMessageSent(batch.get(0));
 	}
 	
-	@Test
-	public void testRegisterMessageSent(){
-		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
-		// Pass the batch.
-		change  = changeDAO.replaceChange(change);
-		// Send the batch
-		assertTrue(changeDAO.registerMessageSent(change));
-		// Calling it again should return false since it was already sent
-		assertFalse("The messages should already be marked as sent", changeDAO.registerMessageSent(change));
-		// Now if we replace the change we should be able to register it sent again
-		change  = changeDAO.replaceChange(change);
-		assertTrue(changeDAO.registerMessageSent(change));
-	}
-	
-	@Test
-	public void testRegisterMessageSentOldChange(){
-		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
-		// Pass the batch.
-		change  = changeDAO.replaceChange(change);
-		// use an older change number
-		change.setChangeNumber(change.getChangeNumber()-1);
-		// Send the batch
-		assertFalse("Since the passed change number doe snot match the current state of the change, the sent registration should not have happened.", changeDAO.registerMessageSent(change));
+	@Test (expected=IllegalArgumentException.class)
+	public void testSentBatchMixed(){
+		List<ChangeMessage> mixed = createList(1, ObjectType.ENTITY);
+		mixed.addAll(createList(1, ObjectType.ACTIVITY));
+		changeDAO.registerMessageSent(ObjectType.ENTITY, mixed);
 	}
 	
 	

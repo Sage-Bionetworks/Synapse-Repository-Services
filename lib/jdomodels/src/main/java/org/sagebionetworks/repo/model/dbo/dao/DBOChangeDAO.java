@@ -74,7 +74,7 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * 
 	 * @param changeNumber
 	 */
-	public boolean registerMessageSent(ChangeMessage message);
+	public void registerMessageSent(ChangeMessage message);
 	
 	/**
 	 * Register that a message has been sent.  Any message that has been created but not registered as sent
@@ -83,7 +83,7 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * 
 	 * @param changeNumber
 	 */
-	public void registerMessageSent(List<ChangeMessage> batch);
+	public void registerMessageSent(ObjectType type, List<ChangeMessage> batch);
 
 	
 	/**

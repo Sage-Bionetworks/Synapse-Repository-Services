@@ -242,80 +242,35 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@NewWriteTransaction
 	@Override
 	public void publishToTopic(ChangeMessage message) {
-		publishBatchToTopic(Arrays.asList(message), null);
+		// treat as a batch of size one.
+		publishBatchToTopic(message.getObjectType(), Arrays.asList(message));
 	}
 	
-	/**
-	 * Group the provided list of changes messages by object type.
-	 * @param list
-	 * @return
-	 */
-	public static Map<ObjectType, List<ChangeMessage>> groupMessagesByObjectType(List<ChangeMessage> list){
-		// Group all messages by type
-		Map<ObjectType, List<ChangeMessage>> typeGroupMap = new HashMap<ObjectType, List<ChangeMessage>>();
-		for(ChangeMessage change: list){
-			ObjectType type = change.getObjectType();
-			if(type == null){
-				throw new IllegalArgumentException("Type cannot be null");
-			}
-			List<ChangeMessage> group = typeGroupMap.get(type);
-			if(group == null){
-				group = new LinkedList<ChangeMessage>();
-				typeGroupMap.put(type, group);
-			}
-			group.add(change);
-		}
-		return typeGroupMap;
-	}
 	
 	@NewWriteTransaction
 	@Override
-	public void publishBatchToTopic(List<ChangeMessage> batch, PublishProgressCallback callback) {
-		if(batch == null){
+	public void publishBatchToTopic(ObjectType type, List<ChangeMessage> batch) {
+		if (type == null) {
+			throw new IllegalArgumentException("Type cannot be null");
+		}
+		if (batch == null) {
 			throw new IllegalArgumentException("Batch cannot be null");
 		}
-		if(batch.size() < 1){
-			// nothing to do.
-			return;
+		if (batch.size() > ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE) {
+			throw new IllegalArgumentException(
+					"Batch size is limited to the number of messages that can be written to a single SQS Messages body.  Current maximumn: "
+							+ ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE);
 		}
-		// Group all messages by type object type.
-		Map<ObjectType, List<ChangeMessage>> typeGroupMap = groupMessagesByObjectType(batch);
-		// publish each group separately.
-		for(ObjectType type: typeGroupMap.keySet()){
-			List<ChangeMessage> group = typeGroupMap.get(type);
-			publishBatchToTopic(type, group, callback);
-		}
-	}
-	
-	/**
-	 * Publish a batch of change messages to a topic for the given ObjectType.
-	 * 
-	 * All change messages in the batch must have an ObjectType matching the provided type.
-	 * @param type
-	 * @param batch
-	 */
-	private void publishBatchToTopic(ObjectType type, List<ChangeMessage> batch, PublishProgressCallback callback){
-		if(batch == null){
-			throw new IllegalArgumentException("Batch cannot be null");
-		}
-		if(batch.size() < 1){
-			// nothing to do.
-			return;
-		}
+		// Write the batch to sent table.
+		this.transactionalMessanger.registerMessagesSent(type, batch);
+		// Lookup the topic arn.
 		String topicArn = getTopicInfoLazy(type).getArn();
-		// Partition the batch by the max number of messages that can be pushed
-		List<List<ChangeMessage>> partitions = Lists.partition(batch, ChangeMessageConstants.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE);
-		for(List<ChangeMessage> page: partitions){
-			if(callback != null){
-				callback.progressMade();
-			}
-			this.transactionalMessanger.registerMessagesSent(page);
-			ChangeMessages messages = new ChangeMessages();
-			messages.setList(page);
-			// publish the batch to to the topic
-			publish(messages, topicArn);
-		}
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(batch);
+		// publish the batch to to the topic
+		publish(messages, topicArn);
 	}
+
 	
 	/**
 	 * Publish the message.

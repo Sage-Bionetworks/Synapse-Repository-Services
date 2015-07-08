@@ -286,21 +286,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Return a copy of the list.
 		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
-
-	@WriteTransaction
-	@Override
-	public boolean registerMessageSent(ChangeMessage message){
-		try {
-			return this.changeDAO.registerMessageSent(message);
-		} catch (DataAccessException e) {
-			throw new IllegalArgumentException("Messages was not registered as sent: "+e.getMessage());
-		}
-	}
 	
 	@WriteTransaction
 	@Override
-	public void registerMessagesSent(List<ChangeMessage> page) {
-		this.changeDAO.registerMessageSent(page);
+	public void registerMessagesSent(ObjectType type, List<ChangeMessage> page) {
+		this.changeDAO.registerMessageSent(type, page);
 	}
 
 	@Override

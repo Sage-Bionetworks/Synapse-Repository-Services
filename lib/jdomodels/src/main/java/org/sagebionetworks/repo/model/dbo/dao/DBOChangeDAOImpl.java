@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -237,47 +238,28 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@WriteTransaction
 	@Override
-	public boolean registerMessageSent(ChangeMessage message) {
-		if(message == null) throw new IllegalArgumentException("Change cannot be null");
-		if(message.getChangeNumber() == null) throw new IllegalArgumentException("Change.changeNumber cannot be null");
-		DBOSentMessage sent = new DBOSentMessage();
-		sent.setChangeNumber(message.getChangeNumber());
-		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
-		sent.setObjectType(message.getObjectType());
-		/*
-		 * Before we start we grab a lock on the row in the changes table. This
-		 * ensures that the original change number cannot change until this
-		 * method completes.
-		 */
-		Long changeNumber = selectChangeNumberForUpdate(sent.getObjectId(),	sent.getObjectType());
-		// Check that this change number matches what was passed.
-		if (!message.getChangeNumber().equals(changeNumber)) {
-			/*
-			 * Since the current change number for this object does not match
-			 * what was passed, it cannot be registered as sent.
-			 * Returning false to indicate it was not registered.
-			 */
-			return false;
-		}
-		// Get the current change number for the sent message for this object.
-		Long currentSentChangeNumber = selectSentChangeNumberForUpdate(sent.getObjectId(), sent.getObjectType());
-		// If they are the same do nothing
-		if (sent.getChangeNumber().equals(currentSentChangeNumber)) {
-			// Not a change.
-			return false;
-		} else {
-			// This was a change.
-			this.basicDao.createOrUpdate(sent);
-			return true;
-		}
+	public void registerMessageSent(ChangeMessage message) {
+		registerMessageSent(message.getObjectType(), Arrays.asList(message));
 	}
 	
 	@WriteTransaction
 	@Override
-	public void registerMessageSent(List<ChangeMessage> batch) {
+	public void registerMessageSent(ObjectType type, List<ChangeMessage> batch) {
+		if(type == null){
+			throw new IllegalArgumentException("Type cannot be null");
+		}
+		if(batch == null){
+			throw new IllegalArgumentException("Batch cannot be null");
+		}
 		// Create the dto batch
 		List<DBOSentMessage> dboBatch = new LinkedList<DBOSentMessage>();
 		for(ChangeMessage message: batch){
+			if(!type.equals(message.getObjectType())){
+				throw new IllegalArgumentException("All ChangeMessages in the batch must have an ObjectType of: "+type+" but found: "+message.getObjectType());
+			}
+			if(message.getChangeNumber() == null){
+				throw new IllegalArgumentException("Change.changeNumber cannot be null");
+			}
 			DBOSentMessage sent = new DBOSentMessage();
 			sent.setChangeNumber(message.getChangeNumber());
 			sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));

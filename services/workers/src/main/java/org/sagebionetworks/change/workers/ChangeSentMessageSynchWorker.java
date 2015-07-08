@@ -3,6 +3,7 @@ package org.sagebionetworks.change.workers;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.logging.log4j.LogManager;
@@ -10,8 +11,10 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
-import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher.PublishProgressCallback;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -108,29 +111,33 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
 				// We are out-of-synch
 				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds, olderThan);
-				try {
-					// For each message make progress
-					progressCallback.progressMade(null);
-					// publish the message.
-					long pubStart = System.currentTimeMillis();
-					// publish the batch
-					repositoryMessagePublisher.publishBatchToTopic(toSend,	new PublishProgressCallback() {
-								@Override
-								public void progressMade() {
-									progressCallback.progressMade(null);
-								}
-							});
-					publishElapseSum += System.currentTimeMillis() - pubStart;
-					countSuccess += toSend.size();
-				} catch (Exception e) {
-					countFailures += toSend.size();
-					// Failing to send one messages should not stop sending the
-					// rest.
-					log.warn("Failed to register a send batch. message: "+ e.getMessage());
+				// Group the changes by object type and partition by max changes per SQS messages body.
+				Map<ObjectType, List<List<ChangeMessage>>> batches = 
+						ChangeMessageUtils.groupByObjectTypeAndPartitionEachGroup(
+								toSend, ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE);
+				for(ObjectType groupType: batches.keySet()){
+					List<List<ChangeMessage>> subLists = batches.get(groupType);
+					// Send each sub-list as a batch
+					for(List<ChangeMessage> batch: subLists){
+						try {
+							// For each message make progress
+							progressCallback.progressMade(null);
+							// publish the message.
+							long pubStart = System.currentTimeMillis();
+							// publish the batch
+							repositoryMessagePublisher.publishBatchToTopic(groupType, batch);
+							publishElapseSum += System.currentTimeMillis() - pubStart;
+							countSuccess += batch.size();
+						} catch (Exception e) {
+							countFailures += batch.size();
+							// Failing to send one messages should not stop sending the
+							// rest.
+							log.warn("Failed to register a send batch. message: "+ e.getMessage());
+						}
+					}
 				}
+
 			}
-			// Sleep between pages to keep from overloading the database.
-			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
 			// Extend the timeout for this worker by calling the callback
 			progressCallback.progressMade(null);
 			// Create some metrics
@@ -142,6 +149,12 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 				long avgPublishMS = publishElapseSum/countSuccess;
 				workerLogger.logCustomMetric(createElapseProfileData(avgPublishMS, AVG_PUBLISH));
 			}
+			// Terminate if the stack goes into read-only mode.
+			if (!stackStatusDao.isStackReadWrite()) {
+				return;
+			}
+			// Sleep between pages to keep from overloading the database.
+			clock.sleepNoInterrupt(configuration.getChangeSynchWorkerSleepTimeMS().get());
 		}
 
 	}
