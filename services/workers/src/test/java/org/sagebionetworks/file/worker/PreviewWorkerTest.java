@@ -16,7 +16,6 @@ import javax.imageio.IIOException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -35,10 +34,9 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class PreviewWorkerTest {
 	
-	ProgressCallback<Message> mockProgressCallback;
+	ProgressCallback<ChangeMessage> mockProgressCallback;
 	PreviewManager mockPreveiwManager;
 	ChangeMessage change;
-	Message message;
 	WorkerLogger mockWorkerLogger;
 	PreviewWorker worker;
 	
@@ -50,7 +48,6 @@ public class PreviewWorkerTest {
 		change.setObjectType(ObjectType.FILE);
 		change.setObjectId("123");
 		change.setChangeType(ChangeType.CREATE);
-		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
 		worker = new PreviewWorker();
 		ReflectionTestUtils.setField(worker, "previewManager", mockPreveiwManager);
@@ -62,7 +59,7 @@ public class PreviewWorkerTest {
 		// When a file is not found the message must be returned so it can be removed from the queue
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenThrow(new NotFoundException());
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
 	
@@ -72,7 +69,7 @@ public class PreviewWorkerTest {
 		PreviewFileHandle pfm = new PreviewFileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(pfm);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
 	
@@ -82,9 +79,8 @@ public class PreviewWorkerTest {
 		change = new ChangeMessage();
 		change.setObjectType(ObjectType.ENTITY);
 		change.setObjectId("123");
-		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
 	
@@ -94,7 +90,7 @@ public class PreviewWorkerTest {
 		ExternalFileHandle meta = new ExternalFileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
 	
@@ -104,18 +100,17 @@ public class PreviewWorkerTest {
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
 	}
 	
 	@Test
 	public void testUpdateMessage() throws Exception{
 		change.setChangeType(ChangeType.UPDATE);
-		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		// We should generate 
 		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
@@ -132,7 +127,7 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		try {
 			// Fire!
-			worker.run(mockProgressCallback, message);
+			worker.run(mockProgressCallback, change);
 			fail("Should have thrown an exception");
 		} catch (RecoverableMessageException e) {
 			// expected
@@ -150,7 +145,7 @@ public class PreviewWorkerTest {
 		Exception expectedException = new Exception();
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
 	}
 	
@@ -162,7 +157,7 @@ public class PreviewWorkerTest {
 		expectedException.initCause(new EOFException());
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
 	}
 	
@@ -174,7 +169,7 @@ public class PreviewWorkerTest {
 		IllegalArgumentException expectedException = new IllegalArgumentException();
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
 	}
 	
@@ -187,7 +182,7 @@ public class PreviewWorkerTest {
 		RuntimeException expectedException = new RuntimeException(causeException);
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
 	}
 	
@@ -199,7 +194,7 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		when(mockPreveiwManager.generatePreview(meta)).thenReturn(null);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		// We should generate 
 		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), anyBoolean());
@@ -209,11 +204,10 @@ public class PreviewWorkerTest {
 	public void testIgnoreDeleteMessage() throws Exception{
 		// Update messages should be ignored.
 		change.setChangeType(ChangeType.DELETE);
-		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		// We should not generate a 
 		verify(mockPreveiwManager, never()).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
@@ -223,9 +217,8 @@ public class PreviewWorkerTest {
 	public void testIgnoreDeleteessage() throws Exception{
 		// delete messages should be ignored.
 		change.setChangeType(ChangeType.DELETE);
-		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		// Fire!
-		worker.run(mockProgressCallback, message);
+		worker.run(mockProgressCallback, change);
 		// We should not generate a 
 		verify(mockPreveiwManager, never()).generatePreview(any(S3FileHandle.class));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));

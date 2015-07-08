@@ -1,6 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -52,20 +53,8 @@ public class MessageUtils {
 	public static <T extends JSONEntity> T extractMessageBody(Message message, Class<T> clazz) {
 		ValidateArgument.required(message, "message");
 		try {
-			JSONObject object = new JSONObject(message.getBody());
-			JSONObjectAdapterImpl adapter;
-			if (object.has("objectId")) {
-				// This is a message pushed directly to a queue
-				adapter = new JSONObjectAdapterImpl(object);
-			}
-			if (object.has("TopicArn") && object.has("Message")) {
-				// This is a message that was pushed to a topic then forwarded to a queue.
-				JSONObject innerObject = new JSONObject(object.getString("Message"));
-				adapter = new JSONObjectAdapterImpl(innerObject);
-			} else {
-				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
-			}
-
+			JSONObject object = extractMessageBodyAsJSONObject(message);
+			JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
 			T result;
 			if (adapter.has(CONCRETE_TYPE)) {
 				String concreteType = adapter.getString(CONCRETE_TYPE);
@@ -79,6 +68,23 @@ public class MessageUtils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	/**
+	 * Extract a message body as a JSON object. This handles the case where messages are forwarded from a topic.
+	 * 
+	 * @param message
+	 * @return
+	 * @throws JSONException 
+	 */
+	public static JSONObject extractMessageBodyAsJSONObject(Message message) throws JSONException {
+		ValidateArgument.required(message, "message");
+		JSONObject object = new JSONObject(message.getBody());
+		if (object.has("TopicArn") && object.has("Message")) {
+			return new JSONObject(object.getString("Message"));
+		} else {
+			return object;
+		}
+	}
 
 	/**
 	 * Extract a ChangeMessage from an Amazon Message
@@ -86,24 +92,29 @@ public class MessageUtils {
 	 * @return
 	 */
 	public static ChangeMessage extractMessageBody(Message message){
-		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		return extractMessageBody(message, ChangeMessage.class);
+	}
+	
+	/**
+	 * Extract a list of change messages from a message.
+	 * This will handle messages directly from a queue or forwarded from a topic.
+	 * The change messages can either be written as a signle or a batch.
+	 * 
+	 * @param message
+	 * @return
+	 */
+	public static List<ChangeMessage> extractChangeMessageBatch(Message message){
 		try {
-			JSONObject object = new JSONObject(message.getBody());
-			if(object.has("objectId")){
-				// This is a message pushed directly to a queue
-				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
-				return new ChangeMessage(adapter);
-			}if(object.has("TopicArn") && object.has("Message") ){
-				// This is a message that was pushed to a topic then forwarded to a queue.
-				JSONObject innerObject = new JSONObject(object.getString("Message"));
-				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(innerObject);
-				return new ChangeMessage(adapter);
+			JSONObject object = extractMessageBodyAsJSONObject(message);
+			JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
+			if(object.has("list")){
+				return  new ChangeMessages(adapter).getList();
+			}else if (object.has("objectId")){
+				return Arrays.asList(new ChangeMessage(adapter));
 			}else{
-				throw new IllegalArgumentException("Unknown message type: "+message.getBody());
+				throw new IllegalArgumentException("Unknown message body: "+message.getBody());
 			}
-		} catch (JSONException e) {
-			throw new RuntimeException(e);
-		} catch (JSONObjectAdapterException e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -147,7 +158,7 @@ public class MessageUtils {
 	 * @throws JSONObjectAdapterException 
 	 * @throws JSONException 
 	 */
-	public static Message createTopicMessage(ChangeMessage message, String topicArn, String messageId, String receiptHandle) throws JSONObjectAdapterException, JSONException{
+	public static Message createTopicMessage(JSONEntity message, String topicArn, String messageId, String receiptHandle) throws JSONObjectAdapterException, JSONException{
 		String messageJson = EntityFactory.createJSONStringForEntity(message);
 		JSONObject jsonObj  = new JSONObject();
 		jsonObj.put("MessageId", "d706461b-738e-42a2-8cfc-d0f50dc2d9e6");
@@ -163,7 +174,7 @@ public class MessageUtils {
 	 * @param message
 	 * @return
 	 */
-	public static Message createMessage(ChangeMessage message, String messageId, String receiptHandle){
+	public static Message createMessage(JSONEntity message, String messageId, String receiptHandle){
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
 		try {
 			Message result = new Message().withMessageId(messageId).withReceiptHandle(receiptHandle);
@@ -258,19 +269,6 @@ public class MessageUtils {
 		return buildMessage(changeType, objectId, objectType, null, etag, timestamp);
 	}
 
-	/**
-	 * Constructs a list of lists, each sublist containing no more than 10 items
-	 */
-	public static <T> List<List<T>> splitListIntoTens(List<T> batch) {
-		List<List<T>> miniBatches = new ArrayList<List<T>>();
-		for (int i = 0; i < batch.size(); i += SQS_MAX_REQUEST_SIZE) {
-			miniBatches.add(batch.subList(i, 
-					((i + SQS_MAX_REQUEST_SIZE > batch.size()) 
-							? batch.size() 
-							: (i + SQS_MAX_REQUEST_SIZE))));
-		}
-		return miniBatches;
-	}
 	
 	/**
 	 * Read a JSON entity from the message body

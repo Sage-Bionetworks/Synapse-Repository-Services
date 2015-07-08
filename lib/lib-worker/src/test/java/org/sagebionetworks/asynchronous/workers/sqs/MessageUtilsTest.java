@@ -1,15 +1,14 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-
-import junit.framework.Assert;
 
 import org.json.JSONException;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -28,8 +27,37 @@ public class MessageUtilsTest {
 		Message awsMessage = MessageUtils.createMessage(message, "id", "handle");
 		
 		// Extract it
-		ChangeMessage result = MessageUtils.extractMessageBody(awsMessage);
-		assertEquals(message, result);
+		List<ChangeMessage> result = MessageUtils.extractChangeMessageBatch(awsMessage);
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals(message, result.get(0));
+	}
+	
+	@Test
+	public void testExtractQueueMessageBodyBatch() throws JSONObjectAdapterException{
+		//one
+		ChangeMessage one = new ChangeMessage();
+		one.setChangeType(ChangeType.DELETE);
+		one.setObjectEtag("etag1");
+		one.setObjectId("456");
+		one.setObjectId("synABC");
+		//two
+		ChangeMessage two = new ChangeMessage();
+		two.setChangeType(ChangeType.DELETE);
+		two.setObjectEtag("etag2");
+		two.setObjectId("789");
+		two.setObjectId("synXYZ");
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(Arrays.asList(one, two));
+		// Set the message
+		Message awsMessage = MessageUtils.buildMessage(messages);
+		
+		// Extract it
+		List<ChangeMessage> result = MessageUtils.extractChangeMessageBatch(awsMessage);
+		assertNotNull(result);
+		assertEquals(2, result.size());
+		assertEquals(one, result.get(0));
+		assertEquals(two, result.get(1));
 	}
 	
 	@Test
@@ -43,22 +71,38 @@ public class MessageUtilsTest {
 		Message awsMessage = MessageUtils.createTopicMessage(message, "topic:arn","id", "handle");
 		
 		// Extract it
-		ChangeMessage result = MessageUtils.extractMessageBody(awsMessage);
-		assertEquals(message, result);
+		List<ChangeMessage> result = MessageUtils.extractChangeMessageBatch(awsMessage);
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals(message, result.get(0));
 	}
 	
 	@Test
-	public void testListSplitting() throws Exception {
-		List<Integer> batch = new ArrayList<Integer>();
-		for (int i = 0; i < 100; i++) {
-			batch.add(i);
-			List<List<Integer>> miniBatches = MessageUtils.splitListIntoTens(batch);
-			List<Integer> reBatched = new ArrayList<Integer>();
-			for (int j = 0; j < miniBatches.size(); j++) {
-				reBatched.addAll(miniBatches.get(j));
-			}
-			Assert.assertEquals(batch, reBatched);
-		}
+	public void testExtractChangeMessageBatchTopic() throws JSONObjectAdapterException, JSONException{
+		//one
+		ChangeMessage one = new ChangeMessage();
+		one.setChangeType(ChangeType.DELETE);
+		one.setObjectEtag("etag1");
+		one.setObjectId("456");
+		one.setObjectId("synABC");
+		//two
+		ChangeMessage two = new ChangeMessage();
+		two.setChangeType(ChangeType.DELETE);
+		two.setObjectEtag("etag2");
+		two.setObjectId("789");
+		two.setObjectId("synXYZ");
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(Arrays.asList(one, two));
+		// Set the message
+		Message awsMessage = MessageUtils.createTopicMessage(messages, "topic:arn","id", "handle");
+		
+		// Extract it
+		List<ChangeMessage> result = MessageUtils.extractChangeMessageBatch(awsMessage);
+		assertNotNull(result);
+		assertEquals(2, result.size());
+		assertEquals(one, result.get(0));
+		assertEquals(two, result.get(1));
 	}
+	
 
 }
