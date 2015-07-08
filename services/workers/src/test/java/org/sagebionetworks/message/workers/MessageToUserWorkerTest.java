@@ -2,7 +2,7 @@ package org.sagebionetworks.message.workers;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Date;
 
@@ -67,7 +67,7 @@ public class MessageToUserWorkerTest {
 		chgMsg.setTimestamp(new Date());
 		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
 		NotFoundException e = new NotFoundException();
-		when(mockMessageManager.processMessage(chgMsg.getObjectId())).thenThrow(e);
+		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.util.ProgressCallback.class))).thenThrow(e);
 		// call under test
 		worker.run(mockCallback, msg);
 		verify(mockWorkerLogger).logWorkerFailure(MessageToUserWorker.class, chgMsg, e, false);
@@ -85,7 +85,7 @@ public class MessageToUserWorkerTest {
 		chgMsg.setTimestamp(new Date());
 		Message msg = MessageUtils.createMessage(chgMsg, "outerId1000", "handler");
 		RuntimeException e = new RuntimeException();
-		when(mockMessageManager.processMessage(chgMsg.getObjectId())).thenThrow(e);
+		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.util.ProgressCallback.class))).thenThrow(e);
 		try {
 			// call under test
 			worker.run(mockCallback, msg);

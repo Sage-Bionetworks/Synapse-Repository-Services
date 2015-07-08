@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 import java.util.List;
@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -74,6 +76,7 @@ public class MessageManagerImplSESTest {
 	private NodeDAO mockNodeDAO;
 	private EntityPermissionsManager mockEntityPermissionsManager;
 	private FileHandleDao mockFileHandleDao;
+	private ProgressCallback mockProgressCallback;
 
 	@Autowired
 	private AWSCredentials awsCredentials;
@@ -187,6 +190,8 @@ public class MessageManagerImplSESTest {
 		htmlFileHandle.setId(FILE_HANDLE_ID_HTML);
 		htmlFileHandle.setContentType("text/html; charset=utf-8");
 		when(mockFileHandleDao.get(FILE_HANDLE_ID_HTML)).thenReturn(htmlFileHandle);
+		
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 	}
 	
 	/**
@@ -195,8 +200,9 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testPlainTextToDeveloper() throws Exception {
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	/**
@@ -205,8 +211,9 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testHTMLToDeveloper() throws Exception {
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -214,8 +221,9 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias.setAlias(SUCCESS_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -223,8 +231,9 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias.setAlias(BOUNCE_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -232,8 +241,9 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias.setAlias(OOTO_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -241,8 +251,9 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias.setAlias(COMPLAINT_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -250,7 +261,8 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias.setAlias(SUPPRESSION_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
-		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
+		verify(mockProgressCallback).progressMade(null);
 	}
 }

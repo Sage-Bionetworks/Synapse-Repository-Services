@@ -32,7 +32,7 @@ public class MessageToUserWorker implements MessageDrivenRunner {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(final ProgressCallback<Message> progressCallback, final Message message)
 			throws RecoverableMessageException, Exception {
 
 		// Extract the ChangeMessage
@@ -44,8 +44,14 @@ public class MessageToUserWorker implements MessageDrivenRunner {
 				List<String> errors;
 				switch (change.getChangeType()) {
 				case CREATE:
-					errors = messageManager
-							.processMessage(change.getObjectId());
+					errors = messageManager.processMessage(change.getObjectId(), 
+							new org.sagebionetworks.util.ProgressCallback<Void>() {
+						@Override
+						public void progressMade(Void foo) {
+							progressCallback.progressMade(message);
+						}
+
+					});
 					break;
 				default:
 					throw new IllegalArgumentException("Unknown change type: "
