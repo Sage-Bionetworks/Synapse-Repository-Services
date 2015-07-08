@@ -1,0 +1,11 @@
+{
+    "type":"string",
+    "links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
+    "enum":[
+    	"project",
+		"folder",
+		"file",
+		"table",
+		"link"
+    ]
+}
