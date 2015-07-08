@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -36,6 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class AclObjectSnapshotWorkerIntegrationTest {
 	
+	private static final String QUEUE_NAME = "OBJECT";
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
@@ -44,6 +47,8 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 	private UserGroupDAO userGroupDao;
 	@Autowired
 	private AccessControlListDAO aclDao;
+	@Autowired
+	private QueueCleaner queueCleaner;
 	
 	String type;
 	private Node node;
@@ -61,6 +66,7 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(nodeDao);
 		assertNotNull(userGroupDao);
 		assertNotNull(aclDao);
+		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
