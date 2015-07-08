@@ -131,5 +131,11 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return false;
 	}
 
+	@Override
+	public void registerMessageSent(List<ChangeMessage> batch) {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }

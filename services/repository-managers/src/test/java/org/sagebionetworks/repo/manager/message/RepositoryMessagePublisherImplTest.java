@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -92,5 +95,35 @@ public class RepositoryMessagePublisherImplTest {
 			// expected
 		}
 		verify(mockAwsSNSClient, never()).publish(any(PublishRequest.class));
+	}
+	
+	@Test
+	public void testGroupMessagesByObjectType(){
+		ChangeMessage one = new ChangeMessage();
+		one.setObjectType(ObjectType.ENTITY);
+		one.setObjectId("one");
+		ChangeMessage two = new ChangeMessage();
+		two.setObjectType(ObjectType.FILE);
+		two.setObjectId("two");
+		ChangeMessage three = new ChangeMessage();
+		three.setObjectType(ObjectType.ENTITY);
+		three.setObjectId("three");
+		ChangeMessage four = new ChangeMessage();
+		four.setObjectType(ObjectType.PRINCIPAL);
+		four.setObjectId("four");
+		List<ChangeMessage> batch = Arrays.asList(one, two, three, four);
+		
+		Map<ObjectType, List<ChangeMessage>> groups = RepositoryMessagePublisherImpl.groupMessagesByObjectType(batch);
+		assertNotNull(groups);
+		assertEquals(3, groups.size());
+		// entity should have two
+		List<ChangeMessage> group = groups.get(ObjectType.ENTITY);
+		assertEquals(Arrays.asList(one,three), group);
+		// file should have one
+		group = groups.get(ObjectType.FILE);
+		assertEquals(Arrays.asList(two), group);
+		// principal should have one.
+		group = groups.get(ObjectType.PRINCIPAL);
+		assertEquals(Arrays.asList(four), group);
 	}
 }

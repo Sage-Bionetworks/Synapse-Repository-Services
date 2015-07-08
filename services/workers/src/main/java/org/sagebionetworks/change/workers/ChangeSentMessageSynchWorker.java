@@ -11,6 +11,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher.PublishProgressCallback;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -74,7 +75,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 	Random random = new Random(System.currentTimeMillis());
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback) throws Exception {
+	public void run(final ProgressCallback<Void> progressCallback) throws Exception {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
@@ -107,20 +108,25 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
 				// We are out-of-synch
 				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds, olderThan);
-				for(ChangeMessage send: toSend){
-					try {
-						// For each message make progress
-						progressCallback.progressMade(null);
-						// publish the message.
-						long pubStart = System.currentTimeMillis();
-						repositoryMessagePublisher.publishToTopic(send);
-						publishElapseSum += System.currentTimeMillis()-pubStart;
-						countSuccess++;
-					} catch (Exception e) {
-						countFailures++;
-						// Failing to send one messages should not stop sending the rest.
-						log.warn("Failed to register a send: "+send+" message: "+e.getMessage());
-					}
+				try {
+					// For each message make progress
+					progressCallback.progressMade(null);
+					// publish the message.
+					long pubStart = System.currentTimeMillis();
+					// publish the batch
+					repositoryMessagePublisher.publishBatchToTopic(toSend,	new PublishProgressCallback() {
+								@Override
+								public void progressMade() {
+									progressCallback.progressMade(null);
+								}
+							});
+					publishElapseSum += System.currentTimeMillis() - pubStart;
+					countSuccess += toSend.size();
+				} catch (Exception e) {
+					countFailures += toSend.size();
+					// Failing to send one messages should not stop sending the
+					// rest.
+					log.warn("Failed to register a send batch. message: "+ e.getMessage());
 				}
 			}
 			// Sleep between pages to keep from overloading the database.

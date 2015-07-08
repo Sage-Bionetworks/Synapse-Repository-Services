@@ -72,6 +72,13 @@ public interface TransactionalMessenger {
 	public boolean registerMessageSent(ChangeMessage message);
 	
 	/**
+	 * Register a batch of change messages as sent.
+	 * @param page
+	 * @return
+	 */
+	public void registerMessagesSent(List<ChangeMessage> page);
+	
+	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).
 	 * This is used to detect messages that need to be sent either for the first time or re-sent on a new stacks.
 	 * 

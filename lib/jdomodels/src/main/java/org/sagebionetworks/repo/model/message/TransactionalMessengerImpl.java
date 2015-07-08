@@ -296,11 +296,16 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			throw new IllegalArgumentException("Messages was not registered as sent: "+e.getMessage());
 		}
 	}
+	
+	@WriteTransaction
+	@Override
+	public void registerMessagesSent(List<ChangeMessage> page) {
+		this.changeDAO.registerMessageSent(page);
+	}
 
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long limit) {
 		return this.changeDAO.listUnsentMessages(limit);
 	}
-	
 
 }

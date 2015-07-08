@@ -20,12 +20,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -42,7 +44,6 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -269,6 +270,22 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			this.basicDao.createOrUpdate(sent);
 			return true;
 		}
+	}
+	
+	@WriteTransaction
+	@Override
+	public void registerMessageSent(List<ChangeMessage> batch) {
+		// Create the dto batch
+		List<DBOSentMessage> dboBatch = new LinkedList<DBOSentMessage>();
+		for(ChangeMessage message: batch){
+			DBOSentMessage sent = new DBOSentMessage();
+			sent.setChangeNumber(message.getChangeNumber());
+			sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
+			sent.setObjectType(message.getObjectType());
+			dboBatch.add(sent);
+		}
+		// batch insert all.
+		basicDao.createOrUpdateBatch(dboBatch);
 	}
 
 
