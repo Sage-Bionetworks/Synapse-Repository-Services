@@ -113,15 +113,15 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 	}
 
 	@Override
-	public boolean registerMessageSent(ChangeMessage message) {
+	public void registerMessageSent(ChangeMessage message) {
 		// TODO Auto-generated method stub
-		return false;
+		
 	}
 
 	@Override
-	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
+	public void registerMessageSent(ObjectType type, List<ChangeMessage> batch) {
 		// TODO Auto-generated method stub
-		return null;
+		
 	}
 
 	@Override
@@ -131,5 +131,10 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return false;
 	}
 
+	@Override
+	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

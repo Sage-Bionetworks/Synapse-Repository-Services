@@ -273,7 +273,7 @@ public class MessageManagerImplUnitTest {
 		
 		// This will fail since non-admin users do not have permission to send to the public group
 		mtu.setRecipients(Collections.singleton(authUsersId.toString()));
-		List<String> errors = messageManager.processMessage(MESSAGE_ID);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID, null);
 		String joinedErrors = StringUtils.join(errors, "\n");
 		assertTrue(joinedErrors.contains("may not send"));
 		
@@ -286,7 +286,7 @@ public class MessageManagerImplUnitTest {
 		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
 				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);	
 		
-		errors = messageManager.processMessage(MESSAGE_ID);
+		errors = messageManager.processMessage(MESSAGE_ID, null);
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 	}
 	

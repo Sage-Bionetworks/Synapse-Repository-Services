@@ -2,6 +2,7 @@ package org.sagebionetworks.file.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
@@ -28,7 +29,7 @@ import com.amazonaws.services.sqs.model.Message;
  * @author John
  *
  */
-public class PreviewWorker implements MessageDrivenRunner {
+public class PreviewWorker implements ChangeMessageDrivenRunner {
 
 	static private Logger log = LogManager.getLogger(PreviewWorker.class);
 
@@ -39,10 +40,9 @@ public class PreviewWorker implements MessageDrivenRunner {
 	WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage)
 			throws RecoverableMessageException, Exception {
 
-		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		try {
 			// Ignore all non-file messages.
 			if (ObjectType.FILE == changeMessage.getObjectType()
@@ -74,25 +74,25 @@ public class PreviewWorker implements MessageDrivenRunner {
 		} catch (IllegalArgumentException e) {
 			// We cannot recover from this exception so log the error
 			// and treat the message as processed.
-			log.error("Failed to process message: " + message.toString(), e);
+			log.error("Failed to process message: " + changeMessage.toString(), e);
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					false);
 		} catch (UnsupportedOperationException e) {
 			// We cannot recover from this exception so log the error
 			// and treat the message as processed.
-			log.error("Failed to process message: " + message.toString(), e);
+			log.error("Failed to process message: " + changeMessage.toString(), e);
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					false);
 		} catch (TemporarilyUnavailableException e) {
 			// When this occurs we want the message to go back on the queue, so
 			// we can try again later.
-			log.info("Failed to process message: " + message.toString(), e);
+			log.info("Failed to process message: " + changeMessage.toString(), e);
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					true);
 			throw new RecoverableMessageException();
 		} catch (Throwable e) {
 			// If we do not know what went wrong then we do no re-try
-			log.error("Failed to process message: " + message.toString(), e);
+			log.error("Failed to process message: " + changeMessage.toString(), e);
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					false);
 		}

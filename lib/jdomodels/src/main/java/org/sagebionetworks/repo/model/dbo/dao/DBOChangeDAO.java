@@ -74,7 +74,16 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * 
 	 * @param changeNumber
 	 */
-	public boolean registerMessageSent(ChangeMessage message);
+	public void registerMessageSent(ChangeMessage message);
+	
+	/**
+	 * Register that a message has been sent.  Any message that has been created but not registered as sent
+	 * will be returned by {@link #listUnsentMessages(long)}.  This is used to detect messages that need to be sent
+	 * either for the first time or re-sent on a new stacks.
+	 * 
+	 * @param changeNumber
+	 */
+	public void registerMessageSent(ObjectType type, List<ChangeMessage> batch);
 
 	
 	/**

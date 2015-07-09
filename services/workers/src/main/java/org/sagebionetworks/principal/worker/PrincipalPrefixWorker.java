@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -16,14 +16,11 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.model.Message;
-
-public class PrincipalPrefixWorker implements MessageDrivenRunner {
+public class PrincipalPrefixWorker implements ChangeMessageDrivenRunner {
 	
 	static private Logger log = LogManager.getLogger(PrincipalPrefixWorker.class);
 	
@@ -37,11 +34,10 @@ public class PrincipalPrefixWorker implements MessageDrivenRunner {
 	UserGroupDAO userGroupDao;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage)
 			throws RecoverableMessageException, Exception {
 		// Keep this message invisible
-		progressCallback.progressMade(message);
-		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		progressCallback.progressMade(changeMessage);
 		if (changeMessage.getObjectType() != ObjectType.PRINCIPAL) {
 			// do nothing when receive a non-principal message
 			return;
@@ -76,7 +72,7 @@ public class PrincipalPrefixWorker implements MessageDrivenRunner {
 				List<PrincipalAlias> names = principalAliasDAO.listPrincipalAliases(principalId, AliasType.TEAM_NAME);
 				for(PrincipalAlias alias: names){
 					principalPrefixDao.addPrincipalAlias(alias.getAlias(), principalId);
-					progressCallback.progressMade(message);
+					progressCallback.progressMade(changeMessage);
 				}
 			} catch (Exception e) {
 				log.warn("Did not find team names for principalId = "+principalId);

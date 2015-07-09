@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ModificationMessage;
@@ -15,7 +17,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
  *
  */
 public interface RepositoryMessagePublisher extends TransactionalMessengerObserver {
-	
+		
 	/**
 	 * Get the name of the topic where the messages are published.
 	 * 
@@ -49,6 +51,17 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * @return 
 	 */
 	public void publishToTopic(ChangeMessage message);
+	
+	/**
+	 * Publish a batch of change messages to a topic. All ChangeMessages in the
+	 * batch must be of the given Object type. The batch size cannot be larger
+	 * than the maximum number of change messages that can be written to a
+	 * single SQS message body.
+	 * 
+	 * @param type The object type of the batch.
+	 * @param batch
+	 */
+	public void publishBatchToTopic(ObjectType type, List<ChangeMessage> batch);
 
 	/**
 	 * Publish a message to the modification topic.

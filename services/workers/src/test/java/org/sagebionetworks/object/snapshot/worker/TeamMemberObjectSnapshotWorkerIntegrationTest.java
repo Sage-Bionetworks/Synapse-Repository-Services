@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -28,12 +30,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 
+	private static final String QUEUE_NAME = "OBJECT";
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
 	private TeamManager teamManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private QueueCleaner queueCleaner;
 	UserInfo admin;
 	Team team;
 	Long teamId;
@@ -46,6 +51,7 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(objectRecordDAO);
 		assertNotNull(teamManager);
 		assertNotNull(userManager);
+		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 		
 		// Create a user and a team.
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

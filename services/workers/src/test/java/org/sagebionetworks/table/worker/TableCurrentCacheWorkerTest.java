@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -29,11 +30,13 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class TableCurrentCacheWorkerTest {
 
-	ProgressCallback<Message> mockProgressCallback;
+	ProgressCallback<ChangeMessage> mockProgressCallback;
 	TableRowManager mockTableRowManager;
 	StackConfiguration mockConfiguration;
 	NodeInheritanceManager mockNodeInheritanceManager;
 	TableCurrentCacheWorker worker;
+	ChangeMessage one;
+	ChangeMessage two;
 
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception {
@@ -48,6 +51,18 @@ public class TableCurrentCacheWorkerTest {
 		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
 		ReflectionTestUtils.setField(worker, "nodeInheritanceManager", mockNodeInheritanceManager);
 		ReflectionTestUtils.setField(worker, "stackConfiguration", mockConfiguration);
+		
+		one = new ChangeMessage();
+		one.setChangeType(ChangeType.CREATE);
+		one.setObjectId("123");
+		one.setObjectType(ObjectType.TABLE);
+		one.setObjectEtag("etag");
+		
+		two = new ChangeMessage();
+		two.setChangeType(ChangeType.CREATE);
+		two.setObjectId("456");
+		two.setObjectType(ObjectType.TABLE);
+		two.setObjectEtag("etag");
 	}
 
 
@@ -58,8 +73,8 @@ public class TableCurrentCacheWorkerTest {
 	 */
 	@Test
 	public void testNonTableMessages() throws Exception {
-		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "etag");
-		Message two = MessageUtils.buildMessage(ChangeType.CREATE, "456", ObjectType.ACTIVITY, "etag");
+		one.setObjectType(ObjectType.ACTIVITY);
+		two.setObjectType(ObjectType.ACTIVITY);
 		// call under test
 		worker.run(mockProgressCallback, one);
 		worker.run(mockProgressCallback, two);
@@ -76,8 +91,7 @@ public class TableCurrentCacheWorkerTest {
 	public void testFeatureDisabled() throws Exception {
 		// Disable the feature
 		when(mockConfiguration.getTableEnabled()).thenReturn(false);
-		Message one = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag");
-		Message two = MessageUtils.buildMessage(ChangeType.DELETE, "456", ObjectType.TABLE, "etag");
+		two.setChangeType(ChangeType.DELETE);
 		// call under test
 		worker.run(mockProgressCallback, one);
 		worker.run(mockProgressCallback, two);
@@ -92,7 +106,7 @@ public class TableCurrentCacheWorkerTest {
 	@Test
 	public void testTableDelete() throws Exception {
 		String tableId = "456";
-		Message two = MessageUtils.buildMessage(ChangeType.DELETE, tableId, ObjectType.TABLE, "etag");
+		two.setChangeType(ChangeType.DELETE);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		verify(mockTableRowManager).removeCaches(tableId);
@@ -103,7 +117,7 @@ public class TableCurrentCacheWorkerTest {
 		String tableId = "456";
 		String resetToken = "reset-token";
 		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenReturn(true);
-		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		two.setChangeType(ChangeType.UPDATE);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		verifyNoMoreInteractions(mockTableRowManager);
@@ -114,7 +128,7 @@ public class TableCurrentCacheWorkerTest {
 		String tableId = "456";
 		String resetToken = "reset-token";
 		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenThrow(new NotFoundException("dummy"));
-		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		two.setChangeType(ChangeType.UPDATE);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		verifyNoMoreInteractions(mockTableRowManager);
@@ -133,7 +147,8 @@ public class TableCurrentCacheWorkerTest {
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		two.setChangeType(ChangeType.UPDATE);
+		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		verify(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.util.ProgressCallback.class));
@@ -153,7 +168,8 @@ public class TableCurrentCacheWorkerTest {
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
 		doThrow(new IOException("mock")).when(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(org.sagebionetworks.util.ProgressCallback.class));
-		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		two.setChangeType(ChangeType.UPDATE);
+		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
 	}
@@ -173,7 +189,8 @@ public class TableCurrentCacheWorkerTest {
 		// Set the current token to be different than the token in the message
 		status.setResetToken(resetToken2);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken1);
+		two.setChangeType(ChangeType.UPDATE);
+		two.setObjectEtag(resetToken1);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		verify(mockTableRowManager).getTableStatusOrCreateIfNotExists(tableId);

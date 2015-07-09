@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
@@ -111,7 +113,9 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		// The message will be published on a timer, so we wait for that to occur.
 		Thread.sleep(2000);
 		// Validate that our message was fired.
-		String json = EntityFactory.createJSONStringForEntity(message);
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(Arrays.asList(message));
+		String json = EntityFactory.createJSONStringForEntity(messages);
 		// The message should be published once and only once.
 		verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), json));
 		// The message should be sent
@@ -135,7 +139,9 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			messagePublisher.fireChangeMessage(message);
 			
 			// Keep this body for the check
-			String json = EntityFactory.createJSONStringForEntity(message);
+			ChangeMessages messages = new ChangeMessages();
+			messages.setList(Arrays.asList(message));
+			String json = EntityFactory.createJSONStringForEntity(messages);
 			messageBodyList.add(json);
 			// Sleep between messages.
 			Thread.sleep(50);
@@ -150,23 +156,5 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), messageBody));
 		}
 	}
-	
-	
-	@Test
-	public void testDuplicateMessage(){
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(ChangeType.CREATE);
-		message.setObjectType(ObjectType.ENTITY);
-		message.setObjectId("123");
-		message.setObjectEtag("ABCDEFG");
-		message.setChangeNumber(1l);
-		message.setTimestamp(new Date());
-		message = changeDao.replaceChange(message);
-		
-		messagePublisher.publishToTopic(message);
-		// Calling it again should not send out the message again.
-		messagePublisher.publishToTopic(message);
-		// Even though we attempted to send the same message twice it should only go out once.
-		verify(mockSNSClient, times(1)).publish(any(PublishRequest.class));
-	}
+
 }

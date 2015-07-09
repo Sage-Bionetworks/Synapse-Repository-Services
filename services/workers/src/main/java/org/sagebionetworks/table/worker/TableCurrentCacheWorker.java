@@ -5,7 +5,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -13,18 +13,15 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * This worker updates the current row cache to support the tables features. It
  * will listen to table changes and apply them to the RDS current cache table
  */
-public class TableCurrentCacheWorker implements MessageDrivenRunner {
+public class TableCurrentCacheWorker implements ChangeMessageDrivenRunner {
 
 	static private Logger log = LogManager
 			.getLogger(TableCurrentCacheWorker.class);
@@ -37,15 +34,12 @@ public class TableCurrentCacheWorker implements MessageDrivenRunner {
 	StackConfiguration stackConfiguration;
 
 	@Override
-	public void run(ProgressCallback<Message> progressCallback, Message message)
+	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
 		if (!stackConfiguration.getTableEnabled()) {
 			return;
 		}
-
-		// Extract the ChangeMessage
-		ChangeMessage change = MessageUtils.extractMessageBody(message);
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
 			String tableId = change.getObjectId();
@@ -65,7 +59,7 @@ public class TableCurrentCacheWorker implements MessageDrivenRunner {
 				// Create or update.
 				// this method does the real work.
 				updateCurrentVersionCache(progressCallback, tableId, change.getObjectEtag(),
-						message);
+						change);
 			}
 		}
 	}
@@ -78,8 +72,8 @@ public class TableCurrentCacheWorker implements MessageDrivenRunner {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public void updateCurrentVersionCache(final ProgressCallback<Message> progressCallback, final String tableId,
-			final String tableResetToken, final Message message)
+	public void updateCurrentVersionCache(final ProgressCallback<ChangeMessage> progressCallback, final String tableId,
+			final String tableResetToken, final ChangeMessage message)
 			throws IOException {
 		// If the passed token does not match the current token then this
 		// is an old message that should be removed from the queue.
