@@ -63,13 +63,13 @@ public interface TransactionalMessenger {
 	public List<TransactionalMessengerObserver> getAllObservers();
 	
 	/**
-	 * Register that a message has been sent.  Any message that has been created but not registered as sent
-	 * will be returned by {@link #listUnsentMessages(long)}.  This is used to detect messages that need to be sent
-	 * either for the first time or re-sent on a new stacks.
+	 * Register a batch of change messages as sent.  Each ChangeMessage in the batch must 
+	 * have an ObjectType that matches the provided type.
 	 * 
-	 * @param changeNumber
+	 * @param type The ObjectType of the batch.
+	 * @param batch
 	 */
-	public boolean registerMessageSent(ChangeMessage message);
+	public void registerMessagesSent(ObjectType type, List<ChangeMessage> batch);
 	
 	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).

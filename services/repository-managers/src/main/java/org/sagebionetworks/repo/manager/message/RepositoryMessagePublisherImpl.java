@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -9,16 +11,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
@@ -34,7 +36,7 @@ import com.google.common.collect.Lists;
  *
  */
 public class RepositoryMessagePublisherImpl implements RepositoryMessagePublisher {
-
+	
 	public static final String SEMAPHORE_KEY = "UNSENT_MESSAGE_WORKER";
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
 
@@ -240,19 +242,35 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@NewWriteTransaction
 	@Override
 	public void publishToTopic(ChangeMessage message) {
-		// Register the message was sent within this transaction.
-		// It is important to do this before we actual send the message to the
-		// topic because we do not want to sent out duplicate messages (see
-		// PLFM-2821)
-		boolean isChange = this.transactionalMessanger.registerMessageSent(message);
-		if(isChange){
-			String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
-			// Publish the message to the topic.
-			// NOTE: If this fails the transaction will be rolled back so
-			// the message will not be registered as sent.
-			publish(message, topicArn);
-		}
+		// treat as a batch of size one.
+		publishBatchToTopic(message.getObjectType(), Arrays.asList(message));
 	}
+	
+	
+	@NewWriteTransaction
+	@Override
+	public void publishBatchToTopic(ObjectType type, List<ChangeMessage> batch) {
+		if (type == null) {
+			throw new IllegalArgumentException("Type cannot be null");
+		}
+		if (batch == null) {
+			throw new IllegalArgumentException("Batch cannot be null");
+		}
+		if (batch.size() > ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE) {
+			throw new IllegalArgumentException(
+					"Batch size is limited to the number of messages that can be written to a single SQS Messages body.  Current maximumn: "
+							+ ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE);
+		}
+		// Write the batch to sent table.
+		this.transactionalMessanger.registerMessagesSent(type, batch);
+		// Lookup the topic arn.
+		String topicArn = getTopicInfoLazy(type).getArn();
+		ChangeMessages messages = new ChangeMessages();
+		messages.setList(batch);
+		// publish the batch to to the topic
+		publish(messages, topicArn);
+	}
+
 	
 	/**
 	 * Publish the message.
@@ -264,7 +282,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		publish(message, topicArn);
 	}
 
-	private void publish(Message message, String topicArn) {
+	private void publish(JSONEntity message, String topicArn) {
 		String json;
 		try {
 			json = EntityFactory.createJSONStringForEntity(message);
@@ -298,4 +316,5 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			return arn;
 		}
 	}
+
 }

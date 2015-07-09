@@ -1,21 +1,22 @@
 package org.sagebionetworks.repo.manager.message;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.PublishRequest;
 
 /**
  * Unit test for RepositoryMessagePublisherImpl.
@@ -79,18 +80,4 @@ public class RepositoryMessagePublisherImplTest {
 		messagePublisher.fireChangeMessage(message);
 	}
 	
-	/**
-	 * verify that if we cannot register the message as sent 
-	 */
-	@Test
-	public void testPLFM_2821(){
-		doThrow(new IllegalArgumentException()).when(mockTransactionalMessanger).registerMessageSent(message);
-		try {
-			messagePublisher.publishToTopic(message);
-			fail("Exception should have been thrown.");
-		} catch (IllegalArgumentException e) {
-			// expected
-		}
-		verify(mockAwsSNSClient, never()).publish(any(PublishRequest.class));
-	}
 }
