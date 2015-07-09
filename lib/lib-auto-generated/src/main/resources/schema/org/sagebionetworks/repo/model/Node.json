@@ -29,16 +29,9 @@
 			"format":"date-time"
 		},
 		"nodeType":{
-			"type": "string",
+			"type": "object",
 			"name": "EntityType",
-			"id": "org.sagebionetworks.repo.model.EntityType",
-			"enum": [
-				"project",
-				"folder",
-				"file",
-				"table",
-				"link"
-			]
+			"$ref": "org.sagebionetworks.repo.model.EntityType"
 		},
 		"eTag":{
             "type":"string"
@@ -69,6 +62,6 @@
             "items":{
             	"type":"string"
             }
-        },
+        }
     }
 }
