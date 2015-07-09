@@ -23,13 +23,31 @@ import org.sagebionetworks.repo.model.table.TableEntity;
  */
 public class EntityTypeUtils {
 	
-	private static EntityTypeMetadata project = buildMetadata(EntityType.project, Arrays.asList("DEFAULT"), Project.class, "Project");
-	private static EntityTypeMetadata file = buildMetadata(EntityType.file, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class, "File");
-	private static EntityTypeMetadata folder = buildMetadata(EntityType.folder, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class, "Folder");
-	private static EntityTypeMetadata table = buildMetadata(EntityType.table, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table");
-	private static EntityTypeMetadata link = buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link");
-	private static EntityTypeMetadata[] metadataArray = new EntityTypeMetadata[] {project, file, folder, table, link};
+	private static final EntityTypeMetadata[] metadataArray;
 	
+	static {
+		metadataArray = new EntityTypeMetadata[] {
+				// project
+				buildMetadata(EntityType.project, Arrays.asList("DEFAULT"), Project.class, "Project"),
+				// file
+				buildMetadata(EntityType.file, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class, "File"),
+				// folder
+				buildMetadata(EntityType.folder, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class, "Folder"),
+				// table
+				buildMetadata(EntityType.table, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table"),
+				// link
+				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link")
+		};
+	}
+
+	/**
+	 * 
+	 * @param type
+	 * @param validParentTypes
+	 * @param clazz
+	 * @param displayName
+	 * @return the metadata of an entity type
+	 */
 	private static EntityTypeMetadata buildMetadata(EntityType type, List<String> validParentTypes, Class<? extends Entity> clazz, String displayName) {
 		EntityTypeMetadata metadata = new EntityTypeMetadata();
 		metadata.setAliases(Arrays.asList(type.name(),"entity"));
@@ -62,16 +80,11 @@ public class EntityTypeUtils {
 	 */
 	@SuppressWarnings("unchecked")
 	public static Class<? extends Entity> getClassForType(EntityType type) {
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == type) {
-				try {
-					return (Class<? extends Entity>) Class.forName(metadata.getClassName());
-				} catch (ClassNotFoundException e) {
-					throw new RuntimeException("Class not found for type " + type);
-				}
-			}
+		try {
+			return (Class<? extends Entity>) Class.forName(getMetadata(type).getClassName());
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException("Class not found for type " + type);
 		}
-		throw new IllegalArgumentException("Type not supported: " + type);
 	}
 	
 	/**
@@ -80,12 +93,9 @@ public class EntityTypeUtils {
 	 * @return the valid parent types for this
 	 */
 	public static String[] getValidParentTypes(EntityType type) {
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == type) {
-				return metadata.getValidParentTypes().toArray(new String[metadata.getValidParentTypes().size()]);
-			}
-		}
-		throw new IllegalArgumentException("Type not supported: " + type);
+		EntityTypeMetadata metadata = getMetadata(type);
+		return metadata.getValidParentTypes().toArray(new String[metadata.getValidParentTypes().size()]);
+		
 	}
 	
 	/**
@@ -93,12 +103,7 @@ public class EntityTypeUtils {
 	 * @return all of the aliases that can be used to look their entity type
 	 */
 	public static Set<String> getAllAliases(EntityType type){
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == type) {
-				return new LinkedHashSet<String>(metadata.getAliases());
-			}
-		}
-		throw new IllegalArgumentException("Type not supported: " + type);
+		return new LinkedHashSet<String>(getMetadata(type).getAliases());
 	}
 	
 	/**
@@ -107,12 +112,7 @@ public class EntityTypeUtils {
 	 * @return the default parent path for this type
 	 */
 	public static String getDefaultParentPath(EntityType type){
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == type) {
-				return metadata.getDefaultParentPath();
-			}
-		}
-		throw new IllegalArgumentException("Type not supported: " + type);
+		return getMetadata(type).getDefaultParentPath();
 	}
 	
 	/**
@@ -136,12 +136,7 @@ public class EntityTypeUtils {
 	 * @return true if parent is a valid parent type of child, false otherwise
 	 */
 	public static boolean isValidParentType(EntityType child, EntityType parent){
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == child) {
-				return isValidTypeInList(parent, metadata.getValidParentTypes());
-			}
-		}
-		throw new IllegalArgumentException("Type not supported: " + child);
+		return isValidTypeInList(parent, getMetadata(child).getValidParentTypes());
 	}
 	
 	private static boolean isValidTypeInList(EntityType type, List<String> typeUrlList) {
@@ -190,12 +185,7 @@ public class EntityTypeUtils {
 	 * @return the full class name for this EntityType 
 	 */
 	public static String getEntityTypeClassName(EntityType type) {
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == type) {
-				return metadata.getClassName();
-			}
-		}
-		throw new IllegalArgumentException("Type not supported: " + type);
+		return getMetadata(type).getClassName();
 	}
 	
 	/**
@@ -204,11 +194,6 @@ public class EntityTypeUtils {
 	 * @return name that can be shown to users
 	 */
 	public String getDisplayName(EntityType type){
-		for (EntityTypeMetadata metadata : metadataArray) {
-			if (metadata.getEntityType() == type) {
-				return metadata.getDisplayName();
-			}
-		}
-		throw new IllegalArgumentException("Type not supported: " + type);
+		return getMetadata(type).getDisplayName();
 	}
 }
