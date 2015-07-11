@@ -62,6 +62,10 @@
             "items":{
             	"type":"string"
             }
-        }
+        },
+        "reference":{
+        	"type":"object",
+        	"$ref":"org.sagebionetworks.repo.model.Reference"
+        }	
     }
 }
