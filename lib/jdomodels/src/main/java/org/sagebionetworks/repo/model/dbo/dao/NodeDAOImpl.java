@@ -548,24 +548,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public Map<String, Set<Reference>> getNodeReferences(String nodeId)	throws NotFoundException, DatastoreException {
+	public Reference getNodeReference(String nodeId)	throws NotFoundException, DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			return jdbcTemplate.queryForObject(SELECT_REVISIONS_ONLY, new RowMapper<Map<String, Set<Reference>>>() {
+			return jdbcTemplate.queryForObject(SELECT_REVISIONS_ONLY, new RowMapper<Reference>() {
 				@Override
-				public Map<String, Set<Reference>> mapRow(ResultSet rs, int rowNum)	throws SQLException {
+				public Reference mapRow(ResultSet rs, int rowNum)	throws SQLException {
 					Blob blob = rs.getBlob(COL_REVISION_REF_BLOB);
 					if(blob != null){
 						byte[] bytes = blob.getBytes(1, (int) blob.length());
 						try {
-							return JDOSecondaryPropertyUtils.decompressedReferences(bytes);
+							return JDOSecondaryPropertyUtils.decompressedReference(bytes);
 						} catch (IOException e) {
 							throw new DatastoreException(e);
 						}
 					}
-					// it is null so return an empty map
-					return new HashMap<String, Set<Reference>>(0);
+					return null;
 				}
 			}, KeyFactory.stringToKey(nodeId));
 		}catch (EmptyResultDataAccessException e){
