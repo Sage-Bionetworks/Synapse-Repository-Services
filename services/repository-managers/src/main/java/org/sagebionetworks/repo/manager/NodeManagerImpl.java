@@ -193,7 +193,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	public static void clearNodeCreationDataForUpdate(Node existingNode) {
 		if(existingNode == null) throw new IllegalArgumentException("Node cannot be null");
-		existingNode.clearNodeCreationData();
+		existingNode.setCreatedByPrincipalId(null);
+		existingNode.setCreatedOn(null);
 	}
 	
 	/**
