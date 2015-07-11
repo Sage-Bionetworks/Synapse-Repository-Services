@@ -81,7 +81,7 @@ class NodeUtils {
 		}
 		
 		try {
-			rev.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
+			rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -222,7 +222,7 @@ class NodeUtils {
 		} 
 		
 		try {
-			dto.setReferences(JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences()));
+			dto.setReference(JDOSecondaryPropertyUtils.decompressedReference(rev.getReference()));
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}

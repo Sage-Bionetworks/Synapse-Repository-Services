@@ -10,7 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REFS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
@@ -46,7 +46,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID),
 		new FieldColumn("columnModelIds", COL_REVISION_COLUMN_MODEL_IDS),
 		new FieldColumn("annotations", COL_REVISION_ANNOS_BLOB),
-		new FieldColumn("references", COL_REVISION_REFS_BLOB),
+		new FieldColumn("reference", COL_REVISION_REF_BLOB),
 		};
 
 	@Override
@@ -71,9 +71,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				if(blob != null){
 					rev.setAnnotations(blob.getBytes(1, (int) blob.length()));
 				}
-				blob = rs.getBlob(COL_REVISION_REFS_BLOB);
+				blob = rs.getBlob(COL_REVISION_REF_BLOB);
 				if(blob != null){
-					rev.setReferences(blob.getBytes(1, (int) blob.length()));
+					rev.setReference(blob.getBytes(1, (int) blob.length()));
 				}
 				blob = rs.getBlob(COL_REVISION_COLUMN_MODEL_IDS);
 				if(blob != null){
@@ -157,10 +157,10 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public void setAnnotations(byte[] annotations) {
 		this.annotations = annotations;
 	}
-	public byte[] getReferences() {
+	public byte[] getReference() {
 		return references;
 	}
-	public void setReferences(byte[] references) {
+	public void setReference(byte[] references) {
 		this.references = references;
 	}	
 	public Long getActivityId() {
