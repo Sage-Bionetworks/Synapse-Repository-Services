@@ -21,6 +21,7 @@ public class ReferenceUtil {
 	 */
 	public static DBOReference createDBOReference(Long ownerId, Reference reference) {
 		DBOReference dbo = new DBOReference();
+		dbo.setGroupName("linksTo");
 		dbo.setOwner(ownerId);
 		dbo.setTargetId(KeyFactory.stringToKey(reference.getTargetId()));
 		dbo.setTargetRevision(reference.getTargetVersionNumber());
