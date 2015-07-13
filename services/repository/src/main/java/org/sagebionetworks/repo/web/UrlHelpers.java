@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -1103,7 +1104,7 @@ public class UrlHelpers {
 	public static void validateAllUrls(Entity object) {
 		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
-		EntityType type = EntityType.getEntityTypeForClass(object.getClass());
+		EntityType type = EntityTypeUtils.getEntityTypeForClass(object.getClass());
 		String expectedBaseSuffix = UrlHelpers.ENTITY +"/"+object.getId();
 		if(!object.getUri().endsWith(expectedBaseSuffix)){
 			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());

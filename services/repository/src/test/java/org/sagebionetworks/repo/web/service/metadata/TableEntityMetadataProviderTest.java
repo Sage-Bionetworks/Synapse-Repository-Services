@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -47,7 +47,7 @@ public class TableEntityMetadataProviderTest extends AbstractAutowiredController
 	public void before() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		List<EntityProvider<Entity>> types = metadataProviderFactory.getMetadataProvider(EntityType.getEntityTypeForClass(TableEntity.class));
+		List<EntityProvider<Entity>> types = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(TableEntity.class));
 		assertNotNull(types);
 		tableEntityMetadataProvider = (EntityValidator) types.get(0);
 		// Create some columns

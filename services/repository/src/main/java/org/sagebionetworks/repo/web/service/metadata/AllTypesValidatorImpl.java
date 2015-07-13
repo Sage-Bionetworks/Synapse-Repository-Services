@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -28,7 +29,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(event == null) throw new IllegalArgumentException("Event cannot be null");
 		// What is the type of the object
-		EntityType objectType = EntityType.getEntityTypeForClass(entity.getClass());
+		EntityType objectType = EntityTypeUtils.getEntityTypeForClass(entity.getClass());
 		// Determine the parent type
 		EntityType parentType = null;
 		List<EntityHeader> parentPath = event.getNewParentPath();
@@ -36,7 +37,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 			// The last header is the direct parent
 			EntityHeader parentHeader = parentPath.get(parentPath.size()-1);
 			// Get the type for this parent.
-			parentType = EntityType.getEntityTypeForClassName(parentHeader.getType());
+			parentType = EntityTypeUtils.getEntityTypeForClassName(parentHeader.getType());
 		}
 		
 		// Does entity have a parent?
@@ -54,8 +55,8 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 			// If entity has a parent other than the root entity, validate the parent type
 			if (!isParentRoot) {		
 				// Note: Null parent type is valid for some object types.
-				if(!objectType.isValidParentType(parentType)){
-					throw new IllegalArgumentException("Entity type: "+objectType.getEntityTypeClassName()+" cannot have a parent of type: "+parentType.getEntityTypeClassName());
+				if(!EntityTypeUtils.isValidParentType(objectType, parentType)){
+					throw new IllegalArgumentException("Entity type: "+EntityTypeUtils.getEntityTypeClassName(objectType)+" cannot have a parent of type: "+EntityTypeUtils.getEntityTypeClassName(parentType));
 				}
 			}
 		}

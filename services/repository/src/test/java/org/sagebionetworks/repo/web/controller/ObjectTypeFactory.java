@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 
 /**
@@ -28,7 +29,7 @@ public class ObjectTypeFactory {
 	public static Entity createObjectForTest(String name, EntityType type,
 			String parentId) throws InstantiationException,
 			IllegalAccessException, InvalidModelException {
-		Entity object = type.getClassForType().newInstance();
+		Entity object = EntityTypeUtils.getClassForType(type).newInstance();
 		object.setName(name);
 		// Handle layers
 		// Any object that needs parent

@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -87,7 +87,7 @@ public class SchemaManagerImpl implements SchemaManager {
 
 	@Override
 	public EntityRegistry getEntityRegistry() {
-		return EntityType.getEntityRegistry();
+		return EntityTypeUtils.getEntityRegistry();
 	}
 
 	/**

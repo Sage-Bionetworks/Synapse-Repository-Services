@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -73,7 +74,7 @@ public class EntityManagerImpl implements EntityManager {
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(EntityType.getEntityTypeForClass(newEntity.getClass()));
+		node.setNodeType(EntityTypeUtils.getEntityTypeForClass(newEntity.getClass()));
 		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
@@ -94,7 +95,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
-		validateType(EntityType.getEntityTypeForClass(entityClass),
+		validateType(EntityTypeUtils.getEntityTypeForClass(entityClass),
 				node.getNodeType(), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
@@ -105,7 +106,7 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = nodeManager.getAnnotations(user, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(user, entityId);
-		EntityWithAnnotations ewa = populateEntityWithNodeAndAnnotations(node.getNodeType().getClassForType(), annos, node);
+		EntityWithAnnotations ewa = populateEntityWithNodeAndAnnotations(EntityTypeUtils.getClassForType(node.getNodeType()), annos, node);
 		return ewa.getEntity();
 	}
 
@@ -122,9 +123,9 @@ public class EntityManagerImpl implements EntityManager {
 			EntityType acutalType, String id) {
 		if (acutalType != requestedType) {
 			throw new IllegalArgumentException("The Entity: syn" + id
-					+ " has an entityType=" + acutalType.getEntityTypeClassName()
+					+ " has an entityType=" + EntityTypeUtils.getEntityTypeClassName(acutalType)
 					+ " and cannot be changed to entityType="
-					+ requestedType.getEntityTypeClassName());
+					+ EntityTypeUtils.getEntityTypeClassName(requestedType));
 		}
 	}
 
@@ -409,7 +410,7 @@ public class EntityManagerImpl implements EntityManager {
 		List<T> resultSet = new ArrayList<T>();
 		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
 		Iterator<Node> it = children.iterator();
-		EntityType type = EntityType.getEntityTypeForClass(childrenClass);
+		EntityType type = EntityTypeUtils.getEntityTypeForClass(childrenClass);
 		while (it.hasNext()) {
 			Node child = it.next();
 			if (child.getNodeType() == type) {
