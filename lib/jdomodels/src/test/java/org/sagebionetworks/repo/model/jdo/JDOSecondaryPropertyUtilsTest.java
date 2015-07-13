@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -20,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -296,6 +296,20 @@ public class JDOSecondaryPropertyUtilsTest {
 		
 		Annotations distinct = JDOSecondaryPropertyUtils.buildDistinctAnnotations(start);
 		assertEquals(expected, distinct);
+	}
+	
+	@Test
+	public void testCompressReference() throws IOException {
+		assertNull(JDOSecondaryPropertyUtils.compressReference(null));
+		assertNull(JDOSecondaryPropertyUtils.decompressedReference(null));
+		
+		Reference ref = new Reference();
+		ref.setTargetId("123L");
+		ref.setTargetVersionNumber(1L);
+		
+		byte[] compressed = JDOSecondaryPropertyUtils.compressReference(ref);
+		assertNotNull(compressed);
+		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(compressed));
 	}
 	
 	/**
