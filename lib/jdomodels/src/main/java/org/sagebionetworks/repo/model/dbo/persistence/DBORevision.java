@@ -113,7 +113,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private Long fileHandleId;
 	private byte[] columnModelIds;
 	private byte[] annotations;
-	private byte[] references;
+	private byte[] reference;
 
 	public Long getOwner() {
 		return owner;
@@ -158,10 +158,10 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		this.annotations = annotations;
 	}
 	public byte[] getReference() {
-		return references;
+		return reference;
 	}
-	public void setReference(byte[] references) {
-		this.references = references;
+	public void setReference(byte[] reference) {
+		this.reference = reference;
 	}	
 	public Long getActivityId() {
 		return activityId;
@@ -232,7 +232,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
-		result = prime * result + Arrays.hashCode(references);
+		result = prime * result + Arrays.hashCode(reference);
 		result = prime * result
 				+ ((revisionNumber == null) ? 0 : revisionNumber.hashCode());
 		return result;
@@ -283,7 +283,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				return false;
 		} else if (!owner.equals(other.owner))
 			return false;
-		if (!Arrays.equals(references, other.references))
+		if (!Arrays.equals(reference, other.reference))
 			return false;
 		if (revisionNumber == null) {
 			if (other.revisionNumber != null)
@@ -300,7 +300,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				+ ", modifiedOn=" + modifiedOn + ", fileHandleId="
 				+ fileHandleId + ", annotations="
 				+ Arrays.toString(annotations) + ", references="
-				+ Arrays.toString(references) + "]";
+				+ Arrays.toString(reference) + "]";
 	}
 	
 }
