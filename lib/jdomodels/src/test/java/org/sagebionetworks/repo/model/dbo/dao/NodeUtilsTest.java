@@ -5,10 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +51,7 @@ public class NodeUtilsTest {
 		node.setVersionComment("This is the first version of this object");
 		node.setVersionLabel("1.0.1");
 //		node.setVersionNumber("2");
-		node.setReferences(new HashMap<String, Set<Reference>>());
+		node.setReference(new Reference());
 		node.setActivityId("1234");
 		node.setFileHandleId("9999888777");
 		List<String> columnIds = new LinkedList<String>();
