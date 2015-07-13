@@ -79,7 +79,7 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity,
-				annos.getPrimaryAnnotations(), node.getReferences());
+				annos.getPrimaryAnnotations(), node.getReference());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
@@ -170,7 +170,7 @@ public class EntityManagerImpl implements EntityManager {
 		T newEntity = createNewEntity(entityClass);
 		// Populate the entity using the annotations and references
 		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newEntity,
-				annos.getPrimaryAnnotations(), node.getReferences());
+				annos.getPrimaryAnnotations(), node.getReference());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
 		newEntity.setCreatedBy(node.getCreatedByPrincipalId().toString());
@@ -360,7 +360,7 @@ public class EntityManagerImpl implements EntityManager {
 			T entity, Node node, Annotations annos) {
 		// Update the annotations from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(entity, annos,
-				node.getReferences());
+				node.getReference());
 		// Update the node from the entity
 		NodeTranslationUtils.updateNodeFromObject(entity, node);
 		// Set the Annotations Etag
