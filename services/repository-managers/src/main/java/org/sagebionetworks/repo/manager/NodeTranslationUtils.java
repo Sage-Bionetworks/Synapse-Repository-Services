@@ -142,11 +142,12 @@ public class NodeTranslationUtils {
 	 * @param <T>
 	 * @param base
 	 * @param annos
-	 * @param reference
+	 * @return the reference or null if the Object does not contain a reference
 	 * @throws IllegalArgumentException
 	 */
-	public static <T extends Entity> void updateNodeSecondaryFieldsFromObject(
-			T base, Annotations annos, Reference reference) {
+	public static <T extends Entity> Reference updateNodeSecondaryFieldsFromObject(
+			T base, Annotations annos) {
+		Reference reference = null;
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -186,15 +187,11 @@ public class NodeTranslationUtils {
 					if (propSchema.isTransient())
 						continue;
 					// We do not store fields that are marked as @TransientField
-					// First off is this a collection?
-					if (propSchema.getItems() != null) {
-						// Is this a reference
-						if (Reference.class.getName().equals(
-								propSchema.getItems().getId())) {
+					if (propSchema.getId() != null) {
+						if (Reference.class.getName()
+								.equals(propSchema.getId())) {
 							if (value != null) {
 								reference = (Reference) value;
-							} else {
-								reference = null;
 							}
 							continue;
 						}
@@ -217,6 +214,7 @@ public class NodeTranslationUtils {
 				}
 			}
 		}
+		return reference;
 	}
 
 	/**

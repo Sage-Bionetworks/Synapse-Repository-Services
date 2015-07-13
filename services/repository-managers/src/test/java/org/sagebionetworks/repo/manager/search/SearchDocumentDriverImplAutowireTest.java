@@ -279,10 +279,8 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(2, fields.getAcl().size());
 		assertEquals(1, fields.getUpdate_acl().size());
 
-		// Make sure our references were trimmed
-		assertTrue(10 < fields.getReferences().size());
-		assertEquals(SearchDocumentDriverImpl.FIELD_VALUE_SIZE_LIMIT, fields
-				.getReferences().size());
+		assertNotNull(fields.getReferences());
+		assertEquals(1, fields.getReferences().size());
 	}
 
 	private EntityPath createFakeEntityPath() {
