@@ -98,9 +98,6 @@ public class NodeTranslationUtils {
 		if (base == null)
 			throw new IllegalArgumentException("Base Object cannot be null");
 		Node node = new Node();
-		// Create the Reference Map for this object
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		node.setReferences(references);
 		updateNodeFromObject(base, node);
 		return node;
 	}
@@ -145,11 +142,11 @@ public class NodeTranslationUtils {
 	 * @param <T>
 	 * @param base
 	 * @param annos
-	 * @param references
+	 * @param reference
 	 * @throws IllegalArgumentException
 	 */
 	public static <T extends Entity> void updateNodeSecondaryFieldsFromObject(
-			T base, Annotations annos, Map<String, Set<Reference>> references) {
+			T base, Annotations annos, Reference reference) {
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -194,25 +191,12 @@ public class NodeTranslationUtils {
 						// Is this a reference
 						if (Reference.class.getName().equals(
 								propSchema.getItems().getId())) {
-							if (value == null) {
-								references.remove(name);
+							if (value != null) {
+								reference = (Reference) value;
 							} else {
-								references.put(name, (Set<Reference>) value);
+								reference = null;
 							}
 							continue;
-						}
-					}
-					// Is this a single references?
-					if (propSchema.getId() != null) {
-						if (Reference.class.getName().equals(propSchema.getId())) {
-							HashSet<Reference> set = new HashSet<Reference>();
-							if (value == null) {
-								references.remove(name);
-							} else {
-								set.add((Reference) value);
-								references.put(name, set);
-								continue;
-							}
 						}
 					}
 					// The schema type will tell us how to store this
@@ -469,7 +453,7 @@ public class NodeTranslationUtils {
 	 * @param annos
 	 */
 	public static <T extends Entity> void updateObjectFromNodeSecondaryFields(
-			T base, Annotations annos, Map<String, Set<Reference>> references) {
+			T base, Annotations annos, Reference reference) {
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -499,33 +483,14 @@ public class NodeTranslationUtils {
 				try {
 					Object value = annos.getSingleValue(name);
 					// First handle references
-					if (TYPE.ARRAY == propSchema.getType()) {
-						
-						// Is this a reference
-						if (Reference.class.getName().equals(
-								propSchema.getItems().getId())) {
-							Set<Reference> referenceGroup = references
-									.get(name);
-							if (null == referenceGroup) {
-								field.set(base, new HashSet<Reference>());
-							} else {
-								field.set(base, referenceGroup);
-							}
-							// done
-							continue;
-						}
-					}
 					// Is this a single references?
 					if (propSchema.getId() != null) {
 						if (Reference.class.getName()
 								.equals(propSchema.getId())) {
-							Set<Reference> referenceGroup = references
-									.get(name);
-							if (null == referenceGroup) {
-								field.set(base, null);
+							if (null != reference) {
+								field.set(base, reference);
 							} else {
-								field.set(base, referenceGroup.iterator()
-										.next());
+								field.set(base,  null);
 							}
 							// done
 							continue;
