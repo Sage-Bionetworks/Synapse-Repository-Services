@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,7 +33,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -127,7 +123,7 @@ public class DBOReferenceDaoImplTest {
 		dboReferenceDao.deleteReferenceByOwnderId(node.getId());
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetNotFound() throws DatastoreException {
 		Reference ref = new Reference();
 		ref.setTargetId(KeyFactory.keyToString(123L));
@@ -138,7 +134,7 @@ public class DBOReferenceDaoImplTest {
 		
 		// Clear
 		dboReferenceDao.deleteReferenceByOwnderId(node.getId());
-		dboReferenceDao.getReference(node.getId());
+		assertNull(dboReferenceDao.getReference(node.getId()));
 	}
 	
 	@Test
