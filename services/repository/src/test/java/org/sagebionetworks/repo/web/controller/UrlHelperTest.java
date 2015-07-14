@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -73,7 +74,7 @@ public class UrlHelperTest {
 		String id = "123";
 		for(EntityType type: array){
 			String expectedUri = uriPrefix+UrlHelpers.ENTITY+"/"+id;
-			String uri = UrlHelpers.createEntityUri(id, type.getClassForType(), "");
+			String uri = UrlHelpers.createEntityUri(id, EntityTypeUtils.getClassForType(type), "");
 			assertEquals(expectedUri, uri);
 		}
 	}
@@ -121,7 +122,7 @@ public class UrlHelperTest {
 		// Test each type
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
-			Entity entity = type.getClassForType().newInstance();
+			Entity entity = EntityTypeUtils.getClassForType(type).newInstance();
 			entity.setId(id);
 			if(entity instanceof Versionable){
 				Versionable able = (Versionable) entity;

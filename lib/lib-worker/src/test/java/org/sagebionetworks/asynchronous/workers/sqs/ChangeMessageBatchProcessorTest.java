@@ -20,6 +20,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
 
@@ -43,8 +44,8 @@ public class ChangeMessageBatchProcessorTest {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockAwsSQSClient = Mockito.mock(AmazonSQSClient.class);
 		mockRunner = Mockito.mock(ChangeMessageDrivenRunner.class);
-		when(mockAwsSQSClient.getQueueUrl(queueName)).thenReturn(
-				new GetQueueUrlResult().withQueueUrl(queueUrl));
+		when(mockAwsSQSClient.createQueue(queueName)).thenReturn(
+				new CreateQueueResult().withQueueUrl(queueUrl));
 		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
 				queueName, mockRunner);
 

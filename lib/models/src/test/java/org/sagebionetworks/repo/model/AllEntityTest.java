@@ -13,9 +13,9 @@ public class AllEntityTest {
 		
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
-			assertNotNull(type.getClassForType());
+			assertNotNull(EntityTypeUtils.getClassForType(type));
 			// Make sure we can create a new instance of this type
-			Entity entity = type.getClassForType().newInstance();
+			Entity entity = EntityTypeUtils.getClassForType(type).newInstance();
 			assertNotNull(entity);
 		}
 	}

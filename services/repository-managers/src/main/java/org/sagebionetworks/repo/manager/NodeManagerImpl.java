@@ -104,7 +104,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		// If the user did not provide a parent then we use the default
 		if(newNode.getParentId() == null){
-			String defaultPath = type.getDefaultParentPath();
+			String defaultPath = EntityTypeUtils.getDefaultParentPath(type);
 			if(defaultPath == null) throw new IllegalArgumentException("There is no default parent for Entities of type: "+type.name()+" so a valid parentId must be provided"); 
 			// Get the parent node.
 			String pathId = nodeDao.getNodeIdForPath(defaultPath);
@@ -360,7 +360,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				// The root cannot be the benefactor
 				boolean newAcl = nodeDao.isNodeRoot(parentInUpdate);
 				EntityType type = updatedNode.getNodeType();
-				String defaultPath = type.getDefaultParentPath();
+				String defaultPath = EntityTypeUtils.getDefaultParentPath(type);
 				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
 				if (newAcl) {

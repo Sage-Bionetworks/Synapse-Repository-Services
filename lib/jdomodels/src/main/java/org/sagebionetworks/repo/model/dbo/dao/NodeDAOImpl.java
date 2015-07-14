@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -224,7 +225,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			entityHeader.setName(rs.getString(COL_NODE_NAME));
 
 			EntityType entityType = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
-			entityHeader.setType(entityType.getEntityTypeClassName());
+			entityHeader.setType(EntityTypeUtils.getEntityTypeClassName(entityType));
 
 			entityHeader.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 			entityHeader.setVersionLabel(rs.getString(COL_REVISION_LABEL));
@@ -924,7 +925,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		header.setVersionNumber(versionNumber);
 		header.setVersionLabel(versionLabel);
 		EntityType type = ptn.getType();
-		header.setType(type.getEntityTypeClassName());
+		header.setType(EntityTypeUtils.getEntityTypeClassName(type));
 		return header;
 	}
 	/**

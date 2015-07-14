@@ -3,17 +3,10 @@
     "description":"Defines an entity query.",
     "properties":{
         "filterByType": {
-			"type": "string",
+			"type": "object",
 			"description": "Optional parameter to limit the query results to a single type of entity.",
 			"name": "EntityType",
-			"id": "org.sagebionetworks.repo.model.entity.query.EntityType",
-			"enum": [
-				"project",
-				"folder",
-				"file",
-				"table",
-				"link"
-			]
+			"$ref": "org.sagebionetworks.repo.model.EntityType"
 		},
 		"conditions": {
 		    "description":"List of conditions that should be applied to the query.  Only entities that meet all conditions will be returned.",

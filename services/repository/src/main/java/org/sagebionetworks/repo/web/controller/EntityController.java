@@ -1252,11 +1252,15 @@ public class EntityController extends BaseController {
 	 * @param request
 	 * @return
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY + UrlHelpers.REGISTRY }, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityRegistry getEntityRegistry(HttpServletRequest request) {
 		// get the schema from the manager.
+		if (true) {
+			throw new IllegalArgumentException("This method is no longer supported.");
+		}
 		return schemaManager.getEntityRegistry();
 	}
 

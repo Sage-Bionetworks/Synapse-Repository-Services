@@ -392,11 +392,11 @@ public class MessageManagerImplTest {
 	 * @param send_otherToSelfAndGroup This message may or may not have the proper permissions associated with it
 	 */
 	private List<String> sendUnsentMessages(boolean send_otherToGroup) throws Exception {
-		assertEquals(0, messageManager.processMessage(userReplyToOtherAndSelf.getId()).size());
-		assertEquals(0, messageManager.processMessage(otherReplyToUserAndSelf.getId()).size());
-		assertEquals(0, messageManager.processMessage(userToSelfAndGroup.getId()).size());
+		assertEquals(0, messageManager.processMessage(userReplyToOtherAndSelf.getId(), null).size());
+		assertEquals(0, messageManager.processMessage(otherReplyToUserAndSelf.getId(), null).size());
+		assertEquals(0, messageManager.processMessage(userToSelfAndGroup.getId(), null).size());
 		if (send_otherToGroup) {
-			return messageManager.processMessage(otherToGroup.getId());
+			return messageManager.processMessage(otherToGroup.getId(), null);
 		}
 		return new ArrayList<String>();
 	}
@@ -430,7 +430,7 @@ public class MessageManagerImplTest {
 		assertEquals(initialOtherTestUserInboxSize, inbox.getTotalNumberOfResults());
 		
 		// now send the message
-		List<String> errors = messageManager.processMessage(aMessage.getId());
+		List<String> errors = messageManager.processMessage(aMessage.getId(), null);
 		
 		// check that the stubbed client -- 2 failures for the two recipients
 		assertEquals(2, errors.size());
@@ -445,7 +445,7 @@ public class MessageManagerImplTest {
 		assertEquals(initialOtherTestUserInboxSize+1, inbox.getTotalNumberOfResults());
 
 		// now send a second time
-		errors = messageManager.processMessage(aMessage.getId());
+		errors = messageManager.processMessage(aMessage.getId(), null);
 		
 		// check that the stubbed client was NOT called
 		assertEquals(0, errors.size());
@@ -593,9 +593,9 @@ public class MessageManagerImplTest {
 		assertEquals(1L, messages.getTotalNumberOfResults());
 		assertEquals(1, messages.getResults().size());
 		
-		messageManager.processMessage(userToOther.getId());
-		messageManager.processMessage(userToOther.getId());
-		messageManager.processMessage(userToOther.getId());
+		messageManager.processMessage(userToOther.getId(), null);
+		messageManager.processMessage(userToOther.getId(), null);
+		messageManager.processMessage(userToOther.getId(), null);
 		
 		// Multiple calls to sendMessage do nothing
 		messages = messageManager.getInbox(otherTestUser, 
@@ -617,12 +617,12 @@ public class MessageManagerImplTest {
 		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", 
 					new HashSet<String>() {{add(testTeam.getId());}}, null);
 		cleanup.add(messageToTeam.getId());
-		assertEquals(1, messageManager.processMessage(messageToTeam.getId()).size());
+		assertEquals(1, messageManager.processMessage(messageToTeam.getId(), null).size());
 
 		// ... unless you're a Trusted Message Sender
 		messageToTeam = createMessage(trustedMessageSender, "messageToTeam", tmsFileHandleId,
 				new HashSet<String>() {{add(testTeam.getId());}}, null);
-		assertEquals(0, messageManager.processMessage(messageToTeam.getId()).size());
+		assertEquals(0, messageManager.processMessage(messageToTeam.getId(), null).size());
 	}
 	
 	/**

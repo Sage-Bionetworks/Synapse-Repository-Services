@@ -14,8 +14,8 @@ public class ObjectTypeTest {
 	public void testGetNodeTypeForClass(){
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
-			assertNotNull(type.getClassForType());
-			EntityType result = type.getEntityTypeForClass(type.getClassForType());
+			assertNotNull(EntityTypeUtils.getClassForType(type));
+			EntityType result = EntityTypeUtils.getEntityTypeForClass(EntityTypeUtils.getClassForType(type));
 			assertEquals(type, result);
 		}
 	}
@@ -36,12 +36,12 @@ public class ObjectTypeTest {
 	private void testValidParents(EntityType[] expectedValid, EntityType toTest) {
 		// Test expected
 		for(EntityType expected: expectedValid){
-			assertTrue(toTest.isValidParentType(expected));
+			assertTrue(EntityTypeUtils.isValidParentType(toTest, expected));
 		}
 		// test invalid
 		for(EntityType type: EntityType.values()){
 			if(!arrayCcontains(expectedValid, type)){
-				assertFalse(toTest.isValidParentType(type));
+				assertFalse(EntityTypeUtils.isValidParentType(toTest, type));
 			}
 		}
 	}

@@ -12,6 +12,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.Message;
 
 /**
@@ -33,7 +34,9 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	public ChangeMessageBatchProcessor(AmazonSQSClient awsSQSClient,
 			String queueName, ChangeMessageDrivenRunner runner) {
 		this.awsSQSClient = awsSQSClient;
-		this.queueUrl = awsSQSClient.getQueueUrl(queueName).getQueueUrl();
+		// create the queue if it does not exist.
+		CreateQueueResult result = awsSQSClient.createQueue(queueName);
+		this.queueUrl = result.getQueueUrl();
 		this.runner = runner;
 	}
 

@@ -21,6 +21,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -41,6 +42,8 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 	Random mockRandom;
 	int pageSize = 10;
 	TestClock testClock;
+	ChangeMessage one;
+	ChangeMessage two;
 	
 	@Before
 	public void before(){
@@ -64,6 +67,14 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(new ImmutablePropertyAccessor(pageSize));
 		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(1000L));
 		when(mockRandom.nextInt(anyInt())).thenReturn(1);
+		
+		one = new ChangeMessage();
+		one.setObjectType(ObjectType.ENTITY);
+		one.setObjectId("one");
+		two = new ChangeMessage();
+		two.setObjectType(ObjectType.FILE);
+		two.setObjectId("two");
+		when(mockChangeDao.listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class))).thenReturn(Arrays.asList(one, two));
 	}
 
 	
@@ -84,13 +95,13 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		when(mockChangeDao.checkUnsentMessageByCheckSumForRange(1L, 11L)).thenReturn(true);
 		when(mockChangeDao.checkUnsentMessageByCheckSumForRange(12L, 22L)).thenReturn(true);
 		when(mockChangeDao.checkUnsentMessageByCheckSumForRange(23L, 33L)).thenReturn(false);
-		when(mockChangeDao.listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class))).thenReturn(Arrays.asList(new ChangeMessage(), new ChangeMessage()));
 		// run
 		long start = testClock.currentTimeMillis();
 		worker.run(mockCallback);
 		// Progress should be made for each page.
 		verify(mockCallback, times(5)).progressMade(null);
-		verify(mockRepositoryMessagePublisher, times(2)).publishToTopic(any(ChangeMessage.class));
+		verify(mockRepositoryMessagePublisher).publishBatchToTopic(ObjectType.ENTITY, Arrays.asList(one));
+		verify(mockRepositoryMessagePublisher).publishBatchToTopic(ObjectType.FILE, Arrays.asList(two));
 		verify(mockLogger, times(10)).logCustomMetric(any(ProfileData.class));
 		assertEquals(start + 3000, testClock.currentTimeMillis());
 	}

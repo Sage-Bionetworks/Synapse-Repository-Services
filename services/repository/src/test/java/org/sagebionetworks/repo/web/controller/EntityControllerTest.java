@@ -294,7 +294,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(full.getImplements().length > 0);
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testGetRegistry() throws Exception {
 		EntityRegistry registry = entityServletHelper.getEntityRegistry();
 		assertNotNull(registry);
