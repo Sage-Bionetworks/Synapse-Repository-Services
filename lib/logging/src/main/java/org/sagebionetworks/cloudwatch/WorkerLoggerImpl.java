@@ -53,16 +53,36 @@ public class WorkerLoggerImpl implements WorkerLogger {
 			Throwable cause, 
 			boolean willRetry,
 			Date timestamp) {
+		return makeProfileDataDTO(workerClass.getName(), changeMessage, cause, willRetry, timestamp);
+	}
+	
+	/**
+	 * The more generic form of 
+	 * @param name The name of the metric.
+	 * @param changeMessage This is an optional parameter;
+	 * @param cause The exception that caused this error.
+	 * @param willRetry Will this work be re-tried?
+	 * @param timestamp The time the error occurred.
+	 * @return
+	 */
+	public static ProfileData makeProfileDataDTO(
+			String name, 
+			ChangeMessage changeMessage, 
+			Throwable cause, 
+			boolean willRetry,
+			Date timestamp) {
 		ProfileData nextPD = new ProfileData();
 		nextPD.setNamespace(WORKER_NAMESPACE+" - "+ StackConfiguration.getStackInstance()); 
-		nextPD.setName(workerClass.getName());
+		nextPD.setName(name);
 		nextPD.setValue(1D); // i.e. we are counting discrete events
 		nextPD.setUnit("Count"); // for allowed values see http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/StandardUnit.html
 		nextPD.setTimestamp(timestamp);
 		Map<String,String> dimension = new HashMap<String, String>();
 		dimension.put(WILL_RETRY_KEY, ""+willRetry);
-		dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().name());
-		dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().name());
+		if(changeMessage != null){
+			dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().name());
+			dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().name());
+		}
 		String stackTraceAsString = "";
 		if (cause!=null) {
 			stackTraceAsString = ExceptionUtils.getStackTrace(cause);
@@ -80,6 +100,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		return nextPD;
 	}
 	
+	
 	public static final String WORKER_NAMESPACE = "Asynchronous Workers";
 	private static final String WILL_RETRY_KEY = "willRetry";
 	private static final String CHANGE_TYPE_KEY = "changeType";
@@ -96,6 +117,13 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	public void logWorkerFailure(Class<? extends Object> workerClass, ChangeMessage changeMessage, Throwable cause, boolean willRetry) {
 		if (!shouldProfile) return;
 		ProfileData profileData = makeProfileDataDTO(workerClass, changeMessage, cause, willRetry, new Date());
+		consumer.addProfileData(profileData);
+	}
+	
+	@Override
+	public void logWorkerFailure(String metricName, Throwable cause, boolean willRetry) {
+		if (!shouldProfile) return;
+		ProfileData profileData = makeProfileDataDTO(metricName, null, cause, willRetry, new Date());
 		consumer.addProfileData(profileData);
 	}
 	
