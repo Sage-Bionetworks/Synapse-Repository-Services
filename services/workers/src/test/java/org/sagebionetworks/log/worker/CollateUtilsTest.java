@@ -9,9 +9,13 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.sagebionetworks.logging.s3.LogEntry;
 import org.sagebionetworks.logging.s3.LogReader;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 /**
  * Test for CollateUtils
@@ -21,6 +25,13 @@ import org.sagebionetworks.logging.s3.LogReader;
  */
 public class CollateUtilsTest {
 	
+	ProgressCallback<Void> mockCallback;
+	
+	@Before
+	public void before(){
+		mockCallback = Mockito.mock(ProgressCallback.class);
+	}
+	
 	@Test
 	public void testCollateNoOverLap() throws IOException{
 		// For this simple test collate two logs with no overlap
@@ -29,8 +40,9 @@ public class CollateUtilsTest {
 		LogReader[] toCollate = new LogReader[]{two, one};
 		StringWriter strWriter = new StringWriter();
 		BufferedWriter buffered = new BufferedWriter(strWriter);
-		CollateUtils.collateLogs(toCollate, buffered);
+		CollateUtils.collateLogs(toCollate, buffered, mockCallback);
 		buffered.flush();
+		verify(mockCallback, times(7)).progressMade(null);
 //		System.out.println(strWriter.toString());
 		// Validate the results;
 		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
@@ -52,8 +64,9 @@ public class CollateUtilsTest {
 		LogReader[] toCollate = new LogReader[]{two, one};
 		StringWriter strWriter = new StringWriter();
 		BufferedWriter buffered = new BufferedWriter(strWriter);
-		CollateUtils.collateLogs(toCollate, buffered);
+		CollateUtils.collateLogs(toCollate, buffered, mockCallback);
 		buffered.flush();
+		verify(mockCallback, times(7)).progressMade(null);
 //		System.out.println(strWriter.toString());
 		// Validate the results;
 		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
@@ -76,9 +89,10 @@ public class CollateUtilsTest {
 		LogReader[] toCollate = new LogReader[]{two, one, three};
 		StringWriter strWriter = new StringWriter();
 		BufferedWriter buffered = new BufferedWriter(strWriter);
-		CollateUtils.collateLogs(toCollate, buffered);
+		CollateUtils.collateLogs(toCollate, buffered, mockCallback);
 		buffered.flush();
 		System.out.println(strWriter.toString());
+		verify(mockCallback, times(18)).progressMade(null);
 		// Validate the results;
 		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
 		assertNotNull(results);
