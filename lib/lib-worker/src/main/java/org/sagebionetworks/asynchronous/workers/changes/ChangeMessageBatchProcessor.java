@@ -16,7 +16,7 @@ import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.Message;
 
 /**
- * A message driven runner that can read a batch of change messages and forwared
+ * A message driven runner that can read a batch of change messages and forwarded
  * each message to the provided worker.
  * 
  * @author jhill

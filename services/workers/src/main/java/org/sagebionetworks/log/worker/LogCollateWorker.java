@@ -93,12 +93,12 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 	 * @param data
 	 * @return True if the batch was merged.  False if there was nothing to merge or the batch was empty.
 	 */
-	private boolean collateBatch(BatchData data, ProgressCallback<Void> progressCallback) {
+	private void collateBatch(BatchData data, ProgressCallback<Void> progressCallback) {
 		if(data != null){
 			if(data.mergedKeys.size() > 0){
 				// If this batch only contains one file there is nothing to do.
 				if(data.mergedKeys.size() < 2){
-					return false;
+					return;
 				}
 				try {
 					// Create the file that will contain the collated data.
@@ -123,12 +123,14 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 							progressCallback.progressMade(null);
 						}
 						// Now collate all of the files
-						CollateUtils.collateLogs(toCollate, outWriter);
+						CollateUtils.collateLogs(toCollate, outWriter, progressCallback);
 						// Flush and close the outupt files before we save it
 						outWriter.flush();
 						outWriter.close();
 						// Save the results back to s3
 						newFileKey = logDAO.saveLogFile(temp, timestamp);
+					}catch(Exception e){
+						log.error("Worker failed", e);
 					}finally{
 						// Close the output stream
 						if(outWriter != null){
@@ -139,15 +141,25 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 						// Close the readers.
 						for(LogReader reader: toCollate){
 							try {
-								reader.close();
+								if(reader != null){
+									reader.close();
+								}
 							} catch (Exception e) {}
 						}
 						// Delete all temp files
 						for(File tempIn: tempFiles){
-							tempIn.delete();
+							try {
+								if(tempIn != null){
+									tempIn.delete();
+								}
+							} catch (Exception e) {}
 						}
 						// We are done with the temp file.
-						temp.delete();
+						try {
+							if(temp != null){
+								temp.delete();
+							}
+						} catch (Exception e) {}
 					}
 					
 					// Now delete all of the files that were merged.
@@ -157,14 +169,11 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 					long elapse = System.currentTimeMillis()-data.startMs;
 					long msPerfile = elapse/data.mergedKeys.size();
 					log.info("Merged: "+data.mergedKeys.size()+" files into new file: "+newFileKey+" in "+elapse+" ms rate of: "+msPerfile+" ms/file");
-					// We merged this batch successfully
-					return true;
 				} catch (IOException e) {
-					throw new RuntimeException(e);
+					log.error("Worker failed", e);
 				}
 			}
 		}
-		return false;
 	}
 	
 	/**
