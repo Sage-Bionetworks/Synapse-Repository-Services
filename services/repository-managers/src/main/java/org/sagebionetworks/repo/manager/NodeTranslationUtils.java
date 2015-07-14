@@ -84,6 +84,7 @@ public class NodeTranslationUtils {
 		nameConvertion.put("etag", "eTag");
 		nameConvertion.put("dataFileHandleId", "fileHandleId");
 		nameConvertion.put("columnIds", "columnModelIds");
+		nameConvertion.put("linksTo", "reference");
 		// build the primary field cache
 		buildPrimaryFieldCache();
 	}
@@ -145,9 +146,8 @@ public class NodeTranslationUtils {
 	 * @return the reference or null if the Object does not contain a reference
 	 * @throws IllegalArgumentException
 	 */
-	public static <T extends Entity> Reference updateNodeSecondaryFieldsFromObject(
+	public static <T extends Entity> void updateNodeSecondaryFieldsFromObject(
 			T base, Annotations annos) {
-		Reference reference = null;
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -172,7 +172,6 @@ public class NodeTranslationUtils {
 				Object value;
 				try {
 					value = field.get(base);
-
 					// Skip any property not defined in the schema
 					ObjectSchema propSchema = schemaProperties.get(name);
 					if (propSchema == null) {
@@ -187,15 +186,6 @@ public class NodeTranslationUtils {
 					if (propSchema.isTransient())
 						continue;
 					// We do not store fields that are marked as @TransientField
-					if (propSchema.getId() != null) {
-						if (Reference.class.getName()
-								.equals(propSchema.getId())) {
-							if (value != null) {
-								reference = (Reference) value;
-							}
-							continue;
-						}
-					}
 					// The schema type will tell us how to store this
 					if (value == null) {
 						annos.deleteAnnotation(name);
@@ -214,7 +204,6 @@ public class NodeTranslationUtils {
 				}
 			}
 		}
-		return reference;
 	}
 
 	/**
@@ -451,7 +440,7 @@ public class NodeTranslationUtils {
 	 * @param annos
 	 */
 	public static <T extends Entity> void updateObjectFromNodeSecondaryFields(
-			T base, Annotations annos, Reference reference) {
+			T base, Annotations annos) {
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -480,20 +469,6 @@ public class NodeTranslationUtils {
 				}
 				try {
 					Object value = annos.getSingleValue(name);
-					// First handle references
-					// Is this a single references?
-					if (propSchema.getId() != null) {
-						if (Reference.class.getName()
-								.equals(propSchema.getId())) {
-							if (null != reference) {
-								field.set(base, reference);
-							} else {
-								field.set(base,  null);
-							}
-							// done
-							continue;
-						}
-					}
 					if (value != null) {
 						if (field.getType() == Boolean.class) {
 							// We need to convert the string to a boolean

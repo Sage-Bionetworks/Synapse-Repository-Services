@@ -212,12 +212,12 @@ public class NodeTranslationUtilsTest {
 		Node dsNode = NodeTranslationUtils.createFromEntity(toClone);
 		// Update an annotations object using the object
 		Annotations annos = new Annotations();
-		Reference dsNodeRef = NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(toClone, annos);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(toClone, annos);
 		// Now crate the clone
 		@SuppressWarnings("unchecked")
 		T clone = (T) toClone.getClass().newInstance();
 		// first apply the annotations
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(clone, annos, dsNodeRef);
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(clone, annos);
 		// then apply the node
 		// Apply the node
 		NodeTranslationUtils.updateObjectFromNode(clone, dsNode);
@@ -236,12 +236,13 @@ public class NodeTranslationUtilsTest {
 		node.setNodeType(EntityType.link);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
-		Reference reference = NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations());
-		assertNotNull(reference);
-		assertEquals(ref, reference);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations());
+		assertNotNull(node.getReference());
+		assertEquals(ref, node.getReference());
 		// Make sure we can make the round trip
 		Link newLink = new Link();
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations(), reference);
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateObjectFromNode(newLink, node);
 		assertNotNull(newLink.getLinksTo());
 		assertEquals("123", newLink.getLinksTo().getTargetId());
 	}
