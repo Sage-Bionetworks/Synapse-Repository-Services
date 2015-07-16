@@ -31,7 +31,7 @@
 								<property name="semaphoreLockKey" value="s3FileCopy" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="600" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[S3_FILE_COPY]" />
 								<property name="gate">
