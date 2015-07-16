@@ -20,33 +20,35 @@ public class DBORevisionUtils {
 	 * 		the set has more than one element.
 	 * @throws IOException
 	 */
-	public static Reference convertMapToReference(byte[] blob) throws IOException {
-		Map<String, Set<Reference>> map;
+	public static Reference convertBlobToReference(byte[] blob) throws IOException {
+		if (blob == null) {
+			return null;
+		}
 		try {
-			map = JDOSecondaryPropertyUtils.decompressedReferences(blob);
+			Map<String, Set<Reference>> map = JDOSecondaryPropertyUtils.decompressedReferences(blob);
+			if (map.isEmpty()) {
+				return null;
+			}
+			if (map.size() > 1) {
+				throw new IllegalArgumentException();
+			}
+			String key = map.keySet().iterator().next();
+			Set<Reference> set = map.get(key);
+			if (set.isEmpty()) {
+				return null;
+			}
+			if (set.size() > 1) {
+				throw new IllegalArgumentException();
+			}
+			return set.iterator().next();
 		} catch (ClassCastException e) {
 			try {
 				// if the blob contains a Reference object, return the object
 				return JDOSecondaryPropertyUtils.decompressedReference(blob);
 			} catch (ClassCastException e2) {
-				return null;
+				throw new IllegalArgumentException();
 			}
 		}
-		if (map.isEmpty()) {
-			return null;
-		}
-		if (map.size() > 1) {
-			throw new IllegalArgumentException();
-		}
-		String key = map.keySet().iterator().next();
-		Set<Reference> set = map.get(key);
-		if (set.isEmpty()) {
-			return null;
-		}
-		if (set.size() > 1) {
-			throw new IllegalArgumentException();
-		}
-		return set.iterator().next();
 	}
 
 }

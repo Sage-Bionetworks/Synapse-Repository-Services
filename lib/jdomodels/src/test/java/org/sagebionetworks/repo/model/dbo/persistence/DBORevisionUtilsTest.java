@@ -20,14 +20,14 @@ public class DBORevisionUtilsTest {
 	public void nullValue() throws IOException {
 		Map<String, Set<Reference>> nullMap = null;
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(nullMap);
-		assertNull(DBORevisionUtils.convertMapToReference(blob));
+		assertNull(DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
 	@Test
 	public void emptyMap() throws IOException {
 		Map<String, Set<Reference>> emptyMap = new HashMap<String, Set<Reference>>();
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(emptyMap);
-		assertNull(DBORevisionUtils.convertMapToReference(blob));
+		assertNull(DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
 	@Test
@@ -40,7 +40,7 @@ public class DBORevisionUtilsTest {
 		set.add(ref);
 		map.put("linksTo", set);
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(map);
-		assertEquals(ref, DBORevisionUtils.convertMapToReference(blob));
+		assertEquals(ref, DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -57,7 +57,7 @@ public class DBORevisionUtilsTest {
 		set.add(ref2);
 		map.put("linksTo", set);
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(map);
-		DBORevisionUtils.convertMapToReference(blob);
+		DBORevisionUtils.convertBlobToReference(blob);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -76,7 +76,7 @@ public class DBORevisionUtilsTest {
 		map.put("linksTo", set1);
 		map.put("shortcut", set2);
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(map);
-		DBORevisionUtils.convertMapToReference(blob);
+		DBORevisionUtils.convertBlobToReference(blob);
 	}
 	
 	@Test 
@@ -85,13 +85,13 @@ public class DBORevisionUtilsTest {
 		ref.setTargetId("123");
 		ref.setTargetVersionNumber(1L);
 		byte[] blob = JDOSecondaryPropertyUtils.compressReference(ref);
-		assertEquals(ref, DBORevisionUtils.convertMapToReference(blob));
+		assertEquals(ref, DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
 	@Test
 	public void inValidInput() throws IOException {
 		List<Reference> list = new ArrayList<Reference>();
 		byte[] blob = JDOSecondaryPropertyUtils.compressObject(list);
-		assertNull(DBORevisionUtils.convertMapToReference(blob));
+		assertNull(DBORevisionUtils.convertBlobToReference(blob));
 	}
 }
