@@ -230,6 +230,28 @@ public class JDOSecondaryPropertyUtils {
 		}
 		return out.toByteArray();
 	}
+	
+	/**
+	 * Convert the passed references to a compressed (zip) byte array
+	 * @param dto
+	 * @return the compressed references
+	 * @throws IOException 
+	 */
+	@Deprecated
+	public static byte[] compressReferences(Map<String, Set<Reference>> dto) throws IOException{
+		if(dto == null) return null;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		BufferedOutputStream buff = new BufferedOutputStream(out);
+		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
+		try{
+			XStream xstream = createXStream();
+			xstream.toXML(dto, zipWriter);
+		}finally{
+			Closer.closeQuietly(zipWriter, zipper, buff, out);
+		}
+		return out.toByteArray();
+	}
 
 	public static String toXml(NamedAnnotations dto) throws IOException{
 		StringWriter writer = new StringWriter();
@@ -332,6 +354,30 @@ public class JDOSecondaryPropertyUtils {
 		}
 
 		return null;
+	}
+	
+	/**
+	 * Read the compressed (zip) byte array into the Reference.
+	 * @param zippedByes
+	 * @return the resurrected Reference
+	 * @throws IOException 
+	 */
+	@Deprecated
+	public static Map<String, Set<Reference>> decompressedReferences(byte[] zippedByes) throws IOException{
+		if(zippedByes != null){
+			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
+			GZIPInputStream unZipper = new GZIPInputStream(in);
+			try{
+				XStream xstream = createXStream();
+				if(zippedByes != null){
+					return (Map<String, Set<Reference>>) xstream.fromXML(unZipper);
+				}
+			}finally{
+				unZipper.close();
+			}			
+		}
+		// Return an empty map.
+		return new HashMap<String, Set<Reference>>();
 	}
 	
 	/**
