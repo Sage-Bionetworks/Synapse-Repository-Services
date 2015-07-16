@@ -8,12 +8,25 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class DBORevisionUtils {
+	
+	/**
+	 * Convert a blob of references to a Reference object. Assuming that the blob
+	 * contains a map from a string to a one element set of Reference. 
+	 * This method is used to migrate the JDORevision table.
+	 * 
+	 * @param blob that contains the map of string to a set of references
+	 * @return the only reference found in the map
+	 * @throws IllegalArgumentException is the map has more than one key or 
+	 * 		the set has more than one element.
+	 * @throws IOException
+	 */
 	public static Reference convertMapToReference(byte[] blob) throws IOException {
 		Map<String, Set<Reference>> map;
 		try {
 			map = JDOSecondaryPropertyUtils.decompressedReferences(blob);
 		} catch (ClassCastException e) {
 			try {
+				// if the blob contains a Reference object, return the object
 				return JDOSecondaryPropertyUtils.decompressedReference(blob);
 			} catch (ClassCastException e2) {
 				return null;
