@@ -202,7 +202,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				} catch (IllegalArgumentException e) {
 					throw new RuntimeException("Map or Set of Reference has more than one element: "+backup.getReference());
 				} catch (IOException e2) {
-					throw new RuntimeException("Cannot convert to Reference: "+backup.getReference());
+					throw new RuntimeException();
 				}
 				return backup;
 			}
