@@ -199,8 +199,10 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				try {
 					backup.setReference(JDOSecondaryPropertyUtils.compressReference(
 								DBORevisionUtils.convertMapToReference(backup.getReference())));
-				} catch (IOException e) {
-					throw new RuntimeException("Map or Set of Reference has more than one element: "+backup.toString());
+				} catch (IllegalArgumentException e) {
+					throw new RuntimeException("Map or Set of Reference has more than one element: "+backup.getReference());
+				} catch (IOException e2) {
+					throw new RuntimeException("Cannot convert to Reference: "+backup.getReference());
 				}
 				return backup;
 			}
