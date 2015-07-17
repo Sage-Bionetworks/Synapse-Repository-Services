@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class NodeManagerImpl implements NodeManager, InitializingBean {
 
-	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. Use copy to s3 bucket and download from there as described in https://www.synapse.org/#!Help:RequesterPays";
+	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. Use copy and download as described in https://www.synapse.org/#!Help:RequesterPays";
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	@Autowired
