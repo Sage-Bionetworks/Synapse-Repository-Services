@@ -22,9 +22,9 @@ public class JDORevisionUtils {
 			copy.setAnnotations(Arrays.copyOf(toCopy.getAnnotations(), toCopy.getAnnotations().length));
 		}
 		// Make a copy of the references byte array
-		if(toCopy.getReferences() != null){
+		if(toCopy.getReference() != null){
 			// Make a copy of the references.
-			copy.setReferences(Arrays.copyOf(toCopy.getReferences(), toCopy.getReferences().length));
+			copy.setReference(Arrays.copyOf(toCopy.getReference(), toCopy.getReference().length));
 		}
 		// do not copy over Activity id!
 		// copy the file handle

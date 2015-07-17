@@ -1138,7 +1138,7 @@ public class NodeDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
 		// This should throw a not found exception.
-		nodeDao.getNodeReferences("syn123");
+		nodeDao.getNodeReference("syn123");
 	}
 	
 	@Test
@@ -1149,9 +1149,8 @@ public class NodeDAOImplTest {
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		// This should be empty but not null
-		Map<String, Set<Reference>> refs = nodeDao.getNodeReferences(id);
-		assertNotNull(refs);
-		assertEquals(0, refs.size());
+		Reference ref = nodeDao.getNodeReference(id);
+		assertNull(ref);
 	}
 	
 	@Test
@@ -1161,72 +1160,52 @@ public class NodeDAOImplTest {
 		node.setNodeType(EntityType.project);
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
-		// Create a child with a refrence to the parent
+		// Create a child with a reference to the parent
 		node = privateCreateNew("child");
 		node.setParentId(parentId);
 		node.setNodeType(EntityType.folder);
 		// Add a reference
-		node.setReferences(new HashMap<String, Set<Reference>>());
-		HashSet<Reference> set = new HashSet<Reference>();
+		
 		Reference ref = new Reference();
 		ref.setTargetId(parentId);
-		set.add(ref);
-		String typeKey = "some_type";
-		node.getReferences().put(typeKey, set);
+		node.setReference(ref);
 		String id = nodeDao.createNew(node);
 		// This should be empty but not null
-		Map<String, Set<Reference>> refs = nodeDao.getNodeReferences(id);
-		assertNotNull(refs);
-		assertEquals(1, refs.size());
-		assertEquals(node.getReferences(), refs);
+		Reference expectedRef = nodeDao.getNodeReference(id);
+		assertNotNull(expectedRef);
+		assertEquals(node.getReference(), expectedRef);
+		
 		// Now create a new revision and make sure we get the latest only
 		node = nodeDao.getNode(id);
 		ref = new Reference();
 		ref.setTargetId(id);
 		ref.setTargetVersionNumber(node.getVersionNumber());
-		node.getReferences().get(typeKey).add(ref);
+		node.setReference(ref);
 		node.setVersionLabel("v2");
 		nodeDao.createNewVersion(node);
 		// Now get the current references
-		refs = nodeDao.getNodeReferences(id);
-		assertNotNull(refs);
-		assertEquals(1, refs.size());
-		Set<Reference> someType = refs.get(typeKey);
-		assertNotNull(someType);
-		assertEquals(2, someType.size());
-		assertTrue(someType.contains(ref));
+		expectedRef = nodeDao.getNodeReference(id);
+		assertNotNull(expectedRef);
+		assertEquals(node.getReference(), expectedRef);
 	}
 
 	@Test
-	public void testAddReferencesNoVersionSpecified() throws Exception {
+	public void testAddReferenceNoVersionSpecified() throws Exception {
 		String deleteMeNode = null;
 
-		// Create a few nodes we will refer to, use the current version held in the repo svc
-		Set<Reference> referees = new HashSet<Reference>();
-		Set<Reference> copyReferees = new HashSet<Reference>();
-		for(int i=0; i<10; i++){
-			Node node = privateCreateNew("referee"+i);
-			String id = nodeDao.createNew(node);
-			toDelete.add(id);
+		// Create a node we will refer to, use the current version held in the repo svc
+		Node node = privateCreateNew("referee");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
 
-			Reference ref = new Reference();
-			ref.setTargetId(id);
-			referees.add(ref);
-			
-			ref = new Reference();
-			ref.setTargetId(id);
-			copyReferees.add(ref);
-			
-			deleteMeNode = id;
-		}
-
-		// Create our reference map
-		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
-		refs.put("referees", referees);
+		Reference ref = new Reference();
+		ref.setTargetId(id);
+		
+		deleteMeNode = id;
 		
 		// Create the node that holds the references
 		Node referer = privateCreateNew("referer");
-		referer.setReferences(refs);
+		referer.setReference(ref);
 		String refererId = nodeDao.createNew(referer);
 		assertNotNull(refererId);
 		toDelete.add(refererId);
@@ -1234,17 +1213,9 @@ public class NodeDAOImplTest {
 		// Make sure it got stored okay
 		Node storedNode = nodeDao.getNode(refererId);
 		assertNotNull(storedNode);
-		assertNotNull(storedNode.getReferences());
-		assertEquals(1, storedNode.getReferences().size());
-		assertEquals(10, storedNode.getReferences().get("referees").size());
-		Object[] storedRefs = storedNode.getReferences().get("referees").toArray();
-		assertEquals(null, ((Reference)storedRefs[0]).getTargetVersionNumber());
-		
-		
-		// Make sure our reference Ids have the syn prefix
-		for(Reference ref : storedNode.getReferences().get("referees")) {
-			assertTrue(toDelete.contains(ref.getTargetId()));
-		}
+		Reference storedRef = storedNode.getReference();
+		assertNotNull(storedRef);
+		assertEquals(null, storedRef.getTargetVersionNumber());
 		
 		// Now delete one of those nodes, such that one of our references has become 
 		// invalid after we've created it.  This is okay and does not cause an error 
@@ -1253,38 +1224,19 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test 
-	public void testUpdateReferences() throws Exception {
-		Reference inEvenFirstBatch = null, inOddFirstBatch = null, inEvenSecondBatch = null, inOddSecondBatch = null;
-		
-		// Create a few nodes we will refer to
-		Set<Reference> even = new HashSet<Reference>();
-		Set<Reference> odd = new HashSet<Reference>();
-		for(int i=1; i<=5; i++){
-			Node node = privateCreateNew("referee"+i);
-			node.setVersionNumber(999L);
-			String id = nodeDao.createNew(node);
-			toDelete.add(id);
-			Reference ref = new Reference();
-			ref.setTargetId(id);
-			ref.setTargetVersionNumber(node.getVersionNumber());
-			if(0 == (i % 2)) {
-				even.add(ref);
-				inEvenFirstBatch = ref;
-			}
-			else {
-				odd.add(ref);
-				inOddFirstBatch = ref;
-			}
-		}
-
-		// Create our reference map
-		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
-		refs.put("even", even);
-		refs.put("odd", odd);
+	public void testUpdateReference() throws Exception {
+		// Create a node we will refer to
+		Node node = privateCreateNew("referee");
+		node.setVersionNumber(999L);
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		Reference ref = new Reference();
+		ref.setTargetId(id);
+		ref.setTargetVersionNumber(node.getVersionNumber());
 		
 		// Create the node that holds the references
 		Node referer = privateCreateNew("referer");
-		referer.setReferences(refs);
+		referer.setReference(ref);
 		String refererId = nodeDao.createNew(referer);
 		assertNotNull(refererId);
 		toDelete.add(refererId);
@@ -1292,65 +1244,30 @@ public class NodeDAOImplTest {
 		// Make sure it got stored okay
 		Node storedNode = nodeDao.getNode(refererId);
 		assertNotNull(storedNode);
-		assertNotNull(storedNode.getReferences());
-		assertEquals(2, storedNode.getReferences().size());
-		assertEquals(2, storedNode.getReferences().get("even").size());
-		assertEquals(3, storedNode.getReferences().get("odd").size());
-		assertTrue(storedNode.getReferences().get("even").contains(inEvenFirstBatch));
-		assertTrue(storedNode.getReferences().get("odd").contains(inOddFirstBatch));
-		assertFalse(storedNode.getReferences().get("even").contains(inEvenSecondBatch));
-		assertFalse(storedNode.getReferences().get("odd").contains(inOddSecondBatch));
+		assertEquals(ref, storedNode.getReference());
 
-		// Now delete some references
-		storedNode.getReferences().get("even").clear();
-		// And add a few new ones
-		for(int i=1; i<=4; i++){
-			Node node = privateCreateNew("referee"+i);
-			node.setVersionNumber(999L);
-			String id = nodeDao.createNew(node);
-			toDelete.add(id);
-			Reference ref = new Reference();
-			ref.setTargetId(id);
-			ref.setTargetVersionNumber(node.getVersionNumber());
-			if(0 == (i % 2)) {
-				storedNode.getReferences().get("even").add(ref);
-				inEvenSecondBatch = ref;
-			}
-			else {
-				storedNode.getReferences().get("odd").add(ref);
-				inOddSecondBatch = ref;
-			}
-		}
-
+		// Add a new one
+		Node node2 = privateCreateNew("referee2");
+		node2.setVersionNumber(999L);
+		String id2 = nodeDao.createNew(node2);
+		toDelete.add(id2);
+		Reference ref2 = new Reference();
+		ref2.setTargetId(id);
+		ref2.setTargetVersionNumber(node2.getVersionNumber());
+		storedNode.setReference(ref2);
+		
 		// Make sure it got updated okay
 		nodeDao.updateNode(storedNode);
 		storedNode = nodeDao.getNode(refererId);
 		assertNotNull(storedNode);
-		assertNotNull(storedNode.getReferences());
-		assertEquals(2, storedNode.getReferences().size());
-		assertEquals(2, storedNode.getReferences().get("even").size());
-		assertEquals(5, storedNode.getReferences().get("odd").size());
-		assertFalse(storedNode.getReferences().get("even").contains(inEvenFirstBatch));
-		assertTrue(storedNode.getReferences().get("odd").contains(inOddFirstBatch));
-		assertTrue(storedNode.getReferences().get("even").contains(inEvenSecondBatch));
-		assertTrue(storedNode.getReferences().get("odd").contains(inOddSecondBatch));
-		
-		// Make sure our reference Ids have the syn prefix
-		for(Reference ref : storedNode.getReferences().get("even")) {
-			assertTrue(toDelete.contains(ref.getTargetId()));
-		}
-		for(Reference ref : storedNode.getReferences().get("odd")) {
-			assertTrue(toDelete.contains(ref.getTargetId()));
-		}
-
-		
+		assertEquals(ref2, storedNode.getReference());
+				
 		// Now nuke all the references
-		storedNode.getReferences().clear();
+		storedNode.setReference(null);
 		nodeDao.updateNode(storedNode);
 		storedNode = nodeDao.getNode(refererId);
 		assertNotNull(storedNode);
-		assertNotNull(storedNode.getReferences());
-		assertEquals(0, storedNode.getReferences().size());
+		assertNull(storedNode.getReference());
 	}
 	
 	/**
@@ -1567,71 +1484,48 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testReferencesDeleteCurrentVersion() throws NotFoundException, DatastoreException, InvalidModelException {
-		Reference inEven = null, inOdd = null;
+	public void testReferenceDeleteCurrentVersion() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node referee = privateCreateNew("referee");
+		referee.setVersionNumber(999L);
+		String refereeid = nodeDao.createNew(referee);
+		toDelete.add(refereeid);
+		Reference ref = new Reference();
+		ref.setTargetId(refereeid);
+		ref.setTargetVersionNumber(referee.getVersionNumber());
 		
-		// Create a few nodes we will refer to
-		Set<Reference> even = new HashSet<Reference>();
-		Set<Reference> odd = new HashSet<Reference>();
-		for(int i=1; i<=5; i++){
-			Node node = privateCreateNew("referee"+i);
-			node.setVersionNumber(999L);
-			String id = nodeDao.createNew(node);
-			toDelete.add(id);
-			Reference ref = new Reference();
-			ref.setTargetId(id);
-			ref.setTargetVersionNumber(node.getVersionNumber());
-			if(0 == (i % 2)) {
-				even.add(ref);
-				inEven = ref;
-			}
-			else {
-				odd.add(ref);
-				inOdd = ref;
-			}
-		}
-
-		// Create our reference map
-		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
-		refs.put("even", even);
-		refs.put("odd", odd);
-		
-		// Create the node that holds the references
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		node.setReferences(refs);
-		node.setVersionLabel("references 1.0");
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		assertNotNull(id);
+		// Create the node that holds the reference
+		Node parent = privateCreateNew("parent");
+		parent.setNodeType(EntityType.project);
+		parent.setReference(ref);
+		parent.setVersionLabel("reference 1.0");
+		String parentid = nodeDao.createNew(parent);
+		toDelete.add(parentid);
+		assertNotNull(parentid);
 		
 		// Get the newly created node
-		node = nodeDao.getNode(id);
-		Long v1Number = node.getVersionNumber();
-		assertTrue(node.getReferences().get("even").contains(inEven));
-		assertTrue(node.getReferences().get("odd").contains(inOdd));
+		Node node = nodeDao.getNode(parentid);
+		assertEquals(node.getReference(), ref);
 		
-		// now create a new version and change the references
-		node = nodeDao.getNode(id);
-		node.getReferences().put("even2", node.getReferences().get("even"));
-		node.setVersionLabel("references 2.0");
+		// now create a new version and change the reference
+		node = nodeDao.getNode(parentid);
+		Reference ref2 = new Reference();
+		ref2.setTargetId(refereeid);
+		ref2.setTargetVersionNumber(referee.getVersionNumber());
+		node.setReference(ref2);
+		node.setVersionLabel("reference 2.0");
 		nodeDao.createNewVersion(node);
 
 		// Get the updated node
-		node = nodeDao.getNode(id);
-		// Since we added more references, we should see them in the node and in the revision
-		assertTrue(node.getReferences().get("even").contains(inEven));
-		assertTrue(node.getReferences().get("odd").contains(inOdd));
-		assertTrue(node.getReferences().get("even2").contains(inEven));
+		node = nodeDao.getNode(parentid);
+		// Since we added new reference, we should see them in the node and in the revision
+		assertEquals(node.getReference(), ref2);
 		
 		// Delete the current version.
-		nodeDao.deleteVersion(id, node.getVersionNumber());
+		nodeDao.deleteVersion(parentid, node.getVersionNumber());
 
-		// Get the (rolled back) node and check that the references have been reverted
-		node = nodeDao.getNode(id);
-		assertTrue(node.getReferences().get("even").contains(inEven));
-		assertTrue(node.getReferences().get("odd").contains(inOdd));
-		assertNull(node.getReferences().get("even2"));
+		// Get the (rolled back) node and check that the reference have been reverted
+		node = nodeDao.getNode(parentid);
+		assertEquals(node.getReference(), ref);
 	}
 	
 	@Test

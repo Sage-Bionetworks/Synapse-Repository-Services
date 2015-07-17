@@ -3,13 +3,13 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
@@ -252,20 +251,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// References, just put the node id to which the reference refers. Not
 		// currently adding the version or the type of the reference (e.g.,
 		// code/input/output)
-		if ((null != node.getReferences()) && (0 < node.getReferences().size())) {
-			List<String> referenceValues = new ArrayList<String>();
-			fields.setReferences(referenceValues);
-			for (Set<Reference> refs : node.getReferences().values()) {
-				for (Reference ref : refs) {
-					if (FIELD_VALUE_SIZE_LIMIT > referenceValues.size()) {
-						referenceValues.add(ref.getTargetId());
-					} else {
-						log.warn("Had to leave reference " + ref.getTargetId()
-								+ " out of search document " + node.getId()
-								+ " due to AwesomeSearch limits");
-					}
-				}
-			}
+		if (null != node.getReference()) {
+			fields.setReferences(Arrays.asList(node.getReference().getTargetId()));
 		}
 
 		// READ and UPDATE ACLs

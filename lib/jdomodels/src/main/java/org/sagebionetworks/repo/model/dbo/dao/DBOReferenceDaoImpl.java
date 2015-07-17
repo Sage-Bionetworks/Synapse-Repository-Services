@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BEN
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_TARGET_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_TARGET_REVISION_NUMBER;
@@ -15,10 +14,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -34,12 +31,11 @@ import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * Implementation of the DBOReferenceDao.
@@ -52,7 +48,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	private static final String ID_PARAM = "idParam";
 	private static final String SQL_DELETE_BATCH_BY_PRIMARY_KEY = "DELETE FROM "+TABLE_REFERENCE+" WHERE ID = :"+ID_PARAM;
 	private static final String SQL_IDS_FOR_DELETE = "SELECT ID FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ? ORDER BY ID ASC";
-	private static final String SELECT_SQL = "SELECT "+COL_REFERENCE_GROUP_NAME+", "+COL_REFERENCE_TARGET_NODE+", "+COL_REFERENCE_TARGET_REVISION_NUMBER+" FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ?";
+	private static final String SELECT_SQL = "SELECT "+COL_REFERENCE_TARGET_NODE+", "+COL_REFERENCE_TARGET_REVISION_NUMBER+" FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ?";
 	private static final String REFERENCE_TARGET_NODE_BIND_VAR = "rtn";
 	private static final String REFERENCE_TARGET_REVISION_NO_BIND_VAR = "rtrn";	
 	private static final String REFERRER_SELECT_SQL_COLUMNS =
@@ -75,40 +71,30 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	
 	@WriteTransaction
 	@Override
-	public Map<String, Set<Reference>> replaceReferences(Long ownerId, Map<String, Set<Reference>> references) throws DatastoreException {
+	public Reference replaceReference(Long ownerId, Reference reference) throws DatastoreException {
 		if(ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		if(references == null) throw new IllegalArgumentException("References cannot be null");
-		// First delete all references for this entity.
+		if(reference == null) throw new IllegalArgumentException("Reference cannot be null");
+		// First delete reference for this entity.
 		deleteWithoutGapLockFromTable(ownerId);
-		// Create the list of references
-		List<DBOReference> batch = ReferenceUtil.createDBOReferences(ownerId, references);
-		if(batch.size() > 0 ){
-			dboBasicDao.createBatch(batch);
-		}
-		return references;
+		// Create the reference
+		DBOReference dbo = ReferenceUtil.createDBOReference(ownerId, reference);
+		dboBasicDao.createNew(dbo);
+		return reference;
 	}
 
 	@WriteTransaction
 	@Override
-	public void deleteReferencesByOwnderId(Long ownerId) {
+	public void deleteReferenceByOwnderId(Long ownerId) {
 		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
 		deleteWithoutGapLockFromTable(ownerId);
 	}
 
 	@Override
-	public Map<String, Set<Reference>> getReferences(Long ownerId) {
+	public Reference getReference(Long ownerId) {
 		if(ownerId == null) throw new IllegalArgumentException("OwnerId cannot be null");
-		// Build up the results from the DB.
-		final Map<String, Set<Reference>> results = new HashMap<String, Set<Reference>>();
-		simpleJdbcTemplate.query(SELECT_SQL, new RowMapper<String>() {
+		List<Reference> results = simpleJdbcTemplate.query(SELECT_SQL, new RowMapper<Reference>() {
 			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String groupName = rs.getString(COL_REFERENCE_GROUP_NAME);
-				Set<Reference> set = results.get(groupName);
-				if(set == null){
-					set = new HashSet<Reference>();
-					results.put(groupName, set);
-				}
+			public Reference mapRow(ResultSet rs, int rowNum) throws SQLException {
 				// Create the reference
 				Reference reference = new Reference();
 				reference.setTargetId(KeyFactory.keyToString(rs.getLong(COL_REFERENCE_TARGET_NODE)));
@@ -116,12 +102,13 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				if(rs.wasNull()){
 					reference.setTargetVersionNumber(null);
 				}
-				// Add it to its group
-				set.add(reference);
-				return groupName;
+				return reference;
 			}
 		}, ownerId);
-		return results;
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
 	}
 
 	@Override

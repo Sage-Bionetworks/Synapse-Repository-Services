@@ -15,15 +15,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -46,8 +43,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.search.Document;
@@ -58,7 +53,6 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -211,16 +205,10 @@ public class SearchDocumentDriverImplAutowireTest {
 		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos
 				.addAnnotation("blobKey", new String("bytes").getBytes());
-		Set<Reference> references = new HashSet<Reference>();
-		Map<String, Set<Reference>> referenceMap = new HashMap<String, Set<Reference>>();
-		referenceMap.put("tooMany", references);
-		node.setReferences(referenceMap);
-		for (int i = 0; i <= SearchDocumentDriverImpl.FIELD_VALUE_SIZE_LIMIT + 10; i++) {
-			Reference ref = new Reference();
-			ref.setTargetId("123" + i);
-			ref.setTargetVersionNumber(1L);
-			references.add(ref);
-		}
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(1L);
+		node.setReference(ref);
 		
 		String wikiPageText = "title\nmarkdown";
 
@@ -291,10 +279,8 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(2, fields.getAcl().size());
 		assertEquals(1, fields.getUpdate_acl().size());
 
-		// Make sure our references were trimmed
-		assertTrue(10 < fields.getReferences().size());
-		assertEquals(SearchDocumentDriverImpl.FIELD_VALUE_SIZE_LIMIT, fields
-				.getReferences().size());
+		assertNotNull(fields.getReferences());
+		assertEquals(1, fields.getReferences().size());
 	}
 
 	private EntityPath createFakeEntityPath() {
