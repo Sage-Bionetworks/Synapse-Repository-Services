@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.Collection;
@@ -17,21 +16,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.audit.utils.ObjectCSVReader;
+import org.sagebionetworks.aws.utils.s3.ObjectCSVReader;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.tool.progress.BasicProgress;
-import org.sagebionetworks.tool.progress.Progress;
 
 import au.com.bytecode.opencsv.CSVWriter;
-
-import com.hp.hpl.jena.tdb.store.Hash;
 
 /**
  * This is a utility that will scan through local access record CSV files and generate a report of users
