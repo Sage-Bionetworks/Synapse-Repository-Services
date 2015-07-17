@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -197,12 +198,12 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 			@Override
 			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
 				try {
-					backup.setReference(JDOSecondaryPropertyUtils.compressReference(
-								DBORevisionUtils.convertBlobToReference(backup.getReference())));
-				} catch (IllegalArgumentException e) {
-					throw new RuntimeException("Map or Set of Reference has more than one element: "+backup.getReference());
-				} catch (IOException e2) {
-					throw new RuntimeException();
+					// Retrieve the historical reference from a blob
+					Reference ref = DBORevisionUtils.convertBlobToReference(backup.getReference());
+					byte[] blob = JDOSecondaryPropertyUtils.compressReference(ref);
+					backup.setReference(blob);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
 				}
 				return backup;
 			}

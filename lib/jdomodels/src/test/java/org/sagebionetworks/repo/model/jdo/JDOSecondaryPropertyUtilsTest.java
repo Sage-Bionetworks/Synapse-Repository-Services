@@ -10,10 +10,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -299,10 +301,17 @@ public class JDOSecondaryPropertyUtilsTest {
 	}
 	
 	@Test
-	public void testCompressReference() throws IOException {
+	public void testCompressNullReference() throws IOException {
 		assertNull(JDOSecondaryPropertyUtils.compressReference(null));
+	}
+	
+	@Test
+	public void testDecompressNullReference() throws IOException {
 		assertNull(JDOSecondaryPropertyUtils.decompressedReference(null));
-		
+	}
+	
+	@Test
+	public void testCompressReferenceRoundTrip() throws IOException {
 		Reference ref = new Reference();
 		ref.setTargetId("123L");
 		ref.setTargetVersionNumber(1L);
@@ -310,6 +319,40 @@ public class JDOSecondaryPropertyUtilsTest {
 		byte[] compressed = JDOSecondaryPropertyUtils.compressReference(ref);
 		assertNotNull(compressed);
 		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(compressed));
+	}
+	
+	@Test
+	public void testCompressEmptyReferences() throws IOException {
+		Map<String, Set<Reference>> map = new HashMap<String, Set<Reference>>();
+		assertEquals(JDOSecondaryPropertyUtils.toXml(map), "<map/>");
+		byte[] compressed = JDOSecondaryPropertyUtils.compressReferences(map);
+		assertNotNull(compressed);
+	}
+	
+	@Test
+	public void testCompressNullReferences() throws IOException {
+		assertNull(JDOSecondaryPropertyUtils.compressReferences(null));
+	}
+	
+	@Test
+	public void testDecompressNullReferences() throws IOException {
+		assertEquals(new HashMap<String, Set<Reference>>(), JDOSecondaryPropertyUtils.decompressedReferences(null));
+	}
+	
+	@Test
+	public void testCompressReferencesRoundTrip() throws IOException {
+		Reference ref = new Reference();
+		ref.setTargetId("123L");
+		ref.setTargetVersionNumber(1L);
+		
+		Map<String, Set<Reference>> map = new HashMap<String, Set<Reference>>();
+		Set<Reference> set = new HashSet<Reference>();
+		set.add(ref);
+		map.put("linksTo", set);
+		
+		byte[] compressed = JDOSecondaryPropertyUtils.compressReferences(map);
+		assertNotNull(compressed);
+		assertEquals(map, JDOSecondaryPropertyUtils.decompressedReferences(compressed));
 	}
 	
 	/**

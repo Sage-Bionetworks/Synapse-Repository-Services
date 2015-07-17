@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,6 +22,7 @@ public class DBORevisionUtilsTest {
 	public void nullValue() throws IOException {
 		Map<String, Set<Reference>> nullMap = null;
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(nullMap);
+		assertNull(blob);
 		assertNull(DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
@@ -27,6 +30,7 @@ public class DBORevisionUtilsTest {
 	public void emptyMap() throws IOException {
 		Map<String, Set<Reference>> emptyMap = new HashMap<String, Set<Reference>>();
 		byte[] blob = JDOSecondaryPropertyUtils.compressReferences(emptyMap);
+		assertNotNull(blob);
 		assertNull(DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
@@ -88,10 +92,10 @@ public class DBORevisionUtilsTest {
 		assertEquals(ref, DBORevisionUtils.convertBlobToReference(blob));
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void inValidInput() throws IOException {
 		List<Reference> list = new ArrayList<Reference>();
 		byte[] blob = JDOSecondaryPropertyUtils.compressObject(list);
-		assertNull(DBORevisionUtils.convertBlobToReference(blob));
+		DBORevisionUtils.convertBlobToReference(blob);
 	}
 }

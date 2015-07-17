@@ -260,7 +260,18 @@ public class JDOSecondaryPropertyUtils {
 			xstream.toXML(dto, writer);
 			return writer.toString();
 		}finally{
-			
+			writer.close();
+		}
+	}
+	
+	public static String toXml(Map<String, Set<Reference>> references) throws IOException{
+		StringWriter writer = new StringWriter();
+		try{
+			XStream xstream = createXStream();
+			xstream.toXML(references, writer);
+			return writer.toString();
+		}finally{
+			writer.close();
 		}
 	}
 	
