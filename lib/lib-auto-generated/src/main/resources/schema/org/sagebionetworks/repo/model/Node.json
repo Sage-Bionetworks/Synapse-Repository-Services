@@ -18,22 +18,22 @@
             "type":"integer"
         },
         "createdOn":{
-			"type": "string",
-			"format":"date-time"
-		},
-		"modifiedByPrincipalId":{
+            "type": "string",
+            "format":"date-time"
+        },
+        "modifiedByPrincipalId":{
             "type":"integer"
         },
         "modifiedOn":{
-			"type": "string",
-			"format":"date-time"
-		},
-		"nodeType":{
-			"type": "object",
-			"name": "EntityType",
-			"$ref": "org.sagebionetworks.repo.model.EntityType"
-		},
-		"eTag":{
+            "type": "string",
+            "format":"date-time"
+        },
+        "nodeType":{
+            "type": "object",
+            "name": "EntityType",
+            "$ref": "org.sagebionetworks.repo.model.EntityType"
+        },
+        "eTag":{
             "type":"string"
         },
         "versionNumber":{
@@ -64,8 +64,8 @@
             }
         },
         "reference":{
-        	"type":"object",
-        	"$ref":"org.sagebionetworks.repo.model.Reference"
-        }	
+            "type":"object",
+            "$ref":"org.sagebionetworks.repo.model.Reference"
+        }
     }
 }

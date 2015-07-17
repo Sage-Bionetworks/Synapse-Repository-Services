@@ -43,7 +43,6 @@ public class NodeUtilsTest {
 		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
 		// This is an update round trip and the type cannot be changed on an update.
-//		node.setNodeType(EntityType.project);
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedByPrincipalId(createdById);
 		node.setETag("1013");
@@ -52,7 +51,6 @@ public class NodeUtilsTest {
 		// Set the version information
 		node.setVersionComment("This is the first version of this object");
 		node.setVersionLabel("1.0.1");
-//		node.setVersionNumber("2");
 		node.setReference(new Reference());
 		node.setActivityId("1234");
 		node.setFileHandleId("9999888777");
