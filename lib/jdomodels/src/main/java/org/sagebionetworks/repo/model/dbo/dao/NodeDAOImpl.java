@@ -353,7 +353,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
 		if(newVersion.getId() == null) throw new IllegalArgumentException("New version node ID cannot be null");
-//		if(newVersion.getVersionLabel() == null) throw new IllegalArgumentException("Cannot create a new version with a null version label");
 		// Get the Node
 		Long nodeId = KeyFactory.stringToKey(newVersion.getId());
 		DBONode jdo = getNodeById(nodeId);
@@ -375,6 +374,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Save the change to the node
 		dboBasicDao.update(jdo);
 		dboBasicDao.createNew(newRev);
+
+		transactionalMessenger.sendMessageAfterCommit(nodeId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
 		return newRev.getRevisionNumber();
 	}
 
@@ -426,6 +427,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Make sure the node is still pointing the the current version
 			node.setCurrentRevNumber(versions.get(0));
 			dboBasicDao.update(node);
+
+			transactionalMessenger.sendMessageAfterCommit(nodeId, ObjectType.ENTITY, ChangeType.UPDATE);
 		}
 	}
 	
@@ -684,6 +687,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		
 		dboBasicDao.update(revToUpdate);
+		transactionalMessenger.sendMessageAfterCommit(nodeId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@WriteTransaction
@@ -707,7 +711,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			dboBasicDao.update(rev);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
-		} 
+		}
+		transactionalMessenger.sendMessageAfterCommit(nodeId, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 	
 	@Override
@@ -742,7 +747,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		} 
-		
+		transactionalMessenger.sendMessageAfterCommit(nodeId, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 	
 	@Override
