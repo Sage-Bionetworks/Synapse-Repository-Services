@@ -5,10 +5,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +38,7 @@ public class AsynchronousDAOImplTest {
 	AsynchronousDAOImpl testDao;
 	NamedAnnotations annos;
 	Annotations forDb;
-	Map<String, Set<Reference>> references;
+	Reference ref;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException, JSONObjectAdapterException{
@@ -53,14 +49,10 @@ public class AsynchronousDAOImplTest {
 		mockStorageLocationDao = Mockito.mock(StorageUsageQueryDao.class);
 		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
 
-		// Setup the references
-		references = new HashMap<String, Set<Reference>>();
-		Set<Reference> set = new HashSet<Reference>();
-		Reference ref = new Reference();
+		// Setup the reference
+		ref = new Reference();
 		ref.setTargetId("syn444");
 		ref.setTargetVersionNumber(1l);
-		set.add(ref);
-		references.put("some_key", set);
 		// The annotations
 		annos = new NamedAnnotations();
 		annos.setId(nodeIdString);
@@ -71,7 +63,7 @@ public class AsynchronousDAOImplTest {
 		// Only save distinct values in the DB.
 		forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
 		// Mock the node dao.
-		when(mockNodeDao.getNodeReferences(nodeIdString)).thenReturn(references);
+		when(mockNodeDao.getNodeReference(nodeIdString)).thenReturn(ref);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
 
 		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao,mockFileMetadataDao);
@@ -88,7 +80,7 @@ public class AsynchronousDAOImplTest {
 		// Make the call
 		testDao.replaceAll(nodeIdString);
 		// verify
-		verify(mockReferenceDao, times(1)).replaceReferences(nodeId, references);
+		verify(mockReferenceDao, times(1)).replaceReference(nodeId, ref);
 		verify(mockAnnotationsDao, times(1)).replaceAnnotations(forDb);
 	}
 
@@ -97,7 +89,7 @@ public class AsynchronousDAOImplTest {
 		// Make the call
 		testDao.deleteEntity(nodeIdString);
 		// verify
-		verify(mockReferenceDao, times(1)).deleteReferencesByOwnderId(nodeId);
+		verify(mockReferenceDao, times(1)).deleteReferenceByOwnderId(nodeId);
 		verify(mockAnnotationsDao, times(1)).deleteAnnotationsByOwnerId(nodeId);
 	}
 }

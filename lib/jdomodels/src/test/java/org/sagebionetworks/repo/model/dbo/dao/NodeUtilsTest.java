@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +43,6 @@ public class NodeUtilsTest {
 		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
 		// This is an update round trip and the type cannot be changed on an update.
-//		node.setNodeType(EntityType.project);
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedByPrincipalId(createdById);
 		node.setETag("1013");
@@ -52,8 +51,7 @@ public class NodeUtilsTest {
 		// Set the version information
 		node.setVersionComment("This is the first version of this object");
 		node.setVersionLabel("1.0.1");
-//		node.setVersionNumber("2");
-		node.setReferences(new HashMap<String, Set<Reference>>());
+		node.setReference(new Reference());
 		node.setActivityId("1234");
 		node.setFileHandleId("9999888777");
 		List<String> columnIds = new LinkedList<String>();
@@ -128,5 +126,78 @@ public class NodeUtilsTest {
 		assertEquals(null, dboNode.getParentId());
 		
 	}
+	
+	@Test
+	public void nullNode() {
+		assertFalse(NodeUtils.isValidNode(null));
+	}
+	
+	@Test
+	public void validNode() {
+		Node node = createValidNode();
+		assertTrue(NodeUtils.isValidNode(node));
+	}
+		
+	private Node createValidNode() {
+		Node node = new Node();
+		node.setCreatedByPrincipalId(123L);
+		node.setCreatedOn(new Date());
+		node.setETag("etag");
+		node.setId("456");
+		node.setModifiedByPrincipalId(123L);
+		node.setModifiedOn(new Date());
+		node.setName("new node");
+		node.setNodeType(EntityType.folder);
+		return node;
+	}
+	
+	@Test
+	public void testNodeWithNullName(){
+		Node node = createValidNode();
+		node.setName(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
 
+	@Test
+	public void testNodeWithCreatedByNull(){
+		Node node = createValidNode();
+		node.setCreatedByPrincipalId(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
+	@Test
+	public void testNodeWithCreatedOnNull(){
+		Node node = createValidNode();
+		node.setCreatedOn(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
+	@Test
+	public void testNodeWithModifiedByNull(){
+		Node node = createValidNode();
+		node.setModifiedByPrincipalId(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
+	@Test
+	public void testNodeWithModifiedOnNull(){
+		Node node = createValidNode();
+		node.setModifiedOn(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
+	@Test
+	public void testNodeWithETagNull(){
+		Node node = createValidNode();
+		node.setETag(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
+	@Test
+	public void testNodeWithIdNull(){
+		Node node = createValidNode();
+		node.setId(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
+	@Test
+	public void testNodeWithNodeTypeNull(){
+		Node node = createValidNode();
+		node.setNodeType(null);
+		assertFalse(NodeUtils.isValidNode(node));
+	}
 }

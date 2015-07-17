@@ -38,7 +38,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_LABEL			= "LABEL";
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
 	public static final String COL_REVISION_ANNOS_BLOB		= "ANNOTATIONS";
-	public static final String COL_REVISION_REFS_BLOB		= "REFERENCES";
+	public static final String COL_REVISION_REF_BLOB		= "REFERENCE";
 	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
