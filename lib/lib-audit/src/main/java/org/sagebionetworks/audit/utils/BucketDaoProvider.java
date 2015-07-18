@@ -54,7 +54,9 @@ public class BucketDaoProvider {
 		String bucketName = StackConfiguration.getObjectRecordBucketName(stack, type);
 		
 		// Create the bucket if it does not exist
-		s3Client.createBucket(bucketName);
+		if (!s3Client.doesBucketExist(bucketName)) {
+			s3Client.createBucket(bucketName);
+		}
 		bucketNameMap.put(type, bucketName);
 		return bucketName;
 	}
