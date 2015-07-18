@@ -48,6 +48,7 @@ public class PrincipalObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(objectRecordDAO);
 		assertNotNull(teamManager);
 		assertNotNull(userManager);
+		assertNotNull(queueCleaner);
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 		
 		type = Team.class.getSimpleName().toLowerCase();

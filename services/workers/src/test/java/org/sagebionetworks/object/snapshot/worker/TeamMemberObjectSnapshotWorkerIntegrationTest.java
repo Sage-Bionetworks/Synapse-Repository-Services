@@ -51,6 +51,7 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(objectRecordDAO);
 		assertNotNull(teamManager);
 		assertNotNull(userManager);
+		assertNotNull(queueCleaner);
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 		
 		// Create a user and a team.
