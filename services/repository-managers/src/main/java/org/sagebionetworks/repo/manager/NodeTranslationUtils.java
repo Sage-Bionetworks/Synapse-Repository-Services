@@ -67,9 +67,6 @@ public class NodeTranslationUtils {
 			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for (Field field : fields) {
 				String name = field.getName();
-				if (ignoredFields.contains(name)) {
-					continue;
-				}
 				// Add this name and the node name
 				set.add(name);
 				String nodeName = nameConvertion.get(name);
@@ -85,6 +82,9 @@ public class NodeTranslationUtils {
 		// Populate the nodeFieldNames
 		Field[] fields = Node.class.getDeclaredFields();
 		for (Field field : fields) {
+			if (ignoredFields.contains(field.getName())) {
+				continue;
+			}
 			// make sure all are
 			nodeFieldNames.put(field.getName(), field);
 		}
@@ -125,9 +125,6 @@ public class NodeTranslationUtils {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for (Field field : fields) {
 			String name = field.getName();
-			if (ignoredFields.contains(name)) {
-				continue;
-			}
 			String nodeName = nameConvertion.get(name);
 			if (nodeName == null) {
 				nodeName = name;
@@ -421,9 +418,6 @@ public class NodeTranslationUtils {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for (Field field : fields) {
 			String name = field.getName();
-			if (ignoredFields.contains(name)) {
-				continue;
-			}
 			String nodeName = nameConvertion.get(name);
 			if (nodeName == null) {
 				nodeName = name;
