@@ -51,4 +51,15 @@ public class PreviewGeneratorUtils {
 	public static float freeMegaBytes() {
 		return ((float)Runtime.getRuntime().freeMemory())/ONE_MEGA_BYTE;
 	}
+
+	public static String findExtension(String name) {
+		if (name != null) {
+			int lastDot = name.lastIndexOf(".");
+			// ignore also if first character is .
+			if (lastDot > 0 && lastDot < name.length() - 1) {
+				return name.substring(lastDot + 1).toLowerCase();
+			}
+		}
+		return "noextension";
+	}
 }

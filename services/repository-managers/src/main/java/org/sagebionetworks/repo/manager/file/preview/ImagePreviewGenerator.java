@@ -72,7 +72,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public boolean supportsContentType(String contentType) {
+	public boolean supportsContentType(String contentType, String extension) {
 		return SUPPORTED_CONTENT_TYPES.keySet().contains(contentType.toLowerCase());
 	}
 	

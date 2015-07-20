@@ -81,7 +81,7 @@ public class PreviewIntegrationTest {
 		csvFileHandle = uploadFile(LITTLE_CSV_NAME, TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES);
 		toDelete.add(csvFileHandle);
 		
-		tabFileHandle = uploadFile(LITTLE_TAB_NAME, TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES);
+		tabFileHandle = uploadFile(LITTLE_TAB_NAME, "text/tsv");
 		toDelete.add(tabFileHandle);
 		
 		txtFileHandle = uploadFile(LITTLE_TXT_NAME, TextPreviewGenerator.TEXT_PLAIN);

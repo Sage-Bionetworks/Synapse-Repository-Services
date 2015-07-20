@@ -159,21 +159,31 @@ public class TabCsvTextPreviewTest {
 	
 	@Test
 	public void testContentType() throws IOException {
-		//tab preview generator supports tab
-		assertTrue(tabPreviewGenerator.supportsContentType(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES));
-		assertFalse(tabPreviewGenerator.supportsContentType(TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES));
-		//csv preview generator support csv
-		assertTrue(csvPreviewGenerator.supportsContentType(TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES));
-		assertFalse(csvPreviewGenerator.supportsContentType(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES));
+		for (String ct : TabCsvPreviewGenerator.TAB_SEPARATED_MIME_TYPES) {
+			assertTrue(tabPreviewGenerator.supportsContentType(ct, null));
+			assertFalse(csvPreviewGenerator.supportsContentType(ct, null));
+		}
+		for (String ct : TabCsvPreviewGenerator.COMMA_SEPARATED_MIME_TYPES) {
+			assertTrue(csvPreviewGenerator.supportsContentType(ct, null));
+			assertFalse(tabPreviewGenerator.supportsContentType(ct, null));
+		}
+		for (String ct : TabCsvPreviewGenerator.EXCEL_MIME_TYPES) {
+			assertTrue(csvPreviewGenerator.supportsContentType(ct, "csv"));
+			assertFalse(csvPreviewGenerator.supportsContentType(ct, "tsv"));
+			assertFalse(csvPreviewGenerator.supportsContentType(ct, "other"));
+			assertTrue(tabPreviewGenerator.supportsContentType(ct, "tsv"));
+			assertFalse(tabPreviewGenerator.supportsContentType(ct, "csv"));
+			assertFalse(tabPreviewGenerator.supportsContentType(ct, "other"));
+		}
 		
-		assertFalse(tabPreviewGenerator.supportsContentType("text/xml"));
+		assertFalse(tabPreviewGenerator.supportsContentType("text/xml", null));
 	}
 	
 	@Test
 	public void testCalculateMax() throws IOException {
-		assertEquals(20L, tabPreviewGenerator.calculateNeededMemoryBytesForPreview(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES, 20L));
+		assertEquals(20L, tabPreviewGenerator.calculateNeededMemoryBytesForPreview(null, 20L));
 		assertEquals(77670L,
-				tabPreviewGenerator.calculateNeededMemoryBytesForPreview(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES, 2000000L));
+ tabPreviewGenerator.calculateNeededMemoryBytesForPreview(null, 2000000L));
 	}
 
 	@Test

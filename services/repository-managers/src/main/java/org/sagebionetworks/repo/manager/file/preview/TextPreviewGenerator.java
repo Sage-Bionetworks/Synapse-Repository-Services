@@ -7,9 +7,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Generates previews for text content types.
@@ -20,8 +23,8 @@ import org.apache.commons.lang.StringUtils;
 public class TextPreviewGenerator implements PreviewGenerator {
 	
 	public static final String TEXT_PLAIN 	= "text/plain";
-	public static final String APPLICATION_SH 	= "application/x-sh";
-	public static final String APPLICATION_JS 	= "application/x-javascript";
+	public static final Set<String> TEXT_MIME_TYPES = ImmutableSet.<String> builder()
+			.add("application/text", "application/x-sh", "application/x-javascript").build();
 	
 	public static final String TEXT_SLASH 	= "text/";
 	public static final int MAX_CHARACTER_COUNT = 1500;
@@ -51,11 +54,9 @@ public class TextPreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public boolean supportsContentType(String contentType) {
-		//supported if it's text or js or sh (and not csv or tab)
-		return !contentType.equals(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES) && 
-		!contentType.equals(TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES) &&
-		(contentType.startsWith(TEXT_SLASH) || contentType.equals(APPLICATION_JS) || contentType.equals(APPLICATION_SH));
+	public boolean supportsContentType(String contentType, String extension) {
+		// supported if it's text or js or sh
+		return contentType.startsWith(TEXT_SLASH) || TEXT_MIME_TYPES.contains(contentType);
 	}
 
 	@Override
