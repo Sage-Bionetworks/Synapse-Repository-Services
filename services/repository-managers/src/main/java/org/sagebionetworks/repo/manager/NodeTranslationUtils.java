@@ -46,6 +46,14 @@ public class NodeTranslationUtils {
 	private static Map<String, Field> nodeFieldNames = new HashMap<String, Field>();
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();
 	private static Map<EntityType, Set<String>> primaryFieldsCache = new HashMap<EntityType, Set<String>>();
+	// fields that should be ignored while translating between node and entity
+	private static Set<String> ignoredFields;
+
+	static {
+		ignoredFields = new HashSet<String>();
+		ignoredFields.add("EFFECTIVE_SCHEMA");
+		ignoredFields.add("extraFieldsFromNewerVersion");
+	}
 
 	/**
 	 * Build up the cache of primary fields for each object type.
@@ -59,6 +67,9 @@ public class NodeTranslationUtils {
 			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for (Field field : fields) {
 				String name = field.getName();
+				if (ignoredFields.contains(name)) {
+					continue;
+				}
 				// Add this name and the node name
 				set.add(name);
 				String nodeName = nameConvertion.get(name);
