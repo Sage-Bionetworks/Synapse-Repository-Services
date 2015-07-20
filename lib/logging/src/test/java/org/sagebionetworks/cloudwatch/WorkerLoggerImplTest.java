@@ -56,6 +56,37 @@ public class WorkerLoggerImplTest {
 	}
 	
 	@Test
+	public void testMakeProfileDataDTOGeneric() throws Exception {
+		String name = "some metric name";
+		ChangeMessage nullChange = null;
+		boolean willRetry = false;
+		Date timestamp = new Date();
+		String message = "Entity syn12345 failed";
+		Throwable throwable = new Exception(message);
+		ProfileData pd = WorkerLoggerImpl.makeProfileDataDTO(name, nullChange, throwable, willRetry, timestamp);
+
+		assertNull(pd.getMetricStats());
+		assertEquals(name, pd.getName());
+		assertEquals("Asynchronous Workers - "+StackConfiguration.getStackInstance(), pd.getNamespace());
+		assertTrue(pd.getTimestamp().getTime()-timestamp.getTime()<10L);
+		assertEquals("Count", pd.getUnit());
+		assertEquals(1D, pd.getValue(), 1E-10);
+		Map<String,String> dimension = pd.getDimension();
+		assertEquals(2, dimension.size());
+		assertEquals("false", dimension.get("willRetry"));
+		
+		String origStackTrace = ExceptionUtils.getStackTrace(throwable);
+		String retrievedStackTrace = dimension.get("stackTrace");
+		// check that the message has been removed
+		assertTrue(retrievedStackTrace.indexOf(message)<0);
+		// check that after the first (modified) line they are the same
+		assertEquals(
+				origStackTrace.substring(origStackTrace.indexOf("at")),
+				retrievedStackTrace.substring(retrievedStackTrace.indexOf("at"))
+		);
+	}
+	
+	@Test
 	public void testCallConsumer() throws Exception {
 		WorkerLoggerImpl workerLoggerImpl = new WorkerLoggerImpl();
 		Consumer mockConsumer = Mockito.mock(Consumer.class);
@@ -73,4 +104,15 @@ public class WorkerLoggerImplTest {
 		Mockito.verify(mockConsumer).addProfileData((ProfileData)anyObject());
 	}
 
+	@Test
+	public void testCallConsumerGeneric() throws Exception {
+		WorkerLoggerImpl workerLoggerImpl = new WorkerLoggerImpl();
+		Consumer mockConsumer = Mockito.mock(Consumer.class);
+		workerLoggerImpl.setConsumer(mockConsumer);
+		workerLoggerImpl.setShouldProfile(true);
+		Throwable cause = new Exception();
+		boolean willRetry = false;
+		workerLoggerImpl.logWorkerFailure("generic ", cause, willRetry);
+		Mockito.verify(mockConsumer).addProfileData((ProfileData)anyObject());
+	}
 }

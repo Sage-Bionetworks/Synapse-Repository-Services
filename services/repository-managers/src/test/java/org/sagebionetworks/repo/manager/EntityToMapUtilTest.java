@@ -31,7 +31,7 @@ public class EntityToMapUtilTest {
 		
 		// Create the annotations from this object
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(ds, annos, null);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(ds, annos);
 		// Add some extra annotations
 		annos.addAnnotation("someString", "one");
 		annos.addAnnotation("someLong", new Long(12));

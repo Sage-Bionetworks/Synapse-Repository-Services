@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import org.sagebionetworks.logging.s3.LogEntry;
 import org.sagebionetworks.logging.s3.LogReader;
+import org.sagebionetworks.workers.util.progress.ProgressCallback;
 
 /**
  * Simple utility for Collating logs by streaming the data
@@ -20,7 +21,7 @@ public class CollateUtils {
 	 * @param out
 	 * @throws IOException 
 	 */
-	public static void collateLogs(LogReader[] toCollate, BufferedWriter out) throws IOException{
+	public static void collateLogs(LogReader[] toCollate, BufferedWriter out, ProgressCallback<Void> progressCallback) throws IOException{
 		// First find the
 		int minIndex;
 		// This array will contain the head entry from each input log.
@@ -34,7 +35,7 @@ public class CollateUtils {
 		LogEntry toWrite = null;
 		do{
 			// Find the minimum;
-			minIndex = findMiniumnIndex(heads);
+			minIndex = findMiniumnIndex(heads, progressCallback);
 			// write the entry at the minimum index to the log
 			toWrite = heads[minIndex];
 			if(toWrite != null){
@@ -54,9 +55,11 @@ public class CollateUtils {
 	 * @return The index of LogEntry that has the earliest time stamp.
 	 * If the passed array contains all null values then zero will be returned.
 	 */
-	private static int findMiniumnIndex(LogEntry[] heads){
+	private static int findMiniumnIndex(LogEntry[] heads, ProgressCallback<Void> progressCallback){
 		int minIndex = 0;
 		for(int i=1; i<heads.length; i++){
+			// make progress (see PLFM-3479)
+			progressCallback.progressMade(null);
 			// If data is null at the current minIndex
 			// this this index becomes the minimum.
 			if(heads[minIndex] == null){

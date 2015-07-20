@@ -21,10 +21,11 @@
 				class="org.sagebionetworks.workers.util.aws.message.MessageQueueConfiguration">
 				<property name="queueName"
 					ref="stackConfiguration.workerQueueName[SyncFolderWorker]" />
+				<property name="defaultMessageVisibilityTimeoutSec" value="6000" />
 			</bean>
 		</constructor-arg>
 	</bean>
-	
+
 	<!-- This is the trigger used to fire this worker -->
 	<bean id="autoSyncFolderWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
@@ -40,12 +41,12 @@
 								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
 								<property name="progressingRunner">
 									<bean class="org.sagebionetworks.file.worker.AutoSyncFolderWorker">
-										<property name="folderSyncQueue" ref="folderSyncQueue"/>
+										<property name="folderSyncQueue" ref="folderSyncQueue" />
 									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="autoSyncFolderWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="60000" />
+								<property name="semaphoreLockTimeoutSec" value="6000" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
@@ -60,7 +61,8 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="35" />
-		<!-- This is a slow worker and does not need to be run more than once every hour. -->
+		<!-- This is a slow worker and does not need to be run more than once every 
+			hour. -->
 		<property name="repeatInterval" value="3600000" />
 	</bean>
 
@@ -79,8 +81,9 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.file.worker.SyncSettingsModificationsWorker">
-										<property name="folderSyncQueue" ref="folderSyncQueue"/>
+									<bean
+										class="org.sagebionetworks.file.worker.SyncSettingsModificationsWorker">
+										<property name="folderSyncQueue" ref="folderSyncQueue" />
 									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="syncSettingsModificationsMessageWorker" />
@@ -104,7 +107,7 @@
 		<property name="startDelay" value="88" />
 		<property name="repeatInterval" value="10243" />
 	</bean>
-	
+
 	<!-- compare folder and s3 and update accordingly -->
 	<bean id="folderSyncMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
@@ -123,7 +126,8 @@
 								<property name="runner">
 									<bean class="org.sagebionetworks.file.worker.SyncFolderWorker">
 										<property name="syncFolderGate">
-											<bean class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+											<bean
+												class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
 												<property name="lockTimeoutMS" value="600000" />
 												<property name="maxCount" value="1" />
 											</bean>
