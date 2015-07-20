@@ -51,8 +51,8 @@ public class NodeTranslationUtils {
 
 	static {
 		ignoredFields = new HashSet<String>();
-		ignoredFields.add("EFFECTIVE_SCHEMA");
-		ignoredFields.add("extraFieldsFromNewerVersion");
+		ignoredFields.add(JSONEntity.EFFECTIVE_SCHEMA);
+		ignoredFields.add(ObjectSchema.EXTRA_FIELDS);
 	}
 
 	/**
@@ -125,6 +125,9 @@ public class NodeTranslationUtils {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for (Field field : fields) {
 			String name = field.getName();
+			if (ignoredFields.contains(name)) {
+				continue;
+			}
 			String nodeName = nameConvertion.get(name);
 			if (nodeName == null) {
 				nodeName = name;
@@ -418,6 +421,9 @@ public class NodeTranslationUtils {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for (Field field : fields) {
 			String name = field.getName();
+			if (ignoredFields.contains(name)) {
+				continue;
+			}
 			String nodeName = nameConvertion.get(name);
 			if (nodeName == null) {
 				nodeName = name;
