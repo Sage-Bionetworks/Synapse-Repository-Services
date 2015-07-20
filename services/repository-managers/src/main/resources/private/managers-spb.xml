@@ -116,7 +116,7 @@
 	    <!-- The list of preview generators, order is important, first generator found wins-->
 	    <property name="generatorList">
 	        <list>
-	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	            <bean class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
 	            <bean
 					class="org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator">
 					<constructor-arg>
@@ -147,8 +147,10 @@
 						</bean>
 					</constructor-arg>
 				</bean>
-	            <bean id="textPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
-	            <bean id="zipPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
+	            <bean class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
+	            <bean class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
+		    	<bean class="org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator" />
+	            <bean class="org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator"/>
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->
