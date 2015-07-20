@@ -192,9 +192,13 @@ public class NodeTranslationUtilsTest {
 			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for(Field field: fields){
 				String name = field.getName();
-				assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
-				String notName = name+"1";
-				assertFalse(NodeTranslationUtils.isPrimaryFieldName(type, notName));
+				if (NodeTranslationUtils.ignoredFields.contains(name)) {
+					assertFalse(NodeTranslationUtils.isPrimaryFieldName(type, name));
+				} else {
+					assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
+					String notName = name+"1";
+					assertFalse(NodeTranslationUtils.isPrimaryFieldName(type, notName));
+				}
 			}
 		}
 	}

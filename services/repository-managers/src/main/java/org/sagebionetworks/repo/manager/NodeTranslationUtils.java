@@ -47,7 +47,7 @@ public class NodeTranslationUtils {
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();
 	private static Map<EntityType, Set<String>> primaryFieldsCache = new HashMap<EntityType, Set<String>>();
 	// fields that should be ignored while translating between node and entity
-	private static Set<String> ignoredFields;
+	public static Set<String> ignoredFields;
 
 	static {
 		ignoredFields = new HashSet<String>();
