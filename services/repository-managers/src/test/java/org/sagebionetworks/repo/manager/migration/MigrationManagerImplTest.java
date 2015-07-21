@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -161,6 +162,8 @@ public class MigrationManagerImplTest {
 
 		MigratableTableTranslation<DBORevision, DBORevision> translator = mdo.getTranslator();
 		DBORevision backup = backupList.get(0);
+		assertNull(backup.getReference());
+
 		DBORevision databaseObject = translator.createDatabaseObjectFromBackup(backup);
 		assertNotNull(databaseObject);
 		System.out.println(databaseObject.toString());

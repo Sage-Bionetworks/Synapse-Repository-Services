@@ -208,14 +208,16 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 
 			@Override
 			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
-				try {
-					// Retrieve the historical reference from a blob
-					Reference ref = DBORevisionUtils.convertBlobToReference(backup.getReferences());
-					byte[] blob = JDOSecondaryPropertyUtils.compressReference(ref);
-					backup.setReference(blob);
-					backup.setReferences(null);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
+				if (backup.getReference() == null) {
+					try {
+						// Retrieve the historical reference from a blob
+						Reference ref = DBORevisionUtils.convertBlobToReference(backup.getReferences());
+						byte[] blob = JDOSecondaryPropertyUtils.compressReference(ref);
+						backup.setReference(blob);
+						backup.setReferences(null);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
 				}
 				return backup;
 			}
