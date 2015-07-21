@@ -63,6 +63,7 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				Mockito.eq(projectSettingId.toString()),
 				Mockito.eq(ObjectType.PROJECT_SETTING),
+				Mockito.anyString(),
 				Mockito.eq(ChangeType.CREATE));
 	}
 
@@ -76,6 +77,7 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				Mockito.eq(projectSettingId.toString()),
 				Mockito.eq(ObjectType.PROJECT_SETTING),
+				Mockito.anyString(),
 				Mockito.eq(ChangeType.UPDATE));
 	}
 
