@@ -107,11 +107,4 @@ public class AccessRequirementUtilTest {
 		assertEquals(unmetARsUpload, unmetARs);
 	}
 	
-	@Test
-	public void testEvaluationRequest() throws Exception {
-		//verify both download and participate ARs are returned
-		List<Long> unmetARs = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(userInfo, nodeRod, mockAccessRequirementDAO, downloadParticipateAndSubmit);
-		assertEquals(unmetARsDownloadAndParticipate, unmetARs);
-	}
-	
 }

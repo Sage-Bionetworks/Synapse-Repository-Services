@@ -457,12 +457,9 @@ public class TeamManagerImpl implements TeamManager {
 	
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(teamId);
-		rod.setType(RestrictableObjectType.TEAM);
-		
-		List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
-				memberUserInfo, rod, accessRequirementDAO, Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
+		List<Long> unmetRequirements = accessRequirementDAO.unmetAccessRequirements(
+				Collections.singletonList(teamId), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
 		return !unmetRequirements.isEmpty();
 
 	}
