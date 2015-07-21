@@ -135,7 +135,6 @@ public class MigrationManagerImplTest {
 		Reference ref = new Reference();
 		ref.setTargetId("123");
 		ref.setTargetVersionNumber(1L);
-		byte[] compressedReference = JDOSecondaryPropertyUtils.compressReference(ref);
 
 		String xml = 
 				"<linked-list>" +
@@ -165,7 +164,7 @@ public class MigrationManagerImplTest {
 		DBORevision databaseObject = translator.createDatabaseObjectFromBackup(backup);
 		assertNotNull(databaseObject);
 		System.out.println(databaseObject.toString());
-		assertEquals(compressedReference, databaseObject.getReference());
+		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(databaseObject.getReference()));
 		assertEquals(null, databaseObject.getReferences());
 	}
 
