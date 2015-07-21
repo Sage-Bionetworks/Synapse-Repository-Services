@@ -117,7 +117,18 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private byte[] columnModelIds;
 	private byte[] annotations;
 	private byte[] reference;
+	// used for migration only
+	@Deprecated
+	private byte[] references;
 
+	@Deprecated
+	public byte[] getReferences() {
+		return references;
+	}
+	@Deprecated
+	public void setReferences(byte[] references) {
+		this.references = references;
+	}
 	public Long getOwner() {
 		return owner;
 	}
