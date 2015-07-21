@@ -69,12 +69,14 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			AuthorizationManager authorizationManager,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
 			UserProfileManager userProfileManager,
-			TeamDAO teamDAO
+			TeamDAO teamDAO,
+			AccessRequirementDAO accessRequirementDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
 		this.userProfileManager = userProfileManager;
 		this.teamDAO=teamDAO;
+		this.accessRequirementDAO = accessRequirementDAO;
 	}
 	
 	public static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
@@ -115,7 +117,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		validateForCreate(mrs, userInfo);
 		if (!userInfo.isAdmin()) {
 			if (hasUnmetAccessRequirements(userInfo, mrs.getTeamId()))
-				throw new InvalidModelException("Requested member has unmet access requirements which must be met before asking to join the Team.");
+				throw new UnauthorizedException("Requested member has unmet access requirements which must be met before asking to join the Team.");
 		}
 
 		Date now = new Date();
