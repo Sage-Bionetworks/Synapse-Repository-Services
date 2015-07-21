@@ -135,6 +135,13 @@ public class SubmissionEligibilityManagerTest {
 	}
 
 	@Test
+	public void testIsIndividualEligibleRoundsButNoQuota() throws Exception {
+		evaluation.getQuota().setSubmissionLimit(null);
+		assertTrue(submissionEligibilityManager.
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+	}
+
+	@Test
 	public void testIsIndividualEligibleSubmissionNotAllowed() throws Exception {
 		long longTimeAgo = System.currentTimeMillis()-1000000L;
 		assertFalse(submissionEligibilityManager.
