@@ -5,7 +5,6 @@ package org.sagebionetworks.repo.manager.team;
 
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
@@ -20,11 +19,13 @@ import java.util.Set;
 
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -32,6 +33,8 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -55,6 +58,8 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private UserProfileManager userProfileManager;
 	@Autowired
 	private TeamDAO teamDAO;
+	@Autowired
+	private AccessRequirementDAO accessRequirementDAO;
 	
 	
 	public MembershipRequestManagerImpl() {}
@@ -64,12 +69,14 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			AuthorizationManager authorizationManager,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
 			UserProfileManager userProfileManager,
-			TeamDAO teamDAO
+			TeamDAO teamDAO,
+			AccessRequirementDAO accessRequirementDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
 		this.userProfileManager = userProfileManager;
 		this.teamDAO=teamDAO;
+		this.accessRequirementDAO = accessRequirementDAO;
 	}
 	
 	public static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
@@ -83,6 +90,14 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			throw new InvalidModelException("May not specify a user id other than yourself.");
 		if (mrs.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
+	
+	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
+		List<Long> unmetRequirements = accessRequirementDAO.unmetAccessRequirements(
+				Collections.singletonList(teamId), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
+		return !unmetRequirements.isEmpty();
+	}
+
 
 	public static void populateCreationFields(UserInfo userInfo, MembershipRqstSubmission mrs, Date now) {
 		mrs.setCreatedBy(userInfo.getId().toString());
@@ -100,6 +115,11 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mrs, userInfo);
+		if (!userInfo.isAdmin()) {
+			if (hasUnmetAccessRequirements(userInfo, mrs.getTeamId()))
+				throw new UnauthorizedException("Requested member has unmet access requirements which must be met before asking to join the Team.");
+		}
+
 		Date now = new Date();
 		populateCreationFields(userInfo, mrs, now);
 		return membershipRqstSubmissionDAO.create(mrs);

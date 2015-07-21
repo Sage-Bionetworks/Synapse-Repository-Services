@@ -67,20 +67,6 @@ public class AccessRequirementUtil {
 		return accessRequirementDAO.unmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 	
-	public static List<Long> unmetAccessRequirementIdsForNonEntity(
-			UserInfo userInfo, 
-			RestrictableObjectDescriptor rod,
-			AccessRequirementDAO accessRequirementDAO,
-			List<ACCESS_TYPE> accessTypes
-			) throws NotFoundException {
-		Set<Long> principalIds = new HashSet<Long>();
-		for (Long ug : userInfo.getGroups()) {
-			principalIds.add(ug);
-		}	
-		return accessRequirementDAO.unmetAccessRequirements(
-				Collections.singletonList(rod.getId()), rod.getType(), principalIds, accessTypes);
-	}
-	
 	public static List<String> getNodeAncestorIds(NodeDAO nodeDao, String nodeId, boolean includeNode) throws NotFoundException {
 		List<String> nodeAncestorIds = new ArrayList<String>();
 		for (EntityHeader ancestorHeader : nodeDao.getEntityPath(nodeId)) {
