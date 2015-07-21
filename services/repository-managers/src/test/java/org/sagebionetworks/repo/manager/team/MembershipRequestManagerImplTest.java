@@ -78,12 +78,6 @@ public class MembershipRequestManagerImplTest {
 		// admin
 		adminInfo = new UserInfo(true);
 		adminInfo.setId(-1l);
-		when(mockAccessRequirementDAO.unmetAccessRequirements(
-				Collections.singletonList(TEAM_ID), 
-				RestrictableObjectType.TEAM, 
-				userInfo.getGroups(), 
-				Collections.singleton(ACCESS_TYPE.PARTICIPATE)))
-			.thenReturn(Collections.EMPTY_LIST);
 	}
 	
 	private void validateForCreateExpectFailure(MembershipRqstSubmission mrs, UserInfo userInfo) {
