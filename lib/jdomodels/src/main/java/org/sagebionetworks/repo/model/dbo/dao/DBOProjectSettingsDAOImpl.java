@@ -67,6 +67,8 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	private static final RowMapper<DBOProjectSetting> projectSettingRowMapper = (new DBOProjectSetting()).getTableMapping();
 
+	public DBOProjectSettingsDAOImpl(){}
+
 	// for test only
 	public DBOProjectSettingsDAOImpl(DBOBasicDao mockBasicDao,
 			IdGenerator mockIdGenerator,
@@ -105,7 +107,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
 		nodeSettingsModificationMessage.setProjectSettingsType(dto.getSettingsType());
 		transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
-		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.CREATE);
 
 		return projectSettingsId;
 	}
@@ -226,7 +228,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
 		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.UPDATE);
 		return convertDboToDto(dbo);
 	}
 
