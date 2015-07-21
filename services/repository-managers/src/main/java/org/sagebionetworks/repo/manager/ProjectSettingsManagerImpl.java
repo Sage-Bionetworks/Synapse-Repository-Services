@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -150,7 +151,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		// make sure the project id is a project
 		EntityType nodeType = nodeManager.getNodeType(userInfo, projectSetting.getProjectId());
-		if (nodeType.getClassForType() != Project.class && nodeType.getClassForType() != Folder.class) {
+		if (EntityTypeUtils.getClassForType(nodeType) != Project.class && EntityTypeUtils.getClassForType(nodeType) != Folder.class) {
 			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
 		}
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {

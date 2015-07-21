@@ -6,9 +6,17 @@
             "description":"The Name of this entity.",
             "required":"true"
         },
-        "entityType":{
+        "displayName":{
             "type":"string",
-            "description":"The unique ID for this entity type."
+            "description":"The display name of this entity."
+        },
+        "className":{
+        	"type":"string",
+        	"description":"The class name of this entity."
+        },
+        "entityType":{
+            "type":"object",
+            "$ref":"org.sagebionetworks.repo.model.EntityType"
         },
         "defaultParentPath":{
             "type":"string",

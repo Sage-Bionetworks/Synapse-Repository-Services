@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -188,7 +189,7 @@ public class NodeTranslationUtilsTest {
 	public void testIsPrimaryFieldNames(){
 		// check all of the fields for each object type.
 		for(EntityType type: EntityType.values()){
-			Field[] fields = type.getClassForType().getDeclaredFields();
+			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for(Field field: fields){
 				String name = field.getName();
 				assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
@@ -211,12 +212,12 @@ public class NodeTranslationUtilsTest {
 		Node dsNode = NodeTranslationUtils.createFromEntity(toClone);
 		// Update an annotations object using the object
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(toClone, annos, dsNode.getReferences());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(toClone, annos);
 		// Now crate the clone
 		@SuppressWarnings("unchecked")
 		T clone = (T) toClone.getClass().newInstance();
 		// first apply the annotations
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(clone, annos, dsNode.getReferences());
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(clone, annos);
 		// then apply the node
 		// Apply the node
 		NodeTranslationUtils.updateObjectFromNode(clone, dsNode);
@@ -235,21 +236,17 @@ public class NodeTranslationUtilsTest {
 		node.setNodeType(EntityType.link);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations(), node.getReferences());
-		assertNotNull(node.getReferences());
-		assertEquals(1, node.getReferences().size());
-		Set<Reference> set = (Set<Reference>) node.getReferences().get("linksTo");
-		assertNotNull(set);
-		assertEquals(1, set.size());
-		Reference r = set.iterator().next();
-		assertEquals("123", r.getTargetId());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations());
+		assertNotNull(node.getReference());
+		assertEquals(ref, node.getReference());
 		// Make sure we can make the round trip
 		Link newLink = new Link();
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations(), node.getReferences());
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateObjectFromNode(newLink, node);
 		assertNotNull(newLink.getLinksTo());
 		assertEquals("123", newLink.getLinksTo().getTargetId());
-
 	}
+
 	/**
 	 * We must be able to clear values by passing null
 	 */
@@ -261,7 +258,7 @@ public class NodeTranslationUtilsTest {
 		Node node = NodeTranslationUtils.createFromEntity(example);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations(), node.getReferences());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations());
 		Annotations primaryAnnos = annos.getPrimaryAnnotations();
 		// First make sure it is set correctly.
 		assertNotNull(primaryAnnos.getSingleValue("singleInteger"));
@@ -270,7 +267,7 @@ public class NodeTranslationUtilsTest {
 		
 		// Now the second update we want to clear it out.
 		example.setSingleInteger(null);
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations(), node.getReferences());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations());
 		// The value should now be cleared out.
 		assertEquals(null, primaryAnnos.getSingleValue("singleInteger"));
 

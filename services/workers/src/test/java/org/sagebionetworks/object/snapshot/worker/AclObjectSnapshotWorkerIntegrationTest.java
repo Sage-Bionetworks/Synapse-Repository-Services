@@ -66,6 +66,7 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(nodeDao);
 		assertNotNull(userGroupDao);
 		assertNotNull(aclDao);
+		assertNotNull(queueCleaner);
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();

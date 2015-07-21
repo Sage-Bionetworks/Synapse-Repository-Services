@@ -1,0 +1,71 @@
+{
+    "title":"Node",
+    "description":"This is the DTO of a node.",
+    "properties":{
+        "id":{
+            "type":"string"
+        },
+        "name":{
+            "type":"string"
+        },
+        "description":{
+            "type":"string"
+        },
+        "parentId":{
+            "type":"string"
+        },
+        "createdByPrincipalId":{
+            "type":"integer"
+        },
+        "createdOn":{
+            "type": "string",
+            "format":"date-time"
+        },
+        "modifiedByPrincipalId":{
+            "type":"integer"
+        },
+        "modifiedOn":{
+            "type": "string",
+            "format":"date-time"
+        },
+        "nodeType":{
+            "type": "object",
+            "name": "EntityType",
+            "$ref": "org.sagebionetworks.repo.model.EntityType"
+        },
+        "eTag":{
+            "type":"string"
+        },
+        "versionNumber":{
+            "type":"integer"
+        },
+        "versionComment":{
+            "type":"string"
+        },
+        "versionLabel":{
+            "type":"string"
+        },
+        "benefactorId":{
+            "type":"string"
+        },
+        "projectId":{
+            "type":"string"
+        },
+        "activityId":{
+            "type":"string"
+        },
+        "fileHandleId":{
+            "type":"string"
+        },
+        "columnModelIds":{
+            "type":"array",
+            "items":{
+            	"type":"string"
+            }
+        },
+        "reference":{
+            "type":"object",
+            "$ref":"org.sagebionetworks.repo.model.Reference"
+        }
+    }
+}

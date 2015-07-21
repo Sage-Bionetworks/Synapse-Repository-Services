@@ -355,13 +355,13 @@ public interface NodeDAO {
 	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
 	
 	/**
-	 * Get a node's references.
+	 * Get a node's reference.
 	 * @param nodeId - The id of the node.
 	 * @return
 	 * @throws NotFoundException - Thrown if the node does not exist.
 	 * @throws DatastoreException - Thrown if there is a database error.
 	 */
-	public Map<String, Set<Reference>> getNodeReferences(String nodeId) throws NotFoundException, DatastoreException;
+	public Reference getNodeReference(String nodeId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Gets a page of parent relations.

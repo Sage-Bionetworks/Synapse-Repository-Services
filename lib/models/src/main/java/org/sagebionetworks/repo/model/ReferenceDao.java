@@ -1,30 +1,28 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Map;
-import java.util.Set;
 
 public interface ReferenceDao {
 	
 	/**
-	 * Replace all references for a given owner.
+	 * Replace reference for a given owner.
 	 * @param toReplace
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public Map<String, Set<Reference>> replaceReferences(Long ownerId, Map<String, Set<Reference>> references) throws DatastoreException;
+	public Reference replaceReference(Long ownerId, Reference reference) throws DatastoreException;
 
 	/**
-	 * Removes all the references associated with the specified owner.
+	 * Removes the reference associated with the specified owner.
 	 * @param ownerId
 	 */
-	public void deleteReferencesByOwnderId(Long ownerId);
+	public void deleteReferenceByOwnderId(Long ownerId);
 
 	/**
-	 * Get all references for a given owner.
+	 * Get reference for a given owner.
 	 * @param ownerId
 	 * @return
 	 */
-	public Map<String, Set<Reference>> getReferences(Long ownerId);
+	public Reference getReference(Long ownerId);
 
 	/**
 	 * Get the EntityHeaders of the entities which refer to a given target

@@ -81,7 +81,7 @@ class NodeUtils {
 		}
 		
 		try {
-			rev.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
+			rev.setReference(JDOSecondaryPropertyUtils.compressReference(dto.getReference()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -222,7 +222,7 @@ class NodeUtils {
 		} 
 		
 		try {
-			dto.setReferences(JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences()));
+			dto.setReference(JDOSecondaryPropertyUtils.decompressedReference(rev.getReference()));
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -230,6 +230,34 @@ class NodeUtils {
 			dto.setColumnModelIds(createColumnModelListFromBytes(rev.getColumnModelIds()));
 		}
 		return dto;
+	}
+	
+	/**
+	 * A valid node is not null and has not null values for the following fields:
+	 * + id
+	 * + name
+	 * + nodeType
+	 * + etag
+	 * + createdByPrincipalId
+	 * + createdOn
+	 * + modifiedByPrincipalId
+	 * + modifiedOn
+	 * 
+	 * @param node
+	 * @return true if node is valid, false otherwise.
+	 */
+	public static boolean isValidNode(Node node) {
+		if (node == null ||
+				node.getCreatedByPrincipalId() == null ||
+				node.getCreatedOn() == null ||
+				node.getETag() == null ||
+				node.getId() == null ||
+				node.getModifiedByPrincipalId() == null ||
+				node.getModifiedOn() == null ||
+				node.getName() == null ||
+				node.getNodeType() == null) 
+			return false;
+		return true;
 	}
 	
 }

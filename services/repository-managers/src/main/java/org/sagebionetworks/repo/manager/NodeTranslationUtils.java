@@ -16,8 +16,8 @@ import java.util.logging.Logger;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
@@ -56,7 +56,7 @@ public class NodeTranslationUtils {
 		for (EntityType type : EntityType.values()) {
 			HashSet<String> set = new HashSet<String>();
 			// Add each field
-			Field[] fields = type.getClassForType().getDeclaredFields();
+			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
 			for (Field field : fields) {
 				String name = field.getName();
 				// Add this name and the node name
@@ -83,6 +83,7 @@ public class NodeTranslationUtils {
 		nameConvertion.put("etag", "eTag");
 		nameConvertion.put("dataFileHandleId", "fileHandleId");
 		nameConvertion.put("columnIds", "columnModelIds");
+		nameConvertion.put("linksTo", "reference");
 		// build the primary field cache
 		buildPrimaryFieldCache();
 	}
@@ -97,9 +98,6 @@ public class NodeTranslationUtils {
 		if (base == null)
 			throw new IllegalArgumentException("Base Object cannot be null");
 		Node node = new Node();
-		// Create the Reference Map for this object
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		node.setReferences(references);
 		updateNodeFromObject(base, node);
 		return node;
 	}
@@ -144,11 +142,11 @@ public class NodeTranslationUtils {
 	 * @param <T>
 	 * @param base
 	 * @param annos
-	 * @param references
+	 * @return the reference or null if the Object does not contain a reference
 	 * @throws IllegalArgumentException
 	 */
 	public static <T extends Entity> void updateNodeSecondaryFieldsFromObject(
-			T base, Annotations annos, Map<String, Set<Reference>> references) {
+			T base, Annotations annos) {
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -173,7 +171,6 @@ public class NodeTranslationUtils {
 				Object value;
 				try {
 					value = field.get(base);
-
 					// Skip any property not defined in the schema
 					ObjectSchema propSchema = schemaProperties.get(name);
 					if (propSchema == null) {
@@ -188,32 +185,6 @@ public class NodeTranslationUtils {
 					if (propSchema.isTransient())
 						continue;
 					// We do not store fields that are marked as @TransientField
-					// First off is this a collection?
-					if (propSchema.getItems() != null) {
-						// Is this a reference
-						if (Reference.class.getName().equals(
-								propSchema.getItems().getId())) {
-							if (value == null) {
-								references.remove(name);
-							} else {
-								references.put(name, (Set<Reference>) value);
-							}
-							continue;
-						}
-					}
-					// Is this a single references?
-					if (propSchema.getId() != null) {
-						if (Reference.class.getName().equals(propSchema.getId())) {
-							HashSet<Reference> set = new HashSet<Reference>();
-							if (value == null) {
-								references.remove(name);
-							} else {
-								set.add((Reference) value);
-								references.put(name, set);
-								continue;
-							}
-						}
-					}
 					// The schema type will tell us how to store this
 					if (value == null) {
 						annos.deleteAnnotation(name);
@@ -468,7 +439,7 @@ public class NodeTranslationUtils {
 	 * @param annos
 	 */
 	public static <T extends Entity> void updateObjectFromNodeSecondaryFields(
-			T base, Annotations annos, Map<String, Set<Reference>> references) {
+			T base, Annotations annos) {
 		if (base == null)
 			throw new IllegalArgumentException("Base cannot be null");
 		if (annos == null)
@@ -497,39 +468,6 @@ public class NodeTranslationUtils {
 				}
 				try {
 					Object value = annos.getSingleValue(name);
-					// First handle references
-					if (TYPE.ARRAY == propSchema.getType()) {
-						
-						// Is this a reference
-						if (Reference.class.getName().equals(
-								propSchema.getItems().getId())) {
-							Set<Reference> referenceGroup = references
-									.get(name);
-							if (null == referenceGroup) {
-								field.set(base, new HashSet<Reference>());
-							} else {
-								field.set(base, referenceGroup);
-							}
-							// done
-							continue;
-						}
-					}
-					// Is this a single references?
-					if (propSchema.getId() != null) {
-						if (Reference.class.getName()
-								.equals(propSchema.getId())) {
-							Set<Reference> referenceGroup = references
-									.get(name);
-							if (null == referenceGroup) {
-								field.set(base, null);
-							} else {
-								field.set(base, referenceGroup.iterator()
-										.next());
-							}
-							// done
-							continue;
-						}
-					}
 					if (value != null) {
 						if (field.getType() == Boolean.class) {
 							// We need to convert the string to a boolean

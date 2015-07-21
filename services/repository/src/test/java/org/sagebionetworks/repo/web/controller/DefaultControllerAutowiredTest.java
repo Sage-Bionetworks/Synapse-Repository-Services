@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -242,7 +243,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 		EntityHeader type = servletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherUserId);
 		assertNotNull(type);
-		assertEquals(EntityType.project.getEntityTypeClassName(), type.getType());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), type.getType());
 		assertEquals(clone.getId(), type.getName());
 		assertEquals(clone.getId(), type.getId());
 	}
@@ -266,7 +267,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(EntityType.project.getEntityTypeClassName(), benefactor.getType());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
@@ -274,7 +275,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(EntityType.project.getEntityTypeClassName(), benefactor.getType());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 
 	}

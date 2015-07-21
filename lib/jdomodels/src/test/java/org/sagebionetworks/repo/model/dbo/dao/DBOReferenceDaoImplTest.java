@@ -1,19 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -105,155 +99,54 @@ public class DBOReferenceDaoImplTest {
 	
 	@Test
 	public void testRoundTrip() throws DatastoreException{
-		// Build up two groups
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		Set<Reference> one = new HashSet<Reference>();
-		Set<Reference> two = new HashSet<Reference>();
-		references.put("groupOne", one);
-		references.put("groupTwo", two);
-		// Add one to one
 		Reference ref = new Reference();
 		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(new Long(1));
-		one.add(ref);
-		// Add one to two
-		 ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(456L));
-		ref.setTargetVersionNumber(new Long(0));
-		two.add(ref);
+
 		// Now save to the DB
-		dboReferenceDao.replaceReferences(node.getId(), references);
+		dboReferenceDao.replaceReference(node.getId(), ref);
 		// Now fetch them back
-		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
-		assertEquals(references, clone);
-		
-		// Make sure our returned ids have the syn prefix
-		assertEquals(KeyFactory.keyToString(123L), clone.get("groupOne").iterator().next().getTargetId());
-		assertEquals(KeyFactory.keyToString(456L), clone.get("groupTwo").iterator().next().getTargetId());
+		Reference clone = dboReferenceDao.getReference(node.getId());
+		assertEquals(ref, clone);
 		
 		// Now change the values and make sure we can replace them.
-		clone.remove("groupOne");
-		Set<Reference> three = new HashSet<Reference>();
-		clone.put("groupThree", three);
-		// Add one to two
 		ref = new Reference();
 		ref.setTargetId(KeyFactory.keyToString(789L));
 		ref.setTargetVersionNumber(new Long(10));
-		three.add(ref);
-		// Replace them 
-		dboReferenceDao.replaceReferences(node.getId(), clone);
-		Map<String, Set<Reference>> clone2 = dboReferenceDao.getReferences(node.getId());
-		assertEquals(clone, clone2);
 		
-		// Make sure our returned ids have the syn prefix
-		assertEquals(KeyFactory.keyToString(456L), clone2.get("groupTwo").iterator().next().getTargetId());
-		assertEquals(KeyFactory.keyToString(789L), clone2.get("groupThree").iterator().next().getTargetId());
-
+		// Replace them 
+		dboReferenceDao.replaceReference(node.getId(), ref);
+		Reference clone2 = dboReferenceDao.getReference(node.getId());
+		assertEquals(ref, clone2);
+		
 		// Clear
-		dboReferenceDao.deleteReferencesByOwnderId(node.getId());
-		Map<String, Set<Reference>> clone3 = dboReferenceDao.getReferences(node.getId());
-		assertNull(clone3.get("groupOne"));
-		assertNull(clone3.get("groupTwo"));
-		assertNull(clone3.get("groupThree"));
+		dboReferenceDao.deleteReferenceByOwnderId(node.getId());
+	}
+	
+	@Test
+	public void testGetNotFound() throws DatastoreException {
+		Reference ref = new Reference();
+		ref.setTargetId(KeyFactory.keyToString(123L));
+		ref.setTargetVersionNumber(new Long(1));
+
+		// Now save to the DB
+		dboReferenceDao.replaceReference(node.getId(), ref);
+		
+		// Clear
+		dboReferenceDao.deleteReferenceByOwnderId(node.getId());
+		assertNull(dboReferenceDao.getReference(node.getId()));
 	}
 	
 	@Test
 	public void testNullTargetRevNumber() throws DatastoreException{
-		// Build up two groups
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		Set<Reference> one = new HashSet<Reference>();
-		Set<Reference> two = new HashSet<Reference>();
-		references.put("groupOne", one);
-		// Add one to one
 		Reference ref = new Reference();
 		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(null);
-		one.add(ref);
-		// Add one to two
-		 ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(456L));
-		ref.setTargetVersionNumber(new Long(12));
-		two.add(ref);
 		// Now save to the DB
-		dboReferenceDao.replaceReferences(node.getId(), references);
+		dboReferenceDao.replaceReference(node.getId(), ref);
 		// Now fetch them back
-		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
-		assertEquals(references, clone);
-	}
-	
-	@Test
-	public void testUnique() throws DatastoreException{
-		// Build up two groups
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		Set<Reference> one = new HashSet<Reference>();
-		references.put("groupOne", one);
-		// Add one to one
-		Reference ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(123L));
-		ref.setTargetVersionNumber(new Long(12));
-		one.add(ref);
-		// Add one to two
-		ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(123L));
-		ref.setTargetVersionNumber(new Long(12));
-		one.add(ref);
-		// The set is actually enforcing this for us.
-		assertEquals(1, one.size());
-		// Now save to the DB
-		dboReferenceDao.replaceReferences(node.getId(), references);
-		// Now fetch them back
-		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
-		assertEquals(references, clone);
-	}
-	
-	@Test
-	public void testUniqueNull() throws DatastoreException{
-		// Build up two groups
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		Set<Reference> one = new HashSet<Reference>();
-		references.put("groupOne", one);
-		// Add one to one
-		Reference ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(123L));
-		ref.setTargetVersionNumber(null);
-		one.add(ref);
-		// Add one to two
-		ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(123L));
-		ref.setTargetVersionNumber(null);
-		one.add(ref);
-		// The set is actually enforcing this for us.
-		assertEquals(1, one.size());
-		// Now save to the DB
-		dboReferenceDao.replaceReferences(node.getId(), references);
-		// Now fetch them back
-		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
-		assertEquals(references, clone);
-	}
-	
-	@Test
-	public void testUniqueMixed() throws DatastoreException{
-		// Build up two groups
-		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-		Set<Reference> one = new HashSet<Reference>();
-		references.put("groupOne", one);
-		// Add one to one
-		Reference ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(123L));
-		ref.setTargetVersionNumber(new Long(1));
-		one.add(ref);
-		// Add one to two
-		ref = new Reference();
-		ref.setTargetId(KeyFactory.keyToString(123L));
-		ref.setTargetVersionNumber(null);
-		one.add(ref);
-		// The set is actually enforcing this for us.
-		assertEquals(2, one.size());
-		// Now save to the DB
-		dboReferenceDao.replaceReferences(node.getId(), references);
-		// Now fetch them back
-		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
-		assertEquals(references, clone);
+		Reference clone = dboReferenceDao.getReference(node.getId());
+		assertEquals(ref, clone);
 	}
 	
 	private static Set<String> justIds(Collection<EntityHeader> ehs) throws DatastoreException {
@@ -279,41 +172,18 @@ public class DBOReferenceDaoImplTest {
 		DBONode node1 = new DBONode();
 		node1.setId(KeyFactory.stringToKey(it.next()));
 		
-		// create a node having references
+		// create a node having reference
 		{
-			Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-			Set<Reference> one = new HashSet<Reference>();
-			Set<Reference> two = new HashSet<Reference>();
-			references.put("groupOne", one);
-			references.put("groupTwo", two);
-			// Add one to one
 			Reference ref = new Reference();
 			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(1));
-			one.add(ref);
-			// Add one to two
-			 ref = new Reference();
-			ref.setTargetId(KeyFactory.keyToString(456L));
-			ref.setTargetVersionNumber(new Long(0));
-			two.add(ref);
 			// Now save to the DB
-			dboReferenceDao.replaceReferences(node0.getId(), references);
+			dboReferenceDao.replaceReference(node0.getId(), ref);
+			
+			// now create a node that refers to just one
+			dboReferenceDao.replaceReference(node1.getId(), ref);
 		}
 		
-		// now create a node that refers to just one
-		{
-			Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-			Set<Reference> one = new HashSet<Reference>();
-			references.put("groupOne", one);
-			// Add one to one
-			Reference ref = new Reference();
-			ref.setTargetId(KeyFactory.keyToString(123L));
-			ref.setTargetVersionNumber(new Long(1));
-			one.add(ref);
-			// Now save to the DB
-			dboReferenceDao.replaceReferences(node1.getId(), references);
-		}
-
 		UserInfo userInfo = new UserInfo(true/*is admin*/);
 		// both should refer to id=123
 		QueryResults<EntityHeader> ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
@@ -324,31 +194,14 @@ public class DBOReferenceDaoImplTest {
 		expected.add(KeyFactory.keyToString(node0.getId())); expected.add(KeyFactory.keyToString(node1.getId()));
 		assertEquals(2, count);
 		assertEquals(expected, justIds(referrers));
-		// but just one refers to id=456
-		ehqr = dboReferenceDao.getReferrers(456L, null, userInfo, null, null);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
-		expected = new HashSet<String>(); 
-		expected.add(KeyFactory.keyToString(node0.getId()));
-		assertEquals(1, count);
-		assertEquals(expected, justIds(referrers));
-		EntityHeader eh = referrers.iterator().next();
-		assertEquals(node0.getName(), eh.getName());
-		assertEquals(node0.getType(), eh.getType());
-		
 		
 		// now make the second node refer to a different revision of 123
 		{
-			Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-			Set<Reference> one = new HashSet<Reference>();
-			references.put("groupOne", one);
-			// Add one to one
 			Reference ref = new Reference();
 			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(2));
-			one.add(ref);
 			// Now save to the DB
-			dboReferenceDao.replaceReferences(node1.getId(), references);
+			dboReferenceDao.replaceReference(node1.getId(), ref);
 		}
 		
 		// only the first node refers to revision 1
@@ -381,16 +234,11 @@ public class DBOReferenceDaoImplTest {
 		// ask for a specific version when the *reference* leaves the version blank:
 		//    make the second node refer to a different revision of 123
 		{
-			Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-			Set<Reference> one = new HashSet<Reference>();
-			references.put("groupOne", one);
-			// Add one to one
 			Reference ref = new Reference();
 			ref.setTargetId(KeyFactory.keyToString(123L));
-			//ref.setTargetVersionNumber(new Long(2)); <<<< LEAVE IT BLANK
-			one.add(ref);
+			//ref3.setTargetVersionNumber(new Long(2)); <<<< LEAVE IT BLANK
 			// Now save to the DB
-			dboReferenceDao.replaceReferences(node1.getId(), references);
+			dboReferenceDao.replaceReference(node1.getId(), ref);
 		}
 		
 		// only the first node refers to revision 1.
@@ -461,16 +309,11 @@ public class DBOReferenceDaoImplTest {
 		
 		// repeat using a specific *version* of the referenced object
 		{
-			Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
-			Set<Reference> one = new HashSet<Reference>();
-			references.put("groupOne", one);
-			// Add one to one
 			Reference ref = new Reference();
 			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(1));
-			one.add(ref);
 			// Now save to the DB
-			dboReferenceDao.replaceReferences(node1.getId(), references);
+			dboReferenceDao.replaceReference(node1.getId(), ref);
 		}
 		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
 		count = ehqr.getTotalNumberOfResults();

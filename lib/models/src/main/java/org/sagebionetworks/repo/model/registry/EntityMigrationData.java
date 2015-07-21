@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -49,7 +50,7 @@ public class EntityMigrationData {
 				}
 				// Lookup the schema for this type
 				try {
-					String jsonString = (String) type.getClassForType().getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
+					String jsonString = (String) EntityTypeUtils.getClassForType(type).getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 					ObjectSchema schema = EntityFactory.createEntityFromJSONString(jsonString, ObjectSchema.class);
 					// Lookup the schema for the field
 					ObjectSchema fieldSchema = schema.getProperties().get(rename.getNewFieldName());

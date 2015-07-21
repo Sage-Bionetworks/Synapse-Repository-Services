@@ -15,7 +15,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -72,7 +74,7 @@ public class DBORevisionTest {
 		rev.setOwner(node.getId());
 		rev.setRevisionNumber(new Long(1));
 		rev.setAnnotations(null);
-		rev.setReferences(null);
+		rev.setReference(null);
 		rev.setComment(null);
 		rev.setLabel(""+rev.getRevisionNumber());
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -88,7 +90,9 @@ public class DBORevisionTest {
 		assertEquals(rev, clone);
 		// Update with some values
 		clone.setAnnotations("Fake annotations".getBytes("UTF-8"));
-		clone.setReferences("Fake References".getBytes("UTF-8"));
+		Reference ref = new Reference();
+		byte[] blob = JDOSecondaryPropertyUtils.compressReference(ref);
+		clone.setReference(blob);
 		clone.setComment("No comment!");
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
@@ -84,7 +83,7 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	public boolean deleteEntity(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
-		dboReferenceDao.deleteReferencesByOwnderId(nodeId);
+		dboReferenceDao.deleteReferenceByOwnderId(nodeId);
 		dboAnnotationsDao.deleteAnnotationsByOwnerId(nodeId);
 		return true;
 	}
@@ -99,9 +98,9 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
 		// When an entity is created we need to update all daos.
-		Map<String, Set<Reference>> references = nodeDao.getNodeReferences(id);
-		if(references != null){
-			dboReferenceDao.replaceReferences(nodeId, references);
+		Reference reference = nodeDao.getNodeReference(id);
+		if(reference != null){
+			dboReferenceDao.replaceReference(nodeId, reference);
 		}
 		// Storage locations
 		NamedAnnotations namedAnnos = nodeDao.getAnnotations(id);
