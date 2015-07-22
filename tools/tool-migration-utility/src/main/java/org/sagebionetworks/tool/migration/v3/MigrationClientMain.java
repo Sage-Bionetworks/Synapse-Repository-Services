@@ -31,18 +31,12 @@ public class MigrationClientMain {
 		// Create the client factory
 		SynapseClientFactory factory = new SynapseClientFactoryImpl(configuration);
 		MigrationClient client = new MigrationClient(factory);
-		boolean failed = false;
-		for (int i = 0; i < configuration.getMaxRetries(); i++) {
-			try{
-				client.migrateAllTypes(configuration.getMaximumBatchSize(), configuration.getWorkerTimeoutMs(), configuration.getRetryDenominator(), configuration.getDeferExceptions());
-			}catch (Throwable e){
-				failed = true;
-				log.error("Failed at attempt: " + i + " with error " + e.getMessage(), e);
-			}
-			if (! failed) {
-				break;
-			}
-		}
+		boolean failed = client.migrate(
+				configuration.getMaxRetries(),
+				configuration.getMaximumBatchSize(),
+				configuration.getWorkerTimeoutMs(),
+				configuration.getRetryDenominator(),
+				configuration.getDeferExceptions());
 		if (failed) {
 			System.exit(-1);
 		} else {
