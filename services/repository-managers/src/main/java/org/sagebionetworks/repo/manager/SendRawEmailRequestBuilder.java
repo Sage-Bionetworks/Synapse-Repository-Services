@@ -160,12 +160,16 @@ public class SendRawEmailRequestBuilder {
 						String contentType = attachment.getContent_type();
 						// CloudMailIn doesn't provide the Content-Transfer-Encoding
 						// header, so we assume it's base64 encoded, which is the norm
+						byte[] contentBytes;
 						try {
-							byte[] decoded = Base64.decodeBase64(content);
-							part.setContent(decoded, contentType);
+							contentBytes = Base64.decodeBase64(content);
 						} catch (Exception e) {
-							part.setContent(content, contentType);
-							
+							contentBytes = content.getBytes();
+						}
+						if (contentType.toLowerCase().startsWith("text")) {
+							part.setContent(new String(contentBytes), contentType);
+						} else {
+							part.setContent(contentBytes, contentType);
 						}
 						if (attachment.getDisposition()!=null) part.setDisposition(attachment.getDisposition());
 						if (attachment.getContent_id()!=null) part.setContentID(attachment.getContent_id());
