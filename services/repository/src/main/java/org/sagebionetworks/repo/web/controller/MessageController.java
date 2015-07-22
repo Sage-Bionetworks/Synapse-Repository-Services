@@ -117,8 +117,6 @@ public class MessageController extends BaseController {
 	
 	/**
 	 * Note:  This service is designed to be used by CloudMailIn, not by clients in general.
-	 * Calling the service requires Basic Authentication credentials owned by the 
-	 * the Synapse CloudMailIn account.
 	 * 
 	 * @param toAuthorize the header of the CloudMailIn message in JSON format
 	 * @throws IllegalArgumentException if not valid
