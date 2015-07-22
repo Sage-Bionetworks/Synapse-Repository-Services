@@ -50,7 +50,7 @@ import com.sun.star.util.XCloseable;
  */
 public class OfficePreviewGenerator implements PreviewGenerator {
 
-	static final String[] OPENOFFICE_PATHS = { "/usr/bin/openoffice/soffice", "C:/Program Files (x86)/OpenOffice 4/program/soffice.exe" };
+	static final String[] OPENOFFICE_PATHS = { "/usr/bin/soffice", "C:/Program Files (x86)/OpenOffice 4/program/soffice.exe" };
 
 	private static final String LOCAL_CONNECT_STRING = "socket,host=127.0.0.1,port=8100;urp";
 	private static final String OFFICE_CONNECT_STRING = "uno:" + LOCAL_CONNECT_STRING + ";StarOffice.ComponentContext";
