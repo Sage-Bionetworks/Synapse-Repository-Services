@@ -71,7 +71,7 @@ public class PreviewManagerImplTest {
 		when(mockFileProvider.createFileOutputStream(mockUploadFile)).thenReturn(mockOutputStream);
 		when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(mockS3Object);
 		when(mockS3Object.getObjectContent()).thenReturn(mockS3ObjectInputStream);
-		when(mockPreviewGenerator.supportsContentType(testContentType)).thenReturn(true);
+		when(mockPreviewGenerator.supportsContentType(testContentType, "txt")).thenReturn(true);
 		when(mockPreviewGenerator.calculateNeededMemoryBytesForPreview(testContentType, maxPreviewSize + 1)).thenReturn(maxPreviewSize + 1);
 		when(mockPreviewGenerator.generatePreview(mockS3ObjectInputStream, mockOutputStream)).thenReturn(previewContentType);
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
@@ -88,7 +88,7 @@ public class PreviewManagerImplTest {
 		testMetadata.setContentSize(10l);
 		testMetadata.setCreatedBy("createdBy");
 		testMetadata.setEtag("etag");
-		testMetadata.setFileName("fileName");
+		testMetadata.setFileName("fileName.txt");
 		testMetadata.setKey("key");
 		// Add this to the stub
 		testMetadata = stubFileMetadataDao.createFile(testMetadata);

@@ -125,7 +125,8 @@ public class PreviewManagerImpl implements  PreviewManager {
 			return null;
 		}
 		ContentType contentType = ContentType.parse(metadata.getContentType());
-		final PreviewGenerator generator = findPreviewGenerator(contentType.getMimeType());
+		String extension = PreviewGeneratorUtils.findExtension(metadata.getFileName());
+		final PreviewGenerator generator = findPreviewGenerator(contentType.getMimeType(), extension);
 		// there is nothing to do if we do not have a generator for this type
 		if(generator == null){
 			log.info("No preview generator found for contentType:"+metadata.getContentType());
@@ -218,9 +219,10 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * Find
 	 * @param metadta
 	 */
-	private PreviewGenerator findPreviewGenerator(String contentType) {
+	private PreviewGenerator findPreviewGenerator(String contentType, String extension) {
+		contentType = contentType.toLowerCase();
 		for(PreviewGenerator gen: generatorList){
-			if(gen.supportsContentType(contentType.toLowerCase())){
+			if (gen.supportsContentType(contentType, extension)) {
 				return gen;
 			}
 		}
@@ -242,5 +244,4 @@ public class PreviewManagerImpl implements  PreviewManager {
 	public long getMaxPreivewMemoryBytes() {
 		return maxPreviewMemory;
 	}
-
 }

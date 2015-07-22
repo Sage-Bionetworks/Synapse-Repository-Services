@@ -5,8 +5,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Generates previews for text content types.
@@ -16,8 +20,21 @@ import org.apache.commons.io.IOUtils;
  */
 public class TabCsvPreviewGenerator implements PreviewGenerator {
 	
-	public static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
 	public static final String TEXT_CSV_SEPARATED_VALUES = "text/csv";
+
+	public static final Set<String> TAB_SEPARATED_MIME_TYPES = ImmutableSet.<String> builder()
+			.add("text/tab-separated-values", "text/tsv", "application/tab-separated-values", "application/tsv", "application/x-tsv").build();
+	public static final Set<String> COMMA_SEPARATED_MIME_TYPES = ImmutableSet.<String> builder()
+			.add("text/comma-separated-values", "text/csv", "application/comma-separated-values", "application/csv", "application/x-csv")
+			.build();
+	public static final Set<String> EXCEL_MIME_TYPES = ImmutableSet
+			.<String> builder()
+			.add("application/xls", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/msexcel",
+					"application/vnd.ms-excel").build();
+
+	public static final String TAB_EXTENSION = "tsv";
+	public static final String COMMA_EXTENSION = "csv";
+
 	public static final Character TAB = '\t';
 	public static final Character COMMA = ',';
 	public static final Character DOUBLE_QUOTE = '\"';
@@ -31,7 +48,9 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 	public static final int MAX_CELL_CHARACTER_COUNT = 40;
 	public static final long MAX_PREVIEW_CHARACTERS = MAX_ROW_COUNT * (MAX_COLUMN_COUNT * (MAX_CELL_CHARACTER_COUNT + 3) + 3);
 
-	public Character delimiter;
+	private final Character delimiter;
+	private final String extension;
+	private final Set<String> mimeTypes;
 	
 	public static Character getComma() {
 		return COMMA;
@@ -42,17 +61,23 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 	
 	public TabCsvPreviewGenerator(Character delimiter) {
 		this.delimiter = delimiter;
+		if (this.delimiter.equals(COMMA)) {
+			this.extension = COMMA_EXTENSION;
+			this.mimeTypes = COMMA_SEPARATED_MIME_TYPES;
+		} else if (this.delimiter.equals(TAB)) {
+			this.extension = TAB_EXTENSION;
+			this.mimeTypes = TAB_SEPARATED_MIME_TYPES;
+		} else {
+			throw new IllegalArgumentException("unknown delimiter: " + delimiter);
+		}
 	}
-	
+
+	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		String output = read(from);
 		IOUtils.write(output, to, "UTF-8");
 		//always generates a csv preview
 		return new PreviewOutputMetadata(TEXT_CSV_SEPARATED_VALUES, ".csv");
-	}
-	
-	protected void setDelimiter(Character newDelimiter) {
-		this.delimiter = newDelimiter;
 	}
 	
 	public String read(InputStream from) throws IOException{
@@ -175,11 +200,13 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public boolean supportsContentType(String contentType) {
-		if (delimiter == COMMA)
-			return contentType.equals(TEXT_CSV_SEPARATED_VALUES);
-		else if (delimiter == TAB)
-			return contentType.equals(TEXT_TAB_SEPARATED_VALUES);
-		else return false;
+	public boolean supportsContentType(String contentType, String extension) {
+		if (mimeTypes.contains(contentType)) {
+			return true;
+		}
+		if (EXCEL_MIME_TYPES.contains(contentType) && this.extension.equals(extension)) {
+			return true;
+		}
+		return false;
 	}
 }
