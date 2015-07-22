@@ -30,8 +30,9 @@
 								<property name="runner" ref="s3FileCopyWorker"/>
 								<property name="semaphoreLockKey" value="s3FileCopy" />
 								<property name="semaphoreMaxLockCount" value="4" />
+								<!-- This worker can copy 5 GBs between progress updates so this is set very high.  -->
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="600" />
+									value="7200" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[S3_FILE_COPY]" />
 								<property name="gate">

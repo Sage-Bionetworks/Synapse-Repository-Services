@@ -2,11 +2,13 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Arrays;
@@ -16,13 +18,16 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 /**
  * The Unit test for MigrationManagerImpl;
@@ -111,7 +116,61 @@ public class MigrationManagerImplTest {
 		}
 		
 	}
-	
+
+	/**
+	 * This test is used during migrating the DBORevision from stack 98 to stack 99.
+	 * The old DBORevision contains Map<String, Set<Reference>> references.
+	 * The new DBORevision contains Reference reference.
+	 * The purpose of this test is to make sure that MigrationManagerImpl.createOrUpdateBatch()
+	 * successfully migrates the old object to the new one.
+	 * 
+	 * For more information, please see PLFM-3492.
+	 * @throws IOException 
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Test
+	public void createOrUpdateBatchOfDBORevisionTest() throws IOException {
+		MigratableDatabaseObject mdo = new DBORevision();
+		String alias = mdo.getTableMapping().getTableName();
+
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(1L);
+
+		String xml = 
+				"<linked-list>" +
+					"<JDOREVISION>" +
+						"<owner>4490</owner>" +
+						"<revisionNumber>1</revisionNumber>" +
+						"<label>0.0.0</label>" +
+						"<comment>0.0.0</comment>" +
+						"<modifiedBy>273954</modifiedBy>" +
+						"<modifiedOn>1312679694610</modifiedOn>" +
+						"<annotations>H4sIAAAAAAAAALPJS8xN1S0uSExOteNSULDJTSwA0UBWal5JUSWEDeQVlxRl5qXbObq4eIZ4+vs5" +
+								"+tjoQ4VgKhLz8vJLEksy8/OKYWJwfY4IOX0kyZT80qScVBySOfm49SWW4NKVlJOfhE3KRh/DfTb6" +
+								"SF7E7t2AIE9fx6DIYeVXG31wHNvoI8U8AD9tTV8GAgAA</annotations>" +
+						"<references>H4sIAAAAAAAAAJVQMQ7CMBDbeUVfkKiwRtlZGBBiT6mJoja56nII8XtSNUGCjc2+s0/2megWu+s6" +
+						"gyT8WlHBWTgkb+eQpnwhoyuvS8iGCib2KjuPIVCCPImnrBgLqUgjZnXGHYx0QzMUizj2kONo+/3B" +
+						"6A/7FVzBuRw9PeIAtn1Tfo9bDP1fjlJo62B0bW30+oY3Dl+NUgwBAAA=</references>" +
+					"</JDOREVISION>" +
+				"</linked-list>";
+		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
+
+		List<DBORevision> backupList = (List<DBORevision>) BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), alias, in);
+		assertNotNull(backupList);
+		assertEquals(backupList.size(), 1);
+
+		MigratableTableTranslation<DBORevision, DBORevision> translator = mdo.getTranslator();
+		DBORevision backup = backupList.get(0);
+		assertNull(backup.getReference());
+
+		DBORevision databaseObject = translator.createDatabaseObjectFromBackup(backup);
+		assertNotNull(databaseObject);
+		System.out.println(databaseObject.toString());
+		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(databaseObject.getReference()));
+		assertEquals(null, databaseObject.getReferences());
+	}
+
 	/**
 	 * Build a list of objects from a list of IDs
 	 * @param fullList
