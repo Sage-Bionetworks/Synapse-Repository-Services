@@ -77,7 +77,8 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.repositoryChangeTopic[ENTITY]",
 			"stackConfiguration.repositoryChangeTopic[WIKI]",
 			"stackConfiguration.repositoryChangeTopic[TABLE]",
-			"stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]"
+			"stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]",
+			"stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]"
 	};
 	
 	@Before

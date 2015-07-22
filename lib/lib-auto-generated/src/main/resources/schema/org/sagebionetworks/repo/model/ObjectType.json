@@ -18,6 +18,7 @@
     	"TEAM",
     	"TABLE",
     	"ACCESS_CONTROL_LIST",
-    	"TEAM_MEMBER"
+    	"TEAM_MEMBER",
+    	"PROJECT_SETTING"
     ]
 }

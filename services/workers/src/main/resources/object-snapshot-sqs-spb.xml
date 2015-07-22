@@ -24,6 +24,9 @@
 	<bean id="nodeObjectRecordBuilder"
 		class="org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordBuilder"
 		scope="singleton" />
+	<bean id="projectSettingObjectRecordBuilder"
+		class="org.sagebionetworks.object.snapshot.worker.utils.ProjectSettingObjectRecordBuilder"
+		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.model.ObjectType enum -->
 	<bean id="objectRecordBuilderFactory"
@@ -42,6 +45,9 @@
 				</entry>
 				<entry key="ENTITY">
 					<ref bean="nodeObjectRecordBuilder" />
+				</entry>
+				<entry key="PROJECT_SETTING">
+					<ref bean="projectSettingObjectRecordBuilder" />
 				</entry>
 			</map>
 		</property>
@@ -80,6 +86,7 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]" />
 									</list>
 								</property>
 							</bean>

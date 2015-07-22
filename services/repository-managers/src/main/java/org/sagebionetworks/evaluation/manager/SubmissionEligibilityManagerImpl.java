@@ -275,13 +275,13 @@ public class SubmissionEligibilityManagerImpl implements
 		int submissionCount = (int)submissionDAO.countSubmissionsByContributor(Long.parseLong(evalId), 
 				Long.parseLong(principalId), roundInterval.getFirst(), 
 				roundInterval.getSecond(), STATUSES_COUNTED_TOWARD_QUOTA);
-		int submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
+		Integer submissionLimit = SubmissionQuotaUtil.getSubmissionQuota(evaluation);
 		String messageSuffix = ".";
 		if (!(roundInterval.getFirst()==null && roundInterval.getSecond()==null)) {
 			messageSuffix += " (for the current submission round).";
 			
 		}
-		if (submissionCount>=submissionLimit) {
+		if (submissionLimit!=null && submissionCount>=submissionLimit) {
 			return new AuthorizationStatus(false, 
 					"Submitter has reached the limit of "+submissionLimit+messageSuffix);
 		}
