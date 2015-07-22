@@ -85,11 +85,11 @@ public class OfficePreviewTest {
 		assertEquals("image/gif", metaData.getContentType());
 		assertEquals(".gif", metaData.getExtension());
 
-		File tmp = File.createTempFile("temp", ".gif");
-		FileOutputStream tmpOut = new FileOutputStream(tmp);
-		StreamUtils.copy(baos.toByteArray(), tmpOut);
-		tmpOut.close();
-		System.out.println(tmp.getAbsolutePath());
+		// File tmp = File.createTempFile("temp", ".gif");
+		// FileOutputStream tmpOut = new FileOutputStream(tmp);
+		// StreamUtils.copy(baos.toByteArray(), tmpOut);
+		// tmpOut.close();
+		// System.out.println(tmp.getAbsolutePath());
 
 		InputStream expected = OfficePreviewGenerator.class.getClassLoader().getResourceAsStream(resultImage);
 		TestStreams.assertEquals(expected, new ByteArrayInputStream(baos.toByteArray()));
