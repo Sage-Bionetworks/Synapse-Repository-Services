@@ -38,7 +38,7 @@ public class PdfPreviewGenerator implements PreviewGenerator {
 		convert.setInputProvider(pipeIn);
 		convert.setOutputConsumer(pipeOut);
 
-		op.resize(StackConfiguration.getMaximumPreviewHeightPixels(), StackConfiguration.getMaximumPreviewWidthPixels());
+		op.resize(StackConfiguration.getMaximumPreviewWidthPixels(), StackConfiguration.getMaximumPreviewHeightPixels());
 		// this forces imagemagick to turn off unsupported transparent color which breaks resizing otherwise
 		op.flatten();
 		op.addImage("-[0]", "gif:-");
