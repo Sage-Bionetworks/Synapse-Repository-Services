@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -62,7 +61,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		project.setModifiedOn(new Date());
 		projectId = nodeDao.createNew(project);
 
-		type = ProjectSetting.class.getSimpleName().toLowerCase();
+		type = UploadDestinationListSetting.class.getSimpleName().toLowerCase();
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 	}
 
@@ -94,7 +93,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(id);
 
 		// Fetch it by id
-		ProjectSetting clone = projectSettingsDao.get(id);
+		UploadDestinationListSetting clone = (UploadDestinationListSetting) projectSettingsDao.get(id);
 		assertEquals(setting, clone);
 
 		ObjectRecord expectedRecord = new ObjectRecord();
