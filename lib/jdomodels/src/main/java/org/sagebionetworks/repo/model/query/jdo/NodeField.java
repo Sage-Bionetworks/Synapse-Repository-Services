@@ -15,7 +15,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.PRIMARY_FIELDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.REVISION_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
@@ -41,7 +40,8 @@ public enum NodeField {
 	VERSION_COMMENT	("versionComment",			COL_REVISION_COMMENT,		TABLE_REVISION,		REVISION_ALIAS),
 	VERSION_LABEL	("versionLabel",			COL_REVISION_LABEL,			TABLE_REVISION,		REVISION_ALIAS),
 	BENEFACTOR_ID	("benefactorId",			COL_NODE_BENEFACTOR_ID,		TABLE_NODE,			NODE_ALIAS),
-	PROJECT_ID		("projectId",				COL_NODE_PROJECT_ID,		TABLE_NODE,			NODE_ALIAS);
+	PROJECT_ID		("projectId",				COL_NODE_PROJECT_ID,		TABLE_NODE,			NODE_ALIAS),
+	ALIAS_ID		("alias",					COL_NODE_ALIAS,				TABLE_NODE,			NODE_ALIAS);
 
 	private String fieldName;
 	private String columnName;

@@ -5,8 +5,10 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -36,6 +38,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. To download this file, follow the instructions as described in https://www.synapse.org/#!Help:RequesterPays";
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
+	private static final Pattern INVALID_ALIAS_CHARACTERS = Pattern.compile("[^a-zA-Z0-9_]");
+
 	@Autowired
 	NodeDAO nodeDao;	
 	@Autowired
@@ -170,6 +174,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");	
 		node.setName(EntityNameValidation.valdiateName(node.getName()));
+		if (StringUtils.isNotEmpty(node.getAlias())) {
+			if (INVALID_ALIAS_CHARACTERS.matcher(node.getAlias()).find()) {
+				throw new IllegalArgumentException("Aliases can only have letters (a-z and A-Z), digits (0-9) and underscores (_)");
+			}
+		}
 	}
 	
 	/**
@@ -267,7 +276,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		updateNode(userInfo, updatedNode, null, false, false, changeType);
+		Node oldNode = nodeDao.getNode(updatedNode.getId());
+		updateNode(userInfo, updatedNode, null, false, false, changeType, oldNode);
 	}
 
 	@WriteTransaction
@@ -287,12 +297,19 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Validate that the user can update the node.
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+
+		Node oldNode = nodeDao.getNode(updatedNode.getId());
+
 		// note, this is duplicated in 'updateNode', below
-		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
+		final String parentInDatabase = oldNode.getParentId();
 		final String parentInUpdate = updatedNode.getParentId();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate));
-		
+
+		if (!StringUtils.equals(oldNode.getAlias(), updatedNode.getAlias())) {
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canChangeSettings(userInfo, oldNode));
+		}
+
 		// Validate that the user can assign the file handle if they have it.
 		if(updatedNode.getFileHandleId() != null){
 			// First determine if this is a change
@@ -305,14 +322,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 						authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD));
 			}
 		}
-		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE);
+		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE, oldNode);
 
 		return get(userInfo, updatedNode.getId());
 	}
 
-	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos,
-			boolean newVersion, boolean skipBenefactor, ChangeType changeType)
-			throws ConflictingUpdateException, NotFoundException, DatastoreException,
+	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion, boolean skipBenefactor,
+			ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
 		NodeManagerImpl.validateNode(updatedNode);
@@ -346,7 +362,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Identify if update is a parentId change by comparing our
 		// updatedNode's parentId with the parentId in database
 		// and update benefactorID/permissions
-		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
+		final String parentInDatabase = oldNode.getParentId();
 		final String parentInUpdate = updatedNode.getParentId();
 		final String nodeInUpdate = updatedNode.getId();
 		if (isParentIdChange(parentInDatabase, parentInUpdate)) {

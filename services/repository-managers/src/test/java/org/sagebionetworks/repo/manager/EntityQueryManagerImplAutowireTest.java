@@ -60,6 +60,7 @@ public class EntityQueryManagerImplAutowireTest {
 	Project project;
 	Folder folder;
 	TableEntity table;
+	private String alias1 = "alias" + UUID.randomUUID();
 	
 	EntityFieldCondition parentIdCondition;
 	EntityQuery query;
@@ -75,6 +76,7 @@ public class EntityQueryManagerImplAutowireTest {
 		// project
 		project = new Project();
 		project.setName(UUID.randomUUID().toString());
+		project.setAlias(alias1);
 		String id = entityManager.createEntity(adminUserInfo, project, null);
 		nodesToDelete.add(id);
 		project = entityManager.getEntity(adminUserInfo, id, Project.class);
@@ -305,6 +307,20 @@ public class EntityQueryManagerImplAutowireTest {
 		assertTrue(results.getTotalEntityCount() == 2);
 	}
 	
+	@Test
+	public void testQueryByAlias() {
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.alias, Operator.EQUALS, alias1);
+		// add this condition
+		query.getConditions().clear();
+		query.getConditions().add(condition);
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(1, results.getEntities().size());
+		// there should be exactly 1
+		assertTrue(results.getTotalEntityCount() == 1);
+	}
+
 	private Set<String> entityQueryResultToEntityTypes(List<EntityQueryResult> entityQueryResults) {
 		Set<String> typeSet = new HashSet<String>();
 		for (EntityQueryResult result: entityQueryResults) {

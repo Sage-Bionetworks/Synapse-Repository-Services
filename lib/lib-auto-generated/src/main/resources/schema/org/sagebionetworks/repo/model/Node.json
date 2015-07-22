@@ -66,6 +66,9 @@
         "reference":{
             "type":"object",
             "$ref":"org.sagebionetworks.repo.model.Reference"
+        },
+        "alias":{
+            "type":"string"
         }
     }
 }

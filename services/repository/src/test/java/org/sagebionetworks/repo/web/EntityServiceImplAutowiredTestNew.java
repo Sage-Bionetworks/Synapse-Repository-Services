@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -169,5 +170,54 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		file.setName("newName");
 		file = entityService.updateEntity(adminUserId, file, false, null, mockRequest);
 		assertEquals("A new version should not have been created when a name changed",new Long(2), file.getVersionNumber());
+	}
+
+	@Test
+	public void testProjectAlias() {
+		String alias1 = "alias" + UUID.randomUUID().toString();
+		String alias2 = "alias" + UUID.randomUUID().toString();
+		// create alias1
+		Project project = new Project();
+		project.setName("project" + UUID.randomUUID());
+		project.setAlias(alias1);
+		project = entityService.createEntity(adminUserId, project, null, mockRequest);
+		toDelete.add(project.getId());
+		assertEquals(alias1, ((Project) entityService.getEntity(adminUserId, project.getId(), mockRequest)).getAlias());
+		// create alias2
+		project = new Project();
+		project.setName("project" + UUID.randomUUID());
+		project.setAlias(alias2);
+		Project project2 = entityService.createEntity(adminUserId, project, null, mockRequest);
+		toDelete.add(project2.getId());
+		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project.getId(), mockRequest)).getAlias());
+		// fail on create alias1
+		project = new Project();
+		project.setName("project" + UUID.randomUUID());
+		project.setAlias(alias1);
+		try {
+			entityService.createEntity(adminUserId, project, null, mockRequest);
+			fail("duplicate entry should have been rejected");
+		} catch (IllegalArgumentException e) {
+			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
+		}
+		// update to null
+		project2.setAlias(null);
+		project2 = entityService.updateEntity(adminUserId, project2, false, null, mockRequest);
+		assertNull(((Project) entityService.getEntity(adminUserId, project2.getId(), mockRequest)).getAlias());
+		// fail on update to alias1
+		try {
+			project2.setAlias(alias1);
+			entityService.updateEntity(adminUserId, project2, false, null, mockRequest);
+			fail("duplicate entry should have been rejected");
+		} catch (IllegalArgumentException e) {
+			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
+		}
+		// create alias2 again
+		project = new Project();
+		project.setName("project" + UUID.randomUUID());
+		project.setAlias(alias2);
+		project = entityService.createEntity(adminUserId, project, null, mockRequest);
+		toDelete.add(project.getId());
+		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project.getId(), mockRequest)).getAlias());
 	}
 }
