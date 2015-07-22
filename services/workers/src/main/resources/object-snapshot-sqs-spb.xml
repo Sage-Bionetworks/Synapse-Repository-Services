@@ -86,6 +86,7 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[PRINCIPAL]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]" />
 									</list>
 								</property>
 							</bean>
