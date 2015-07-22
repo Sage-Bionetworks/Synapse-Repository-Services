@@ -252,19 +252,6 @@ public class IT990AuthenticationController {
 		assertFalse(apikey.equals(secondKey));
 	}
 	
-	/**
-	 * Since we don't know Google's private OpenID information, this is a bit difficult to integration test
-	 * At best, this test makes sure the service is wired up
-	 */
-	@Test
-	public void testOpenIDCallback() throws Exception {
-		try {
-			synapse.passThroughOpenIDParameters("org.sagebionetworks.openid.provider=GOOGLE");
-			fail();
-		} catch (SynapseUnauthorizedException e) {
-			assertTrue(e.getMessage().contains("Required parameter missing"));
-		}
-	}
 	
 	@Test
 	public void testGetOAuth2AuthenticationUrl() throws SynapseException{
