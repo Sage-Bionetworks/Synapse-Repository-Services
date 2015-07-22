@@ -24,7 +24,7 @@ public class PdfPreviewGenerator implements PreviewGenerator {
 
 	public static final Set<String> PDF_MIME_TYPES = ImmutableSet.<String> builder().add("text/pdf", "text/x-pdf", "application/pdf").build();
 
-	static final String IMAGE_MAGICK_SEARCH_PATH = "/usr/bin/imagemagick" + File.pathSeparator + "C:/cygwin64/bin/";
+	static final String IMAGE_MAGICK_SEARCH_PATH = "/usr/bin" + File.pathSeparator + "C:/cygwin64/bin/";
 
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {

@@ -64,32 +64,4 @@ public class PdfPreviewTest {
 		InputStream expected = PdfPreviewGenerator.class.getClassLoader().getResourceAsStream(TEST_PDF_GIF);
 		TestStreams.assertEquals(expected, new ByteArrayInputStream(baos.toByteArray()));
 	}
-
-	@Test
-	@Ignore
-	public void testMany() throws Exception {
-		File dir = new File("C:/cygwin64/home/mblonk/tmp/pdf");
-		for (File pdf : dir.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.endsWith(".pdf");
-			}
-		})) {
-			File preview = new File(dir.getAbsolutePath().replace("\\pdf", "\\jpg"), pdf.getName().replace(".pdf", ".gif"));
-			if (!preview.exists()) {
-				FileOutputStream out = new FileOutputStream(preview);
-				InputStream in = new BufferedInputStream(new FileInputStream(pdf));
-				System.out.println(pdf.getPath());
-				try {
-					pdfPreviewGenerator.generatePreview(in, out);
-				} catch (RuntimeException e) {
-					System.err.println(e.getMessage());
-					out.close();
-					preview.delete();
-				}
-				in.close();
-				out.close();
-			}
-		}
-	}
 }
