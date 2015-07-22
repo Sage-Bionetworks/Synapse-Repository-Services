@@ -39,8 +39,8 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 	}
 
 	@Override
-	public boolean supportsContentType(String contentType) {
-		return APPLICATION_ZIP.equals(contentType.toLowerCase());
+	public boolean supportsContentType(String contentType, String extension) {
+		return APPLICATION_ZIP.equals(contentType);
 	}
 
 	@Override
