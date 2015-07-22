@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -66,6 +67,17 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	private static final RowMapper<DBOProjectSetting> projectSettingRowMapper = (new DBOProjectSetting()).getTableMapping();
 
+	public DBOProjectSettingsDAOImpl(){}
+
+	// for test only
+	public DBOProjectSettingsDAOImpl(DBOBasicDao mockBasicDao,
+			IdGenerator mockIdGenerator,
+			TransactionalMessenger mockTransactionalMessenger) {
+		this.basicDao = mockBasicDao;
+		this.idGenerator = mockIdGenerator;
+		this.transactionalMessenger = mockTransactionalMessenger;
+	}
+
 	@WriteTransaction
 	@Override
 	public String create(ProjectSetting dto) throws DatastoreException, InvalidModelException {
@@ -95,6 +107,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
 		nodeSettingsModificationMessage.setProjectSettingsType(dto.getSettingsType());
 		transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
+		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.CREATE);
 
 		return projectSettingsId;
 	}
@@ -174,6 +187,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			// ignore, it's probable already deleted
 		}
 		basicDao.deleteObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PROJECT_SETTING, ChangeType.DELETE);
 	}
 
 	@WriteTransaction
@@ -214,6 +228,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
 		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.UPDATE);
 		return convertDboToDto(dbo);
 	}
 
