@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ public class MessageQueueImplIntegrationTest {
 	}
 
 	@Test
+	@Ignore
 	public void testSetupDL() throws InterruptedException {
 		ListQueuesResult lqRes = awsSQSClient.listQueues("testQ");
 		assertNotNull(lqRes);

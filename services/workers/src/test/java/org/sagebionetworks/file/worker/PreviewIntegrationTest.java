@@ -4,6 +4,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.LinkedList;
@@ -11,8 +12,11 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
+import org.im4java.core.ConvertCmd;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.junit.BeforeAll;
@@ -21,6 +25,8 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
+import org.sagebionetworks.repo.manager.file.preview.OfficePreviewGenerator;
+import org.sagebionetworks.repo.manager.file.preview.PdfPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -152,11 +158,25 @@ public class PreviewIntegrationTest {
 
 	@Test
 	public void testRoundTripPdf() throws Exception {
+		ConvertCmd convert = new ConvertCmd();
+		try {
+			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH + "x");
+		} catch (FileNotFoundException e) {
+			Assume.assumeNoException(e);
+		}
 		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
 	}
 
 	@Test
+	@Ignore
 	public void testRoundTripOffice() throws Exception {
+		try {
+			OfficePreviewGenerator.initialize();
+		} catch (FileNotFoundException e) {
+			Assume.assumeNoException(e);
+		} catch (Exception e) {
+			throw e;
+		}
 		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }
