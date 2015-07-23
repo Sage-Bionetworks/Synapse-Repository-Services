@@ -13,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.junit.BeforeAll;
@@ -156,6 +157,7 @@ public class PreviewIntegrationTest {
 	}
 
 	@Test
+	@Ignore
 	public void testRoundTripOffice() throws Exception {
 		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
