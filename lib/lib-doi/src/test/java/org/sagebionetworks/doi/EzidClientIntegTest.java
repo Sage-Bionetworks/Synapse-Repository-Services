@@ -10,10 +10,12 @@ import java.util.Random;
 
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.doi.Doi;
 
+@Ignore
 public class EzidClientIntegTest {
 
 	@Before

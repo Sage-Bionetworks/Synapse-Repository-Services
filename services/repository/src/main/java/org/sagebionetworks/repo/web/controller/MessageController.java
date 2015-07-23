@@ -97,14 +97,17 @@ public class MessageController extends BaseController {
 		return serviceProvider.getMessageService().create(userId, toCreate);
 	}
 	
-	/**
-	 * Note:  This service is designed to be used by CloudMailIn, not by clients in general.
-	 * Calling the service requires Basic Authentication credentials owned by the 
-	 * the Synapse CloudMailIn account.
-	 * 
-	 * @param toCreate the CloudMailIn message in JSON format
-	 * @throws NotFoundException
-	 */
+
+	// Note:  This service is designed to be used by CloudMailIn, not by clients in general.
+	// Calling the service requires Basic Authentication credentials owned by the 
+	// the Synapse CloudMailIn account.
+	// 
+	// @param toCreate the CloudMailIn message in JSON format
+	// @throws NotFoundException
+	//
+	// Note:  We remove the javadoc comments and add the "@Deprecated" tag in order to obfuscate this callback
+	//
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_MESSAGE, method = RequestMethod.POST)
 	public void createCloudMailInMessage(
@@ -115,14 +118,14 @@ public class MessageController extends BaseController {
 		serviceProvider.getMessageService().create(toCreate, notificationUnsubscribeEndpoint);
 	}
 	
-	/**
-	 * Note:  This service is designed to be used by CloudMailIn, not by clients in general.
-	 * Calling the service requires Basic Authentication credentials owned by the 
-	 * the Synapse CloudMailIn account.
-	 * 
-	 * @param toAuthorize the header of the CloudMailIn message in JSON format
-	 * @throws IllegalArgumentException if not valid
-	 */
+	// Note:  This service is designed to be used by CloudMailIn, not by clients in general.
+	//
+	// @param toAuthorize the header of the CloudMailIn message in JSON format
+	// @throws IllegalArgumentException if not valid
+	//
+	// Note:  We remove the javadoc comments and add the "@Deprecated" tag in order to obfuscate this callback
+	//
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.CLOUDMAILIN_AUTHORIZATION, method = RequestMethod.POST)
 	public void authorizeCloudMailInMessage(
