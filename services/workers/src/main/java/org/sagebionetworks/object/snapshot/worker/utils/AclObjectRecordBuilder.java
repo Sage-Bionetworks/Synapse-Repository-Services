@@ -38,7 +38,7 @@ public class AclObjectRecordBuilder implements ObjectRecordBuilder {
 			}
 			return ObjectRecordBuilderUtils.buildObjectRecord(acl, message.getTimestamp().getTime());
 		} catch (NotFoundException e) {
-			log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
+			log.info("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
 			return null;
 		}
 	}

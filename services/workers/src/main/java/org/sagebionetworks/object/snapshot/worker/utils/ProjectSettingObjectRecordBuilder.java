@@ -34,7 +34,7 @@ public class ProjectSettingObjectRecordBuilder implements ObjectRecordBuilder {
 			ProjectSetting projectSetting = projectSettingsDao.get(message.getObjectId());
 			return ObjectRecordBuilderUtils.buildObjectRecord(projectSetting, message.getTimestamp().getTime());
 		} catch (NotFoundException e) {
-			log.error("Cannot find ProjectSetting for a " + message.getChangeType() + " message: " + message.toString()) ;
+			log.info("Cannot find ProjectSetting for a " + message.getChangeType() + " message: " + message.toString()) ;
 			return null;
 		}
 	}

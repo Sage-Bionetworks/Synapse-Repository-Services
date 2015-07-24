@@ -35,7 +35,7 @@ public class TeamMemberObjectRecordBuilder implements ObjectRecordBuilder{
 			return ObjectRecordBuilderUtils.buildObjectRecord(teamMember, message.getTimestamp().getTime());
 
 		} catch (NotFoundException e) {
-			log.warn("Team member not found. TeamId = "+message.getParentId()+" principalId = "+message.getObjectId());
+			log.info("Team member not found. TeamId = "+message.getParentId()+" principalId = "+message.getObjectId());
 			return null;
 		}
 	}

@@ -34,7 +34,7 @@ public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
 			Node node = nodeDAO.getNode(message.getObjectId());
 			return ObjectRecordBuilderUtils.buildObjectRecord(node, message.getTimestamp().getTime());
 		} catch (NotFoundException e) {
-			log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
+			log.info("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
 			return null;
 		}
 	}
