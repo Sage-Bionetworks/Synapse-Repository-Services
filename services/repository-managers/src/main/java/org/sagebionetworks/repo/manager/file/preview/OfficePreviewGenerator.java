@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.lang.ProcessBuilder.Redirect;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -193,10 +194,17 @@ public class OfficePreviewGenerator implements PreviewGenerator {
 
 			// locate the executable
 			File officeExe = pathToOffice();
+			File tmpIn = File.createTempFile("sofficein", ".txt");
+			tmpIn.createNewFile();
+			tmpIn.deleteOnExit();
+			File tmpOut = File.createTempFile("sofficeout", ".txt");
+			tmpOut.deleteOnExit();
+			File tmpErr = File.createTempFile("sofficeerr", ".txt");
+			tmpErr.deleteOnExit();
 			ProcessBuilder procBuilder = new ProcessBuilder()
 					.command(officeExe.getAbsolutePath(), "-headless", "-accept=" + LOCAL_CONNECT_STRING + ";", "-nofirststartwizard",
 							"-nologo", "-nodefault", "-norestore", "-nocrashreport", "-nolockcheck").directory(officeExe.getParentFile())
-					.inheritIO();
+					.redirectInput(Redirect.from(tmpIn)).redirectOutput(tmpOut).redirectOutput(tmpErr);
 			// office itself will take care of avoiding multiple instances
 			procBuilder.start();
 
