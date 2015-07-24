@@ -45,4 +45,11 @@ public interface ObjectRecordDAO {
 	 * @return the key iterator for a bucket of this type
 	 */
 	Iterator<String> keyIterator(String type);
+
+	/**
+	 * Delete the bucket for the requested type.
+	 * Only used for integration tests.
+	 * @param type
+	 */
+	void deleteBucket(String type);
 }

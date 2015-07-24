@@ -114,6 +114,8 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 			aclDao.delete(acl.getId(), ObjectType.ENTITY);
 		}
 		groupList.clear();
+		// clean up the bucket
+		objectRecordDAO.deleteBucket(type);
 	}
 
 	@Test

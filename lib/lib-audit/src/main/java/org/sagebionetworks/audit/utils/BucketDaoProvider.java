@@ -58,4 +58,17 @@ public class BucketDaoProvider {
 		bucketNameMap.put(type, bucketName);
 		return bucketName;
 	}
+
+	/**
+	 * Delete the bucket for the requested type
+	 * @param type
+	 * @effect if bucketNameMap contains key type, after this method returns, it
+	 * will remove key type from bucketNameMap.
+	 */
+	public void deleteBucket(String type) {
+		getBucketDao(type).deleteBucket();
+		if (bucketNameMap.containsKey(type)) {
+			bucketNameMap.remove(type);
+		}
+	}
 }

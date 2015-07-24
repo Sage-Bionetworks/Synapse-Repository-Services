@@ -72,6 +72,8 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 				}
 			}
 		}
+		// clean up the bucket
+		objectRecordDAO.deleteBucket(type);
 	}
 
 	@Test

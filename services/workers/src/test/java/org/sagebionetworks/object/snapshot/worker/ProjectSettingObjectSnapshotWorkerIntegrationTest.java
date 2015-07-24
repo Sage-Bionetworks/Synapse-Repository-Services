@@ -70,6 +70,8 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		if (projectId != null) {
 			nodeDao.delete(projectId);
 		}
+		// clean up the bucket
+		objectRecordDAO.deleteBucket(type);
 	}
 
 	@Test

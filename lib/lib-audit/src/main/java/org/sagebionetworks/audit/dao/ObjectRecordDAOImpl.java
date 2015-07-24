@@ -82,4 +82,8 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 		return provider.getBucketDao(type).keyIterator(
 				KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber));
 	}
+	@Override
+	public void deleteBucket(String type) {
+		provider.deleteBucket(type);
+	}
 }
