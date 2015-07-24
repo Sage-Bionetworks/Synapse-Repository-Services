@@ -9,7 +9,7 @@
     "properties":{
         "alias": {
             "type":"string",
-            "description":"The project alias for use in the friendly project url.",
+            "description":"The project alias for use in friendly project urls."
         }
     }
 }
