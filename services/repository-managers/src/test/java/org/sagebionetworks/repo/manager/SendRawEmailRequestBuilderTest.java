@@ -60,6 +60,20 @@ public class SendRawEmailRequestBuilderTest {
 	}
 	
 	@Test
+	public void testCreateRawEmailRequestWithOneTextAttachment() throws Exception {
+		String body = "{\"html\":\"<div>text</div>\",\"attachments\":[{\"content\":\"MjAwCg==\",\"file_name\":\"in.txt\",\"content_type\":\"text/plain\",\"disposition\":\"attachment\",\"size\":\"4\"}]}";
+		new SendRawEmailRequestBuilder()
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUserId("101")
+				.build();
+	}
+	
+	@Test
 	public void testCreateRawEmailRequestNoUnsubEndpoint() throws Exception {
 		String body = "this is the message body";
 		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
@@ -141,7 +155,7 @@ public class SendRawEmailRequestBuilderTest {
 	}
 	
 	@Test
-	public void testCreateEmailBodyWithAttachment() throws Exception {
+	public void testCreateEmailBodyWithImageAttachment() throws Exception {
 		String unsubscribeLink = UNSUBSCRIBE_ENDPOINT+"abcdef";
 		MessageBody messageBody = new MessageBody();
 		String someHtmlText = "<div>this is the message content.</div>";

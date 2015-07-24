@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -12,7 +10,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
@@ -30,6 +27,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -37,12 +35,12 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
 
@@ -53,7 +51,7 @@ public class MembershipRequestManagerImplTest {
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
 	private UserProfileManager mockUserProfileManager;
 	private TeamDAO mockTeamDAO;
-
+	private AccessRequirementDAO mockAccessRequirementDAO;
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -66,14 +64,17 @@ public class MembershipRequestManagerImplTest {
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
 		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
+		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
 				mockMembershipRqstSubmissionDAO,
 				mockUserProfileManager,
-				mockTeamDAO
+				mockTeamDAO,
+				mockAccessRequirementDAO
 				);
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
+		userInfo.setGroups(Collections.singleton(Long.parseLong(MEMBER_PRINCIPAL_ID)));
 		// admin
 		adminInfo = new UserInfo(true);
 		adminInfo.setId(-1l);
@@ -166,6 +167,22 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testCreateHasUnmetAccessRequirements() throws Exception {
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		mrs.setTeamId(TEAM_ID);
+		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
+		// now mock an unmet access requirement
+		when(mockAccessRequirementDAO.unmetAccessRequirements(
+				eq(Collections.singletonList(TEAM_ID)), 
+				eq(RestrictableObjectType.TEAM), 
+				eq(userInfo.getGroups()), 
+				eq(Collections.singletonList(ACCESS_TYPE.PARTICIPATE))))
+			.thenReturn(Collections.singletonList(77L));
+		// should throw UnauthorizedException
+		membershipRequestManagerImpl.create(userInfo, mrs);
 	}
 	
 	@Test

@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
-	static private Logger log = LogManager.getLogger(NodeObjectRecordBuilder.class);
+	private static Logger log = LogManager.getLogger(NodeObjectRecordBuilder.class);
 
 	@Autowired
 	private NodeDAO nodeDAO;

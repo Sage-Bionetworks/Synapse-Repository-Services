@@ -196,8 +196,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 					throw new IllegalArgumentException("accessType is required.");	
 				}
 			}
-			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForNonEntity(
-					userInfo, subjectId, accessRequirementDAO, Collections.singletonList(accessType));
+			unmetARIds = accessRequirementDAO.unmetAccessRequirements(
+					Collections.singletonList(subjectId.getId()), subjectId.getType(), userInfo.getGroups(), 
+					Collections.singletonList(accessType));
 		}
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
