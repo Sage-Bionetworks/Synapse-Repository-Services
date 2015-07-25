@@ -45,7 +45,7 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 		try {
 			userGroup = userGroupDAO.get(principalId);
 		} catch (NotFoundException e) {
-			log.warn("Principal not found: "+principalId);
+			log.info("Principal not found: "+principalId);
 			return null;
 		}
 		if(userGroup.getIsIndividual()){

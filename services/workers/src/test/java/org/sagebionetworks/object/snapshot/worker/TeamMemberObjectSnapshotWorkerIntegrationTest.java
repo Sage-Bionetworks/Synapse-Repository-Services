@@ -86,6 +86,8 @@ public class TeamMemberObjectSnapshotWorkerIntegrationTest {
 				userManager.deletePrincipal(admin, userId);
 			} catch (Exception e) {}
 		}
+		// clean up the bucket
+		objectRecordDAO.deleteBucket(type);
 	}
 	
 	@Test
