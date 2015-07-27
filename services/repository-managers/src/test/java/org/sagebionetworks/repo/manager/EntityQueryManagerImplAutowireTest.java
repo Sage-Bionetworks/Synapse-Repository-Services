@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class EntityQueryManagerImplAutowireTest {
 	Project project;
 	Folder folder;
 	TableEntity table;
-	private String alias1 = "alias" + UUID.randomUUID();
+	private String alias1 = "alias" + RandomUtils.nextInt();
 	
 	EntityFieldCondition parentIdCondition;
 	EntityQuery query;
