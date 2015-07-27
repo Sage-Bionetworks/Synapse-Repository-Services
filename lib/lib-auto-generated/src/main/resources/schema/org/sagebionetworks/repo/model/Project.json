@@ -5,5 +5,11 @@
         {
             "$ref":"org.sagebionetworks.repo.model.Entity"
         }
-    ]
+    ],
+    "properties":{
+        "alias": {
+            "type":"string",
+            "description":"The project alias for use in friendly project urls."
+        }
+    }
 }
