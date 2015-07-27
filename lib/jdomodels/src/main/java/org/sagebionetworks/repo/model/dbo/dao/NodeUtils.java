@@ -57,9 +57,7 @@ class NodeUtils {
 		if (dto.getCreatedByPrincipalId() != null){
 			jdo.setCreatedBy(dto.getCreatedByPrincipalId());
 		}
-		if (!StringUtils.isEmpty(dto.getAlias())) {
-			jdo.setAlias(dto.getAlias());
-		}
+		jdo.setAlias(StringUtils.isEmpty(dto.getAlias()) ? null : dto.getAlias());
 		if (dto.getModifiedByPrincipalId()==null) throw new InvalidModelException("modifiedByPrincipalId may not be null");
 		rev.setModifiedBy(dto.getModifiedByPrincipalId());
 		if (dto.getModifiedOn()==null) throw new InvalidModelException("modifiedOn may not be null");

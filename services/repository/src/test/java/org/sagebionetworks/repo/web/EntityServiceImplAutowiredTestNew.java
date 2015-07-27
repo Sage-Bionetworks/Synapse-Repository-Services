@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -174,28 +175,29 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 
 	@Test
 	public void testProjectAlias() {
-		String alias1 = "alias" + UUID.randomUUID().toString();
-		String alias2 = "alias" + UUID.randomUUID().toString();
+		String alias1 = "alias" + RandomUtils.nextInt();
+		String alias2 = "alias" + RandomUtils.nextInt();
+		String alias3 = "alias" + RandomUtils.nextInt();
 		// create alias1
-		Project project = new Project();
-		project.setName("project" + UUID.randomUUID());
-		project.setAlias(alias1);
-		project = entityService.createEntity(adminUserId, project, null, mockRequest);
-		toDelete.add(project.getId());
-		assertEquals(alias1, ((Project) entityService.getEntity(adminUserId, project.getId(), mockRequest)).getAlias());
+		Project project1 = new Project();
+		project1.setName("project" + UUID.randomUUID());
+		project1.setAlias(alias1);
+		project1 = entityService.createEntity(adminUserId, project1, null, mockRequest);
+		toDelete.add(project1.getId());
+		assertEquals(alias1, ((Project) entityService.getEntity(adminUserId, project1.getId(), mockRequest)).getAlias());
 		// create alias2
-		project = new Project();
-		project.setName("project" + UUID.randomUUID());
-		project.setAlias(alias2);
-		Project project2 = entityService.createEntity(adminUserId, project, null, mockRequest);
+		Project project2 = new Project();
+		project2.setName("project" + UUID.randomUUID());
+		project2.setAlias(alias2);
+		project2 = entityService.createEntity(adminUserId, project2, null, mockRequest);
 		toDelete.add(project2.getId());
-		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project.getId(), mockRequest)).getAlias());
+		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2.getId(), mockRequest)).getAlias());
 		// fail on create alias1
-		project = new Project();
-		project.setName("project" + UUID.randomUUID());
-		project.setAlias(alias1);
+		Project projectFailCreate = new Project();
+		projectFailCreate.setName("project" + UUID.randomUUID());
+		projectFailCreate.setAlias(alias1);
 		try {
-			entityService.createEntity(adminUserId, project, null, mockRequest);
+			entityService.createEntity(adminUserId, projectFailCreate, null, mockRequest);
 			fail("duplicate entry should have been rejected");
 		} catch (IllegalArgumentException e) {
 			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
@@ -212,12 +214,15 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		} catch (IllegalArgumentException e) {
 			assertEquals(DuplicateKeyException.class, e.getCause().getClass());
 		}
+		project2.setAlias(alias3);
+		project2 = entityService.updateEntity(adminUserId, project2, false, null, mockRequest);
+		assertEquals(alias3, ((Project) entityService.getEntity(adminUserId, project2.getId(), mockRequest)).getAlias());
 		// create alias2 again
-		project = new Project();
-		project.setName("project" + UUID.randomUUID());
-		project.setAlias(alias2);
-		project = entityService.createEntity(adminUserId, project, null, mockRequest);
-		toDelete.add(project.getId());
-		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project.getId(), mockRequest)).getAlias());
+		Project project2Again = new Project();
+		project2Again.setName("project" + UUID.randomUUID());
+		project2Again.setAlias(alias2);
+		project2Again = entityService.createEntity(adminUserId, project2Again, null, mockRequest);
+		toDelete.add(project2Again.getId());
+		assertEquals(alias2, ((Project) entityService.getEntity(adminUserId, project2Again.getId(), mockRequest)).getAlias());
 	}
 }
