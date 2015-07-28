@@ -129,14 +129,16 @@ public interface TeamManager {
 
 	/**
 	 * Add a member to a Team, removing applicable membership requests and invitations.
+	 * Note:  This method is idempotent.  If the member is already added, it just returns 'false'
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalUserInfo
+	 * @return true iff a member was added
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public boolean addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * Remove a member from a Team

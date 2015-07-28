@@ -242,9 +242,10 @@ public class TeamServiceImpl implements TeamService {
 		// needed to determine who to notify
 		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId, teamEndpoint, notificationUnsubscribeEndpoint);
 		
-		teamManager.addMember(userInfo, teamId, memberUserInfo);
+		// the method is idempotent.  If the member is already added, it returns false
+		boolean memberAdded = teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		notificationManager.sendNotifications(userInfo, messages);
+		if (!memberAdded) notificationManager.sendNotifications(userInfo, messages);
 	}
 	
 	/* (non-Javadoc)
