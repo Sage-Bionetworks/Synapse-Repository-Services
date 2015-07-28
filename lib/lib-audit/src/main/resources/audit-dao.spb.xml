@@ -46,6 +46,6 @@
 	<bean id="objectRecordDAO" class="org.sagebionetworks.audit.dao.ObjectRecordDAOImpl"
 		scope="singleton" init-method="initialize">
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
-		<property name="stack" ref="stackConfiguration.stack" />
+		<property name="snapshotRecordBucketName" ref="stackConfiguration.snapshotRecordBucketName" />
 	</bean>
 </beans>
