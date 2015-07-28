@@ -1,12 +1,14 @@
 package org.sagebionetworks.audit.dao;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.aws.utils.s3.BucketDaoImpl;
 import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectReader;
 import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectWriter;
+import org.sagebionetworks.aws.utils.s3.KeyData;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,20 +69,23 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 	}
 
 	@Override
-	public List<ObjectRecord> getBatch(String key, String type)
-			throws IOException {
+	public List<ObjectRecord> getBatch(String key, String type) throws IOException {
+		KeyData keyData = KeyGeneratorUtil.parseKey(key);
+		if (!keyData.getType().equals(type)) {
+			return new ArrayList<ObjectRecord>();
+		}
 		return reader.read(snapshotRecordBucketName, key);
 	}
 
 	@Override
 	public void deleteAllStackInstanceBatches(String type) {
 		bucketDao.deleteAllObjectsWithPrefix(
-				KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber));
+				KeyGeneratorUtil.getInstanceAndTypePrefix(stackInstanceNumber, type));
 	}
 
 	@Override
 	public Iterator<String> keyIterator(String type) {
 		return bucketDao.keyIterator(
-				KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber));
+				KeyGeneratorUtil.getInstanceAndTypePrefix(stackInstanceNumber, type));
 	}
 }
