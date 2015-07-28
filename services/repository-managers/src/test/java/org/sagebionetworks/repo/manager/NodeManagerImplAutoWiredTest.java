@@ -570,6 +570,7 @@ public class NodeManagerImplAutoWiredTest {
 		//can be verified
 		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
+		when(mockNodeDao.getNode(childId)).thenReturn(nodeManager.get(adminUserInfo, childId));
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, aclDAO, entityBootstrapper,
 				mockNodeInheritanceManager, null, activityManager, projectSettingsManager);
@@ -609,7 +610,8 @@ public class NodeManagerImplAutoWiredTest {
 		//can be verified
 		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
-		
+		when(mockNodeDao.getNode(childId)).thenReturn(nodeManager.get(adminUserInfo, childId));
+
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, aclDAO, entityBootstrapper,
 				mockNodeInheritanceManager, null, activityManager, projectSettingsManager);
 		

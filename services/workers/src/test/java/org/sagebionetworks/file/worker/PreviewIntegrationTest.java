@@ -168,7 +168,6 @@ public class PreviewIntegrationTest {
 	}
 
 	@Test
-	@Ignore
 	public void testRoundTripOffice() throws Exception {
 		try {
 			OfficePreviewGenerator.initialize();

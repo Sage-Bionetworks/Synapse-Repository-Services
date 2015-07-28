@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -19,9 +18,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Basic implementation of migration manager.

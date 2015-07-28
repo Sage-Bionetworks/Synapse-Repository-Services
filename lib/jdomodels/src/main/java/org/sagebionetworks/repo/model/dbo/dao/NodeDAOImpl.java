@@ -53,6 +53,7 @@ import java.util.UUID;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -120,7 +121,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
-	private static final String GROUP_IDS_PARAM_NAME = "project_ids_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REF_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -248,6 +248,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Autowired
 	private DBOBasicDao dboBasicDao;
+
+	private final Long ROOT_NODE_ID = Long.parseLong(StackConfiguration.getRootFolderEntityIdStatic());
 
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
@@ -1207,7 +1209,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new IllegalArgumentException("Can't change a root project's parentId");
 		}
 		//does this update need to happen
-		if (newParentId.equals(getParentId(nodeId))){
+		if (newParentId.equals(node.getParentIdString())) {
 			return false;
 		}
 		//get reference to new parent's JDONode, will throw exception if node isn't found
@@ -1290,22 +1292,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public boolean isNodeRoot(String nodeId) throws NotFoundException, DatastoreException {
-	    ParentTypeName ptn = getParentTypeName(KeyFactory.stringToKey(nodeId));
-	    // It the parentId == null then this is root.
-	    return ptn.parentId == null && "root".equals(ptn.name);
+		return ROOT_NODE_ID.equals(KeyFactory.stringToKey(nodeId));
 	}
 
 	@Override
     public boolean isNodesParentRoot(String nodeId) throws NotFoundException, DatastoreException {
         ParentTypeName ptn = getParentTypeName(KeyFactory.stringToKey(nodeId));
-        // It the parentId == null then this is root.
-        if(ptn.parentId == null) return false;
-        // Get the parents information.
-        ParentTypeName parentPtn = getParentTypeName(ptn.parentId);
-        // Root is the only entity with a null parent.
-        return parentPtn.parentId == null && "root".equals(parentPtn.name);
+		return ROOT_NODE_ID.equals(ptn.parentId);
 	}
-	
 
 	@Override
 	public boolean doesNodeHaveChildren(String nodeId) {

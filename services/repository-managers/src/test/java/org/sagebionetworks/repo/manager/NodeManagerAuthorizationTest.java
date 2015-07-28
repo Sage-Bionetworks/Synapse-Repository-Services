@@ -5,6 +5,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -136,8 +138,10 @@ public class NodeManagerAuthorizationTest {
 				AuthorizationManagerUtil.accessDenied(mockUserInfo.getId().toString()+" cannot access "+fileHandleId));
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
-		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Node oldMockNode = mock(Node.class);
+		when(oldMockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
 		// Should fail
 		try{
 			nodeManager.update(mockUserInfo, mockNode);
@@ -170,8 +174,10 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
-		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Node oldMockNode = mock(Node.class);
+		when(oldMockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
 		// Should fail
 		nodeManager.update(mockUserInfo, mockNode);
 		// The change should make it to the dao
@@ -200,9 +206,11 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockNode.getParentId()).thenReturn(parentId);
-		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthDao.canAccess(mockUserInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Node oldMockNode = mock(Node.class);
+		when(oldMockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode(nodeId)).thenReturn(oldMockNode);
 		// Should fail
 		nodeManager.update(mockUserInfo, mockNode);
 		// The change should make it to the dao
@@ -352,9 +360,11 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNode.getParentId()).thenReturn(parentId);
-		when(mockNodeDao.getParentId(id)).thenReturn(parentId);
 		// can't move due to access restrictions
 		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Node oldMockNode = mock(Node.class);
+		when(oldMockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
 		// OK!
 		nodeManager.update(mockUserInfo, mockNode, null, true);
 		// can't move due to access restrictions
@@ -366,8 +376,40 @@ public class NodeManagerAuthorizationTest {
 		} catch (UnauthorizedException e) {
 			// as expected
 		}
+		verify(mockAuthDao, times(2)).canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId));
 	}
 	
+	@Test
+	public void testUnauthorizedUpdateDueToAliasChange() throws DatastoreException, InvalidModelException, NotFoundException,
+			UnauthorizedException, ConflictingUpdateException {
+		String id = "22";
+		String parentId = "123";
+		when(mockNode.getId()).thenReturn(id);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockNode.getParentId()).thenReturn(parentId);
+		// can't move due to access restrictions
+		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(
+				AuthorizationManagerUtil.AUTHORIZED);
+		Node oldMockNode = mock(Node.class);
+		when(oldMockNode.getParentId()).thenReturn(parentId);
+		when(oldMockNode.getAlias()).thenReturn("alias2");
+		when(mockNodeDao.getNode(id)).thenReturn(oldMockNode);
+		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// OK!
+		nodeManager.update(mockUserInfo, mockNode, null, true);
+		// can't change alias due to access restrictions
+		when(mockAuthDao.canChangeSettings(mockUserInfo, oldMockNode)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		try {
+			// Should fail
+			nodeManager.update(mockUserInfo, mockNode, null, true);
+			fail("Expected unauthorized exception");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+		verify(mockAuthDao, times(2)).canChangeSettings(mockUserInfo, oldMockNode);
+	}
+
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedGetAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";

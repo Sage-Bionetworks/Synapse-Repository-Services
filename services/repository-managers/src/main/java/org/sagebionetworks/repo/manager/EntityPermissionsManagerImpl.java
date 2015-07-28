@@ -217,7 +217,25 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		return certifiedUserHasAccess(parentId, CREATE, userInfo);
 	}
-	
+
+	@Override
+	public AuthorizationStatus canChangeSettings(Node node, UserInfo userInfo) throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+
+		if (!isCertifiedUserOrFeatureDisabled(userInfo)) {
+			return AuthorizationManagerUtil.accessDenied("Only certified users may change node settings.");
+		}
+
+		// the creator always has change settings permissions
+		if (node.getCreatedByPrincipalId().equals(userInfo.getId())) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+
+		return certifiedUserHasAccess(node.getId(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
+	}
+
 	/**
 	 * 
 	 * @param resource the resource of interest

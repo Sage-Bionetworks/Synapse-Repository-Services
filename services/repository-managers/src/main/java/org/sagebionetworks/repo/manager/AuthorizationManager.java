@@ -41,6 +41,17 @@ public interface AuthorizationManager {
 	 * 
 	 */
 	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
+
+	/**
+	 * Checks whether the given user can modify the settings for the given node.
+	 * 
+	 * @param nodeId
+	 * @param accessType
+	 * 
+	 * @exception NotFoundException if the group or node is invalid
+	 * 
+	 */
+	public AuthorizationStatus canChangeSettings(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Checks whether the given user can create the given access requirement

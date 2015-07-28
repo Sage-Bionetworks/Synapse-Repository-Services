@@ -1,7 +1,5 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -9,14 +7,11 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ResourceAccess;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 public class AclSnapshotUtils {
-	private static List<ACCESS_TYPE> accessTypeArray =
-			new ArrayList<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ,
-			ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.CHANGE_PERMISSIONS,
-			ACCESS_TYPE.DELETE_SUBMISSION, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.PARTICIPATE,
-			ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE, ACCESS_TYPE.UPLOAD,
-			ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SEND_MESSAGE,
-			ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.UPDATE_SUBMISSION));
+	private static List<ACCESS_TYPE> accessTypeArray = Lists.newArrayList(ACCESS_TYPE.values());
 
 	/**
 	 * Generate a set of ResourceAccess, each with a given principalId and the same numberOfAccessType
@@ -26,8 +21,8 @@ public class AclSnapshotUtils {
 	public static Set<ResourceAccess> createSetOfResourceAccess(List<Long> principalIds,
 			int numberOfAccessType) {
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
-		Set<ACCESS_TYPE> accessTypes;
-		accessTypes = new HashSet<ACCESS_TYPE>(accessTypeArray.subList(0, numberOfAccessType));
+		Set<ACCESS_TYPE> accessTypes = Sets.newHashSet(numberOfAccessType == -1 ? accessTypeArray : accessTypeArray.subList(0,
+				numberOfAccessType));
 		for (Long principalId : principalIds) {
 			ResourceAccess ra = new ResourceAccess();
 			ra.setPrincipalId(principalId);

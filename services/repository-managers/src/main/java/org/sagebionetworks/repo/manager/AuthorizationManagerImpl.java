@@ -121,6 +121,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
+	public AuthorizationStatus canChangeSettings(UserInfo userInfo, Node node) throws NotFoundException, DatastoreException {
+		return entityPermissionsManager.canChangeSettings(node, userInfo);
+	}
+
+	@Override
 	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
 		if(userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		
