@@ -580,7 +580,7 @@ public class TeamManagerImpl implements TeamManager {
 		// clean up and membership requests
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
 		
-		return alreadyInTeam;
+		return !alreadyInTeam;
 	}
 	
 	/**
