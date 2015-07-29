@@ -646,6 +646,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws JSONObjectAdapterException 
 	 */
 	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Create a new file handle with optionally a new name and a new content type
+	 * 
+	 * @param originalFileHandleId
+	 * @param name
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public S3FileHandle createS3FileHandleCopy(String originalFileHandleId, String name, String contentType)
+			throws JSONObjectAdapterException, SynapseException;
 
 	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException;
 

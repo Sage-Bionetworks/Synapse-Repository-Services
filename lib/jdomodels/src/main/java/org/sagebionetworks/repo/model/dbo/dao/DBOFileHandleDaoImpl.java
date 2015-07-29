@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -32,23 +31,20 @@ import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
@@ -73,6 +69,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	 * Used to detect if a file object already exists.
 	 */
 	private static final String SQL_DOES_EXIST = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
+
+	private static final String SQL_COUNT_REFERENCES = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME
+			+ " = ? AND `" + COL_FILES_KEY + "` = ?";
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -297,6 +296,11 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	@Override
+	public long getS3objectReferenceCount(String bucketName, String key) {
+		return simpleJdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
+	}
+
+	@Override
 	public long getCount() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_FILES);
 	}
@@ -305,15 +309,4 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	public long getMaxId() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
 	}
-
-	@Override
-	public List<String> findFileHandleWithKeyAndMD5(String key, String md5) {
-		return simpleJdbcTemplate.query("SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE `"+COL_FILES_KEY+"` = ? AND "+COL_FILES_CONTENT_MD5+" = ?", new RowMapper<String>() {
-			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return ""+rs.getLong(COL_FILES_ID);
-			}
-		}, key, md5);
-	}
-	
 }

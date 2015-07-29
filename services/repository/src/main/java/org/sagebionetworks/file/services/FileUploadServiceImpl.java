@@ -192,4 +192,10 @@ public class FileUploadServiceImpl implements FileUploadService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.createExternalS3FileHandle(userInfo, fileHandle);
 	}
+
+	@Override
+	public S3FileHandle createS3FileHandleCopy(Long userId, String handleIdToCopyFrom, String fileName, String contentType) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createS3FileHandleCopy(userInfo, handleIdToCopyFrom, fileName, contentType);
+	}
 }
