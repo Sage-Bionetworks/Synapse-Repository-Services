@@ -340,6 +340,7 @@ public class FileHandleManagerImplAutowireTest {
 		fileUploadManager.deleteFileHandle(userInfo, copy1.getId());
 		try {
 			s3Client.getObject(copy2.getBucketName(), copy1.getKey());
+			fail("should have been deleted");
 		} catch (AmazonClientException e) {
 		}
 	}

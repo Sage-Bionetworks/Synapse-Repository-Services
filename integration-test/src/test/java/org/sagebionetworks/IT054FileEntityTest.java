@@ -187,14 +187,13 @@ public class IT054FileEntityTest {
 
 	@Test
 	public void testFileEntityChangeNameAndContent() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException {
-		// check download on orignal
+		// check download on original
 		URL fileHandleTemporaryUrl = synapse.getFileHandleTemporaryUrl(fileHandle.getId());
 		HttpResponse response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), fileHandleTemporaryUrl.toString(),
 				"GET", null, null);
 		int statusCode = response.getStatusLine().getStatusCode();
 		assertTrue(statusCode >= 200 && statusCode < 300);
 		for (Header header : response.getAllHeaders()) {
-			System.out.println(header);
 			if (header.getName().equals("Content-Disposition")) {
 				assertEquals("attachment; filename=LittleImage.png", header.getValue());
 			}
@@ -217,7 +216,6 @@ public class IT054FileEntityTest {
 		statusCode = response.getStatusLine().getStatusCode();
 		assertTrue(statusCode >= 200 && statusCode < 300);
 		for (Header header : response.getAllHeaders()) {
-			System.out.println(header);
 			if (header.getName().equals("Content-Disposition")) {
 				assertEquals("attachment; filename=newname.txt", header.getValue());
 			}
@@ -243,8 +241,8 @@ public class IT054FileEntityTest {
 		assertTrue(statusCode >= 200 && statusCode < 300);
 		httpEntity = response.getEntity();
 		ByteArrayOutputStream stillPngContent = new ByteArrayOutputStream();
-		IOUtils.copy(response.getEntity().getContent(), pngContent);
-		assertEquals(stillPngContent.toByteArray(), txtContent.toByteArray());
+		IOUtils.copy(response.getEntity().getContent(), stillPngContent);
+		assertArrayEquals(pngContent.toByteArray(), stillPngContent.toByteArray());
 	}
 
 	@Test
