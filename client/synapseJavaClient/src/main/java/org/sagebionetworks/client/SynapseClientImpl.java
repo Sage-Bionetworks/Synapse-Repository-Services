@@ -2543,6 +2543,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public S3FileHandle createS3FileHandleCopy(String originalFileHandleId, String name, String contentType)
+			throws JSONObjectAdapterException, SynapseException {
+		String uri = FILE_HANDLE + "/" + originalFileHandleId + "/copy";
+		S3FileHandle changes = new S3FileHandle();
+		changes.setFileName(name);
+		changes.setContentType(contentType);
+		return doCreateJSONEntity(getFileEndpoint(), uri, changes);
+	}
+
+	@Override
 	public String s3FileCopyAsyncStart(List<String> fileEntityIds, String destinationBucket, Boolean overwrite, String baseKey)
 			throws SynapseException {
 		S3FileCopyRequest s3FileCopyRequest = new S3FileCopyRequest();

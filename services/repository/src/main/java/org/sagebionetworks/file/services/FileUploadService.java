@@ -211,4 +211,16 @@ public interface FileUploadService {
 	 * @return
 	 */
 	S3FileHandle createExternalS3FileHandle(Long userId, S3FileHandle fileHandle);
+
+	/**
+	 * Create a new file handle pointing to an existing s3 file
+	 * 
+	 * @param userId
+	 * 
+	 * @param handleIdToCopyFrom
+	 * @param fileName
+	 * @param contentType
+	 * @return
+	 */
+	S3FileHandle createS3FileHandleCopy(Long userId, String handleIdToCopyFrom, String fileName, String contentType);
 }
