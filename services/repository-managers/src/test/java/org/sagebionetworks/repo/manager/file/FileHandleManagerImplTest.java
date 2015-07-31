@@ -576,6 +576,8 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleCopy() {
 		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", "image");
 
@@ -592,6 +594,8 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleCopyOnlyName() {
 		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", null);
 
@@ -608,6 +612,8 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleCopyOnlyContentType() {
 		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
 
@@ -625,6 +631,8 @@ public class FileHandleManagerImplTest {
 	public void testCreateS3FileHandleNewPreview() {
 		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle(), createS3FileHandle(), createS3FileHandle(),
 				createS3FileHandle(), createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
 
@@ -650,7 +658,7 @@ public class FileHandleManagerImplTest {
 		original.setEtag("etag");
 		original.setFileName("original.txt");
 		original.setContentType("text");
-		original.setCreatedBy("someone");
+		original.setCreatedBy("987");
 		original.setPreviewId("789");
 		return original;
 	}
@@ -665,6 +673,17 @@ public class FileHandleManagerImplTest {
 	public void testCreateS3FileHandleCopyFailOnNotExist() {
 		when(mockfileMetadataDao.get("123")).thenThrow(NotFoundException.class);
 		manager.createS3FileHandleCopy(mockUser, "123", "new", null);
+	}
+
+	@Test(expected = UnauthorizedException.class)
+	public void testCreateS3FileHandleCopyFailOnNotOwner() {
+		S3FileHandle originalFileHandle = createS3FileHandle();
+		originalFileHandle.setCreatedBy("000");
+		when(mockfileMetadataDao.get("123")).thenReturn(originalFileHandle);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "000")).thenReturn(
+				AuthorizationManagerUtil.ACCESS_DENIED);
+
+		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
 	}
 
 	/**

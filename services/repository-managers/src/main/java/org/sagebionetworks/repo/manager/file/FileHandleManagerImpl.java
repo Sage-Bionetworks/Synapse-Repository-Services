@@ -1100,6 +1100,16 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.requireType(originalFileHandle, S3FileHandle.class, "file handle to copy from");
 		S3FileHandle newS3FileHandle = (S3FileHandle) originalFileHandle;
 
+		/*
+		 * Only the creator of the original file handle can create a copy
+		 */
+		// Is the user authorized?
+		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleIdToCopyFrom, originalFileHandle.getCreatedBy())
+				.getAuthorized()) {
+			throw new UnauthorizedException("Only the creator of a file handle can create a copy. File handle id=" + handleIdToCopyFrom
+					+ " is not owned by you");
+		}
+
 		newS3FileHandle.setId(null);
 		newS3FileHandle.setEtag(null);
 		newS3FileHandle.setCreatedBy(getUserId(userInfo));
