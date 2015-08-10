@@ -136,9 +136,8 @@
 	
 	<!-- Audit config -->
 	<bean id="stackConfiguration.auditRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.aclRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.resourceAccessRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.stackInstanceNumber" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.snapshotRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.stack" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Logging -->

@@ -107,14 +107,15 @@ public interface FileHandleDao {
 	 * @return
 	 */
 	public String getPreviewFileHandleId(String handleId) throws NotFoundException;
-	
+
 	/**
-	 * Find a FileHandle using the key and MD5
+	 * Get the number of file handles referencing this bucket and key
+	 * 
+	 * @param bucketName
 	 * @param key
-	 * @param md5
 	 * @return
 	 */
-	public List<String> findFileHandleWithKeyAndMD5(String key, String md5);
+	public long getS3objectReferenceCount(String bucketName, String key);
 
 	long getCount() throws DatastoreException;
 

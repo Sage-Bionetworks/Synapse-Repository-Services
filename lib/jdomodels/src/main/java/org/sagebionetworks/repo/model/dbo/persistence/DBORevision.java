@@ -14,18 +14,15 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -118,17 +115,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private byte[] annotations;
 	private byte[] reference;
 	// used for migration only
-	@Deprecated
-	private byte[] references;
 
-	@Deprecated
-	public byte[] getReferences() {
-		return references;
-	}
-	@Deprecated
-	public void setReferences(byte[] references) {
-		this.references = references;
-	}
 	public Long getOwner() {
 		return owner;
 	}
@@ -208,17 +195,6 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 
 			@Override
 			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
-				if (backup.getReference() == null) {
-					try {
-						// Retrieve the historical reference from a blob
-						Reference ref = DBORevisionUtils.convertBlobToReference(backup.getReferences());
-						byte[] blob = JDOSecondaryPropertyUtils.compressReference(ref);
-						backup.setReference(blob);
-						backup.setReferences(null);
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-				}
 				return backup;
 			}
 

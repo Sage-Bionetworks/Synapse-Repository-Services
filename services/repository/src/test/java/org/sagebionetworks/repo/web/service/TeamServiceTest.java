@@ -5,6 +5,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -170,6 +171,8 @@ public class TeamServiceTest {
 		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		List<MessageToUserAndBody> resultList = Collections.singletonList(result);
 		when(mockTeamManager.createJoinedTeamNotifications(userInfo1, userInfo2, teamId, teamEndpoint, notificationUnsubscribeEndpoint)).thenReturn(resultList);
+		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(true);
+		
 		teamService.addMember(userId, teamId, principalId.toString(), teamEndpoint, notificationUnsubscribeEndpoint);
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
 		verify(mockUserManager).getUserInfo(userId);
@@ -211,6 +214,8 @@ public class TeamServiceTest {
 		jtst.setMemberId(principalId.toString());
 		SignedTokenUtil.signToken(jtst);
 		
+		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(true);
+		
 		ResponseMessage message = teamService.addMember(jtst, teamEndpoint, notificationUnsubscribeEndpoint);
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
 		verify(mockUserManager).getUserInfo(userId);
@@ -223,6 +228,47 @@ public class TeamServiceTest {
 		assertEquals(result, messageArg.getValue().get(0));	
 		
 		assertEquals("User auser has been added to team foo bar.", message.getMessage());
+
+	}
+	
+	@Test
+	public void testAddMemberByJoinTeamSignedTokenALREADYInTeam() throws Exception {
+		Long userId = 111L;
+		String teamId = "222";
+		Long principalId = 333L;
+		String teamEndpoint = "teamEndpoint:";
+		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
+		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
+		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
+		MessageToUser mtu = new MessageToUser();
+		mtu.setRecipients(Collections.singleton(principalId.toString()));
+		String content = "foo";
+		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
+		List<MessageToUserAndBody> resultList = Collections.singletonList(result);
+		when(mockTeamManager.createJoinedTeamNotifications(userInfo1, userInfo2, teamId, teamEndpoint, notificationUnsubscribeEndpoint)).thenReturn(resultList);
+		when(mockTeamManager.get(teamId)).thenReturn(team);
+		UserProfile memberUserProfile = new UserProfile();
+		memberUserProfile.setUserName("auser");
+		when(mockUserProfileManager.getUserProfile(principalId.toString())).thenReturn(memberUserProfile);
+		
+		JoinTeamSignedToken jtst = new JoinTeamSignedToken();
+		jtst.setUserId(userId.toString());
+		jtst.setTeamId(teamId);
+		jtst.setMemberId(principalId.toString());
+		SignedTokenUtil.signToken(jtst);
+		
+		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(false);
+		
+		ResponseMessage message = teamService.addMember(jtst, teamEndpoint, notificationUnsubscribeEndpoint);
+		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserManager).getUserInfo(principalId);
+				
+		verify(mockNotificationManager, never()).sendNotifications(eq(userInfo1), (List<MessageToUserAndBody>)any(List.class));
+		
+		assertEquals("User auser is already in team foo bar.", message.getMessage());
 
 	}
 	

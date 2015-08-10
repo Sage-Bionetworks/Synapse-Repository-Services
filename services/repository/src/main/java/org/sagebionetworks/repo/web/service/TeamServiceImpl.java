@@ -222,17 +222,25 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
 		SignedTokenUtil.validateToken(joinTeamToken);
-		addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
+		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
 		Team team = teamManager.get(joinTeamToken.getTeamId());
-		responseMessage.setMessage("User "+
-		EmailUtils.getDisplayNameWithUserName(userProfile)+
-		" has been added to team "+team.getName()+".");
+		String responseMessageText;
+		if (memberAdded) {
+			responseMessageText = "User "+
+					EmailUtils.getDisplayNameWithUserName(userProfile)+
+					" has been added to team "+team.getName()+".";
+		} else {
+			responseMessageText = "User "+
+					EmailUtils.getDisplayNameWithUserName(userProfile)+
+					" is already in team "+team.getName()+".";
+		}
+		responseMessage.setMessage(responseMessageText);
 		return responseMessage;
 	}
 
-	private void addMemberIntern(Long userId, String teamId, String principalId, 
+	private boolean addMemberIntern(Long userId, String teamId, String principalId, 
 			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
@@ -242,9 +250,12 @@ public class TeamServiceImpl implements TeamService {
 		// needed to determine who to notify
 		List<MessageToUserAndBody> messages = teamManager.createJoinedTeamNotifications(userInfo, memberUserInfo, teamId, teamEndpoint, notificationUnsubscribeEndpoint);
 		
-		teamManager.addMember(userInfo, teamId, memberUserInfo);
+		// the method is idempotent.  If the member is already added, it returns false
+		boolean memberAdded = teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		notificationManager.sendNotifications(userInfo, messages);
+		if (memberAdded) notificationManager.sendNotifications(userInfo, messages);
+		
+		return memberAdded;
 	}
 	
 	/* (non-Javadoc)

@@ -1428,34 +1428,14 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * Get the name of the audit ACL record bucket.
+	 * Get the name of the object snapshot record bucket.
 	 * 
 	 * @return
 	 */
-	public String getAclRecordBucketName() {
-		return String.format(StackConstants.ACL_RECORD_BUCKET, singleton().getStack());
-	}
-	
-	/**
-	 * Get the name of the audit ACL Resource Access record bucket.
-	 * 
-	 * @return
-	 */
-	public String getResourceAccessRecordBucketName() {
-		return String.format(StackConstants.RESOURCE_ACCESS_RECORD_BUCKET, singleton().getStack());
+	public String getSnapshotRecordBucketName() {
+		return String.format(StackConstants.SNAPSHOT_RECORD_BUCKET, singleton().getStack());
 	}
 
-	/**
-	 * Get the bucket name of the audit object record bucket.
-	 * 
-	 * @param stack - the stack name
-	 * @param type - the json object class name 
-	 * @return the bucket name for the requested type
-	 */
-	public static String getObjectRecordBucketName(String stack, String type) {
-		return String.format(StackConstants.OBJECT_RECORD_BUCKET, stack, type);
-	}
-	
 	/**
 	 * Get the name of the stack log bucket.
 	 * 

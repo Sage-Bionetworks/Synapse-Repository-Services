@@ -217,14 +217,35 @@ public class UploadController extends BaseController {
 	}
 
 	/**
+	 * Create a copy of an S3FileHandle with a new name and/or content type
+	 * 
+	 * @param userId
+	 * @param handleIdToCopyFrom the file handle it from which to duplicate the data
+	 * @param fileHandleWithNameAndContentType only the name and the content type are used
+	 * @return
+	 * @throws IOException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
+	 * @throws JSONObjectAdapterException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/fileHandle/{handleIdToCopyFrom}/copy", method = RequestMethod.POST)
+	public @ResponseBody
+	S3FileHandle copyS3FileHandle(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String handleIdToCopyFrom, @RequestBody S3FileHandle fileHandleWithNameAndContentType) throws IOException,
+			DatastoreException, NotFoundException, ServiceUnavailableException, JSONObjectAdapterException {
+		return fileService.createS3FileHandleCopy(userId, handleIdToCopyFrom, fileHandleWithNameAndContentType.getFileName(),
+				fileHandleWithNameAndContentType.getContentType());
+	}
+
+	/**
 	 * Get a FileHandle using its ID.
 	 * <p>
-	 * <b>Note:</b> Only the user that created the FileHandle can access it
-	 * directly.
+	 * <b>Note:</b> Only the user that created the FileHandle can access it directly.
 	 * </p>
 	 * 
-	 * @param handleId
-	 *            The ID of the FileHandle to fetch.
+	 * @param handleId The ID of the FileHandle to fetch.
 	 * @param userId
 	 * @param request
 	 * @return

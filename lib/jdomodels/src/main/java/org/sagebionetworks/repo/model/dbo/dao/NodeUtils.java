@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -56,6 +57,7 @@ class NodeUtils {
 		if (dto.getCreatedByPrincipalId() != null){
 			jdo.setCreatedBy(dto.getCreatedByPrincipalId());
 		}
+		jdo.setAlias(StringUtils.isEmpty(dto.getAlias()) ? null : dto.getAlias());
 		if (dto.getModifiedByPrincipalId()==null) throw new InvalidModelException("modifiedByPrincipalId may not be null");
 		rev.setModifiedBy(dto.getModifiedByPrincipalId());
 		if (dto.getModifiedOn()==null) throw new InvalidModelException("modifiedOn may not be null");
@@ -136,41 +138,6 @@ class NodeUtils {
 			throw new RuntimeException(e);
 		}
 	}
-
-	/**
-	 * Replace all fields from the dto.
-	 * @param dto
-	 * @param jdo
-	 * @throws DatastoreException
-	 */
-	public static void replaceFromDto(Node dto, DBONode jdo) throws DatastoreException {
-		jdo.setName(dto.getName());
-		if(dto.getDescription() != null){
-			try {
-				jdo.setDescription(dto.getDescription().getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			jdo.setDescription(null);
-		}
-		if(dto.getId() != null){
-			jdo.setId(KeyFactory.stringToKey(dto.getId()));
-		}
-		if(dto.getCreatedOn() != null){
-			jdo.setCreatedOn(dto.getCreatedOn().getTime());
-		}
-		jdo.setCreatedBy(dto.getCreatedByPrincipalId());
-		jdo.seteTag(KeyFactory.urlDecode(dto.getETag()));
-		jdo.setCurrentRevNumber(dto.getVersionNumber());
-		jdo.setType(dto.getNodeType().name());
-		if(dto.getParentId() != null){
-			jdo.setParentId(KeyFactory.stringToKey(dto.getParentId()));
-		}else{
-			jdo.setParentId(null);
-		}
-
-	}
 	
 	/**
 	 * Create a DTO from the JDO
@@ -207,6 +174,7 @@ class NodeUtils {
 		}
 		dto.setCreatedOn(new Date(jdo.getCreatedOn()));
 		dto.setCreatedByPrincipalId(jdo.getCreatedBy());
+		dto.setAlias(jdo.getAlias());
 		dto.setModifiedByPrincipalId(rev.getModifiedBy());
 		dto.setModifiedOn(new Date(rev.getModifiedOn()));
 		dto.setVersionComment(rev.getComment());

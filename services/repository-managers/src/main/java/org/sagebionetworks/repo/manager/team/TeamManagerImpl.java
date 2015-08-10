@@ -473,7 +473,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @param principalId the ID of the one to be added to the team
 	 * @return
 	 */
-	public boolean canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws NotFoundException {
+	public boolean canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo, boolean alreadyInTeam) throws NotFoundException {
 		if (userInfo.isAdmin()) return true;
 		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) return false;
 		String principalId = principalUserInfo.getId().toString();
@@ -487,12 +487,14 @@ public class TeamManagerImpl implements TeamManager {
 			Team team = teamDAO.get(teamId);
 			if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return true;
 			// if I'm not a team admin and the team is not open, then I need to have an open invitation
+			if (alreadyInTeam) return true;
 			long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 			return openInvitationCount>0L;
 		} else {
 			// the member to be added is someone other than me
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
+			if (alreadyInTeam) return true;
 			long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 			return openRequestCount>0L;
 		}
@@ -554,12 +556,13 @@ public class TeamManagerImpl implements TeamManager {
 	 */
 	@Override
 	@WriteTransaction
-	public void addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo)
+	public boolean addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		String principalId = principalUserInfo.getId().toString();
-		if (!canAddTeamMember(userInfo, teamId, principalUserInfo)) throw new UnauthorizedException("Cannot add member to Team.");
-		// check that user is not already in Team
-		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId)) {
+		boolean alreadyInTeam = userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId);
+		if (!canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam)) throw new UnauthorizedException("Cannot add member to Team.");
+
+		if (!alreadyInTeam) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
 			
 			transactionalMessenger.sendMessageAfterCommit(principalId, ObjectType.TEAM_MEMBER, "etag", teamId, ChangeType.UPDATE);
@@ -571,10 +574,13 @@ public class TeamManagerImpl implements TeamManager {
 			message.setMemberId(principalUserInfo.getId());
 			transactionalMessenger.sendModificationMessageAfterCommit(message);
 		}
+		
 		// clean up any invitations
 		membershipInvtnSubmissionDAO.deleteByTeamAndUser(Long.parseLong(teamId), principalUserInfo.getId());
 		// clean up and membership requests
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
+		
+		return !alreadyInTeam;
 	}
 	
 	/**
@@ -702,13 +708,14 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setTeamId(teamId);
 		String principalId = principalUserInfo.getId().toString();
 		tms.setUserId(principalId);
-		tms.setIsMember(userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId));
+		boolean isMember = userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId);
+		tms.setIsMember(isMember);
 		long now = System.currentTimeMillis();
 		long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenInvitation(openInvitationCount>0L);
 		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenRequest(openRequestCount>0L);
-		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo));
+		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo, isMember));
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
 		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));
 		return tms;
