@@ -88,8 +88,8 @@
 			</releases>
 		</pluginRepository>
 		<pluginRepository>
-			<id>Codehaus Snapshots</id>
-			<url>http://snapshots.repository.codehaus.org/</url>
+			<id>Maven Repo 1</id>
+			<url>http://repo1.maven.org/maven2/</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
