@@ -563,6 +563,18 @@ public class FileHandleManagerImplAutowireTest {
 		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public void testExternalUploadDestinationUrlCheckFail() throws Exception {
+		ExternalStorageLocationSetting externalLocationSetting = new ExternalStorageLocationSetting();
+		externalLocationSetting.setBanner("upload here");
+		externalLocationSetting.setSupportsSubfolders(true);
+		externalLocationSetting.setUploadType(UploadType.SFTP);
+		externalLocationSetting.setDescription("external");
+
+		externalLocationSetting.setUrl("sftp://www.sftpsite.com/base/base folder with spaces");
+		projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
+	}
+
 	@Test
 	public void testExternalS3UploadDestinationSecurityCheck() throws Exception {
 		String testBase = "test-base-" + UUID.randomUUID();
