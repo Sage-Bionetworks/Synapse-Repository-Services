@@ -92,7 +92,7 @@ public class ProjectSettingsImplAutowiredTest {
 
 		externalLocationSetting = new ExternalStorageLocationSetting();
 		externalLocationSetting.setUploadType(UploadType.SFTP);
-		externalLocationSetting.setUrl("sftp://here");
+		externalLocationSetting.setUrl("sftp://here.com");
 		externalLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalLocationSetting);
 
 		externalS3LocationSetting = new ExternalS3StorageLocationSetting();

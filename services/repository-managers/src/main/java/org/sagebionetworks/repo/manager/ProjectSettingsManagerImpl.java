@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -195,6 +196,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				throw new NotImplementedException("Synapse does not yet support external S3 buckets in non-us-east-1 locations");
 			}
 			validateOwnership(externalS3StorageLocationSetting, userProfile);
+		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
+			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
+			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
+			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
 		}
 
 		storageLocationSetting.setCreatedBy(userInfo.getId());
