@@ -167,6 +167,7 @@ public class PreviewIntegrationTest {
 		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
 	}
 
+	@Ignore
 	@Test
 	public void testRoundTripOffice() throws Exception {
 		try {

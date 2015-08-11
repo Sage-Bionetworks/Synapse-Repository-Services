@@ -108,7 +108,8 @@
 	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
+	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.tableUpdateDeadLetterQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />				
 	<bean id="stackConfiguration.tableCurrentCacheUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.tableReadTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			

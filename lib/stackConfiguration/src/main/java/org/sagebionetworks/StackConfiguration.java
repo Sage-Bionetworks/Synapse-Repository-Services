@@ -1025,6 +1025,12 @@ public class StackConfiguration {
 				singleton().getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	public String getTableUpdateDeadLetterQueueName() {
+		return String.format(StackConstants.TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
+				singleton().getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	public String getTableCurrentCacheUpdateQueueName() {
 		return String.format(StackConstants.TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE, singleton().getStack(),
