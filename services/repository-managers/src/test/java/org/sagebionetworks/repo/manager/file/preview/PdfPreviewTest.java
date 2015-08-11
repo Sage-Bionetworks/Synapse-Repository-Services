@@ -32,6 +32,10 @@ public class PdfPreviewTest {
 
 	@BeforeClass
 	public static void beforeClass() throws IOException {
+		checkInstalled();
+	}
+
+	public static void checkInstalled() throws IOException {
 		ConvertCmd convert = new ConvertCmd();
 		try {
 			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);

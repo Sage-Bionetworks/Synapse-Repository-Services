@@ -35,6 +35,7 @@ public class OfficePreviewTest {
 		} catch (Exception e) {
 			throw e;
 		}
+		PdfPreviewTest.checkInstalled();
 	}
 
 	@Before
