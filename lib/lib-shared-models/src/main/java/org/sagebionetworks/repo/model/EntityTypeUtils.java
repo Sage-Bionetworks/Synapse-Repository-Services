@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
@@ -22,9 +24,18 @@ import org.sagebionetworks.repo.model.table.TableEntity;
  *
  */
 public class EntityTypeUtils {
-	
+
 	private static final EntityTypeMetadata[] metadataArray;
-	
+	/*
+	 * This map helps getting the class of an EntityType given the EntityType.
+	 * 
+	 * Since GWT does not compile with Class.forName() and there is no ways to
+	 * auto generate EntityTypeMetadata with a class type variable, we store the
+	 * string class name in EntityTypeMetadata, and use this map to look for
+	 * the class of the entity type.
+	 */
+	private static final Map<String, Class<? extends Entity>> className;
+
 	static {
 		metadataArray = new EntityTypeMetadata[] {
 				// project
@@ -38,6 +49,13 @@ public class EntityTypeUtils {
 				// link
 				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link")
 		};
+
+		className = new HashMap<String, Class<? extends Entity>>();
+		className.put(Project.class.getName(), Project.class);
+		className.put(FileEntity.class.getName(), FileEntity.class);
+		className.put(Folder.class.getName(), Folder.class);
+		className.put(TableEntity.class.getName(), TableEntity.class);
+		className.put(Link.class.getName(), Link.class);
 	}
 
 	/**
@@ -78,11 +96,11 @@ public class EntityTypeUtils {
 	 * @param type
 	 * @return the class that goes with this type
 	 */
-	@SuppressWarnings("unchecked")
 	public static Class<? extends Entity> getClassForType(EntityType type) {
-		try {
-			return (Class<? extends Entity>) Class.forName(getMetadata(type).getClassName());
-		} catch (ClassNotFoundException e) {
+		String name = getMetadata(type).getClassName();
+		if (className.containsKey(name)) {
+			return className.get(name);
+		} else {
 			throw new RuntimeException("Class not found for type " + type);
 		}
 	}
