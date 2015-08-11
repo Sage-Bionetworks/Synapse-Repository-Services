@@ -567,24 +567,22 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(noPreviewHandle, results.get(noPreviewHandle.getId()));
 		assertEquals(withPreview, results.get(withPreview.getId()));
 	}
-	
+
 	@Test
-	public void testFindFileHandleWithKeyAndMD5(){
-		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
-		// Use a random UUID for the key
-		handle.setKey(UUID.randomUUID().toString());
-		// Calculate an MD5 from the key.
-		String md5 = TestUtils.calculateMD5(handle.getKey());
-		handle.setContentMd5(md5);
-		// Create the handle
-		handle = fileHandleDao.createFile(handle);
-		System.out.println(handle);
-		toDelete.add(handle.getId());
-		// Make sure we can find it
-		List<String> list = fileHandleDao.findFileHandleWithKeyAndMD5(handle.getKey(), handle.getContentMd5());
-		assertNotNull(list);
-		assertEquals(1, list.size());
-		assertEquals(handle.getId(), list.get(0));
+	public void testCountReferences() throws Exception {
+		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle1.setKey(UUID.randomUUID().toString());
+		assertEquals(0, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		handle1 = fileHandleDao.createFile(handle1);
+		assertEquals(1, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		S3FileHandle handle2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle2.setKey(handle1.getKey());
+		handle2 = fileHandleDao.createFile(handle2);
+		assertEquals(2, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		fileHandleDao.delete(handle2.getId());
+		assertEquals(1, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		fileHandleDao.delete(handle1.getId());
+		assertEquals(0, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
 	}
 
 	@Test

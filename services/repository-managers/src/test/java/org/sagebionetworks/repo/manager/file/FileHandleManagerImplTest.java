@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -26,6 +27,7 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -48,9 +50,9 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
@@ -417,7 +419,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setKey("key");
 		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
-		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		// fire!
 		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
 		assertNotNull(redirect);
@@ -483,7 +485,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setKey("key");
 		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
-		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
@@ -498,7 +500,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setKey("key");
 		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
-		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
@@ -571,6 +573,119 @@ public class FileHandleManagerImplTest {
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
 	
+	@Test
+	public void testCreateS3FileHandleCopy() {
+		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+
+		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", "image");
+
+		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
+		verify(mockfileMetadataDao).createFile(copy.capture());
+		assertEquals("bucket", copy.getValue().getBucketName());
+		assertEquals("key", copy.getValue().getKey());
+		assertEquals("newname.png", copy.getValue().getFileName());
+		assertEquals("image", copy.getValue().getContentType());
+		assertNull(copy.getValue().getId());
+		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
+	}
+
+	@Test
+	public void testCreateS3FileHandleCopyOnlyName() {
+		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+
+		manager.createS3FileHandleCopy(mockUser, "123", "newname.png", null);
+
+		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
+		verify(mockfileMetadataDao).createFile(copy.capture());
+		assertEquals("bucket", copy.getValue().getBucketName());
+		assertEquals("key", copy.getValue().getKey());
+		assertEquals("newname.png", copy.getValue().getFileName());
+		assertEquals("text", copy.getValue().getContentType());
+		assertNull(copy.getValue().getId());
+		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
+	}
+
+	@Test
+	public void testCreateS3FileHandleCopyOnlyContentType() {
+		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+
+		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
+
+		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
+		verify(mockfileMetadataDao).createFile(copy.capture());
+		assertEquals("bucket", copy.getValue().getBucketName());
+		assertEquals("key", copy.getValue().getKey());
+		assertEquals("original.txt", copy.getValue().getFileName());
+		assertEquals("image", copy.getValue().getContentType());
+		assertNull(copy.getValue().getId());
+		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
+	}
+
+	@Test
+	public void testCreateS3FileHandleNewPreview() {
+		when(mockfileMetadataDao.get("123")).thenReturn(createS3FileHandle(), createS3FileHandle(), createS3FileHandle(),
+				createS3FileHandle(), createS3FileHandle());
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+
+		ArgumentCaptor<S3FileHandle> copy = ArgumentCaptor.forClass(S3FileHandle.class);
+
+		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
+		manager.createS3FileHandleCopy(mockUser, "123", "text.png", null);
+		manager.createS3FileHandleCopy(mockUser, "123", "original.txt", "text");
+		manager.createS3FileHandleCopy(mockUser, "123", "different.txt", null);
+		manager.createS3FileHandleCopy(mockUser, "123", "different.txt", "text");
+
+		verify(mockfileMetadataDao, times(5)).createFile(copy.capture());
+		assertNull(copy.getAllValues().get(0).getPreviewId());
+		assertNull(copy.getAllValues().get(1).getPreviewId());
+		assertNotNull(copy.getAllValues().get(2).getPreviewId());
+		assertNotNull(copy.getAllValues().get(3).getPreviewId());
+		assertNotNull(copy.getAllValues().get(4).getPreviewId());
+	}
+
+	private S3FileHandle createS3FileHandle() {
+		S3FileHandle original = new S3FileHandle();
+		original.setBucketName("bucket");
+		original.setKey("key");
+		original.setId("123");
+		original.setEtag("etag");
+		original.setFileName("original.txt");
+		original.setContentType("text");
+		original.setCreatedBy("987");
+		original.setPreviewId("789");
+		return original;
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testCreateS3FileHandleCopyFailOnNeither() {
+		manager.createS3FileHandleCopy(mockUser, "123", null, null);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test(expected = NotFoundException.class)
+	public void testCreateS3FileHandleCopyFailOnNotExist() {
+		when(mockfileMetadataDao.get("123")).thenThrow(NotFoundException.class);
+		manager.createS3FileHandleCopy(mockUser, "123", "new", null);
+	}
+
+	@Test(expected = UnauthorizedException.class)
+	public void testCreateS3FileHandleCopyFailOnNotOwner() {
+		S3FileHandle originalFileHandle = createS3FileHandle();
+		originalFileHandle.setCreatedBy("000");
+		when(mockfileMetadataDao.get("123")).thenReturn(originalFileHandle);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "000")).thenReturn(
+				AuthorizationManagerUtil.ACCESS_DENIED);
+
+		manager.createS3FileHandleCopy(mockUser, "123", null, "image");
+	}
+
 	/**
 	 * This a file handle that has all of the required fields filled in.
 	 * @return

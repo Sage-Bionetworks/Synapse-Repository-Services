@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -50,6 +51,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("type", COL_NODE_TYPE),
 			new FieldColumn("benefactorId", COL_NODE_BENEFACTOR_ID),
 			new FieldColumn("projectId", COL_NODE_PROJECT_ID),
+			new FieldColumn("alias", COL_NODE_ALIAS),
 			};
 
 	@Override
@@ -87,6 +89,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				if(rs.wasNull()){
 					node.setProjectId(null);
 				}
+				node.setAlias(rs.getString(COL_NODE_ALIAS));
 				return node;
 			}
 
@@ -125,6 +128,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	private String type;
 	private Long benefactorId;
 	private Long projectId;
+	private String alias;
 
 	public Long getId() {
 		return id;
@@ -193,6 +197,14 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	public void setProjectId(Long projectId) {
 		this.projectId = projectId;
 	}
+
+	public String getAlias() {
+		return alias;
+	}
+
+	public void setAlias(String alias) {
+		this.alias = alias;
+	}
 	
 	public String geteTag() {
 		return eTag;
@@ -257,30 +269,24 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		list.add(new DBORevision());
 		return list;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
-		result = prime * result
-				+ ((projectId == null) ? 0 : projectId.hashCode());
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime
-				* result
-				+ ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
+		result = prime * result + ((alias == null) ? 0 : alias.hashCode());
+		result = prime * result + ((benefactorId == null) ? 0 : benefactorId.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
 		result = prime * result + Arrays.hashCode(description);
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result
-				+ ((nodeType == null) ? 0 : nodeType.hashCode());
-		result = prime * result
-				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result + ((nodeType == null) ? 0 : nodeType.hashCode());
+		result = prime * result + ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
 	@Override
@@ -292,15 +298,15 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		if (getClass() != obj.getClass())
 			return false;
 		DBONode other = (DBONode) obj;
+		if (alias == null) {
+			if (other.alias != null)
+				return false;
+		} else if (!alias.equals(other.alias))
+			return false;
 		if (benefactorId == null) {
 			if (other.benefactorId != null)
 				return false;
 		} else if (!benefactorId.equals(other.benefactorId))
-			return false;
-		if (projectId == null) {
-			if (other.projectId != null)
-				return false;
-		} else if (!projectId.equals(other.projectId))
 			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
@@ -344,19 +350,27 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				return false;
 		} else if (!parentId.equals(other.parentId))
 			return false;
+		if (projectId == null) {
+			if (other.projectId != null)
+				return false;
+		} else if (!projectId.equals(other.projectId))
+			return false;
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
+			return false;
 		return true;
 	}
 	
 	@Override
 	public String toString() {
-		return "DBONode [id=" + id + ", parentId=" + parentId + ", name="
-				+ name + ", currentRevNumber=" + currentRevNumber
-				+ ", description=" + Arrays.toString(description) + ", eTag="
-				+ eTag + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", nodeType=" + nodeType + ", benefactorId="
-				+ benefactorId + ", projectId="
-				+ projectId + "]";
+		return "DBONode [id=" + id + ", parentId=" + parentId + ", name=" + name + ", currentRevNumber=" + currentRevNumber
+				+ ", description=" + Arrays.toString(description) + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", nodeType=" + nodeType + ", type=" + type + ", benefactorId=" + benefactorId + ", projectId=" + projectId
+				+ ", alias=" + alias + "]";
 	}
+
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.ENTITY;

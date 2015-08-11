@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -118,18 +117,18 @@ public class MigrationManagerImplTest {
 	}
 
 	/**
-	 * This test is used during migrating the DBORevision from stack 98 to stack 99.
-	 * The old DBORevision contains Map<String, Set<Reference>> references.
-	 * The new DBORevision contains Reference reference.
+	 * This test is used during migrating the DBORevision from stack 99 to stack 100.
+	 * The old DBORevision contains reference and references.
+	 * The new DBORevision only contains reference and does not contain references.
 	 * The purpose of this test is to make sure that MigrationManagerImpl.createOrUpdateBatch()
 	 * successfully migrates the old object to the new one.
 	 * 
-	 * For more information, please see PLFM-3492.
+	 * For more information, please see PLFM-3499.
 	 * @throws IOException 
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Test
-	public void createOrUpdateBatchOfDBORevisionTest() throws IOException {
+	public void createOrUpdateBatchOfDBORevisionTestPLFM3499() throws IOException {
 		MigratableDatabaseObject mdo = new DBORevision();
 		String alias = mdo.getTableMapping().getTableName();
 
@@ -149,9 +148,8 @@ public class MigrationManagerImplTest {
 						"<annotations>H4sIAAAAAAAAALPJS8xN1S0uSExOteNSULDJTSwA0UBWal5JUSWEDeQVlxRl5qXbObq4eIZ4+vs5" +
 								"+tjoQ4VgKhLz8vJLEksy8/OKYWJwfY4IOX0kyZT80qScVBySOfm49SWW4NKVlJOfhE3KRh/DfTb6" +
 								"SF7E7t2AIE9fx6DIYeVXG31wHNvoI8U8AD9tTV8GAgAA</annotations>" +
-						"<references>H4sIAAAAAAAAAJVQMQ7CMBDbeUVfkKiwRtlZGBBiT6mJoja56nII8XtSNUGCjc2+s0/2megWu+s6" +
-						"gyT8WlHBWTgkb+eQpnwhoyuvS8iGCib2KjuPIVCCPImnrBgLqUgjZnXGHYx0QzMUizj2kONo+/3B" +
-						"6A/7FVzBuRw9PeIAtn1Tfo9bDP1fjlJo62B0bW30+oY3Dl+NUgwBAAA=</references>" +
+						"<reference>H4sIAAAAAAAAALPJL0rXK05MT03KzM9LLSnPL8ou1itKLcjXy81PSc3RC0pNSy1KzUtOteNSULAp" +
+								"SSxKTy3xTLEzNDK20YfzEFJhqUXFQIP8SnOTUovsDGFqUIW5bPSJthUA9SLq6KAAAAA=</reference>" +
 					"</JDOREVISION>" +
 				"</linked-list>";
 		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
@@ -162,13 +160,11 @@ public class MigrationManagerImplTest {
 
 		MigratableTableTranslation<DBORevision, DBORevision> translator = mdo.getTranslator();
 		DBORevision backup = backupList.get(0);
-		assertNull(backup.getReference());
+		assertNotNull(backup.getReference());
 
 		DBORevision databaseObject = translator.createDatabaseObjectFromBackup(backup);
 		assertNotNull(databaseObject);
-		System.out.println(databaseObject.toString());
 		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(databaseObject.getReference()));
-		assertEquals(null, databaseObject.getReferences());
 	}
 
 	/**

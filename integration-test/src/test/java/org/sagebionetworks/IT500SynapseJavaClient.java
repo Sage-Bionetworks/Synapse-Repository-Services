@@ -1209,7 +1209,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getIsMember());
 		assertFalse(tms.getHasOpenInvitation());
 		assertFalse(tms.getHasOpenRequest());
-		assertFalse(tms.getCanJoin());
+		assertTrue(tms.getCanJoin());
 
 		// query for team members.  should get creator as well as new member back
 		members = waitForTeamMembers(updatedTeam.getId(), null, 2, 0);

@@ -1,10 +1,12 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -14,6 +16,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -39,11 +44,15 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
+import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.util.IOUtils;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 
 public class IT054FileEntityTest {
 
@@ -58,8 +67,8 @@ public class IT054FileEntityTest {
 	private File imageFile;
 	private S3FileHandle fileHandle;
 	private String baseKey;
-	private PreviewFileHandle previewFileHandle;
 	private Project project;
+	private List<String> fileHandlesToDelete = Lists.newArrayList();
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -93,6 +102,7 @@ public class IT054FileEntityTest {
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
+		fileHandlesToDelete.add(fileHandle.getId());
 		baseKey = UUID.randomUUID().toString() + '/';
 	}
 
@@ -101,14 +111,9 @@ public class IT054FileEntityTest {
 		if(project != null){
 			synapse.deleteEntity(project, true);
 		}
-		if(fileHandle != null){
+		for (String handle : fileHandlesToDelete) {
 			try {
-				synapse.deleteFileHandle(fileHandle.getId());
-			} catch (Exception e) {}
-		}
-		if(previewFileHandle != null){
-			try {
-				synapse.deleteFileHandle(previewFileHandle.getId());
+				synapse.deleteFileHandle(handle);
 			} catch (Exception e) {}
 		}
 		S3TestUtils.doDeleteAfter(s3Client);
@@ -124,7 +129,7 @@ public class IT054FileEntityTest {
 	@Test
 	public void testFileEntityRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		// Before we start the test wait for the preview to be created
-		waitForPreviewToBeCreated(fileHandle);
+		PreviewFileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
 		// Now create a FileEntity
 		FileEntity file = new FileEntity();
 		file.setName("IT054FileEntityTest.testFileEntityRoundTrip");
@@ -178,6 +183,66 @@ public class IT054FileEntityTest {
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
 		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertTrue(tempfile.length()>0);
+	}
+
+	@Test
+	public void testFileEntityChangeNameAndContent() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException {
+		// check download on original
+		URL fileHandleTemporaryUrl = synapse.getFileHandleTemporaryUrl(fileHandle.getId());
+		HttpResponse response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), fileHandleTemporaryUrl.toString(),
+				"GET", null, null);
+		int statusCode = response.getStatusLine().getStatusCode();
+		assertTrue(statusCode >= 200 && statusCode < 300);
+		for (Header header : response.getAllHeaders()) {
+			if (header.getName().equals("Content-Disposition")) {
+				assertEquals("attachment; filename=LittleImage.png", header.getValue());
+			}
+		}
+		HttpEntity httpEntity = response.getEntity();
+		ByteArrayOutputStream pngContent = new ByteArrayOutputStream();
+		IOUtils.copy(httpEntity.getContent(), pngContent);
+		assertEquals("image/png", httpEntity.getContentType().getValue());
+		PreviewFileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
+		assertEquals("image/png", previewFileHandle.getContentType());
+
+		// create a copy of a different type
+		S3FileHandle copy = synapse.createS3FileHandleCopy(fileHandle.getId(), "newname.txt", "application/text");
+		fileHandlesToDelete.add(copy.getId());
+
+		// and check download on copy
+		fileHandleTemporaryUrl = synapse.getFileHandleTemporaryUrl(copy.getId());
+		response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), fileHandleTemporaryUrl.toString(), "GET", null,
+				null);
+		statusCode = response.getStatusLine().getStatusCode();
+		assertTrue(statusCode >= 200 && statusCode < 300);
+		for (Header header : response.getAllHeaders()) {
+			if (header.getName().equals("Content-Disposition")) {
+				assertEquals("attachment; filename=newname.txt", header.getValue());
+			}
+		}
+		httpEntity = response.getEntity();
+		ByteArrayOutputStream txtContent = new ByteArrayOutputStream();
+		IOUtils.copy(response.getEntity().getContent(), txtContent);
+		assertEquals("application/text", httpEntity.getContentType().getValue());
+
+		previewFileHandle = waitForPreviewToBeCreated(copy);
+		assertEquals("text/plain", previewFileHandle.getContentType());
+
+		assertArrayEquals(pngContent.toByteArray(), txtContent.toByteArray());
+
+		// delete copy
+		synapse.deleteFileHandle(copy.getId());
+
+		// and check download on original again
+		fileHandleTemporaryUrl = synapse.getFileHandleTemporaryUrl(fileHandle.getId());
+		response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), fileHandleTemporaryUrl.toString(), "GET", null,
+				null);
+		statusCode = response.getStatusLine().getStatusCode();
+		assertTrue(statusCode >= 200 && statusCode < 300);
+		httpEntity = response.getEntity();
+		ByteArrayOutputStream stillPngContent = new ByteArrayOutputStream();
+		IOUtils.copy(response.getEntity().getContent(), stillPngContent);
+		assertArrayEquals(pngContent.toByteArray(), stillPngContent.toByteArray());
 	}
 
 	@Test
@@ -287,7 +352,7 @@ public class IT054FileEntityTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	private void waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
+	private PreviewFileHandle waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
 			SynapseException {
 		long start = System.currentTimeMillis();
 		while(fileHandle.getPreviewId() == null){
@@ -297,7 +362,9 @@ public class IT054FileEntityTest {
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		// Fetch the preview file handle
-		previewFileHandle = (PreviewFileHandle) synapse.getRawFileHandle(fileHandle.getPreviewId());
+		PreviewFileHandle previewFileHandle = (PreviewFileHandle) synapse.getRawFileHandle(fileHandle.getPreviewId());
+		fileHandlesToDelete.add(previewFileHandle.getId());
+		return previewFileHandle;
 	}
 	
 }

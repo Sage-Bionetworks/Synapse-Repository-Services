@@ -233,11 +233,15 @@ public class NodeManagerImplUnitTest {
 		// Make the actual call
 		assertEquals(nodeId, nodeManager.createNewNode(newNode, userInfo));
 		newNode.setId(nodeId);
+
+		Node oldNode = mock(Node.class);
+		when(oldNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode("101")).thenReturn(oldNode);
 		
 		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
 		when(mockAuthManager.canUserMoveRestrictedEntity(userInfo, parentId, parentId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		nodeManager.update(userInfo, newNode);
-		
+
 		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			nodeManager.update(userInfo, newNode);
@@ -322,6 +326,9 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
 		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		Node oldNode = mock(Node.class);
+		when(oldNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode("123")).thenReturn(oldNode);
 		// not found
 		try {
 			when(mockActivityManager.doesActivityExist(activityId)).thenReturn(false);		
@@ -358,7 +365,10 @@ public class NodeManagerImplUnitTest {
 		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);		
 		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
 		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		
+		Node oldNode = mock(Node.class);
+		when(oldNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getNode("123")).thenReturn(oldNode);
+
 		// fail authZ
 		try {
 			when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
@@ -553,6 +563,9 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(unauthorizedParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId), eq(authorizedParentId))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId), eq(unauthorizedParentId))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		Node oldNode = mock(Node.class);
+		when(oldNode.getParentId()).thenReturn(currentParentId);
+		when(mockNodeDao.getNode("123")).thenReturn(oldNode);
 		
 		// unauthorized
 		try {

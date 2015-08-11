@@ -358,4 +358,15 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle);
+
+	/**
+	 * Create a copy of a file handle with a new name and content type
+	 * 
+	 * @param userInfo
+	 * @param handleIdToCopyFrom
+	 * @param fileName
+	 * @param contentType
+	 * @return
+	 */
+	S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType);
 }

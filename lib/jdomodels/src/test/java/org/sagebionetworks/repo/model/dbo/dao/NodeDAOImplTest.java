@@ -1643,17 +1643,12 @@ public class NodeDAOImplTest {
 	@Test
 	public void testIsNodeRoot() throws Exception {
 		//make root node
-		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		assertNotNull(parentId);
-		assertTrue(nodeDao.isNodeRoot(parentId));
+		assertTrue(nodeDao.isNodeRoot(KeyFactory.SYN_ROOT_ID));
 		
 		//add a child to the root	
-		node = privateCreateNew("child1");
+		Node node = privateCreateNew("child1");
 		node.setNodeType(EntityType.folder);
-		node.setParentId(parentId);
+		node.setParentId(KeyFactory.SYN_ROOT_ID);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
 		assertFalse(nodeDao.isNodeRoot(child1Id));
@@ -1673,18 +1668,10 @@ public class NodeDAOImplTest {
 	 */
 	@Test
 	public void testIsNodesParentRoot() throws Exception {
-		//make root node
-		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		assertNotNull(parentId);
-		assertFalse(nodeDao.isNodesParentRoot(parentId));
-		
 		//add a child to the root	
-		node = privateCreateNew("child1");
+		Node node = privateCreateNew("child1");
 		node.setNodeType(EntityType.folder);
-		node.setParentId(parentId);
+		node.setParentId(KeyFactory.SYN_ROOT_ID);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
 		assertTrue(nodeDao.isNodesParentRoot(child1Id));
@@ -1701,23 +1688,18 @@ public class NodeDAOImplTest {
 	@Test
 	public void testHasChildren() throws DatastoreException, InvalidModelException, NotFoundException{
 		//make root node
-		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		assertNotNull(parentId);
-		assertFalse(nodeDao.isNodesParentRoot(parentId));
+		assertFalse(nodeDao.isNodesParentRoot(KeyFactory.SYN_ROOT_ID));
 		
 		//add a child to the root	
-		node = privateCreateNew("child1");
+		Node node = privateCreateNew("child1");
 		node.setNodeType(EntityType.folder);
-		node.setParentId(parentId);
+		node.setParentId(KeyFactory.SYN_ROOT_ID);
 		String child1Id = nodeDao.createNew(node);
 		toDelete.add(child1Id);
 		assertTrue(nodeDao.isNodesParentRoot(child1Id));
 		
 		// The root should have children but the child should not
-		assertTrue(nodeDao.doesNodeHaveChildren(parentId));
+		assertTrue(nodeDao.doesNodeHaveChildren(KeyFactory.SYN_ROOT_ID));
 		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
 	}
 

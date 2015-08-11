@@ -98,6 +98,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
+	public long getS3objectReferenceCount(String bucketName, String key) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	@Override
 	public long getCount() throws DatastoreException {
 		// TODO Auto-generated method stub
 		return 0;
@@ -106,12 +111,6 @@ public class StubFileMetadataDao implements FileHandleDao {
 	@Override
 	public long getMaxId() throws DatastoreException {
 		return map.size();
-	}
-
-	@Override
-	public List<String> findFileHandleWithKeyAndMD5(String key, String md5) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override

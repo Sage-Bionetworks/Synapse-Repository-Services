@@ -10,7 +10,10 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
@@ -25,6 +28,7 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPut;
@@ -39,6 +43,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -73,11 +78,13 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -264,6 +271,80 @@ public class FileHandleManagerImplAutowireTest {
 		}
 	}
 	
+	@Test
+	public void testFileHandleCopy() throws Exception {
+		FileItemIterator mockIterator = Mockito.mock(FileItemIterator.class);
+		// The first file.
+		// Mock two streams
+		when(mockIterator.hasNext()).thenReturn(true, false);
+		// Use the first two files.
+		when(mockIterator.next()).thenReturn(fileStreams.get(0));
+		// Upload the files.
+		FileUploadResults results = fileUploadManager.uploadfiles(userInfo, new HashSet<String>(), mockIterator);
+		toDelete.addAll(results.getFiles());
+		String fileHandleId = results.getFiles().get(0).getId();
+
+		URL url = new URL(fileUploadManager.getRedirectURLForFileHandle(fileHandleId));
+		URLConnection connection = url.openConnection();
+		assertEquals("text/plain", connection.getHeaderField(HttpHeaders.CONTENT_TYPE));
+		assertEquals("attachment; filename=foo-0.txt", connection.getHeaderField("Content-Disposition"));
+		String contentTypeString = connection.getHeaderField(HttpHeaders.CONTENT_TYPE);
+		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
+		InputStream in = connection.getInputStream();
+		String content = FileUtils.readStreamAsString(in, charset, false);
+		in.close();
+
+		S3FileHandle createS3FileHandleCopy = fileUploadManager.createS3FileHandleCopy(userInfo, fileHandleId, "newname.xml", "text/xml");
+		toDelete.add(createS3FileHandleCopy);
+
+		url = new URL(fileUploadManager.getRedirectURLForFileHandle(createS3FileHandleCopy.getId()));
+		connection = url.openConnection();
+		assertEquals("text/xml", connection.getHeaderField(HttpHeaders.CONTENT_TYPE));
+		assertEquals("attachment; filename=newname.xml", connection.getHeaderField("Content-Disposition"));
+		contentTypeString = connection.getHeaderField(HttpHeaders.CONTENT_TYPE);
+		charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
+		in = connection.getInputStream();
+		String copyContent = FileUtils.readStreamAsString(in, charset, false);
+		in.close();
+
+		assertEquals(content, copyContent);
+	}
+
+	@Test
+	public void testFileHandleDeleteOnCopy() throws Exception {
+		FileItemIterator mockIterator = Mockito.mock(FileItemIterator.class);
+		// The first file.
+		// Mock two streams
+		when(mockIterator.hasNext()).thenReturn(true, false);
+		// Use the first two files.
+		when(mockIterator.next()).thenReturn(fileStreams.get(0));
+		// Upload the files.
+		FileUploadResults results = fileUploadManager.uploadfiles(userInfo, new HashSet<String>(), mockIterator);
+		toDelete.addAll(results.getFiles());
+		S3FileHandle original = results.getFiles().get(0);
+
+		S3FileHandle copy1 = fileUploadManager.createS3FileHandleCopy(userInfo, original.getId(), "newname.xml", "text/xml");
+		toDelete.add(copy1);
+
+		S3FileHandle copy2 = fileUploadManager.createS3FileHandleCopy(userInfo, original.getId(), "newname.xml", "text/xml");
+		toDelete.add(copy2);
+
+		assertTrue(S3TestUtils.doesFileExist(original.getBucketName(), original.getKey(), s3Client, 30000));
+
+		fileUploadManager.deleteFileHandle(userInfo, original.getId());
+		s3Client.getObject(original.getBucketName(), original.getKey());
+
+		fileUploadManager.deleteFileHandle(userInfo, copy2.getId());
+		s3Client.getObject(copy2.getBucketName(), copy2.getKey());
+
+		fileUploadManager.deleteFileHandle(userInfo, copy1.getId());
+		try {
+			s3Client.getObject(copy2.getBucketName(), copy1.getKey());
+			fail("should have been deleted");
+		} catch (AmazonClientException e) {
+		}
+	}
+
 	/**
 	 * The cross-origin resource sharing (CORS) setting are required so the browser javascript code can talk directly to S3.
 	 * 

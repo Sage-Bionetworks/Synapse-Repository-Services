@@ -95,39 +95,6 @@ public class NodeUtilsTest {
 	}
 	
 	@Test
-	public void testreplaceFromDto() throws DatastoreException, UnsupportedEncodingException{
-		Node node = new Node();
-		node.setName("myName");
-		node.setDescription("someDescription");
-		node.setId("101");
-		node.setNodeType(EntityType.project);
-		node.setCreatedByPrincipalId(createdById);
-		node.setETag("1013");
-		node.setCreatedOn(new Date(10000));
-		node.setVersionNumber(2L);
-		node.setParentId("456");
-		// Now replace all node data
-		DBONode dboNode = new DBONode();
-		dboNode.setId(101L);
-		NodeUtils.replaceFromDto(node, dboNode);
-		assertEquals("myName", dboNode.getName());
-		assertNotNull(dboNode.getDescription());
-		assertEquals("someDescription", new String(dboNode.getDescription(),"UTF-8"));
-		assertEquals(createdById, dboNode.getCreatedBy());
-		assertEquals(10000l, (long)dboNode.getCreatedOn());
-		assertEquals(2l, (long)dboNode.getCurrentRevNumber());
-		assertEquals("1013", dboNode.getEtag());
-		assertEquals(EntityType.project.name(), dboNode.getType());
-		assertEquals(456l, (long)dboNode.getParentId());
-		
-		// Make sure parent ID can be null
-		node.setParentId(null);
-		NodeUtils.replaceFromDto(node, dboNode);
-		assertEquals(null, dboNode.getParentId());
-		
-	}
-	
-	@Test
 	public void nullNode() {
 		assertFalse(NodeUtils.isValidNode(null));
 	}

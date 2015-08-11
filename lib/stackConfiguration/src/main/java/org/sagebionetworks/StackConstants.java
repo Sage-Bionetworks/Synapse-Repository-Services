@@ -114,20 +114,10 @@ public class StackConstants {
 	public static final String ACCESS_RECORD_BUCKET = "%1$s.access.record.sagebase.org";
 	
 	/**
-	 * The bucket containing all Access Control List record data.
+	 * The bucket containing all object snapshot record data.
 	 */
-	public static final String ACL_RECORD_BUCKET = "%1$s.acl.record.sagebase.org";
-	
-	/**
-	 * The bucket containing all ACL's Resource Access record data.
-	 */
-	public static final String RESOURCE_ACCESS_RECORD_BUCKET = "%1$s.resource.access.record.sagebase.org";
-	
-	/**
-	 * The bucket containing all object record data.
-	 */
-	public static final String OBJECT_RECORD_BUCKET = "%1$s.snapshot.%2$s.record.sagebase.org";
-	
+	public static final String SNAPSHOT_RECORD_BUCKET = "%1$s.snapshot.record.sagebase.org";
+
 	/**
 	 * The bucket containing all access record data.
 	 */

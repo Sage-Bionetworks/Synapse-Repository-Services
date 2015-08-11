@@ -28,6 +28,7 @@ public class SqlConstants {
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
 	public static final String COL_CURRENT_REV			= "CURRENT_REV_NUM";
+	public static final String COL_NODE_ALIAS 			= "ALIAS";
 	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
 	
 	// The Revision table
@@ -670,17 +671,6 @@ public class SqlConstants {
 	public static final String OFFSET_PARAM_NAME = "OFFSET";
 	public static final String LIMIT_PARAM_NAME = "LIMIT";
 	
-	public static final String[] PRIMARY_FIELDS;
-	
-	static {
-		Field[] fields = Node.class.getDeclaredFields();
-		PRIMARY_FIELDS = new String[fields.length+1];
-		for(int i=0; i<fields.length; i++){
-			PRIMARY_FIELDS[i] = fields[i].getName();
-		}
-	}
-	
-
 	
 	// This is the alias of the sub-query used for sorting on annotations.
 	public static final String ANNOTATION_SORT_SUB_ALIAS 	= "assa";

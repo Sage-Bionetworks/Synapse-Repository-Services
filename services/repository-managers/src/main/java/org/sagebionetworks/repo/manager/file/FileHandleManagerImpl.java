@@ -26,7 +26,9 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.util.Streams;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
@@ -90,8 +92,10 @@ import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
@@ -404,9 +408,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			// Is this an S3 file?
 			if (handle instanceof S3FileHandleInterface) {
 				S3FileHandleInterface s3Handle = (S3FileHandleInterface) handle;
-				// Delete the file from S3
-				s3Client.deleteObject(s3Handle.getBucketName(),
-						s3Handle.getKey());
+				// at this point, we need to note that multiple S3FileHandles can point to the same bucket/key. We need
+				// to check if this is the last S3FileHandle to point to this S3 object
+				if (fileHandleDao.getS3objectReferenceCount(s3Handle.getBucketName(), s3Handle.getKey()) <= 1) {
+					// Delete the file from S3
+					s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
+				}
 			}
 			// Delete the handle from the DB
 			fileHandleDao.delete(handleId);
@@ -436,12 +443,22 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		} else if (handle instanceof S3FileHandleInterface) {
 			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
 			// Create a pre-signed url
-			return s3Client.generatePresignedUrl(
-					s3File.getBucketName(),
-					s3File.getKey(),
-					new Date(System.currentTimeMillis()
-							+ PRESIGNED_URL_EXPIRE_TIME_MS), HttpMethod.GET)
-					.toExternalForm();
+			GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(s3File.getBucketName(), s3File.getKey(), HttpMethod.GET);
+			request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
+
+			ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
+
+			String contentType = handle.getContentType();
+			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+				responseHeaderOverrides.setContentType(contentType);
+			}
+			String fileName = handle.getFileName();
+			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+				responseHeaderOverrides.setContentDisposition("attachment; filename=" + fileName);
+			}
+
+			request.setResponseHeaders(responseHeaderOverrides);
+			return s3Client.generatePresignedUrl(request).toExternalForm();
 		} else {
 			throw new IllegalArgumentException("Unknown FileHandle class: "
 					+ handle.getClass().getName());
@@ -1070,5 +1087,51 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
 		return fileHandleDao.createFile(fileHandle);
+	}
+
+	@Override
+	public S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType) {
+		ValidateArgument.required(userInfo, "UserInfo");
+		ValidateArgument.required(handleIdToCopyFrom, "handleIdToCopyFrom");
+		ValidateArgument.requirement(StringUtils.isNotEmpty(fileName) || StringUtils.isNotEmpty(contentType),
+				"Either the fileName or the contentType needs to be set");
+
+		FileHandle originalFileHandle = fileHandleDao.get(handleIdToCopyFrom);
+		ValidateArgument.requireType(originalFileHandle, S3FileHandle.class, "file handle to copy from");
+		S3FileHandle newS3FileHandle = (S3FileHandle) originalFileHandle;
+
+		/*
+		 * Only the creator of the original file handle can create a copy
+		 */
+		// Is the user authorized?
+		if (!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleIdToCopyFrom, originalFileHandle.getCreatedBy())
+				.getAuthorized()) {
+			throw new UnauthorizedException("Only the creator of a file handle can create a copy. File handle id=" + handleIdToCopyFrom
+					+ " is not owned by you");
+		}
+
+		newS3FileHandle.setId(null);
+		newS3FileHandle.setEtag(null);
+		newS3FileHandle.setCreatedBy(getUserId(userInfo));
+		newS3FileHandle.setCreatedOn(new Date());
+
+		boolean needsNewPreview = false;
+		if (StringUtils.isNotEmpty(fileName)) {
+			if (!StringUtils.equals(FilenameUtils.getExtension(fileName), FilenameUtils.getExtension(newS3FileHandle.getFileName()))) {
+				needsNewPreview = true;
+			}
+			newS3FileHandle.setFileName(fileName);
+		}
+		if (StringUtils.isNotEmpty(contentType)) {
+			if (!StringUtils.equals(contentType, newS3FileHandle.getContentType())) {
+				needsNewPreview = true;
+			}
+			newS3FileHandle.setContentType(contentType);
+		}
+		if (needsNewPreview) {
+			newS3FileHandle.setPreviewId(null);
+		}
+		// Save the file metadata to the DB.
+		return fileHandleDao.createFile(newS3FileHandle);
 	}
 }

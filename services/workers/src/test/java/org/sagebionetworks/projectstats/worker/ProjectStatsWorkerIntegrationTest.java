@@ -384,7 +384,7 @@ public class ProjectStatsWorkerIntegrationTest {
 
 	private void addAcl(Long project, Long... usersToAdd) throws Exception {
 		AccessControlList acl = accessControlListDAO.get(project.toString(), ObjectType.ENTITY);
-		Set<ResourceAccess> ras = AclSnapshotUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), 14);
+		Set<ResourceAccess> ras = AclSnapshotUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), -1);
 		acl.getResourceAccess().addAll(ras);
 
 		// update the ACL
