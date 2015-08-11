@@ -39,6 +39,9 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[TABLE]" />
 									</list>
 								</property>
+								<property name="deadLetterQueueName"
+									ref="stackConfiguration.tableUpdateDeadLetterQueueName" />
+								<property name="deadLetterMaxFailureCount" value="20" />								
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

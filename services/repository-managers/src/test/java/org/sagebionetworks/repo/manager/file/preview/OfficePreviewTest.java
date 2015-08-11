@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.TestStreams;
 import org.springframework.util.StreamUtils;
 
+@Ignore
 public class OfficePreviewTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
