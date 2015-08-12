@@ -290,7 +290,7 @@ public class IT049FileHandleTest {
 
 		ExternalStorageLocationSetting externalDestination = new ExternalStorageLocationSetting();
 		externalDestination.setUploadType(UploadType.HTTPS);
-		externalDestination.setUrl("https://not-valid");
+		externalDestination.setUrl("https://notvalid.com");
 		externalDestination.setBanner("warning, at institute");
 		externalDestination.setDescription("not in synapse, this is");
 
@@ -432,7 +432,7 @@ public class IT049FileHandleTest {
 		// create an project setting
 		ExternalStorageLocationSetting externalDestination = new ExternalStorageLocationSetting();
 		externalDestination.setUploadType(UploadType.SFTP);
-		externalDestination.setUrl("sftp://somewhere");
+		externalDestination.setUrl("sftp://somewhere.com");
 		externalDestination.setBanner("warning, at institute");
 		externalDestination.setDescription("not in synapse, this is");
 		externalDestination = synapse.createStorageLocationSetting(externalDestination);

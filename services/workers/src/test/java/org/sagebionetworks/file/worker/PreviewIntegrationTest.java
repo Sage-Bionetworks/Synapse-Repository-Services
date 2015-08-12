@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.LinkedList;
@@ -158,13 +159,17 @@ public class PreviewIntegrationTest {
 
 	@Test
 	public void testRoundTripPdf() throws Exception {
+		checkImageMagickInstalled();
+		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
+	}
+
+	private void checkImageMagickInstalled() throws IOException {
 		ConvertCmd convert = new ConvertCmd();
 		try {
-			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH + "x");
+			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);
 		} catch (FileNotFoundException e) {
 			Assume.assumeNoException(e);
 		}
-		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
 	}
 
 	@Test
@@ -176,6 +181,7 @@ public class PreviewIntegrationTest {
 		} catch (Exception e) {
 			throw e;
 		}
+		checkImageMagickInstalled();
 		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }
