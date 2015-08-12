@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file.preview;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,13 +10,18 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.lang.ProcessBuilder.Redirect;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -27,7 +33,6 @@ import com.sun.star.bridge.UnoUrlResolver;
 import com.sun.star.bridge.XUnoUrlResolver;
 import com.sun.star.comp.helper.Bootstrap;
 import com.sun.star.comp.helper.BootstrapException;
-import com.sun.star.document.XTypeDetection;
 import com.sun.star.frame.XComponentLoader;
 import com.sun.star.frame.XDesktop;
 import com.sun.star.frame.XStorable;
@@ -51,6 +56,8 @@ import com.sun.star.util.XCloseable;
  */
 public class OfficePreviewGenerator implements PreviewGenerator {
 
+	private static Log log = LogFactory.getLog(OfficePreviewGenerator.class);
+
 	static final String[] OPENOFFICE_PATHS = { "/usr/bin/soffice", "C:/Program Files (x86)/OpenOffice 4/program/soffice.exe" };
 
 	private static final String LOCAL_CONNECT_STRING = "socket,host=127.0.0.1,port=8100;urp";
@@ -68,6 +75,8 @@ public class OfficePreviewGenerator implements PreviewGenerator {
 			.build();
 
 	public static final String ENCODING = "UTF-8";
+
+	private static final int MAX_OFFICE_PROCESS_COUNT = 10;
 
 	private static class XInputStreamAdapter implements XInputStream, XSeekable, Closeable {
 		RandomAccessFile file;
@@ -169,6 +178,10 @@ public class OfficePreviewGenerator implements PreviewGenerator {
 	private static XDesktop xDesktop;
 	private static XComponentContext xContext;
 	private static XMultiComponentFactory xServiceManager;
+	// set to max size of 3 * max office process count. We check active count before adding more, so there should never
+	// be more than twice that max number of threads
+	private static ThreadPoolExecutor runningProcesses = new ThreadPoolExecutor(0, MAX_OFFICE_PROCESS_COUNT * 3, 10L, TimeUnit.MILLISECONDS,
+			new ArrayBlockingQueue<Runnable>(1));
 
 	public OfficePreviewGenerator() {
 	}
@@ -192,21 +205,56 @@ public class OfficePreviewGenerator implements PreviewGenerator {
 					throw new BootstrapException("no local component context!");
 			}
 
+			if (runningProcesses.getActiveCount() >= MAX_OFFICE_PROCESS_COUNT * 2) {
+				// For some reason, too many open office processes are running. There should really only be at most 2,
+				// but could spike if the office process is hanging
+				// If this happens, give up on generating previews to avoid clogging the machine
+				throw new IllegalStateException("Too many open office processes are running, cannot create office previews anymore");
+			}
+
 			// locate the executable
 			File officeExe = pathToOffice();
-			File tmpIn = File.createTempFile("sofficein", ".txt");
-			tmpIn.createNewFile();
-			tmpIn.deleteOnExit();
-			File tmpOut = File.createTempFile("sofficeout", ".txt");
-			tmpOut.deleteOnExit();
-			File tmpErr = File.createTempFile("sofficeerr", ".txt");
-			tmpErr.deleteOnExit();
 			ProcessBuilder procBuilder = new ProcessBuilder()
 					.command(officeExe.getAbsolutePath(), "-headless", "-accept=" + LOCAL_CONNECT_STRING + ";", "-nofirststartwizard",
-							"-nologo", "-nodefault", "-norestore", "-nocrashreport", "-nolockcheck").directory(officeExe.getParentFile())
-					.redirectInput(Redirect.from(tmpIn)).redirectOutput(tmpOut).redirectOutput(tmpErr);
+							"-nologo", "-nodefault", "-norestore", "-nocrashreport", "-nolockcheck").directory(officeExe.getParentFile()).redirectErrorStream(true);
+			// once on java 7 use proc builder Redirects instead of the reader and waiter threads. Much simpler
+
 			// office itself will take care of avoiding multiple instances
-			procBuilder.start();
+			final Process officeProcess = procBuilder.start();
+			// make sure we always read output or else the process could hang indefinitely
+			runningProcesses.submit(new Runnable() {
+				@Override
+				public void run() {
+					Thread.currentThread().setName("OpenOffice Output reader");
+					BufferedReader in = null;
+					try {
+						in = new BufferedReader(new InputStreamReader(officeProcess.getInputStream()));
+						String line;
+						while ((line = in.readLine()) != null) {
+							log.info("openoffice: " + line);
+						}
+					} catch (IOException e) {
+						log.info(e.getMessage());
+					} finally {
+						Closer.closeQuietly(in);
+					}
+				}
+			});
+
+			// wait for the process to terminate
+			runningProcesses.submit(new Runnable() {
+				@Override
+				public void run() {
+					Thread.currentThread().setName("OpenOffice Output process waiter");
+					try {
+						officeProcess.waitFor();
+						officeProcess.exitValue();
+					} catch (InterruptedException e) {
+					} finally {
+						Closer.closeQuietly(officeProcess.getOutputStream(), officeProcess.getErrorStream(), officeProcess.getInputStream());
+					}
+				}
+			});
 
 			final XMultiComponentFactory xLocalServiceManager = xLocalContext.getServiceManager();
 			if (xLocalServiceManager == null)
