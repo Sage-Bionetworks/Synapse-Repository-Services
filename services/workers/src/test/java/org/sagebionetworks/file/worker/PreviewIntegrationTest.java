@@ -166,7 +166,7 @@ public class PreviewIntegrationTest {
 	private void checkImageMagickInstalled() throws IOException {
 		ConvertCmd convert = new ConvertCmd();
 		try {
-			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH + "x");
+			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);
 		} catch (FileNotFoundException e) {
 			Assume.assumeNoException(e);
 		}
