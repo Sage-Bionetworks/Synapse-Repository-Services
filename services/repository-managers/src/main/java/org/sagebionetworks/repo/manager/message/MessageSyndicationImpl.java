@@ -18,8 +18,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
-import com.amazonaws.services.sqs.model.ListQueuesRequest;
-import com.amazonaws.services.sqs.model.ListQueuesResult;
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageBatchResult;
@@ -200,9 +200,13 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	 * @return
 	 */
 	public String lookupQueueURL(String queueName) {
-		ListQueuesResult lqr = this.awsSQSClient.listQueues(new ListQueuesRequest(queueName));
-		if(lqr.getQueueUrls() == null || lqr.getQueueUrls().size() != 1) throw new IllegalArgumentException("Failed to find one and only one queue named: "+queueName);
-		return lqr.getQueueUrls().get(0);
+		GetQueueUrlResult res = null;
+		try {
+			res = this.awsSQSClient.getQueueUrl(queueName);
+		} catch (QueueDoesNotExistException e) {
+			throw new IllegalArgumentException("Failed to find a queue named: " + queueName);
+		}
+		return res.getQueueUrl();
 	}
 
 	/**
