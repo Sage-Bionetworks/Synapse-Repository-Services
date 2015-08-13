@@ -218,6 +218,4 @@ public interface TeamManager {
 	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo,
 			UserInfo memberInfo, String teamId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws NotFoundException;
-	
-	public void bootstrapTeams();
 }

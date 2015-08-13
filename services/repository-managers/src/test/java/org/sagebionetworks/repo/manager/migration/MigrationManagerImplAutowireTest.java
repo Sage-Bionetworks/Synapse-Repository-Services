@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -108,9 +107,6 @@ public class MigrationManagerImplAutowireTest {
 
 	@Autowired
 	FileHandleManager fileHandleManager;
-	
-	@Autowired
-	TeamManager teamManager;
 
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -185,8 +181,6 @@ public class MigrationManagerImplAutowireTest {
 	public void after() throws Exception{
 		// Since this test can delete all data make sure bootstrap data gets put back.
 		entityBootstrapper.bootstrapAll();
-		// Also bootstrap the Teams
-		teamManager.bootstrapTeams();
 		// If we have deleted all data make sure the bootstrap process puts it back
 		if(fileHandleDao != null && toDelete != null){
 			for(String id: toDelete){
