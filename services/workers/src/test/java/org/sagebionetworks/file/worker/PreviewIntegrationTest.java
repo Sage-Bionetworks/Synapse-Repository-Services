@@ -172,6 +172,7 @@ public class PreviewIntegrationTest {
 		}
 	}
 
+	@Ignore
 	@Test
 	public void testRoundTripOffice() throws Exception {
 		try {

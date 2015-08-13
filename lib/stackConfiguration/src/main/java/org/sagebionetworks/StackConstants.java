@@ -101,6 +101,11 @@ public class StackConstants {
 	/**
 	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
 	 */
+	public static final String TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-cluster-queue-dl";
+	
+	/**
+	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
+	 */
 	public static final String TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-current-cache-queue";
 
 	/**
