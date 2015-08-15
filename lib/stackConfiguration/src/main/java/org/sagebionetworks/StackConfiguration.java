@@ -683,6 +683,14 @@ public class StackConfiguration {
 	public boolean getTableEnabled(){
 		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
 	}
+	
+	/**
+	 * Is open-office/image-magic dependent previews be enabled?
+	 * @return
+	 */
+	public boolean getOpenOfficeImageMagicePreviewsEnabled(){
+		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.preview.open.office.enabled"));
+	}
 
 	/**
 	 * Is the Table create all indexes feature enabled?
