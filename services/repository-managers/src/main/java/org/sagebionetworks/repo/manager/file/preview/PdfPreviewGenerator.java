@@ -57,6 +57,9 @@ public class PdfPreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public boolean supportsContentType(String contentType, String extension) {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return false;
+		}
 		return PDF_MIME_TYPES.contains(contentType);
 	}
 

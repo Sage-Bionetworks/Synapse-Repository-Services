@@ -19,6 +19,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -167,9 +168,11 @@ public class PreviewIntegrationTest {
 		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
 	}
 
-	@Ignore
 	@Test
 	public void testRoundTripOffice() throws Exception {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return;
+		}
 		try {
 			OfficePreviewGenerator.initialize();
 		} catch (FileNotFoundException e) {

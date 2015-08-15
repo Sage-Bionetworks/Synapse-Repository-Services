@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -368,6 +369,9 @@ public class OfficePreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public boolean supportsContentType(String contentType, String extension) {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return false;
+		}
 		return OFFICE_MIME_TYPES.contains(contentType);
 	}
 
