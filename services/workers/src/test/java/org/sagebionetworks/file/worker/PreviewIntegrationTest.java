@@ -159,6 +159,9 @@ public class PreviewIntegrationTest {
 
 	@Test
 	public void testRoundTripPdf() throws Exception {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return;
+		}
 		ConvertCmd convert = new ConvertCmd();
 		try {
 			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);
