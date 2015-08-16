@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 
 /**
  * @author xschildw
@@ -90,6 +92,22 @@ public class MessageSyndicationImplTest {
 		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(new Long(startNum + expectedChanges.size() - 1));
 		long currentChangeMsgNum = msgSyndicationImpl.getCurrentChangeNumber();
 		assertEquals((startNum + numMsgs - 1l), currentChangeMsgNum);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testLookupQueueUrlInvalid() {
+		String qName = "qName";
+		when(mockSqsClient.getQueueUrl(qName)).thenThrow(new QueueDoesNotExistException("Could not find queue."));
+		msgSyndicationImpl.lookupQueueURL(qName);
+	}
+	
+	@Test
+	public void testLookupQueueUrlValid() {
+		String qName = "qName";
+		GetQueueUrlResult res = new GetQueueUrlResult().withQueueUrl(qName);
+		when(mockSqsClient.getQueueUrl(qName)).thenReturn(res);
+		String s = msgSyndicationImpl.lookupQueueURL(qName);
+		assertEquals(qName, s);
 	}
 	
 	/**

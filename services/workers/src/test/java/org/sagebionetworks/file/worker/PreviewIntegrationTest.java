@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.LinkedList;
@@ -19,6 +20,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -158,17 +160,22 @@ public class PreviewIntegrationTest {
 
 	@Test
 	public void testRoundTripPdf() throws Exception {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return;
+		}
 		ConvertCmd convert = new ConvertCmd();
 		try {
-			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH + "x");
+			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);
 		} catch (FileNotFoundException e) {
 			Assume.assumeNoException(e);
 		}
-		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
 	}
 
 	@Test
 	public void testRoundTripOffice() throws Exception {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return;
+		}
 		try {
 			OfficePreviewGenerator.initialize();
 		} catch (FileNotFoundException e) {
@@ -176,6 +183,7 @@ public class PreviewIntegrationTest {
 		} catch (Exception e) {
 			throw e;
 		}
+		checkImageMagickInstalled();
 		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }

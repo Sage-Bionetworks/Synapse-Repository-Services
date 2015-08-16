@@ -683,6 +683,14 @@ public class StackConfiguration {
 	public boolean getTableEnabled(){
 		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
 	}
+	
+	/**
+	 * Is open-office/image-magic dependent previews be enabled?
+	 * @return
+	 */
+	public boolean getOpenOfficeImageMagicePreviewsEnabled(){
+		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.preview.open.office.enabled"));
+	}
 
 	/**
 	 * Is the Table create all indexes feature enabled?
@@ -1022,6 +1030,12 @@ public class StackConfiguration {
 
 	public String getTableUpdateQueueName() {
 		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE,
+				singleton().getStack(),
+				StackConfiguration.getStackInstance());
+	}
+	
+	public String getTableUpdateDeadLetterQueueName() {
+		return String.format(StackConstants.TABLE_CLUSTER_DEAD_LETTER_QUEUE_NAME_TEMPLATE,
 				singleton().getStack(),
 				StackConfiguration.getStackInstance());
 	}
