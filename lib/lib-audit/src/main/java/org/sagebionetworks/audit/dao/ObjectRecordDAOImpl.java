@@ -56,6 +56,7 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 		writer = new GzipCsvS3ObjectWriter<ObjectRecord>(s3Client,
 				ObjectRecord.class, HEADERS);
 		bucketDao = new BucketDaoImpl(s3Client, snapshotRecordBucketName);
+		s3Client.createBucket(snapshotRecordBucketName);
 	}
 
 	@Override
@@ -63,9 +64,6 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 			throws IOException {
 		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber, type,
 				System.currentTimeMillis(), true);
-		if (!s3Client.doesBucketExist(snapshotRecordBucketName)) {
-			s3Client.createBucket(snapshotRecordBucketName);
-		}
 		writer.write(batch, snapshotRecordBucketName, key);
 		return key;
 	}
