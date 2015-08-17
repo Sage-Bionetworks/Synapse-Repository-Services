@@ -205,13 +205,13 @@ public class EntityTypeUtils {
 	public static String getEntityTypeClassName(EntityType type) {
 		return getMetadata(type).getClassName();
 	}
-	
+
 	/**
 	 * 
 	 * @param type
 	 * @return name that can be shown to users
 	 */
-	public String getDisplayName(EntityType type){
+	public static String getDisplayName(EntityType type){
 		return getMetadata(type).getDisplayName();
 	}
 }

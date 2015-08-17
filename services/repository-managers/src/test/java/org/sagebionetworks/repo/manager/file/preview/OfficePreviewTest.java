@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.TestStreams;
 import org.springframework.util.StreamUtils;
@@ -40,6 +41,7 @@ public class OfficePreviewTest {
 
 	@Before
 	public void before() throws IOException, ServiceUnavailableException {
+		Assume.assumeTrue(StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled());
 	}
 
 	@Test

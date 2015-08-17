@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.junit.BeforeAll;
 import org.sagebionetworks.junit.ParallelizedSpringJUnit4ClassRunner;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -159,11 +160,9 @@ public class PreviewIntegrationTest {
 
 	@Test
 	public void testRoundTripPdf() throws Exception {
-		checkImageMagickInstalled();
-		testRoundTripHelper(LITTLE_PDF_NAME, "application/pdf");
-	}
-
-	private void checkImageMagickInstalled() throws IOException {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return;
+		}
 		ConvertCmd convert = new ConvertCmd();
 		try {
 			convert.searchForCmd(convert.getCommand().get(0), PdfPreviewGenerator.IMAGE_MAGICK_SEARCH_PATH);
@@ -174,6 +173,9 @@ public class PreviewIntegrationTest {
 
 	@Test
 	public void testRoundTripOffice() throws Exception {
+		if(!StackConfiguration.singleton().getOpenOfficeImageMagicePreviewsEnabled()){
+			return;
+		}
 		try {
 			OfficePreviewGenerator.initialize();
 		} catch (FileNotFoundException e) {
@@ -181,7 +183,6 @@ public class PreviewIntegrationTest {
 		} catch (Exception e) {
 			throw e;
 		}
-		checkImageMagickInstalled();
 		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }
