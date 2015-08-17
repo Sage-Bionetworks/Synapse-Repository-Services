@@ -63,7 +63,9 @@ public class ObjectRecordDAOImpl implements ObjectRecordDAO {
 			throws IOException {
 		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber, type,
 				System.currentTimeMillis(), true);
-		s3Client.createBucket(snapshotRecordBucketName);
+		if (!s3Client.doesBucketExist(snapshotRecordBucketName)) {
+			s3Client.createBucket(snapshotRecordBucketName);
+		}
 		writer.write(batch, snapshotRecordBucketName, key);
 		return key;
 	}
