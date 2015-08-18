@@ -34,7 +34,7 @@
 									value="evaluationSubmissionAnnotationsIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="300" />
 								<property name="queueName"
 									ref="stackConfiguration.annotationsUpdateQueueName" />
 								<property name="topicNamesToSubscribe">
