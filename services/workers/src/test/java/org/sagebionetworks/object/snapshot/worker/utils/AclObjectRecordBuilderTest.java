@@ -12,6 +12,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -49,12 +50,15 @@ public class AclObjectRecordBuilderTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setEtag("etag");
 		Mockito.when(mockAccessControlListDao.get(id)).thenReturn(acl);
+		Mockito.when(mockAccessControlListDao.getOwnerType(id)).thenReturn(ObjectType.ENTITY);
 		
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id+"", ObjectType.ACCESS_CONTROL_LIST, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(acl, changeMessage.getTimestamp().getTime());
+		AclRecord record = AclObjectRecordBuilder.buildAclRecord(acl, ObjectType.ENTITY);
+		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(record, changeMessage.getTimestamp().getTime());
 		ObjectRecord actual = builder.build(changeMessage);
 		Mockito.verify(mockAccessControlListDao).get(id);
+		Mockito.verify(mockAccessControlListDao).getOwnerType(id);
 		assertEquals(expected, actual);
 	}
 }

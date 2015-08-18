@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.object.snapshot.worker.utils.AclObjectRecordBuilder;
 import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
@@ -100,7 +102,7 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(group2.getId());
 		groupList.add(group2);
 		
-		type = AccessControlList.class.getSimpleName().toLowerCase();
+		type = AclRecord.class.getSimpleName().toLowerCase();
 		objectRecordDAO.deleteAllStackInstanceBatches(type);
 	}
 	
@@ -134,8 +136,9 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 		assertEquals(node.getId(), aclId);
 		
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setJsonClassName(acl.getClass().getSimpleName().toLowerCase());
-		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(acl));
+		AclRecord record = AclObjectRecordBuilder.buildAclRecord(acl, ObjectType.ENTITY);
+		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
 		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
 	}
 }
