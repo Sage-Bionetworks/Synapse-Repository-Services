@@ -67,7 +67,6 @@ public class MessageSyndicationImplAutowiredTest {
 	public void testRebroadcastAllChangeMessagesToQueue() throws InterruptedException{
 		// Make sure the queue starts empty.
 		emptyQueue();
-		assertEquals(0, getQueueMessageCount());
 		// Start with no change messages
 		changeDAO.deleteAllChanges();
 		// Create a bunch of messages
@@ -82,7 +81,6 @@ public class MessageSyndicationImplAutowiredTest {
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(toCreate, results.getList().size());
-		waitForMessageCount(toCreate);
 		
 		// Now send a single message.
 		ChangeMessage toTest = created.get(13);
@@ -136,27 +134,6 @@ public class MessageSyndicationImplAutowiredTest {
 			results.add(changeDAO.replaceChange(message));
 		}
 		return results;
-	}
-	
-	/**
-	 * Wait for a given message count;
-	 * @param expectedCount
-	 * @throws InterruptedException
-	 */
-	public void waitForMessageCount(long expectedCount) throws InterruptedException{
-		long start = System.currentTimeMillis();
-		long count;
-		do{
-			count = getQueueMessageCount();
-			System.out.println("Waiting for expected message count...");
-			Thread.sleep(1000);
-			assertTrue("Timed out waiting for the expected message count", System.currentTimeMillis()-start < MAX_WAIT);
-		}while(count != expectedCount);
-	}
-	
-	public long getQueueMessageCount(){
-		GetQueueAttributesResult result = awsSQSClient.getQueueAttributes(new GetQueueAttributesRequest(queueUrl).withAttributeNames("ApproximateNumberOfMessages"));
-		return Long.parseLong(result.getAttributes().get("ApproximateNumberOfMessages"));
 	}
 	
 	/**
