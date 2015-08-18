@@ -7,13 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.audit.ResourceAccessRecord;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -64,26 +61,6 @@ public class AuditTestUtils {
 	
 	enum Method{
 		GET,POST,PUT,DELETE
-	}
-
-	/**
-	 * create and return numberOfRecords AclRecords
-	 */
-	public static List<AclRecord> createAclRecordList(int numberOfRecords) {
-		List<AclRecord> list = new ArrayList<AclRecord>();
-		for (int i = 0; i < numberOfRecords; i++) {
-			AclRecord newRecord = new AclRecord();
-			newRecord.setTimestamp(System.currentTimeMillis());
-			newRecord.setChangeNumber(-1L);
-			newRecord.setChangeType(ChangeType.CREATE);
-			newRecord.setOwnerId("-1");
-			newRecord.setEtag("etag");
-			newRecord.setAclId("-1");
-			newRecord.setOwnerType(ObjectType.ENTITY);
-
-			list.add(newRecord);
-		}
-		return list;
 	}
 
 	/**
