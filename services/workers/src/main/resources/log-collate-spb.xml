@@ -29,7 +29,7 @@
 								</property>
 								<property name="semaphoreLockKey" value="logCollateWorkerFactoryKey" />
 								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="30" />
+								<property name="semaphoreLockTimeoutSec" value="300" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
