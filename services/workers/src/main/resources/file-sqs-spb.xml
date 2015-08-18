@@ -30,7 +30,7 @@
 								</property>
 								<property name="semaphoreLockKey" value="filePreviewWorker" />
 								<property name="semaphoreMaxLockCount"
-									value="10" />
+									value="2" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="1800" />
 								<property name="queueName" ref="stackConfiguration.fileUpdateQueueName" />
