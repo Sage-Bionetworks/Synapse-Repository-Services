@@ -3,6 +3,8 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.HashSet;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +14,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -60,5 +63,28 @@ public class AclObjectRecordBuilderTest {
 		Mockito.verify(mockAccessControlListDao).get(id);
 		Mockito.verify(mockAccessControlListDao).getOwnerType(id);
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void buildAclRecordTest() {
+		AccessControlList acl = new AccessControlList();
+		acl.setCreatedBy("createdBy");
+		acl.setCreationDate(new Date(0));
+		acl.setEtag("etag");
+		acl.setId("id");
+		acl.setModifiedBy("modifiedBy");
+		acl.setModifiedOn(new Date());
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		acl.setUri("uri");
+		AclRecord record = AclObjectRecordBuilder.buildAclRecord(acl, ObjectType.EVALUATION);
+		assertEquals(ObjectType.EVALUATION, record.getOwnerType());
+		assertEquals(acl.getCreatedBy(), record.getCreatedBy());
+		assertEquals(acl.getCreationDate(), record.getCreationDate());
+		assertEquals(acl.getEtag(), record.getEtag());
+		assertEquals(acl.getModifiedBy(), record.getModifiedBy());
+		assertEquals(acl.getModifiedOn(), record.getModifiedOn());
+		assertEquals(acl.getId(), record.getId());
+		assertEquals(acl.getResourceAccess(), record.getResourceAccess());
+		assertEquals(acl.getUri(), record.getUri());
 	}
 }
