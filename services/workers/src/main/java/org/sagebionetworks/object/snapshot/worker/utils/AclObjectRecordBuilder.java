@@ -6,6 +6,7 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -36,11 +37,34 @@ public class AclObjectRecordBuilder implements ObjectRecordBuilder {
 				log.info("Ignoring old message.");
 				return null;
 			}
-			return ObjectRecordBuilderUtils.buildObjectRecord(acl, message.getTimestamp().getTime());
+			AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
+			return ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 		} catch (NotFoundException e) {
 			log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
 			return null;
 		}
+	}
+
+	/**
+	 * Build an AclRecord that wrap around AccessControlList object and contains
+	 * the type of the owner object.
+	 * 
+	 * @param acl
+	 * @param ownerType
+	 * @return
+	 */
+	public static AclRecord buildAclRecord(AccessControlList acl, ObjectType ownerType) {
+		AclRecord record = new AclRecord();
+		record.setCreatedBy(acl.getCreatedBy());
+		record.setCreationDate(acl.getCreationDate());
+		record.setEtag(acl.getEtag());
+		record.setId(acl.getId());
+		record.setModifiedBy(acl.getModifiedBy());
+		record.setModifiedOn(acl.getModifiedOn());
+		record.setOwnerType(ownerType);
+		record.setResourceAccess(acl.getResourceAccess());
+		record.setUri(acl.getUri());
+		return record;
 	}
 
 }
