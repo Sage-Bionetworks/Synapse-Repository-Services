@@ -32,7 +32,7 @@
 								<property name="semaphoreLockKey" value="searchIndexWorker" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="30" />
+									value="300" />
 								<property name="queueName"
 									ref="stackConfiguration.searchUpdateQueueName" />
 								<property name="topicNamesToSubscribe">

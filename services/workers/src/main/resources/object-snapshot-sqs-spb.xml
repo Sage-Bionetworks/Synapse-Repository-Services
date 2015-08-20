@@ -74,7 +74,7 @@
 								<property name="semaphoreLockKey" value="objectSnapshotWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
+									value="120" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[OBJECT]" />
 								<property name="gate">

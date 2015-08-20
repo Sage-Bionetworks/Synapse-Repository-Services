@@ -1,40 +1,13 @@
 {
-	"description": "Data recored from an access control list change message and its associated access control list object and the acl's dbo.",
+	"description": "Data record from an access control list.",
+	"extends":{
+		"$ref":"org.sagebionetworks.repo.model.AccessControlList"
+	},
 	"properties": {
-		"changeNumber": {
-			"type": "integer",
-			"description": "The application change number created as a result of this change."
-		},
-		"aclId": {
-			"type": "string",
-			"description": "The ID of the access control list object."
-		},
-		"etag": {
-			"type": "string",
-			"description": "The etag of the change message."
-		},
-		"timestamp": {
-			"type": "integer",
-			"description": "The timestamp of the change event, in UTC milliseconds."
-		},	
-		"changeType": {
-			"type": "string",
-			"description": "The type of change that occurred",
-			"$ref": "org.sagebionetworks.repo.model.message.ChangeType"
-		},
-		"ownerId": {
-			"type": "string",
-			"description": "The ID of the owner object. (From the DboAccessControlList)"
-		},
 		"ownerType": {
 			"type": "string",
-			"description": "The type of the owner object. (From the DboAccessControlList)",
+			"description": "The type of the owner object.",
 			"$ref": "org.sagebionetworks.repo.model.ObjectType"
-		},
-		"creationDate": {
-			"type": "string",
-			"format": "date-time",
-			"description": "From the ACL object."
 		}
 	}
 }
