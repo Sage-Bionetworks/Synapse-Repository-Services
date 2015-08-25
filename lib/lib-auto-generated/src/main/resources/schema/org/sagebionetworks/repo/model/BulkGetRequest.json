@@ -1,0 +1,15 @@
+{
+    "title":"BulkGetRequest",
+    "description":"JSON schema for BulkGetRequest object",
+    "implements":[],
+    "properties":{
+        "entityIds":{
+            "type":"array",
+            "description": "The entity targets of this BulkGetRequest",
+			"uniqueItems": false,
+			"items": {
+				"type":"string"
+			}
+        }
+    }
+}

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -11,6 +13,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -188,6 +191,55 @@ public class EntityBundleController extends BaseController {
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy, request);
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/entity/bulk/get/async/start", method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId bulkGetEntityStart(@RequestParam(@RequestBody BulkGetRequest uploadRequest) List<String> entityIds)
+			throws DatastoreException, NotFoundException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/entity/bulk/get/async/get/{asyncToken}", method = RequestMethod.GET)
+	public @ResponseBody
+	AsyncJobId bulkGetEntityStart(@PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/entity/bulk/update/async/start", method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId bulkUpdateEntityStart(
+			@RequestParam(@RequestBody BulkUpdateRequest uploadRequest) List<EntityBundle> entityBundles)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/entity/bulk/delete/async/start", method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId bulkDeleteEntityStart(
+			@RequestParam(@RequestBody BulkDeleteRequest uploadRequest) List<String> entityIds)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider
+				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
 	}
 
 }
