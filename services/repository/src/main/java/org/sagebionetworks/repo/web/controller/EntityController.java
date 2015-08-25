@@ -1246,25 +1246,6 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the EntityRegistry for all Synapse Entities. This registry provides
-	 * information about each Entity type.
-	 * 
-	 * @param request
-	 * @return
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY + UrlHelpers.REGISTRY }, method = RequestMethod.GET)
-	public @ResponseBody
-	EntityRegistry getEntityRegistry(HttpServletRequest request) {
-		// get the schema from the manager.
-		if (true) {
-			throw new IllegalArgumentException("This method is no longer supported.");
-		}
-		return schemaManager.getEntityRegistry();
-	}
-
-	/**
 	 * Get an existing activity for the current version of an Entity.
 	 * 
 	 * @param id
