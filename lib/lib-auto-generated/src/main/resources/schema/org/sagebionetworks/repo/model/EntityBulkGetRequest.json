@@ -1,0 +1,22 @@
+{
+    "title":"EntityBulkGetRequest",
+    "description":"JSON schema for EntityBulkGetRequest object",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+        },
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasEntityId"
+		}
+    ],
+    "properties":{
+        "entityIds":{
+            "type":"array",
+            "description": "The entity targets of this EntityBulkGetRequest",
+			"uniqueItems": false,
+			"items": {
+				"type":"string"
+			}
+        }
+    }
+}
