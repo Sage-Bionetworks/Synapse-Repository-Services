@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -30,10 +29,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
 	
