@@ -1,0 +1,27 @@
+{
+    "title":"EntityBulkActionResult",
+    "name":"EntityBulkActionResult",
+    "description":"JSON schema for the EntityBulkActionResult object",
+    "implements":[],
+    "properties":{
+    	"entityId": {
+			"type": "string",
+			"description": "The entityId of this entity.",
+			"title": "Name"
+		},
+		"errorMessage": {
+			"type": "string",
+			"description": "The error message resulting from this EntityBulkAction.",
+			"title": "Name"
+		},
+        "EntityBulkActionResultEnum": {
+        	"type": "string",
+			"description": "An enum describing the result of this request on the given entity - success or failure.",
+			"name": "EntityBulkActionResultEnum",
+			"enum":[
+		    	"SUCCESS",
+		    	"FAILURE"
+		    ]
+        }
+    }
+}

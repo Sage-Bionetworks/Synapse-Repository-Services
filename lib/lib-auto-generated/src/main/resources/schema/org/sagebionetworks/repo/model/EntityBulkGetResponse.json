@@ -1,0 +1,19 @@
+{
+    "title":"EntityBulkGetResponse",
+    "description":"JSON schema for the EntityBulkGetResponse object",
+    "implements":[
+    	{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+    "properties":{
+    	"results": {
+			"type": "array",
+			"description": "The list of the EntityBulkGetResponses from a EntityBulkGetRequest",
+			"uniqueItems": false,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.EntityBulkActionResult"
+			}
+		}
+    }
+}
