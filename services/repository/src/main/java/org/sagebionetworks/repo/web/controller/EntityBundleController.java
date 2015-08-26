@@ -240,9 +240,9 @@ public class EntityBundleController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String asyncToken)
 			throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
-		EntityBulkGetResponse response = new EntityBulkGetResponse();
-		return response;
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices()
+				.getJobStatusAndThrow(userId, asyncToken);
+		return (EntityBulkGetResponse) jobStatus.getResponseBody();
 	}
 	
 //	@ResponseStatus(HttpStatus.CREATED)
