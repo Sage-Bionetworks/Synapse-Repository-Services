@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BulkGetRequest;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBulkGetResponse;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -196,6 +197,18 @@ public class EntityBundleController extends BaseController {
 		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy, request);
 	}
 	
+	/**
+	 * Start a bulk get entity job with a single POST.
+	 * Will return an AsyncJobId that can then be used
+	 * to check on the status of the pending bulk get entity
+	 * request.
+	 * 
+	 * @param userId
+	 * @param entityBulkRequests
+	 * @return AsyncJobId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/entity/bulk/get/async/start", method = RequestMethod.POST)
 	public @ResponseBody
@@ -209,19 +222,28 @@ public class EntityBundleController extends BaseController {
 		return asyncJobId;
 	}
 	
-//	@ResponseStatus(HttpStatus.CREATED)
-//	@RequestMapping(value = "/entity/bulk/get/async/get/{asyncToken}", method = RequestMethod.GET)
-//	public @ResponseBody
-//	EntityBulkGetResponse bulkGetEntityStart(
-//			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-//			@PathVariable String asyncToken)
-//			throws DatastoreException, NotFoundException {
-//		serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
-//		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, uploadRequest);
-//		AsyncJobId asyncJobId = new AsyncJobId();
-//		asyncJobId.setToken(job.getJobId());
-//		return asyncJobId;
-//	}
+	/**
+	 * Gets the status of a bulk get entity job, using the AsyncJobId 
+	 * returned from a bulkGetEntityStart. Will throw an exception
+	 * if not completed or will return its final failure or success
+	 * status object.
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/entity/bulk/get/async/get/{asyncToken}", method = RequestMethod.GET)
+	public @ResponseBody
+	EntityBulkGetResponse bulkGetEntityStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		EntityBulkGetResponse response = new EntityBulkGetResponse();
+		return response;
+	}
 	
 //	@ResponseStatus(HttpStatus.CREATED)
 //	@RequestMapping(value = "/entity/bulk/update/async/start", method = RequestMethod.POST)
