@@ -89,7 +89,10 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 
 		// fetch it
 		Node node = nodeDao.getNode(id);
-		NodeRecord record = NodeObjectRecordBuilder.buildNodeRecord(node, false, false, false);
+		NodeRecord record = NodeObjectRecordBuilder.buildNodeRecord(node);
+		record.setIsPublic(false);
+		record.setIsRestricted(false);
+		record.setIsControlled(false);
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
