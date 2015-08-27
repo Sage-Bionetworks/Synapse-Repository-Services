@@ -7,9 +7,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -20,14 +20,17 @@ public class NodeObjectRecordBuilderTest {
 
 	private NodeDAO mockNodeDAO;
 	private NodeObjectRecordBuilder builder;
-	private Node node;
+	private NodeRecord node;
 
 	@Before
 	public void setup() {
 		mockNodeDAO = Mockito.mock(NodeDAO.class);
 		builder = new NodeObjectRecordBuilder(mockNodeDAO);
-		node = new Node();
+		node = new NodeRecord();
 		node.setId("123");
+		node.setIsPublic(false);
+		node.setIsControlled(false);
+		node.setIsRestricted(false);
 		Mockito.when(mockNodeDAO.getNode("123")).thenReturn(node);
 	}
 

@@ -15,10 +15,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordBuilder;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -56,7 +58,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		assertNotNull(queueCleaner);
 		toDelete = new ArrayList<String>();
 
-		type = Node.class.getSimpleName().toLowerCase();
+		type = NodeRecord.class.getSimpleName().toLowerCase();
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 	}
 	
@@ -87,9 +89,10 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 
 		// fetch it
 		Node node = nodeDao.getNode(id);
+		NodeRecord record = NodeObjectRecordBuilder.buildNodeRecord(node, false, false, false);
 		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setJsonClassName(node.getClass().getSimpleName().toLowerCase());
-		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(node));
+		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
 
 		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
 	}
