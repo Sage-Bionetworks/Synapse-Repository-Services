@@ -183,7 +183,6 @@ public class PreviewIntegrationTest {
 		} catch (Exception e) {
 			throw e;
 		}
-		checkImageMagickInstalled();
 		testRoundTripHelper(LITTLE_DOC_NAME, "application/msword");
 	}
 }

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -53,6 +54,7 @@ public class EntityBundleServiceImplTest {
 	private EntityService mockEntityService;
 	private TableServices mockTableService;
 	private WikiService mockWikiService;
+	private DoiService mockDoiService;
 	
 	private Project project;
 	private Folder study;
@@ -75,13 +77,15 @@ public class EntityBundleServiceImplTest {
 		mockServiceProvider = mock(ServiceProvider.class);
 		mockEntityService = mock(EntityService.class);
 		mockWikiService = mock(WikiService.class);
+		mockDoiService = mock(DoiService.class);
 		
 		entityBundleService = new EntityBundleServiceImpl(mockServiceProvider);
 		mockTableService = mock(TableServices.class);
 		when(mockServiceProvider.getTableServices()).thenReturn(mockTableService);
 		when(mockServiceProvider.getWikiService()).thenReturn(mockWikiService);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
-		
+		when(mockServiceProvider.getDoiService()).thenReturn(mockDoiService);
+
 		// Entities
 		project = new Project();
 		project.setName(DUMMY_PROJECT);
@@ -216,6 +220,19 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(bundle.getTableBundle());
 		assertEquals(page.getResults(), bundle.getTableBundle().getColumnModels());
 		assertEquals(new Long(12345), bundle.getTableBundle().getMaxRowsPerPage());
+	}
+	
+	@Test
+	public void testDoi() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.DOI;
+		Doi doi = new Doi();
+		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectId(entityId);
+		when(mockDoiService.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(doi, bundle.getDoi());
 	}
 	
 	@Test

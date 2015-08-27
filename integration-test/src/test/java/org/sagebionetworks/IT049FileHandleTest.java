@@ -20,6 +20,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -380,6 +381,7 @@ public class IT049FileHandleTest {
 		assertNotNull(externalS3.getId());
 	}
 
+	@Ignore //PLFM-3543
 	@Test
 	public void testAutoSyncRoundTrip() throws Exception {
 		String baseKey = "test-" + UUID.randomUUID();

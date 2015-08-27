@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleInstanceFactory;
 import org.sagebionetworks.repo.model.table.TableBundle;
@@ -35,6 +36,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static int TABLE_DATA				= 0x1000;
 	public static int ROOT_WIKI_ID				= 0x2000;
 	public static int BENEFACTOR_ACL			= 0x4000;
+	public static int DOI						= 0x8000;
 	
 	private static FileHandleInstanceFactory fileHandleInstanceFactory = new FileHandleInstanceFactory();
 	private static EntityInstanceFactory entityInstanceFactory = new EntityInstanceFactory();
@@ -54,6 +56,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_FILE_HANDLES = "fileHandles";
 	public static final String JSON_TABLE_DATA = "tableBundle";
 	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
+	public static final String JSON_DOI = "doi";
+	
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
@@ -68,6 +72,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private TableBundle tableBundle;
 	private String rootWikiId;
 	private AccessControlList benefactorAcl;
+	private Doi doi;
+
 	/**
 	 * Create a new EntityBundle
 	 */
@@ -182,6 +188,12 @@ public class EntityBundle implements JSONEntity, Serializable {
 		if(toInitFrom.has(JSON_ROOT_WIKI_ID)){
 			rootWikiId = toInitFrom.getString(JSON_ROOT_WIKI_ID);
 		}
+		if(toInitFrom.has(JSON_DOI)){
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_DOI);
+			if (doi == null) 
+				doi = new Doi();
+			doi.initializeFromJSONObject(joa);
+		}
 		return toInitFrom;
 	}
 
@@ -268,6 +280,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 		}
 		if(rootWikiId != null){
 			writeTo.put(JSON_ROOT_WIKI_ID, rootWikiId);
+		}
+		if (doi != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			doi.writeToJSONObject(joa);
+			writeTo.put(JSON_DOI, joa);
 		}
 		return writeTo;
 	}
@@ -368,6 +385,22 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public void setHasChildren(Boolean hasChildren) {
 		this.hasChildren = hasChildren;
 	}
+	
+	/**
+	 * 
+	 * Get the doi associated with this entity.
+	 */
+	public Doi getDoi() {
+		return doi;
+	}
+
+	/**
+	 * 
+	 * Set the doi associated with this entity.
+	 */
+	public void setDoi(Doi doi) {
+		this.doi = doi;
+	}
 
 	/**
 	 * Get the AccessControlList for the Entity in this bundle.
@@ -441,7 +474,20 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public void setBenefactorAcl(AccessControlList benefactorAcl) {
 		this.benefactorAcl = benefactorAcl;
 	}
-
+	
+	@Override
+	public String toString() {
+		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
+				+ ", annotations=" + annotations + ", permissions="
+				+ permissions + ", path=" + path + ", referencedBy="
+				+ referencedBy + ", hasChildren=" + hasChildren + ", acl="
+				+ acl + ", accessRequirements=" + accessRequirements
+				+ ", unmetAccessRequirements=" + unmetAccessRequirements
+				+ ", fileHandles=" + fileHandles + ", tableBundle="
+				+ tableBundle + ", rootWikiId=" + rootWikiId
+				+ ", benefactorAcl=" + benefactorAcl + ", doi=" + doi + "]";
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -455,6 +501,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
 				+ ((benefactorAcl == null) ? 0 : benefactorAcl.hashCode());
+		result = prime * result + ((doi == null) ? 0 : doi.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
 		result = prime * result
 				+ ((entityType == null) ? 0 : entityType.hashCode());
@@ -506,6 +553,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (other.benefactorAcl != null)
 				return false;
 		} else if (!benefactorAcl.equals(other.benefactorAcl))
+			return false;
+		if (doi == null) {
+			if (other.doi != null)
+				return false;
+		} else if (!doi.equals(other.doi))
 			return false;
 		if (entity == null) {
 			if (other.entity != null)
@@ -559,19 +611,6 @@ public class EntityBundle implements JSONEntity, Serializable {
 				.equals(other.unmetAccessRequirements))
 			return false;
 		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
-				+ ", annotations=" + annotations + ", permissions="
-				+ permissions + ", path=" + path + ", referencedBy="
-				+ referencedBy + ", hasChildren=" + hasChildren + ", acl="
-				+ acl + ", accessRequirements=" + accessRequirements
-				+ ", unmetAccessRequirements=" + unmetAccessRequirements
-				+ ", fileHandles=" + fileHandles + ", tableBundle="
-				+ tableBundle + ", rootWikiId=" + rootWikiId
-				+ ", benefactorAcl=" + benefactorAcl + "]";
 	}
 
 }
