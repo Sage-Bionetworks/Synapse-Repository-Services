@@ -81,10 +81,6 @@ public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
 			AccessRequirementManager accessRequirementManager,
 			EntityPermissionsManager entityPermissionManager) {
 
-		record.setIsPublic(false);
-		record.setIsRestricted(false);
-		record.setIsControlled(false);
-
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserEntityPermissions permissions = entityPermissionManager.getUserPermissionsForEntity(adminUserInfo, record.getId());
 
@@ -95,6 +91,8 @@ public class NodeObjectRecordBuilder implements ObjectRecordBuilder {
 		rod.setType(RestrictableObjectType.ENTITY);
 		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
 
+		record.setIsRestricted(false);
+		record.setIsControlled(false);
 		for (AccessRequirement ar: ars.getResults()){
 			if (ar instanceof ACTAccessRequirement && !record.getIsControlled()) {
 				record.setIsControlled(true);
