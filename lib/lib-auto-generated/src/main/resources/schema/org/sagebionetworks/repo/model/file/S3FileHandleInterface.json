@@ -14,10 +14,6 @@
 		"key": {
 			"type": "string",
 			"description": "The S3 key for this object"
-		},
-		"contentSize": {
-			"description": "The size of the file in bytes.",
-			"type": "integer"
 		}
 	}
 }

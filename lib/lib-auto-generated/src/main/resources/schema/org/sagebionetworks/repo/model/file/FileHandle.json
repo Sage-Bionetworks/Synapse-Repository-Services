@@ -38,6 +38,10 @@
 		"storageLocationId": {
 			"type": "integer",
 			"description": "The optional storage location descriptor"
+		},
+		"contentSize": {
+			"description": "The size of the file in bytes.",
+			"type": "integer"
 		}
 	}
 }

@@ -1,0 +1,17 @@
+{
+	"description": "Data record from a node object.",
+	"extends":{
+		"$ref":"org.sagebionetworks.repo.model.Node"
+	},
+	"properties": {
+		"isPublic": {
+			"type": "boolean"
+		},
+		"isRestricted": {
+			"type": "boolean"
+		},
+		"isControlled": {
+			"type": "boolean"
+		}
+	}
+}
