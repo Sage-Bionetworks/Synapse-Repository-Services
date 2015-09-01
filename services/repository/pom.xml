@@ -19,6 +19,12 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>app-services</artifactId>
+			<version>develop-SNAPSHOT</version>
+		</dependency>
+		<!--  
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-table-query</artifactId>
 		</dependency>
 		<dependency>
@@ -126,7 +132,7 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-
+	-->
 	</dependencies>
 	<build>
 		<resources>

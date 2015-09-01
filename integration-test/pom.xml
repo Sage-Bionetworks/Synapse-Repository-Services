@@ -206,8 +206,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-repository</artifactId>
-			<type>war</type>
+			<artifactId>app-services</artifactId>
 		</dependency>
 		
 		<dependency>
