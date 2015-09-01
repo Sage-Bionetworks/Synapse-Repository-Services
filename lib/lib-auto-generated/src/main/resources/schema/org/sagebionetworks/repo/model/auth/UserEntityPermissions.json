@@ -29,6 +29,10 @@
 			"type": "boolean",
 			"description": "Can the user change the permissions of this entity?"
 		},
+		"canChangeSettings": {
+			"type": "boolean",
+			"description": "Can the user change the settings of this entity?"
+		},
 		"canDelete": {
 			"type": "boolean",
 			"description": "Can the user delete this entity?"

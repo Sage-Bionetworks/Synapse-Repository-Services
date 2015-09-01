@@ -265,6 +265,7 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(acl);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.READ);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CHANGE_SETTINGS);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CREATE);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DELETE);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DOWNLOAD);
@@ -272,6 +273,7 @@ public class AuthorizationManagerImplTest {
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
 		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
 		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getAuthorized());
 		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
 		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
@@ -287,6 +289,7 @@ public class AuthorizationManagerImplTest {
 		assertTrue(uep.getCanPublicRead());
 		assertFalse(uep.getCanAddChild());
 		assertFalse(uep.getCanChangePermissions());
+		assertFalse(uep.getCanChangeSettings());
 		assertFalse(uep.getCanDelete());
 		assertFalse(uep.getCanDownload());
 		assertFalse(uep.getCanUpload());
@@ -468,6 +471,7 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
+		assertEquals(true, uep.getCanChangeSettings());
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
@@ -478,6 +482,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
@@ -495,6 +500,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
@@ -510,6 +516,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
@@ -525,6 +532,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
@@ -540,6 +548,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
@@ -555,6 +564,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
@@ -569,6 +579,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
@@ -584,6 +595,7 @@ public class AuthorizationManagerImplTest {
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
