@@ -745,6 +745,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			assertEquals(true, uep.getCanUpload());
 			assertEquals(true, uep.getCanEdit());
 			assertEquals(true, uep.getCanChangePermissions());
+			assertEquals(true, uep.getCanChangeSettings());
 			assertEquals(true, uep.getCanDelete());
 			assertEquals(true, uep.getCanView());
 			assertEquals(true, uep.getCanAddChild());
