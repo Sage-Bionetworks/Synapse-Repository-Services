@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dao.FileHandleCreator;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -136,36 +137,18 @@ public class DBOFileHandleDaoImplTest {
 		toDelete.add(meta1.getId());
 		toDelete.add(meta2.getId());
 		toDelete.add(meta3.getId());
+		
+		List<FileHandleCreator> expected = Arrays.asList(
+				new FileHandleCreator(meta1.getId(), meta1.getCreatedBy()),
+				new FileHandleCreator(meta2.getId(), meta2.getCreatedBy()),
+				new FileHandleCreator(meta3.getId(), meta3.getCreatedBy())
+		);
 
-		Multimap<String, String> lookupCreator = fileHandleDao.getHandleCreators(Lists.newArrayList(meta3.getId(), meta1.getId(),
+		List<FileHandleCreator> results = fileHandleDao.getFileHandleCreators(Arrays.asList(meta3.getId(), meta1.getId(),
 				meta2.getId()));
-		assertEquals(2, lookupCreator.get(creatorUserGroupId).size());
-		assertEquals(1, lookupCreator.get(creatorUserGroupId2).size());
-		assertTrue(lookupCreator.get(creatorUserGroupId).contains(meta1.getId()));
-		assertTrue(lookupCreator.get(creatorUserGroupId).contains(meta2.getId()));
-		assertTrue(lookupCreator.get(creatorUserGroupId2).contains(meta3.getId()));
-	}
-
-	@Test
-	public void testGetCreatorBatches() throws NotFoundException {
-		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId);
-		meta1 = fileHandleDao.createFile(meta1);
-		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId2);
-		meta2 = fileHandleDao.createFile(meta2);
-		toDelete.add(meta1.getId());
-		toDelete.add(meta2.getId());
-
-		final int SIZE = 100;
-		List<String> handles = Lists.newArrayListWithCapacity(SIZE * 2);
-		for (int i = 0; i < SIZE * 2; i += 2) {
-			handles.add(meta1.getId());
-			handles.add(meta2.getId());
-		}
-		Multimap<String, String> lookupCreator = fileHandleDao.getHandleCreators(handles);
-		// because the inclause has repeated ids, only two rows are returned per sql query.
-		// if batching works, each id returns twice
-		assertEquals(2, lookupCreator.get(creatorUserGroupId).size());
-		assertEquals(2, lookupCreator.get(creatorUserGroupId2).size());
+		
+		assertEquals(3, results.size());
+		assertEquals(expected, results);
 	}
 
 	@Test (expected=NotFoundException.class)

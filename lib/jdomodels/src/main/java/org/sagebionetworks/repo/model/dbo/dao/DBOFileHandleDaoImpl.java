@@ -19,6 +19,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.FileHandleCreator;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -218,6 +219,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
 		final Multimap<String, String> resultMap = ArrayListMultimap.create();
@@ -236,6 +238,22 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			}, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch));
 		}
 		return resultMap;
+	}
+	
+	@Override
+	public List<FileHandleCreator> getFileHandleCreators(
+			List<String> fileHandleIds) throws NotFoundException {
+		final List<FileHandleCreator> results = new LinkedList<FileHandleCreator>();
+		simpleJdbcTemplate.query(SQL_SELECT_CREATORS, new RowMapper<Void>() {
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				String creatorUserId = rs.getString(COL_FILES_CREATED_BY);
+				String fileHandleId = rs.getString(COL_FILES_ID);
+				results.add(new FileHandleCreator(fileHandleId, creatorUserId));
+				return null;
+			}
+		}, new SinglePrimaryKeySqlParameterSource(fileHandleIds));
+		return results;
 	}
 
 	@Override
@@ -309,4 +327,5 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	public long getMaxId() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
 	}
+
 }

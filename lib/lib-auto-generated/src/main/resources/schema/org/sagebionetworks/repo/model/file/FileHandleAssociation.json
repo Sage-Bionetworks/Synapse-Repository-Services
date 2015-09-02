@@ -1,0 +1,17 @@
+{
+	"description": "Describes an association of a FileHandle with another object.",
+	"properties": {
+		"fileHandleId": {
+			"description": "The ID of the FileHandle.",
+			"type": "string"
+		},
+		"associatedObjectId": {
+			"description": "The ID of the object associated with the FileHandle",
+			"type": "integer"
+		},
+		"associatedObjectType": {
+			"description": "The type of association between the FileHandle and Object.",
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociationType"
+		},		
+	}
+}

@@ -98,7 +98,17 @@ public interface FileHandleDao {
 	 * @return the list of creators in the same order as the file handles
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException;
+	
+	/**
+	 * Lookup the creators of the 
+	 * @param fileHandleIds
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public List<FileHandleCreator> getFileHandleCreators(List<String> fileHandleIds) throws NotFoundException;;
+	
 
 	/**
 	 * Get the preview associated with a given file handle.

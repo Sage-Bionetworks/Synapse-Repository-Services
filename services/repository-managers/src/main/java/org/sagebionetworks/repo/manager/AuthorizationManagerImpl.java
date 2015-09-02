@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
@@ -197,6 +199,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
 	}
 
+	@Deprecated
 	@Override
 	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleIds, Set<String> allowed, Set<String> disallowed)
 			throws NotFoundException {
@@ -327,6 +330,30 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		} else {
 			return canAccess(userInfo, objectId, objectType, ACCESS_TYPE.CREATE);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.AuthorizationManager#canDownloadFile(org.sagebionetworks.repo.model.UserInfo, java.util.List)
+	 */
+	@Override
+	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
+			List<FileHandleAssociation> associations) {
+		if(user == null){
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		if(associations == null){
+			throw new IllegalArgumentException("Associations cannot be null");
+		}
+		List<FileHandleAuthorizationStatus> results = new ArrayList<FileHandleAuthorizationStatus>(associations.size());
+		// Admins can see all.
+		if(user.isAdmin()){
+			for(FileHandleAssociation association: associations){
+				results.add(new FileHandleAuthorizationStatus(association, new AuthorizationStatus(true, null)));
+			}
+			return results;
+		}
+		return null;
 	}
 	
 }
