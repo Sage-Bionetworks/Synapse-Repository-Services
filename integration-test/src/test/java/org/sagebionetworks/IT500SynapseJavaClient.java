@@ -370,6 +370,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
 		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.READ));
 		assertTrue(uep.getCanChangePermissions());
+		assertTrue(uep.getCanChangeSettings());
 		assertTrue(uep.getCanEnableInheritance());
 		
 		UserProfile profile = synapseOne.getMyProfile();
