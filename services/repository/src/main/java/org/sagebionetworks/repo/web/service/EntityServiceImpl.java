@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.FileHandleIdNameContentType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
@@ -643,9 +644,9 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
-		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		FileHandleIdNameContentType fhinct = 
+				entityManager.getFileHandleIdNameContentTypeForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		return fileHandleManager.getRedirectURLForFileHandle(fhinct.getFileHandleId(), fhinct.getFileName(), fhinct.getContentType());
 	}
 	
 	@Override
@@ -668,9 +669,9 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(versionNumber, "versionNumber");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
-		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);
-		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		FileHandleIdNameContentType fhinct = 
+				entityManager.getFileHandleIdNameContentTypeForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);		
+		return fileHandleManager.getRedirectURLForFileHandle(fhinct.getFileHandleId(), fhinct.getFileName(), fhinct.getContentType());
 	}
 
 

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.FileHandleIdNameContentType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -606,7 +607,14 @@ public class EntityManagerImpl implements EntityManager {
 		// The manager handles this call.
 		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber, reason);
 	}
-
+	
+	@Override
+	public FileHandleIdNameContentType getFileHandleIdNameContentTypeForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws UnauthorizedException, NotFoundException {
+		// The manager handles this call.
+		return nodeManager.getFileHandleIdNameContentTypeForVersion(userInfo, id, versionNumber, reason);
+	}
+	
 	@Override
 	public List<Reference> getCurrentRevisionNumbers(List<String> entityIds) {
 		return nodeManager.getCurrentRevisionNumbers(entityIds);

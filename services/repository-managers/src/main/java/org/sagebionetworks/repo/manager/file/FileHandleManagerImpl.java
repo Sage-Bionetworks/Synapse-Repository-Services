@@ -429,14 +429,24 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle);
+		return getURLForFileHandle(handle, null, null);
+	}
+
+	@Override
+	public String getRedirectURLForFileHandle(String handleId, String fileNameOverride, String contentTypeOverride)
+			throws DatastoreException, NotFoundException {
+		// First lookup the file handle
+		FileHandle handle = fileHandleDao.get(handleId);
+		return getURLForFileHandle(handle, fileNameOverride, contentTypeOverride);
 	}
 
 	/**
 	 * @param handle
+	 * @param fileNameOverride a value for the file name that overrides that in the file handle or in the S3 object
+	 * @param contentTypeOverride a value for the content type that overrides that in the file handle or in the S3 object
 	 * @return
 	 */
-	public String getURLForFileHandle(FileHandle handle) {
+	public String getURLForFileHandle(FileHandle handle, String fileNameOverride, String contentTypeOverride) {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -448,11 +458,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
 
-			String contentType = handle.getContentType();
+			String contentType = StringUtils.isNotEmpty(contentTypeOverride) ?
+					contentTypeOverride : handle.getContentType();
 			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
 				responseHeaderOverrides.setContentType(contentType);
 			}
-			String fileName = handle.getFileName();
+			String fileName = StringUtils.isNotEmpty(fileNameOverride) ? 
+					fileNameOverride : handle.getFileName();
 			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
 				responseHeaderOverrides.setContentDisposition("attachment; filename=" + fileName);
 			}
@@ -755,7 +767,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
 		}
-		return getURLForFileHandle(handle);
+		return getURLForFileHandle(handle, null, null);
 	}
 
 	@Override

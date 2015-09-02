@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.FileHandleIdNameContentType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -122,7 +123,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
-	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
+	private static final String SQL_SELECT_REV_FILE_HANDLE_ID =  
+			"SELECT r."+COL_REVISION_FILE_HANDLE_ID+
+			" FROM "+TABLE_REVISION+" r"+
+			" WHERE r."+ COL_REVISION_OWNER_NODE+" = ? AND r."+COL_REVISION_NUMBER+" = ?"; 
+
+	private static final String SQL_SELECT_REV_FILE_HANDLE_ID_NAME_CONTENT_TYPE = 
+			"SELECT r."+COL_REVISION_FILE_HANDLE_ID+", n."+COL_NODE_NAME+
+			" FROM "+TABLE_REVISION+" r, "+TABLE_NODE+" n"+
+			" WHERE n."+COL_NODE_ID+" = ? AND r."+
+			COL_REVISION_OWNER_NODE+" = n."+COL_NODE_ID+" AND r."+COL_REVISION_NUMBER+" = ?";
+	
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REF_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
 	private static final String SELECT_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R."+COL_REVISION_ANNOS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER;
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
@@ -1337,6 +1348,28 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return null;
 		}
 	}
+	
+	@Override
+	public FileHandleIdNameContentType getFileHandleIdNameContentType(String id, Long versionNumber) {
+		if (versionNumber == null) {
+			versionNumber = getCurrentRevisionNumber(id);
+		}
+		Long nodeId = KeyFactory.stringToKey(id);
+		try{
+			return  jdbcTemplate.queryForObject(SQL_SELECT_REV_FILE_HANDLE_ID_NAME_CONTENT_TYPE, 
+					new RowMapper<FileHandleIdNameContentType>() {
+				@Override
+				public FileHandleIdNameContentType mapRow(ResultSet rs,
+						int rowNum) throws SQLException {
+					return new FileHandleIdNameContentType(
+							rs.getString(COL_REVISION_FILE_HANDLE_ID),
+							rs.getString(COL_NODE_NAME),
+							rs.getString("FILE_CONTENT_TYPE")); // TODO
+				}}, nodeId, versionNumber);
+		}catch (EmptyResultDataAccessException e){
+			return null;
+		}
+	}
 
 	@Override
 	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds) {
@@ -1488,6 +1521,4 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		queryResults.setTotalNumberOfResults(totalCount);
 		return queryResults;
 	}
-
-
 }

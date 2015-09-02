@@ -11,13 +11,13 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.FileHandleIdNameContentType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -365,6 +365,19 @@ public interface EntityManager {
 	 * @throws UnauthorizedException 
 	 */
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws UnauthorizedException, NotFoundException;
+	
+	/**
+	 * Get the FileHandle ID, entity name and content type for a given entity ID and version number.
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @param reason
+	 * @return
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public FileHandleIdNameContentType getFileHandleIdNameContentTypeForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
 			throws UnauthorizedException, NotFoundException;
 
 	/**

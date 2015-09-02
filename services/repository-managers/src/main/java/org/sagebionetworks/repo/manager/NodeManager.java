@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileHandleIdNameContentType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -324,7 +325,20 @@ public interface NodeManager {
 	 */
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
 			throws NotFoundException, UnauthorizedException;
-
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @param reason
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public FileHandleIdNameContentType getFileHandleIdNameContentTypeForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws NotFoundException, UnauthorizedException;
+	
 	/**
 	 * Get a reference for the current version of the given node ids
 	 * @param nodeIds node ids to lookup

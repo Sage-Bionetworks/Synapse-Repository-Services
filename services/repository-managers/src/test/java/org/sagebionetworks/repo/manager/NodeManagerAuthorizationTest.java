@@ -229,7 +229,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// The user does not have permission to dowload the file
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
+		nodeManager.getFileHandleIdNameContentTypeForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 	}
 	
 	/**
@@ -251,7 +251,7 @@ public class NodeManagerAuthorizationTest {
 		when(
 				mockProjectSettingsManager.getProjectSettingForNode(mockUserInfo, mockNode.getId(), ProjectSettingsType.requester_pays,
 						RequesterPaysSetting.class)).thenReturn(setting);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		nodeManager.getFileHandleIdNameContentTypeForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_FILE_DOWNLOAD);
 	}
 
 	/**
@@ -265,7 +265,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeDao.getFileHandleIdForVersion(mockNode.getId(), null)).thenReturn(null);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
+		nodeManager.getFileHandleIdNameContentTypeForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 	}
 	
 	@Test
@@ -307,7 +307,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// The user does have permission to dowload the file
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		nodeManager.getFileHandleIdForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
+		nodeManager.getFileHandleIdNameContentTypeForVersion(mockUserInfo, mockNode.getId(), null, FileHandleReason.FOR_HANDLE_VIEW);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
