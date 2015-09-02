@@ -10,6 +10,10 @@
         "dataFileHandleId":{
             "type":"string",
             "description":"ID of the file associated with this entity."
+        },
+        "contentTypeOverride":{
+            "type":"string",
+            "description":"The user specified Content Type, overriding the value used when uploading the underlying file to S3 (or equivalent web cloud storage)."
         }
     }
 }
