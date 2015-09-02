@@ -47,7 +47,7 @@ public class NamedAnnotations {
 			map.put(name, annos);
 		}
 		// Make sure the annotations have the correct metadata
-		setMetadate(annos);
+		setMetadata(annos);
 		return annos;
 	}
 	
@@ -55,7 +55,7 @@ public class NamedAnnotations {
 	 * 
 	 * @param anno
 	 */
-	private void setMetadate(Annotations anno){
+	private void setMetadata(Annotations anno){
 		if(this.id != null){
 			anno.setId(this.id);
 		}

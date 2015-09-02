@@ -687,9 +687,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		QueryResults<VersionInfo> versions = nodeDao.getVersionsOfEntity(nodeId, 0, 1);
 		return versions.getResults().get(0);
 	}
-	
-	private void validateNotRequesterPays(UserInfo userInfo, String id, FileHandleReason reason) {
-		
+
+	@Override
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+			throws NotFoundException, UnauthorizedException {
+		// Validate that the user has download permission.
+		validateDownload(userInfo, id);
+
 		switch (reason) {
 		case FOR_FILE_DOWNLOAD:
 			// validate that this is not requesterPays
@@ -703,36 +707,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		case FOR_HANDLE_VIEW:
 			break;
 		}
-	}
-
-	@Override
-	public String getFileHandleIdForVersion(
-			UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
-			throws NotFoundException, UnauthorizedException {
-		// Validate that the user has download permission.
-		validateDownload(userInfo, id);
-		
-		validateNotRequesterPays(userInfo, id, reason);
-
 		// Get the value from the dao
 		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);
 		checkFileHandleId(id, fileHandleId);
 		return fileHandleId;
-	}	
-
-	@Override
-	public FileHandleIdNameContentType getFileHandleIdNameContentTypeForVersion(
-			UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
-			throws NotFoundException, UnauthorizedException {
-		// Validate that the user has download permission.
-		validateDownload(userInfo, id);
-		
-		validateNotRequesterPays(userInfo, id, reason);
-
-		// Get the value from the dao
-		FileHandleIdNameContentType fileHandleIdNameContentType = nodeDao.getFileHandleIdNameContentType(id, versionNumber);
-		checkFileHandleId(id, fileHandleIdNameContentType.getFileHandleId());
-		return fileHandleIdNameContentType;
 	}	
 
 	@Override

@@ -376,14 +376,6 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getFileHandleIdForVersion(String id, Long versionNumber);
-	
-	/**
-	 * Get the FileHandle id, entity name, and content type for the given version
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 */
-	public FileHandleIdNameContentType getFileHandleIdNameContentType(String id, Long versionNumber);
 
 	/**
 	 * Get a reference for the current version of the given node ids
