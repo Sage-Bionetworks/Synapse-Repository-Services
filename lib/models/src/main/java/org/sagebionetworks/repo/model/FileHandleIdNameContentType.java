@@ -5,9 +5,7 @@ public class FileHandleIdNameContentType {
 	private String fileName;
 	private String contentType;
 	
-	public FileHandleIdNameContentType() {
-		// TODO Auto-generated constructor stub
-	}
+	public FileHandleIdNameContentType() {}
 
 	public FileHandleIdNameContentType(String fileHandleId, String fileName,
 			String contentType) {

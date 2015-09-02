@@ -123,10 +123,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
-	private static final String SQL_SELECT_REV_FILE_HANDLE_ID =  
-			"SELECT r."+COL_REVISION_FILE_HANDLE_ID+
-			" FROM "+TABLE_REVISION+" r"+
-			" WHERE r."+ COL_REVISION_OWNER_NODE+" = ? AND r."+COL_REVISION_NUMBER+" = ?"; 
+	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID_NAME_CONTENT_TYPE = 
 			"SELECT r."+COL_REVISION_FILE_HANDLE_ID+", n."+COL_NODE_NAME+
