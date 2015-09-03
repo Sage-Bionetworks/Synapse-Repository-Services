@@ -14,15 +14,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -195,6 +198,11 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 
 			@Override
 			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
+				try {
+					NamedAnnotations namedAnnotation = JDOSecondaryPropertyUtils.createFromJDO(backup);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 				return backup;
 			}
 

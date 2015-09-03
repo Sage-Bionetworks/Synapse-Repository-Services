@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -385,4 +384,20 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 */
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @param type
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	<T extends Entity> T getEntitySecondaryFields(UserInfo user, String entityId, Class<T> type)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	<T extends Entity> T getEntitySecondaryFieldsForVersion(UserInfo user, String entityId, Long versionNumber, Class<T> type)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 }
