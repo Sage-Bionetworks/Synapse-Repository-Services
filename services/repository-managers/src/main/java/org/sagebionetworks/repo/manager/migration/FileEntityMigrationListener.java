@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -29,9 +27,10 @@ public class FileEntityMigrationListener implements MigrationTypeListener {
 
 	private static final String FILE_NAME_PROPERTY_NAME = "fileName";
 
+	// for any file nodes (identified by having a fileHandleId), if there is no 'fileName' 
+	// property, then fill the field based on the file name associated with the file handle
 	@Override
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(MigrationType type, List<D> delta) {
-		// nothing here
 		if (type!=MigrationType.NODE_REVISION) return;
 		for (D elem : delta) {
 			if (!(elem instanceof DBORevision)) continue;

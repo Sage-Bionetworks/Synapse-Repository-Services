@@ -113,6 +113,8 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Entity> T getEntitySecondaryFields(UserInfo user, String entityId, Class<T> type)  throws DatastoreException, UnauthorizedException, NotFoundException {
 		// Get the annotations for this entity
 		Node node = new Node();
+		node.setCreatedByPrincipalId(0L);
+		node.setModifiedByPrincipalId(0L);
 		NamedAnnotations annos = nodeManager.getAnnotations(user, entityId);
 		EntityWithAnnotations<T> ewa = populateEntityWithNodeAndAnnotations(type, annos, node);
 		return ewa.getEntity();
@@ -122,6 +124,8 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Entity> T getEntitySecondaryFieldsForVersion(UserInfo user, String entityId, Long versionNumber, Class<T> type)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		Node node = new Node();
+		node.setCreatedByPrincipalId(0L);
+		node.setModifiedByPrincipalId(0L);
 		NamedAnnotations annos = nodeManager.getAnnotationsForVersion(user, entityId, versionNumber);
 		EntityWithAnnotations<T> ewa = populateEntityWithNodeAndAnnotations(type, annos, node);
 		return ewa.getEntity();
