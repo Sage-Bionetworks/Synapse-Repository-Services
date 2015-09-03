@@ -646,7 +646,7 @@ public class EntityServiceImpl implements EntityService {
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
 		FileEntity fileEntity = entityManager.getEntity(userInfo, id, FileEntity.class);
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getName(), fileEntity.getContentTypeOverride());
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getFileName());
 	}
 	
 	@Override
@@ -671,7 +671,7 @@ public class EntityServiceImpl implements EntityService {
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);
 		FileEntity fileEntity = entityManager.getEntityForVersion(userInfo, id, versionNumber, FileEntity.class);
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getName(), fileEntity.getContentTypeOverride());
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getFileName());
 	}
 
 

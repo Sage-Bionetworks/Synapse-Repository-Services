@@ -11,9 +11,9 @@
             "type":"string",
             "description":"ID of the file associated with this entity."
         },
-        "contentTypeOverride":{
+        "fileName":{
             "type":"string",
-            "description":"The user specified Content Type, overriding the value used when uploading the underlying file to S3 (or equivalent web cloud storage)."
+            "description":"The name of the file (as distinct from the separately controlled entity name).  By default this is the name of the file in the source file system."
         }
     }
 }

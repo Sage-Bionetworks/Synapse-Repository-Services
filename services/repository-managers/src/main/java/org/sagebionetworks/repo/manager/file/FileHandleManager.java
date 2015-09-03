@@ -122,7 +122,7 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 * @throws MalformedURLException 
 	 */
-	String getRedirectURLForFileHandle(String handleId, String fileNameOverride, String contentTypeOverride) throws DatastoreException, NotFoundException;
+	String getRedirectURLForFileHandle(String handleId, String fileNameOverride) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all file handles on the list.

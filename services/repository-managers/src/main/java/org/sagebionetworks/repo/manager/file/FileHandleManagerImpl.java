@@ -429,24 +429,23 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle, null, null);
+		return getURLForFileHandle(handle, null);
 	}
 
 	@Override
-	public String getRedirectURLForFileHandle(String handleId, String fileNameOverride, String contentTypeOverride)
+	public String getRedirectURLForFileHandle(String handleId, String fileNameOverride)
 			throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle, fileNameOverride, contentTypeOverride);
+		return getURLForFileHandle(handle, fileNameOverride);
 	}
 
 	/**
 	 * @param handle
 	 * @param fileNameOverride a value for the file name that overrides that in the file handle or in the S3 object
-	 * @param contentTypeOverride a value for the content type that overrides that in the file handle or in the S3 object
 	 * @return
 	 */
-	public String getURLForFileHandle(FileHandle handle, String fileNameOverride, String contentTypeOverride) {
+	public String getURLForFileHandle(FileHandle handle, String fileNameOverride) {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -458,8 +457,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
 
-			String contentType = StringUtils.isNotEmpty(contentTypeOverride) ?
-					contentTypeOverride : handle.getContentType();
+			String contentType = handle.getContentType();
 			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
 				responseHeaderOverrides.setContentType(contentType);
 			}
@@ -767,7 +765,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
 		}
-		return getURLForFileHandle(handle, null, null);
+		return getURLForFileHandle(handle, null);
 	}
 
 	@Override
