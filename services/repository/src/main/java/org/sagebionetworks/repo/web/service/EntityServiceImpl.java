@@ -247,7 +247,6 @@ public class EntityServiceImpl implements EntityService {
 		EventType eventType = EventType.CREATE;
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, newEntity, type);
-		doAddServiceSpecificMetadata(userInfo, newEntity, type, request, eventType);
 		String id = entityManager.createEntity(userInfo, newEntity, activityId);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, eventType);
