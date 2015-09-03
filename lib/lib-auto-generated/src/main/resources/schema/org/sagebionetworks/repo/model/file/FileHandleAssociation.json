@@ -7,7 +7,7 @@
 		},
 		"associatedObjectId": {
 			"description": "The ID of the object associated with the FileHandle",
-			"type": "integer"
+			"type": "string"
 		},
 		"associatedObjectType": {
 			"description": "The type of association between the FileHandle and Object.",

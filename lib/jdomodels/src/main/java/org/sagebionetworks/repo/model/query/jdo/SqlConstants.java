@@ -686,6 +686,13 @@ public class SqlConstants {
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
 	private static final Map<String, String> primaryFieldColumns;
+	
+	/**
+	 * This is from the DB: SHOW VARIABLES LIKE 'max_allowed_packet';
+	 */
+	public static final int MAX_ALLOWED_PACKET_BYTES = 16777216;
+	public static final int MAX_BYTES_PER_LONG_AS_STRING = 20*2; // 20 chars at 2 bytes per char.;
+	public static final int MAX_LONGS_PER_IN_CLAUSE = MAX_ALLOWED_PACKET_BYTES/MAX_BYTES_PER_LONG_AS_STRING;
 
 	static{
 		// Map column names to the field names

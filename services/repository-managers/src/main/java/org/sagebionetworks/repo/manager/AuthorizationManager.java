@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -138,7 +139,7 @@ public interface AuthorizationManager {
 	 * @return Map key
 	 */
 	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
-			List<FileHandleAssociation> associations);
+			List<String> fileHandleId, String associatedObjectId, FileHandleAssociationType associationType);
 
 	/**
 	 * 

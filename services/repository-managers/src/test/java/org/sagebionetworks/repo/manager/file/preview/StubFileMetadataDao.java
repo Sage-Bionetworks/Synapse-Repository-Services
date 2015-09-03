@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.dao.FileHandleCreator;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -129,5 +130,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 			result.put(fileHandleId, map.get(fileHandleId));
 		}
 		return result;
+	}
+
+	@Override
+	public List<FileHandleCreator> getFileHandleCreators(
+			List<String> fileHandleIds) throws NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

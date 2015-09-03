@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -243,6 +244,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public List<FileHandleCreator> getFileHandleCreators(
 			List<String> fileHandleIds) throws NotFoundException {
+		if(fileHandleIds.size() > SqlConstants.MAX_LONGS_PER_IN_CLAUSE){
+			throw new IllegalArgumentException("Exceeded the maxiumn number of FileHandleIds that can be used in one call. Max="+SqlConstants.MAX_LONGS_PER_IN_CLAUSE);
+		}
 		final List<FileHandleCreator> results = new LinkedList<FileHandleCreator>();
 		simpleJdbcTemplate.query(SQL_SELECT_CREATORS, new RowMapper<Void>() {
 			@Override
