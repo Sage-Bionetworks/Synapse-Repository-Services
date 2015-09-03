@@ -386,6 +386,8 @@ public interface EntityManager {
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Return just the secondary properties of an entity, omitting primary ones.  
+	 * This avoids making the database call to retrieve a Node when only its Revision is needed.
 	 * 
 	 * @param user
 	 * @param entityId
@@ -398,6 +400,19 @@ public interface EntityManager {
 	<T extends Entity> T getEntitySecondaryFields(UserInfo user, String entityId, Class<T> type)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 	
+	/**
+	 * Return just the secondary properties of an entity, omitting primary ones.  
+	 * This avoids making the database call to retrieve a Node when only its Revision is needed.
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @param versionNumber
+	 * @param type
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	<T extends Entity> T getEntitySecondaryFieldsForVersion(UserInfo user, String entityId, Long versionNumber, Class<T> type)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 }
