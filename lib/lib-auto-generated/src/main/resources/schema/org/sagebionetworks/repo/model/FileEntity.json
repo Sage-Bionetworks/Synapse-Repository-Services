@@ -11,9 +11,9 @@
             "type":"string",
             "description":"ID of the file associated with this entity."
         },
-        "fileName":{
+        "fileNameOverride":{
             "type":"string",
-            "description":"The name of the file (as distinct from the separately controlled entity name).  By default this is the name of the file in the source file system."
+            "description":"An optional replacement for the name of the uploaded file.  This is distinct from the entity name.  If omitted the file will retain its original name."
         }
     }
 }
