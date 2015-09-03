@@ -58,4 +58,10 @@ public class AuthorizationStatus {
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return "AuthorizationStatus [authorized=" + authorized + ", reason="
+				+ reason + "]";
+	}
+
 }

@@ -15,17 +15,21 @@ public class FileHandleAssociationSwitchImpl implements
 
 	Map<FileHandleAssociationType, FileHandleAssociationProvider> providerMap;
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.file.FileHandleAssociationSwitch#getFileHandleIdsAssociatedWithObject(java.util.List, java.lang.String, org.sagebionetworks.repo.model.file.FileHandleAssociationType)
+	 */
 	@Override
-	public Set<String> getDistinctAssociationsForFileHandleIds(
+	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId,
 			FileHandleAssociationType associationType) {
 
 		FileHandleAssociationProvider provider = getProvider(associationType);
-		return provider.getDistinctAssociationsForFileHandleIds(fileHandleIds, objectId);
+		return provider.getFileHandleIdsAssociatedWithObject(fileHandleIds, objectId);
 	}
 	
 	/**
-	 * Get a provider for a type.
+	 * Helper to get the correct provider for a given type.
 	 * @param type
 	 * @return
 	 */
@@ -35,16 +39,29 @@ public class FileHandleAssociationSwitchImpl implements
 		}
 		FileHandleAssociationProvider provider = providerMap.get(type);
 		if(provider == null){
-			throw new UnsupportedOperationException("Currently do not support this opperation for FileHandleAssociationType = "+type);
+			throw new UnsupportedOperationException("Currently do not support this operation for FileHandleAssociationType = "+type);
 		}
 		return provider;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.file.FileHandleAssociationSwitch#getObjectTypeForAssociationType(org.sagebionetworks.repo.model.file.FileHandleAssociationType)
+	 */
 	@Override
 	public ObjectType getObjectTypeForAssociationType(
 			FileHandleAssociationType associationType) {
 		FileHandleAssociationProvider provider = getProvider(associationType);
 		return provider.getObjectTypeForAssociationType();
+	}
+
+	/**
+	 * Injected.
+	 * @param providerMap
+	 */
+	public void setProviderMap(
+			Map<FileHandleAssociationType, FileHandleAssociationProvider> providerMap) {
+		this.providerMap = providerMap;
 	}
 
 }

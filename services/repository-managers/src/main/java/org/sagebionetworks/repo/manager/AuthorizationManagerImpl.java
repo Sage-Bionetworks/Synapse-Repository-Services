@@ -3,9 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -34,21 +32,14 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
-import org.sagebionetworks.repo.model.dao.FileHandleCreator;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationSwitch;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
@@ -362,12 +353,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		List<FileHandleAuthorizationStatus> results = new ArrayList<FileHandleAuthorizationStatus>(fileHandleIds.size());
 		// Validate all all filehandles are actually associated with the given
 		// object.
-		Set<String> associatedFileHandleIds = fileHandleAssociationSwitch.getDistinctAssociationsForFileHandleIds(fileHandleIds,
+		Set<String> associatedFileHandleIds = fileHandleAssociationSwitch.getFileHandleIdsAssociatedWithObject(fileHandleIds,
 						associatedObjectId, associationType);
 		// Which file handles did the user create.
-		Set<String> fileHandlesCreatedByUser = getFileHandlesCreatedByUser(user, fileHandleIds);
+		Set<String> fileHandlesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandleIds);
 		for (String fileHandleId : fileHandleIds) {
-			if (fileHandlesCreatedByUser.contains(fileHandleId)) {
+			
+			if (fileHandlesCreatedByUser.contains(fileHandleId) || user.isAdmin()) {
 				// The user is the creator of the file or and admin so they can
 				// download it.
 				results.add(new FileHandleAuthorizationStatus(fileHandleId,
@@ -386,32 +378,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					// The fileHandle is not associated with the object.
 					results.add(new FileHandleAuthorizationStatus(
 							fileHandleId,
-							AuthorizationManagerUtil.accessDenied(String
-									.format("FileHandleId: %1s is not associated with objectId: %2s of type: %3s",
-											fileHandleId, associatedObjectId,
-											associationType))));
+							AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject(fileHandleId, associatedObjectId,
+											associationType)));
 				}
 			}
 		}
 		return results;
-	}
-	
-	
-	/**
-	 * Given a list of FileHandleId
-	 * @param user
-	 * @param associations
-	 * @return
-	 */
-	private Set<String> getFileHandlesCreatedByUser(UserInfo user, List<String> fileHandleIds){
-		List<FileHandleCreator> fileHandleCreators = fileHandleDao.getFileHandleCreators(fileHandleIds);
-		Set<String> fileHandlesCreatedByUser = new HashSet<String>();
-		for(FileHandleCreator fhc: fileHandleCreators){
-			if(isUserCreatorOrAdmin(user, fhc.getCreatorUserId())){
-				fileHandlesCreatedByUser.add(fhc.getFileHanelId());
-			}
-		}
-		return fileHandlesCreatedByUser;
 	}
 	
 }

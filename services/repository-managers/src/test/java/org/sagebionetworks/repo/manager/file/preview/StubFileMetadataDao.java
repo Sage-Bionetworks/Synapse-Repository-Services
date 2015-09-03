@@ -4,10 +4,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
-import org.sagebionetworks.repo.model.dao.FileHandleCreator;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -133,9 +133,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public List<FileHandleCreator> getFileHandleCreators(
+	public Set<String> getFileHandleIdsCreatedByUser(Long createdById,
 			List<String> fileHandleIds) throws NotFoundException {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
 }

@@ -12,15 +12,15 @@ import org.sagebionetworks.repo.model.ObjectType;
  *
  */
 public interface FileHandleAssociationProvider {
-	
+
 	/**
-	 * Get the distinct FileHandleAssociation for the given set of FileHandleIds.  The resulting set
-	 * should only include FileHandleIds that are actually associated with the given objectId.
-	 * @param fileHandleIds List of FileHandleIds to test.
-	 * @param objectId The associated object id.
-	 * @return
+	 * Given a set of FileHandleIds and an associatedObjectId, get the sub-set of
+	 * FileHandleIds that are actually associated with the requested object.
+	 * @param fileHandleIds
+	 * @param objectId
+	 * @return The sub-set of FileHandleIds that are associated with the given objectId.
 	 */
-	public Set<String> getDistinctAssociationsForFileHandleIds(List<String> fileHandleIds, String objectId);
+	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId);
 
 	/**
 	 * Get the ObjectType for this FileHandleAssociationType.

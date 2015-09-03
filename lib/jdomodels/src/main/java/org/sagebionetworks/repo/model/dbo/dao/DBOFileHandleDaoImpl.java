@@ -10,16 +10,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.FileHandleCreator;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -242,24 +243,25 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
-	public List<FileHandleCreator> getFileHandleCreators(
+	public Set<String> getFileHandleIdsCreatedByUser(final Long createdById,
 			List<String> fileHandleIds) throws NotFoundException {
-		if(fileHandleIds.size() > SqlConstants.MAX_LONGS_PER_IN_CLAUSE){
-			throw new IllegalArgumentException("Exceeded the maxiumn number of FileHandleIds that can be used in one call. Max="+SqlConstants.MAX_LONGS_PER_IN_CLAUSE);
+		final Set<String> results = new HashSet<String>();
+		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE/2)) {
+			MapSqlParameterSource parameters = new MapSqlParameterSource();
+			parameters.addValue("ids", fileHandleIdsBatch);
+			parameters.addValue("createdById", createdById);
+			simpleJdbcTemplate.query("SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( :ids ) AND "+COL_FILES_CREATED_BY+" = :createdById", new RowMapper<Void>() {
+				@Override
+				public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+					String fileHandleId = rs.getString(COL_FILES_ID);
+					results.add(fileHandleId);
+					return null;
+				}
+			}, parameters);
 		}
-		final List<FileHandleCreator> results = new LinkedList<FileHandleCreator>();
-		simpleJdbcTemplate.query(SQL_SELECT_CREATORS, new RowMapper<Void>() {
-			@Override
-			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String creatorUserId = rs.getString(COL_FILES_CREATED_BY);
-				String fileHandleId = rs.getString(COL_FILES_ID);
-				results.add(new FileHandleCreator(fileHandleId, creatorUserId));
-				return null;
-			}
-		}, new SinglePrimaryKeySqlParameterSource(fileHandleIds));
 		return results;
 	}
-
+	
 	@Override
 	public String getPreviewFileHandleId(String fileHandleId)
 			throws NotFoundException {

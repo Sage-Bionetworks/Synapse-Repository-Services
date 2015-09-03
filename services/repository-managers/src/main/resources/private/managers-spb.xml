@@ -162,6 +162,18 @@
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 
+	<bean id="fileHandleAssociationSwitch"
+		class="org.sagebionetworks.repo.manager.file.FileHandleAssociationSwitchImpl">
+		<property name="providerMap">
+			<map>
+				<entry key="TableEntity">
+					<bean
+						class="org.sagebionetworks.repo.manager.table.TableFileHandleAssociationProvider" />
+				</entry>
+			</map>
+		</property>
+	</bean>
+
 	<bean id="authorizationManager"
 		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 
