@@ -1,0 +1,13 @@
+{
+    "description":"Enumeration of all possible file handle associations.",
+    "type":"string",
+	"enum": [
+		"FileEntity",
+		"TableEntity",
+		"WikiAttachment",
+		"UserProfileAttachment",
+		"MessageAttachment",
+		"TeamAttachment",
+		"SubmissionAttachment"
+	]
+}

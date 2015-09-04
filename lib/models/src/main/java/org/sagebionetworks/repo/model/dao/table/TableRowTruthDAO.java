@@ -247,4 +247,6 @@ public interface TableRowTruthDAO {
 	 *             when a conflict is found
 	 */
 	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException;
+	
+	
 }

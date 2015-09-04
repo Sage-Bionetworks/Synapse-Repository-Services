@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * 
@@ -1034,5 +1036,30 @@ public class TableModelUtilsTest {
 			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", type));
 		}
 	}
+	
+	@Test
+	public void testIsNullOrEmpty(){
+		assertTrue(TableModelUtils.isNullOrEmpty(null));
+		assertTrue(TableModelUtils.isNullOrEmpty(""));
+		assertTrue(TableModelUtils.isNullOrEmpty(" "));
+		assertFalse(TableModelUtils.isNullOrEmpty("a"));
+	}
 
+	@Test
+	public void testGetFileHandleIdsInRowSet(){
+		List<ColumnModel> cols = new ArrayList<ColumnModel>();
+		cols.add(TableModelTestUtils.createColumn(1L, "a", ColumnType.STRING));
+		cols.add(TableModelTestUtils.createColumn(2L, "b", ColumnType.FILEHANDLEID));
+		cols.add(TableModelTestUtils.createColumn(3L, "c", ColumnType.STRING));
+		cols.add(TableModelTestUtils.createColumn(4L, "c", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5","6","7","8"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "9",null,"7",""));
+		
+		Set<String> expected = Sets.newHashSet("2","4","6","8");
+		Set<String> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+		assertEquals(expected, results);
+ 	}
 }
