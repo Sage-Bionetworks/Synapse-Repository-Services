@@ -416,6 +416,11 @@ public class SqlConstants {
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
 	public static final String COL_BOUND_OWNER_ETAG			= "ETAG";
 	
+	// Tracks the file handles associated with each table.
+	public static final String TABLE_TABLE_FILE_ASSOCIATION 	= "TABLE_FILE_ASSOCIATION";
+	public static final String COL_TABLE_FILE_ASSOC_TABLE_ID	= "TABLE_ID";
+	public static final String COL_TABLE_FILE_ASSOC_FILE_ID		= "FILE_ID";
+	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";

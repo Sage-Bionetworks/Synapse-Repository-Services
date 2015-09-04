@@ -143,6 +143,7 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
 		list.add(new DBOTableRowChange());
+		list.add(new DBOTableFileAssociation());
 		return list;
 	}
 

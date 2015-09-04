@@ -57,6 +57,8 @@ import com.google.common.collect.Multimap;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
+	private static final String SQL_SELECT_FILES_CREATED_BY_USER = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( :ids ) AND "+COL_FILES_CREATED_BY+" = :createdById";
+
 	private static final String IDS_PARAM = ":ids";
 
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
@@ -250,7 +252,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			MapSqlParameterSource parameters = new MapSqlParameterSource();
 			parameters.addValue("ids", fileHandleIdsBatch);
 			parameters.addValue("createdById", createdById);
-			simpleJdbcTemplate.query("SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( :ids ) AND "+COL_FILES_CREATED_BY+" = :createdById", new RowMapper<Void>() {
+			simpleJdbcTemplate.query(SQL_SELECT_FILES_CREATED_BY_USER, new RowMapper<Void>() {
 				@Override
 				public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
 					String fileHandleId = rs.getString(COL_FILES_ID);

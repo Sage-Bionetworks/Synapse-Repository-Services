@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -1355,5 +1356,30 @@ public class TableModelUtils {
 			}
 		};
 		return columnMapper;
+	}
+	
+	/**
+	 * Extract all of the FileHandleIds from the passed list of rows.
+	 * @param mapper
+	 * @param rows
+	 * @return
+	 */
+	public static Set<String> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
+		ColumnModel[] columns = columnList.toArray(new ColumnModel[columnList.size()]);
+		Set<String> fileHandleIds = new HashSet<String>();
+		for(Row row: rows){
+			int columnIndex = 0;
+			if(row.getValues() != null){
+				for(String cellValue: row.getValues()){
+					if(cellValue != null){
+						if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
+							fileHandleIds.add(cellValue);						
+						}
+					}
+					columnIndex++;
+				}
+			}
+		}
+		return fileHandleIds;
 	}
 }

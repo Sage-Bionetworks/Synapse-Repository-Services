@@ -93,6 +93,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableFileAssociation" />
 				<!-- Job Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus" />
 				<!-- misc -->
