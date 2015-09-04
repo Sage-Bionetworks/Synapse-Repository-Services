@@ -202,7 +202,9 @@
 			
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/><bean
+	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
+	
+	<bean
         id="migrationManager"
         class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
         scope="singleton" >
@@ -212,6 +214,7 @@
         <property name="migrationListeners" >
             <list>
 				<bean id="tableCacheInvalidationMigrationListener" class="org.sagebionetworks.repo.manager.migration.TableCacheInvalidationMigrationListener" />
+				<bean id="tableFileAssociationMigrationListener" class="org.sagebionetworks.repo.manager.migration.TableFileAssociationMigrationListener" />
             </list>
         </property>
     </bean>

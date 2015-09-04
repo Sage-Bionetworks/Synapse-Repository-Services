@@ -1359,6 +1359,18 @@ public class TableModelUtils {
 	}
 	
 	/**
+	 * Is the passed string null or empty?
+	 * @param string
+	 * @return
+	 */
+	public static boolean isNullOrEmpty(String string){
+		if(string == null){
+			return true;
+		}
+		return "".equals(string.trim());
+	}
+	
+	/**
 	 * Extract all of the FileHandleIds from the passed list of rows.
 	 * @param mapper
 	 * @param rows
@@ -1371,7 +1383,7 @@ public class TableModelUtils {
 			int columnIndex = 0;
 			if(row.getValues() != null){
 				for(String cellValue: row.getValues()){
-					if(cellValue != null){
+					if(!isNullOrEmpty(cellValue)){
 						if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
 							fileHandleIds.add(cellValue);						
 						}
