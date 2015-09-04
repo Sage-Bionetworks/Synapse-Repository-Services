@@ -12,6 +12,6 @@
 		"associatedObjectType": {
 			"description": "The type of association between the FileHandle and Object.",
 			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociationType"
-		},		
+		}
 	}
 }
