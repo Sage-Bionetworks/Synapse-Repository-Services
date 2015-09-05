@@ -13,38 +13,38 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
 
 import com.google.common.collect.Sets;
 
-public class FileHandleAssociationSwitchImplTest {
+public class FileHandleAssociationManagerImplTest {
 	
 	FileHandleAssociationProvider mockProvider;
-	FileHandleAssociationSwitchImpl fileSwitch;
+	FileHandleAssociationManagerImpl fileSwitch;
 	
 	@Before
 	public void before(){
 		mockProvider = Mockito.mock(FileHandleAssociationProvider.class);
 
 		
-		HashMap<FileHandleAssociationType, FileHandleAssociationProvider> mockMap = new HashMap<FileHandleAssociationType, FileHandleAssociationProvider>();
-		mockMap.put(FileHandleAssociationType.TableEntity, mockProvider);
+		HashMap<FileHandleAssociateType, FileHandleAssociationProvider> mockMap = new HashMap<FileHandleAssociateType, FileHandleAssociationProvider>();
+		mockMap.put(FileHandleAssociateType.TableEntity, mockProvider);
 		
-		fileSwitch = new FileHandleAssociationSwitchImpl();
+		fileSwitch = new FileHandleAssociationManagerImpl();
 		fileSwitch.setProviderMap(mockMap);
 	}
 	
 	@Test
 	public void testGetObjectTypeForAssociatedType(){
-		when(mockProvider.getObjectTypeForAssociationType()).thenReturn(ObjectType.ENTITY);
-		assertEquals(ObjectType.ENTITY, fileSwitch.getObjectTypeForAssociationType(FileHandleAssociationType.TableEntity));
+		when(mockProvider.getAuthorizationObjectTypeForAssociatedObjectType()).thenReturn(ObjectType.ENTITY);
+		assertEquals(ObjectType.ENTITY, fileSwitch.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.TableEntity));
 	}
 
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject(){
 		Set<String> sample = Sets.newHashSet("1");
 		when(mockProvider.getFileHandleIdsAssociatedWithObject(anyList(), anyString())).thenReturn(sample);
-		assertEquals(sample, fileSwitch.getFileHandleIdsAssociatedWithObject(Arrays.asList("1"), "456", FileHandleAssociationType.TableEntity));
+		assertEquals(sample, fileSwitch.getFileHandleIdsAssociatedWithObject(Arrays.asList("1"), "456", FileHandleAssociateType.TableEntity));
 	}
 }

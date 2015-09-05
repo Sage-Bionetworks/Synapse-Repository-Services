@@ -34,8 +34,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationSwitch;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +69,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
-	private FileHandleAssociationSwitch fileHandleAssociationSwitch;
+	private FileHandleAssociationManager fileHandleAssociationSwitch;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -339,14 +339,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
 			List<String> fileHandleIds, String associatedObjectId,
-			FileHandleAssociationType associationType) {
+			FileHandleAssociateType associationType) {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null");
 		}
 		if (fileHandleIds == null) {
 			throw new IllegalArgumentException("FileHandleIds cannot be null");
 		}
-		ObjectType assocatedObjectType = fileHandleAssociationSwitch.getObjectTypeForAssociationType(associationType);
+		ObjectType assocatedObjectType = fileHandleAssociationSwitch.getAuthorizationObjectTypeForAssociatedObjectType(associationType);
 		// Is the user authorized to download the associated object?
 		AuthorizationStatus canUserDownloadAssociatedObject = canAccess(user,
 				associatedObjectId, assocatedObjectType, ACCESS_TYPE.DOWNLOAD);

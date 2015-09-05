@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.ObjectType;
  * type.
  *
  */
-public interface FileHandleAssociationSwitch {
+public interface FileHandleAssociationManager {
 
 	/**
 	 * Given a set of FileHandleIds and an associatedObjectId, get the sub-set of
@@ -25,13 +25,13 @@ public interface FileHandleAssociationSwitch {
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId,
-			FileHandleAssociationType associationType);
+			FileHandleAssociateType associationType);
 	
 	/**
 	 * What ObjectType matches the FileHandleAssociationType?
 	 * @param associationType
 	 * @return
 	 */
-	public ObjectType getObjectTypeForAssociationType(FileHandleAssociationType associationType);
+	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType associationType);
 
 }

@@ -162,8 +162,8 @@
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 
-	<bean id="fileHandleAssociationSwitch"
-		class="org.sagebionetworks.repo.manager.file.FileHandleAssociationSwitchImpl">
+	<bean id="fileHandleAssociationManager"
+		class="org.sagebionetworks.repo.manager.file.FileHandleAssociationManagerImpl">
 		<property name="providerMap">
 			<map>
 				<entry key="TableEntity">

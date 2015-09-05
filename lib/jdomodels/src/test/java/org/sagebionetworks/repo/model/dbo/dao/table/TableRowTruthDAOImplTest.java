@@ -78,7 +78,7 @@ public class TableRowTruthDAOImplTest {
 	FileHandleDao fileHandleDao;
 	
 	@Autowired
-	TableFileAssociationDao tableFileAssociatoinDao;
+	TableFileAssociationDao tableFileAssociationDao;
 
 	protected String creatorUserGroupId;
 
@@ -962,7 +962,7 @@ public class TableRowTruthDAOImplTest {
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		// Validate that the file handles are bound to the table.
-		Set<String> filesBoundToTable = tableFileAssociatoinDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, tableId);
+		Set<String> filesBoundToTable = tableFileAssociationDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, tableId);
 		assertEquals(new HashSet<String>(fileHandleIds), filesBoundToTable);
 	}
 }

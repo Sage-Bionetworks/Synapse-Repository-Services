@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -12,8 +11,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -121,7 +119,7 @@ public interface AuthorizationManager {
 			throws NotFoundException;
 	
 	/**
-	 * Given a list of FileHandleAssociations, can the user download each file?
+	 * Given a list of FileHandleIds, can the user download each file?
 	 * <ul>
 	 * <li>If a user is an admin then they will be authorized for all files.</li>
 	 * <li>A user will be authorized to download each FileHandle that they
@@ -139,7 +137,7 @@ public interface AuthorizationManager {
 	 * @return Map key
 	 */
 	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
-			List<String> fileHandleId, String associatedObjectId, FileHandleAssociationType associationType);
+			List<String> fileHandleId, String associatedObjectId, FileHandleAssociateType associationType);
 
 	/**
 	 * 

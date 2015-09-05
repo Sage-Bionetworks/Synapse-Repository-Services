@@ -1,5 +1,5 @@
 {
-    "description":"Enumeration of all possible file handle associations.",
+    "description":"Enumeration of all possible objects types that can be associated with a file.",
     "type":"string",
 	"enum": [
 		"FileEntity",
