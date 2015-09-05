@@ -28,7 +28,7 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 	 * @see org.sagebionetworks.repo.model.file.FileHandleAssociationProvider#getObjectTypeForAssociationType()
 	 */
 	@Override
-	public ObjectType getObjectTypeForAssociationType() {
+	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType() {
 		return ObjectType.ENTITY;
 	}
 

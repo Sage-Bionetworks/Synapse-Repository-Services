@@ -26,6 +26,6 @@ public interface FileHandleAssociationProvider {
 	 * Get the ObjectType for this FileHandleAssociationType.
 	 * @return
 	 */
-	public ObjectType getObjectTypeForAssociationType(); 
+	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType(); 
 
 }

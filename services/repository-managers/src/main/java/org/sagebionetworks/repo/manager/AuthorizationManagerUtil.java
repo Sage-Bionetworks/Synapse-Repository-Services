@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 
 public class AuthorizationManagerUtil {
 
@@ -28,10 +28,10 @@ public class AuthorizationManagerUtil {
 	 * @param associationType
 	 * @return
 	 */
-	public static AuthorizationStatus accessDeniedFileNotAssociatedWithObject(String fileHandleId, String associatedObjectId, FileHandleAssociationType associationType){
+	public static AuthorizationStatus accessDeniedFileNotAssociatedWithObject(String fileHandleId, String associatedObjectId, FileHandleAssociateType associateType){
 		return AuthorizationManagerUtil.accessDenied(String
 				.format(FILE_HANDLE_ID_IS_NOT_ASSOCIATED_TEMPLATE,
 						fileHandleId, associatedObjectId,
-						associationType));
+						associateType));
 	}
 }

@@ -5,15 +5,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationSwitch;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationType;
 
 
-public class FileHandleAssociationSwitchImpl implements
-		FileHandleAssociationSwitch {
+public class FileHandleAssociationManagerImpl implements
+		FileHandleAssociationManager {
 
-	Map<FileHandleAssociationType, FileHandleAssociationProvider> providerMap;
+	Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap;
 	
 	/*
 	 * (non-Javadoc)
@@ -22,9 +22,9 @@ public class FileHandleAssociationSwitchImpl implements
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId,
-			FileHandleAssociationType associationType) {
+			FileHandleAssociateType associateType) {
 
-		FileHandleAssociationProvider provider = getProvider(associationType);
+		FileHandleAssociationProvider provider = getProvider(associateType);
 		return provider.getFileHandleIdsAssociatedWithObject(fileHandleIds, objectId);
 	}
 	
@@ -33,7 +33,7 @@ public class FileHandleAssociationSwitchImpl implements
 	 * @param type
 	 * @return
 	 */
-	private FileHandleAssociationProvider getProvider(FileHandleAssociationType type){
+	private FileHandleAssociationProvider getProvider(FileHandleAssociateType type){
 		if(type == null){
 			throw new IllegalArgumentException("FileHandleAssociationType cannot be null");
 		}
@@ -49,10 +49,10 @@ public class FileHandleAssociationSwitchImpl implements
 	 * @see org.sagebionetworks.repo.model.file.FileHandleAssociationSwitch#getObjectTypeForAssociationType(org.sagebionetworks.repo.model.file.FileHandleAssociationType)
 	 */
 	@Override
-	public ObjectType getObjectTypeForAssociationType(
-			FileHandleAssociationType associationType) {
-		FileHandleAssociationProvider provider = getProvider(associationType);
-		return provider.getObjectTypeForAssociationType();
+	public ObjectType getAuthorizationObjectTypeForAssociatedObjectType(
+			FileHandleAssociateType associateType) {
+		FileHandleAssociationProvider provider = getProvider(associateType);
+		return provider.getAuthorizationObjectTypeForAssociatedObjectType();
 	}
 
 	/**
@@ -60,7 +60,7 @@ public class FileHandleAssociationSwitchImpl implements
 	 * @param providerMap
 	 */
 	public void setProviderMap(
-			Map<FileHandleAssociationType, FileHandleAssociationProvider> providerMap) {
+			Map<FileHandleAssociateType, FileHandleAssociationProvider> providerMap) {
 		this.providerMap = providerMap;
 	}
 
