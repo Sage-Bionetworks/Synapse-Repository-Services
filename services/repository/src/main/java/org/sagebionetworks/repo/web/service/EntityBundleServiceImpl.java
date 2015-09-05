@@ -166,7 +166,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setDoi(null);
 			}
 		}
-		if((mask & EntityBundle.FILE_NAME) > 0 ){
+		if((mask & EntityBundle.FILE_NAME) > 0 && (entity instanceof FileEntity)){
 			FileEntity fileEntity = (FileEntity)entity;
 			if (fileEntity.getFileNameOverride()==null) {
 				for (FileHandle fileHandle : fileHandles) {
