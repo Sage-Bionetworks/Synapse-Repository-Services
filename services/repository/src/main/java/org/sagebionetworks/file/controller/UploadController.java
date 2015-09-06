@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -34,7 +36,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -689,5 +690,61 @@ public class UploadController extends BaseController {
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
 		return (S3FileCopyResults) jobStatus.getResponseBody();
+	}
+	
+	/**
+	 * <p>
+	 * Start an asynchronous job to download multiple files in bulk.  This job will generate a zip file that contains each
+	 * requested file that the caller is authorized to download. The entry for each file in the zip will be in the following
+	 * format:
+	 *  </p>
+	 *  <p>
+	 *  {fileHandleId modulo 1000} /{fileHandleId}/{fileName}
+	 *  </p>
+	 * 
+	 *  Use <a href="${GET.file.bulk.async.get.asyncToken}">GET /file/bulk/async/get/{asyncToken}</a> to get both the job status
+	 *  and job results.
+	 * 
+	 * @param userId
+	 * @param request The files to be included in the bulk download.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.BULK_FILE_DOWNLOAD_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId startBulkFileDownloadJob(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody BulkFileDownloadRequest request) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Get the results of a bulk file download started with <a href="${POST.file.bulk.async.start}">POST /file/bulk/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response
+	 * body will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws NotReadyException
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.BULK_FILE_DOWNLOAD_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	BulkFileDownloadResponse getBulkFileDownloadResults(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (BulkFileDownloadResponse) jobStatus.getResponseBody();
 	}
 }

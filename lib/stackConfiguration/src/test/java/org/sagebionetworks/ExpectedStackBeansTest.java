@@ -79,7 +79,9 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.repositoryChangeTopic[WIKI]",
 			"stackConfiguration.repositoryChangeTopic[TABLE]",
 			"stackConfiguration.repositoryChangeTopic[TEAM_MEMBER]",
-			"stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]"
+			"stackConfiguration.repositoryChangeTopic[PROJECT_SETTING]",
+			
+			"stackConfiguration.asyncQueueName[BULK_FILE_DOWNLOAD]"
 	};
 	
 	@Before
