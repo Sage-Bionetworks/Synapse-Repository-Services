@@ -178,7 +178,7 @@
 		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 		
 	<bean id="fileHandleAuthorizationManager"
-		class="org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager" />	
+		class="org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManagerImpl" />	
 
 	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 

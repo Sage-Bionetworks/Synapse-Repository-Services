@@ -27,7 +27,7 @@
 				"UNAUTHORIZED",
 				"DUPLICATE",
 				"EXCEEDS_SIZE_LIMIT",
-				"UNKNOWN"
+				"UNKNOWN_ERROR"
 			]
 		}
 	}
