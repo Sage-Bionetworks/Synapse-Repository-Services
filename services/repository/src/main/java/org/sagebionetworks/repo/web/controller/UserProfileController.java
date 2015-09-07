@@ -55,6 +55,9 @@ public class UserProfileController extends BaseController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
+	
+	@Autowired
+	ObjectTypeSerializer objectTypeSerializer;
 
 	/**
 	 * Get the profile of the caller (my profile).
@@ -130,7 +133,8 @@ public class UserProfileController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
+		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
+		return serviceProvider.getUserProfileService().updateUserProfile(userId, entity);
 	}
 	
 	/**

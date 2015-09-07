@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
@@ -52,7 +51,6 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -68,15 +66,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 public class AdministrationServiceImpl implements AdministrationService  {
 
 	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
-
-	@Autowired
-	private DBOBasicDao basicDao;
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
-	
-	@Autowired
-	private ObjectTypeSerializer objectTypeSerializer;	
 	
 	@Autowired
 	private UserManager userManager;
@@ -131,13 +123,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * @param messageSyndication
 	 */
 	public AdministrationServiceImpl(BackupDaemonLauncher backupDaemonLauncher,
-			ObjectTypeSerializer objectTypeSerializer, UserManager userManager,
+			UserManager userManager,
 			StackStatusManager stackStatusManager,
 			MessageSyndication messageSyndication,
 			DBOChangeDAO changeDAO) {
 		super();
 		this.backupDaemonLauncher = backupDaemonLauncher;
-		this.objectTypeSerializer = objectTypeSerializer;
 		this.userManager = userManager;
 		this.stackStatusManager = stackStatusManager;
 		this.messageSyndication = messageSyndication;
@@ -189,11 +180,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 */
 	@Override
 	public StackStatus updateStatusStackStatus(Long userId,
-			HttpHeaders header,	HttpServletRequest request) 
+			StackStatus updatedValue) 
 			throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
-
-		// Get the status of this daemon
-		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return stackStatusManager.updateStatus(userInfo, updatedValue);

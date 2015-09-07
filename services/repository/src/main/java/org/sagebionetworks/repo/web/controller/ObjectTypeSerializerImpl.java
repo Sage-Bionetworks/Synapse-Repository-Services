@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.util.JSONEntityUtil;
+import org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;

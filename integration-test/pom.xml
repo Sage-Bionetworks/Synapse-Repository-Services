@@ -207,6 +207,7 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>app-services</artifactId>
+			<version>develop-SNAPSHOT</version>
 		</dependency>
 		
 		<dependency>

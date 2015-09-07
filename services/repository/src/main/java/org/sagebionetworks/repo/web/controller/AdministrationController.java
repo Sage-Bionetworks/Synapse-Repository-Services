@@ -45,6 +45,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class AdministrationController extends BaseController {
 	
 	@Autowired
+	private ObjectTypeSerializer objectTypeSerializer;
+	
+	@Autowired
 	private ServiceProvider serviceProvider;
 	
 	/**
@@ -153,8 +156,9 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
-
-		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, header, request);
+		// Get the status of this daemon
+		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
+		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, null);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

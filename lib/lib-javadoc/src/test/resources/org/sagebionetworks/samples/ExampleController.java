@@ -1,19 +1,17 @@
 package org.sagebionetworks.samples;
-import java.util.List;
-
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -184,7 +182,7 @@ public class ExampleController {
 	@RequestMapping(value = "/multiple/{pathVar}", method = RequestMethod.GET)
 	public @ResponseBody
 	RowMetadataResult noAuthPathVariable(
-			@PathVariable(required = true) String pathVar,
+			@PathVariable(value = "true") String pathVar,
 			@RequestParam(required = false) String limit,
 			@RequestParam(required = false) String offset,
 			@RequestBody IdList request) throws DatastoreException,
@@ -199,7 +197,7 @@ public class ExampleController {
 	@RequestMapping(value = "/missing/descriptions", method = RequestMethod.GET)
 	public @ResponseBody
 	RowMetadataResult missingDescriptions(
-			@PathVariable(required = true) String pathVar,
+			@PathVariable(value = "true") String pathVar,
 			@RequestParam(required = false) String limit,
 			@RequestParam(required = false) String offset,
 			@RequestBody IdList request) throws DatastoreException,
@@ -220,7 +218,7 @@ public class ExampleController {
 	@RequestMapping(value = "/void", method = RequestMethod.GET)
 	public @ResponseBody
 	void noParamsOrReturn() {
-		return null;
+		return;
 	}
 
 	/**

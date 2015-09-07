@@ -58,7 +58,7 @@ public class AdministrationServiceImplTest {
 		mockStackStatusManager = Mockito.mock(StackStatusManager.class);
 		mockMessageSyndication = Mockito.mock(MessageSyndication.class);
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
-		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockMessageSyndication, mockChangeDAO);
+		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockUserManager, mockStackStatusManager, mockMessageSyndication, mockChangeDAO);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);

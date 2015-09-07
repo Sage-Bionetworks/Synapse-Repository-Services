@@ -10,12 +10,9 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class AccessRequirementServiceImpl implements AccessRequirementService {
 
@@ -23,8 +20,6 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	AccessRequirementManager accessRequirementManager;	
 	@Autowired
 	UserManager userManager;
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
 
 	@WriteTransaction
 	@Override

@@ -1,7 +1,5 @@
 package org.sagebionetworks.auth;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
@@ -95,13 +93,13 @@ public class AuthenticationController extends BaseController {
 	 * Deauthenticate a session token. This will sign out all active sessions
 	 * using the session token.
 	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
-	public void deauthenticate(HttpServletRequest request) {
-		String sessionToken = request
-				.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		authenticationService.invalidateSessionToken(sessionToken);
-	}
+//	@ResponseStatus(HttpStatus.NO_CONTENT)
+//	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
+//	public void deauthenticate(HttpServletRequest request) {
+//		String sessionToken = request
+//				.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
+//		authenticationService.invalidateSessionToken(sessionToken);
+//	}
 
 	/**
 	 * Create a new user. An email will be sent regarding how to set a password for the account. <br/>
@@ -199,21 +197,21 @@ public class AuthenticationController extends BaseController {
 	 * email address returned by the OpenID provider is not registered, then the
 	 * service returns a 404.
 	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
-	public @ResponseBody
-	Session getSessionTokenViaOpenID(HttpServletRequest request)
-			throws Exception {
-		log.trace("Got a request: " + request.getRequestURL());
-		ParameterList parameters = new ParameterList(request.getParameterMap());
-		log.trace("Query params are: " + request.getQueryString());
-
-		// Pass the request information to the auth service for a session token
-		Session session = authenticationService
-				.authenticateViaOpenID(parameters);
-		return session;
-	}
+//	@Deprecated
+//	@ResponseStatus(HttpStatus.OK)
+//	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
+//	public @ResponseBody
+//	Session getSessionTokenViaOpenID(HttpServletRequest request)
+//			throws Exception {
+//		log.trace("Got a request: " + request.getRequestURL());
+//		ParameterList parameters = new ParameterList(request.getParameterMap());
+//		log.trace("Query params are: " + request.getQueryString());
+//
+//		// Pass the request information to the auth service for a session token
+//		Session session = authenticationService
+//				.authenticateViaOpenID(parameters);
+//		return session;
+//	}
 
 	/**
 	 * The first step in OAuth authentication involves sending the user to

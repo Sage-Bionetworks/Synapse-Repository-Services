@@ -82,8 +82,7 @@ public interface AdministrationService {
 	 * Update the current status of the stack.
 	 * 
 	 * @param userId
-	 * @param header
-	 * @param request
+	 * @param updatedValue TODO
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -93,7 +92,7 @@ public interface AdministrationService {
 	 * @throws ConflictingUpdateException
 	 */
 	public StackStatus updateStatusStackStatus(Long userId,
-			HttpHeaders header, HttpServletRequest request)
+			StackStatus updatedValue)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, IOException;
 

@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.http.HttpHeaders;
 
 /**
@@ -84,11 +83,11 @@ public interface UserProfileService {
 	/**
 	 * Get a user profile
 	 * @param userId - The user that is making the request.
-	 * @param request
+	 * @param entity TODO
 	 * @return The updated UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
-	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
+	public UserProfile updateUserProfile(Long userId, UserProfile entity) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException;
 
 	/**
@@ -118,8 +117,6 @@ public interface UserProfileService {
 			String prefixFilter, Integer offset, Integer limit,
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, NotFoundException;
-
-	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer);
 
 	public void setPermissionsManager(EntityPermissionsManager permissionsManager);
 
