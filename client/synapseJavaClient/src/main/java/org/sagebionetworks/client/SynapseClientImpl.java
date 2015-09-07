@@ -365,6 +365,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EXTERNAL_FILE_HANDLE_S3 = "/externalFileHandle/s3";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
+	
+	protected static final String FILE_BULK = FILE+"/bulk";
 
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";

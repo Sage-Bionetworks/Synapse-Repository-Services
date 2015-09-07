@@ -1,18 +1,11 @@
 package org.sagebionetworks.client;
 
 
-import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
-import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREVIEW;
-import static org.sagebionetworks.client.SynapseClientImpl.S3_FILE_COPY;
+import static org.sagebionetworks.client.SynapseClientImpl.*;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.HasEntityId;
@@ -36,7 +29,8 @@ public enum AsynchJobType {
 	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class),
 	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class),
 	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class), 
-	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class);
+	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class),
+	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
