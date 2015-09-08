@@ -95,9 +95,11 @@ public class EntityServiceImpl implements EntityService {
 	 * @param entitiesAccessor
 	 * @param entityManager
 	 */
-	public EntityServiceImpl(EntityManager entityManager) {
+	public EntityServiceImpl(UserManager userManager, EntityManager entityManager, FileHandleManager fileHandleManager) {
 		super();
+		this.userManager = userManager;
 		this.entityManager = entityManager;
+		this.fileHandleManager=fileHandleManager;
 	}
 
 	@Override

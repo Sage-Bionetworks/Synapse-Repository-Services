@@ -529,7 +529,7 @@ public class IT500SynapseJavaClient {
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
-		assertNull(entityBundle.getFileName());
+		assertNull(entityBundle.getFileName());		
 	}
 	
 	@Test
