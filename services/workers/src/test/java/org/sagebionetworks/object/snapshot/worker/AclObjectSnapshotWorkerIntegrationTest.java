@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -118,6 +119,7 @@ public class AclObjectSnapshotWorkerIntegrationTest {
 		groupList.clear();
 	}
 
+	@Ignore
 	@Test
 	public void testCreate() throws Exception {
 		Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
