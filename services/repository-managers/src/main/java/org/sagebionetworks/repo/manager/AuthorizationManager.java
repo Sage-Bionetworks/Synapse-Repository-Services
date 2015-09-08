@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -138,6 +140,7 @@ public interface AuthorizationManager {
 	 */
 	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
 			List<String> fileHandleId, String associatedObjectId, FileHandleAssociateType associationType);
+
 
 	/**
 	 * 

@@ -1,18 +1,11 @@
 package org.sagebionetworks.client;
 
 
-import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
-import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV;
-import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREVIEW;
-import static org.sagebionetworks.client.SynapseClientImpl.S3_FILE_COPY;
+import static org.sagebionetworks.client.SynapseClientImpl.*;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.HasEntityId;
@@ -30,20 +23,23 @@ import org.sagebionetworks.repo.model.table.UploadToTableResult;
  */
 public enum AsynchJobType {
 	
-	TableAppendRowSet(TABLE_APPEND, RowReferenceSetResults.class),
-	TableQuery(TABLE_QUERY, QueryResultBundle.class),
-	TableQueryNextPage(TABLE_QUERY_NEXTPAGE, QueryResult.class),
-	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class),
-	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class),
-	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class), 
-	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class);
+	TableAppendRowSet(TABLE_APPEND, RowReferenceSetResults.class, RestEndpointType.repo),
+	TableQuery(TABLE_QUERY, QueryResultBundle.class, RestEndpointType.repo),
+	TableQueryNextPage(TABLE_QUERY_NEXTPAGE, QueryResult.class, RestEndpointType.repo),
+	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class, RestEndpointType.repo),
+	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class, RestEndpointType.repo),
+	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class, RestEndpointType.repo), 
+	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class, RestEndpointType.file),
+	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
+	RestEndpointType restEndpointType;
 	
-	AsynchJobType(String prefix, Class<? extends AsynchronousResponseBody> responseClass){
+	AsynchJobType(String prefix, Class<? extends AsynchronousResponseBody> responseClass, RestEndpointType endpoint){
 		this.prefix = prefix;
 		this.responseClass = responseClass;
+		this.restEndpointType = endpoint;
 	}
 	
 	/**
@@ -107,5 +103,13 @@ public enum AsynchJobType {
 	 */
 	public Class<? extends AsynchronousResponseBody> getReponseClass(){
 		return responseClass;
+	}
+	
+	/**
+	 * The endpoint for this type.
+	 * @return
+	 */
+	public RestEndpointType getRestEndpoint(){
+		return this.restEndpointType;
 	}
 }

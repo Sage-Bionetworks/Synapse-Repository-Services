@@ -53,6 +53,7 @@
     <import resource="classpath:project-stats-sqs-spb.xml" />
     <import resource="classpath:object-snapshot-sqs-spb.xml"/>
     <import resource="classpath:principal-prefix-sqs-spb.xml"/>
+    <import resource="classpath:file-bulk-download-spb.xml"/>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -90,6 +91,7 @@
 				<ref bean="syncSettingsModificationsMessageReveiverTrigger"/>
 				<ref bean="folderSyncMessageReveiverTrigger"/>
 				<ref bean="autoSyncFolderWorkerTrigger"/>
+				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
 				<!-- initializers -->
 				<ref bean="cloudSearchInitializerTrigger" />
 				<!-- others -->

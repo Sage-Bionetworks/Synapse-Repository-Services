@@ -1,4 +1,6 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.file;
+
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 
 
 /**
