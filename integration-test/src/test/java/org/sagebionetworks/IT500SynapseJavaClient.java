@@ -504,7 +504,8 @@ public class IT500SynapseJavaClient {
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.ACCESS_REQUIREMENTS |
-				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
+				EntityBundle.UNMET_ACCESS_REQUIREMENTS |
+				EntityBundle.FILE_NAME;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapseOne.getEntityBundle(project.getId(), allPartsMask);
@@ -529,6 +530,7 @@ public class IT500SynapseJavaClient {
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
+		assertNull(entityBundle.getFileName());		
 	}
 	
 	@Test

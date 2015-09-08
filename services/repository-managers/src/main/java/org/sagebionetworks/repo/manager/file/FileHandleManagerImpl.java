@@ -429,14 +429,23 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle);
+		return getURLForFileHandle(handle, null);
+	}
+
+	@Override
+	public String getRedirectURLForFileHandle(String handleId, String fileNameOverride)
+			throws DatastoreException, NotFoundException {
+		// First lookup the file handle
+		FileHandle handle = fileHandleDao.get(handleId);
+		return getURLForFileHandle(handle, fileNameOverride);
 	}
 
 	/**
 	 * @param handle
+	 * @param fileNameOverride a value for the file name that overrides that in the file handle or in the S3 object
 	 * @return
 	 */
-	public String getURLForFileHandle(FileHandle handle) {
+	public String getURLForFileHandle(FileHandle handle, String fileNameOverride) {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -452,7 +461,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
 				responseHeaderOverrides.setContentType(contentType);
 			}
-			String fileName = handle.getFileName();
+			String fileName = StringUtils.isNotEmpty(fileNameOverride) ? 
+					fileNameOverride : handle.getFileName();
 			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
 				responseHeaderOverrides.setContentDisposition("attachment; filename=" + fileName);
 			}
@@ -755,7 +765,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
 		}
-		return getURLForFileHandle(handle);
+		return getURLForFileHandle(handle, null);
 	}
 
 	@Override

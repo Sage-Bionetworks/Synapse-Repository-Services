@@ -418,15 +418,36 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
 		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		String expecedURL = "https://amamzon.com";
-		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
+		String expectedURL = "https://amamzon.com";
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+			thenReturn(new URL(expectedURL));
 		// fire!
 		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
 		assertNotNull(redirect);
-		assertEquals(expecedURL, redirect.toString());
+		assertEquals(expectedURL, redirect.toString());
 	}
 	
-	
+	@Test
+	public void testGetRedirectURLForFileHandleS3WithFileNameOverride() throws DatastoreException, NotFoundException, MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		s3FileHandle.setFileName("we will not use this one.jpg");
+		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expectedURL = "https://amamzon.com";
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+			thenReturn(new URL(expectedURL));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId(), "foo.txt");
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect.toString());
+		ArgumentCaptor<GeneratePresignedUrlRequest> gpuRequest = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
+		verify(mockS3Client).generatePresignedUrl(gpuRequest.capture());
+		assertEquals("attachment; filename=foo.txt", 
+				gpuRequest.getValue().getResponseHeaders().getContentDisposition());
+	}
+		
 	@Test
 	public void testCreateExternalFileHappyCase() throws Exception{
 		ExternalFileHandle efh = createFileHandle();
