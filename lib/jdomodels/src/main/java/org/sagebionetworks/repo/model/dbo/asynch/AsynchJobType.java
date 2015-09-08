@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.EntityBulkGetRequest;
+import org.sagebionetworks.repo.model.EntityBulkGetResponse;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
@@ -17,7 +19,6 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-
 /**
  * This enum maps types to classes.
  * 
@@ -37,9 +38,12 @@ public enum AsynchJobType {
 	QUERY(QueryBundleRequest.class, QueryResultBundle.class),
 
 	QUERY_NEXT_PAGE(QueryNextPageToken.class, QueryResult.class),
+	
+	ENTITY_BULK_GET_REQUEST(EntityBulkGetRequest.class, EntityBulkGetResponse.class),
 
 	S3_FILE_COPY(S3FileCopyRequest.class, S3FileCopyResults.class);
-
+	
+	
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
 	

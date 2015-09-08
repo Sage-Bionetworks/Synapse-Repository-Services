@@ -130,6 +130,13 @@ public class DBODoiDaoImpl implements DoiDao {
 		return getDoi(objectId, objectType, versionNumber);
 	}
 
+	/*
+	 * Gets the doi associated with this objectId and objectType, 
+	 * with the specified versionNumber. If the versionNumber is null,
+	 * gets the doi associated with the most recent version of this entity.
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.DoiDao#getDoi(java.lang.String, org.sagebionetworks.repo.model.ObjectType, java.lang.Long)
+	 */
 	@Override
 	public Doi getDoi(final String objectId, final ObjectType objectType,
 			final Long versionNumber) throws NotFoundException, DatastoreException {
@@ -144,6 +151,9 @@ public class DBODoiDaoImpl implements DoiDao {
 		return DoiUtils.convertToDto(dbo);
 	}
 
+	/*
+	 * 
+	 */
 	private DBODoi getDbo (String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, DatastoreException {
 
