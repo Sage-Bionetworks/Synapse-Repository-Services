@@ -204,6 +204,8 @@
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
 	
+	<bean id="tableFileMigration" class="org.sagebionetworks.repo.manager.migration.TableFileMigrationImpl" />
+	
 	<bean
         id="migrationManager"
         class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
