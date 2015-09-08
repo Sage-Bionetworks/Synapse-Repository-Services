@@ -272,4 +272,13 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return "DBOTableRowChange [tableId=" + tableId + ", etag=" + etag
+				+ ", rowVersion=" + rowVersion + ", columnIds=" + columnIds
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", bucket=" + bucket + ", key=" + key + ", rowCount="
+				+ rowCount + "]";
+	}
+
 }
