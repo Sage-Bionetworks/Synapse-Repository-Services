@@ -135,6 +135,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertTrue(uep.getCanAddChild());
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertTrue(uep.getCanEdit());
 		assertTrue(uep.getCanEnableInheritance());
@@ -158,6 +159,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertFalse(uep.getCanAddChild()); // not certified!
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertTrue(uep.getCanEdit()); // not certified but is a project!
 		assertTrue(uep.getCanEnableInheritance());
@@ -181,6 +183,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertTrue(uep.getCanAddChild());
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertTrue(uep.getCanEdit());
 		assertTrue(uep.getCanEnableInheritance());
@@ -204,6 +207,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertFalse(uep.getCanAddChild()); // not certified!
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertFalse(uep.getCanEdit()); // not certified and not a project!
 		assertTrue(uep.getCanEnableInheritance());

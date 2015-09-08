@@ -11,6 +11,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,11 +26,14 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
+import org.sagebionetworks.repo.model.dao.table.TableFileAssociationDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -67,10 +73,18 @@ public class TableRowTruthDAOImplTest {
 
 	@Autowired
 	private TableRowCache tableRowCache;
+	
+	@Autowired
+	FileHandleDao fileHandleDao;
+	
+	@Autowired
+	TableFileAssociationDao tableFileAssociationDao;
 
 	protected String creatorUserGroupId;
 
 	Object oldStackConfiguration;
+	
+	List<String> fileHandleIds;
 
 	@SuppressWarnings("unchecked")
 	@Before
@@ -86,6 +100,7 @@ public class TableRowTruthDAOImplTest {
 		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
 				mockStackConfiguration);
 		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
+		fileHandleIds = new LinkedList<String>();		
 	}
 	
 	@After
@@ -94,6 +109,36 @@ public class TableRowTruthDAOImplTest {
 		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
 				oldStackConfiguration);
 		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
+		
+		if(fileHandleIds != null){
+			for(String id: fileHandleIds){
+				try {
+					fileHandleDao.delete(id);
+				} catch (Exception e) {}
+			}
+		}
+	}
+	
+	/**
+	 * Create some test fileHandle.
+	 * @param count
+	 * @return
+	 */
+	private List<S3FileHandle> createFileHandles(int count){
+		List<S3FileHandle> created = new LinkedList<S3FileHandle>();
+		for(int i=0; i<count; i++){
+			S3FileHandle fh = new S3FileHandle();
+			fh.setCreatedBy(creatorUserGroupId);
+			fh.setCreatedOn(new Date());
+			fh.setBucketName("bucket");
+			fh.setKey("mainFileKey");
+			fh.setEtag("etag");
+			fh.setFileName("foo.bar");
+			fh = fileHandleDao.createFile(fh, false);
+			fileHandleIds.add(fh.getId());
+			created.add(fh);
+		}
+		return created;
 	}
 
 	@Test
@@ -394,7 +439,6 @@ public class TableRowTruthDAOImplTest {
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
 		// Append this change set
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
-
 		// add row
 		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), TableModelTestUtils.createRows(mapper.getColumnModels(), 1));
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
@@ -903,5 +947,22 @@ public class TableRowTruthDAOImplTest {
 			} catch (NotFoundException e) {
 			}
 		}
+	}
+	
+	@Test
+	public void testFileHandleAssociation() throws IOException{
+		int fileHandleCount = 3;
+		// Create real file handles
+		createFileHandles(fileHandleCount);
+		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
+		
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), fileHandleCount*2, fileHandleIds);
+		String tableId = "syn123";
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
+		// Validate that the file handles are bound to the table.
+		Set<String> filesBoundToTable = tableFileAssociationDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, tableId);
+		assertEquals(new HashSet<String>(fileHandleIds), filesBoundToTable);
 	}
 }

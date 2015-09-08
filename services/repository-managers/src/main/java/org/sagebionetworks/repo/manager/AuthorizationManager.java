@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -113,8 +114,30 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleId, Set<String> allowed, Set<String> disallowed)
 			throws NotFoundException;
+	
+	/**
+	 * Given a list of FileHandleIds, can the user download each file?
+	 * <ul>
+	 * <li>If a user is an admin then they will be authorized for all files.</li>
+	 * <li>A user will be authorized to download each FileHandle that they
+	 * created.</li>
+	 * <li>For all other cases the user will be authorized as long as both of
+	 * the following conditions are met:</li>
+	 * <ol>
+	 * <li>The FileHandle is actually associated with the object.</li>
+	 * <li>The user is authorized to download the associated object.</li>
+	 * </ol>
+	 * </ul>
+	 * 
+	 * @param user
+	 * @param associations
+	 * @return Map key
+	 */
+	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
+			List<String> fileHandleId, String associatedObjectId, FileHandleAssociateType associationType);
 
 	/**
 	 * 

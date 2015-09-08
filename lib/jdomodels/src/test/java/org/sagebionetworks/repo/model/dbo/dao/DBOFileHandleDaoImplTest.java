@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -12,12 +9,14 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -26,14 +25,13 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -45,13 +43,17 @@ public class DBOFileHandleDaoImplTest {
 	private List<String> toDelete;
 	private String creatorUserGroupId;
 	private String creatorUserGroupId2;
+	private Long creatorUserGroupIdL;
+	private Long creatorUserGroupId2L;
 	
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
-		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+		creatorUserGroupIdL = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		creatorUserGroupId = creatorUserGroupIdL.toString();
 		assertNotNull(creatorUserGroupId);
-		creatorUserGroupId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+		creatorUserGroupId2L = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		creatorUserGroupId2 = creatorUserGroupId2L.toString();
 		assertNotNull(creatorUserGroupId2);
 	}
 	
@@ -136,36 +138,18 @@ public class DBOFileHandleDaoImplTest {
 		toDelete.add(meta1.getId());
 		toDelete.add(meta2.getId());
 		toDelete.add(meta3.getId());
-
-		Multimap<String, String> lookupCreator = fileHandleDao.getHandleCreators(Lists.newArrayList(meta3.getId(), meta1.getId(),
-				meta2.getId()));
-		assertEquals(2, lookupCreator.get(creatorUserGroupId).size());
-		assertEquals(1, lookupCreator.get(creatorUserGroupId2).size());
-		assertTrue(lookupCreator.get(creatorUserGroupId).contains(meta1.getId()));
-		assertTrue(lookupCreator.get(creatorUserGroupId).contains(meta2.getId()));
-		assertTrue(lookupCreator.get(creatorUserGroupId2).contains(meta3.getId()));
-	}
-
-	@Test
-	public void testGetCreatorBatches() throws NotFoundException {
-		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId);
-		meta1 = fileHandleDao.createFile(meta1);
-		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId2);
-		meta2 = fileHandleDao.createFile(meta2);
-		toDelete.add(meta1.getId());
-		toDelete.add(meta2.getId());
-
-		final int SIZE = 100;
-		List<String> handles = Lists.newArrayListWithCapacity(SIZE * 2);
-		for (int i = 0; i < SIZE * 2; i += 2) {
-			handles.add(meta1.getId());
-			handles.add(meta2.getId());
-		}
-		Multimap<String, String> lookupCreator = fileHandleDao.getHandleCreators(handles);
-		// because the inclause has repeated ids, only two rows are returned per sql query.
-		// if batching works, each id returns twice
-		assertEquals(2, lookupCreator.get(creatorUserGroupId).size());
-		assertEquals(2, lookupCreator.get(creatorUserGroupId2).size());
+		
+		List<String> allFileHandleId = Arrays.asList(meta3.getId(), meta1.getId(),	meta2.getId());
+		// Match to user one.
+		Set<String> expected = Sets.newHashSet(meta1.getId(), meta2.getId());
+		Set<String> createdByIds = fileHandleDao.getFileHandleIdsCreatedByUser(creatorUserGroupIdL, allFileHandleId);
+		assertEquals(expected, createdByIds);
+		
+		// Match to user two.
+		expected = Sets.newHashSet(meta3.getId());
+		createdByIds = fileHandleDao.getFileHandleIdsCreatedByUser(creatorUserGroupId2L, allFileHandleId);
+		assertEquals(expected, createdByIds);
+		
 	}
 
 	@Test (expected=NotFoundException.class)
