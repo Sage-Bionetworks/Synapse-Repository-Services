@@ -82,4 +82,23 @@ public class EntityServiceImplUnitTest {
 		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(PRINCIPAL_ID, entityId));
 	}
 	
+	
+	@Test
+	public void testGetFileRedirectURLForVersion() throws Exception {
+		String entityId = "999";
+		String fileHandleId = "111";
+		Long version = 1L;
+		when(mockEntityManager.
+				getFileHandleIdForVersion(userInfo, entityId, version, FileHandleReason.FOR_FILE_DOWNLOAD)).
+				thenReturn(fileHandleId);
+		
+		FileEntity fileEntity = new FileEntity();
+		String fileNameOverride = "foo.txt";
+		fileEntity.setFileNameOverride(fileNameOverride);
+		when(mockEntityManager.getEntitySecondaryFieldsForVersion(userInfo, entityId, version, FileEntity.class)).thenReturn(fileEntity);
+		String url = "http://foo.bar";
+		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId, "foo.txt")).thenReturn(url);
+		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));
+	}
+	
 }
