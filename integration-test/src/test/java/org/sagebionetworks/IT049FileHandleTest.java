@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -29,11 +30,18 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
+import org.sagebionetworks.repo.model.file.FileDownloadStatus;
+import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -49,6 +57,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.TimedAssert;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -507,6 +516,67 @@ public class IT049FileHandleTest {
 			toDelete.add(handle);
 		}else{
 			System.out.println("The property: '"+LARGE_FILE_PATH_PROP_KEY+"' was not set.  The testLargeFileUplaod() test was not run");
+		}
+	}
+	
+	/**
+	 * This test just ensures the web-services are setup correctly.
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Test
+	public void testBulkFileDownload() throws Exception {
+		
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("BulkDownloadTest");
+		table = adminSynapse.createEntity(table);
+		
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setContentType("text/plain");
+		efh.setFileName("foo.bar");
+		efh.setExternalURL("http://google.com");
+		// Save it
+		ExternalFileHandle clone = synapse.createExternalFileHandle(efh);
+		this.toDelete.add(clone);
+		
+		FileHandleAssociation fha = new FileHandleAssociation();
+		fha.setFileHandleId(clone.getId());
+		fha.setAssociateObjectId(table.getId());
+		fha.setAssociateObjectType(FileHandleAssociateType.TableEntity);
+		
+		BulkFileDownloadRequest request = new BulkFileDownloadRequest();
+		request.setRequestedFiles(Arrays.asList(fha));
+		
+		String jobId = adminSynapse.startBulkFileDownload(request);
+		BulkFileDownloadResponse respones = waitForJob(jobId);
+		assertNotNull(respones);
+		assertNotNull(respones.getFileSummary());
+		assertEquals(1, respones.getFileSummary().size());
+		FileDownloadSummary summary = respones.getFileSummary().get(0);
+		// should fail since we attempted to include an external file handle.
+		assertEquals(FileDownloadStatus.FAILURE, summary.getStatus());
+		// Result file handle should be null since it failed to do the one file
+		assertEquals(null, respones.getResultZipFileHandleId());
+	}
+	
+	/**
+	 * Wait for a bulk download job to finish.
+	 * @param jobId
+	 * @return
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	private BulkFileDownloadResponse waitForJob(String jobId) throws SynapseException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			try {
+				return adminSynapse.getBulkFileDownloadResults(jobId);
+			} catch (SynapseResultNotReadyException e) {
+				System.out.println("Waiting for job: "+e.getJobStatus());
+			}
+			assertTrue("Timed out waiting for bulk download job.",System.currentTimeMillis() - start < MAX_WAIT_MS);
+			Thread.sleep(2000);
 		}
 	}
 }

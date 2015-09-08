@@ -23,21 +23,23 @@ import org.sagebionetworks.repo.model.table.UploadToTableResult;
  */
 public enum AsynchJobType {
 	
-	TableAppendRowSet(TABLE_APPEND, RowReferenceSetResults.class),
-	TableQuery(TABLE_QUERY, QueryResultBundle.class),
-	TableQueryNextPage(TABLE_QUERY_NEXTPAGE, QueryResult.class),
-	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class),
-	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class),
-	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class), 
-	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class),
-	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class);
+	TableAppendRowSet(TABLE_APPEND, RowReferenceSetResults.class, RestEndpointType.repo),
+	TableQuery(TABLE_QUERY, QueryResultBundle.class, RestEndpointType.repo),
+	TableQueryNextPage(TABLE_QUERY_NEXTPAGE, QueryResult.class, RestEndpointType.repo),
+	TableCSVUpload(TABLE_UPLOAD_CSV, UploadToTableResult.class, RestEndpointType.repo),
+	TableCSVUploadPreview(TABLE_UPLOAD_CSV_PREVIEW, UploadToTablePreviewResult.class, RestEndpointType.repo),
+	TableCSVDownload(TABLE_DOWNLOAD_CSV, DownloadFromTableResult.class, RestEndpointType.repo), 
+	S3FileCopy(S3_FILE_COPY, S3FileCopyResults.class, RestEndpointType.file),
+	BulkFileDownload(FILE_BULK, BulkFileDownloadResponse.class, RestEndpointType.file);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
+	RestEndpointType restEndpointType;
 	
-	AsynchJobType(String prefix, Class<? extends AsynchronousResponseBody> responseClass){
+	AsynchJobType(String prefix, Class<? extends AsynchronousResponseBody> responseClass, RestEndpointType endpoint){
 		this.prefix = prefix;
 		this.responseClass = responseClass;
+		this.restEndpointType = endpoint;
 	}
 	
 	/**
@@ -101,5 +103,13 @@ public enum AsynchJobType {
 	 */
 	public Class<? extends AsynchronousResponseBody> getReponseClass(){
 		return responseClass;
+	}
+	
+	/**
+	 * The endpoint for this type.
+	 * @return
+	 */
+	public RestEndpointType getRestEndpoint(){
+		return this.restEndpointType;
 	}
 }
