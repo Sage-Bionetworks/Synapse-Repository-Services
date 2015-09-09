@@ -188,7 +188,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		UserInfo.validateUserInfo(currentUser);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, getNode(entityId, versionNumber).getVersionNumber());
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */
