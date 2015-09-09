@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.manager.doi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,10 +18,12 @@ import org.sagebionetworks.doi.DoiAsyncClient;
 import org.sagebionetworks.doi.DxAsyncClient;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -61,6 +65,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	
 	private Long testUserId;
 	private UserInfo testUserInfo;
+	private UserInfo adminUserInfo;
 	private List<String> toClearList;
 
 	@Before
@@ -81,6 +86,10 @@ public class EntityDoiManagerImplAutowiredTest {
 		}
 		ReflectionTestUtils.setField(manager, "ezidAsyncClient", mockEzidClient);
 		ReflectionTestUtils.setField(manager, "dxAsyncClient", mockDxClient);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+//		for (Node node: nodeManager.getChildren(adminUserInfo, "syn4489")) {
+//			nodeManager.delete(adminUserInfo, node.getId());
+//		}
 	}
 
 	@After
@@ -259,9 +268,9 @@ public class EntityDoiManagerImplAutowiredTest {
 	
 	@SuppressWarnings("deprecation")
 	@Test(expected=NotFoundException.class)
-	public void testDOIVersioning() throws Exception {
+	public void testGetDoiForCurrentVersion() throws Exception {
 		Node node = new Node();
-		final String nodeName = "EntityDoiManagerImplAutowiredTest.testDOIVersioning()";
+		final String nodeName = "EntityDoiManagerImplAutowiredTest.testGetDoiForCurrentVersion()";
 		node.setName(nodeName);
 		node.setNodeType(EntityType.project);
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
@@ -283,56 +292,101 @@ public class EntityDoiManagerImplAutowiredTest {
 		// versionNumber DOI has been created, so a NotFoundException is thrown
 		Doi doiGetCurrent = entityDoiManager.getDoiForCurrentVersion(testUserId, nodeId);
 		assertNull(doiGetCurrent);
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Test
+	public void testDOIVersioning() throws Exception {
+		Node node = new Node();
+		final String nodeName = "EntityDoiManagerImplAutowiredTest.testDOIVersioning()";
+		node.setName(nodeName);
+		node.setNodeType(EntityType.file);
+		node.setVersionLabel("0.0.1");
+		final String nodeId = nodeManager.createNewNode(node, adminUserInfo);
+		NamedAnnotations namedAnnos = new NamedAnnotations();
+		namedAnnos.setId(node.getId());
+		toClearList.add(nodeId);
+		assertNotNull(nodeId);
 		
-		doiCreate = entityDoiManager.createDoi(testUserId, nodeId, 1L);
+		// add a second version
+		Node updatedNode = nodeManager.get(adminUserInfo, nodeId);
+		String eTagBeforeUpdate = updatedNode.getETag();
+		NamedAnnotations namedToUpdate = nodeManager.getAnnotations(adminUserInfo, nodeId);
+		namedToUpdate = nodeManager.getAnnotations(adminUserInfo, nodeId);
+		Annotations annosToUpdate = namedToUpdate.getAdditionalAnnotations();
+		updatedNode.setVersionLabel("0.0.2");
+		annosToUpdate.addAnnotation("longKey", new Long(12));
+		annosToUpdate.getStringAnnotations().clear();
+		String valueOnSecondVersion = "Value on the second version.";
+		annosToUpdate.addAnnotation("stringKey", valueOnSecondVersion);
+		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode, namedToUpdate, true);
+		assertNotNull(afterUpdate);
+		assertNotNull(afterUpdate.getETag());
+		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
+
+		// Create Doi for version 1
+		Doi doiCreate = entityDoiManager.createDoi(adminUserInfo.getId(), nodeId, 1L);
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertEquals(doiCreate.getObjectVersion(), Long.valueOf(1L));
 		assertNotNull(doiCreate.getCreatedOn());
-		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
+		assertEquals(adminUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 		
-		// This Doi should be returned as it is the most current version's Doi
-		doiCreate = entityDoiManager.createDoi(testUserId, nodeId, 2L);
+		// Create Doi for version 2
+		doiCreate = entityDoiManager.createDoi(adminUserInfo.getId(), nodeId, 2L);
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
-		assertEquals(doiCreate.getObjectVersion(), Long.valueOf(1L));
+		assertEquals(doiCreate.getObjectVersion(), Long.valueOf(2L));
 		assertNotNull(doiCreate.getCreatedOn());
-		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
+		assertEquals(adminUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 		
 		// After creation of a non-null versionNumber DOI, the getDoiForCurrentVersion
 		// should return the created, most recent Doi
-		doiGetCurrent = entityDoiManager.getDoiForCurrentVersion(testUserId, nodeId);
+		Doi doiGetCurrent = entityDoiManager.getDoiForCurrentVersion(adminUserInfo.getId(), nodeId);
 		assertNotNull(doiGetCurrent);
 		assertNotNull(doiGetCurrent.getId());
 		assertEquals(nodeId, doiGetCurrent.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiGetCurrent.getObjectType());
 		assertEquals(doiGetCurrent.getObjectVersion(), Long.valueOf(2L));
 		assertNotNull(doiGetCurrent.getCreatedOn());
-		assertEquals(testUserInfo.getId().toString(), doiGetCurrent.getCreatedBy());
+		assertEquals(adminUserInfo.getId().toString(), doiGetCurrent.getCreatedBy());
 		assertNotNull(doiGetCurrent.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiGetCurrent.getDoiStatus());
 		assertEquals(doiCreate, doiGetCurrent);
 		
-		// After creation of a non-null versionNumber DOI, the getDoiForVersion
-		// should return the created Doi with the matching versionNumber
-		Doi doiGetVersion = entityDoiManager.getDoiForVersion(testUserId, nodeId, 2L);
+		// getDoiForVersion should return the created Doi with the matching versionNumber
+		Doi doiGetVersion = entityDoiManager.getDoiForVersion(adminUserInfo.getId(), nodeId, 2L);
 		assertNotNull(doiGetVersion);
 		assertNotNull(doiGetVersion.getId());
 		assertEquals(nodeId, doiGetVersion.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiGetVersion.getObjectType());
 		assertEquals(doiGetVersion.getObjectVersion(), Long.valueOf(2L));
 		assertNotNull(doiGetVersion.getCreatedOn());
-		assertEquals(testUserInfo.getId().toString(), doiGetVersion.getCreatedBy());
+		assertEquals(adminUserInfo.getId().toString(), doiGetVersion.getCreatedBy());
 		assertNotNull(doiGetVersion.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiGetVersion.getDoiStatus());
 		assertEquals(doiCreate, doiGetVersion);
+		
+		// getDoiForVersion should retrieve the requested version, whether it's
+		// the most recent or not
+		doiGetVersion = entityDoiManager.getDoiForVersion(adminUserInfo.getId(), nodeId, 1L);
+		assertNotNull(doiGetVersion);
+		assertNotNull(doiGetVersion.getId());
+		assertEquals(nodeId, doiGetVersion.getObjectId());
+		assertEquals(ObjectType.ENTITY, doiGetVersion.getObjectType());
+		assertEquals(doiGetVersion.getObjectVersion(), Long.valueOf(1L));
+		assertNotNull(doiGetVersion.getCreatedOn());
+		assertEquals(adminUserInfo.getId().toString(), doiGetVersion.getCreatedBy());
+		assertNotNull(doiGetVersion.getUpdatedOn());
+		assertEquals(DoiStatus.IN_PROCESS, doiGetVersion.getDoiStatus());
+		assertFalse(doiCreate.equals(doiGetVersion));
 	}
 }
