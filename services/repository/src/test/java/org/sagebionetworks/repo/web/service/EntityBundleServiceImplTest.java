@@ -235,7 +235,7 @@ public class EntityBundleServiceImplTest {
 		Doi doi = new Doi();
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectId(entityId);
-		when(mockDoiService.getDoiForVersion(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
+		when(mockDoiService.getDoiForCurrentVersion(TEST_USER1, entityId, ObjectType.ENTITY)).thenReturn(doi);
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoi());

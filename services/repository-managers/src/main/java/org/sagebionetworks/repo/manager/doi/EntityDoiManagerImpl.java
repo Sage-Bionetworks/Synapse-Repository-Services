@@ -228,7 +228,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		Node node = getNode(entityId, null);
 		Long versionNumber = null;
 		// Versionables such as files should have the null versionNumber converted into non-null versionNumber
-		if (node.getNodeType() == EntityType.file) {
+		if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.table) {
 			versionNumber = getNode(entityId, null).getVersionNumber();
 		}
 		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
