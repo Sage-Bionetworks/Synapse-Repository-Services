@@ -66,10 +66,14 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 
+		// Find the node. Make sure the node exists. Node info will be used in DOI metadata.
+		final Node node = getNode(entityId, versionNumber);
+		Long nodeVersionNumber = node.getVersionNumber();		
+		
 		// If it already exists with no error, no need to create again.
 		Doi doiDto = null;
 		try {
-			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
+			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, nodeVersionNumber);
 		} catch (NotFoundException e) {
 			doiDto = null;
 		}
@@ -77,24 +81,19 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			return doiDto;
 		}
 
-		// Find the node. Make sure the node exists. Node info will be used in DOI metadata.
-		final Node node = getNode(entityId, versionNumber);
-
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
 			String userGroupId = currentUser.getId().toString();
-			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, nodeVersionNumber, DoiStatus.IN_PROCESS);
 		} else {
-			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
+			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, nodeVersionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
 		}
 
 		// Create DOI string
 		EzidDoi ezidDoi = new EzidDoi();
 		ezidDoi.setDto(doiDto);
 		String doi = EzidConstants.DOI_PREFIX + entityId;
-		if (versionNumber != null) {
-			doi = doi + "." + versionNumber;
-		}
+		doi = doi + "." + nodeVersionNumber;
 		ezidDoi.setDoi(doi);
 
 		// Create DOI metadata.
@@ -105,9 +104,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		metadata.setPublicationYear(year);
 		metadata.setPublisher(EzidConstants.PUBLISHER);
 		String target = EzidConstants.TARGET_URL_PREFIX + entityId;
-		if (versionNumber != null) {
-			target = target + "/version/" + versionNumber;
-		}
+		target = target + "/version/" + nodeVersionNumber;
 		metadata.setTarget(target);
 		metadata.setTitle(node.getName());
 		ezidDoi.setMetadata(metadata);

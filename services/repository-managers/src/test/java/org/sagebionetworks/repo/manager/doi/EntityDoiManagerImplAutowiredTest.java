@@ -111,7 +111,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
-		assertNull(doiCreate.getObjectVersion());
+		assertEquals(doiCreate.getObjectVersion(), Long.valueOf(1));
 		assertNotNull(doiCreate.getCreatedOn());
 		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
@@ -122,7 +122,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
-		assertNull(doiGet.getObjectVersion());
+		assertEquals(doiGet.getObjectVersion(), Long.valueOf(1));
 		assertNotNull(doiGet.getCreatedOn());
 		assertEquals(testUserInfo.getId().toString(), doiGet.getCreatedBy());
 		assertNotNull(doiGet.getUpdatedOn());
@@ -223,7 +223,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
-		assertNull(doiCreate.getObjectVersion());
+		assertEquals(Long.valueOf(1), doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
 		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
@@ -234,7 +234,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
-		assertNull(doiCreate.getObjectVersion());
+		assertEquals(Long.valueOf(1), doiCreate.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
 		assertEquals(testUserInfo.getId().toString(), doiGet.getCreatedBy());
 		assertNotNull(doiGet.getUpdatedOn());
