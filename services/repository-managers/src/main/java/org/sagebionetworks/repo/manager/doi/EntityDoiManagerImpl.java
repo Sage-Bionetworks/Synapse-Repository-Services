@@ -66,14 +66,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 
-		// Find the node. Make sure the node exists. Node info will be used in DOI metadata.
-		final Node node = getNode(entityId, versionNumber);
-		Long nodeVersionNumber = node.getVersionNumber();		
-		
 		// If it already exists with no error, no need to create again.
 		Doi doiDto = null;
 		try {
-			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, nodeVersionNumber);
+			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 		} catch (NotFoundException e) {
 			doiDto = null;
 		}
@@ -81,19 +77,24 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			return doiDto;
 		}
 
+		// Find the node. Make sure the node exists. Node info will be used in DOI metadata.
+		final Node node = getNode(entityId, versionNumber);
+
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
 			String userGroupId = currentUser.getId().toString();
-			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, nodeVersionNumber, DoiStatus.IN_PROCESS);
+			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 		} else {
-			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, nodeVersionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
+			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
 		}
 
 		// Create DOI string
 		EzidDoi ezidDoi = new EzidDoi();
 		ezidDoi.setDto(doiDto);
 		String doi = EzidConstants.DOI_PREFIX + entityId;
-		doi = doi + "." + nodeVersionNumber;
+		if (versionNumber != null) {
+			doi = doi + "." + versionNumber;
+		}
 		ezidDoi.setDoi(doi);
 
 		// Create DOI metadata.
@@ -104,7 +105,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		metadata.setPublicationYear(year);
 		metadata.setPublisher(EzidConstants.PUBLISHER);
 		String target = EzidConstants.TARGET_URL_PREFIX + entityId;
-		target = target + "/version/" + nodeVersionNumber;
+		if (versionNumber != null) {
+			target = target + "/version/" + versionNumber;
+		}
 		metadata.setTarget(target);
 		metadata.setTitle(node.getName());
 		ezidDoi.setMetadata(metadata);
@@ -171,7 +174,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	}
 
 	@Override
-	public Doi getDoi(Long userId, String entityId, Long versionNumber)
+	public Doi getDoiForVersion(Long userId, String entityId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
 		if (userId == null) {
@@ -185,7 +188,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		UserInfo.validateUserInfo(currentUser);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return doiDao.getDoi(entityId, ObjectType.ENTITY, getNode(entityId, versionNumber).getVersionNumber());
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */
@@ -204,5 +207,23 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			throw new NotFoundException(error);
 		}
 		return node;
+	}
+
+	@Override
+	public Doi getDoiForCurrentVersion(Long userId, String entityId)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+
+		if (userId == null) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		}
+		if (entityId == null) {
+			throw new IllegalArgumentException("Entity ID cannot be null");
+		}
+
+		UserInfo currentUser = userManager.getUserInfo(userId);
+		UserInfo.validateUserInfo(currentUser);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, getNode(entityId, null).getVersionNumber());
 	}
 }

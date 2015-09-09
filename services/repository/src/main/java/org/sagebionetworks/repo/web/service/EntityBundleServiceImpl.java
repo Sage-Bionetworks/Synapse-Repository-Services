@@ -126,7 +126,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		List<FileHandle> fileHandles = null;
 		if((mask & (EntityBundle.FILE_HANDLES | EntityBundle.FILE_NAME)) > 0 ){
 			try{
-				if(versionNumber == null){
+				if(versionNumber == null) {
 					fileHandles = serviceProvider.getEntityService().
 							getEntityFileHandlesForCurrentVersion(userId, entityId).getList();
 				}else{

@@ -55,7 +55,7 @@ public class DoiServiceImplTest {
 		final ObjectType objectType = ObjectType.ENTITY;
 		final Long versionNumber = 3L;
 		srv.getDoi(userId, objectId, objectType, versionNumber);
-		verify(mockManager, times(1)).getDoi(userId, objectId, versionNumber);
+		verify(mockManager, times(1)).getDoiForVersion(userId, objectId, versionNumber);
 	}
 
 	@Test(expected=IllegalArgumentException.class)

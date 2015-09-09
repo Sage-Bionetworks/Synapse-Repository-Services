@@ -36,7 +36,7 @@ public class DoiServiceImpl implements DoiService {
 		}
 
 		if (ObjectType.ENTITY.equals(objectType)) {
-			return entityDoiManager.getDoi(userId, objectId, versionNumber);
+			return entityDoiManager.getDoiForVersion(userId, objectId, versionNumber);
 		} else {
 			throw new IllegalArgumentException(objectType + " does not support DOIs.");
 		}
