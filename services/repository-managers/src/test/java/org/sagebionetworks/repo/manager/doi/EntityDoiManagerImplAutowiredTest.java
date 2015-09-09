@@ -87,9 +87,6 @@ public class EntityDoiManagerImplAutowiredTest {
 		ReflectionTestUtils.setField(manager, "ezidAsyncClient", mockEzidClient);
 		ReflectionTestUtils.setField(manager, "dxAsyncClient", mockDxClient);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-//		for (Node node: nodeManager.getChildren(adminUserInfo, "syn4489")) {
-//			nodeManager.delete(adminUserInfo, node.getId());
-//		}
 	}
 
 	@After
@@ -267,10 +264,10 @@ public class EntityDoiManagerImplAutowiredTest {
 	}
 	
 	@SuppressWarnings("deprecation")
-	@Test(expected=NotFoundException.class)
-	public void testGetDoiForCurrentVersion() throws Exception {
+	@Test
+	public void testGetDoiForCurrentVersionProject() throws Exception {
 		Node node = new Node();
-		final String nodeName = "EntityDoiManagerImplAutowiredTest.testGetDoiForCurrentVersion()";
+		final String nodeName = "EntityDoiManagerImplAutowiredTest.testGetDoiForCurrentVersionProject()";
 		node.setName(nodeName);
 		node.setNodeType(EntityType.project);
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
@@ -291,6 +288,44 @@ public class EntityDoiManagerImplAutowiredTest {
 		// getDoiForCurrentVersion looks for the current, numbered version, and only a null
 		// versionNumber DOI has been created, so a NotFoundException is thrown
 		Doi doiGetCurrent = entityDoiManager.getDoiForCurrentVersion(testUserId, nodeId);
+		assertNotNull(doiGetCurrent);
+		assertNotNull(doiGetCurrent.getId());
+		assertEquals(nodeId, doiGetCurrent.getObjectId());
+		assertEquals(ObjectType.ENTITY, doiGetCurrent.getObjectType());
+		assertNull(doiCreate.getObjectVersion());
+		assertNotNull(doiGetCurrent.getCreatedOn());
+		assertEquals(testUserInfo.getId().toString(), doiGetCurrent.getCreatedBy());
+		assertNotNull(doiGetCurrent.getUpdatedOn());
+		assertNotNull(doiGetCurrent.getDoiStatus());
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Test(expected = NotFoundException.class)
+	public void testGetDoiForCurrentVersionFile() throws Exception {
+		Node node = new Node();
+		final String nodeName = "EntityDoiManagerImplAutowiredTest.testGetDoiForCurrentVersionFile()";
+		node.setName(nodeName);
+		node.setNodeType(EntityType.file);
+		final String nodeId = nodeManager.createNewNode(node, adminUserInfo);
+		NamedAnnotations namedAnnos = new NamedAnnotations();
+		namedAnnos.setId(node.getId());
+		toClearList.add(nodeId);
+		assertNotNull(nodeId);
+
+		Doi doiCreate = entityDoiManager.createDoi(adminUserInfo.getId(), nodeId, null);
+		assertNotNull(doiCreate);
+		assertNotNull(doiCreate.getId());
+		assertEquals(nodeId, doiCreate.getObjectId());
+		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
+		assertNull(doiCreate.getObjectVersion());
+		assertNotNull(doiCreate.getCreatedOn());
+		assertEquals(adminUserInfo.getId().toString(), doiCreate.getCreatedBy());
+		assertNotNull(doiCreate.getUpdatedOn());
+		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
+		
+		// getDoiForCurrentVersion looks for the current, numbered version, and only a null
+		// versionNumber DOI has been created, so a NotFoundException is thrown
+		Doi doiGetCurrent = entityDoiManager.getDoiForCurrentVersion(adminUserInfo.getId(), nodeId);
 		assertNull(doiGetCurrent);
 	}
 	

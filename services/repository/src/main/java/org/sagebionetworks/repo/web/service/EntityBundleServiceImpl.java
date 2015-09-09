@@ -124,16 +124,16 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, ACCESS_TYPE.DOWNLOAD).getResults());
 		}
 		List<FileHandle> fileHandles = null;
-		if((mask & (EntityBundle.FILE_HANDLES | EntityBundle.FILE_NAME)) > 0 ){
-			try{
-				if(versionNumber == null) {
+		if ((mask & (EntityBundle.FILE_HANDLES | EntityBundle.FILE_NAME)) > 0 ) {
+			try {
+				if (versionNumber == null) {
 					fileHandles = serviceProvider.getEntityService().
 							getEntityFileHandlesForCurrentVersion(userId, entityId).getList();
-				}else{
+				} else{
 					fileHandles = serviceProvider.getEntityService().
 							getEntityFileHandlesForVersion(userId, entityId, versionNumber).getList();
 				} 
-			}catch( Exception e){
+			}catch (Exception e) {
 				// If the user does not have permission to see the handles then set them to be an empty list.
 				fileHandles = new LinkedList<FileHandle>();
 			}
@@ -159,7 +159,12 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if((mask & EntityBundle.DOI) > 0 ){
 			 try {
-				Doi doi = serviceProvider.getDoiService().getDoi(userId, entityId, ObjectType.ENTITY, versionNumber);
+			 	Doi doi = null;
+			 	if (versionNumber == null) {
+					doi = serviceProvider.getDoiService().getDoiForCurrentVersion(userId, entityId, ObjectType.ENTITY);
+				} else {
+					doi = serviceProvider.getDoiService().getDoiForVersion(userId, entityId, ObjectType.ENTITY, versionNumber);
+				} 
 				eb.setDoi(doi);
 			} catch (NotFoundException e) {
 				// does not exist
