@@ -35,6 +35,7 @@ public class TableFileAssociationMigrationListener implements
 						@Override
 						public void run() {
 							try {
+								log.info("Starting to migrate: "+change.toString());
 								// Migrate this table.
 								tableFileMigration.attemptTableFileMigration(change);
 							} catch (Exception e) {
