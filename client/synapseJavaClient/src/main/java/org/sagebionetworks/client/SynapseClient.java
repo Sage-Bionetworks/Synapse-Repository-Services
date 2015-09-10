@@ -2245,14 +2245,7 @@ public interface SynapseClient extends BaseClient {
 	PaginatedIds listSubmissionTeams(String challengeId,
 			String submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
-
-	/**
-	 * Get the actual endpoint given a type. 
-	 * @param type
-	 * @return
-	 */
-	String getEndpointForType(RestEndpointType type);
-
+	
 	/**
 	 * Start an asynchronous job to download multiple files as a bundled zip file.
 	 * @see #getBulkFileDownloadResults(String)

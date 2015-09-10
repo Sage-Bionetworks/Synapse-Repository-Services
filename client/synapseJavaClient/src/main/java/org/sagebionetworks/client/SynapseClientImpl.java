@@ -610,12 +610,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return this.fileEndpoint;
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.client.SynapseClient#getEndpointForType(org.sagebionetworks.client.RestEndpointType)
+
+	/**
+	 * Lookup the endpoint for a given type.
+	 * @param type
+	 * @return
 	 */
-	@Override
-	public String getEndpointForType(RestEndpointType type){
+	String getEndpointForType(RestEndpointType type){
 		switch(type){
 		case auth:
 			return getAuthEndpoint();
