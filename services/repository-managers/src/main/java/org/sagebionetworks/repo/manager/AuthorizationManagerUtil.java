@@ -34,4 +34,5 @@ public class AuthorizationManagerUtil {
 						fileHandleId, associatedObjectId,
 						associateType));
 	}
+	
 }

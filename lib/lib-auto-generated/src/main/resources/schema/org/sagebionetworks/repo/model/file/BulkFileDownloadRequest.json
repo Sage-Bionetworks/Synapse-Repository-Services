@@ -1,0 +1,17 @@
+{
+	"description": "Request for a bulk file download.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+        }
+    ],
+	"properties": {
+		"requestedFiles": {
+			"type": "array",
+			"description": "The files to be included in the download.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandleAssociation"
+			}
+		}
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"description": "Response for a bulk file download.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"resultZipFileHandleId": {
+			"type": "string",
+			"description": "The FileHandle.id of the resulting zip file. This zip file will contain all of the requested files that the caller was authorized to download."
+		},
+		"fileSummary": {
+			"type": "array",
+			"description": "The summary of each requested file.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileDownloadSummary"
+			}
+		}
+	}
+}
