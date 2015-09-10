@@ -34,7 +34,7 @@ public class BulkDownloadDaoImpTest {
 	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
 	FileHandleManager mockFileHandleManager;
 	
-	BulkDownloadDao bulkDownloadDao;
+	BulkDownloadManager bulkDownloadDao;
 	
 	
 	@Before
@@ -44,7 +44,7 @@ public class BulkDownloadDaoImpTest {
 		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
 		
-		bulkDownloadDao = new BulkDownloadDaoImp();
+		bulkDownloadDao = new BulkDownloadManagerImpl();
 		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleDao", mockFileHandleDao);
 		ReflectionTestUtils.setField(bulkDownloadDao, "s3client", mockS3client);
 		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleAuthorizationManager", mockFileHandleAuthorizationManager);

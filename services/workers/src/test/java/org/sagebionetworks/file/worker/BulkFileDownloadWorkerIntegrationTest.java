@@ -1,6 +1,9 @@
 package org.sagebionetworks.file.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,7 +29,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -58,7 +60,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	BulkDownloadDao bulkDownloadDao;
+	BulkDownloadManager bulkDownloadManager;
 	@Autowired
 	EntityManager entityManager;
 	
@@ -169,7 +171,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		assertEquals(null, summary.getFailureCode());
 		// must have a result
 		assertNotNull(response.getResultZipFileHandleId());
-		resulFileHandle = bulkDownloadDao.getS3FileHandle(response.getResultZipFileHandleId());
+		resulFileHandle = bulkDownloadManager.getS3FileHandle(response.getResultZipFileHandleId());
 		fileHandlesToDelete.add(resulFileHandle.getId());
 		// Is the zip as expected?
 		validateZipContents(fileOneContents, fileTwoContents);
@@ -186,7 +188,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 	private void validateZipContents(String fileOneContents,
 			String fileTwoContents) throws FileNotFoundException,
 			IOException {
-		File tempZip = bulkDownloadDao.downloadToTempFile(resulFileHandle);
+		File tempZip = bulkDownloadManager.downloadToTempFile(resulFileHandle);
 		ZipInputStream zipIn = null;
 		try{
 			zipIn = new ZipInputStream(new FileInputStream(tempZip));

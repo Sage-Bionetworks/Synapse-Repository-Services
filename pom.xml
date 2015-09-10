@@ -266,7 +266,12 @@
 				<version>1.9.5</version>
 				<scope>test</scope>
 			</dependency>
-
+			<dependency>
+				<groupId>nl.jqno.equalsverifier</groupId>
+				<artifactId>equalsverifier</artifactId>
+				<version>1.7.5</version>
+				<scope>test</scope>
+			</dependency>
 			<dependency>
 				<groupId>joda-time</groupId>
 				<artifactId>joda-time</artifactId>

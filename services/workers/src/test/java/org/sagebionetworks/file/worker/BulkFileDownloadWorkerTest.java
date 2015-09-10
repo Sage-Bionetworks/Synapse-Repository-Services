@@ -50,7 +50,7 @@ public class BulkFileDownloadWorkerTest {
 
 	AsynchJobStatusManager mockAsynchJobStatusManager;
 	UserManager mockUserManger;
-	BulkDownloadDao mockBulkDownloadDao;
+	BulkDownloadManager mockBulkDownloadManager;
 
 	ProgressCallback<Message> mockProgress;
 
@@ -78,15 +78,15 @@ public class BulkFileDownloadWorkerTest {
 		// dependencies
 		mockAsynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
 		mockUserManger = Mockito.mock(UserManager.class);
-		mockBulkDownloadDao = Mockito.mock(BulkDownloadDao.class);
+		mockBulkDownloadManager = Mockito.mock(BulkDownloadManager.class);
 		mockProgress = Mockito.mock(ProgressCallback.class);
 
 		worker = new BulkFileDownloadWorker();
 		ReflectionTestUtils.setField(worker, "asynchJobStatusManager",
 				mockAsynchJobStatusManager);
 		ReflectionTestUtils.setField(worker, "userManger", mockUserManger);
-		ReflectionTestUtils.setField(worker, "bulkDownloadDao",
-				mockBulkDownloadDao);
+		ReflectionTestUtils.setField(worker, "bulkDownloadManager",
+				mockBulkDownloadManager);
 
 		// test objects
 		fha1 = new FileHandleAssociation();
@@ -124,13 +124,13 @@ public class BulkFileDownloadWorkerTest {
 		mockZipOut = Mockito.mock(ZipOutputStream.class);
 		when(mockUserManger.getUserInfo(user.getId())).thenReturn(user);
 		// User can download the file.
-		when(mockBulkDownloadDao.canDownLoadFile(user, Arrays.asList(fha1)))
+		when(mockBulkDownloadManager.canDownLoadFile(user, Arrays.asList(fha1)))
 				.thenReturn(
 						Arrays.asList(new FileHandleAssociationAuthorizationStatus(
 								fha1, AUTHORIZED)));
-		when(mockBulkDownloadDao.getS3FileHandle(fha1.getFileHandleId()))
+		when(mockBulkDownloadManager.getS3FileHandle(fha1.getFileHandleId()))
 				.thenReturn(fileHandle1);
-		when(mockBulkDownloadDao.getS3FileHandle(fha2.getFileHandleId()))
+		when(mockBulkDownloadManager.getS3FileHandle(fha2.getFileHandleId()))
 				.thenReturn(fileHandle2);
 
 		// Create and track a mock file for each temp requested.
@@ -142,7 +142,7 @@ public class BulkFileDownloadWorkerTest {
 				mockTempFilesCreated.add(mockFile);
 				return mockFile;
 			}
-		}).when(mockBulkDownloadDao).createTempFile(anyString(), anyString());
+		}).when(mockBulkDownloadManager).createTempFile(anyString(), anyString());
 
 		// Create and track a mock downloaded files.
 		mockDownloadedFiles = Lists.newLinkedList();
@@ -153,7 +153,7 @@ public class BulkFileDownloadWorkerTest {
 				mockDownloadedFiles.add(mockFile);
 				return mockFile;
 			}
-		}).when(mockBulkDownloadDao)
+		}).when(mockBulkDownloadManager)
 				.downloadToTempFile(any(S3FileHandle.class));
 
 		// create and track the ZipOutputStreams
@@ -166,13 +166,13 @@ public class BulkFileDownloadWorkerTest {
 				mockZipOutCreated.add(out);
 				return out;
 			}
-		}).when(mockBulkDownloadDao).createZipOutputStream(any(File.class));
+		}).when(mockBulkDownloadManager).createZipOutputStream(any(File.class));
 
 		// setup the result handle
 		resultHandle = new S3FileHandle();
 		resultHandle.setId("1111");
 		when(
-				mockBulkDownloadDao.multipartUploadLocalFile(
+				mockBulkDownloadManager.multipartUploadLocalFile(
 						any(UserInfo.class), any(File.class), anyString(),
 						any(ProgressListener.class))).thenReturn(resultHandle);
 	}
@@ -204,9 +204,14 @@ public class BulkFileDownloadWorkerTest {
 		assertEquals(1, mockDownloadedFiles.size());
 		verifyAllStreamsClosedAndFilesDeleted();
 		
+		// The zip should get uploaded
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(
+				any(UserInfo.class), any(File.class), anyString(),
+				any(ProgressListener.class));
+		
 		ArgumentCaptor<String> entryCapture = ArgumentCaptor
 				.forClass(String.class);
-		verify(mockBulkDownloadDao).addFileToZip(any(ZipOutputStream.class),
+		verify(mockBulkDownloadManager).addFileToZip(any(ZipOutputStream.class),
 				any(File.class), entryCapture.capture());
 		assertEquals("1/1/foo.txt", entryCapture.getValue());
 
@@ -214,6 +219,7 @@ public class BulkFileDownloadWorkerTest {
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
 		summary.setStatus(FileDownloadStatus.SUCCESS);
+		summary.setZipEntryName("1/1/foo.txt");
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary));
@@ -231,7 +237,7 @@ public class BulkFileDownloadWorkerTest {
 	public void testRunNoFilesAdded() throws Exception {
 		String deniedReason = "because";
 		// for this case the user cannot download the one file
-		when(mockBulkDownloadDao.canDownLoadFile(user, Arrays.asList(fha1)))
+		when(mockBulkDownloadManager.canDownLoadFile(user, Arrays.asList(fha1)))
 				.thenReturn(
 						Arrays.asList(new FileHandleAssociationAuthorizationStatus(
 								fha1, AuthorizationManagerUtil
@@ -241,7 +247,7 @@ public class BulkFileDownloadWorkerTest {
 		
 		verifyAllStreamsClosedAndFilesDeleted();
 		// The zip should not get uploaded
-		verify(mockBulkDownloadDao, never()).multipartUploadLocalFile(
+		verify(mockBulkDownloadManager, never()).multipartUploadLocalFile(
 				any(UserInfo.class), any(File.class), anyString(),
 				any(ProgressListener.class));
 		// expect the job to be completed with the response body.
@@ -272,7 +278,7 @@ public class BulkFileDownloadWorkerTest {
 		String deniedReason = "because";
 		// for this case 1 is denied and 2 is authorized.
 		when(
-				mockBulkDownloadDao.canDownLoadFile(user,
+				mockBulkDownloadManager.canDownLoadFile(user,
 						Arrays.asList(fha1, fha2))).thenReturn(
 				Arrays.asList(
 						new FileHandleAssociationAuthorizationStatus(fha1,
@@ -289,7 +295,7 @@ public class BulkFileDownloadWorkerTest {
 		
 		verifyAllStreamsClosedAndFilesDeleted();
 		// The zip should get uploaded
-		verify(mockBulkDownloadDao, times(1)).multipartUploadLocalFile(
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(
 				any(UserInfo.class), any(File.class), anyString(),
 				any(ProgressListener.class));
 		// expect the job to be completed with the response body.
@@ -303,6 +309,7 @@ public class BulkFileDownloadWorkerTest {
 		FileDownloadSummary summary2 = new FileDownloadSummary();
 		summary2.setFileHandleId(fha2.getFileHandleId());
 		summary2.setStatus(FileDownloadStatus.SUCCESS);
+		summary2.setZipEntryName("2/2/bar.txt");
 		// response
 		BulkFileDownloadResponse expectedResponse = new BulkFileDownloadResponse();
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
@@ -318,7 +325,7 @@ public class BulkFileDownloadWorkerTest {
 	@Test
 	public void testRunNotFoundException() throws Exception {
 		String error = "does not exist";
-		when(mockBulkDownloadDao.getS3FileHandle(fha1.getFileHandleId())).thenThrow(new NotFoundException(error));
+		when(mockBulkDownloadManager.getS3FileHandle(fha1.getFileHandleId())).thenThrow(new NotFoundException(error));
 
 		// call under test
 		worker.run(mockProgress, message);
@@ -346,7 +353,7 @@ public class BulkFileDownloadWorkerTest {
 	@Test
 	public void testRunUnknownException() throws Exception {
 		String error = "does not exist";
-		when(mockBulkDownloadDao.getS3FileHandle(fha1.getFileHandleId())).thenThrow(new RuntimeException(error));
+		when(mockBulkDownloadManager.getS3FileHandle(fha1.getFileHandleId())).thenThrow(new RuntimeException(error));
 
 		// call under test
 		worker.run(mockProgress, message);
@@ -401,9 +408,9 @@ public class BulkFileDownloadWorkerTest {
 	public void testRunZipFull() throws Exception {
 		// temp file for the zip should be created
 		File mockZip = Mockito.mock(File.class);
-		when(mockBulkDownloadDao.createTempFile(anyString(), anyString())).thenReturn(mockZip);
+		when(mockBulkDownloadManager.createTempFile(anyString(), anyString())).thenReturn(mockZip);
 		when(mockZip.length()).thenReturn(BulkFileDownloadWorker.MAX_TOTAL_FILE_SIZE_BYTES+1);
-		fileHandle1.setContentSize(BulkFileDownloadWorker.MAX_TOTAL_FILE_SIZE_BYTES+1);
+		fileHandle1.setContentSize(1L);
 		// call under test
 		worker.run(mockProgress, message);
 		// expect the job to be completed with the response body.
@@ -434,7 +441,7 @@ public class BulkFileDownloadWorkerTest {
 	
 		// for this case 1 is denied and 2 is authorized.
 		when(
-				mockBulkDownloadDao.canDownLoadFile(user,
+				mockBulkDownloadManager.canDownLoadFile(user,
 						Arrays.asList(fha1, fha2))).thenReturn(
 				Arrays.asList(
 						new FileHandleAssociationAuthorizationStatus(fha1,
@@ -446,7 +453,7 @@ public class BulkFileDownloadWorkerTest {
 
 		verifyAllStreamsClosedAndFilesDeleted();
 		// The zip should get uploaded
-		verify(mockBulkDownloadDao, times(1)).multipartUploadLocalFile(
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(
 				any(UserInfo.class), any(File.class), anyString(),
 				any(ProgressListener.class));
 		// expect the job to be completed with the response body.
@@ -454,6 +461,7 @@ public class BulkFileDownloadWorkerTest {
 		FileDownloadSummary summary1 = new FileDownloadSummary();
 		summary1.setFileHandleId(fha1.getFileHandleId());
 		summary1.setStatus(FileDownloadStatus.SUCCESS);
+		summary1.setZipEntryName("1/1/foo.txt");
 		// 2
 		FileDownloadSummary summary2 = new FileDownloadSummary();
 		summary2.setFileHandleId(fha2.getFileHandleId());

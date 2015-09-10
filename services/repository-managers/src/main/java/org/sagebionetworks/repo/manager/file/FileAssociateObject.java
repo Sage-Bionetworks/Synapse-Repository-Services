@@ -7,10 +7,10 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
  * Describes a FileHandle associated object.
  *
  */
-public class FileAssociateObject {
+public final class FileAssociateObject {
 	
-	String objectId;
-	FileHandleAssociateType objectType;
+	final String objectId;
+	final FileHandleAssociateType objectType;
 	
 	public FileAssociateObject(String objectId,
 			FileHandleAssociateType objectType) {
@@ -20,14 +20,8 @@ public class FileAssociateObject {
 	public String getObjectId() {
 		return objectId;
 	}
-	public void setObjectId(String objectId) {
-		this.objectId = objectId;
-	}
 	public FileHandleAssociateType getObjectType() {
 		return objectType;
-	}
-	public void setObjectType(FileHandleAssociateType objectType) {
-		this.objectType = objectType;
 	}
 	
 	@Override
