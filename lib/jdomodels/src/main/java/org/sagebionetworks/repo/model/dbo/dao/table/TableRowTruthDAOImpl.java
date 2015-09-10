@@ -427,6 +427,7 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
+	@Override
 	public void scanChange(RowHandler handler, TableRowChange dto)
 			throws IOException {
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
