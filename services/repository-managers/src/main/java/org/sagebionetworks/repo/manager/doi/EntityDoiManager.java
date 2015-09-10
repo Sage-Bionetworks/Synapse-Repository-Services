@@ -10,6 +10,9 @@ public interface EntityDoiManager {
 	Doi createDoi(Long userId, String objectId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
-	Doi getDoi(Long userId, String objectId, Long versionNumber)
+	Doi getDoiForVersion(Long userId, String objectId, Long versionNumber)
+			throws NotFoundException, UnauthorizedException, DatastoreException;
+	
+	Doi getDoiForCurrentVersion(Long userId, String objectId)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 }
