@@ -24,7 +24,7 @@ import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
-public class BulkDownloadDaoImp implements BulkDownloadDao{
+public class BulkDownloadManagerImpl implements BulkDownloadManager{
 	
 	private static final String ONLY_S3_FILE_HANDLES_CAN_BE_DOWNLOADED = "Only S3FileHandles can be downloaded.";
 	

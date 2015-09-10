@@ -3,7 +3,11 @@
 	"properties": {
 		"fileHandleId": {
 			"type": "string",
-			"description": "The FileHandle.id of a requested file."
+			"description": "The file handle id of a requested file."
+		},
+		"zipEntryName": {
+			"type": "string",
+			"description": "The zip entry name used for this file.  This entry includes both the path and file name.  The value will only be set if the status is set to 'SUCCESS'"
 		},
 		"status": {
 			"type": "string",

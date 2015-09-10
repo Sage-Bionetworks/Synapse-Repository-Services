@@ -67,9 +67,9 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private UserManager userManger;
+	UserManager userManger;
 	@Autowired
-	BulkDownloadDao bulkDownloadDao; 
+	BulkDownloadManager bulkDownloadManager; 
 
 	@Override
 	public void run(ProgressCallback<Message> progressCallback, Message message)
@@ -108,9 +108,9 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			final Message message, AsynchronousJobStatus status,
 			BulkFileDownloadRequest request) throws IOException {
 		// The generated zip will be written to this temp file.
-		File tempResultFile = bulkDownloadDao.createTempFile("Job"
+		File tempResultFile = bulkDownloadManager.createTempFile("Job"
 				+ status.getJobId(), ".zip");
-		ZipOutputStream zipOut = bulkDownloadDao.createZipOutputStream(tempResultFile);
+		ZipOutputStream zipOut = bulkDownloadManager.createZipOutputStream(tempResultFile);
 		try {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			/*
@@ -118,7 +118,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			 * download each requested file. The authorization check is
 			 * normalized around the associated object.
 			 */
-			List<FileHandleAssociationAuthorizationStatus> authResults = bulkDownloadDao
+			List<FileHandleAssociationAuthorizationStatus> authResults = bulkDownloadManager
 					.canDownLoadFile(user, request.getRequestedFiles());
 			// Track the files added to the zip.
 			Set<String> fileIdsInZip = Sets.newHashSet();
@@ -129,7 +129,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			String resultFileHandleId = null;
 			if(fileIdsInZip.size() > 0){
 				// upload the result file to S3
-				S3FileHandle resultHandle = bulkDownloadDao
+				S3FileHandle resultHandle = bulkDownloadManager
 						.multipartUploadLocalFile(user, tempResultFile,
 								APPLICATION_ZIP, new ProgressListener() {
 									@Override
@@ -167,7 +167,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			AsynchronousJobStatus status,
 			Set<String> fileIdsInZip) {
 		long currentProgress = 0L;
-		long totalProgress = (long) authResults.size();
+		final long totalProgress = (long) authResults.size();
 		// This will be the final summary of results..
 		List<FileDownloadSummary> fileSummaries = Lists.newLinkedList();
 		// process each request in order.
@@ -183,10 +183,11 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			summary.setFileHandleId(fileHandleId);
 			fileSummaries.add(summary);
 			try {
-				writeOneFileToZip(zipOut, tempResultFile.length(), fhas, fileIdsInZip);
+				String zipEntryName = writeOneFileToZip(zipOut, tempResultFile.length(), fhas, fileIdsInZip);
 				// download this file from S3
 				fileIdsInZip.add(fileHandleId);
 				summary.setStatus(FileDownloadStatus.SUCCESS);
+				summary.setZipEntryName(zipEntryName);
 			} catch (BulkFileException e) {
 				// known error conditions.
 				summary.setStatus(FileDownloadStatus.FAILURE);
@@ -204,7 +205,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 				summary.setFailureCode(FileDownloadCode.UNKNOWN_ERROR);
 				log.error("Failed on: " + fhas.getAssociation(), e);
 			}
-			totalProgress++;
+			currentProgress++;
 		}
 		return fileSummaries;
 	}
@@ -217,8 +218,9 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	 * @param fhas
 	 * @param fileIdsInZip
 	 * @throws IOException
+	 * @return The zip entry name used for this file.
 	 */
-	public void writeOneFileToZip(ZipOutputStream zipOut, long zipFileSize,
+	public String writeOneFileToZip(ZipOutputStream zipOut, long zipFileSize,
 			FileHandleAssociationAuthorizationStatus fhas,
 			Set<String> fileIdsInZip) throws IOException {
 		String fileHandleId = fhas.getAssociation().getFileHandleId();
@@ -239,20 +241,21 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 					FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}
 		// Get this filehandle.
-		S3FileHandle s3Handle = bulkDownloadDao.getS3FileHandle(fileHandleId);
+		S3FileHandle s3Handle = bulkDownloadManager.getS3FileHandle(fileHandleId);
 		// Each file must be under the max.s
 		if (s3Handle.getContentSize() > MAX_TOTAL_FILE_SIZE_BYTES) {
 			throw new BulkFileException(FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT,
 					FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}
 		// This file will be downloaded to this temp.
-		File downloadTemp = bulkDownloadDao.downloadToTempFile(s3Handle);
+		File downloadTemp = bulkDownloadManager.downloadToTempFile(s3Handle);
 		try {
 			// The entry name is the path plus file name.
 			String zipEntryName = createZipEntryName(s3Handle.getFileName(),
 					Long.parseLong(s3Handle.getId()));
 			// write the file to the zip.
-			bulkDownloadDao.addFileToZip(zipOut, downloadTemp, zipEntryName);
+			bulkDownloadManager.addFileToZip(zipOut, downloadTemp, zipEntryName);
+			return zipEntryName;
 		} finally {
 			downloadTemp.delete();
 		}

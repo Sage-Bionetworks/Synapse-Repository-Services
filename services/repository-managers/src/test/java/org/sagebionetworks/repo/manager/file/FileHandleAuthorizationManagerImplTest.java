@@ -13,6 +13,8 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.AUTHORIZ
 import java.util.Arrays;
 import java.util.List;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -143,5 +145,10 @@ public class FileHandleAuthorizationManagerImplTest {
 	public void testValidateFileHandleIdNull(){
 		fha1.setFileHandleId(null);
 		manager.canDownLoadFile(user, Arrays.asList(fha1));
+	}
+	
+	@Test
+	public void equalsContract() {
+	    EqualsVerifier.forClass(FileAssociateObject.class).verify();
 	}
 }
