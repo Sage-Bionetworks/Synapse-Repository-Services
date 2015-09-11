@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.Set;
 
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -31,13 +33,12 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Multimap;
@@ -68,7 +69,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
-
+	@Autowired
+	private FileHandleAssociationManager fileHandleAssociationSwitch;
+	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
@@ -197,6 +200,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
 	}
 
+	@Deprecated
 	@Override
 	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleIds, Set<String> allowed, Set<String> disallowed)
 			throws NotFoundException {
@@ -327,6 +331,60 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		} else {
 			return canAccess(userInfo, objectId, objectType, ACCESS_TYPE.CREATE);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.AuthorizationManager#canDownloadFile(org.sagebionetworks.repo.model.UserInfo, java.util.List)
+	 */
+	@Override
+	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
+			List<String> fileHandleIds, String associatedObjectId,
+			FileHandleAssociateType associationType) {
+		if (user == null) {
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		if (fileHandleIds == null) {
+			throw new IllegalArgumentException("FileHandleIds cannot be null");
+		}
+		ObjectType assocatedObjectType = fileHandleAssociationSwitch.getAuthorizationObjectTypeForAssociatedObjectType(associationType);
+		// Is the user authorized to download the associated object?
+		AuthorizationStatus canUserDownloadAssociatedObject = canAccess(user,
+				associatedObjectId, assocatedObjectType, ACCESS_TYPE.DOWNLOAD);
+		List<FileHandleAuthorizationStatus> results = new ArrayList<FileHandleAuthorizationStatus>(fileHandleIds.size());
+		// Validate all all filehandles are actually associated with the given
+		// object.
+		Set<String> associatedFileHandleIds = fileHandleAssociationSwitch.getFileHandleIdsAssociatedWithObject(fileHandleIds,
+						associatedObjectId, associationType);
+		// Which file handles did the user create.
+		Set<String> fileHandlesCreatedByUser = fileHandleDao.getFileHandleIdsCreatedByUser(user.getId(), fileHandleIds);
+		for (String fileHandleId : fileHandleIds) {
+			
+			if (fileHandlesCreatedByUser.contains(fileHandleId) || user.isAdmin()) {
+				// The user is the creator of the file or and admin so they can
+				// download it.
+				results.add(new FileHandleAuthorizationStatus(fileHandleId,
+						AuthorizationManagerUtil.AUTHORIZED));
+			} else {
+				/*
+				 * The user is not an admin and they are not the creator of the
+				 * file. Therefore they can only download the file if they have
+				 * the download permission on the associated object and the
+				 * fileHandle is actually associated with the object.
+				 */
+				if (associatedFileHandleIds.contains(fileHandleId)) {
+					results.add(new FileHandleAuthorizationStatus(fileHandleId,
+							canUserDownloadAssociatedObject));
+				} else {
+					// The fileHandle is not associated with the object.
+					results.add(new FileHandleAuthorizationStatus(
+							fileHandleId,
+							AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject(fileHandleId, associatedObjectId,
+											associationType)));
+				}
+			}
+		}
+		return results;
 	}
 	
 }

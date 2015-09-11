@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -30,6 +31,7 @@ public class WorkerLoggerIntegrationTest {
 	
 	private static final long MAX_CLOUD_WATCH_WAIT_TIME_MILLIS = 60000L; // one minute
 
+	@Ignore // PLFM-3559
 	@Test
 	public void testMetricPublishing() throws Exception {
 		assertNotNull(consumer);

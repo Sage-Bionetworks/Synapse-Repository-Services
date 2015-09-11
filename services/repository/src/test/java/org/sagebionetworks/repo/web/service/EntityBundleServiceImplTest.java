@@ -11,8 +11,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.servlet.ServletException;
@@ -28,6 +30,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -37,6 +40,9 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -229,7 +235,7 @@ public class EntityBundleServiceImplTest {
 		Doi doi = new Doi();
 		doi.setObjectType(ObjectType.ENTITY);
 		doi.setObjectId(entityId);
-		when(mockDoiService.getDoi(TEST_USER1, entityId, ObjectType.ENTITY, null)).thenReturn(doi);
+		when(mockDoiService.getDoiForCurrentVersion(TEST_USER1, entityId, ObjectType.ENTITY)).thenReturn(doi);
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoi());
@@ -276,7 +282,7 @@ public class EntityBundleServiceImplTest {
 	}
 	
 	@Test
-	public void testGetBenefactorAclInheritied() throws Exception {
+	public void testGetBenefactorAclInherited() throws Exception {
 		AccessControlList acl = new AccessControlList();
 		acl.setId("456");
 		String entityId = "syn123";
@@ -289,5 +295,45 @@ public class EntityBundleServiceImplTest {
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		assertNotNull(bundle);
 		assertEquals(acl, bundle.getBenefactorAcl());
+	}
+	
+	@Test
+	public void testFileNameNoOverride() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.FILE_NAME;
+		FileEntity entity = new FileEntity();
+		long dataFileHandleId = 101L;
+		entity.setDataFileHandleId(""+dataFileHandleId);
+		String fileName = "foo.txt";
+		when(mockEntityService.getEntity(TEST_USER1, entityId, null)).thenReturn(entity);
+		FileHandleResults fhr = new FileHandleResults();
+		List<FileHandle> fhs = new ArrayList<FileHandle>();
+		fhr.setList(fhs);
+		S3FileHandle fh = new S3FileHandle();
+		fh.setId(""+dataFileHandleId);
+		fh.setFileName(fileName);
+		fhs.add(fh);
+		fh = new S3FileHandle();
+		fh.setId(""+(dataFileHandleId+1));
+		fh.setFileName("preview.txt");
+		fhs.add(fh);
+		fhr.setList(fhs);
+		when(mockEntityService.getEntityFileHandlesForCurrentVersion(TEST_USER1, entityId)).thenReturn(fhr);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(fileName, bundle.getFileName());
+	}
+	
+	@Test
+	public void testFileNameWithOverride() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.FILE_NAME;
+		FileEntity entity = new FileEntity();
+		String fileNameOverride = "foo.txt";
+		entity.setFileNameOverride(fileNameOverride);
+		when(mockEntityService.getEntity(TEST_USER1, entityId, null)).thenReturn(entity);
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertEquals(fileNameOverride, bundle.getFileName());
 	}
 }

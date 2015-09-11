@@ -247,4 +247,14 @@ public interface TableRowTruthDAO {
 	 *             when a conflict is found
 	 */
 	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException;
+
+	/**
+	 * Scan over a given changeset
+	 * @param handler
+	 * @param dto
+	 * @throws IOException
+	 */
+	public void scanChange(RowHandler handler, TableRowChange dto) throws IOException;
+	
+	
 }

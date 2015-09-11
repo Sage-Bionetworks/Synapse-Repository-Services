@@ -78,7 +78,7 @@ public class DoiController extends BaseController {
 	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoi(userId, id, ObjectType.ENTITY, null);
+		return serviceProvider.getDoiService().getDoiForVersion(userId, id, ObjectType.ENTITY, null);
 	}
 
 	/**
@@ -95,6 +95,6 @@ public class DoiController extends BaseController {
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoi(userId, id, ObjectType.ENTITY, versionNumber);
+		return serviceProvider.getDoiService().getDoiForVersion(userId, id, ObjectType.ENTITY, versionNumber);
 	}
 }

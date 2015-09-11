@@ -1,0 +1,13 @@
+{
+    "description":"Enumeration of all possible objects types that can be associated with a file.",
+    "type":"string",
+	"enum": [
+		"FileEntity",
+		"TableEntity",
+		"WikiAttachment",
+		"UserProfileAttachment",
+		"MessageAttachment",
+		"TeamAttachment",
+		"SubmissionAttachment"
+	]
+}

@@ -10,9 +10,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +57,8 @@ import com.google.common.collect.Multimap;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
+	private static final String SQL_SELECT_FILES_CREATED_BY_USER = "SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" IN ( :ids ) AND "+COL_FILES_CREATED_BY+" = :createdById";
+
 	private static final String IDS_PARAM = ":ids";
 
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
@@ -218,6 +223,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
 		final Multimap<String, String> resultMap = ArrayListMultimap.create();
@@ -237,7 +243,27 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 		return resultMap;
 	}
-
+	
+	@Override
+	public Set<String> getFileHandleIdsCreatedByUser(final Long createdById,
+			List<String> fileHandleIds) throws NotFoundException {
+		final Set<String> results = new HashSet<String>();
+		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE/2)) {
+			MapSqlParameterSource parameters = new MapSqlParameterSource();
+			parameters.addValue("ids", fileHandleIdsBatch);
+			parameters.addValue("createdById", createdById);
+			simpleJdbcTemplate.query(SQL_SELECT_FILES_CREATED_BY_USER, new RowMapper<Void>() {
+				@Override
+				public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+					String fileHandleId = rs.getString(COL_FILES_ID);
+					results.add(fileHandleId);
+					return null;
+				}
+			}, parameters);
+		}
+		return results;
+	}
+	
 	@Override
 	public String getPreviewFileHandleId(String fileHandleId)
 			throws NotFoundException {
@@ -309,4 +335,5 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	public long getMaxId() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
 	}
+
 }

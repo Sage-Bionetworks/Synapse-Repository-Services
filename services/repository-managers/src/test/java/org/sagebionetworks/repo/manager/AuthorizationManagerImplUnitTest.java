@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -22,6 +23,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -44,6 +46,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -64,6 +69,7 @@ public class AuthorizationManagerImplUnitTest {
 	private UserManager mockUserManager;
 	private EntityPermissionsManager mockEntityPermissionsManager;
 	private AccessControlListDAO mockAclDAO;
+	private FileHandleAssociationManager mockFileHandleAssociationManager;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -88,6 +94,7 @@ public class AuthorizationManagerImplUnitTest {
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 		mockNodeDao = Mockito.mock(NodeDAO.class);
+		mockFileHandleAssociationManager = Mockito.mock(FileHandleAssociationManager.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -100,6 +107,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
 		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
 		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
+		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 
@@ -118,6 +126,10 @@ public class AuthorizationManagerImplUnitTest {
 				any(List.class),
 				any(RestrictableObjectType.class), any(Collection.class), eq(participateAndDownload))).
 				thenReturn(new ArrayList<Long>());
+		
+		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.FileEntity)).thenReturn(ObjectType.ENTITY);
+		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.TableEntity)).thenReturn(ObjectType.ENTITY);
+		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(FileHandleAssociateType.WikiAttachment)).thenReturn(ObjectType.WIKI);
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
@@ -462,4 +474,118 @@ public class AuthorizationManagerImplUnitTest {
 		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
 		this.authorizationManager.canCreateAccessApproval(userInfo, accessApproval);
 	}
+	
+	@Test
+	public void testCanDownloadFileAdmin(){
+		List<String> fileHandleIds = Arrays.asList("1","2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
+		// call under test.
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(adminUser, fileHandleIds, associatedObjectId, associationType);
+		assertNotNull(results);
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.AUTHORIZED),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.AUTHORIZED)
+		);
+		
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCanDownloadFileFileCreator(){
+		List<String> fileHandleIds = Arrays.asList("1","2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
+		//the user is not authorized to download the associated object.
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
+		// user is the creator of "2"
+		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Sets.newHashSet("2"));
+		// neither file is associated with the object.
+		Set<String> emptySet = Sets.newHashSet();
+		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType)).thenReturn(emptySet);
+		// call under test.
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
+		assertNotNull(results);
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("1", associatedObjectId,
+						associationType)),
+						// The user is the creator of this file so they can download it.
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.AUTHORIZED)
+		);
+		
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCanDownloadFileFileNotAssociated(){
+		List<String> fileHandleIds = Arrays.asList("1","2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
+		Set<String> emptySet = Sets.newHashSet();
+		// the user has download on the associated object.
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// user is not the creator of either file.
+		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
+		// neither file is associated with the object.
+		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType)).thenReturn(emptySet);
+		// call under test.
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
+		assertNotNull(results);
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("1", associatedObjectId,
+						associationType)),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+						associationType))
+		);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCanDownloadFileAuthorized(){
+		List<String> fileHandleIds = Arrays.asList("1","2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
+		Set<String> emptySet = Sets.newHashSet();
+		//the user is authorized to download the associated object.
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// user is not the creator of either file.
+		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
+		// the first file is associated with the object.
+		Set<String> bothFileHandlIds = Sets.newHashSet("1");
+		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType)).thenReturn(bothFileHandlIds);
+		// call under test.
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
+		assertNotNull(results);
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.AUTHORIZED),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+						associationType))
+		);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCanDownloadFileUnAuthorized(){
+		List<String> fileHandleIds = Arrays.asList("1","2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
+		Set<String> emptySet = Sets.newHashSet();
+		//the user is not authorized to download the associated object.
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
+		// user is not the creator of either file.
+		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
+		// the first file is associated with the object.
+		Set<String> bothFileHandlIds = Sets.newHashSet("1");
+		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType)).thenReturn(bothFileHandlIds);
+		// call under test.
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
+		assertNotNull(results);
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.accessDenied("cause")),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+						associationType))
+		);
+		assertEquals(expected, results);
+	}
+	
 }

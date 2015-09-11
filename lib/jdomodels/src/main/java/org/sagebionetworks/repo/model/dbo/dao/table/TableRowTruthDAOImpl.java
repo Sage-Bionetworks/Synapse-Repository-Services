@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
+import org.sagebionetworks.repo.model.dao.table.TableFileAssociationDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
@@ -52,7 +53,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -122,6 +122,8 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private AmazonS3Client s3Client;
+	@Autowired
+	TableFileAssociationDao tableFileAssociationDao;
 
 	private String s3Bucket;
 
@@ -202,6 +204,8 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			// Validate that this update does not contain any row level conflicts.
 			checkForRowLevelConflict(tableId, delta, 0);
 		}
+		// Bind any FileHandles in the delta to this table.
+		bindFilesToTable(tableId, models, delta);
 
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
@@ -236,6 +240,21 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 		results.setRows(refs);
 		return results;
+	}
+
+	/**
+	 * Bind all FileHandles in the change set to the table.
+	 * @param tableId
+	 * @param models
+	 * @param delta
+	 */
+	private void bindFilesToTable(String tableId, ColumnModelMapper models,
+			RawRowSet delta) {
+		// Extract all of the fileHandleIds from the table
+		Set<String> fileHandleIds = TableModelUtils.getFileHandleIdsInRowSet(models.getColumnModels(), delta.getRows());
+		if(!fileHandleIds.isEmpty()){
+			tableFileAssociationDao.bindFileHandleIdsToTable(tableId, fileHandleIds);
+		}
 	}
 
 	@Override
@@ -408,6 +427,7 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
+	@Override
 	public void scanChange(RowHandler handler, TableRowChange dto)
 			throws IOException {
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());

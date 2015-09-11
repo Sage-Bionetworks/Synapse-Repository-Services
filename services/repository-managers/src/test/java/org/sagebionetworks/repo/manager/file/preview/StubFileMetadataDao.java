@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -130,4 +131,13 @@ public class StubFileMetadataDao implements FileHandleDao {
 		}
 		return result;
 	}
+
+	@Override
+	public Set<String> getFileHandleIdsCreatedByUser(Long createdById,
+			List<String> fileHandleIds) throws NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 }

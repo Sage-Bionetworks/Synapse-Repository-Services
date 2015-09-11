@@ -179,15 +179,26 @@ public class TableModelTestUtils {
 	 * @return
 	 */
 	public static List<Row> createRows(List<ColumnModel> cms, int count) {
-		return createRows(cms, count, true);
+		return createRows(cms, count, true, null);
 	}
 
+	/**
+	 * Create a row.
+	 * @param cms
+	 * @param count
+	 * @param fileHandleIs All file handle columns will be populated with files from this this.
+	 * @return
+	 */
+	public static List<Row> createRows(List<ColumnModel> cms, int count, List<String> fileHandleIs) {
+		return createRows(cms, count, true, fileHandleIs);
+	}
+	
 	public static List<PartialRow> createPartialRows(List<ColumnModel> cms, int count) {
 		List<PartialRow> rows = new LinkedList<PartialRow>();
 		for (int i = 0; i < count; i++) {
 			PartialRow row = new PartialRow();
 			// Add a value for each column
-			createPartialRow(cms, row, i, false);
+			createPartialRow(cms, row, i, false, null);
 			rows.add(row);
 		}
 		return rows;
@@ -198,18 +209,22 @@ public class TableModelTestUtils {
 		for (int i = 0; i < count; i++) {
 			Row row = new Row();
 			// Add a value for each column
-			updateExpectedPartialRow(cms, row, i, false, true);
+			updateExpectedPartialRow(cms, row, i, false, true, null);
 			rows.add(row);
 		}
 		return rows;
 	}
 
 	public static List<Row> createRows(List<ColumnModel> cms, int count, boolean useDateStrings) {
+		return createRows(cms, count, useDateStrings, null);
+	}
+	
+	public static List<Row> createRows(List<ColumnModel> cms, int count, boolean useDateStrings, List<String> fileHandleIs) {
 		List<Row> rows = new LinkedList<Row>();
 		for (int i = 0; i < count; i++) {
 			Row row = new Row();
 			// Add a value for each column
-			updateRow(cms, row, i, false, useDateStrings);
+			updateRow(cms, row, i, false, useDateStrings, fileHandleIs);
 			rows.add(row);
 		}
 		return rows;
@@ -258,11 +273,15 @@ public class TableModelTestUtils {
 	}
 
 	public static void updateRow(List<ColumnModel> cms, Row toUpdate, int i) {
-		updateRow(cms, toUpdate, i, true, false);
+		updateRow(cms, toUpdate, i, true, false, null);
+	}
+	
+	public static void updateRow(List<ColumnModel> cms, Row toUpdate, int i, List<String> fileHandleIds) {
+		updateRow(cms, toUpdate, i, true, false, fileHandleIds);
 	}
 
 	public static PartialRow updatePartialRow(List<ColumnModel> schema, Row row, int i) {
-		return updatePartialRow(schema, row, i, false);
+		return updatePartialRow(schema, row, i, false, null);
 	}
 
 	private static final SimpleDateFormat gmtDateFormatter;
@@ -271,17 +290,17 @@ public class TableModelTestUtils {
 		gmtDateFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 
-	private static void updateRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings) {
+	private static void updateRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings, List<String> fileHandleIds) {
 		// Add a value for each column
 		List<String> values = new LinkedList<String>();
 		int cmIndex = 0;
 		for (ColumnModel cm : cms) {
-			values.add(getValue(cm, i, isUpdate, useDateStrings, false, cmIndex++));
+			values.add(getValue(cm, i, isUpdate, useDateStrings, false, cmIndex++, fileHandleIds));
 		}
 		toUpdate.setValues(values);
 	}
 
-	private static void createPartialRow(List<ColumnModel> cms, PartialRow toUpdate, int i, boolean useDateStrings) {
+	private static void createPartialRow(List<ColumnModel> cms, PartialRow toUpdate, int i, boolean useDateStrings, List<String> fileHandleIds) {
 		// Add a value for each column
 		Map<String, String> values = Maps.newHashMap();
 		int cmIndex = 0;
@@ -289,14 +308,14 @@ public class TableModelTestUtils {
 			if (cm.getColumnType() == null)
 				throw new IllegalArgumentException("ColumnType cannot be null");
 			if ((i + cmIndex) % 3 != 0) {
-				values.put(cm.getId(), getValue(cm, i, false, useDateStrings, false, cmIndex));
+				values.put(cm.getId(), getValue(cm, i, false, useDateStrings, false, cmIndex, fileHandleIds));
 			}
 			cmIndex++;
 		}
 		toUpdate.setValues(values);
 	}
 
-	private static PartialRow updatePartialRow(List<ColumnModel> cms, Row toUpdate, int i, boolean useDateStrings) {
+	private static PartialRow updatePartialRow(List<ColumnModel> cms, Row toUpdate, int i, boolean useDateStrings, List<String> fileHandleIds) {
 		// Add a value for each column
 		Map<String, String> values = Maps.newHashMap();
 		for (int cmIndex = 0; cmIndex < cms.size(); cmIndex++) {
@@ -304,7 +323,7 @@ public class TableModelTestUtils {
 			if (cm.getColumnType() == null)
 				throw new IllegalArgumentException("ColumnType cannot be null");
 			if ((i + cmIndex) % 3 != 0) {
-				String value = getValue(cm, i, true, useDateStrings, false, cmIndex);
+				String value = getValue(cm, i, true, useDateStrings, false, cmIndex, fileHandleIds);
 				values.put(cm.getId(), value);
 				toUpdate.getValues().set(cmIndex, value);
 			}
@@ -315,7 +334,7 @@ public class TableModelTestUtils {
 		return partialRow;
 	}
 
-	private static void updateExpectedPartialRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings) {
+	private static void updateExpectedPartialRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings, List<String> fileHandleIds) {
 		// Add a value for each column
 		List<String> values = new LinkedList<String>();
 		int cmIndex = 0;
@@ -323,7 +342,7 @@ public class TableModelTestUtils {
 			if (cm.getColumnType() == null)
 				throw new IllegalArgumentException("ColumnType cannot be null");
 			if ((i + cmIndex) % 3 != 0) {
-				values.add(getValue(cm, i, isUpdate, useDateStrings, true, cmIndex));
+				values.add(getValue(cm, i, isUpdate, useDateStrings, true, cmIndex, fileHandleIds));
 			} else {
 				values.add(cm.getDefaultValue());
 			}
@@ -332,7 +351,7 @@ public class TableModelTestUtils {
 		toUpdate.setValues(values);
 	}
 
-	private static String getValue(ColumnModel cm, int i, boolean isUpdate, boolean useDateStrings, boolean isExpected, int colIndex) {
+	private static String getValue(ColumnModel cm, int i, boolean isUpdate, boolean useDateStrings, boolean isExpected, int colIndex, List<String> fileHandleIds) {
 		i = i + 100000 * colIndex;
 		if (cm.getColumnType() == null)
 			throw new IllegalArgumentException("ColumnType cannot be null");
@@ -348,7 +367,12 @@ public class TableModelTestUtils {
 				return "" + (i + 4000 + (isUpdate ? 10000 : 0));
 			}
 		case FILEHANDLEID:
-			return "" + (i + 5000 + (isUpdate ? 10000 : 0));
+			if(fileHandleIds != null){
+				int index = i % fileHandleIds.size();
+				return fileHandleIds.get(index);
+			}else{
+				return "" + (i + 5000 + (isUpdate ? 10000 : 0));
+			}
 		case ENTITYID:
 			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "." + (i + 7000 + (isUpdate ? 10000 : 0));
 		case BOOLEAN:

@@ -118,6 +118,8 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -365,6 +367,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String EXTERNAL_FILE_HANDLE_S3 = "/externalFileHandle/s3";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
+	
+	protected static final String FILE_BULK = FILE+"/bulk";
 
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
@@ -604,6 +608,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String getFileEndpoint() {
 		return this.fileEndpoint;
+	}
+	
+
+	/**
+	 * Lookup the endpoint for a given type.
+	 * @param type
+	 * @return
+	 */
+	String getEndpointForType(RestEndpointType type){
+		switch(type){
+		case auth:
+			return getAuthEndpoint();
+		case repo:
+			return getRepoEndpoint();
+		case file:
+			return getFileEndpoint();
+		default:
+			throw new IllegalArgumentException("Unknown type: "+type);
+		}
 	}
 
 	/**
@@ -2560,12 +2583,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		s3FileCopyRequest.setBucket(destinationBucket);
 		s3FileCopyRequest.setOverwrite(overwrite);
 		s3FileCopyRequest.setBaseKey(baseKey);
-		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest, getFileEndpoint());
+		return startAsynchJob(AsynchJobType.S3FileCopy, s3FileCopyRequest);
 	}
 
 	@Override
 	public S3FileCopyResults s3FileCopyAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null, getFileEndpoint());
+		return (S3FileCopyResults) getAsyncResult(AsynchJobType.S3FileCopy, asyncJobToken, (String) null);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#startBulkFileDownload(org.sagebionetworks.repo.model.file.BulkFileDownloadRequest)
+	 */
+	@Override
+	public String startBulkFileDownload(BulkFileDownloadRequest request) throws SynapseException{
+		return startAsynchJob(AsynchJobType.BulkFileDownload, request);
+	}
+	
+	@Override
+	public BulkFileDownloadResponse getBulkFileDownloadResults(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (BulkFileDownloadResponse) getAsyncResult(AsynchJobType.BulkFileDownload, asyncJobToken, (String) null);
 	}
 
 	/**
@@ -3762,13 +3799,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				getUserAgent());
 	}
 
-	@Override
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#startAsynchJob(org.sagebionetworks.client.AsynchJobType, org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody)
+	 */
 	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException {
-		return startAsynchJob(type, request, getRepoEndpoint());
-	}
-
-	private String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request, String endpoint) throws SynapseException {
 		String url = type.getStartUrl(request);
+		String endpoint = getEndpointForType(type.getRestEndpoint());
 		AsyncJobId jobId = asymmetricalPost(endpoint, url, request,
 				AsyncJobId.class, null);
 		return jobId.getToken();
@@ -3779,28 +3816,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = ASYNCHRONOUS_JOB + "/" + jobId + "/cancel";
 		getSharedClientConnection().getJson(getRepoEndpoint(), url, getUserAgent());
 	}
-
+	
 	@Override
 	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request)
 			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
-		return getAsyncResult(type, jobId, request, getRepoEndpoint());
-	}
-
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, AsynchronousRequestBody request, String endpoint)
-			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
 		String url = type.getResultUrl(jobId, request);
+		String endpoint = getEndpointForType(type.getRestEndpoint());
 		return getAsynchJobResponse(url, type.getReponseClass(), endpoint);
 	}
 
 	@Override
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId) throws SynapseException,
-			SynapseClientException, SynapseResultNotReadyException {
-		return getAsyncResult(type, jobId, entityId, getRepoEndpoint());
-	}
-
-	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId, String endpoint)
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId, String entityId)
 			throws SynapseException, SynapseClientException, SynapseResultNotReadyException {
 		String url = type.getResultUrl(jobId, entityId);
+		String endpoint = getEndpointForType(type.getRestEndpoint());
 		return getAsynchJobResponse(url, type.getReponseClass(), endpoint);
 	}
 

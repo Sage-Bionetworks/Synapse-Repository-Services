@@ -79,6 +79,8 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -2243,5 +2245,26 @@ public interface SynapseClient extends BaseClient {
 	PaginatedIds listSubmissionTeams(String challengeId,
 			String submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
+	
+	/**
+	 * Start an asynchronous job to download multiple files as a bundled zip file.
+	 * @see #getBulkFileDownloadResults(String)
+	 * @param request Describes the files to be included in the resulting zip file.
+	 * @return JobId token used to get the results. See: {@link #getBulkFileDownloadResults(String)}
+	 * @throws SynapseException
+	 */
+	String startBulkFileDownload(BulkFileDownloadRequest request)
+			throws SynapseException;
+
+	/**
+	 * Get the results of an asynchronous job to download multiple files as a bundled zip file.
+	 * @see #startBulkFileDownload(BulkFileDownloadRequest)
+	 * @param asyncJobToken The JobId returned from: {@link #startBulkFileDownload(BulkFileDownloadRequest)}
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	BulkFileDownloadResponse getBulkFileDownloadResults(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 	
 }
