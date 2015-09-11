@@ -1,17 +1,14 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.table.TableFileAssociationDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableFileHandleAssociationProvider implements FileHandleAssociationProvider {
 	
-	@Autowired
-	TableFileAssociationDao tableFileAssociationDao;
 
 	/*
 	 * (non-Javadoc)
@@ -20,7 +17,8 @@ public class TableFileHandleAssociationProvider implements FileHandleAssociation
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
-		return tableFileAssociationDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, objectId);
+		// For now this always returns an empty set
+		return new HashSet<String>(0);
 	}
 
 	/*

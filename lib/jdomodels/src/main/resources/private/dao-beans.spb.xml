@@ -39,9 +39,6 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"
 		depends-on="idGenerator" />
 		
-	<bean id="tableFileAssociationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.TableFileAssociationDaoImpl" />
-		
 	<bean id="fileHandleDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl" />
 
