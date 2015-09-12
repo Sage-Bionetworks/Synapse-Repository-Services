@@ -8,7 +8,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.AUTHORIZED;
 
 import java.io.File;
@@ -507,7 +507,7 @@ public class BulkFileDownloadWorkerTest {
 		}
 		// All created output stream should have been closed.
 		for (ZipOutputStream mockOut : mockZipOutCreated) {
-			verify(mockOut).close();
+			verify(mockOut, atLeast(1)).close();
 		}
 		// All created temp files should have been deleted.
 		for (File mockFile : mockDownloadedFiles) {
