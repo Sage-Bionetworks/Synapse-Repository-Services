@@ -125,6 +125,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 			// Build the zip
 			List<FileDownloadSummary> results = addFilesToZip(progressCallback,
 					message, authResults, tempResultFile, zipOut, status, fileIdsInZip);
+			
+			IOUtils.closeQuietly(zipOut);
 			// Is there at least one file in the zip?
 			String resultFileHandleId = null;
 			if(fileIdsInZip.size() > 0){
