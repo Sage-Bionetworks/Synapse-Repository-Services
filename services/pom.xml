@@ -13,6 +13,7 @@
   <name>Services</name>
 
   <modules>
+    <module>app-services</module>
     <module>repository-managers</module>
     <module>authutil</module>
     <module>repository</module>
