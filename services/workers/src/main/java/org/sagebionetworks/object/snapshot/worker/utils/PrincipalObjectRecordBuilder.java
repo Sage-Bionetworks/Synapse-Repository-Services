@@ -52,6 +52,7 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 			// User
 			try {
 				UserProfile profile = userProfileDAO.get(message.getObjectId());
+				profile.setSummary(null);
 				return ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
 			} catch (NotFoundException e) {
 				log.warn("UserProfile not found: "+principalId);
