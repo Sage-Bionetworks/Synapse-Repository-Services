@@ -100,8 +100,10 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			return Collections.emptyList();
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_TEAM_ID, ids);
+		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, ids);
 		List<SubmissionStatusDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, SUBSTATUS_ROW_MAPPER, param);
+		if (dbos.size()<ids.size()) throw new NotFoundException("Expected submission statuses for "+ids+
+				" but only found results for "+dbos.size());
 		List<SubmissionStatus> result = new ArrayList<SubmissionStatus>();
 		for (SubmissionStatusDBO dbo : dbos) result.add(SubmissionUtils.convertDboToDto(dbo));
 		return result;
