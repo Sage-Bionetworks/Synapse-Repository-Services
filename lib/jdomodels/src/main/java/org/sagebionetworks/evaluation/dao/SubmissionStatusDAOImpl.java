@@ -6,7 +6,6 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ET
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,10 +99,11 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		if (ids==null || ids.size()<1) {
 			return Collections.emptyList();
 		}
+		Set<String> idSet = new LinkedHashSet<String>(ids);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, ids);
+		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idSet);
 		List<SubmissionStatusDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, SUBSTATUS_ROW_MAPPER, param);
-		if (dbos.size()<ids.size()) throw new NotFoundException("Expected submission statuses for "+ids+
+		if (dbos.size()<idSet.size()) throw new NotFoundException("Expected submission statuses for "+idSet+
 				" but only found results for "+dbos.size());
 		List<SubmissionStatus> result = new ArrayList<SubmissionStatus>();
 		for (SubmissionStatusDBO dbo : dbos) result.add(SubmissionUtils.convertDboToDto(dbo));

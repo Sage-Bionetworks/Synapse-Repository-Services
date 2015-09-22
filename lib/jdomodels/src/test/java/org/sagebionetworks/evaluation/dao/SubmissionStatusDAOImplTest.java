@@ -240,7 +240,11 @@ public class SubmissionStatusDAOImplTest {
         long initialCount = submissionStatusDAO.getCount();
        	List<SubmissionStatus> clones = createStatusesForSubmissions(initialCount);
        
-    	List<SubmissionStatus> list = submissionStatusDAO.list(submissionIds);
+       	// let's make sure that the 'list' method can handle repeats
+       	List<String> submissionIdsWithRepeats = new ArrayList<String>();
+      	submissionIdsWithRepeats.addAll(submissionIds);
+      	submissionIdsWithRepeats.addAll(submissionIds);
+    	List<SubmissionStatus> list = submissionStatusDAO.list(submissionIdsWithRepeats);
     	assertEquals(submissionIds.size(), list.size());
     	assertEquals(clones, list);
 
