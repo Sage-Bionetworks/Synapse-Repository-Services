@@ -1,7 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -17,9 +16,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.EmailUtils.*;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 
 import java.net.MalformedURLException;
@@ -38,6 +37,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
-import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,14 +57,13 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
@@ -79,12 +77,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
@@ -260,6 +254,8 @@ public class SubmissionManagerTest {
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.DELETE_SUBMISSION))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
+
+    	when(mockSubmissionStatusDAO.list(eq(Collections.singletonList(SUB_ID)))).thenReturn(Collections.singletonList(subStatus));
 
     	// by default we say that individual submissions are within quota
     	// (specific tests will change this)
@@ -488,10 +484,37 @@ public class SubmissionManagerTest {
 	}
 	
 	@Test
+	public void testGetAllSubmissionBundles() throws Exception {
+		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
+		when(mockSubmissionDAO.getAllByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
+			thenReturn(Collections.singletonList(subWithId));
+		when(mockSubmissionDAO.getCountByEvaluationAndStatus(EVAL_ID, statusEnum)).thenReturn(1L);
+		QueryResults<SubmissionBundle> queryResults = 
+				submissionManager.getAllSubmissionBundles(ownerInfo, EVAL_ID, statusEnum, 10L, 0L);
+		assertEquals(1L, queryResults.getTotalNumberOfResults());
+		SubmissionBundle expected = new SubmissionBundle();
+		expected.setSubmission(subWithId);
+		expected.setSubmissionStatus(subStatus);
+		assertEquals(Collections.singletonList(expected), queryResults.getResults());
+		verify(mockSubmissionDAO).getAllByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
+		verify(mockSubmissionDAO).getCountByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum));
+		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
+	}
+	
+	@Test
 	public void testGetMyOwnSubmissionBundles() throws Exception {
-		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10, 0);
-		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10, 0);
+		when(mockSubmissionDAO.getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
+			thenReturn(Collections.singletonList(subWithId));
+		when(mockSubmissionDAO.getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString())).thenReturn(1L);
+		QueryResults<SubmissionBundle> queryResults = 
+				submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10L, 0L);
+		SubmissionBundle expected = new SubmissionBundle();
+		expected.setSubmission(subWithId);
+		expected.setSubmissionStatus(subStatus);
+		assertEquals(Collections.singletonList(expected), queryResults.getResults());
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L);
 		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString());
+		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
 	}
 	
 	@Test
