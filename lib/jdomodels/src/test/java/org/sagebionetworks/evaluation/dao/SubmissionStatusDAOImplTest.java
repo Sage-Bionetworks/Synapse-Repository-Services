@@ -220,7 +220,7 @@ public class SubmissionStatusDAOImplTest {
 	        compare(orig, retrieved);
         }
 
-    	// Delete it
+    	// Delete them
     	for (int i=0; i<submissionIds.size(); i++) {
     		submissionStatusDAO.delete(submissionIds.get(i));
             // Fetch it (should not exist)
@@ -232,6 +232,35 @@ public class SubmissionStatusDAOImplTest {
             }
     	}
    		assertEquals(initialCount, submissionStatusDAO.getCount());    
+    }
+    
+    @Test
+    public void testList() throws Exception{
+        // Initialize new SubmissionStatus objects for submissionId
+        long initialCount = submissionStatusDAO.getCount();
+       	List<SubmissionStatus> clones = createStatusesForSubmissions(initialCount);
+       
+    	List<SubmissionStatus> list = submissionStatusDAO.list(submissionIds);
+    	assertEquals(submissionIds.size(), list.size());
+    	assertEquals(clones, list);
+
+    	// Delete them
+    	for (int i=0; i<submissionIds.size(); i++) {
+    		submissionStatusDAO.delete(submissionIds.get(i));
+            // Fetch it (should not exist)
+            try {
+            	submissionStatusDAO.get(submissionIds.get(i));
+            	fail("NotFoundException expected");
+            } catch (NotFoundException e) {
+            	// expected
+            }
+    	}
+   		assertEquals(initialCount, submissionStatusDAO.getCount());    
+    }
+    
+    @Test
+    public void testEmptyList() throws Exception {
+    	assertEquals(Collections.emptyList(), submissionStatusDAO.list(Collections.EMPTY_LIST));
     }
     
     @Test
