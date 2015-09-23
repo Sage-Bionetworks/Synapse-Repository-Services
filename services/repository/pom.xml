@@ -9,6 +9,7 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
+	<groupId>org.sagebionetworks</groupId>
 	<artifactId>services-repository</artifactId>
 	<packaging>war</packaging>
 	<name>Platform Repository Service</name>
@@ -18,32 +19,11 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>app-services</artifactId>
-		</dependency>
-		<dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context-support</artifactId>
-        </dependency>
-        <dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-webmvc-portlet</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-table-query</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>repository-managers</artifactId>
+			<artifactId>app-services</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -71,14 +51,38 @@
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Logging -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- Spring Framework dependencies -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc-portlet</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context-support</artifactId>
+		</dependency>			
+		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>
 			<artifactId>rome</artifactId>
@@ -89,6 +93,7 @@
 			<artifactId>spring-test</artifactId>
 		</dependency>
 
+		<!-- Jackson JSON Mapper -->
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
@@ -121,7 +126,7 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-	
+
 	</dependencies>
 	<build>
 		<resources>
@@ -190,6 +195,46 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+							<goal>test-jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludePackageNames>
+						org.sagebionetworks.repo.web.service.metadata.*
+						:org.sagebionetworks.repo.web.filter.*
+						:org.sagebionetworks.repo.web.service.*
+						:org.sagebionetworks.sweeper.log4j.*
+						:profiler.org.*
+					</excludePackageNames>
+					<doclet>org.sagebionetworks.javadoc.web.services.SpringMVCDoclet</doclet>
+					<docletArtifact>
+						<groupId>org.sagebionetworks</groupId>
+						<artifactId>lib-javadoc</artifactId>
+						<version>${project.version}</version>
+					</docletArtifact>
+					<additionalparam>-verbose</additionalparam>
+					<useStandardDocletOptions>false</useStandardDocletOptions>
+					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
+					<!-- This name is used to link to the authentication controller -->
+					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
+					<additionnalDependencies>
+						<additionnalDependency>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>lib-table-query</artifactId>
+							<version>${project.version}</version>
+						</additionnalDependency>
+					</additionnalDependencies>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>1.2.1</version>
@@ -211,4 +256,3 @@
 		</plugins>
 	</build>
 </project>
-

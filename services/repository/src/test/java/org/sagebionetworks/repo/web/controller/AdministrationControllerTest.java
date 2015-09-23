@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServlet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -91,6 +92,7 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 	}
 	
+	@Ignore
 	@Test
 	public void testUpdateStatus() throws Exception {
 		// Make sure we can get the stack status
@@ -103,6 +105,7 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 		assertEquals(status, back);
 	}
 	
+	@Ignore
 	@Test
 	public void testGetAndUpdateStatusWhenDown() throws Exception {
 		// Make sure we can get the status when down.
