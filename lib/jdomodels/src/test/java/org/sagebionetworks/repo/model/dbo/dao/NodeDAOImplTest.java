@@ -1574,6 +1574,17 @@ public class NodeDAOImplTest {
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, currentRev);
 	}
 	
+	@Test
+	public void testTypeFromNode() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node backup = privateCreateNew("getNodeTypeById");
+		backup.setNodeType(EntityType.project);
+		String id = nodeDao.createNew(backup);
+		toDelete.add(id);
+		assertNotNull(id);
+		EntityType type = nodeDao.getNodeTypeById(id);
+		assertEquals(EntityType.project, type);
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetCurrentRevNumberDoesNotExist() throws NotFoundException, DatastoreException{
 		// This should throw a NotFoundException exception

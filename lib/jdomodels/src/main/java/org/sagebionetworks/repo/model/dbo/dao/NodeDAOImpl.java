@@ -128,6 +128,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String GET_NODE_TYPE_SQL = "SELECT "+COL_NODE_TYPE+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
@@ -430,6 +431,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			dboBasicDao.update(node);
 		}
 	}
+	
+	
+	@Override
+	public EntityType getNodeTypeById(String nodeId) throws NotFoundException, DatastoreException {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			String typeString = this.jdbcTemplate.queryForObject(GET_NODE_TYPE_SQL, String.class, KeyFactory.stringToKey(nodeId));
+			return EntityType.valueOf(typeString);
+		} catch(EmptyResultDataAccessException e){
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
+	}
+	
+
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
