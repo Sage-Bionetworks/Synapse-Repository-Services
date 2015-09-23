@@ -234,7 +234,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		return certifiedUserHasAccess(node.getId(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
 	}
-
+	
 	/**
 	 * 
 	 * @param resource the resource of interest
@@ -249,7 +249,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
 				(accessType==CREATE ||
-				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))))
+				(accessType==UPDATE && !nodeDao.getNodeTypeById(entityId).equals(EntityType.project))))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, accessType, userInfo);
@@ -408,12 +408,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
 		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
 	}
-
+	
 	@Override
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				!nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))
+				!nodeDao.getNodeTypeById(entityId).equals(EntityType.project))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);

@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
-import org.sagebionetworks.repo.model.dao.table.TableFileAssociationDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -76,9 +74,6 @@ public class TableRowTruthDAOImplTest {
 	
 	@Autowired
 	FileHandleDao fileHandleDao;
-	
-	@Autowired
-	TableFileAssociationDao tableFileAssociationDao;
 
 	protected String creatorUserGroupId;
 
@@ -948,21 +943,5 @@ public class TableRowTruthDAOImplTest {
 			}
 		}
 	}
-	
-	@Test
-	public void testFileHandleAssociation() throws IOException{
-		int fileHandleCount = 3;
-		// Create real file handles
-		createFileHandles(fileHandleCount);
-		ColumnMapper mapper = TableModelTestUtils.createMapperForOneOfEachType();
-		
-		// create some test rows.
-		List<Row> rows = TableModelTestUtils.createRows(mapper.getColumnModels(), fileHandleCount*2, fileHandleIds);
-		String tableId = "syn123";
-		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
-		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
-		// Validate that the file handles are bound to the table.
-		Set<String> filesBoundToTable = tableFileAssociationDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, tableId);
-		assertEquals(new HashSet<String>(fileHandleIds), filesBoundToTable);
-	}
+
 }

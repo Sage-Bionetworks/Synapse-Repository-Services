@@ -122,7 +122,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// only authorized users can view private Annotations 
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
 				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
-		return submissionToSubmissionStatus(sub, includePrivateAnnos);
+		return submissionsToSubmissionStatuses(Collections.singletonList(sub), includePrivateAnnos).get(0);
 	}
 	
 	static boolean isTeamSubmission(Submission submission, String submissionEligibilityHash) {
@@ -544,10 +544,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			QueryResults<Submission> submissions, boolean includePrivateAnnos)
 			throws DatastoreException, NotFoundException {
 		List<SubmissionBundle> bundles = new ArrayList<SubmissionBundle>(submissions.getResults().size());
+		List<SubmissionStatus> statuses = submissionsToSubmissionStatuses(submissions.getResults(), includePrivateAnnos);
+		Map<String,SubmissionStatus> statusMap = new HashMap<String,SubmissionStatus>();
+		for (SubmissionStatus status : statuses) statusMap.put(status.getId(), status);
 		for (Submission sub : submissions.getResults()) {
 			SubmissionBundle bun = new SubmissionBundle();
 			bun.setSubmission(sub);
-			bun.setSubmissionStatus(submissionToSubmissionStatus(sub, includePrivateAnnos));
+			bun.setSubmissionStatus(statusMap.get(sub.getId()));
 			bundles.add(bun);
 		}
 		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
@@ -565,10 +568,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	protected QueryResults<SubmissionStatus> submissionsToSubmissionStatuses(
 			QueryResults<Submission> submissions, boolean includePrivateAnnos)
 			throws DatastoreException, NotFoundException {
-		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(submissions.getResults().size());
-		for (Submission sub : submissions.getResults()) {
-			statuses.add(submissionToSubmissionStatus(sub, includePrivateAnnos));
-		}
+		List<SubmissionStatus> statuses = submissionsToSubmissionStatuses(submissions.getResults(), includePrivateAnnos);
 		return new QueryResults<SubmissionStatus>(statuses, submissions.getTotalNumberOfResults());
 	}
 
@@ -581,18 +581,27 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	protected SubmissionStatus submissionToSubmissionStatus(Submission sub, boolean includePrivateAnnos)
+	protected List<SubmissionStatus> submissionsToSubmissionStatuses(List<Submission> subs, boolean includePrivateAnnos)
 			throws DatastoreException, NotFoundException {
-		SubmissionStatus status = submissionStatusDAO.get(sub.getId());
-		status.setEntityId(sub.getEntityId());
-		status.setVersionNumber(sub.getVersionNumber());
-		if (!includePrivateAnnos) {
-			Annotations annos = status.getAnnotations();
-			if (annos != null) {
-				status.setAnnotations(removePrivateAnnos(annos));
+		List<String> submissionIds = new ArrayList<String>();
+		Map<String,Submission> subMap = new HashMap<String,Submission>();
+		for (Submission sub : subs) {
+			submissionIds.add(sub.getId());
+			subMap.put(sub.getId(), sub);
+		}
+		List<SubmissionStatus> statuses = submissionStatusDAO.list(submissionIds);
+		for (SubmissionStatus status : statuses) {
+			Submission sub = subMap.get(status.getId());
+			status.setEntityId(sub.getEntityId());
+			status.setVersionNumber(sub.getVersionNumber());
+			if (!includePrivateAnnos) {
+				Annotations annos = status.getAnnotations();
+				if (annos != null) {
+					status.setAnnotations(removePrivateAnnos(annos));
+				}
 			}
 		}
-		return status;
+		return statuses;
 	}
 
 	/**
