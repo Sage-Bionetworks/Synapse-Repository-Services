@@ -7,5 +7,5 @@
 	<import resource="classpath:private/file-services-spb.xml" />
 	<import resource="classpath:private/profiler-spb.xml" />
 	<import resource="classpath:private/service-spb.xml" />
-
+	<import resource="classpath:private/throttle-services-spb.xml" />
 </beans>
