@@ -187,6 +187,9 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
  	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
  	public static final String COL_MESSAGE_TO_USER_SENT       		= "SENT";
+ 	public static final String COL_MESSAGE_TO_USER_TO	     		= "TO";
+ 	public static final String COL_MESSAGE_TO_USER_CC       		= "CC";
+ 	public static final String COL_MESSAGE_TO_USER_BCC       		= "BCC";
  	public static final String COL_MESSAGE_NOTIFICATIONS_ENDPOINT   = "NOTIFICATIONS_ENDPOINT";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	

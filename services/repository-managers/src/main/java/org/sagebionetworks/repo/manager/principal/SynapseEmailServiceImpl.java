@@ -38,15 +38,6 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	private AmazonS3Client s3Client;
 	
 	@Override
-	public void sendEmail(SendEmailRequest emailRequest) {
-		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
-			amazonSESClient.sendEmail(emailRequest);
-		} else {
-			writeToFile(emailRequest);
-		}
-	}
-	
-	@Override
 	public void sendRawEmail(SendRawEmailRequest sendRawEmailRequest) {
 		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendRawEmail(sendRawEmailRequest);

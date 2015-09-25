@@ -54,7 +54,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
 
 
@@ -451,31 +450,27 @@ public class MessageManagerImpl implements MessageManager {
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
 					String email = getEmailForUser(Long.parseLong(userId));
+					SendRawEmailRequestBuilder.BodyType bodyType;
 					if (ContentType.APPLICATION_JSON.getMimeType().equals(mimeType)) {
-						SendRawEmailRequest sendRawEmailRequest = new SendRawEmailRequestBuilder()
-								.withRecipientEmail(email)
-								.withSubject(dto.getSubject())
-								.withBody(messageBody)
-								.withSenderUserName(senderUserName)
-								.withSenderDisplayName(senderDisplayName)
-								.withUserId(userId)
-								.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
-								.build();
-						sesClient.sendRawEmail(sendRawEmailRequest);
+						bodyType = SendRawEmailRequestBuilder.BodyType.JSON;
 					} else {
 						boolean isHtml= ContentType.TEXT_HTML.getMimeType().equals(mimeType);
-						SendEmailRequest sendEmailRequest = new SendEmailRequestBuilder()
-								.withRecipientEmail(email)
-								.withSubject(dto.getSubject())
-								.withBody(messageBody)
-								.withIsHtml(isHtml)
-								.withSenderUserName(senderUserName)
-								.withSenderDisplayName(senderDisplayName)
-								.withUserId(userId)
-								.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
-								.build();
-						sesClient.sendEmail(sendEmailRequest);
-					}						
+						bodyType = isHtml ? SendRawEmailRequestBuilder.BodyType.HTML : SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT;
+					}
+
+					SendRawEmailRequest sendRawEmailRequest = new SendRawEmailRequestBuilder()
+						.withRecipientEmail(email)
+						.withSubject(dto.getSubject())
+						.withTo(dto.getTo())
+						.withCc(dto.getCc())
+						.withBcc(dto.getBcc())
+						.withBody(messageBody, bodyType)
+						.withSenderUserName(senderUserName)
+						.withSenderDisplayName(senderDisplayName)
+						.withUserId(userId)
+						.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
+						.build();
+					sesClient.sendRawEmail(sendRawEmailRequest);
 					// Should the message be marked as READ?
 					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
 						userMessageStatus = MessageStatusType.READ;
@@ -604,16 +599,15 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = (new SendRawEmailRequestBuilder())
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT)
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
 				.withUserId(recipientId.toString())
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -631,15 +625,14 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = (new SendRawEmailRequestBuilder())
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT)
 				.withUserId(recipientId.toString())
 				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -660,15 +653,14 @@ public class MessageManagerImpl implements MessageManager {
 		String email = getEmailForUser(senderId);
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
 		
-		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
+		SendRawEmailRequest sendEmailRequest = (new SendRawEmailRequestBuilder())
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody)
-				.withIsHtml(false)
+				.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT)
 				.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
 				.withUserId(senderId.toString())
 				.build();
-		sesClient.sendEmail(sendEmailRequest);
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
 	

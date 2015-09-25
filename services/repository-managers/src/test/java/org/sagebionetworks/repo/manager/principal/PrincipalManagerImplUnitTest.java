@@ -33,11 +33,12 @@ import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.Message;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 public class PrincipalManagerImplUnitTest {
 
@@ -302,13 +303,12 @@ public class PrincipalManagerImplUnitTest {
 	public void testNewAccountEmailValidationHappyPath() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
 		manager.newAccountEmailValidation(user, "https://www.synapse.org?", DomainType.SYNAPSE);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(mockSynapseEmailService).sendEmail(argument.capture());
-		SendEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestination().getToAddresses());
-		Message message = emailRequest.getMessage();
-		assertEquals("Welcome to SYNAPSE!", message.getSubject().getData());
-		String body = message.getBody().getHtml().getData();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest =  argument.getValue();
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		assertEquals("Welcome to SYNAPSE!", MessageTestUtil.getSubjectFromRawMessage(emailRequest));
+		String body = MessageTestUtil.getBodyFromRawMessage(emailRequest);
 		// check that all template fields have been replaced
 		assertTrue(body.indexOf("#")<0);
 		assertTrue(body.indexOf(FIRST_NAME)>=0); 
@@ -487,13 +487,12 @@ public class PrincipalManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.getUserName(principalId)).thenReturn(USER_NAME);
 		
 		manager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(mockSynapseEmailService).sendEmail(argument.capture());
-		SendEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestination().getToAddresses());
-		Message message = emailRequest.getMessage();
-		assertEquals("Request to add or change new email", message.getSubject().getData());
-		String body = message.getBody().getHtml().getData();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest =  argument.getValue();
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		assertEquals("Request to add or change new email", MessageTestUtil.getSubjectFromRawMessage(emailRequest));
+		String body = MessageTestUtil.getBodyFromRawMessage(emailRequest);
 		// check that all template fields have been replaced
 		assertTrue(body, body.indexOf("#")<0);
 		// check that user's name appears
