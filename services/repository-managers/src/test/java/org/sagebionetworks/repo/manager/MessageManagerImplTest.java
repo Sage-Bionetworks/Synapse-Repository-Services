@@ -192,6 +192,11 @@ public class MessageManagerImplTest {
 		ReflectionTestUtils.setField(messageManager, "sesClient", 
 				new SynapseEmailService() {
 					@Override
+					public void sendEmail(SendEmailRequest emailRequest) {
+						amazonSESClient.sendEmail(emailRequest);
+					}
+
+					@Override
 					public void sendRawEmail(
 							SendRawEmailRequest sendRawEmailRequest) {
 						amazonSESClient.sendRawEmail(sendRawEmailRequest);

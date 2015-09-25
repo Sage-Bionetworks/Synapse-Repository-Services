@@ -36,7 +36,8 @@ public class MessageTestUtil {
 			assertEquals(1, content.getCount());
 			assertTrue(content.getContentType().startsWith("multipart/related"));
 			BodyPart bodyPart = content.getBodyPart(0);
-			assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+			assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain") ||
+					bodyPart.getContentType().startsWith("text/html"));
 			return ((String)bodyPart.getContent());
 		} catch (MessagingException e) {
 			throw new RuntimeException(e);
