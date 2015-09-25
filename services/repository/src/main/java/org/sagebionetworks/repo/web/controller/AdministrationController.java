@@ -158,7 +158,7 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
 		// Get the status of this daemon
 		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
-		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, null);
+		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, updatedValue);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

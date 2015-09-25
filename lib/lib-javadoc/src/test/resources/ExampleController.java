@@ -1,4 +1,5 @@
 package org.sagebionetworks.samples;
+
 import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;

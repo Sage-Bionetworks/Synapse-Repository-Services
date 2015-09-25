@@ -138,9 +138,9 @@
 						<properties>
 							<cargo.jvmargs>
 
-<!--  								-Xdebug -->
-<!--  								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
-<!--  								-Xnoagent -->
+  								<!--Xdebug
+  								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 
+  								-Xnoagent-->
 
 								-Xmx2g
 								-Xms128m

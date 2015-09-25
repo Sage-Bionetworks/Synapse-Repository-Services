@@ -64,7 +64,7 @@ public class SchemaUtilsTest {
 	@Test
 	public void testFindSchemaFiles(){
 		MethodDoc method = JavadocMockUtils.createMockMethodDoc("getSomething");
-		// The return type and one parameter should be JSON entites
+		// The return type and one parameter should be JSON entities
 		String returnName = ChunkedFileToken.class.getName();
 		String paramOne = ChunkRequest.class.getName();
 		String paramTwo = ChunkResult.class.getName();
