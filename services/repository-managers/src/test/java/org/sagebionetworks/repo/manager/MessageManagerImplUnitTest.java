@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -163,13 +164,13 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
 		messageManager.createMessage(creatorUserInfo, mtu);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(sesClient).sendEmail(argument.capture());
-		SendEmailRequest ser = argument.getValue();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestination().getToAddresses().size());
-		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		String body = ser.getMessage().getBody().getText().getData();
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		String body = MessageTestUtil.getBodyFromRawMessage(ser);
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 	}
@@ -182,13 +183,13 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
 		messageManager.createMessage(creatorUserInfo, mtu);
-		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
-		verify(sesClient).sendEmail(argument.capture());
-		SendEmailRequest ser = argument.getValue();
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestination().getToAddresses().size());
-		assertEquals("bar@sagebase.org", ser.getDestination().getToAddresses().get(0));
-		String body = ser.getMessage().getBody().getHtml().getData();
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
+		String body = MessageTestUtil.getBodyFromRawMessage(ser);
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 	}
