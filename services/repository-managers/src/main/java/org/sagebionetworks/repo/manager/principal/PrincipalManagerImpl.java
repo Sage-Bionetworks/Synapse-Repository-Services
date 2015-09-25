@@ -16,6 +16,7 @@ import org.apache.commons.lang.WordUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.SendEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -42,7 +43,6 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 /**
  * Basic implementation of the PrincipalManager.
@@ -233,12 +233,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
-			SendRawEmailRequest sendRawEmailRequest = (new SendRawEmailRequestBuilder())
+			SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
 					.withRecipientEmail(user.getEmail())
 					.withSubject(subject)
-					.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.HTML)
+					.withBody(messageBody)
+					.withIsHtml(true)
 					.build();	
-			sesClient.sendRawEmail(sendRawEmailRequest);
+			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}
@@ -368,12 +369,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
 			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
-			SendRawEmailRequest sendRawEmailRequest = (new SendRawEmailRequestBuilder())
+			SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
 					.withRecipientEmail(email.getEmail())
 					.withSubject(subject)
-					.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.HTML)
+					.withBody(messageBody)
+					.withIsHtml(true)
 					.build();	
-			sesClient.sendRawEmail(sendRawEmailRequest);
+			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}

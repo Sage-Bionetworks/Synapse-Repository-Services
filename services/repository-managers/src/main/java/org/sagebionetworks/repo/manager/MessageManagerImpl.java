@@ -599,15 +599,16 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendRawEmailRequest sendEmailRequest = (new SendRawEmailRequestBuilder())
+		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT)
+				.withBody(messageBody)
+				.withIsHtml(false)
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
 				.withUserId(recipientId.toString())
 				.build();
-		sesClient.sendRawEmail(sendEmailRequest);
+		sesClient.sendEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -625,14 +626,15 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 		String messageBody = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
-		SendRawEmailRequest sendEmailRequest = (new SendRawEmailRequestBuilder())
+		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT)
+				.withBody(messageBody)
+				.withIsHtml(false)
 				.withUserId(recipientId.toString())
 				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
 				.build();
-		sesClient.sendRawEmail(sendEmailRequest);
+		sesClient.sendEmail(sendEmailRequest);
 	}
 	
 	@Override
@@ -653,14 +655,15 @@ public class MessageManagerImpl implements MessageManager {
 		String email = getEmailForUser(senderId);
 		String messageBody = EmailUtils.readMailTemplate("message/DeliveryFailureTemplate.txt", fieldValues);
 		
-		SendRawEmailRequest sendEmailRequest = (new SendRawEmailRequestBuilder())
+		SendEmailRequest sendEmailRequest = (new SendEmailRequestBuilder())
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.PLAIN_TEXT)
+				.withBody(messageBody)
+				.withIsHtml(false)
 				.withNotificationUnsubscribeEndpoint(dto.getNotificationUnsubscribeEndpoint())
 				.withUserId(senderId.toString())
 				.build();
-		sesClient.sendRawEmail(sendEmailRequest);
+		sesClient.sendEmail(sendEmailRequest);
 	}
 	
 	
