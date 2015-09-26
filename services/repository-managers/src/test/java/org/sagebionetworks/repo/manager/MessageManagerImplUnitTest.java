@@ -17,8 +17,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
@@ -290,7 +290,7 @@ public class MessageManagerImplUnitTest {
 		errors = messageManager.processMessage(MESSAGE_ID, null);
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 	}
+
 	
-
-
+	
 }

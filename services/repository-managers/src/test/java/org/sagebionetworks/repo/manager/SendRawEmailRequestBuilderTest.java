@@ -53,7 +53,7 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(1, content.getCount());
 		assertTrue(content.getContentType().startsWith("multipart/related"));
 		BodyPart bodyPart = content.getBodyPart(0);
-		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain"));
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
