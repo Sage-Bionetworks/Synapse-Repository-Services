@@ -244,7 +244,7 @@ public class SendRawEmailRequestBuilder {
 		MimeMultipart mp = new MimeMultipart("related");
 		try {
 			BodyPart part = new MimeBodyPart();
-			part.setContent(EmailUtils.createEmailBodyFromText(messageBodyString, unsubscribeLink), 
+			part.setContent(EmailUtils.createEmailBodyFromHtml(messageBodyString, unsubscribeLink), 
 					contentType.getMimeType());
 			mp.addBodyPart(part);
 		} catch (MessagingException e) {
