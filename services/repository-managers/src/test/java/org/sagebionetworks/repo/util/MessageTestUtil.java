@@ -27,7 +27,7 @@ public class MessageTestUtil {
 		}
 	}
 
-	public static String getBodyFromRawMessage(SendRawEmailRequest request) {
+	public static String getBodyFromRawMessage(SendRawEmailRequest request, String expectedMimeType) {
 		try {
 			MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 					new ByteArrayInputStream(request.getRawMessage().getData().array()));
@@ -36,14 +36,27 @@ public class MessageTestUtil {
 			assertEquals(1, content.getCount());
 			assertTrue(content.getContentType().startsWith("multipart/related"));
 			BodyPart bodyPart = content.getBodyPart(0);
-			assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain") ||
-					bodyPart.getContentType().startsWith("text/html"));
+			assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith(expectedMimeType));
 			return ((String)bodyPart.getContent());
 		} catch (MessagingException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static String getHeaderFromRawMessage(SendRawEmailRequest request, String headerName) {
+		try {
+			MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+					new ByteArrayInputStream(request.getRawMessage().getData().array()));
+			assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
+			String[] headerValues = mimeMessage.getHeader(headerName);
+			assertEquals(1, headerValues.length);
+			return headerValues[0];
+		} catch (MessagingException e) {
+			throw new RuntimeException(e);
+		}
+		
 	}
 
 }
