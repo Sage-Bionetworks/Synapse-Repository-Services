@@ -148,9 +148,9 @@ public class MessageManagerImplUnitTest {
 		mtu.setSubject("subject");
 		mtu.setFileHandleId(FILE_HANDLE_ID);
 		mtu.setNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT);
-		mtu.setTo("TO<to@foo.com>");
-		mtu.setCc("CC<cc@foo.com>");
-		mtu.setBcc("BCC<bcc@foo.com>");
+		mtu.setTo("TO <to@foo.com>");
+		mtu.setCc("CC <cc@foo.com>");
+		mtu.setBcc("BCC <bcc@foo.com>");
 		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
 
 		when(messageDAO.createMessage(mtu)).thenReturn(mtu);
@@ -221,7 +221,7 @@ public class MessageManagerImplUnitTest {
 		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
 		assertEquals(1, ser.getDestinations().size());
 		assertEquals("bar@sagebase.org", ser.getDestinations().get(0));
-		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/plain");
+		String body = new String(ser.getRawMessage().getData().array());
 		assertTrue(body.indexOf("message body")>=0);
 		assertTrue(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 		assertEquals(mtu.getSubject(), MessageTestUtil.getSubjectFromRawMessage(ser));
