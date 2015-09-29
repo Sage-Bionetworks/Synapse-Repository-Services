@@ -1036,7 +1036,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(uep1.getCanChangePermissions());
 		assertTrue(uep1.getCanDelete());
 		assertTrue(uep1.getCanEdit());
-		assertTrue(uep1.getCanParticipate());
 		assertFalse(uep1.getCanPublicRead());
 		assertTrue(uep1.getCanView());
 		UserEvaluationPermissions uep2 = synapseTwo.getUserEvaluationPermissions(evalId);
@@ -1072,7 +1071,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(uep2.getCanChangePermissions());
 		assertTrue(uep2.getCanDelete());
 		assertFalse(uep2.getCanEdit());
-		assertFalse(uep2.getCanParticipate());
 		assertFalse(uep2.getCanPublicRead());
 		assertFalse(uep2.getCanView());
 	}
