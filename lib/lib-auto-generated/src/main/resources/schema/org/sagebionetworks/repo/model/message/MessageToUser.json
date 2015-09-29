@@ -24,6 +24,18 @@
         "notificationUnsubscribeEndpoint": {
 			"type": "string",
 			"description":"the portal prefix for one-click email unsubscription.  A signed, serialized token is appended to create the complete URL.  If omitted, the default endpoint will be used."
+		},
+		"to": {
+			"type": "string",
+			"description": "The email addresses in the 'to' field of the email message"
+		},
+		"cc": {
+			"type": "string",
+			"description": "The email addresses in the 'cc' field of the email message"
+		},
+		"bcc": {
+			"type": "string",
+			"description": "The email addresses in the 'bcc' field of the email message"
 		}
 	}
 }

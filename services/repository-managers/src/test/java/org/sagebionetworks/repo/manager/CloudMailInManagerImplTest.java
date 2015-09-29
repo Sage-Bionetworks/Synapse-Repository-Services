@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
@@ -47,6 +46,9 @@ public class CloudMailInManagerImplTest {
 		envelope.setRecipients(Collections.singletonList("baz@synapse.org"));
 		JSONObject headers = new JSONObject();
 		headers.put("Subject", "test subject");
+		headers.put("To", "to");
+		headers.put("Cc", "cc");
+		headers.put("Bcc", "bcc");
 		message.setHeaders(headers.toString());
 		String html = "<html><body>html content</body></html>";
 		message.setHtml(html);
@@ -87,6 +89,9 @@ public class CloudMailInManagerImplTest {
 		assertEquals("test subject", mtu.getSubject());
 		assertEquals(expectedRecipients, mtu.getRecipients());
 		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, mtu.getNotificationUnsubscribeEndpoint());
+		assertEquals("to", mtu.getTo());
+		assertEquals("cc", mtu.getCc());
+		assertEquals("bcc", mtu.getBcc());
 	}
 	
 	@Test

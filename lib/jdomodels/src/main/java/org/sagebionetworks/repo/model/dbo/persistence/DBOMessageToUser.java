@@ -24,7 +24,10 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
 		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
 		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
-		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT)
+		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT),
+		new FieldColumn("to", SqlConstants.COL_MESSAGE_TO_USER_TO),
+		new FieldColumn("cc", SqlConstants.COL_MESSAGE_TO_USER_CC),
+		new FieldColumn("bcc", SqlConstants.COL_MESSAGE_TO_USER_BCC)
 	};
 	
 	private Long messageId;
@@ -33,6 +36,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private String subject;
 	private Boolean sent;
 	private String notificationsEndpoint;
+	private String to;
+	private String cc;
+	private String bcc;
 
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
@@ -50,6 +56,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
 				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
 				result.setNotificationsEndpoint(rs.getString(SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT));
+				result.setTo(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_TO));
+				result.setCc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_CC));
+				result.setBcc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_BCC));
 				return result;
 			}
 			
@@ -123,6 +132,30 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.notificationsEndpoint = notificationsEndpoint;
 	}
 
+	public String getTo() {
+		return to;
+	}
+
+	public void setTo(String to) {
+		this.to = to;
+	}
+
+	public String getCc() {
+		return cc;
+	}
+
+	public void setCc(String cc) {
+		this.cc = cc;
+	}
+
+	public String getBcc() {
+		return bcc;
+	}
+
+	public void setBcc(String bcc) {
+		this.bcc = bcc;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.MESSAGE_TO_USER;
@@ -164,6 +197,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((bcc == null) ? 0 : bcc.hashCode());
+		result = prime * result + ((cc == null) ? 0 : cc.hashCode());
 		result = prime * result
 				+ ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
 		result = prime * result
@@ -176,6 +211,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
 		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
+		result = prime * result + ((to == null) ? 0 : to.hashCode());
 		return result;
 	}
 
@@ -189,6 +225,16 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMessageToUser other = (DBOMessageToUser) obj;
+		if (bcc == null) {
+			if (other.bcc != null)
+				return false;
+		} else if (!bcc.equals(other.bcc))
+			return false;
+		if (cc == null) {
+			if (other.cc != null)
+				return false;
+		} else if (!cc.equals(other.cc))
+			return false;
 		if (inReplyTo == null) {
 			if (other.inReplyTo != null)
 				return false;
@@ -219,6 +265,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!subject.equals(other.subject))
 			return false;
+		if (to == null) {
+			if (other.to != null)
+				return false;
+		} else if (!to.equals(other.to))
+			return false;
 		return true;
 	}
 
@@ -228,7 +279,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId="
 				+ rootMessageId + ", inReplyTo=" + inReplyTo + ", subject="
 				+ subject + ", sent=" + sent + ", notificationsEndpoint="
-				+ notificationsEndpoint + "]";
+				+ notificationsEndpoint + ", to=" + to + ", cc=" + cc
+				+ ", bcc=" + bcc + "]";
 	}
 
 }
