@@ -18,7 +18,7 @@ public class AccessControlListTest {
 	public void testGrantAll(){
 		String nodeId = "123";
 		UserInfo info = new UserInfo(false, 123L);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId, info);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, info);
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());

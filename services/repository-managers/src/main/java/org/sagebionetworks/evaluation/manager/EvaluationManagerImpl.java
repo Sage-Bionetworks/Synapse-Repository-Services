@@ -2,9 +2,7 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
@@ -19,7 +17,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
@@ -27,10 +24,10 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationManagerImpl implements EvaluationManager {
 
@@ -81,7 +78,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
 
 		// Create the default ACL
-		AccessControlList acl = createDefaultAcl(userInfo, eval.getId());
+		AccessControlList acl =  AccessControlListUtil.
+				createACLToGrantEvaluationAdminAccess(eval.getId(), userInfo);
 		evaluationPermissionsManager.createAcl(userInfo, acl);
 		
 		evaluationSubmissionsDAO.createForEvaluation(KeyFactory.stringToKey(id));
@@ -227,35 +225,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 	}
 
-	private static AccessControlList createDefaultAcl(final UserInfo creator, final String evalId) {
-
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
-		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		accessSet.add(ACCESS_TYPE.CREATE);
-		accessSet.add(ACCESS_TYPE.READ);
-		accessSet.add(ACCESS_TYPE.UPDATE);
-		accessSet.add(ACCESS_TYPE.DELETE);
-		accessSet.add(ACCESS_TYPE.PARTICIPATE);
-		accessSet.add(ACCESS_TYPE.SUBMIT);
-		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		accessSet.add(ACCESS_TYPE.UPDATE_SUBMISSION);
-		accessSet.add(ACCESS_TYPE.DELETE_SUBMISSION);
-
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(accessSet);
-		String userId = creator.getId().toString();
-		ra.setPrincipalId(Long.parseLong(userId));
-
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
-
-		AccessControlList acl = new AccessControlList();
-		acl.setId(evalId);
-		acl.setCreationDate(new Date());
-		acl.setResourceAccess(raSet);
-
-		return acl;
-	}
 	
 	@Override
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException

@@ -421,7 +421,7 @@ public class TrashManagerImplAutowiredTest {
 		}
 
 		// Modify nodeId12 to be its own benefactor
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId12, testUserInfo);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId12, testUserInfo);
 		entityPermissionsManager.overrideInheritance(acl, testUserInfo);
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId12));
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId22));
