@@ -1566,13 +1566,13 @@ public class IT500SynapseJavaClient {
 			EmailValidationUtil.deleteFile(inviterNotification);
 		
 		// now get the embedded tokens
-		String startString = "<a href=\\\""+MOCK_ACCEPT_INVITATION_ENDPOINT;
-		String endString = "\\\"";
+		String startString = "<a href=\""+MOCK_ACCEPT_INVITATION_ENDPOINT;
+		String endString = "\"";
 		String jsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
 		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
 
-		startString = "<a href=\\\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
-		endString = "\\\"";
+		startString = "<a href=\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
+		endString = "\"";
 		String nsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
 		NotificationSettingsSignedToken notificationSettingsSignedToken = 
 				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);
@@ -1695,13 +1695,13 @@ public class IT500SynapseJavaClient {
 			EmailValidationUtil.deleteFile(requesterNotification);
 		
 		// now get the embedded tokens
-		String startString = "<a href=\\\""+MOCK_ACCEPT_MEMB_RQST_ENDPOINT;
-		String endString = "\\\"";
+		String startString = "<a href=\""+MOCK_ACCEPT_MEMB_RQST_ENDPOINT;
+		String endString = "\"";
 		String jsst = EmailValidationUtil.getTokenFromFile(adminNotification, startString, endString);
 		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
 
-		startString = "<a href=\\\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
-		endString = "\\\"";
+		startString = "<a href=\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
+		endString = "\"";
 		String nsst = EmailValidationUtil.getTokenFromFile(adminNotification, startString, endString);
 		NotificationSettingsSignedToken notificationSettingsSignedToken = 
 				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);

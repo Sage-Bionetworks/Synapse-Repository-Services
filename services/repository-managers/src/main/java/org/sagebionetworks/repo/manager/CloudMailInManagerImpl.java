@@ -33,6 +33,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class CloudMailInManagerImpl implements CloudMailInManager {
 	private static final String FROM_HEADER = "From";
 	private static final String SUBJECT_HEADER = "Subject";
+	private static final String TO_HEADER = "To";
+	private static final String CC_HEADER = "Cc";
+	private static final String BCC_HEADER = "Bcc";
 	
 	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfiguration.getNotificationEmailSuffix().toLowerCase();
 	
@@ -52,6 +55,9 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		try {
 			String headerFrom = null;
 			String subject = null;
+			String to = null;
+			String cc = null;
+			String bcc = null;
 			JSONObject headers = new JSONObject(message.getHeaders());
 			Iterator<String> it = headers.keys();
 			while (it.hasNext()) {
@@ -60,6 +66,12 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 					subject = headers.getString(key);
 				} else if (FROM_HEADER.equalsIgnoreCase(key)) {
 					headerFrom = headers.getString(key);
+				} else if (TO_HEADER.equalsIgnoreCase(key)) {
+					to = headers.getString(key);
+				} else if (CC_HEADER.equalsIgnoreCase(key)) {
+					cc = headers.getString(key);
+				} else if (BCC_HEADER.equalsIgnoreCase(key)) {
+					bcc = headers.getString(key);
 				}
 			}
 			// per CloudMailIn support, the way to determine the recipient ('to') is via the Envelope
@@ -74,6 +86,9 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			MessageToUser mtu = new MessageToUser();
 			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom).toString());		
 			mtu.setSubject(subject);
+			mtu.setTo(to);
+			mtu.setCc(cc);
+			mtu.setBcc(bcc);
 			Set<String> recipients = new HashSet<String>();
 			// TODO PLFM-3414 will handle the case in which there is a mix of valid and invalid recipients
 			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(new HashSet<String>(envelopeRecipients));

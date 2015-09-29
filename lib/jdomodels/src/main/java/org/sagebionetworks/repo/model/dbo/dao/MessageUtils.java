@@ -83,6 +83,9 @@ public class MessageUtils {
 		bundle.setInReplyTo(toString(info.getInReplyTo()));
 		bundle.setSubject(info.getSubject());
 		bundle.setNotificationUnsubscribeEndpoint(info.getNotificationsEndpoint());
+		bundle.setTo(info.getTo());
+		bundle.setCc(info.getCc());
+		bundle.setBcc(info.getBcc());
 	}
 	
 	/**
@@ -209,6 +212,9 @@ public class MessageUtils {
 		info.setInReplyTo(parseLong(dto.getInReplyTo()));
 		info.setSubject(dto.getSubject());
 		info.setNotificationsEndpoint(dto.getNotificationUnsubscribeEndpoint());
+		info.setTo(dto.getTo());
+		info.setCc(dto.getCc());
+		info.setBcc(dto.getBcc());
 	}
 	
 	/**
