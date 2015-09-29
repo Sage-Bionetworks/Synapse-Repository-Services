@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -46,6 +47,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -175,8 +177,7 @@ public class NodeManagerImplAutoWiredTest {
 				assertNotNull(acl);
 				assertEquals(id, acl.getId());
 				// Make sure the user can do everything
-				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
-				for(ACCESS_TYPE accessType : acessTypes){
+				for(ACCESS_TYPE accessType : ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS) {
 					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).getAuthorized());
 				}
 			}else{
