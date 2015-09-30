@@ -293,8 +293,34 @@ public class NodeDAOImplTest {
 			String id2 = nodeDao.createNew(oneDuplicate);
 			fail("Setting a duplicate name should have failed");
 		}catch(IllegalArgumentException e){
-			System.out.println(e.getMessage());
 			assertTrue(e.getMessage().indexOf("An entity with the name: name already exists") > -1);
+		}
+	}
+	
+	@Test
+	public void testCreateWithDuplicateAlias() throws Exception{
+		String commonAlias = "alias";
+		Node parent = privateCreateNew("parent");
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		Node one = privateCreateNew("name");
+		one.setAlias(commonAlias);
+		one.setParentId(parentId);
+		String id = nodeDao.createNew(one);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now create another node using this id.
+		Node oneDuplicate = privateCreateNew("unique");
+		oneDuplicate.setAlias(commonAlias);
+		oneDuplicate.setParentId(parentId);
+		// This should throw an exception.
+		try{
+			String id2 = nodeDao.createNew(oneDuplicate);
+			fail("Setting a duplicate alias should have failed");
+		}catch(IllegalArgumentException e){
+			assertTrue(e.getMessage().indexOf("The friendly url name (alias): "+commonAlias+" is already taken.  Please select another.") > -1);
+
 		}
 	}
 	
@@ -559,8 +585,37 @@ public class NodeDAOImplTest {
 			nodeDao.updateNode(oneDuplicate);
 			fail("Setting a duplicate name should have failed");
 		}catch(IllegalArgumentException e){
-			System.out.println(e.getMessage());
 			assertTrue(e.getMessage().indexOf("An entity with the name: name already exists") > -1);
+		}
+	}
+	
+	@Test
+	public void testUpdateNodeDuplicateAlias() throws Exception{
+		String commonAlias = "alias";
+		Node parent = privateCreateNew("parent");
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		Node one = privateCreateNew("child");
+		one.setAlias(commonAlias);
+		one.setParentId(parentId);
+		String id = nodeDao.createNew(one);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now create another node using this id.
+		Node oneDuplicate = privateCreateNew("unique");
+		oneDuplicate.setParentId(parentId);
+		String id2 = nodeDao.createNew(oneDuplicate);
+		oneDuplicate = nodeDao.getNode(id2);
+		// This should throw an exception.
+		try{
+			// Set this name to be a duplicate name.
+			oneDuplicate.setAlias(commonAlias);
+			// Now update this node
+			nodeDao.updateNode(oneDuplicate);
+			fail("Setting a duplicate alias should have failed");
+		}catch(IllegalArgumentException e){
+			assertTrue(e.getMessage().indexOf("The friendly url name (alias): "+commonAlias+" is already taken.  Please select another.") > -1);
 		}
 	}
 	
@@ -678,7 +733,6 @@ public class NodeDAOImplTest {
 			fail("This should have failed due to a duplicate version label");
 		}catch(IllegalArgumentException e){
 			// Expected
-//			System.out.println(e.getMessage());
 		}
 		// Since creation of a new version failed we should be back to one version
 		loaded = nodeDao.getNode(id);
