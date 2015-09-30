@@ -305,6 +305,7 @@ public class NodeDAOImplTest {
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		Node one = privateCreateNew("name");
+		one.setAlias(commonAlias);
 		one.setParentId(parentId);
 		String id = nodeDao.createNew(one);
 		toDelete.add(id);
@@ -316,7 +317,7 @@ public class NodeDAOImplTest {
 		// This should throw an exception.
 		try{
 			String id2 = nodeDao.createNew(oneDuplicate);
-			fail("Setting a duplicate name should have failed");
+			fail("Setting a duplicate alias should have failed");
 		}catch(IllegalArgumentException e){
 			assertTrue(e.getMessage().indexOf("The friendly url name (alias): "+commonAlias+" is already taken.  Please select another.") > -1);
 
