@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE_SUBMISSION;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ_PRIVATE_SUBMISSION;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
@@ -24,9 +25,12 @@ public class ModelConstants {
 	public static final Set<ACCESS_TYPE> ENITY_ADMIN_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 			Arrays.asList(READ, UPDATE, DELETE, CREATE, CHANGE_PERMISSIONS, CHANGE_SETTINGS));
 	
+	// Note: CREATE, PARTICIPATE, CHANGE_SETTINGS are no longer used, but to remove them requires
+	// changing all Evaluation ACLs in the system
 	public static final Set<ACCESS_TYPE> EVALUATION_ADMIN_ACCESS_PERMISSIONS = new HashSet<ACCESS_TYPE>(
 			Arrays.asList(READ, SUBMIT, READ_PRIVATE_SUBMISSION, UPDATE_SUBMISSION, 
-					CHANGE_PERMISSIONS, UPDATE, DELETE, DELETE_SUBMISSION));
+					CHANGE_PERMISSIONS, UPDATE, DELETE, DELETE_SUBMISSION,
+					CREATE, PARTICIPATE, CHANGE_SETTINGS));
 		
 
 }
