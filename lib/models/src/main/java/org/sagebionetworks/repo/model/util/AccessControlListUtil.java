@@ -37,7 +37,6 @@ public class AccessControlListUtil {
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
-		// This user should be able to do everything.
 		access.setAccessType(new HashSet<ACCESS_TYPE>(permissions));
 		access.setPrincipalId(info.getId());
 		set.add(access);
