@@ -222,7 +222,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
 
 		// Update ACL
 		acl = evaluationPermissionsManager.updateAcl(userInfo, acl);
@@ -232,7 +235,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
 	}
 
 	@Test
@@ -344,8 +350,11 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanChangePermissions());
 		assertTrue(permissions.getCanDelete());
 		assertTrue(permissions.getCanEdit());
-		assertTrue(permissions.getCanParticipate());
 		assertTrue(permissions.getCanView());
+		assertTrue(permissions.getCanDeleteSubmissions());
+		assertTrue(permissions.getCanEditSubmissionStatuses());
+		assertTrue(permissions.getCanSubmit());
+		assertTrue(permissions.getCanViewPrivateSubmissionStatusAnnotations());
 		assertEquals(userInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
@@ -356,7 +365,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanDelete());
 		assertTrue(permissions.getCanEdit());
 		assertTrue(permissions.getCanView());
-		assertTrue(permissions.getCanParticipate());
+		assertTrue(permissions.getCanDeleteSubmissions());
+		assertTrue(permissions.getCanEditSubmissionStatuses());
+		assertTrue(permissions.getCanSubmit());
+		assertTrue(permissions.getCanViewPrivateSubmissionStatusAnnotations());
 		assertEquals(userInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
@@ -376,8 +388,11 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanChangePermissions());
 		assertTrue(permissions.getCanDelete());
 		assertTrue(permissions.getCanEdit());
-		assertTrue(permissions.getCanParticipate());
 		assertTrue(permissions.getCanView());
+		assertTrue(permissions.getCanDeleteSubmissions());
+		assertTrue(permissions.getCanEditSubmissionStatuses());
+		assertTrue(permissions.getCanSubmit());
+		assertTrue(permissions.getCanViewPrivateSubmissionStatusAnnotations());
 		assertEquals(adminUserInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
