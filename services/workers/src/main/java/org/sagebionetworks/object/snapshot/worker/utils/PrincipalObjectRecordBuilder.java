@@ -1,5 +1,8 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -36,37 +39,37 @@ public class PrincipalObjectRecordBuilder implements ObjectRecordBuilder {
 	}
 
 	@Override
-	public ObjectRecord build(ChangeMessage message) {
+	public List<ObjectRecord> build(ChangeMessage message) {
 		if (message.getObjectType() != ObjectType.PRINCIPAL || message.getChangeType() == ChangeType.DELETE) {
 			throw new IllegalArgumentException();
 		}
 		Long principalId = Long.parseLong(message.getObjectId());
 		UserGroup userGroup = null;
+		List<ObjectRecord> list = new ArrayList<ObjectRecord>();
 		try {
 			userGroup = userGroupDAO.get(principalId);
+			list.add(ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime()));
 		} catch (NotFoundException e) {
 			log.warn("Principal not found: "+principalId);
-			return null;
 		}
 		if(userGroup.getIsIndividual()){
 			// User
 			try {
 				UserProfile profile = userProfileDAO.get(message.getObjectId());
 				profile.setSummary(null);
-				return ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
+				list.add(ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime()));
 			} catch (NotFoundException e) {
 				log.warn("UserProfile not found: "+principalId);
-				return null;
 			}
 		} else {
 			// Team
 			try {
 				Team team = teamDAO.get(message.getObjectId());
-				return ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
+				list.add(ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime()));
 			} catch (NotFoundException e) {
 				log.warn("Team not found: "+principalId);
-				return null;
 			}
 		}
+		return list;
 	}
 }
