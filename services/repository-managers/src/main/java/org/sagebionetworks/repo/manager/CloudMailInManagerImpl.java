@@ -127,9 +127,10 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 				// create a notification back to the sender, listing the invalid email addresses
 				// and including the original message
 				MessageToUser errorMessage = new MessageToUser();
+				errorMessage.setCreatedBy(fromPrincipalId.toString());
 				errorMessage.setRecipients(Collections.singleton(fromPrincipalId.toString()));
 				errorMessage.setSubject(INVALID_EMAIL_ADDRESSES_SUBJECT);
-				mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
+				errorMessage.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 				Map<String,String> fieldValues = new HashMap<String,String>();
 				UserProfile fromUserProfile = userProfileManager.getUserProfile(fromPrincipalId.toString());
 				fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, EmailUtils.getDisplayNameWithUserName(fromUserProfile));

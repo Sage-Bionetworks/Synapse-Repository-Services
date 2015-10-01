@@ -239,13 +239,18 @@ public class CloudMailInManagerImplTest {
 		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
 		// check that case doesn't matter
-		Map<String,String> expected = Collections.singletonMap("baz", principalId.toString());
-		assertEquals(expected, cloudMailInManager.
-				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")));
+		PrincipalLookupResults plrs = cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg"));
+		assertEquals(1, plrs.getPrincipalIds().size());
+		assertEquals(principalId.toString(), plrs.getPrincipalIds().iterator().next());
+		assertTrue(plrs.getUnmatchedEmails().toString(), plrs.getUnmatchedEmails().isEmpty());
 		
 		// make sure that we accept personal name + address format
-		assertEquals(expected, cloudMailInManager.
-				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("Baz ZZZ <bAz@syNapse.oRg>")));
+		plrs = cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("Baz ZZZ <bAz@syNapse.oRg>"));
+		assertEquals(1, plrs.getPrincipalIds().size());
+		assertEquals(principalId.toString(), plrs.getPrincipalIds().iterator().next());
+		assertTrue(plrs.getUnmatchedEmails().toString(), plrs.getUnmatchedEmails().isEmpty());
 	}
 
 	@Test
