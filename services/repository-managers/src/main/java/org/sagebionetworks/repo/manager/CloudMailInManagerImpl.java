@@ -48,7 +48,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfiguration.getNotificationEmailSuffix().toLowerCase();
 	
 	private static final String INVALID_EMAIL_ADDRESSES_SUBJECT = "Message Failure Notification";
-	private static final String INVALID_EMAIL_ADDRESSES_TEMPLATE = "InvalidEmailAddressesTemplate.html";
+	private static final String INVALID_EMAIL_ADDRESSES_TEMPLATE = "message/InvalidEmailAddressesTemplate.html";
 	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
@@ -60,8 +60,9 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	
 	public CloudMailInManagerImpl() {}
 	
-	public CloudMailInManagerImpl(PrincipalAliasDAO principalAliasDAO) {
+	public CloudMailInManagerImpl(PrincipalAliasDAO principalAliasDAO, UserProfileManager userProfileManager) {
 		this.principalAliasDAO=principalAliasDAO;
+		this.userProfileManager=userProfileManager;
 	}
 
 	@Override
@@ -122,7 +123,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			convertedMessage.setBody(EntityFactory.createJSONStringForEntity(messageBody));
 			List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 			result.add(convertedMessage);
-			List<String> invalidEmails = principalLookupResults.getUnmatchedEmails();
+			List<String> invalidEmails = principalLookupResults.getInvalidEmails();
 			if (!invalidEmails.isEmpty()) {
 				// create a notification back to the sender, listing the invalid email addresses
 				// and including the original message

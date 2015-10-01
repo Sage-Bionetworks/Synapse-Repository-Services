@@ -2,17 +2,16 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 public class PrincipalLookupResults {
 	private Collection<String> principalIds = null;
-	private List<String> unmatchedEmails = null;
+	private List<String> invalidEmails = null;
 	
 	public PrincipalLookupResults(Collection<String> principalIds,
-			List<String> unmatchedEmails) {
+			List<String> invalidEmails) {
 		super();
 		this.principalIds = principalIds;
-		this.unmatchedEmails = unmatchedEmails;
+		this.invalidEmails = invalidEmails;
 	}
 
 	public Collection<String> getPrincipalIds() {
@@ -23,12 +22,12 @@ public class PrincipalLookupResults {
 		this.principalIds = principalIds;
 	}
 
-	public List<String> getUnmatchedEmails() {
-		return unmatchedEmails;
+	public List<String> getInvalidEmails() {
+		return invalidEmails;
 	}
 
-	public void setUnmatchedEmails(List<String> unmatchedEmails) {
-		this.unmatchedEmails = unmatchedEmails;
+	public void setInvalidEmails(List<String> invalidEmails) {
+		this.invalidEmails = invalidEmails;
 	}
 
 	@Override
@@ -38,7 +37,7 @@ public class PrincipalLookupResults {
 		result = prime * result
 				+ ((principalIds == null) ? 0 : principalIds.hashCode());
 		result = prime * result
-				+ ((unmatchedEmails == null) ? 0 : unmatchedEmails.hashCode());
+				+ ((invalidEmails == null) ? 0 : invalidEmails.hashCode());
 		return result;
 	}
 
@@ -56,10 +55,10 @@ public class PrincipalLookupResults {
 				return false;
 		} else if (!principalIds.equals(other.principalIds))
 			return false;
-		if (unmatchedEmails == null) {
-			if (other.unmatchedEmails != null)
+		if (invalidEmails == null) {
+			if (other.invalidEmails != null)
 				return false;
-		} else if (!unmatchedEmails.equals(other.unmatchedEmails))
+		} else if (!invalidEmails.equals(other.invalidEmails))
 			return false;
 		return true;
 	}
