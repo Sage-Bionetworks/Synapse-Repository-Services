@@ -59,7 +59,7 @@ public class AclObjectRecordBuilderTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		AclRecord record = AclObjectRecordBuilder.buildAclRecord(acl, ObjectType.ENTITY);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(record, changeMessage.getTimestamp().getTime());
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockAccessControlListDao).get(id);
 		Mockito.verify(mockAccessControlListDao).getOwnerType(id);
 		assertEquals(expected, actual);

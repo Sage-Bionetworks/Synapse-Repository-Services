@@ -59,7 +59,7 @@ public class ProjectSettingObjectRecordBuilderTest {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, projectSettingId.toString(), ObjectType.PROJECT_SETTING, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(projectSetting, timestamp);
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockProjectSettingsDao).get(Mockito.eq(projectSettingId.toString()));
 		assertEquals(expected, actual);
 	}
