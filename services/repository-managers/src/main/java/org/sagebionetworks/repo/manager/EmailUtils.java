@@ -38,6 +38,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
 	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
 	public static final String TEMPLATE_KEY_REQUESTER_MESSAGE = "#requesterMessage#";
+	public static final String TEMPLATE_KEY_ORIGINAL_EMAIL = "#originalEmail#";
 	
 	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
 	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";

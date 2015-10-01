@@ -5,14 +5,16 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Attachment;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
@@ -28,13 +30,15 @@ import com.amazonaws.util.json.JSONObject;
 public class CloudMailInManagerImplTest {
 	private CloudMailInManagerImpl cloudMailInManager = null;
 	private PrincipalAliasDAO principalAliasDAO = null;
+	private UserProfileManager userProfileManager = null;
 	
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
 	
 	@Before
 	public void setUp() throws Exception {
 		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		cloudMailInManager = new CloudMailInManagerImpl(principalAliasDAO);
+		userProfileManager = Mockito.mock(UserProfileManager.class);
+		cloudMailInManager = new CloudMailInManagerImpl(principalAliasDAO, userProfileManager);	
 	}
 
 	@Test
@@ -74,8 +78,10 @@ public class CloudMailInManagerImplTest {
 		
 		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
-		MessageToUserAndBody mtub = 
+		List<MessageToUserAndBody> mtubs = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		assertEquals(1, mtubs.size());
+		MessageToUserAndBody mtub = mtubs.get(0);
 		
 		assertEquals("application/json", mtub.getMimeType());
 		MessageBody messageBody = EntityFactory.createEntityFromJSONString(mtub.getBody(), MessageBody.class);
@@ -118,8 +124,9 @@ public class CloudMailInManagerImplTest {
 		
 		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
-		MessageToUserAndBody mtub = 
+		List<MessageToUserAndBody> mtubs = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		MessageToUserAndBody mtub = mtubs.get(0);
 		MessageToUser mtu = mtub.getMetadata();
 		assertEquals("104", mtu.getCreatedBy());
 
@@ -149,6 +156,72 @@ public class CloudMailInManagerImplTest {
 		message.setHeaders(headers.toString());
 		
 		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+	}
+	
+	@Test
+	public void testConvertMessageIncludingInvalidRecipients() throws Exception {
+		Message message = new Message();
+		Envelope envelope = new Envelope();
+		message.setEnvelope(envelope);
+		envelope.setFrom("foo@bar.com");
+		envelope.setRecipients(Arrays.asList("baz@synapse.org", "INvalid@synapse.org"));
+		JSONObject headers = new JSONObject();
+		headers.put("Subject", "test subject");
+		message.setHeaders(headers.toString());
+		String html = "<html><body>html content</body></html>";
+		message.setHtml(html);
+		
+		Set<String> expectedRecipients = new HashSet<String>();
+		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
+		Set<String> recipientUserNames = new HashSet<String>();
+		PrincipalAlias toAlias = new PrincipalAlias();
+		toAlias.setAlias("baz");
+		toAlias.setPrincipalId(101L);
+		expectedRecipients.add("101");
+		recipientPrincipalAliases.add(toAlias);
+		recipientUserNames.add("baz");
+				
+		PrincipalAlias fromAlias = new PrincipalAlias();
+		fromAlias.setAlias("foo@bar.com");
+		fromAlias.setPrincipalId(104L);
+		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
+		
+		Set<String> validAndInvalidRecepientUserNames = new HashSet<String>(
+				Arrays.asList(new String[]{"baz", "invalid"}));
+		
+		when(principalAliasDAO.findPrincipalsWithAliases(eq(validAndInvalidRecepientUserNames))).thenReturn(recipientPrincipalAliases);
+		
+		UserProfile userProfile = new UserProfile();
+		userProfile.setFirstName("FOO");
+		userProfile.setLastName("BAR");
+		userProfile.setUserName("foo");
+		when(userProfileManager.getUserProfile("104")).thenReturn(userProfile);
+		
+		List<MessageToUserAndBody> mtubs = 
+				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		assertEquals(2, mtubs.size());
+		MessageToUserAndBody mtub = mtubs.get(0);
+		
+		// the first element is the message to send
+		assertEquals("application/json", mtub.getMimeType());
+		EntityFactory.createEntityFromJSONString(mtub.getBody(), MessageBody.class);
+				assertEquals(expectedRecipients, mtub.getMetadata().getRecipients());
+				
+		// the second element is the error message
+		MessageToUserAndBody errorMTUB = mtubs.get(1);
+		assertEquals("text/html", errorMTUB.getMimeType());
+		MessageToUser mtu = errorMTUB.getMetadata();
+		assertEquals("104", mtu.getCreatedBy());
+		assertEquals(NOTIFICATION_UNSUBSCRIBE_ENDPOINT, mtu.getNotificationUnsubscribeEndpoint());
+		assertEquals(Collections.singleton("104"), mtu.getRecipients());
+		assertEquals("Message Failure Notification", mtu.getSubject());
+		String errorBody = errorMTUB.getBody();
+		// check salutation
+		assertTrue(errorBody.indexOf("FOO BAR")>0);
+		// check invalid email
+		assertTrue(errorBody.indexOf("INvalid@synapse.org")>0);
+		// check original message
+		assertTrue(errorBody.indexOf(html)>0);
 	}
 	
 	@Test
@@ -236,33 +309,40 @@ public class CloudMailInManagerImplTest {
 		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
 		// check that case doesn't matter
-		Map<String,String> expected = Collections.singletonMap("baz", principalId.toString());
-		assertEquals(expected, cloudMailInManager.
-				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")));
+		PrincipalLookupResults plrs = cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg"));
+		assertEquals(1, plrs.getPrincipalIds().size());
+		assertEquals(principalId.toString(), plrs.getPrincipalIds().iterator().next());
+		assertTrue(plrs.getInvalidEmails().toString(), plrs.getInvalidEmails().isEmpty());
 		
 		// make sure that we accept personal name + address format
-		assertEquals(expected, cloudMailInManager.
-				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("Baz ZZZ <bAz@syNapse.oRg>")));
+		plrs = cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("Baz ZZZ <bAz@syNapse.oRg>"));
+		assertEquals(1, plrs.getPrincipalIds().size());
+		assertEquals(principalId.toString(), plrs.getPrincipalIds().iterator().next());
+		assertTrue(plrs.getInvalidEmails().toString(), plrs.getInvalidEmails().isEmpty());
 	}
 
 	@Test
-	public void testLookupPrincipalIdForSynapseEmailAddressUnknwonAlias() throws Exception {
-		assertTrue(cloudMailInManager.
-				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")).isEmpty());
+	public void testLookupPrincipalIdForSynapseEmailAddressUnknownAlias() throws Exception {
+		PrincipalLookupResults plrs = cloudMailInManager.
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg"));
+		assertTrue(plrs.getPrincipalIds().isEmpty());
+		assertEquals(Collections.singletonList("bAz@syNapse.oRg"), plrs.getInvalidEmails());
 	}
 
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressBADADDRESS() throws Exception {
-		assertTrue(
-				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"))
-				.isEmpty());
+		PrincipalLookupResults plrs = cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"));
+		assertTrue(plrs.getPrincipalIds().isEmpty());
+		assertEquals(Collections.singletonList("bazXXXsynapse.org"), plrs.getInvalidEmails());
 	}
 
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressWRONGdomain() throws Exception {
-		assertTrue(
-				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"))
-				.isEmpty());
+		PrincipalLookupResults plrs = cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"));
+		assertTrue(plrs.getPrincipalIds().isEmpty());
+		assertEquals(Collections.singletonList("baz@google.com"), plrs.getInvalidEmails());
 	}
 
 	@Test
@@ -280,7 +360,6 @@ public class CloudMailInManagerImplTest {
 		// make sure that we accept personal name + address format
 		String namePlusEmail = "AAA BBB <"+email+">";
 		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(namePlusEmail));
-		
 	}
 
 	@Test(expected=IllegalArgumentException.class)
