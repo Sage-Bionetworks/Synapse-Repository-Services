@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,8 +75,9 @@ public class CloudMailInManagerImplTest {
 		
 		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
-		MessageToUserAndBody mtub = 
+		List<MessageToUserAndBody> mtubs = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		MessageToUserAndBody mtub = mtubs.get(0);
 		
 		assertEquals("application/json", mtub.getMimeType());
 		MessageBody messageBody = EntityFactory.createEntityFromJSONString(mtub.getBody(), MessageBody.class);
@@ -118,8 +120,9 @@ public class CloudMailInManagerImplTest {
 		
 		when(principalAliasDAO.findPrincipalsWithAliases(eq(recipientUserNames))).thenReturn(recipientPrincipalAliases);
 		
-		MessageToUserAndBody mtub = 
+		List<MessageToUserAndBody> mtubs = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		MessageToUserAndBody mtub = mtubs.get(0);
 		MessageToUser mtu = mtub.getMetadata();
 		assertEquals("104", mtu.getCreatedBy());
 
@@ -248,21 +251,22 @@ public class CloudMailInManagerImplTest {
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressUnknwonAlias() throws Exception {
 		assertTrue(cloudMailInManager.
-				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")).isEmpty());
+				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg")).
+				getPrincipalIds().isEmpty());
 	}
 
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressBADADDRESS() throws Exception {
 		assertTrue(
-				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org"))
-				.isEmpty());
+				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bazXXXsynapse.org")).
+				getPrincipalIds().isEmpty());
 	}
 
 	@Test
 	public void testLookupPrincipalIdForSynapseEmailAddressWRONGdomain() throws Exception {
 		assertTrue(
-				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com"))
-				.isEmpty());
+				cloudMailInManager.lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("baz@google.com")).
+				getPrincipalIds().isEmpty());
 	}
 
 	@Test
