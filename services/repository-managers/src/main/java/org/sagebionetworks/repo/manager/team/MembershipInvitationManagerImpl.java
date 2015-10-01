@@ -49,7 +49,7 @@ public class MembershipInvitationManagerImpl implements
 	
 	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
-	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
+	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "You Have Been Invited to Join a Team";
 
 	public MembershipInvitationManagerImpl() {}
 	
