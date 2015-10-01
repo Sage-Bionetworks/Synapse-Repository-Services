@@ -592,10 +592,10 @@ public class UploadController extends BaseController {
 	}
 
 	/**
-	 * Get the default upload destinations for this storage location id. This will always return an upload destination
+	 * Get the default upload destinations for this entity id. This will always return an upload destination
 	 * 
 	 * @param userId
-	 * @param parentId
+	 * @param id
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -604,8 +604,8 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination", method = RequestMethod.GET)
 	public @ResponseBody
 	UploadDestination getDefaultUploadDestination(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id") String parentId) throws DatastoreException, NotFoundException {
-		UploadDestination uploadDestination = fileService.getDefaultUploadDestination(userId, parentId);
+			@PathVariable(value = "id") String id) throws DatastoreException, NotFoundException {
+		UploadDestination uploadDestination = fileService.getDefaultUploadDestination(userId, id);
 		return uploadDestination;
 	}
 
