@@ -222,7 +222,6 @@ public class CloudMailInManagerImplTest {
 		assertTrue(errorBody.indexOf("INvalid@synapse.org")>0);
 		// check original message
 		assertTrue(errorBody.indexOf(html)>0);
-		System.out.println(errorBody);
 	}
 	
 	@Test
