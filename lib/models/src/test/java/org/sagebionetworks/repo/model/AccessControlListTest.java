@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 
 /**
  * Test for the ACL DTO object
@@ -15,10 +16,10 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 public class AccessControlListTest {
 
 	@Test
-	public void testGrantAll(){
+	public void testGrantEntityAdminACL(){
 		String nodeId = "123";
 		UserInfo info = new UserInfo(false, 123L);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId, info);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, info);
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());
@@ -29,11 +30,33 @@ public class AccessControlListTest {
 		assertEquals(info.getId(), ra.getPrincipalId());
 		assertNotNull(ra.getAccessType());
 		// There should be one for each type
-		ACCESS_TYPE[] array = ACCESS_TYPE.values();
-		assertEquals(array.length, ra.getAccessType().size());
+		assertEquals(ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS.size(), ra.getAccessType().size());
 		// check each type
-		for(ACCESS_TYPE type: array){
+		for(ACCESS_TYPE type: ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS){
 			assertTrue(ra.getAccessType().contains(type));
 		}
 	}
+	
+	@Test
+	public void testGrantEvaluationAdminACL(){
+		String nodeId = "123";
+		UserInfo info = new UserInfo(false, 123L);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEvaluationAdminAccess(nodeId, info);
+		assertNotNull(acl);
+		assertEquals(acl.getId(), nodeId);
+		assertNotNull(acl.getCreationDate());
+		assertNotNull(acl.getResourceAccess());
+		assertEquals(1, acl.getResourceAccess().size());
+		ResourceAccess ra = acl.getResourceAccess().iterator().next();
+		assertNotNull(ra);
+		assertEquals(info.getId(), ra.getPrincipalId());
+		assertNotNull(ra.getAccessType());
+		// There should be one for each type
+		assertEquals(ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS.size(), ra.getAccessType().size());
+		// check each type
+		for(ACCESS_TYPE type: ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS){
+			assertTrue(ra.getAccessType().contains(type));
+		}
+	}
+
 }

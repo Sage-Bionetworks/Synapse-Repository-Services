@@ -28,6 +28,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -334,7 +335,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			dboBasicDao.createNew(node);
 		}catch(IllegalArgumentException e){
-			checkExceptionDetails(node.getName(), KeyFactory.keyToString(node.getParentId()), e);
+			checkExceptionDetails(node.getName(), node.getAlias(), KeyFactory.keyToString(node.getParentId()), e);
 		}
 		dboBasicDao.createNew(rev);		
 		return KeyFactory.keyToString(node.getId());
@@ -346,8 +347,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param node
 	 * @param e
 	 */
-	private void checkExceptionDetails(String name, String parentId, IllegalArgumentException e) {
+	private void checkExceptionDetails(String name, String alias, String parentId, IllegalArgumentException e) {
 		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new NameConflictException("An entity with the name: "+name+" already exists with a parentId: "+parentId);
+		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_ALIAS) > 0) throw new NameConflictException("The friendly url name (alias): "+alias+" is already taken.  Please select another.");
 		throw e;
 	}
 	
@@ -697,7 +699,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			dboBasicDao.update(jdoToUpdate);
 		}catch(IllegalArgumentException e){
 			// Check to see if this is a duplicate name exception.
-			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
+			checkExceptionDetails(updatedNode.getName(), updatedNode.getAlias(), updatedNode.getParentId(), e);
 		}
 		
 		dboBasicDao.update(revToUpdate);

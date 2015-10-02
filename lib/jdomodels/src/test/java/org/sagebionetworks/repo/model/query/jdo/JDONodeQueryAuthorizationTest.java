@@ -428,7 +428,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesToDelete.add(id);
 		projectA = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser);
 		// Make sure group A can read from this node
 		ResourceAccess access = new ResourceAccess();
 		access.setPrincipalId(Long.parseLong(groupA.getId()));
@@ -444,7 +444,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		toUpdate.add(id);
 		projectB = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
+		acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser);
 		// Make sure group B can read from this node
 		access = new ResourceAccess();
 		access.setPrincipalId(Long.parseLong(groupB.getId()));

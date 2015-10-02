@@ -350,6 +350,7 @@ public class SqlConstants {
 	
 	// This constraint ensure that children names are unique within their parent.
 	public static final String CONSTRAINT_UNIQUE_CHILD_NAME = "NODE_UNIQUE_CHILD_NAME";
+	public static final String CONSTRAINT_UNIQUE_ALIAS = "NODE_UNIQUE_ALIAS";
 	
 	// The ACTIVITY table
 	public static final String TABLE_ACTIVITY 					= "ACTIVITY";

@@ -1,13 +1,17 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -15,6 +19,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
@@ -44,11 +49,11 @@ public class PrincipalObjectRecordBuilderTest {
 		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		builder = new PrincipalObjectRecordBuilder(mockUserGroupDAO, mockUserProfileDAO, mockTeamDAO);	
-		
+
 		ug = new UserGroup();
-		
+
 		buildTeam();
-		
+
 		buildUserProfile();	
 	}
 
@@ -114,7 +119,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.verify(mockTeamDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
-	
+
 	@Test
 	public void createUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
@@ -122,13 +127,15 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.when(mockUserProfileDAO.get(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		builder.build(changeMessage);
+		List<ObjectRecord> records = builder.build(changeMessage);
 		Mockito.verify(mockUserGroupDAO).get(principalID);
 		Mockito.verify(mockUserProfileDAO).get(principalID.toString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		assertEquals(records.get(0), ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp));
+		assertEquals(records.get(1), ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp));
 	}
-	
+
 	@Test
 	public void updateUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
@@ -142,7 +149,7 @@ public class PrincipalObjectRecordBuilderTest {
 		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 	}
-	
+
 	@Test (expected=IllegalArgumentException.class)
 	public void deleteUserProfileTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);

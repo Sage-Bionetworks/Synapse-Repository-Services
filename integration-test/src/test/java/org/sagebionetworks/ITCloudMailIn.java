@@ -238,6 +238,9 @@ public class ITCloudMailIn {
 				EntityFactory.createJSONStringForEntity(ach),
 				requestHeaders);
 
+		String contentType = response.getEntity().getContentType().getValue();
+		assertTrue(contentType, contentType.startsWith("text/plain"));
+
 		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine()
 				.getStatusCode());
 

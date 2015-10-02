@@ -44,7 +44,7 @@ public class MessageServiceImplTest {
 		Long creator = 101L;
 		mtu.setCreatedBy(creator.toString());
 		mtub.setMetadata(mtu);
-		when(cloudMailInManager.convertMessage(message, notificationUnsubscribeEndpoint)).thenReturn(mtub);
+		when(cloudMailInManager.convertMessage(message, notificationUnsubscribeEndpoint)).thenReturn(Collections.singletonList(mtub));
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(creator);
 		when(userManager.getUserInfo(creator)).thenReturn(userInfo);

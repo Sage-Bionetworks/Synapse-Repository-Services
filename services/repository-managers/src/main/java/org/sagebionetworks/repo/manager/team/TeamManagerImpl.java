@@ -117,7 +117,7 @@ public class TeamManagerImpl implements TeamManager {
 	private List<BootstrapTeam> teamsToBootstrap;
 	public static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
 	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
-	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "New Member Has Joined the Team";
 	
 
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {

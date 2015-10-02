@@ -2,6 +2,7 @@ package org.sagebionetworks.object.snapshot.worker;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,15 +39,20 @@ public class ObjectSnapshotWorker implements ChangeMessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage changeMessage) throws IOException {
 		// Keep this message invisible
-		progressCallback.progressMade(changeMessage);		
+		progressCallback.progressMade(changeMessage);
 		if (changeMessage.getChangeType() == ChangeType.DELETE) {
 			// TODO: capture the deleted objects
 			return;
 		}
 		ObjectRecordBuilder objectRecordBuilder = builderFactory.getObjectRecordBuilder(changeMessage.getObjectType());
-		ObjectRecord record = objectRecordBuilder.build(changeMessage);
-		if (record != null) {
-			objectRecordDAO.saveBatch(Arrays.asList(record), record.getJsonClassName());
+		List<ObjectRecord> records = objectRecordBuilder.build(changeMessage);
+		if (records == null) {
+			return;
+		}
+		for (ObjectRecord record : records) {
+			if (records != null) {
+				objectRecordDAO.saveBatch(Arrays.asList(record), record.getJsonClassName());
+			}
 		}
 	}
 }

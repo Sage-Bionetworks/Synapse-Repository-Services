@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_EMAIL;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ORIGINAL_EMAIL;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,10 +17,13 @@ import java.util.Set;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
@@ -39,17 +47,26 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	
 	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfiguration.getNotificationEmailSuffix().toLowerCase();
 	
+	private static final String INVALID_EMAIL_ADDRESSES_SUBJECT = "Message Failure Notification";
+	private static final String INVALID_EMAIL_ADDRESSES_TEMPLATE = "message/InvalidEmailAddressesTemplate.html";
+	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
 	
+	@Autowired
+	private UserProfileManager userProfileManager;
+	
+
+	
 	public CloudMailInManagerImpl() {}
 	
-	public CloudMailInManagerImpl(PrincipalAliasDAO principalAliasDAO) {
+	public CloudMailInManagerImpl(PrincipalAliasDAO principalAliasDAO, UserProfileManager userProfileManager) {
 		this.principalAliasDAO=principalAliasDAO;
+		this.userProfileManager=userProfileManager;
 	}
 
 	@Override
-	public MessageToUserAndBody convertMessage(Message message,
+	public List<MessageToUserAndBody> convertMessage(Message message,
 			String notificationUnsubscribeEndpoint) throws NotFoundException {
 
 		try {
@@ -84,26 +101,49 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			if (envelopeRecipients==null || envelopeRecipients.isEmpty()) 
 				throw new IllegalArgumentException("Recipients list is required.");
 			MessageToUser mtu = new MessageToUser();
-			mtu.setCreatedBy(lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom).toString());		
+			Long fromPrincipalId = lookupPrincipalIdForRegisteredEmailAddressAndAlternate(envelopeFrom, headerFrom);
+			mtu.setCreatedBy(fromPrincipalId.toString());		
 			mtu.setSubject(subject);
 			mtu.setTo(to);
 			mtu.setCc(cc);
 			mtu.setBcc(bcc);
 			Set<String> recipients = new HashSet<String>();
-			// TODO PLFM-3414 will handle the case in which there is a mix of valid and invalid recipients
-			Map<String,String> recipientPrincipals = lookupPrincipalIdsForSynapseEmailAddresses(new HashSet<String>(envelopeRecipients));
-			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException("Invalid recipient(s): "+envelopeRecipients);
-			recipients.addAll(recipientPrincipals.values());
+			PrincipalLookupResults principalLookupResults = 
+					lookupPrincipalIdsForSynapseEmailAddresses(new HashSet<String>(envelopeRecipients));
+			Collection<String> recipientPrincipals = principalLookupResults.getPrincipalIds();
+			if (recipientPrincipals.isEmpty()) throw new IllegalArgumentException(
+					"Invalid recipient(s): "+envelopeRecipients);
+			recipients.addAll(recipientPrincipals);
 			mtu.setRecipients(recipients);
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
-			MessageToUserAndBody result = new MessageToUserAndBody();
-			result.setMetadata(mtu);
-			result.setMimeType(ContentType.APPLICATION_JSON.getMimeType());
+			MessageToUserAndBody convertedMessage = new MessageToUserAndBody();
+			convertedMessage.setMetadata(mtu);
+			convertedMessage.setMimeType(ContentType.APPLICATION_JSON.getMimeType());
 			MessageBody messageBody = copyMessageToMessageBody(message);
-			result.setBody(EntityFactory.createJSONStringForEntity(messageBody));
+			convertedMessage.setBody(EntityFactory.createJSONStringForEntity(messageBody));
+			List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+			result.add(convertedMessage);
+			List<String> invalidEmails = principalLookupResults.getInvalidEmails();
+			if (!invalidEmails.isEmpty()) {
+				// create a notification back to the sender, listing the invalid email addresses
+				// and including the original message
+				MessageToUser errorMessage = new MessageToUser();
+				errorMessage.setCreatedBy(fromPrincipalId.toString());
+				errorMessage.setRecipients(Collections.singleton(fromPrincipalId.toString()));
+				errorMessage.setSubject(INVALID_EMAIL_ADDRESSES_SUBJECT);
+				errorMessage.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
+				Map<String,String> fieldValues = new HashMap<String,String>();
+				UserProfile fromUserProfile = userProfileManager.getUserProfile(fromPrincipalId.toString());
+				fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, EmailUtils.getDisplayNameWithUserName(fromUserProfile));
+				fieldValues.put(TEMPLATE_KEY_EMAIL, invalidEmails.toString());
+				String originalMessage = StringUtils.isEmpty(message.getHtml()) ? message.getPlain() : message.getHtml();
+				fieldValues.put(TEMPLATE_KEY_ORIGINAL_EMAIL, originalMessage);
+				String messageContent = EmailUtils.readMailTemplate(INVALID_EMAIL_ADDRESSES_TEMPLATE, fieldValues);
+				result.add(new MessageToUserAndBody(errorMessage, messageContent, ContentType.TEXT_HTML.getMimeType()));
+			}
 			return result;
 		} catch (AddressException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException("Invalid address encountered.", e);
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
 		} catch (JSONObjectAdapterException e) {
@@ -141,33 +181,55 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 	 * corresponding principal ids.  Any invalid addresses are skipped.
 	 * @throws AddressException 
 	 */
-	public Map<String,String> lookupPrincipalIdsForSynapseEmailAddresses(Set<String> emails) throws AddressException {
+	public PrincipalLookupResults lookupPrincipalIdsForSynapseEmailAddresses(Set<String> emails) throws AddressException {
 		Set<String> extractedAddresses = new HashSet<String>();
+		List<String> invalidEmails = new ArrayList<String>();
 		for (String email : emails) {
-			for (InternetAddress address : InternetAddress.parse(email)) {
+			InternetAddress[] addresses = null;
+			try {
+				addresses = InternetAddress.parse(email);
+			} catch (AddressException e) {
+				invalidEmails.add(email);
+				continue;
+			}
+			for (InternetAddress address : addresses) {
 				extractedAddresses.add(address.getAddress());
 			}
 		}		
-		Set<String> aliasStrings = new HashSet<String>();
+		Map<String, String> aliasToEmailMap = new HashMap<String, String>();
 		for (String email : extractedAddresses) {
 			// first, make sure it's actually an email address
 			try {
 				AliasEnum.USER_EMAIL.validateAlias(email);
 			} catch (IllegalArgumentException e) {
+				invalidEmails.add(email);
 				continue;
 			}
 			String emailLowerCase = email.toLowerCase();
-			if (!emailLowerCase.endsWith(EMAIL_SUFFIX_LOWER_CASE)) continue;
+			if (!emailLowerCase.endsWith(EMAIL_SUFFIX_LOWER_CASE)) {
+				invalidEmails.add(email);
+				continue;
+			}
 			String aliasString = emailLowerCase.substring(0,  
 					emailLowerCase.length()-EMAIL_SUFFIX_LOWER_CASE.length());
-			if (aliasString.equals(EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART)) 
+			String uniqueAliasName = AliasUtils.getUniqueAliasName(aliasString);
+			if (uniqueAliasName.equals(EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART)) {
+				invalidEmails.add(email);
 				continue; // someone's trying to email 'noreply@synapse.org'
-			aliasStrings.add(aliasString);
+			}
+			aliasToEmailMap.put(uniqueAliasName, email);
 		}
-		Set<PrincipalAlias> aliases = principalAliasDAO.findPrincipalsWithAliases(aliasStrings);
-		Map<String,String> result = new HashMap<String,String>();
-		for (PrincipalAlias alias : aliases) result.put(alias.getAlias(), alias.getPrincipalId().toString());
-		return result;
+		Set<PrincipalAlias> aliases = principalAliasDAO.
+			findPrincipalsWithAliases(new HashSet<String>(aliasToEmailMap.keySet()));
+		Map<String,String> aliasToPrincipalIdMap = new HashMap<String,String>();
+		for (PrincipalAlias alias : aliases) {
+			aliasToPrincipalIdMap.put(alias.getAlias(), alias.getPrincipalId().toString());
+		}
+		for (String uniqueAlias : aliasToEmailMap.keySet()) {
+			if (!aliasToPrincipalIdMap.containsKey(uniqueAlias)) 
+				invalidEmails.add(aliasToEmailMap.get(uniqueAlias));
+		}
+		return new PrincipalLookupResults(aliasToPrincipalIdMap.values(), invalidEmails);
 	}
 	
 	private Long lookupAlternateEmail(String primaryEmail, String alternateEmail) throws AddressException {
@@ -213,7 +275,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 		try {
 			// this will throw an exception if 'from' is invalid
 			lookupPrincipalIdForRegisteredEmailAddress(header.getFrom());
-			if (lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton(header.getTo())).isEmpty()) {
+			if (lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton(header.getTo())).getPrincipalIds().isEmpty()) {
 				throw new IllegalArgumentException(header.getTo()+" is not a known Synapse email recipient.");
 			}
 		} catch (AddressException e) {
