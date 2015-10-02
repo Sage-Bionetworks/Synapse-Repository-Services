@@ -209,7 +209,7 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(teamAdmins.size(), resultList.size());
 		for (int i=0; i<resultList.size(); i++) {
 			MessageToUserAndBody result = resultList.get(i);
-			assertEquals("someone has requested to join your team", result.getMetadata().getSubject());
+			assertEquals("Someone Has Requested to Join Your Team", result.getMetadata().getSubject());
 			assertEquals(Collections.singleton(teamAdmins.get(i)), result.getMetadata().getRecipients());
 
 			// this will give us nine pieces...
