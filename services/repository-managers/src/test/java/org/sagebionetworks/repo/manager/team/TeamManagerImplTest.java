@@ -932,7 +932,7 @@ public class TeamManagerImplTest {
 		assertEquals(inviterPrincipalIds.size(), resultList.size());
 		for (int i=0; i<inviterPrincipalIds.size(); i++) {
 			MessageToUserAndBody result = resultList.get(i);
-			assertEquals("new member has joined team", result.getMetadata().getSubject());
+			assertEquals("New Member Has Joined the Team", result.getMetadata().getSubject());
 		
 			assertEquals(Collections.singleton(inviterPrincipalIds.get(i)), result.getMetadata().getRecipients());
 		
@@ -973,7 +973,7 @@ public class TeamManagerImplTest {
 						notificationUnsubscribeEndpoint);
 		assertEquals(1, resultList.size());
 		MessageToUserAndBody result = resultList.get(0);
-		assertEquals("new member has joined team", result.getMetadata().getSubject());
+		assertEquals("New Member Has Joined the Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
 
 		// this will give us seven pieces...
