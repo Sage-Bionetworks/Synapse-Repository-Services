@@ -245,7 +245,7 @@ public class TeamManagerImplTest {
 	@Test
 	public void testCreateAdminAcl() throws Exception {
 		Date now = new Date();
-		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, now, TeamManagerImpl.DEFAULT_TEAM_MEMBER_PERMISSIONS);
+		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, now, ModelConstants.TEAM_MESSENGER_PERMISSIONS);
 		assertEquals(now, acl.getCreationDate());
 		assertEquals(TEAM_ID, acl.getId());
 		assertEquals(2, acl.getResourceAccess().size());
@@ -588,7 +588,7 @@ public class TeamManagerImplTest {
 		UserInfo principalUserInfo = createUserInfo(false, principalId);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong())).thenReturn(1L);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
-			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), TeamManagerImpl.DEFAULT_TEAM_MEMBER_PERMISSIONS));
+			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), ModelConstants.TEAM_MESSENGER_PERMISSIONS));
 		boolean added = teamManagerImpl.addMember(userInfo, TEAM_ID, principalUserInfo);
 		assertTrue(added);
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
@@ -611,7 +611,7 @@ public class TeamManagerImplTest {
 		UserInfo principalUserInfo = createUserInfo(false, principalId);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong())).thenReturn(1L);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
-			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), TeamManagerImpl.DEFAULT_TEAM_MEMBER_PERMISSIONS));
+			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), ModelConstants.TEAM_MESSENGER_PERMISSIONS));
 		UserGroup ug = new UserGroup();
 		ug.setId(principalId);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
@@ -772,7 +772,7 @@ public class TeamManagerImplTest {
 	@Test
 	public void testSetPermissions() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), TeamManagerImpl.DEFAULT_TEAM_MEMBER_PERMISSIONS);
+		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), ModelConstants.TEAM_MESSENGER_PERMISSIONS);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		String principalId = "321";
 		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);
@@ -803,7 +803,7 @@ public class TeamManagerImplTest {
 	@Test(expected=InvalidModelException.class)
 	public void testSetRemoveOwnPermissions() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), TeamManagerImpl.DEFAULT_TEAM_MEMBER_PERMISSIONS);
+		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date(), ModelConstants.TEAM_MESSENGER_PERMISSIONS);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		String principalId = MEMBER_PRINCIPAL_ID; // add SELF as admin
 		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);

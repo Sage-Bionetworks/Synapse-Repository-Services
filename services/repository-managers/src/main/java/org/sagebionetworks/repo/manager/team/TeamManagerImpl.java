@@ -118,14 +118,6 @@ public class TeamManagerImpl implements TeamManager {
 	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "New Member Has Joined the Team";
 	
-	public static final Set<ACCESS_TYPE> DEFAULT_TEAM_MEMBER_PERMISSIONS = new HashSet<ACCESS_TYPE>(
-			Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE));
-		
-		public static final Set<ACCESS_TYPE> TEAM_READ_ONLY_PERMISSIONS = new HashSet<ACCESS_TYPE>(
-				Arrays.asList(ACCESS_TYPE.READ));
-			
-
-
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
 		this.teamsToBootstrap = teamsToBootstrap;
 	}
@@ -216,7 +208,7 @@ public class TeamManagerImpl implements TeamManager {
 		
 		ResourceAccess teamRa = createResourceAccess(
 				Long.parseLong(teamId),
-				TEAM_READ_ONLY_PERMISSIONS);
+				ModelConstants.TEAM_MESSENGER_PERMISSIONS);
 		raSet.add(teamRa);
 
 		acl.setResourceAccess(raSet);
@@ -291,7 +283,7 @@ public class TeamManagerImpl implements TeamManager {
 		Team created = teamDAO.create(team);
 		groupMembersDAO.addMembers(id.toString(), Arrays.asList(new String[]{userInfo.getId().toString()}));
 		// create ACL, adding the current user to the team, as an admin
-		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now, DEFAULT_TEAM_MEMBER_PERMISSIONS);
+		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now, ModelConstants.TEAM_MESSENGER_PERMISSIONS);
 		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
 	}
