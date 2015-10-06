@@ -6673,7 +6673,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	
 	@Override
-	public AccessControlList updateTeamACL(String teamId, AccessControlList acl) throws SynapseException {
+	public AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException {
 		if (acl == null) {
 			throw new IllegalArgumentException("ACL can not be null.");
 		}

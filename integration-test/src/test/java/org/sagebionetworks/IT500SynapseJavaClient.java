@@ -1256,12 +1256,12 @@ public class IT500SynapseJavaClient {
 		adminRa.setPrincipalId(Long.parseLong(otherPrincipalId));
 		adminRa.setAccessType(ModelConstants.TEAM_ADMIN_PERMISSIONS);
 		acl.getResourceAccess().add(adminRa);
-		AccessControlList updatedACL = synapseOne.updateTeamACL(createdTeam.getId(), acl);
+		AccessControlList updatedACL = synapseOne.updateTeamACL(acl);
 		assertEquals(acl.getResourceAccess(), updatedACL.getResourceAccess());
 
 		// finally, restore
 		updatedACL.setResourceAccess(origResourceAccess);
-		synapseOne.updateTeamACL(createdTeam.getId(), updatedACL);
+		synapseOne.updateTeamACL(updatedACL);
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);

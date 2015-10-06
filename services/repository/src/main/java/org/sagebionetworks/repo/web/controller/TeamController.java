@@ -426,7 +426,7 @@ public class TeamController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.TEAM_ACL, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_ACL, method = RequestMethod.GET)
 	public @ResponseBody
 	AccessControlList getTeamACL(
 			@PathVariable String id,

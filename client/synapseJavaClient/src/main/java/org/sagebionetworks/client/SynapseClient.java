@@ -1663,12 +1663,11 @@ public interface SynapseClient extends BaseClient {
 	
 	/**
 	 * Update the ACL for the given Team
-	 * @param teamId
 	 * @param acl
 	 * @return
 	 * @throws SynapseException 
 	 */
-	AccessControlList updateTeamACL(String teamId, AccessControlList acl) throws SynapseException;
+	AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException;
 
 	/**
 	 * 
