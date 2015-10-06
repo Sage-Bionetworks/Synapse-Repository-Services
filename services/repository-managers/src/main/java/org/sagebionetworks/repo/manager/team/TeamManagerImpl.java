@@ -4,7 +4,6 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
@@ -24,7 +23,6 @@ import java.util.UUID;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -47,7 +45,6 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -69,6 +66,8 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,6 +118,13 @@ public class TeamManagerImpl implements TeamManager {
 	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "New Member Has Joined the Team";
 	
+	public static final Set<ACCESS_TYPE> DEFAULT_TEAM_MEMBER_PERMISSIONS = new HashSet<ACCESS_TYPE>(
+			Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE));
+		
+		public static final Set<ACCESS_TYPE> TEAM_READ_ONLY_PERMISSIONS = new HashSet<ACCESS_TYPE>(
+				Arrays.asList(ACCESS_TYPE.READ));
+			
+
 
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
 		this.teamsToBootstrap = teamsToBootstrap;
@@ -192,18 +198,7 @@ public class TeamManagerImpl implements TeamManager {
 		team.setModifiedOn(now);
 	}
 	
-	public static final ACCESS_TYPE[] ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
-		ACCESS_TYPE.READ, 
-		ACCESS_TYPE.UPDATE, 
-		ACCESS_TYPE.DELETE, 
-		ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
-		ACCESS_TYPE.SEND_MESSAGE};
-
-	private static final ACCESS_TYPE[] NON_ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
-		ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE};
-	
-	public static ResourceAccess createResourceAccess(long principalId, ACCESS_TYPE[] accessTypes) {
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(accessTypes));
+	public static ResourceAccess createResourceAccess(long principalId, Set<ACCESS_TYPE> accessSet) {
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
 		ra.setPrincipalId(principalId);
@@ -211,46 +206,43 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	// This is the ACL used by the bootstrap process, when there is no user who is the creator
-	public static AccessControlList createInitialAcl( 
+	public static AccessControlList createBootstrapTeamAcl( 
 			final String teamId, 
 			final Date creationDate) {
+		AccessControlList acl = new AccessControlList();
+		acl.setId(teamId);
+		acl.setCreationDate(creationDate);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		
 		ResourceAccess teamRa = createResourceAccess(
 				Long.parseLong(teamId),
-				NON_ADMIN_TEAM_PERMISSIONS);
+				TEAM_READ_ONLY_PERMISSIONS);
 		raSet.add(teamRa);
 
-		AccessControlList acl = new AccessControlList();
-		acl.setId(teamId);
-		acl.setCreationDate(creationDate);
-		acl.setModifiedOn(creationDate);
 		acl.setResourceAccess(raSet);
 
 		return acl;
 	}
 	
 	// This is the ACL used for Teams created by a user (the "creator")
+	// we give the creator admin permissions and then give the team itself
+	// default permissions, so that anyone added to the team has those 
+	// permissions without having to explicitly add them to the ACL.
 	public static AccessControlList createInitialAcl(
 			final UserInfo creator, 
 			final String teamId, 
-			final Date creationDate) {
-		AccessControlList acl = createInitialAcl(teamId, creationDate);
-		if (creator!=null) {
-			ResourceAccess adminRa = createResourceAccess(
-				Long.parseLong(creator.getId().toString()),
-				ADMIN_TEAM_PERMISSIONS
-				);
-			acl.getResourceAccess().add(adminRa);
-		}
-		acl.setCreatedBy(creator.getId().toString());
-		acl.setModifiedBy(creator.getId().toString());
+			final Date creationDate,
+			final Set<ACCESS_TYPE> defaultPermissions) {
+		AccessControlList acl = AccessControlListUtil.createACL(
+				teamId, creator, ModelConstants.TEAM_ADMIN_PERMISSIONS, creationDate);
+		acl.getResourceAccess().add(createResourceAccess(
+				Long.parseLong(teamId),
+				defaultPermissions));
 		return acl;
 	}
 	
-	public static void addToACL(AccessControlList acl, String principalId, ACCESS_TYPE[] accessTypes) {
+	public static void addToACL(AccessControlList acl, String principalId, Set<ACCESS_TYPE> accessSet) {
 		ResourceAccess ra = new ResourceAccess();
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(accessTypes));
 		ra.setAccessType(accessSet);
 		ra.setPrincipalId(Long.parseLong(principalId));
 		acl.getResourceAccess().add(ra);
@@ -299,7 +291,7 @@ public class TeamManagerImpl implements TeamManager {
 		Team created = teamDAO.create(team);
 		groupMembersDAO.addMembers(id.toString(), Arrays.asList(new String[]{userInfo.getId().toString()}));
 		// create ACL, adding the current user to the team, as an admin
-		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
+		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now, DEFAULT_TEAM_MEMBER_PERMISSIONS);
 		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
 	}
@@ -647,11 +639,12 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#updateACL(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.AccessControlList)
 	 */
 	@Override
-	public void updateACL(UserInfo userInfo, AccessControlList acl)
+	public AccessControlList updateACL(UserInfo userInfo, AccessControlList acl)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, acl.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE));
 		aclDAO.update(acl, ObjectType.TEAM);
+		return aclDAO.get(acl.getId(), ObjectType.TEAM);
 	}
 
 	@Override
@@ -681,7 +674,7 @@ public class TeamManagerImpl implements TeamManager {
 		// now, if isAdmin is false, the team membership is enough to give the user basic permissions
 		if (isAdmin) {
 			// if isAdmin is true, then we add the specified admin permissions
-			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
+			addToACL(acl, principalId, ModelConstants.TEAM_ADMIN_PERMISSIONS);
 		}
 		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 		// finally, update the ACL
@@ -747,7 +740,7 @@ public class TeamManagerImpl implements TeamManager {
 					groupMembersDAO.addMembers(newTeam.getId(), team.getInitialMembers());
 				}
 				// create ACL
-				AccessControlList acl = createInitialAcl(newTeam.getId(), new Date());
+				AccessControlList acl = createBootstrapTeamAcl(newTeam.getId(), new Date());
 				aclDAO.create(acl, ObjectType.TEAM);
 			}
 		}

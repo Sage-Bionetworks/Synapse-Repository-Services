@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Date;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.util.ModelConstants;
@@ -19,7 +21,7 @@ public class AccessControlListTest {
 	public void testGrantEntityAdminACL(){
 		String nodeId = "123";
 		UserInfo info = new UserInfo(false, 123L);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, info);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, info, new Date());
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());
@@ -41,7 +43,7 @@ public class AccessControlListTest {
 	public void testGrantEvaluationAdminACL(){
 		String nodeId = "123";
 		UserInfo info = new UserInfo(false, 123L);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEvaluationAdminAccess(nodeId, info);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEvaluationAdminAccess(nodeId, info, new Date());
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());

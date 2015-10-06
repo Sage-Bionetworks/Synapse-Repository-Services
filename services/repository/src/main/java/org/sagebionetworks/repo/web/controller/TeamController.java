@@ -297,6 +297,7 @@ public class TeamController extends BaseController {
 	 * @param userId
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID_PERMISSION, method = RequestMethod.PUT)
 	public void setTeamAdmin(
