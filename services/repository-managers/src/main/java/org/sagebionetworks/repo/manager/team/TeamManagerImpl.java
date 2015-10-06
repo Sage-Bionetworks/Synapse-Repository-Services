@@ -223,13 +223,13 @@ public class TeamManagerImpl implements TeamManager {
 	public static AccessControlList createInitialAcl(
 			final UserInfo creator, 
 			final String teamId, 
-			final Date creationDate,
-			final Set<ACCESS_TYPE> defaultPermissions) {
+			final Date creationDate) {
 		AccessControlList acl = AccessControlListUtil.createACL(
 				teamId, creator, ModelConstants.TEAM_ADMIN_PERMISSIONS, creationDate);
+		// set up default permissions for additional members
 		acl.getResourceAccess().add(createResourceAccess(
 				Long.parseLong(teamId),
-				defaultPermissions));
+				ModelConstants.TEAM_MESSENGER_PERMISSIONS));
 		return acl;
 	}
 	
@@ -283,7 +283,7 @@ public class TeamManagerImpl implements TeamManager {
 		Team created = teamDAO.create(team);
 		groupMembersDAO.addMembers(id.toString(), Arrays.asList(new String[]{userInfo.getId().toString()}));
 		// create ACL, adding the current user to the team, as an admin
-		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now, ModelConstants.TEAM_MESSENGER_PERMISSIONS);
+		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
 		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
 	}

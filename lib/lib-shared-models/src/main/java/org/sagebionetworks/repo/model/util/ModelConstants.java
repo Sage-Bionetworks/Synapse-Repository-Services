@@ -35,7 +35,10 @@ public class ModelConstants {
 		ACCESS_TYPE.DELETE, 
 		ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE));
 
+	/*
+	 * These are the default permissions for non-admin members joining a Team
+	 */
 	public static final Set<ACCESS_TYPE> TEAM_MESSENGER_PERMISSIONS = new HashSet<ACCESS_TYPE>(
-	Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE));
+			Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE));
 		
 }
