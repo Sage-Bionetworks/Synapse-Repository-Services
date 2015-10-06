@@ -1259,13 +1259,6 @@ public class IT500SynapseJavaClient {
 		AccessControlList updatedACL = synapseOne.updateTeamACL(createdTeam.getId(), acl);
 		assertEquals(acl.getResourceAccess(), updatedACL.getResourceAccess());
 
-		// now check again 
-		otherAccessTypes = null;
-		for (ResourceAccess ra : updatedACL.getResourceAccess()) {
-			if (ra.getPrincipalId().equals(otherPrincipalId)) otherAccessTypes=ra.getAccessType();
-		}
-		assertEquals(ModelConstants.TEAM_ADMIN_PERMISSIONS, otherAccessTypes);
-
 		// finally, restore
 		updatedACL.setResourceAccess(origResourceAccess);
 		synapseOne.updateTeamACL(createdTeam.getId(), updatedACL);

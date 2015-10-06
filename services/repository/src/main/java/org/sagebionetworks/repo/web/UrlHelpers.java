@@ -776,6 +776,7 @@ public class UrlHelpers {
 	// 	Team URIs for JSONP
 	public static final String TEAMS = "/teams";
 	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
+	public static final String TEAM_ACL = TEAM+"/acl";
 	
 	public static final String ACCESS_REQUIREMENT_WITH_TEAM_ID = TEAM_ID+ACCESS_REQUIREMENT;
 	public static final String TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = TEAM_ID+"/accessRequirementUnfulfilled";
