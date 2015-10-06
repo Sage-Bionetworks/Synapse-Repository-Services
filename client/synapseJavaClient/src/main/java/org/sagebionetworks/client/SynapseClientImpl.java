@@ -6635,8 +6635,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			boolean isAdmin) throws SynapseException {
 		getSharedClientConnection().putJson(repoEndpoint,
 				TEAM + "/" + teamId + MEMBER + "/" + memberId + PERMISSION + "?"
-						+ TEAM_MEMBERSHIP_PERMISSION + "=" + isAdmin, "",
-						getUserAgent());
+				+ TEAM_MEMBERSHIP_PERMISSION + "=" + isAdmin, "",
+				getUserAgent());
 	}
 
 	@Override

@@ -21,9 +21,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -161,17 +161,15 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		return result;
 	}
 	
-	private static Set<ACCESS_TYPE> UPDATE_AND_DELETE_ACCESS_TYPES = 
-			new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE}));
-	
 	/*
-	 * returns true iff the given user has updae and delete permission in the given ACL.
-	 * NOTE:  This is only applicable to Team ACLs as
+	 * returns true iff the given user is a Team admin in the given ACL
+	 * NOTE:  This is only applicable to Team ACLs as it uses Team admin
+	 * permissions for comparison.
 	 */
-	public static boolean canUpdateAndDeleteTeam(AccessControlList acl, UserInfo userInfo) {
+	public static boolean isTeamAdmin(AccessControlList acl, UserInfo userInfo) {
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (!userInfo.getGroups().contains(ra.getPrincipalId())) continue;
-			if (ra.getAccessType().containsAll(UPDATE_AND_DELETE_ACCESS_TYPES)) return true;
+			if (ra.getAccessType().containsAll(ModelConstants.TEAM_ADMIN_PERMISSIONS)) return true;
 		}
 		return false;
 	}
@@ -180,7 +178,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	 * Must be a member of the Participant Team and be an admin on the referenced Challenge Team.
 	 * 
 	 */
-	public AuthorizationStatus canCreateUpdateOrDeleteChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws NotFoundException {
+	public AuthorizationStatus isRegisteredAndIsAdminForChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		Challenge challenge = challengeDAO.get(Long.parseLong(challengeTeam.getChallengeId()));
 		try {
@@ -190,7 +188,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 		}
 		try {
 			AccessControlList acl = aclDAO.get(challengeTeam.getTeamId(), ObjectType.TEAM);
-			if (!canUpdateAndDeleteTeam(acl, userInfo)) return NOT_TEAM_ADMIN;
+			if (!isTeamAdmin(acl, userInfo)) return NOT_TEAM_ADMIN;
 		} catch  (NotFoundException e) {
 			return NOT_TEAM_ADMIN;
 		}
@@ -216,7 +214,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			ChallengeTeam challengeTeam) throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateChallengeTeam(challengeTeam);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
+				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
 		return challengeTeamDAO.create(challengeTeam);
 	}
 
@@ -256,7 +254,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			NotFoundException {
 		validateChallengeTeam(challengeTeam);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
+				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
 		return challengeTeamDAO.update(challengeTeam);
 	}
 
@@ -266,7 +264,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			throws NotFoundException, DatastoreException {
 		ChallengeTeam challengeTeam = challengeTeamDAO.get(challengeTeamId);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
+				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
 		challengeTeamDAO.delete(challengeTeamId);
 	}
 	

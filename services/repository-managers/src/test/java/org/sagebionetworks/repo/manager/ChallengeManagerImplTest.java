@@ -295,7 +295,7 @@ public class ChallengeManagerImplTest {
 	@Test
 	public void testCanCUDChallengeTeam_Admin() throws Exception {
 		// admin is always authorized
-		assertTrue(challengeManager.canCreateUpdateOrDeleteChallengeTeam(ADMIN_USER, null).getAuthorized());
+		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(ADMIN_USER, null).getAuthorized());
 	}
 	
 	@Test
@@ -313,7 +313,7 @@ public class ChallengeManagerImplTest {
 		TeamMember registeredTeamMember = new TeamMember();
 		registeredTeamMember.setIsAdmin(true);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
-		assertTrue(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 	}
 	
 	@Test
@@ -328,7 +328,7 @@ public class ChallengeManagerImplTest {
 
 		// if you are not in the challenge then you are not authorized
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
-		assertFalse(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 	}
 	
 	@Test
@@ -346,7 +346,7 @@ public class ChallengeManagerImplTest {
 				new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE)),
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		assertFalse(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 		
 	}
 
@@ -366,7 +366,7 @@ public class ChallengeManagerImplTest {
 				new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)),
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		assertFalse(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 	}
 	
 	@Test
