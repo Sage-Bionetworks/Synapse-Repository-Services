@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class ChallengeManagerImplTest {
@@ -307,7 +308,7 @@ public class ChallengeManagerImplTest {
 		TeamMember participantTeamMember = new TeamMember();
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
 		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_INFO, 
-						new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE)),
+						ModelConstants.TEAM_ADMIN_PERMISSIONS,
 						new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		TeamMember registeredTeamMember = new TeamMember();
