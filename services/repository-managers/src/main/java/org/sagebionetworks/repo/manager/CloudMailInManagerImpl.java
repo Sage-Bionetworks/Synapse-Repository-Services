@@ -223,7 +223,7 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			findPrincipalsWithAliases(new HashSet<String>(aliasToEmailMap.keySet()));
 		Map<String,String> aliasToPrincipalIdMap = new HashMap<String,String>();
 		for (PrincipalAlias alias : aliases) {
-			aliasToPrincipalIdMap.put(alias.getAlias(), alias.getPrincipalId().toString());
+			aliasToPrincipalIdMap.put(AliasUtils.getUniqueAliasName(alias.getAlias()), alias.getPrincipalId().toString());
 		}
 		for (String uniqueAlias : aliasToEmailMap.keySet()) {
 			if (!aliasToPrincipalIdMap.containsKey(uniqueAlias)) 
