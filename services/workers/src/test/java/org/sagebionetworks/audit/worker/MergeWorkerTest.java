@@ -46,7 +46,7 @@ public class MergeWorkerTest {
 		accessRecordDAO.deleteAllStackInstanceBatches();
 	}
 	
-	@Ignore
+	@Ignore // PLFM-3594
 	@Test
 	public void testIntegration() throws IOException, InterruptedException{
 		// Start this test with no data in the bucket

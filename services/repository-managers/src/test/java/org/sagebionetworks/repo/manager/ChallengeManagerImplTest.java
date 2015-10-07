@@ -344,7 +344,7 @@ public class ChallengeManagerImplTest {
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
 		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, ADMIN_USER, 
-				new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE)),
+				ModelConstants.TEAM_ADMIN_PERMISSIONS,
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
@@ -364,7 +364,7 @@ public class ChallengeManagerImplTest {
 		registeredTeamMember.setIsAdmin(false);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
 		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_INFO, 
-				new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)),
+				ModelConstants.TEAM_MESSENGER_PERMISSIONS,
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
