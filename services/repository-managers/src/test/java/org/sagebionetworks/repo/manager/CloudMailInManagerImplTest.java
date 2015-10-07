@@ -300,7 +300,7 @@ public class CloudMailInManagerImplTest {
 		Set<String> recipientUserNames = new HashSet<String>();
 		Set<PrincipalAlias> recipientPrincipalAliases = new HashSet<PrincipalAlias>();
 		PrincipalAlias toAlias = new PrincipalAlias();
-		toAlias.setAlias("baz");
+		toAlias.setAlias("bAz");
 		Long principalId = 101L;
 		toAlias.setPrincipalId(principalId);
 		
