@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -203,4 +204,18 @@ public interface TeamService {
 	 */
 	public ListWrapper<TeamMember> listTeamMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException;
 	
+	/**
+	 * 
+	 * @param userId
+	 * @param teamId
+	 * @return
+	 */
+	public AccessControlList getAccessControlList(Long userId, String teamId);
+	
+	/**
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	public AccessControlList updateAccessControlList(Long userId, AccessControlList acl);
 }

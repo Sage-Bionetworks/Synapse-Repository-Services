@@ -79,7 +79,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		// Create the default ACL
 		AccessControlList acl =  AccessControlListUtil.
-				createACLToGrantEvaluationAdminAccess(eval.getId(), userInfo);
+				createACLToGrantEvaluationAdminAccess(eval.getId(), userInfo, new Date());
 		evaluationPermissionsManager.createAcl(userInfo, acl);
 		
 		evaluationSubmissionsDAO.createForEvaluation(KeyFactory.stringToKey(id));

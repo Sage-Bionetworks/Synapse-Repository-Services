@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -421,7 +422,7 @@ public class TrashManagerImplAutowiredTest {
 		}
 
 		// Modify nodeId12 to be its own benefactor
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId12, testUserInfo);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId12, testUserInfo, new Date());
 		entityPermissionsManager.overrideInheritance(acl, testUserInfo);
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId12));
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId22));

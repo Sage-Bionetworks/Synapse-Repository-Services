@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Lists;
@@ -245,11 +246,8 @@ public class TeamManagerImplTest {
 	public void testCreateAdminAcl() throws Exception {
 		Date now = new Date();
 		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, now);
-		assertEquals(MEMBER_PRINCIPAL_ID, acl.getCreatedBy());
 		assertEquals(now, acl.getCreationDate());
 		assertEquals(TEAM_ID, acl.getId());
-		assertEquals(MEMBER_PRINCIPAL_ID, acl.getModifiedBy());
-		assertEquals(now, acl.getModifiedOn());
 		assertEquals(2, acl.getResourceAccess().size());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra.getPrincipalId().toString().equals(MEMBER_PRINCIPAL_ID)) {
@@ -272,7 +270,7 @@ public class TeamManagerImplTest {
 		AccessControlList acl = new AccessControlList();
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(ras);
-		TeamManagerImpl.addToACL(acl, MEMBER_PRINCIPAL_ID, new ACCESS_TYPE[] {ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE});
+		TeamManagerImpl.addToACL(acl, MEMBER_PRINCIPAL_ID, Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE));
 		assertEquals(1, acl.getResourceAccess().size());
 		ResourceAccess ra = acl.getResourceAccess().iterator().next();
 		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE})), ra.getAccessType());
@@ -657,8 +655,8 @@ public class TeamManagerImplTest {
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{memberPrincipalId, "000"}));
 		AccessControlList acl = new AccessControlList();
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
-		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong("000"), new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
+		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)));
+		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong("000"), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)));
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
@@ -680,7 +678,7 @@ public class TeamManagerImplTest {
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{memberPrincipalId}));
 		AccessControlList acl = new AccessControlList();
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
+		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)));
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 	}
@@ -784,7 +782,7 @@ public class TeamManagerImplTest {
 		for (ResourceAccess ra: acl.getResourceAccess()) {
 			if (principalId.equals(ra.getPrincipalId().toString())) {
 				foundRA=true;
-				for (ACCESS_TYPE at : TeamManagerImpl.ADMIN_TEAM_PERMISSIONS) {
+				for (ACCESS_TYPE at : ModelConstants.TEAM_ADMIN_PERMISSIONS) {
 					assertTrue(ra.getAccessType().contains(at));
 				}
 			}

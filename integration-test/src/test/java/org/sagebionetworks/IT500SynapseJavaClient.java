@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -94,7 +95,6 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -102,6 +102,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
@@ -1239,6 +1240,28 @@ public class IT500SynapseJavaClient {
 
 		// remove admin privileges
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
+
+		// now repeat the permissions change, but by accessing the ACL
+		AccessControlList acl = synapseOne.getTeamACL(createdTeam.getId());
+
+		Set<ACCESS_TYPE> otherAccessTypes = null;
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra.getPrincipalId().equals(otherPrincipalId)) otherAccessTypes=ra.getAccessType();
+		}
+		// since 'other' is not an admin, he won't have his own entry in the ACL
+		assertTrue(otherAccessTypes==null);
+		Set<ResourceAccess> origResourceAccess = new HashSet<ResourceAccess>(acl.getResourceAccess());
+		
+		ResourceAccess adminRa = new ResourceAccess();
+		adminRa.setPrincipalId(Long.parseLong(otherPrincipalId));
+		adminRa.setAccessType(ModelConstants.TEAM_ADMIN_PERMISSIONS);
+		acl.getResourceAccess().add(adminRa);
+		AccessControlList updatedACL = synapseOne.updateTeamACL(acl);
+		assertEquals(acl.getResourceAccess(), updatedACL.getResourceAccess());
+
+		// finally, restore
+		updatedACL.setResourceAccess(origResourceAccess);
+		synapseOne.updateTeamACL(updatedACL);
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);

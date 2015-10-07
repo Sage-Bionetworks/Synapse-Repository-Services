@@ -6653,6 +6653,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	
+	@Override
+	public AccessControlList getTeamACL(String teamId) throws SynapseException {
+		if (teamId == null) {
+			throw new IllegalArgumentException("Team ID cannot be null.");
+		}
+
+		String url = TEAM + "/" + teamId + "/acl";
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new AccessControlList(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	
+	@Override
+	public AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException {
+		if (acl == null) {
+			throw new IllegalArgumentException("ACL can not be null.");
+		}
+
+		String url = TEAM+"/acl";
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(acl.writeToJSONObject(toUpdateAdapter)
+					.toJSONString());
+			JSONObject jsonObj = getSharedClientConnection().putJson(
+					repoEndpoint, url, obj.toString(), getUserAgent());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new AccessControlList(adapter);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+		
+	}
+
 
 	@Override
 	public MembershipInvtnSubmission createMembershipInvitation(
