@@ -255,59 +255,50 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		// Now determine which changes need to be applied to the table
 		Long maxCurrentCompleteVersion = indexDao
 				.getMaxCurrentCompleteVersionForTable(tableId);
+		
 		// List all of the changes
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken,
 				"Getting current table row versions ", 0L, 100L);
 
-		TableRowChange lastTableRowChange = tableRowManager
-				.getLastTableRowChange(tableId);
-		if (lastTableRowChange == null) {
-			// nothing to do, move along
+		// List all change sets applied to this table.
+		List<TableRowChange> changes = tableRowManager.listRowSetsKeysForTable(tableId);
+		
+		if (changes == null || changes.isEmpty()) {
+			/*
+			 * If there are no changes for this table then the last etag will be
+			 * null and there is nothing else to do.
+			 */
 			return null;
 		}
-
+		
+		// Calculate the total work to perform
+		long totalProgress = 1;
+		for (TableRowChange changSet : changes) {
+				totalProgress += changSet.getRowCount();
+		}
+		// Apply each change set not already indexed
 		long currentProgress = 0;
-		long maxRowId = tableRowManager.getMaxRowId(tableId);
-		for (long rowId = 0; rowId <= maxRowId; rowId += BATCH_SIZE) {
-			Map<Long, Long> currentRowVersions = tableRowManager
-					.getCurrentRowVersions(tableId,
-							maxCurrentCompleteVersion + 1, rowId, BATCH_SIZE);
-
-			// gather rows by version
-			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils
-					.createVersionToRowIdsMap(currentRowVersions);
-			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap
-					.asMap().entrySet()) {
-				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
-				Long version = versionWithRows.getKey();
-
-				// Keep this message invisible
-				progressCallback.progressMade(change);
-
+		String lastEtag = null;
+		for(TableRowChange changeSet: changes){
+			currentProgress += changeSet.getRowCount();
+			lastEtag = changeSet.getEtag();
+			// Only apply changes sets not already applied to the index.
+			if(changeSet.getRowVersion() > maxCurrentCompleteVersion){
 				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId, version,
-						rowsToGet, mapper);
-
+				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
+				
 				tableRowManager.attemptToUpdateTableProgress(tableId,
-						resetToken, "Applying rows " + rowSet.getRows().size()
-								+ " to version: " + version, currentProgress,
-						currentProgress);
+						resetToken, "Applying " + rowSet.getRows().size()
+								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
+								totalProgress);
 				// apply the change to the table
 				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
-				currentProgress += rowsToGet.size();
+				// Track this version has been applied to the index.
+				indexDao.setMaxCurrentCompleteVersionForTable(tableId,
+						changeSet.getRowVersion());
 			}
 		}
-
-		// If we successfully updated the table and got here, then all we know
-		// is that we are at least at the version
-		// the table was at when we started. It is still possible that a newer
-		// version came in and the we applied
-		// partial updates from that version to the index. A subsequent update
-		// will make things consistent again.
-		indexDao.setMaxCurrentCompleteVersionForTable(tableId,
-				lastTableRowChange.getRowVersion());
-
-		return lastTableRowChange.getEtag();
+		return lastEtag;
 	}
 
 }

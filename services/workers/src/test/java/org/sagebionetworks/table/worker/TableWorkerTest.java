@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -177,10 +178,11 @@ public class TableWorkerTest {
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(0L);
-		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
+		trc.setRowCount(12L);
+		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -192,6 +194,7 @@ public class TableWorkerTest {
 		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
 		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
 		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 0L);
+		verify(mockTableRowManager, times(3)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 	}
 
 	/**
@@ -214,10 +217,11 @@ public class TableWorkerTest {
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
-		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
+		trc.setRowCount(12L);
+		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), any(ColumnMapper.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -355,48 +359,6 @@ public class TableWorkerTest {
 		}
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
-	}
-	
-	/**
-	 * When a lock cannot be acquired, the message should remain on the queue as this is a recoverable failure.
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testCacheBehindException() throws Exception {
-		String tableId = "456";
-		String resetToken = "reset-token";
-		TableStatus status = new TableStatus();
-		status.setResetToken(resetToken);
-		status.setProgressMessage("going");
-		status.setProgressCurrent(2L);
-		status.setProgressTotal(3L);
-		List<ColumnModel> currentSchema = Lists.newArrayList();
-		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenThrow(new TableUnavilableException(status));
-		TableRowChange trc = new TableRowChange();
-		trc.setEtag("etag");
-		trc.setRowVersion(0L);
-		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken);
-		try {
-			// call under test
-			worker.run(mockProgressCallback, two);
-			fail();
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
-		// The connection factory should be called
-		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
-		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToUpdateTableProgress(tableId, resetToken, "going", 2L, 3L);
 	}
 
 	/**
