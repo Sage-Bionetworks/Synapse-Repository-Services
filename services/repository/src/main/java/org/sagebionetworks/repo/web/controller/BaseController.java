@@ -769,7 +769,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
 			HttpServletRequest request, HttpServletResponse response) {
-		return handleException(ex, request, false);
+		return handleException(ex, request, true);
 	}
 	
 	
