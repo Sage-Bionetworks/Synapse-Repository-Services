@@ -150,10 +150,10 @@ public class DBOMessageDAOImplTest {
 		dto = messageDAO.createMessage(dto);
 		assertNotNull(dto.getId());
 		cleanup.add(dto.getId());
-		assertNotNull(dto.getCreatedOn());
-		assertNotNull(dto.getInReplyToRoot());
 		
 		// make sure its created properly
+		assertNotNull(dto.getCreatedOn());
+		assertNotNull(dto.getInReplyToRoot());
 		assertEquals(userId, dto.getCreatedBy());
 		assertEquals(fileHandleId, dto.getFileHandleId());
 		assertEquals(inReplyTo, dto.getInReplyTo());
@@ -163,6 +163,10 @@ public class DBOMessageDAOImplTest {
 		assertEquals(to, dto.getTo());
 		assertEquals(cc, dto.getCc());
 		assertEquals(bcc, dto.getBcc());
+		
+		// make sure 'getMessage' returns the same thing
+		MessageToUser clone = messageDAO.getMessage(dto.getId());
+		assertEquals(dto, clone);
 		
 		// Make sure the timestamps on the messages are different 
 		Thread.sleep(2);
