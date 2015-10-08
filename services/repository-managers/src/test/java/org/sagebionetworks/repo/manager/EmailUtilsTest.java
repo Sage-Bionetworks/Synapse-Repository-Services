@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +18,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
-
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
 public class EmailUtilsTest {
 	
@@ -60,6 +57,7 @@ public class EmailUtilsTest {
 		assertEquals("someuser@synapse.org", EmailUtils.createSource(null, "someuser"));
 		assertEquals("Some User <noreply@synapse.org>", EmailUtils.createSource("Some User", null));
 		assertEquals("Some User <someuser@synapse.org>", EmailUtils.createSource("Some User", "someuser"));
+		assertEquals("=?utf-8?Q?Some_=C3=BC_User?= <someuser@synapse.org>", EmailUtils.createSource("Some ü User", "someuser"));
 	}
 	
 	
