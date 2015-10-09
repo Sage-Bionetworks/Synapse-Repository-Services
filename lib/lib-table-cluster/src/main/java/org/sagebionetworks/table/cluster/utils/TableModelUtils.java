@@ -251,6 +251,28 @@ public class TableModelUtils {
 			throw new IllegalArgumentException(
 					"RowSet.rows must contain at least one row.");
 	}
+	
+	/**
+	 * Validate that all rows have the expected version number
+	 * @param rows
+	 * @param versionNumber
+	 */
+	public static void validateRowVersions(final List<Row> rows, final Long versionNumber){
+		if(rows == null){
+			throw new IllegalArgumentException("Rows cannot be null");
+		}
+		if(rows.isEmpty()){
+			throw new IllegalArgumentException("Rows cannot be empty");
+		}
+		for(Row row: rows){
+			if(row.getVersionNumber() == null){
+				throw new IllegalArgumentException("Row.versionNumber cannot be null");
+			}
+			if(!row.getVersionNumber().equals(versionNumber)){
+				throw new IllegalArgumentException("Row.versionNumber does not match expected version: "+versionNumber);
+			}
+		}
+	}
 
 	/**
 	 * Validate a value

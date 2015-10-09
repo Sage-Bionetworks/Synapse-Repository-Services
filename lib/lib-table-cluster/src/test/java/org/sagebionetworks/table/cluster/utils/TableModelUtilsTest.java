@@ -1062,4 +1062,63 @@ public class TableModelUtilsTest {
 		Set<String> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
 		assertEquals(expected, results);
  	}
+	
+	@Test
+	public void testValidateRowVersionsHappy(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsNoMatch(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, 98L, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, null, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsEmpty(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsListNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = null;
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionNull(){
+		Long versionNumber = null;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionPassedNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, null);
+	}
 }

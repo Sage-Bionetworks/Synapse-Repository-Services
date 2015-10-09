@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -392,8 +393,28 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return true;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.table.cluster.TableIndexDAO#executeInReadTransaction(org.springframework.transaction.support.TransactionCallback)
+	 */
 	@Override
 	public <T> T executeInReadTransaction(TransactionCallback<T> callable) {
 		return readTransactionTemplate.execute(callable);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.table.cluster.TableIndexDAO#executeInWriteTransaction(org.springframework.transaction.support.TransactionCallback)
+	 */
+	@Override
+	public <T> T executeInWriteTransaction(TransactionCallback<T> callable) {
+		return writeTransactionTemplate.execute(callable);
+	}
+
+	@Override
+	public void applyFileHandleIdsToTable(String tableId,
+			Set<String> fileHandleIds) {
+		// TODO Auto-generated method stub
+		
 	}
 }
