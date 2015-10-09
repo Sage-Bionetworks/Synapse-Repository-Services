@@ -71,7 +71,6 @@
 				<ref bean="searchQueueMessageReveiverTrigger" />
 				<ref bean="fileQueueMessageReveiverTrigger" />
 				<ref bean="evaluationSubmissionAnnotationsWorkerTrigger" />
-				<ref bean="auditMergeWorkerTrigger" />
 				<ref bean="logCollateWorkerTrigger" />
 				<ref bean="trashWorkerTrigger" />
 				<ref bean="workersLogSweeperTrigger" />
