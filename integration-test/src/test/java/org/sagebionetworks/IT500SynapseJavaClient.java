@@ -39,6 +39,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -1547,6 +1548,7 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void testMembershipInvitationAndAcceptanceViaNotification() throws Exception {
 		// create a Team
