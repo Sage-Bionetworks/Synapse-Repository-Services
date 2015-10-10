@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
@@ -142,6 +143,28 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 	}
 	
+	@Test
+	public void testSetIndexSchemaWithColumns(){
+		TableIndexConnection con = manager.connectToTableIndex(tableId);
+		// call under test
+		manager.setIndexSchema(con, schema);
+		// The main table should be created or updated.
+		verify(mockIndexDao).createOrUpdateTable(schema, tableId);
+		verify(mockIndexDao, never()).deleteTable(tableId);
+	}
+	
+	@Test
+	public void testSetIndexSchemaEmpty(){
+		TableIndexConnection con = manager.connectToTableIndex(tableId);
+		schema = new LinkedList<ColumnModel>();
+		// call under test
+		manager.setIndexSchema(con, schema);
+		// The main table should be created or updated.
+		verify(mockIndexDao, never()).createOrUpdateTable(anyList(), anyString());
+		// The main table should be deleted.
+		verify(mockIndexDao).deleteTable(tableId);
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testApplyChangeSetToIndexInvalidVersion(){
 		TableIndexConnection con = manager.connectToTableIndex(tableId);
@@ -150,4 +173,40 @@ public class TableIndexManagerImplTest {
 		//call under test.
 		manager.applyChangeSetToIndex(con, rowSet, schema, versionNumber);
 	}
+	
+	@Test
+	public void testIsVersionAppliedToIndexNoVersionApplied(){
+		// no version has been applied for this case
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		versionNumber = 1L;
+		TableIndexConnection con = manager.connectToTableIndex(tableId);
+		assertFalse(manager.isVersionAppliedToIndex(con, versionNumber));
+	}
+	
+	@Test
+	public void testIsVersionAppliedToIndexVersionMatches(){
+		versionNumber = 1L;
+		// no version has been applied for this case
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber);
+		TableIndexConnection con = manager.connectToTableIndex(tableId);
+		assertTrue(manager.isVersionAppliedToIndex(con, versionNumber));
+	}
+	
+	@Test
+	public void testIsVersionAppliedToIndexVersionGreater(){
+		versionNumber = 1L;
+		// no version has been applied for this case
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber+1);
+		TableIndexConnection con = manager.connectToTableIndex(tableId);
+		assertTrue(manager.isVersionAppliedToIndex(con, versionNumber));
+	}
+	
+	@Test
+	public void testDeleteTableIndex(){
+		TableIndexConnection con = manager.connectToTableIndex(tableId);
+		manager.deleteTableIndex(con);
+		verify(mockIndexDao).deleteStatusTable(tableId);
+		verify(mockIndexDao).deleteTable(tableId);
+	}
+	
 }

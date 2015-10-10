@@ -48,6 +48,17 @@ public interface TableIndexManager {
 	public long getCurrentVersionOfIndex(TableIndexConnection connection);
 
 	/**
+	 * Has the change set represented by the given version number already been
+	 * applied to the table index?
+	 * 
+	 * @param connection
+	 * @param versionNumber
+	 * @return True if the change set for the given version has already been applied ot the table.
+	 */
+	public boolean isVersionAppliedToIndex(TableIndexConnection connection,
+			long versionNumber);
+
+	/**
 	 * Apply the given change set to a table's index. Each row in a change set
 	 * must have the same version number. Each change set must be the complete
 	 * set of rows for a given version. Change sets must be applied to the index
@@ -84,4 +95,10 @@ public interface TableIndexManager {
 	 */
 	public void setIndexSchema(TableIndexConnection connection,
 			List<ColumnModel> currentSchema);
+	
+	/**
+	 * Delete the index for the given table.
+	 * @param connection
+	 */
+	public void deleteTableIndex(TableIndexConnection connection);
 }

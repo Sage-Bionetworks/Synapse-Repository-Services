@@ -11,6 +11,8 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
+import org.sagebionetworks.repo.manager.table.TableIndexManager;
+import org.sagebionetworks.repo.manager.table.TableIndexManager.TableIndexConnection;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -51,13 +53,13 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
-	@Autowired
 	TableRowManager tableRowManager;
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
 	NodeInheritanceManager nodeInheritanceManager;
+	@Autowired
+	TableIndexManager tableIndexManager;
 
 	@Override
 	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
@@ -70,6 +72,9 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
+				String tableId = change.getObjectId();
+				TableIndexConnection con = tableIndexManager.connectToTableIndex(tableId);
+				tableIndexManager.deleteTableIndex(con);
 				TableIndexDAO indexDao = tableConnectionFactory
 						.getConnection(change.getObjectId());
 				if (indexDao != null) {

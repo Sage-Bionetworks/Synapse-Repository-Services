@@ -28,7 +28,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public long getCurrentVersionOfIndex(final TableIndexConnection wrapper) {
 		final TableIndexConnectionImpl con = convertConnection(wrapper);
-		return con.getTableIndexDAO().getMaxCurrentCompleteVersionForTable(con.getTableId());
+		return con.getTableIndexDAO().getMaxCurrentCompleteVersionForTable(
+				con.getTableId());
 	}
 
 	/*
@@ -48,27 +49,53 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		final String tableId = con.getTableId();
 		final TableIndexDAO tableIndexDAO = con.getTableIndexDAO();
 		// Validate all rows have the same version number
-		TableModelUtils.validateRowVersions(rowset.getRows(), changeSetVersionNumber);
+		TableModelUtils.validateRowVersions(rowset.getRows(),
+				changeSetVersionNumber);
 		// Has this version already been applied to the table index?
-		final long currentVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
-		if(changeSetVersionNumber > currentVersion){
+		final long currentVersion = tableIndexDAO
+				.getMaxCurrentCompleteVersionForTable(tableId);
+		if (changeSetVersionNumber > currentVersion) {
 			// apply all changes in a transaction
-			tableIndexDAO.executeInWriteTransaction(new TransactionCallback<Void>() {
-				@Override
-				public Void doInTransaction(TransactionStatus status) {
-					// apply the change to the index
-					tableIndexDAO.createOrUpdateOrDeleteRows(rowset, currentSchema);
-					// Extract all file handle IDs from this set
-					Set<String> fileHandleIds = TableModelUtils.getFileHandleIdsInRowSet(currentSchema, rowset.getRows());
-					if(!fileHandleIds.isEmpty()){
-						tableIndexDAO.applyFileHandleIdsToTable(tableId, fileHandleIds);
-					}
-					// set the new max version for the index
-					tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, changeSetVersionNumber);
-					return null;
-				}
-			});
+			tableIndexDAO
+					.executeInWriteTransaction(new TransactionCallback<Void>() {
+						@Override
+						public Void doInTransaction(TransactionStatus status) {
+							// apply the change to the index
+							tableIndexDAO.createOrUpdateOrDeleteRows(rowset,
+									currentSchema);
+							// Extract all file handle IDs from this set
+							Set<String> fileHandleIds = TableModelUtils
+									.getFileHandleIdsInRowSet(currentSchema,
+											rowset.getRows());
+							if (!fileHandleIds.isEmpty()) {
+								tableIndexDAO.applyFileHandleIdsToTable(
+										tableId, fileHandleIds);
+							}
+							// set the new max version for the index
+							tableIndexDAO.setMaxCurrentCompleteVersionForTable(
+									tableId, changeSetVersionNumber);
+							return null;
+						}
+					});
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
+	 * isVersionAppliedToIndex
+	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
+	 * .TableIndexConnection, long)
+	 */
+	@Override
+	public boolean isVersionAppliedToIndex(TableIndexConnection wrapper,
+			long versionNumber) {
+		final TableIndexConnectionImpl con = convertConnection(wrapper);
+		final String tableId = con.getTableId();
+		final TableIndexDAO tableIndexDAO = con.getTableIndexDAO();
+		final long currentVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
+		return currentVersion >= versionNumber;
 	}
 
 	/*
@@ -96,6 +123,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	}
 
+	@Override
+	public void deleteTableIndex(TableIndexConnection wrapper) {
+		final TableIndexConnectionImpl con = convertConnection(wrapper);
+		final String tableId = con.getTableId();
+		final TableIndexDAO tableIndexDAO = con.getTableIndexDAO();
+		// delete all tables for this index.
+		tableIndexDAO.deleteTable(tableId);
+		tableIndexDAO.deleteStatusTable(tableId);
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
