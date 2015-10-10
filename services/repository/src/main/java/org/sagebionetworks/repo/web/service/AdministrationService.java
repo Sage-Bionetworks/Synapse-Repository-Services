@@ -93,7 +93,7 @@ public interface AdministrationService {
 	 * @throws ConflictingUpdateException
 	 */
 	public StackStatus updateStatusStackStatus(Long userId,
-			HttpHeaders header, HttpServletRequest request)
+			StackStatus updatedValue)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, IOException;
 

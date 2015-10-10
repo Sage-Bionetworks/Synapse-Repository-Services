@@ -23,8 +23,6 @@ public class ConceptServiceImpl implements ConceptService {
 	
 	@Autowired
 	ConceptManager conceptManager;	
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
 
 	@Override
 	public ConceptResponsePage getConceptsForParent(String id, String prefixFilter,
@@ -40,7 +38,6 @@ public class ConceptServiceImpl implements ConceptService {
 			offesetInt = offset.intValue();
 		}
 		String conceptUri = conceptManager.getOntologyBaseURI()+id;
-//		SummaryRequest summaryRequest =  (SummaryRequest) objectTypeSerializer.deserialize(request.getInputStream(), header, SummaryRequest.class, header.getContentType());
 		// Get the results from the manager
 		QueryResults<Concept> eqr = conceptManager.getChildConcepts(conceptUri, prefixFilter, limitInt, offesetInt);
 		ConceptResponsePage results = new ConceptResponsePage();

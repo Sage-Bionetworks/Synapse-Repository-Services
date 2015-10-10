@@ -38,7 +38,6 @@ public class AdministrationServiceImplTest {
 	
 
 	BackupDaemonLauncher mockBackupDaemonLauncher;	
-	ObjectTypeSerializer mockObjectTypeSerializer;	
 	UserManager mockUserManager;
 	StackStatusManager mockStackStatusManager;	
 	MessageSyndication mockMessageSyndication;
@@ -53,12 +52,11 @@ public class AdministrationServiceImplTest {
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
 		mockBackupDaemonLauncher = Mockito.mock(BackupDaemonLauncher.class);
-		mockObjectTypeSerializer = Mockito.mock(ObjectTypeSerializer.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockStackStatusManager = Mockito.mock(StackStatusManager.class);
 		mockMessageSyndication = Mockito.mock(MessageSyndication.class);
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
-		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockMessageSyndication, mockChangeDAO);
+		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockUserManager, mockStackStatusManager, mockMessageSyndication, mockChangeDAO);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);

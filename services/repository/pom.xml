@@ -23,7 +23,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>repository-managers</artifactId>
+			<artifactId>app-services</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>

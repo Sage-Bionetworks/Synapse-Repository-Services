@@ -33,7 +33,7 @@ public class AuthenticationServiceAutowireTest {
 	private static final String OPEN_ID_TEST_ID = "https://www.google.com/accounts/o8/id?id=SOMEID";
 
 	@Autowired
-	UserManager userManger;
+	UserManager userManager;
 	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
@@ -42,7 +42,7 @@ public class AuthenticationServiceAutowireTest {
 	AuthenticationService authenticationService;
 	
 	@Autowired
-	UserProfileManager userProfileManger;
+	UserProfileManager userProfileManager;
 	
 	Long principalId;
 	Long principalId2;
@@ -51,11 +51,11 @@ public class AuthenticationServiceAutowireTest {
 	
 	@Before
 	public void before() throws NotFoundException{
-		amdin = userManger.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		amdin = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		NewUser nu = new NewUser();
 		nu.setEmail(OPEN_ID_TEST_EMAIL);
 		nu.setUserName("openIdTestUser");
-		principalId = userManger.createUser(nu);
+		principalId = userManager.createUser(nu);
 	}
 	
 
@@ -63,12 +63,12 @@ public class AuthenticationServiceAutowireTest {
 	public void after(){
 		if(principalId != null){
 			try {
-				userManger.deletePrincipal(amdin, principalId);
+				userManager.deletePrincipal(amdin, principalId);
 			} catch (NotFoundException e) {}
 		}
 		if(principalId2 != null){
 			try {
-				userManger.deletePrincipal(amdin, principalId2);
+				userManager.deletePrincipal(amdin, principalId2);
 			} catch (NotFoundException e) {}
 		}
 	}
@@ -82,7 +82,7 @@ public class AuthenticationServiceAutowireTest {
 	@Test
 	public void testPLFM_2498() throws DatastoreException, UnauthorizedException, NotFoundException{
 		// Before we start the user should not have an openId, but they should have an Email
-		UserProfile profile = userProfileManger.getUserProfile(principalId.toString());
+		UserProfile profile = userProfileManager.getUserProfile(principalId.toString());
 		assertNotNull(profile);
 		assertTrue(profile.getOpenIds().isEmpty());
 		// Now the user should be able to login with open ID because we look them up by email.
@@ -94,7 +94,7 @@ public class AuthenticationServiceAutowireTest {
 		Session session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
 		assertNotNull(session);
 		// The open ID should now be bound to the user's profile
-		profile = userProfileManger.getUserProfile(principalId.toString());
+		profile = userProfileManager.getUserProfile(principalId.toString());
 		assertNotNull(profile);
 		assertNotNull(profile.getOpenIds());
 		assertEquals(1, profile.getOpenIds().size());
@@ -104,7 +104,7 @@ public class AuthenticationServiceAutowireTest {
 		session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
 		assertNotNull(session);
 		// The open ID should now be bound to the user's profile
-		profile = userProfileManger.getUserProfile(principalId.toString());
+		profile = userProfileManager.getUserProfile(principalId.toString());
 		assertNotNull(profile);
 		assertNotNull(profile.getOpenIds());
 		assertEquals(1, profile.getOpenIds().size());
@@ -127,7 +127,7 @@ public class AuthenticationServiceAutowireTest {
 		nu.setEmail("user123@test.org");
 		// Create a user with temporary Username
 		nu.setUserName(createTempoaryUserName(123));
-		principalId2 = userManger.createUser(nu);
+		principalId2 = userManager.createUser(nu);
 
 		// Now try to loging with open ID
 		OpenIDInfo openIdInfo = new OpenIDInfo();

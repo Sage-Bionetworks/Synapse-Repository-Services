@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 
 /**
- * A utilitiy for deaing with URL redirects.
+ * A utility for dealing with URL redirects.
  * 
  * @author jmhill
  *

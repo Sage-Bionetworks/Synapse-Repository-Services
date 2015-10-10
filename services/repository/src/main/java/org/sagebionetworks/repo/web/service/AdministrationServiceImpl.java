@@ -70,13 +70,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
 
 	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
-	
-	@Autowired
-	private ObjectTypeSerializer objectTypeSerializer;	
 	
 	@Autowired
 	private UserManager userManager;
@@ -124,20 +118,16 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * IoC constructor
 	 * 
 	 * @param backupDaemonLauncher
-	 * @param objectTypeSerializer
 	 * @param userManager
 	 * @param stackStatusManager
 	 * @param dependencyManager
 	 * @param messageSyndication
 	 */
 	public AdministrationServiceImpl(BackupDaemonLauncher backupDaemonLauncher,
-			ObjectTypeSerializer objectTypeSerializer, UserManager userManager,
-			StackStatusManager stackStatusManager,
-			MessageSyndication messageSyndication,
-			DBOChangeDAO changeDAO) {
+			UserManager userManager, StackStatusManager stackStatusManager,
+			MessageSyndication messageSyndication, DBOChangeDAO changeDAO) {
 		super();
 		this.backupDaemonLauncher = backupDaemonLauncher;
-		this.objectTypeSerializer = objectTypeSerializer;
 		this.userManager = userManager;
 		this.stackStatusManager = stackStatusManager;
 		this.messageSyndication = messageSyndication;
@@ -189,11 +179,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 */
 	@Override
 	public StackStatus updateStatusStackStatus(Long userId,
-			HttpHeaders header,	HttpServletRequest request) 
+			StackStatus updatedValue) 
 			throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
-
-		// Get the status of this daemon
-		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return stackStatusManager.updateStatus(userInfo, updatedValue);

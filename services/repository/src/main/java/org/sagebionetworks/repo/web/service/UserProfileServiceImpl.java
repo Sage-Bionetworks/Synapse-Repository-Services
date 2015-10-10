@@ -73,9 +73,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
-	private ObjectTypeSerializer objectTypeSerializer;
-	
-	@Autowired
 	private EntityManager entityManager;
 	
 	@Autowired
@@ -137,10 +134,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@WriteTransaction
 	@Override
-	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) 
+	public UserProfile updateUserProfile(Long userId, UserProfile entity) 
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 	
@@ -204,12 +200,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		response.setPrefixFilter(prefix);
 		response.setTotalNumberOfResults(principalPrefixDAO.countPrincipalsForPrefix(prefix));
 		return response;
-	}
-	
-	// setters for managers (for testing)
-	@Override
-	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer) {
-		this.objectTypeSerializer = objectTypeSerializer;
 	}
 
 	@Override

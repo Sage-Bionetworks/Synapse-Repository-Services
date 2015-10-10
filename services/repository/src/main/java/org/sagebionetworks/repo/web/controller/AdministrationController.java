@@ -47,6 +47,9 @@ public class AdministrationController extends BaseController {
 	@Autowired
 	private ServiceProvider serviceProvider;
 	
+	@Autowired
+	private ObjectTypeSerializer objectTypeSerializer;
+	
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId
@@ -153,8 +156,9 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
-
-		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, header, request);
+		// Get the status of this daemon
+		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
+		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, updatedValue);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
