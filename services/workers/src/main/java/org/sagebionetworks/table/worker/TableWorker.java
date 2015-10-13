@@ -67,17 +67,14 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		}
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
-			
-			// Try to get a connection.
-			final TableIndexManager indexManager;
 			final String tableId = change.getObjectId();
+			final TableIndexManager indexManager;
 			try {
 				indexManager = connectionFactory.connectToTableIndex(tableId);
 			} catch (TableIndexConnectionUnavailableException e) {
 				// try again later.
 				throw new RecoverableMessageException();
 			}
-			
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
 				indexManager.deleteTableIndex();
@@ -102,6 +99,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			}
 		}
 	}
+	
 
 	/**
 	 * This is where a single table index is created or updated.
@@ -111,7 +109,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 */
 	public State createOrUpdateTable(
 			final ProgressCallback<ChangeMessage> progressCallback,
-			final String tableId, final TableIndexManager indexManager, final String tableResetToken,
+			final String tableId, final TableIndexManager tableIndexManger, final String tableResetToken,
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
@@ -125,7 +123,6 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 				// This is an old message so we ignore it
 				return State.SUCCESS;
 			}
-			log.info("Get creat index lock " + tableId);
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
 					configuration.getTableWorkerTimeoutMS(),
@@ -134,7 +131,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 						public State call() throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
-									progressCallback, tableId, indexManager, tableResetToken,
+									progressCallback, tableId, tableIndexManger, tableResetToken,
 									change);
 						}
 					});
@@ -171,7 +168,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 * @throws ConflictingUpdateException
 	 */
 	private State createOrUpdateWhileHoldingLock(
-			ProgressCallback<ChangeMessage> progressCallback, String tableId, TableIndexManager indexManager,
+			ProgressCallback<ChangeMessage> progressCallback, String tableId, TableIndexManager tableIndexManager,
 			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
@@ -179,7 +176,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		try {
 			// Save the status before we start
 			// This method will do the rest of the work.
-			String lastEtag = synchIndexWithTable(progressCallback, indexManager,
+			String lastEtag = synchIndexWithTable(progressCallback, tableIndexManager,
 					tableId, tableResetToken, change);
 			// We are finished set the status
 			log.info("Create index " + tableId + " done");
