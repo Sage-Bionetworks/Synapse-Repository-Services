@@ -6,46 +6,41 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 
 /**
- * The 'truth' of a table consists of metadata in the main repository RDS and
- * changes sets that consist of compressed CSV files stored in S3. Each change
- * set is tracked in the main repository database. In order to query a table, an
- * 'index' must first be built from a table's metadata and change sets. A
- * table's index is built in a separate database cluster for scalability.
+ * The 'truth' of a Synapse table consists of metadata in the main repository
+ * RDS and changes sets that consist of compressed CSV files stored in S3. Each
+ * change set is tracked in the main repository database. In order to query a
+ * table, an 'index' must first be built from a table's metadata and change
+ * sets. The 'index' of a table will consist of one or more relational tables
+ * that reside in one of many database instances in a cluster of database.
  * 
- * This class is used to manage each table's index in the database cluster.
+ * A load balancer is use to distribute the index of each table across the
+ * cluster of relational database as needed. Each table will be assigned a
+ * single instance in the cluster to house its index data. A connection factory
+ * is used to establish a connection to the database instance assigned to a
+ * table's index.
+ * 
+ * In order to work with a table's index a connection to the assigned relational
+ * database instance must be created using the connection factory. An instance
+ * of this class will wrap such a connection and provide support for all
+ * operations on a single table's index. A new instance must be acquired from
+ * the connection factory for each table. A table can be assigned to a different
+ * relational instances so, connections to a table's index should not be
+ * persisted in any way.
  * 
  * @author John
  * 
  */
 public interface TableIndexManager {
 
-	/**
-	 * Represents a connection to a table's index.
-	 */
-	public interface TableIndexConnection {
-	}
+
 
 	/**
-	 * Create a connection to a table's index. This will be used for all
-	 * subsequent calls to the table. Do not cache or hold onto connection
-	 * beyond the scope of a single operation.
-	 * 
-	 * @param tableId
-	 * @return
-	 * @throws TableIndexConnectionUnavailableException
-	 *             Thrown if a connection cannot be made at this time.
-	 */
-	public TableIndexConnection connectToTableIndex(String tableId)
-			throws TableIndexConnectionUnavailableException;
-
-	/**
-	 * For a given tableId, get the current version of the index. This is the
+	 * Get the current version of the index for this table. This is the
 	 * version number of the last change set applied to index.
 	 * 
-	 * @param tableId
 	 * @return
 	 */
-	public long getCurrentVersionOfIndex(TableIndexConnection connection);
+	public long getCurrentVersionOfIndex();
 
 	/**
 	 * Has the change set represented by the given version number already been
@@ -53,10 +48,10 @@ public interface TableIndexManager {
 	 * 
 	 * @param connection
 	 * @param versionNumber
-	 * @return True if the change set for the given version has already been applied ot the table.
+	 * @return True if the change set for the given version has already been
+	 *         applied ot the table.
 	 */
-	public boolean isVersionAppliedToIndex(TableIndexConnection connection,
-			long versionNumber);
+	public boolean isVersionAppliedToIndex(long versionNumber);
 
 	/**
 	 * Apply the given change set to a table's index. Each row in a change set
@@ -69,9 +64,6 @@ public interface TableIndexManager {
 	 * tracked and only newer versions will actually be applied to the index
 	 * when called.
 	 * 
-	 * @param connection
-	 *            Connection to a table's index. See:
-	 *            {@link #connectToTableIndex(String)}.
 	 * @param rowset
 	 *            Rowset to apply.
 	 * @param currentSchema
@@ -81,24 +73,18 @@ public interface TableIndexManager {
 	 *            must match the version number of each row in the passed
 	 *            changeset.
 	 */
-	public void applyChangeSetToIndex(TableIndexConnection connection,
-			RowSet rowset, List<ColumnModel> currentSchema,
+	public void applyChangeSetToIndex(RowSet rowset, List<ColumnModel> currentSchema,
 			long changeSetVersionNumber);
 
 	/**
 	 * Set the current schema of a table's index.
 	 * 
-	 * @param connection
-	 *            Connection to a table's index. See:
-	 *            {@link #connectToTableIndex(String)}.
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(TableIndexConnection connection,
-			List<ColumnModel> currentSchema);
-	
+	public void setIndexSchema(List<ColumnModel> currentSchema);
+
 	/**
-	 * Delete the index for the given table.
-	 * @param connection
+	 * Delete the index for this table.
 	 */
-	public void deleteTableIndex(TableIndexConnection connection);
+	public void deleteTableIndex();
 }

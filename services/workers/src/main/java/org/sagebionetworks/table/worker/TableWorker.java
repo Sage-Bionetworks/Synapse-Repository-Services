@@ -11,8 +11,9 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.manager.table.TableIndexManager.TableIndexConnection;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -27,8 +28,6 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
@@ -47,9 +46,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
-
-	private static final long BATCH_SIZE = 16000;
-
+	
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 
 	@Autowired
@@ -59,7 +56,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	@Autowired
 	NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
-	TableIndexManager tableIndexManager;
+	TableIndexConnectionFactory connectionFactory;
 
 	@Override
 	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
@@ -70,21 +67,23 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		}
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
+			
+			// Try to get a connection.
+			final TableIndexManager indexManager;
+			final String tableId = change.getObjectId();
+			try {
+				indexManager = connectionFactory.connectToTableIndex(tableId);
+			} catch (TableIndexConnectionUnavailableException e) {
+				// try again later.
+				throw new RecoverableMessageException();
+			}
+			
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
-				String tableId = change.getObjectId();
-				TableIndexConnection con = tableIndexManager.connectToTableIndex(tableId);
-				tableIndexManager.deleteTableIndex(con);
-				TableIndexDAO indexDao = tableConnectionFactory
-						.getConnection(change.getObjectId());
-				if (indexDao != null) {
-					indexDao.deleteTable(change.getObjectId());
-					indexDao.deleteStatusTable(change.getObjectId());
-				}
+				indexManager.deleteTableIndex();
 				return;
 			} else {
 				// Create or update.
-				String tableId = change.getObjectId();
 				// make sure the table is not in the trash
 				try {
 					if (nodeInheritanceManager.isNodeInTrash(tableId)) {
@@ -95,7 +94,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 					return;
 				}
 				// this method does the real work.
-				State state = createOrUpdateTable(progressCallback, tableId,
+				State state = createOrUpdateTable(progressCallback, tableId, indexManager,
 						change.getObjectEtag(), change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {
 					throw new RecoverableMessageException();
@@ -112,7 +111,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 */
 	public State createOrUpdateTable(
 			final ProgressCallback<ChangeMessage> progressCallback,
-			final String tableId, final String tableResetToken,
+			final String tableId, final TableIndexManager indexManager, final String tableResetToken,
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
@@ -135,7 +134,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 						public State call() throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
-									progressCallback, tableId, tableResetToken,
+									progressCallback, tableId, indexManager, tableResetToken,
 									change);
 						}
 					});
@@ -172,22 +171,15 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 * @throws ConflictingUpdateException
 	 */
 	private State createOrUpdateWhileHoldingLock(
-			ProgressCallback<ChangeMessage> progressCallback, String tableId,
+			ProgressCallback<ChangeMessage> progressCallback, String tableId, TableIndexManager indexManager,
 			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
 		log.info("Create index " + tableId);
 		try {
 			// Save the status before we start
-			// Try to get a connection.
-			TableIndexDAO indexDAO = tableConnectionFactory
-					.getConnection(tableId);
-			// If we do not have connection we can try again later
-			if (indexDAO == null) {
-				return State.RECOVERABLE_FAILURE;
-			}
 			// This method will do the rest of the work.
-			String lastEtag = synchIndexWithTable(progressCallback, indexDAO,
+			String lastEtag = synchIndexWithTable(progressCallback, indexManager,
 					tableId, tableResetToken, change);
 			// We are finished set the status
 			log.info("Create index " + tableId + " done");
@@ -232,7 +224,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 * @throws TableUnavilableException
 	 */
 	String synchIndexWithTable(ProgressCallback<ChangeMessage> progressCallback,
-			TableIndexDAO indexDao, String tableId, String resetToken,
+			final TableIndexManager indexManager, String tableId, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
@@ -244,17 +236,10 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);
-		if (currentSchema.isEmpty()) {
-			// If there is no schema delete the table
-			indexDao.deleteTable(tableId);
-		} else {
-			// We have a schema so create or update the table
-			indexDao.createOrUpdateTable(currentSchema, tableId);
-		}
-		// Now determine which changes need to be applied to the table
-		Long maxCurrentCompleteVersion = indexDao
-				.getMaxCurrentCompleteVersionForTable(tableId);
 		
+		// Setup the table's index.
+		indexManager.setIndexSchema(currentSchema);
+
 		// List all of the changes
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken,
 				"Getting current table row versions ", 0L, 100L);
@@ -282,7 +267,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			currentProgress += changeSet.getRowCount();
 			lastEtag = changeSet.getEtag();
 			// Only apply changes sets not already applied to the index.
-			if(changeSet.getRowVersion() > maxCurrentCompleteVersion){
+			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
 				
@@ -291,10 +276,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
 								totalProgress);
 				// apply the change to the table
-				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
-				// Track this version has been applied to the index.
-				indexDao.setMaxCurrentCompleteVersionForTable(tableId,
-						changeSet.getRowVersion());
+				indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
 			}
 		}
 		return lastEtag;

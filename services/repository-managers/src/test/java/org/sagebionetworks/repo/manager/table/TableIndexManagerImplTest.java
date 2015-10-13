@@ -1,5 +1,17 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -10,21 +22,13 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import org.sagebionetworks.repo.manager.table.TableIndexManager.TableIndexConnection;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Sets;
@@ -32,7 +36,6 @@ import com.google.common.collect.Sets;
 public class TableIndexManagerImplTest {
 	
 	TableIndexDAO mockIndexDao;
-	ConnectionFactory mockConnectionFactory;
 	TransactionStatus mockTransactionStatus;
 	TableIndexManagerImpl manager;
 	String tableId;
@@ -45,12 +48,9 @@ public class TableIndexManagerImplTest {
 	@Before
 	public void before(){
 		mockIndexDao = Mockito.mock(TableIndexDAO.class);
-		mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTransactionStatus = Mockito.mock(TransactionStatus.class);
-		when(mockConnectionFactory.getConnection(anyString())).thenReturn(mockIndexDao);
-		manager = new TableIndexManagerImpl();
-		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockConnectionFactory);	
 		tableId = "syn123";
+		manager = new TableIndexManagerImpl(mockIndexDao, tableId);
 		
 		versionNumber = 99L;
 		rows = new ArrayList<Row>();
@@ -80,25 +80,20 @@ public class TableIndexManagerImplTest {
 
 	}
 
-	@Test
-	public void testConnectToTableIndexHappy(){
-		TableIndexConnection connection = manager.connectToTableIndex(tableId);
-		assertNotNull(connection);		
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullDao(){
+		new TableIndexManagerImpl(null, tableId);	
 	}
 	
-	@Test (expected=TableIndexConnectionUnavailableException.class)
-	public void testConnectToTableIndexUnavailable(){
-		// returning null should trigger a TableIndexConnectionUnavailableException
-		when(mockConnectionFactory.getConnection(anyString())).thenReturn(null);
-		TableIndexConnection connection = manager.connectToTableIndex(tableId);
-		assertNotNull(connection);		
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullTableId(){
+		new TableIndexManagerImpl(mockIndexDao, null);			
 	}
 	
 	@Test
 	public void testApplyChangeSetToIndexHappy(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
 		//call under test.
-		manager.applyChangeSetToIndex(con, rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
 		// All changes should be executed in a transaction
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		// change should be written to the index
@@ -111,11 +106,10 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testApplyChangeSetToIndexAlreadyApplied(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
 		// For this case the index already has this change set applied.
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber+1);
 		//call under test.
-		manager.applyChangeSetToIndex(con, rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
 		// nothing do do.
 		verify(mockIndexDao, never()).executeInWriteTransaction(any(TransactionCallback.class));
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(RowSet.class), anyList());
@@ -125,14 +119,13 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testApplyChangeSetToIndexNoFiles(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
 		// no files in the schema
 		schema = Arrays.asList(
 				TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "moreStrings", ColumnType.STRING)
 				);
 		//call under test.
-		manager.applyChangeSetToIndex(con, rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
 		// All changes should be executed in a transaction
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		// change should be written to the index
@@ -145,9 +138,8 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testSetIndexSchemaWithColumns(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
 		// call under test
-		manager.setIndexSchema(con, schema);
+		manager.setIndexSchema(schema);
 		// The main table should be created or updated.
 		verify(mockIndexDao).createOrUpdateTable(schema, tableId);
 		verify(mockIndexDao, never()).deleteTable(tableId);
@@ -155,10 +147,9 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testSetIndexSchemaEmpty(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
 		schema = new LinkedList<ColumnModel>();
 		// call under test
-		manager.setIndexSchema(con, schema);
+		manager.setIndexSchema(schema);
 		// The main table should be created or updated.
 		verify(mockIndexDao, never()).createOrUpdateTable(anyList(), anyString());
 		// The main table should be deleted.
@@ -167,11 +158,10 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testApplyChangeSetToIndexInvalidVersion(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
 		// use a version that does not match
 		versionNumber = versionNumber - 1;
 		//call under test.
-		manager.applyChangeSetToIndex(con, rowSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
 	}
 	
 	@Test
@@ -179,8 +169,7 @@ public class TableIndexManagerImplTest {
 		// no version has been applied for this case
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		versionNumber = 1L;
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
-		assertFalse(manager.isVersionAppliedToIndex(con, versionNumber));
+		assertFalse(manager.isVersionAppliedToIndex(versionNumber));
 	}
 	
 	@Test
@@ -188,8 +177,7 @@ public class TableIndexManagerImplTest {
 		versionNumber = 1L;
 		// no version has been applied for this case
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber);
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
-		assertTrue(manager.isVersionAppliedToIndex(con, versionNumber));
+		assertTrue(manager.isVersionAppliedToIndex(versionNumber));
 	}
 	
 	@Test
@@ -197,14 +185,12 @@ public class TableIndexManagerImplTest {
 		versionNumber = 1L;
 		// no version has been applied for this case
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber+1);
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
-		assertTrue(manager.isVersionAppliedToIndex(con, versionNumber));
+		assertTrue(manager.isVersionAppliedToIndex(versionNumber));
 	}
 	
 	@Test
 	public void testDeleteTableIndex(){
-		TableIndexConnection con = manager.connectToTableIndex(tableId);
-		manager.deleteTableIndex(con);
+		manager.deleteTableIndex();
 		verify(mockIndexDao).deleteStatusTable(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
