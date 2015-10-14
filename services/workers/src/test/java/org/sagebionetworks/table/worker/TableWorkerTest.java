@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -25,6 +26,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
+import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -37,14 +41,10 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.worker.TableWorker.State;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -52,11 +52,10 @@ import com.google.common.collect.Lists;
 public class TableWorkerTest {
 	
 	ProgressCallback<ChangeMessage> mockProgressCallback;
-	ConnectionFactory mockTableConnectionFactory;
 	TableRowManager mockTableRowManager;
-	TableIndexDAO mockTableIndexDAO;
+	TableIndexManager mockTableIndexManager;
+	TableIndexConnectionFactory mockConnectionFactory;
 	StackConfiguration mockConfiguration;
-	SimpleJdbcTemplate mockConnection;
 	NodeInheritanceManager mockNodeInheritanceManager;
 	TableWorker worker;
 	ChangeMessage one;
@@ -65,17 +64,15 @@ public class TableWorkerTest {
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception{
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableRowManager = Mockito.mock(TableRowManager.class);
-		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
+		mockConnectionFactory = Mockito.mock(TableIndexConnectionFactory.class);
+		mockTableIndexManager = Mockito.mock(TableIndexManager.class);
 		mockConfiguration = Mockito.mock(StackConfiguration.class);
 		mockNodeInheritanceManager = mock(NodeInheritanceManager.class);
-		mockConnection = Mockito.mock(SimpleJdbcTemplate.class);
 		// Turn on the feature by default
 		when(mockConfiguration.getTableEnabled()).thenReturn(true);
-		// return a connection by default
-		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(mockTableIndexDAO);
 		when(mockNodeInheritanceManager.isNodeInTrash(anyString())).thenReturn(false);
+		when(mockConnectionFactory.connectToTableIndex(anyString())).thenReturn(mockTableIndexManager);
 		
 		// By default we want to the manager to just call the passed callable.
 		stub(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<TableWorker.State>() {
@@ -90,7 +87,7 @@ public class TableWorkerTest {
 			}
 		});
 		worker = new TableWorker();
-		ReflectionTestUtils.setField(worker, "tableConnectionFactory", mockTableConnectionFactory);
+		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
 		ReflectionTestUtils.setField(worker, "tableRowManager", mockTableRowManager);
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(worker, "nodeInheritanceManager", mockNodeInheritanceManager);
@@ -119,7 +116,7 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, one);
 		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
+		verifyZeroInteractions(mockConnectionFactory);
 	}
 	
 	/**
@@ -138,7 +135,7 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, one);
 		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
+		verifyZeroInteractions(mockConnectionFactory);
 	}
 	
 	/**
@@ -153,9 +150,9 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(two.getObjectId());
 		// delete should be called
-		verify(mockTableIndexDAO, times(1)).deleteTable("456");
+		verify(mockTableIndexManager, times(1)).deleteTableIndex();
 	}
 	
 	/**
@@ -167,31 +164,34 @@ public class TableWorkerTest {
 	public void testHappyCase() throws Exception{
 		String tableId = "456";
 		String resetToken = "reset-token";
+		long versionNumber = 0;
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
+//		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
+		when(mockTableIndexManager.isVersionAppliedToIndex(versionNumber)).thenReturn(false);
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(0L);
-		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
+		trc.setRowCount(12L);
+		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
 		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
-		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
-		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 0L);
+		verify(mockTableRowManager, times(3)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
+		
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet, currentSchema, 0L);
 	}
 
 	/**
@@ -209,26 +209,26 @@ public class TableWorkerTest {
 		List<ColumnModel> currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(2L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 3L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 3L));
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
-		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
+		trc.setRowCount(12L);
+		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
+		when(mockTableIndexManager.isVersionAppliedToIndex(trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(3L), any(ColumnMapper.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
 		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
-		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
-		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 3L);
+		
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet, currentSchema, trc.getRowVersion());
 	}
 	
 	/**
@@ -251,7 +251,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should be called
-		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
 		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
 	}
@@ -270,10 +270,11 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// Without a connection the message should go back to the queue
-		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(null);
+		when(mockConnectionFactory.connectToTableIndex(tableId)).thenThrow(new TableIndexConnectionUnavailableException("Not now"));
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
+		two.setObjectId(tableId);
 		try {
 			// call under test
 			worker.run(mockProgressCallback, two);
@@ -303,7 +304,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, two);
 		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
+		verifyZeroInteractions(mockTableIndexManager);
 		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 		// The token must be checked before we acquire the lock
 		verify(mockTableRowManager, never()).tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class));
@@ -325,8 +326,8 @@ public class TableWorkerTest {
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
-		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
+		// The index connection should not be used.
+		verifyZeroInteractions(mockTableIndexManager);
 	}
 	
 	/**
@@ -353,50 +354,8 @@ public class TableWorkerTest {
 		} catch (RecoverableMessageException e) {
 			// expected
 		}
-		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
-	}
-	
-	/**
-	 * When a lock cannot be acquired, the message should remain on the queue as this is a recoverable failure.
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testCacheBehindException() throws Exception {
-		String tableId = "456";
-		String resetToken = "reset-token";
-		TableStatus status = new TableStatus();
-		status.setResetToken(resetToken);
-		status.setProgressMessage("going");
-		status.setProgressCurrent(2L);
-		status.setProgressTotal(3L);
-		List<ColumnModel> currentSchema = Lists.newArrayList();
-		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenThrow(new TableUnavilableException(status));
-		TableRowChange trc = new TableRowChange();
-		trc.setEtag("etag");
-		trc.setRowVersion(0L);
-		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), eq(Collections.singleton(0L)), any(ColumnMapper.class))).thenReturn(rowSet);
-		two.setObjectType(ObjectType.TABLE);
-		two.setChangeType(ChangeType.UPDATE);
-		two.setObjectEtag(resetToken);
-		try {
-			// call under test
-			worker.run(mockProgressCallback, two);
-			fail();
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
-		// The connection factory should be called
-		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
-		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToUpdateTableProgress(tableId, resetToken, "going", 2L, 3L);
+		// The index connection should not be used.
+		verifyZeroInteractions(mockTableIndexManager);
 	}
 
 	/**
@@ -423,8 +382,8 @@ public class TableWorkerTest {
 		} catch (RecoverableMessageException e) {
 			// expected
 		}
-		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
+		// The index connection should not be used.
+		verifyZeroInteractions(mockTableIndexManager);
 	}
 	
 	/**
@@ -463,7 +422,7 @@ public class TableWorkerTest {
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
-		// The connection factory should not be called
-		verifyZeroInteractions(mockTableConnectionFactory);
+		// The index connection should not be used.
+		verifyZeroInteractions(mockTableIndexManager);
 	}
 }

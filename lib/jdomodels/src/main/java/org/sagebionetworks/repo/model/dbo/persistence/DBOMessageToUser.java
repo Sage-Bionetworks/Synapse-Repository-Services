@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -22,7 +24,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		new FieldColumn(MESSAGE_ID_FIELD_NAME, SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
 		new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID), 
 		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
-		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
+		new FieldColumn("subjectBytes", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
 		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
 		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT),
 		new FieldColumn("to", SqlConstants.COL_MESSAGE_TO_USER_TO),
@@ -33,13 +35,14 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Long messageId;
 	private Long rootMessageId;
 	private Long inReplyTo;
-	private String subject;
+	// we use a byte array to allow non-latin-1 characters
+	private byte[] subjectBytes;
 	private Boolean sent;
 	private String notificationsEndpoint;
 	private String to;
 	private String cc;
 	private String bcc;
-
+	
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
 		return new TableMapping<DBOMessageToUser>() {
@@ -53,7 +56,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				if (replyTo != null) {
 					result.setInReplyTo(Long.parseLong(replyTo));
 				};
-				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
+				java.sql.Blob blob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT);
+				if(blob != null){
+					result.setSubjectBytes(blob.getBytes(1, (int) blob.length()));
+				}
+
 				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
 				result.setNotificationsEndpoint(rs.getString(SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT));
 				result.setTo(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_TO));
@@ -108,12 +115,12 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.inReplyTo = inReplyTo;
 	}
 
-	public String getSubject() {
-		return subject;
+	public byte[] getSubjectBytes() {
+		return subjectBytes;
 	}
 
-	public void setSubject(String subject) {
-		this.subject = subject;
+	public void setSubjectBytes(byte[] subject) {
+		this.subjectBytes = subject;
 	}
 
 	public Boolean getSent() {
@@ -161,13 +168,33 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		return MigrationType.MESSAGE_TO_USER;
 	}
 
+	// once this has run for a single release, the back up objects will no longer have a 'subject'
+	// field.  Then the translator can then be reverted to the simple, default version
 	@Override
 	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> getTranslator() {
 		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser>() {
 			@Override
-			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser backup) {
-				if (backup.getSent()==null) backup.setSent(true); // for legacy objects
-				return backup;
+			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser b) {
+				DBOMessageToUserBackup backup = (DBOMessageToUserBackup)b;
+				DBOMessageToUser dbo = new DBOMessageToUser();
+				dbo.setTo(backup.getTo());
+				dbo.setBcc(backup.getBcc());
+				dbo.setCc(backup.getCc());
+				dbo.setInReplyTo(backup.getInReplyTo());
+				dbo.setMessageId(backup.getMessageId());
+				dbo.setNotificationsEndpoint(backup.getNotificationsEndpoint());
+				dbo.setRootMessageId(backup.getRootMessageId());
+				dbo.setSent(backup.getSent());
+				if (backup.getSubject()!=null) {
+					try {
+						dbo.setSubjectBytes(backup.getSubject().getBytes("UTF-8"));
+					} catch (UnsupportedEncodingException e) {
+						throw new RuntimeException(e);
+					}
+				} else {
+					dbo.setSubjectBytes(backup.getSubjectBytes());
+				}
+				return dbo;
 			}
 			
 			@Override
@@ -178,8 +205,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	}
 
 	@Override
-	public Class<? extends DBOMessageToUser> getBackupClass() {
-		return DBOMessageToUser.class;
+	public Class<? extends DBOMessageToUserBackup> getBackupClass() {
+		return DBOMessageToUserBackup.class;
 	}
 	
 	@Override
@@ -210,7 +237,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		result = prime * result
 				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
-		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
+		result = prime * result + Arrays.hashCode(subjectBytes);
 		result = prime * result + ((to == null) ? 0 : to.hashCode());
 		return result;
 	}
@@ -260,10 +287,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!sent.equals(other.sent))
 			return false;
-		if (subject == null) {
-			if (other.subject != null)
-				return false;
-		} else if (!subject.equals(other.subject))
+		if (!Arrays.equals(subjectBytes, other.subjectBytes))
 			return false;
 		if (to == null) {
 			if (other.to != null)
@@ -278,9 +302,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public String toString() {
 		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId="
 				+ rootMessageId + ", inReplyTo=" + inReplyTo + ", subject="
-				+ subject + ", sent=" + sent + ", notificationsEndpoint="
-				+ notificationsEndpoint + ", to=" + to + ", cc=" + cc
-				+ ", bcc=" + bcc + "]";
+				+ Arrays.toString(subjectBytes) + ", sent=" + sent
+				+ ", notificationsEndpoint=" + notificationsEndpoint + ", to="
+				+ to + ", cc=" + cc + ", bcc=" + bcc + "]";
 	}
 
 }

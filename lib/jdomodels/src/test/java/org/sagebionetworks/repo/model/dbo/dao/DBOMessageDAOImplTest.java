@@ -387,4 +387,12 @@ public class DBOMessageDAOImplTest {
 		// Shouldn't be able to see an unrelated filehandle
 		assertFalse(messageDAO.canSeeMessagesUsingFileHandle(groups, "-1"));
 	}
+	
+	@Test
+	public void testNotAsciiSubject() throws Exception {
+		userToUser = createMessage(maliciousUser.getId(), "non-ascii subject ライブで行ったことのな", 
+				new HashSet<String>() {{add(maliciousUser.getId());}}, null);
+	}
+	
+	
 }
