@@ -103,7 +103,7 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
 		assertEquals(expected, actual);
 	}
@@ -125,7 +125,7 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
 		assertEquals(expected, actual);
 	}
@@ -148,7 +148,7 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(true);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
 		assertEquals(expected, actual);
 	}
@@ -171,7 +171,7 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
 		assertEquals(expected, actual);
 	}
@@ -195,7 +195,7 @@ public class NodeObjectRecordBuilderTest {
 		node.setIsRestricted(true);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		ObjectRecord actual = builder.build(changeMessage);
+		ObjectRecord actual = builder.build(changeMessage).get(0);
 		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
 		assertEquals(expected, actual);
 	}

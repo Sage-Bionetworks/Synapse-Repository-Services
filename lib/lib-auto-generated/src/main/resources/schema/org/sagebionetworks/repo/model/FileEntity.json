@@ -10,6 +10,10 @@
         "dataFileHandleId":{
             "type":"string",
             "description":"ID of the file associated with this entity."
+        },
+        "fileNameOverride":{
+            "type":"string",
+            "description":"An optional replacement for the name of the uploaded file.  This is distinct from the entity name.  If omitted the file will retain its original name."
         }
     }
 }

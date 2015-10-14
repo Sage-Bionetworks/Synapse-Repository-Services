@@ -1,0 +1,38 @@
+{
+	"description": "Summary of a requested file download.",
+	"properties": {
+		"fileHandleId": {
+			"type": "string",
+			"description": "The file handle id of a requested file."
+		},
+		"zipEntryName": {
+			"type": "string",
+			"description": "The zip entry name used for this file.  This entry includes both the path and file name.  The value will only be set if the status is set to 'SUCCESS'"
+		},
+		"status": {
+			"type": "string",
+			"description": "The download status of this file.",
+			"name": "FileDownloadStatus",
+			"enum": [
+				"SUCCESS",
+				"FAILURE"
+			]
+		},
+		"failureMessage": {
+			"type": "string",
+			"description": "If the download status of this file is set to 'FAILURE', then this will be the failure message. Null for 'SUCCESS'."
+		},
+		"failureCode": {
+			"type": "string",
+			"description": "If the download status of this file is set to 'FAILURE', then this will be the failure code. Null for 'SUCCESS'.",
+			"name": "FileDownloadCode",
+			"enum": [
+				"NOT_FOUND",
+				"UNAUTHORIZED",
+				"DUPLICATE",
+				"EXCEEDS_SIZE_LIMIT",
+				"UNKNOWN_ERROR"
+			]
+		}
+	}
+}

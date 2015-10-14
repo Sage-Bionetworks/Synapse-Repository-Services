@@ -136,15 +136,37 @@ public class DBOMessageDAOImplTest {
 		dto.setSubject(subject);
 		dto.setRecipients(recipients);
 		dto.setInReplyTo(inReplyTo);
-		dto.setNotificationUnsubscribeEndpoint("https://www.synapse.org/#foo:");
+		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
 		// Note: InReplyToRoot is calculated by the DAO
+		String to = "Foo<foo@sb.com>";
+		dto.setTo(to);
+		String cc = "Bar<bar@sb.com>";
+		dto.setCc(cc);
+		String bcc = "Baz<baz@sb.com>";
+		dto.setBcc(bcc);
 		
 		// Insert the message
 		dto = messageDAO.createMessage(dto);
 		assertNotNull(dto.getId());
 		cleanup.add(dto.getId());
+		
+		// make sure its created properly
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
+		assertEquals(userId, dto.getCreatedBy());
+		assertEquals(fileHandleId, dto.getFileHandleId());
+		assertEquals(inReplyTo, dto.getInReplyTo());
+		assertEquals(unsubEndpoint, dto.getNotificationUnsubscribeEndpoint());
+		assertEquals(recipients, dto.getRecipients());
+		assertEquals(subject, dto.getSubject());
+		assertEquals(to, dto.getTo());
+		assertEquals(cc, dto.getCc());
+		assertEquals(bcc, dto.getBcc());
+		
+		// make sure 'getMessage' returns the same thing
+		MessageToUser clone = messageDAO.getMessage(dto.getId());
+		assertEquals(dto, clone);
 		
 		// Make sure the timestamps on the messages are different 
 		Thread.sleep(2);

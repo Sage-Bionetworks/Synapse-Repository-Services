@@ -112,6 +112,19 @@ public interface FileHandleManager {
 	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get the redirect URL for a given FileHandle ID.  The UserInfo is not needed as Authorization should have already been
+	 * checked before attempting this call.
+	 * @param handleId
+	 * @param fileNameOverride
+	 * @param contentTypeOverride
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws MalformedURLException 
+	 */
+	String getRedirectURLForFileHandle(String handleId, String fileNameOverride) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Get all file handles on the list.
 	 * @param idsList
 	 * @param includePreviews - When true, preview file handles will be included in the resutls.

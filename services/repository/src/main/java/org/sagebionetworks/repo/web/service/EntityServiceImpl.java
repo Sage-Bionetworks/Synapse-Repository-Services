@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
@@ -94,9 +95,11 @@ public class EntityServiceImpl implements EntityService {
 	 * @param entitiesAccessor
 	 * @param entityManager
 	 */
-	public EntityServiceImpl(EntityManager entityManager) {
+	public EntityServiceImpl(UserManager userManager, EntityManager entityManager, FileHandleManager fileHandleManager) {
 		super();
+		this.userManager = userManager;
 		this.entityManager = entityManager;
+		this.fileHandleManager=fileHandleManager;
 	}
 
 	@Override
@@ -644,8 +647,9 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
+		FileEntity fileEntity = entityManager.getEntitySecondaryFields(userInfo, id, FileEntity.class);
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getFileNameOverride());
 	}
 	
 	@Override
@@ -669,8 +673,9 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);
+		FileEntity fileEntity = entityManager.getEntitySecondaryFieldsForVersion(userInfo, id, versionNumber, FileEntity.class);
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getFileNameOverride());
 	}
 
 

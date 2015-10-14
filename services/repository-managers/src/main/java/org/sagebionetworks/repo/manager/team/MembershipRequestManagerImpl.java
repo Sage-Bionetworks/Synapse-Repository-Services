@@ -80,7 +80,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 	
 	public static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
-	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
+	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "Someone Has Requested to Join Your Team";
 
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {
 		if (mrs.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");

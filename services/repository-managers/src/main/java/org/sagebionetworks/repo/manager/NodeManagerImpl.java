@@ -103,8 +103,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// What is the object type of this node
 		EntityType type = newNode.getNodeType();
 		
-		// By default all nodes inherit their their ACL from their parent.
-		ACL_SCHEME aclSchem = ACL_SCHEME.INHERIT_FROM_PARENT;
+		// By default all nodes inherit their ACL from their parent.
+		ACL_SCHEME aclScheme = ACL_SCHEME.INHERIT_FROM_PARENT;
 		
 		// If the user did not provide a parent then we use the default
 		if(newNode.getParentId() == null){
@@ -114,7 +114,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			String pathId = nodeDao.getNodeIdForPath(defaultPath);
 			newNode.setParentId(pathId);
 			// Lookup the acl scheme to be used for children of this parent
-			aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
+			aclScheme = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 		}
 		
 		// check whether the user is allowed to create this type of node
@@ -139,17 +139,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		newNode.setId(id);
 		
 		// Setup the ACL for this node.
-		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclSchem){
+		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclScheme){
 			// This node inherits from its parent.
 			String parentBenefactor = nodeInheritanceManager.getBenefactor(newNode.getParentId());
 			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
-		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem){
-			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantAll(id, userInfo);
+		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
+			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
 			aclDAO.create(rootAcl, ObjectType.ENTITY);
 			// This node is its own benefactor
 			nodeInheritanceManager.addBeneficiary(id, id);
 		}else{
-			throw new IllegalArgumentException("Unknown ACL_SHEME: "+aclSchem);
+			throw new IllegalArgumentException("Unknown ACL_SHEME: "+aclScheme);
 		}
 		
 		// adding access is done at a higher level, not here
@@ -381,7 +381,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
 				if (newAcl) {
-					AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeInUpdate, userInfo);
+					AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeInUpdate, userInfo, new Date());
 					aclDAO.create(acl, ObjectType.ENTITY);
 					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
 				} else {

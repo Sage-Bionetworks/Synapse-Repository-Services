@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
@@ -29,7 +30,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -37,10 +37,9 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
@@ -235,7 +234,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		return certifiedUserHasAccess(node.getId(), ACCESS_TYPE.CHANGE_SETTINGS, userInfo);
 	}
-
+	
 	/**
 	 * 
 	 * @param resource the resource of interest
@@ -250,7 +249,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
 				(accessType==CREATE ||
-				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))))
+				(accessType==UPDATE && !nodeDao.getNodeTypeById(entityId).equals(EntityType.project))))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, accessType, userInfo);
@@ -326,6 +325,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
 		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, CREATE, userInfo).getAuthorized());
 		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).getAuthorized());
+		permissions.setCanChangeSettings(hasAccess(entityId, CHANGE_SETTINGS, userInfo).getAuthorized());
 		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).getAuthorized());
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).getAuthorized());
 		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, UPDATE, userInfo).getAuthorized());
@@ -408,12 +408,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
 		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
 	}
-
+	
 	@Override
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin() && 
 			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				!nodeDao.getNode(entityId).getNodeType().equals(EntityType.project))
+				!nodeDao.getNodeTypeById(entityId).equals(EntityType.project))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);

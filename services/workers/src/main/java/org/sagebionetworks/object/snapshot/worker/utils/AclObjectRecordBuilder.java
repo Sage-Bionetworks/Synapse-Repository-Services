@@ -1,5 +1,8 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -27,7 +30,7 @@ public class AclObjectRecordBuilder implements ObjectRecordBuilder {
 	}
 
 	@Override
-	public ObjectRecord build(ChangeMessage message) {
+	public List<ObjectRecord> build(ChangeMessage message) {
 		if (message.getObjectType() != ObjectType.ACCESS_CONTROL_LIST || message.getChangeType() == ChangeType.DELETE) {
 			throw new IllegalArgumentException();
 		}
@@ -38,7 +41,7 @@ public class AclObjectRecordBuilder implements ObjectRecordBuilder {
 				return null;
 			}
 			AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-			return ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
+			return Arrays.asList(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
 		} catch (NotFoundException e) {
 			log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
 			return null;

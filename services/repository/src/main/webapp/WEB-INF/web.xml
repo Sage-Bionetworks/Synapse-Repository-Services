@@ -228,12 +228,23 @@
 		<filter-class>org.sagebionetworks.auth.CloudMailInAuthFilter</filter-class>
 	</filter>
 
+	<filter>
+		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.CloudMailInAcceptPlainTextFilter</filter-class>
+	</filter>
+
     <!--  Note we tried applying the filter to both /cloudMailInMessage and /cloudMailInAuthorization,
     but CloudMailIn doesn't seem to pass the BasicAuthentication credentials when it calls the latter
     service.   -->
 	<filter-mapping>
 		<filter-name>cloudMailInAuthFilter</filter-name>
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
+		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
+		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
 
 	

@@ -16,9 +16,15 @@ public interface DoiService {
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
-	 * Gets the DOI for the specified entity version. If version number is null,
-	 * the DOI associated with the most recent version will be retrieved.
+	 * Gets the DOI for the specified entity version.
 	 */
-	Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	Doi getDoiForVersion(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+			throws NotFoundException, UnauthorizedException, DatastoreException;
+
+	
+	/**
+	 * Gets the DOI for the current entity version.
+	 */
+	Doi getDoiForCurrentVersion(Long userId, String objectId, ObjectType objectType)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 }

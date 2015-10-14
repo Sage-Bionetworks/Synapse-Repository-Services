@@ -93,6 +93,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	project.setNodeType(EntityType.project);
        	project.setParentId(projectParentId);
     	when(mockNodeDao.getNode(projectId)).thenReturn(project);
+    	when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
     	
     	folder = new Node();
     	folder.setId(folderId);
@@ -100,7 +101,8 @@ public class EntityPermissionsManagerImplUnitTest {
         folder.setParentId(folderParentId);
     	folder.setNodeType(EntityType.folder);
     	when(mockNodeDao.getNode(folderId)).thenReturn(folder);
-    	
+    	when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+   	
     	UserInfo anonymousUser = new UserInfo(false);
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
     	when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())).thenReturn(anonymousUser);
@@ -135,6 +137,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertTrue(uep.getCanAddChild());
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertTrue(uep.getCanEdit());
 		assertTrue(uep.getCanEnableInheritance());
@@ -158,6 +161,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertFalse(uep.getCanAddChild()); // not certified!
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertTrue(uep.getCanEdit()); // not certified but is a project!
 		assertTrue(uep.getCanEnableInheritance());
@@ -181,6 +185,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertTrue(uep.getCanAddChild());
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertTrue(uep.getCanEdit());
 		assertTrue(uep.getCanEnableInheritance());
@@ -204,6 +209,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		assertFalse(uep.getCanAddChild()); // not certified!
 		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
 		assertTrue(uep.getCanDelete());
 		assertFalse(uep.getCanEdit()); // not certified and not a project!
 		assertTrue(uep.getCanEnableInheritance());

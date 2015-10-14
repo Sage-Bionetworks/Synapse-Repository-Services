@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -94,7 +95,6 @@ import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -102,6 +102,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
@@ -370,6 +371,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
 		assertEquals(true, synapseOne.canAccess(file.getId(), ACCESS_TYPE.READ));
 		assertTrue(uep.getCanChangePermissions());
+		assertTrue(uep.getCanChangeSettings());
 		assertTrue(uep.getCanEnableInheritance());
 		
 		UserProfile profile = synapseOne.getMyProfile();
@@ -503,7 +505,8 @@ public class IT500SynapseJavaClient {
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.ACCESS_REQUIREMENTS |
-				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
+				EntityBundle.UNMET_ACCESS_REQUIREMENTS |
+				EntityBundle.FILE_NAME;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapseOne.getEntityBundle(project.getId(), allPartsMask);
@@ -528,6 +531,7 @@ public class IT500SynapseJavaClient {
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
+		assertNull(entityBundle.getFileName());		
 	}
 	
 	@Test
@@ -1236,6 +1240,28 @@ public class IT500SynapseJavaClient {
 
 		// remove admin privileges
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
+
+		// now repeat the permissions change, but by accessing the ACL
+		AccessControlList acl = synapseOne.getTeamACL(createdTeam.getId());
+
+		Set<ACCESS_TYPE> otherAccessTypes = null;
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra.getPrincipalId().equals(otherPrincipalId)) otherAccessTypes=ra.getAccessType();
+		}
+		// since 'other' is not an admin, he won't have his own entry in the ACL
+		assertTrue(otherAccessTypes==null);
+		Set<ResourceAccess> origResourceAccess = new HashSet<ResourceAccess>(acl.getResourceAccess());
+		
+		ResourceAccess adminRa = new ResourceAccess();
+		adminRa.setPrincipalId(Long.parseLong(otherPrincipalId));
+		adminRa.setAccessType(ModelConstants.TEAM_ADMIN_PERMISSIONS);
+		acl.getResourceAccess().add(adminRa);
+		AccessControlList updatedACL = synapseOne.updateTeamACL(acl);
+		assertEquals(acl.getResourceAccess(), updatedACL.getResourceAccess());
+
+		// finally, restore
+		updatedACL.setResourceAccess(origResourceAccess);
+		synapseOne.updateTeamACL(updatedACL);
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
@@ -1563,13 +1589,13 @@ public class IT500SynapseJavaClient {
 			EmailValidationUtil.deleteFile(inviterNotification);
 		
 		// now get the embedded tokens
-		String startString = "<a href=\\\""+MOCK_ACCEPT_INVITATION_ENDPOINT;
-		String endString = "\\\"";
+		String startString = "<a href=\""+MOCK_ACCEPT_INVITATION_ENDPOINT;
+		String endString = "\"";
 		String jsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
 		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
 
-		startString = "<a href=\\\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
-		endString = "\\\"";
+		startString = "<a href=\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
+		endString = "\"";
 		String nsst = EmailValidationUtil.getTokenFromFile(inviteeNotification, startString, endString);
 		NotificationSettingsSignedToken notificationSettingsSignedToken = 
 				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);
@@ -1692,13 +1718,13 @@ public class IT500SynapseJavaClient {
 			EmailValidationUtil.deleteFile(requesterNotification);
 		
 		// now get the embedded tokens
-		String startString = "<a href=\\\""+MOCK_ACCEPT_MEMB_RQST_ENDPOINT;
-		String endString = "\\\"";
+		String startString = "<a href=\""+MOCK_ACCEPT_MEMB_RQST_ENDPOINT;
+		String endString = "\"";
 		String jsst = EmailValidationUtil.getTokenFromFile(adminNotification, startString, endString);
 		JoinTeamSignedToken joinTeamSignedToken = SerializationUtils.hexDecodeAndDeserialize(jsst, JoinTeamSignedToken.class);
 
-		startString = "<a href=\\\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
-		endString = "\\\"";
+		startString = "<a href=\""+MOCK_NOTIFICATION_UNSUB_ENDPOINT;
+		endString = "\"";
 		String nsst = EmailValidationUtil.getTokenFromFile(adminNotification, startString, endString);
 		NotificationSettingsSignedToken notificationSettingsSignedToken = 
 				SerializationUtils.hexDecodeAndDeserialize(nsst, NotificationSettingsSignedToken.class);

@@ -41,7 +41,7 @@ public class NodeTranslationUtils {
 			.getLogger(NodeTranslationUtils.class.getName());
 
 	/**
-	 * Keep track of the know fields of a node.
+	 * Keep track of the known fields of a node.
 	 */
 	private static Map<String, Field> nodeFieldNames = new HashMap<String, Field>();
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();

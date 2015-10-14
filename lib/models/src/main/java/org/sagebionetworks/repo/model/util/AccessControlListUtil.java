@@ -12,30 +12,31 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class AccessControlListUtil {
 	/**
 	 * Will create an ACL that will grant all permissions to a given user for the given node.
-	 * @param nodeId
+	 * @param objectId
 	 * @param userId
 	 * @return
 	 */
-	public static AccessControlList createACLToGrantAll(String nodeId, UserInfo info){
-		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+	public static AccessControlList createACL(String objectId, UserInfo info, Set<ACCESS_TYPE> permissions, Date now) {
+		if(objectId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(info);
 		AccessControlList acl = new AccessControlList();
-		acl.setCreationDate(new Date(System.currentTimeMillis()));
-		acl.setId(nodeId);
+		acl.setCreationDate(now);
+		acl.setId(objectId);
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
-		// This user should be able to do everything.
-		Set<ACCESS_TYPE> typeSet = new HashSet<ACCESS_TYPE>();
-		ACCESS_TYPE array[] = ACCESS_TYPE.values();
-		for(ACCESS_TYPE type: array){
-			typeSet.add(type);
-		}
-		access.setAccessType(typeSet);
-		//access.setDisplayName(info.getUser().getDisplayName());
+		access.setAccessType(new HashSet<ACCESS_TYPE>(permissions));
 		access.setPrincipalId(info.getId());
 		set.add(access);
 		return acl;
+	}
+
+	public static AccessControlList createACLToGrantEntityAdminAccess(String nodeId, UserInfo info, Date now) {
+		return createACL(nodeId, info, ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS, now);
+	}
+
+	public static AccessControlList createACLToGrantEvaluationAdminAccess(String evaluationId, UserInfo info, Date now) {
+		return createACL(evaluationId, info, ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, now);
 	}
 
 }

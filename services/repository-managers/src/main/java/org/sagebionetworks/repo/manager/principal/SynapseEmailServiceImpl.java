@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+import com.amazonaws.services.simpleemail.model.Content;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.amazonaws.util.StringInputStream;
@@ -57,35 +58,37 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 
 	public void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
-		writeObjectToFile(emailRequest, to);
+		String body = null;
+		Content textContent = emailRequest.getMessage().getBody().getText();
+		if (textContent!=null && textContent.getData()!=null && textContent.getData().length()>0) {
+			body = textContent.getData();
+		}
+		Content htmlContent = emailRequest.getMessage().getBody().getHtml();
+		if (htmlContent!=null && htmlContent.getData()!=null && htmlContent.getData().length()>0) {
+			if (body==null) {
+				body = htmlContent.getData();
+			} else {
+				body += htmlContent.getData();
+			}
+		}
+		writeObjectToFile(body, to);
 	}
 	
 	public void writeToFile(SendRawEmailRequest rawEmailRequest) {
 		String to = rawEmailRequest.getDestinations().get(0);
-		writeObjectToFile(rawEmailRequest, to);
+		writeObjectToFile(new String(rawEmailRequest.getRawMessage().getData().array()), to);
 	}
 	
-	public void writeObjectToFile(Object emailRequest, String to) {
+	public void writeObjectToFile(String emailBody, String to) {
 		String fileName = to+".json";
-		StringWriter writer=null;
 		InputStream is;
 		try {
-			writer = new StringWriter();
-			(new JSONObject(emailRequest)).write(writer);
-			is = new StringInputStream(writer.toString());
+			is = new StringInputStream(emailBody);
 			ObjectMetadata metadata = new ObjectMetadata();
-			metadata.setContentLength(writer.toString().length());
+			metadata.setContentLength(emailBody.length());
 			s3Client.putObject(StackConfiguration.getS3Bucket(), fileName, is, metadata);
-		} catch (JSONException e) {
-			throw new RuntimeException(e);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
-		} finally {
-			try {
-				if (writer!=null) writer.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
 		}
 		log.info("\n\nWrote email to S3 file: "+fileName+"\n\n");
 	}

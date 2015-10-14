@@ -161,9 +161,24 @@
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
+	
+	<bean id="fileHandleAssociationManager"
+		class="org.sagebionetworks.repo.manager.file.FileHandleAssociationManagerImpl">
+		<property name="providerMap">
+			<map>
+				<entry key="TableEntity">
+					<bean
+						class="org.sagebionetworks.repo.manager.table.TableFileHandleAssociationProvider" />
+				</entry>
+			</map>
+		</property>
+	</bean>
 
 	<bean id="authorizationManager"
 		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
+		
+	<bean id="fileHandleAuthorizationManager"
+		class="org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManagerImpl" />	
 
 	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
@@ -190,7 +205,9 @@
 			
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/><bean
+	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
+
+	<bean
         id="migrationManager"
         class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
         scope="singleton" >

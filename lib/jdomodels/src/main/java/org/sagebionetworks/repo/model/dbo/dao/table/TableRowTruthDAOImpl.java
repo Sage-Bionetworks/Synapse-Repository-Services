@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
@@ -52,8 +53,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
@@ -202,7 +201,6 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			// Validate that this update does not contain any row level conflicts.
 			checkForRowLevelConflict(tableId, delta, 0);
 		}
-
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
@@ -408,6 +406,7 @@ public abstract class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
+	@Override
 	public void scanChange(RowHandler handler, TableRowChange dto)
 			throws IOException {
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());

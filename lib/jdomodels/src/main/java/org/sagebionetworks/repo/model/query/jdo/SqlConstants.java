@@ -187,6 +187,9 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
  	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
  	public static final String COL_MESSAGE_TO_USER_SENT       		= "SENT";
+ 	public static final String COL_MESSAGE_TO_USER_TO	     		= "TO";
+ 	public static final String COL_MESSAGE_TO_USER_CC       		= "CC";
+ 	public static final String COL_MESSAGE_TO_USER_BCC       		= "BCC";
  	public static final String COL_MESSAGE_NOTIFICATIONS_ENDPOINT   = "NOTIFICATIONS_ENDPOINT";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
@@ -347,6 +350,7 @@ public class SqlConstants {
 	
 	// This constraint ensure that children names are unique within their parent.
 	public static final String CONSTRAINT_UNIQUE_CHILD_NAME = "NODE_UNIQUE_CHILD_NAME";
+	public static final String CONSTRAINT_UNIQUE_ALIAS = "NODE_UNIQUE_ALIAS";
 	
 	// The ACTIVITY table
 	public static final String TABLE_ACTIVITY 					= "ACTIVITY";
@@ -415,6 +419,11 @@ public class SqlConstants {
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
 	public static final String COL_BOUND_OWNER_ETAG			= "ETAG";
+	
+	// Tracks the file handles associated with each table.
+	public static final String TABLE_TABLE_FILE_ASSOCIATION 	= "TABLE_FILE_ASSOCIATION";
+	public static final String COL_TABLE_FILE_ASSOC_TABLE_ID	= "TABLE_ID";
+	public static final String COL_TABLE_FILE_ASSOC_FILE_ID		= "FILE_ID";
 	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
@@ -686,6 +695,13 @@ public class SqlConstants {
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
 	private static final Map<String, String> primaryFieldColumns;
+	
+	/**
+	 * This is from the DB: SHOW VARIABLES LIKE 'max_allowed_packet';
+	 */
+	public static final int MAX_ALLOWED_PACKET_BYTES = 16777216;
+	public static final int MAX_BYTES_PER_LONG_AS_STRING = 20*2; // 20 chars at 2 bytes per char.;
+	public static final int MAX_LONGS_PER_IN_CLAUSE = MAX_ALLOWED_PACKET_BYTES/MAX_BYTES_PER_LONG_AS_STRING;
 
 	static{
 		// Map column names to the field names

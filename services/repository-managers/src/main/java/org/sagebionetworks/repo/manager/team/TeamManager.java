@@ -172,7 +172,7 @@ public interface TeamManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public AccessControlList updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 

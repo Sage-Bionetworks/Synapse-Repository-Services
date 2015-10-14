@@ -573,6 +573,24 @@ public class SynapseTest {
 		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
 	}
 	
+	@Test
+	public void testEndpointForTypeRepo(){
+		synapse.setRepositoryEndpoint("repo-endpoint");
+		assertEquals("repo-endpoint", synapse.getEndpointForType(RestEndpointType.repo));
+	}
+	
+	@Test
+	public void testEndpointForTypeAuth(){
+		synapse.setAuthEndpoint("auth-endpoint");
+		assertEquals("auth-endpoint", synapse.getEndpointForType(RestEndpointType.auth));
+	}
+	
+	@Test
+	public void testEndpointForTypeFile(){
+		synapse.setFileEndpoint("file-endpoint");
+		assertEquals("file-endpoint", synapse.getEndpointForType(RestEndpointType.file));
+	}
+	
 	/**
 	 * Used to check URLs for {@link #testBuildOpenIDUrl()}
 	 */
