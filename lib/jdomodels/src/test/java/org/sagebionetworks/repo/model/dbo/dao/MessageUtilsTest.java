@@ -160,6 +160,26 @@ public class MessageUtilsTest {
 		assertEquals(dto, dto2);
 	}
 	
+	@Test
+	public void testMessageInfoRoundTripWithNullSubject() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("123");
+		dto.setInReplyTo("456");
+		dto.setInReplyToRoot("789");
+		dto.setSubject(null);
+		dto.setNotificationUnsubscribeEndpoint("bar");
+		dto.setTo("foo@sb.com");
+		dto.setCc("bar@sb.com");
+		dto.setBcc("baz@sb.com");
+		
+		DBOMessageToUser info = new DBOMessageToUser();
+		MessageUtils.copyDTOToDBO(dto, info);
+
+		MessageToUser dto2 = new MessageToUser();
+		MessageUtils.copyDBOToDTO(info, dto2);
+		assertEquals(dto, dto2);
+	}
+	
 	@SuppressWarnings("serial")
 	@Test
 	public void testMessageRecipientRoundTrip() throws Exception {

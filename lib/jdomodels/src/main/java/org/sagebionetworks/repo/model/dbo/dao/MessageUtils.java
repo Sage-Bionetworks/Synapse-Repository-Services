@@ -83,10 +83,14 @@ public class MessageUtils {
 		bundle.setId(toString(info.getMessageId()));
 		bundle.setInReplyToRoot(toString(info.getRootMessageId()));
 		bundle.setInReplyTo(toString(info.getInReplyTo()));
-		try {
-			bundle.setSubject(new String(info.getSubjectBytes(), SUBJECT_CHARACTER_SET));
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+		if (info.getSubjectBytes()==null) {
+			bundle.setSubject(null);
+		} else {
+			try {
+				bundle.setSubject(new String(info.getSubjectBytes(), SUBJECT_CHARACTER_SET));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		bundle.setNotificationUnsubscribeEndpoint(info.getNotificationsEndpoint());
 		bundle.setTo(info.getTo());
@@ -216,10 +220,14 @@ public class MessageUtils {
 		info.setMessageId(parseLong(dto.getId()));
 		info.setRootMessageId(parseLong(dto.getInReplyToRoot()));
 		info.setInReplyTo(parseLong(dto.getInReplyTo()));
-		try {
-			info.setSubjectBytes(dto.getSubject().getBytes(SUBJECT_CHARACTER_SET));
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+		if (dto.getSubject()==null) {
+			info.setSubjectBytes(null);
+		} else {
+			try {
+				info.setSubjectBytes(dto.getSubject().getBytes(SUBJECT_CHARACTER_SET));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		info.setNotificationsEndpoint(dto.getNotificationUnsubscribeEndpoint());
 		info.setTo(dto.getTo());
