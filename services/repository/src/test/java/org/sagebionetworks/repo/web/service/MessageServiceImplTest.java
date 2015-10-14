@@ -36,7 +36,7 @@ public class MessageServiceImplTest {
 	}
 
 	@Test
-	public void testCreateCloudMailInMessage() {
+	public void testCreateCloudMailInMessage() throws Exception {
 		Message message = new Message();
 		String notificationUnsubscribeEndpoint = "https://www.synapse.org/#foo:";
 		MessageToUserAndBody mtub = new MessageToUserAndBody();

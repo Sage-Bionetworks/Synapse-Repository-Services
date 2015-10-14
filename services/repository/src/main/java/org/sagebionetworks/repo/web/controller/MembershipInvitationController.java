@@ -5,11 +5,14 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -55,6 +58,9 @@ public class MembershipInvitationController extends BaseController {
 
 	 * @return
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION, method = RequestMethod.POST)
@@ -64,7 +70,7 @@ public class MembershipInvitationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, required = false) String acceptInvitationEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipInvtnSubmission invitation
-			) throws NotFoundException {
+			) throws NotFoundException, UnauthorizedException, InvalidModelException, ServiceUnavailableException {
 		return serviceProvider.
 				getMembershipInvitationService().
 				create(userId, invitation, 

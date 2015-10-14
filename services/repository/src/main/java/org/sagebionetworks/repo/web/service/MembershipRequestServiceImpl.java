@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -52,7 +53,7 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 			MembershipRqstSubmission dto,
 			String acceptRequestEndpoint,
 			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
-			InvalidModelException, DatastoreException, NotFoundException {
+			InvalidModelException, DatastoreException, NotFoundException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
 		List<MessageToUserAndBody> messages = membershipRequestManager.

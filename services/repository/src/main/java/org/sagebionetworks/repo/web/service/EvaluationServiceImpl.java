@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -219,7 +220,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	@Override
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
-			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		// fetch EntityBundle to be serialized

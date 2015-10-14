@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -655,6 +656,7 @@ public class EvaluationController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
+	 * @throws ServiceUnavailableException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.SUBMISSION, method = RequestMethod.POST)
@@ -667,7 +669,7 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
+			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException, ServiceUnavailableException
 	{
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));

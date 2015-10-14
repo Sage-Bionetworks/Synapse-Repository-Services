@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MessageServiceImpl implements MessageService {
@@ -53,13 +54,13 @@ public class MessageServiceImpl implements MessageService {
 	
 	@Override
 	public MessageToUser create(Long userId, MessageToUser toCreate)
-			throws NotFoundException {
+			throws NotFoundException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return messageManager.createMessage(userInfo, toCreate);
 	}
 
 	@Override
-	public void create(Message toCreate, String notificationUnsubscribeEndpoint) {
+	public void create(Message toCreate, String notificationUnsubscribeEndpoint) throws NotFoundException, ServiceUnavailableException {
 		List<MessageToUserAndBody> mtubs = cloudMailInManager.convertMessage(toCreate, notificationUnsubscribeEndpoint);
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(mtubs.get(0).getMetadata().getCreatedBy()));
 		notificationManager.sendNotifications(userInfo, mtubs);
@@ -102,7 +103,7 @@ public class MessageServiceImpl implements MessageService {
 
 	@Override
 	public MessageToUser forwardMessage(Long userId, String messageId,
-			MessageRecipientSet recipients) throws NotFoundException {
+			MessageRecipientSet recipients) throws NotFoundException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return messageManager.forwardMessage(userInfo, messageId, recipients);
 	}
@@ -139,7 +140,7 @@ public class MessageServiceImpl implements MessageService {
 
 	@Override
 	public MessageToUser createMessageToEntityOwner(Long userId, String entityId,
-			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
+			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return messageManager.createMessageToEntityOwner(userInfo, entityId, toCreate);
 	}

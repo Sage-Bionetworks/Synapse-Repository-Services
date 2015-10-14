@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ProgressCallback;
 
 
@@ -43,8 +44,9 @@ public interface MessageManager {
 	 * </br>
 	 * This method also handles throttling of message creation 
 	 * and checks to see if file handles (message body) are accessible.  
+	 * @throws ServiceUnavailableException 
 	 */
-	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException, ServiceUnavailableException;
 
 	/**
 	 * Adds the creator of the given entity to the recipient list of the
@@ -52,16 +54,18 @@ public interface MessageManager {
 	 * can share the entity will be messaged instead.
 	 * 
 	 * Afterwards, calls {@link #createMessage(UserInfo, MessageToUser)}
+	 * @throws ServiceUnavailableException 
 	 */
 	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
 			String entityId, MessageToUser toCreate) throws NotFoundException,
-			ACLInheritanceException;
+			ACLInheritanceException, ServiceUnavailableException;
 
 	/**
 	 * Saves an existing message so that it can be delivered to the given set of recipients
+	 * @throws ServiceUnavailableException 
 	 */
 	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
-			MessageRecipientSet recipients) throws NotFoundException;
+			MessageRecipientSet recipients) throws NotFoundException, ServiceUnavailableException;
 	
 	/**
 	 * Retrieves all messages within the same conversation as the associated message.

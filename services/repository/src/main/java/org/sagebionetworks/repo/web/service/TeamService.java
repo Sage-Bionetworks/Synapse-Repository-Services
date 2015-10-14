@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 public interface TeamService {
 	/**
@@ -113,8 +114,9 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
 	 */
-	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException, ServiceUnavailableException;
 
 	/**
 	 * Add a member to a Team, based on a JoinedTeamSignedToken object
@@ -126,8 +128,10 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 * @throws NumberFormatException 
 	 */
-	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException, NumberFormatException, ServiceUnavailableException;
 	
 	/**
 	 * 

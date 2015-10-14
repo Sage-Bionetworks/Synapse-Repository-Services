@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -51,7 +52,7 @@ public class MembershipInvitationServiceImpl implements
 			MembershipInvtnSubmission dto,
 			String acceptInvitationEndpoint, 
 			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
-			InvalidModelException, NotFoundException {
+			InvalidModelException, NotFoundException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipInvtnSubmission created = membershipInvitationManager.create(userInfo, dto);
 		MessageToUserAndBody message = membershipInvitationManager.

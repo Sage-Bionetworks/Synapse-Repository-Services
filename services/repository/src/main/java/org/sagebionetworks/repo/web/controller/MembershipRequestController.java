@@ -2,11 +2,15 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -52,6 +56,10 @@ public class MembershipRequestController extends BaseController {
 	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
 	 * @return
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 * @throws DatastoreException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_REQUEST, method = RequestMethod.POST)
@@ -61,7 +69,7 @@ public class MembershipRequestController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.ACCEPT_REQUEST_ENDPOINT_PARAM, required = false) String acceptRequestEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipRqstSubmission request
-			) throws NotFoundException {
+			) throws NotFoundException, UnauthorizedException, InvalidModelException, DatastoreException, ServiceUnavailableException {
 		return serviceProvider.getMembershipRequestService().create(userId, request, acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 	}
 

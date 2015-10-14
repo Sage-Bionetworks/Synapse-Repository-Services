@@ -20,7 +20,9 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -252,6 +254,9 @@ public class TeamController extends BaseController {
 	 * A signed, serialized token is appended to create the complete URL: 
 	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID, method = RequestMethod.PUT)
@@ -261,7 +266,7 @@ public class TeamController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ENDPOINT_PARAM, required = false) String teamEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
-			) throws NotFoundException {
+			) throws NotFoundException, DatastoreException, UnauthorizedException, ServiceUnavailableException {
 		serviceProvider.getTeamService().addMember(userId, id, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
@@ -275,6 +280,10 @@ public class TeamController extends BaseController {
 	 * @param teamEndpoint
 	 * @param notificationUnsubscribeEndpoint
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NumberFormatException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_MEMBER, method = RequestMethod.PUT)
@@ -282,7 +291,7 @@ public class TeamController extends BaseController {
 			@RequestBody JoinTeamSignedToken joinTeamSignedToken,
 			@RequestParam(value = AuthorizationConstants.TEAM_ENDPOINT_PARAM, required = false) String teamEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
-			) throws NotFoundException {
+			) throws NotFoundException, NumberFormatException, DatastoreException, UnauthorizedException, ServiceUnavailableException {
 		return serviceProvider.getTeamService().
 				addMember(joinTeamSignedToken, teamEndpoint, 
 						notificationUnsubscribeEndpoint);

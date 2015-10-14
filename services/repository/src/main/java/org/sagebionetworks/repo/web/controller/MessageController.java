@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -87,13 +88,14 @@ public class MessageController extends BaseController {
 	 * nor the restriction that you can't message a Team with which you are unaffiliated,
 	 * apply if you are a member of the Trusted Message Senders Team.
 	 * </p>
+	 * @throws ServiceUnavailableException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE, method = RequestMethod.POST)
 	public @ResponseBody
 	MessageToUser createMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody MessageToUser toCreate) throws NotFoundException {
+			@RequestBody MessageToUser toCreate) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getMessageService().create(userId, toCreate);
 	}
 	
@@ -114,7 +116,7 @@ public class MessageController extends BaseController {
 			@RequestBody Message toCreate,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, 
 			required = false) String notificationUnsubscribeEndpoint
-			) throws NotFoundException {
+			) throws NotFoundException, ServiceUnavailableException {
 		serviceProvider.getMessageService().create(toCreate, notificationUnsubscribeEndpoint);
 	}
 	
@@ -207,6 +209,7 @@ public class MessageController extends BaseController {
 	/**
 	 * Forwards a message to the specified set of recipients.
 	 * The authenticated user must be either the sender or receiver of the forwarded message.  
+	 * @throws ServiceUnavailableException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FORWARD, method = RequestMethod.POST)
@@ -214,7 +217,7 @@ public class MessageController extends BaseController {
 	MessageToUser forwardMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String messageId, 
-			@RequestBody MessageRecipientSet recipients) throws NotFoundException {
+			@RequestBody MessageRecipientSet recipients) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getMessageService().forwardMessage(userId, messageId, recipients);
 	}
 	
@@ -292,6 +295,7 @@ public class MessageController extends BaseController {
 	 * Adds the owner of the given entity as an additional recipient of the message.
 	 * 
 	 * Afterwards, behavior is identical to <a href="${POST.message}">POST /message</a>
+	 * @throws ServiceUnavailableException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_MESSAGE, method = RequestMethod.POST)
@@ -299,7 +303,7 @@ public class MessageController extends BaseController {
 	MessageToUser sendMessageToEntityOwner(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
-			@RequestBody MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
+			@RequestBody MessageToUser toCreate) throws NotFoundException, ACLInheritanceException, ServiceUnavailableException {
 		return serviceProvider.getMessageService().createMessageToEntityOwner(userId, id, toCreate);
 	}
 }

@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -216,12 +217,12 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
-			NotFoundException {
+			NotFoundException, ServiceUnavailableException {
 		 addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	@Override
-	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException, NumberFormatException, ServiceUnavailableException {
 		SignedTokenUtil.validateToken(joinTeamToken);
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
@@ -244,7 +245,7 @@ public class TeamServiceImpl implements TeamService {
 	private boolean addMemberIntern(Long userId, String teamId, String principalId, 
 			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
-			NotFoundException {
+			NotFoundException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		// note:  this must be done _before_ adding the member, which cleans up the invitation information
