@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -49,6 +48,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -188,7 +188,7 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
-	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException, ServiceUnavailableException {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getId().toString());
 		
@@ -202,7 +202,7 @@ public class MessageManagerImpl implements MessageManager {
 			if (!userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,
 						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
-				throw new TooManyRequestsException(
+				throw new ServiceUnavailableException(
 						"Please slow down.  You may send a maximum of "
 								+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
 								+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
@@ -262,7 +262,7 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
-			String entityId, MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
+			String entityId, MessageToUser toCreate) throws NotFoundException, ACLInheritanceException, ServiceUnavailableException {
 		// No permission checks since we only need to find the IDs of the creator of the node
 		//   (or anyone with CHANGE_PERMISSIONS access)
 		Node entity = nodeDAO.getNode(entityId);
@@ -301,7 +301,7 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
-			MessageRecipientSet recipients) throws NotFoundException {
+			MessageRecipientSet recipients) throws NotFoundException, ServiceUnavailableException {
 		MessageToUser message = getMessage(userInfo, messageId);
 		message.setRecipients(recipients.getRecipients());
 		message.setInReplyTo(messageId);

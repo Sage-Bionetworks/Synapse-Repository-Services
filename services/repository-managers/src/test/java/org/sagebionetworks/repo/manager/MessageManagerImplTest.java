@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -317,8 +318,9 @@ public class MessageManagerImplTest {
 	
 	/**
 	 * Creates a message row
+	 * @throws ServiceUnavailableException 
 	 */
-	private MessageToUser createMessage(UserInfo userInfo, String subject, String fileHandleId, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException {
+	private MessageToUser createMessage(UserInfo userInfo, String subject, String fileHandleId, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException, ServiceUnavailableException {
 		assertNotNull(userInfo);
 		
 		MessageToUser dto = new MessageToUser();
@@ -348,8 +350,9 @@ public class MessageManagerImplTest {
 	
 	/**
 	 * Creates a message row
+	 * @throws ServiceUnavailableException 
 	 */
-	private MessageToUser createMessage(UserInfo userInfo, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException {
+	private MessageToUser createMessage(UserInfo userInfo, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException, ServiceUnavailableException {
 		return createMessage(userInfo, subject, fileHandleId, recipients, inReplyTo);
 	}
 		

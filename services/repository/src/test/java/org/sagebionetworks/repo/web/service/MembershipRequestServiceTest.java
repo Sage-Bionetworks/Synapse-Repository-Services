@@ -39,7 +39,7 @@ public class MembershipRequestServiceTest {
 	}
 
 	@Test
-	public void testCreate() {
+	public void testCreate() throws Exception {
 		Long userId = 111L;
 		UserInfo userInfo = new UserInfo(false); 
 		userInfo.setId(userId);

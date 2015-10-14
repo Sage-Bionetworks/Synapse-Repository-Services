@@ -13,13 +13,14 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 public interface MessageService {
 
 	public MessageToUser create(Long userId, MessageToUser toCreate)
-			throws NotFoundException;
+			throws NotFoundException, ServiceUnavailableException;
 
-	public void create(Message toCreate, String notificationUnsubscribeEndpoint);
+	public void create(Message toCreate, String notificationUnsubscribeEndpoint) throws NotFoundException, ServiceUnavailableException;
 	
 	public void authorize(AuthorizationCheckHeader ach);
 
@@ -36,7 +37,7 @@ public interface MessageService {
 			throws NotFoundException;
 
 	public MessageToUser forwardMessage(Long userId, String messageId,
-			MessageRecipientSet recipients) throws NotFoundException;
+			MessageRecipientSet recipients) throws NotFoundException, ServiceUnavailableException;
 
 	public PaginatedResults<MessageToUser> getConversation(Long userId,
 			String messageId, MessageSortBy sortBy, boolean descending,
@@ -52,6 +53,6 @@ public interface MessageService {
 	public String getMessageFileRedirectURL(Long userId, String messageId) throws NotFoundException;
 
 	public MessageToUser createMessageToEntityOwner(Long userId, String entityId,
-			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException;
+			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException, ServiceUnavailableException;
 
 }

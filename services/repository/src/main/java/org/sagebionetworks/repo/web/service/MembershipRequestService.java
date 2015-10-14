@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 public interface MembershipRequestService {
 	/**
@@ -18,11 +19,12 @@ public interface MembershipRequestService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws ServiceUnavailableException 
 	 */
 	public MembershipRqstSubmission create(Long userId,
 			MembershipRqstSubmission dto,
 			String acceptRequestEndpoint, 
-			String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
+			String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException, ServiceUnavailableException;
 	
 	/**
 	 * 

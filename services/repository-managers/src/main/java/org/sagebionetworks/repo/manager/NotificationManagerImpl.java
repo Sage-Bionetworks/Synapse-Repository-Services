@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class NotificationManagerImpl implements NotificationManager {
@@ -28,7 +29,7 @@ public class NotificationManagerImpl implements NotificationManager {
 	}
 
 	@Override
-	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages) throws NotFoundException {
+	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages) throws NotFoundException, ServiceUnavailableException {
 
 		for (MessageToUserAndBody message : messages) {
 			if (message.getMetadata().getRecipients().isEmpty()) continue;
