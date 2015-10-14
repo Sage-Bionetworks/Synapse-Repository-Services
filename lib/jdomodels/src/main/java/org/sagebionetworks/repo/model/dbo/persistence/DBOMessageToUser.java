@@ -24,7 +24,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		new FieldColumn(MESSAGE_ID_FIELD_NAME, SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
 		new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID), 
 		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
-		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
+		new FieldColumn("subjectBytes", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
 		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
 		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT),
 		new FieldColumn("to", SqlConstants.COL_MESSAGE_TO_USER_TO),
