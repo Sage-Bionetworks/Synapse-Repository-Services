@@ -251,6 +251,28 @@ public class TableModelUtils {
 			throw new IllegalArgumentException(
 					"RowSet.rows must contain at least one row.");
 	}
+	
+	/**
+	 * Validate that all rows have the expected version number
+	 * @param rows
+	 * @param versionNumber
+	 */
+	public static void validateRowVersions(final List<Row> rows, final Long versionNumber){
+		if(rows == null){
+			throw new IllegalArgumentException("Rows cannot be null");
+		}
+		if(rows.isEmpty()){
+			throw new IllegalArgumentException("Rows cannot be empty");
+		}
+		for(Row row: rows){
+			if(row.getVersionNumber() == null){
+				throw new IllegalArgumentException("Row.versionNumber cannot be null");
+			}
+			if(!row.getVersionNumber().equals(versionNumber)){
+				throw new IllegalArgumentException("Row.versionNumber does not match expected version: "+versionNumber);
+			}
+		}
+	}
 
 	/**
 	 * Validate a value
@@ -475,7 +497,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Row> readFromCSV(CsvNullReader reader, final Set<Long> rowsToGet) throws IOException {
+	public static List<Row> readFromCSV(CsvNullReader reader) throws IOException {
 		if (reader == null)
 			throw new IllegalArgumentException("CsvNullReader cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -484,10 +506,8 @@ public class TableModelUtils {
 
 			@Override
 			public void nextRow(Row row) {
-				if (rowsToGet.contains(row.getRowId())) {
-					// Add this to the rows
-					rows.add(row);
-				}
+				// Add this to the rows
+				rows.add(row);
 			}
 		});
 		return rows;
@@ -528,7 +548,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Row> readFromCSVgzStream(InputStream zippedStream, Set<Long> rowsToGet) throws IOException {
+	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
 		CsvNullReader csvReader = null;
@@ -536,7 +556,7 @@ public class TableModelUtils {
 			zipIn = new GZIPInputStream(zippedStream);
 			isr = new InputStreamReader(zipIn);
 			csvReader = new CsvNullReader(isr);
-			return readFromCSV(csvReader, rowsToGet);
+			return readFromCSV(csvReader);
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
