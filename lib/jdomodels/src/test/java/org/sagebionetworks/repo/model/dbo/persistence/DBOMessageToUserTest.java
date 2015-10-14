@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 
 public class DBOMessageToUserTest {
@@ -22,7 +21,6 @@ public class DBOMessageToUserTest {
 		backup.setRootMessageId(333L);
 		backup.setSent(true);
 		backup.setSubject("foo");
-		//backup.setSubjectBytes("bar".getBytes("utf-8"));
 		backup.setTo("to");
 		DBOMessageToUser dbo = TRANSLATOR.createDatabaseObjectFromBackup(backup);
 		assertEquals("bcc", dbo.getBcc());
