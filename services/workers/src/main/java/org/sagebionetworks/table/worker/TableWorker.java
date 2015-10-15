@@ -261,6 +261,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		long currentProgress = 0;
 		String lastEtag = null;
 		for(TableRowChange changeSet: changes){
+			progressCallback.progressMade(change);
 			currentProgress += changeSet.getRowCount();
 			lastEtag = changeSet.getEtag();
 			// Only apply changes sets not already applied to the index.

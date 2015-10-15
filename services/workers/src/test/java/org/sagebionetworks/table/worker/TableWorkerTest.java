@@ -60,6 +60,12 @@ public class TableWorkerTest {
 	TableWorker worker;
 	ChangeMessage one;
 	ChangeMessage two;
+	String tableId;
+	String resetToken;
+	TableStatus status;
+	List<ColumnModel> currentSchema;
+	RowSet rowSet1;
+	RowSet rowSet2;
 	
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception{
@@ -103,6 +109,33 @@ public class TableWorkerTest {
 		two.setObjectId("456");
 		two.setObjectType(ObjectType.ACTIVITY);
 		two.setObjectEtag("etag");
+		
+		
+		tableId = "456";
+		resetToken = "reset-token";
+		status = new TableStatus();
+		status.setResetToken(resetToken);
+		currentSchema = Lists.newArrayList();
+		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		TableRowChange trc1 = new TableRowChange();
+		trc1.setEtag("etag");
+		trc1.setRowVersion(0L);
+		trc1.setRowCount(12L);
+		TableRowChange trc2 = new TableRowChange();
+		trc2.setEtag("etag2");
+		trc2.setRowVersion(1L);
+		trc2.setRowCount(3L);
+		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
+		when(mockTableIndexManager.isVersionAppliedToIndex(anyLong())).thenReturn(false);
+		
+		rowSet1 = new RowSet();
+		rowSet1.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet1);
+		
+		rowSet2 = new RowSet();
+		rowSet2.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 1L, "3")));
+		when(mockTableRowManager.getRowSet(eq(tableId), eq(1L), any(ColumnMapper.class))).thenReturn(rowSet2);
 	}
 	
 	
@@ -162,24 +195,6 @@ public class TableWorkerTest {
 	 */
 	@Test
 	public void testHappyCase() throws Exception{
-		String tableId = "456";
-		String resetToken = "reset-token";
-		long versionNumber = 0;
-		TableStatus status = new TableStatus();
-		status.setResetToken(resetToken);
-		List<ColumnModel> currentSchema = Lists.newArrayList();
-		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
-		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
-//		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
-		when(mockTableIndexManager.isVersionAppliedToIndex(versionNumber)).thenReturn(false);
-		TableRowChange trc = new TableRowChange();
-		trc.setEtag("etag");
-		trc.setRowVersion(0L);
-		trc.setRowCount(12L);
-		when(mockTableRowManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
-		when(mockTableRowManager.getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class))).thenReturn(rowSet);
 		two.setObjectType(ObjectType.TABLE);
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
@@ -188,12 +203,33 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
-		verify(mockTableRowManager, times(3)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
+		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
+		verify(mockTableRowManager, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet, currentSchema, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet1, currentSchema, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
+		// Progress should be made for each result
+		verify(mockProgressCallback, times(2)).progressMade(two);
 	}
-
+	
+	@Test
+	public void testOneChangeAlreadyApplied() throws Exception{
+		two.setObjectType(ObjectType.TABLE);
+		two.setChangeType(ChangeType.UPDATE);
+		two.setObjectEtag(resetToken);
+		// For this case v0 is already applied to the index, while v1 is not.
+		when(mockTableIndexManager.isVersionAppliedToIndex(0L)).thenReturn(true);
+		when(mockTableIndexManager.isVersionAppliedToIndex(1L)).thenReturn(false);
+		// call under test
+		worker.run(mockProgressCallback, two);
+		
+		verify(mockTableRowManager, never()).getRowSet(eq(tableId), eq(0L), any(ColumnMapper.class));
+		verify(mockTableIndexManager).applyChangeSetToIndex(rowSet2, currentSchema, 1L);
+		
+		// Progress should be made for each change even if there is no work.
+		verify(mockProgressCallback, times(2)).progressMade(two);
+	}
+	
 	/**
 	 * When everything works well, the message should be removed from the queue and the table status should be set to
 	 * AVAILABLE.
