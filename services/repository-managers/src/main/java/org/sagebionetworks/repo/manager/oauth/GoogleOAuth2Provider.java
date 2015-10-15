@@ -68,7 +68,7 @@ public class GoogleOAuth2Provider implements OAuthAuthenticationProviderBinding,
 		.provider(Google2Api.class)
 		.apiKey(apiKey)
 		.apiSecret(apiSecret)
-		.scope(SCOPE_EMAIL)
+		.scope(SCOPE_EMAIL) // is this necessary? The scope is established during user authentication.
 		.callback(redirectUrl)
 		.build();
 	}

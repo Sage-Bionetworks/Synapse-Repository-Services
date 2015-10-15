@@ -10,16 +10,18 @@ import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
  * @author John
  *
  */
-public class OAuthLoginManagerImpl implements OAuthAuthenticationManager, OAuthLoginManager {
+public class OAuthManagerImpl implements OAuthManager {
 	
 	private Map<OAuthProvider, OAuthAuthenticationProviderBinding> authenticationProviderMap;
 	
 	private Map<OAuthProvider, OAuthLoginProviderBinding> loginProviderMap;
 	
+	private Map<OAuthProvider, OAuthIDAssociationProviderBinding> idAssociationProviderMap;
+	
 	/**
-	 * Injected.
+	 * Injected. TODO update Spring config from providerMap to loginProviderMap
 	 */
-	public void setProviderMap(Map<OAuthProvider, OAuthLoginProviderBinding> providerMap) {
+	public void setLoginProviderMap(Map<OAuthProvider, OAuthLoginProviderBinding> providerMap) {
 		this.loginProviderMap = providerMap;
 	}
 
@@ -52,6 +54,18 @@ public class OAuthLoginManagerImpl implements OAuthAuthenticationManager, OAuthL
 			throw new IllegalArgumentException("OAuthProvider cannot be null");
 		}
 		OAuthLoginProviderBinding binding = loginProviderMap.get(provider);
+		if(binding == null){
+			throw new IllegalArgumentException("Unknown provider: "+provider.name());
+		}
+		return binding;
+	}
+
+	@Override
+	public OAuthIDAssociationProviderBinding getIDAssociationProviderBinding(OAuthProvider provider){
+		if(provider == null){
+			throw new IllegalArgumentException("OAuthProvider cannot be null");
+		}
+		OAuthIDAssociationProviderBinding binding = idAssociationProviderMap.get(provider);
 		if(binding == null){
 			throw new IllegalArgumentException("Unknown provider: "+provider.name());
 		}

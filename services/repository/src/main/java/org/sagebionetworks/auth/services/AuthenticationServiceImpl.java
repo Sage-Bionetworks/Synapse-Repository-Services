@@ -8,7 +8,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OAuthAuthenticationManager;
+import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthLoginManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -41,7 +41,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
-	private OAuthAuthenticationManager oauthAuthenticationManager;
+	private OAuthManager oauthAuthenticationManager;
 	
 	@Autowired
 	private OAuthLoginManager oauthLoginManager;
@@ -55,7 +55,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			UserManager userManager, 
 			AuthenticationManager authManager, 
 			MessageManager messageManager, 
-			OAuthAuthenticationManager oauthAuthenticationManager,
+			OAuthManager oauthAuthenticationManager,
 			OAuthLoginManager oauthLoginManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;

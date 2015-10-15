@@ -42,7 +42,6 @@ public class OrcidOauth2Provider implements OAuthAuthenticationProviderBinding,
 		.provider(ORCID2Api.class)
 		.apiKey(apiKey)
 		.apiSecret(apiSecret)
-		.scope(SCOPE_AUTHENTICATE) // <<< is this necessary?  The scope is established in the first call and this is used in the second
 		.callback(redirectUrl)
 		.build();
 	}
