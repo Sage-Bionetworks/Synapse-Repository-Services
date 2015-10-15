@@ -102,11 +102,17 @@ public interface TableIndexDAO {
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
 
 	/**
-	 * Delete the status table for this table if it exists
+	 * Delete all of the secondary tables used for an index if they exist.
 	 * 
 	 * @param tableId
 	 */
-	public void deleteStatusTable(String tableId);
+	public void deleteSecondayTables(String tableId);
+	
+	/**
+	 * Create all of the secondary tables used for an index if they do not exist.
+	 * @param tableId
+	 */
+	public void createSecondaryTables(String tableId);
 	
 	/**
 	 * Get the connection

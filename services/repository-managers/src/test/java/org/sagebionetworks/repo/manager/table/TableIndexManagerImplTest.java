@@ -143,6 +143,7 @@ public class TableIndexManagerImplTest {
 		// The main table should be created or updated.
 		verify(mockIndexDao).createOrUpdateTable(schema, tableId);
 		verify(mockIndexDao, never()).deleteTable(tableId);
+		verify(mockIndexDao).createSecondaryTables(tableId);
 	}
 	
 	@Test
@@ -154,6 +155,8 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).createOrUpdateTable(anyList(), anyString());
 		// The main table should be deleted.
 		verify(mockIndexDao).deleteTable(tableId);
+		// The status tables should be created even if the schema is empty
+		verify(mockIndexDao).createSecondaryTables(tableId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -191,7 +194,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testDeleteTableIndex(){
 		manager.deleteTableIndex();
-		verify(mockIndexDao).deleteStatusTable(tableId);
+		verify(mockIndexDao).deleteSecondayTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
 	

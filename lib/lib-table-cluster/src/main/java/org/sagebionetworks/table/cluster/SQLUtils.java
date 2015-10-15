@@ -1,8 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,6 +30,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -71,7 +72,11 @@ public class SQLUtils {
 		/**
 		 * the current row table that holds the current versions for each row in a table
 		 */
-		CURRENT_ROW("CR");
+		CURRENT_ROW("CR"),
+		/**
+		 * Table tracking filehandles bound to a given table.
+		 */
+		FILE_IDS("F");
 
 		private final String tablePostFix;
 		private final Pattern tableNamePattern;
@@ -89,6 +94,11 @@ public class SQLUtils {
 			return tableNamePattern;
 		}
 	}
+	
+	/**
+	 * Secondary tables are additional tables used to support a table's index.
+	 */
+	public static final List<TableType> SECONDARY_TYPES = ImmutableList.of(TableType.STATUS, TableType.FILE_IDS);
 	
 	/**
 	 * Generate the SQL need to create or alter a table from one schema to
@@ -179,6 +189,9 @@ public class SQLUtils {
 			columnDefinitions.append(ROW_ID).append(" bigint(20) NOT NULL PRIMARY KEY, ");
 			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
 			columnDefinitions.append("INDEX `" + getTableNameForId(tableId, type) + "_VERSION_INDEX` (" + ROW_VERSION + ") ");
+			break;
+		case FILE_IDS:
+			columnDefinitions.append(FILE_ID).append(" bigint(20) NOT NULL PRIMARY KEY");
 			break;
 		default:
 			throw new IllegalArgumentException("Cannot handle type " + type);

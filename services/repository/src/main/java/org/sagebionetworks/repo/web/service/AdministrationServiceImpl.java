@@ -287,7 +287,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 		if (indexDao != null) {
 			indexDao.deleteTable(tableId);
-			indexDao.deleteStatusTable(tableId);
+			indexDao.deleteSecondayTables(tableId);
 		}
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
 		TableEntity tableEntity = entityManager.getEntity(userInfo, tableId, TableEntity.class);

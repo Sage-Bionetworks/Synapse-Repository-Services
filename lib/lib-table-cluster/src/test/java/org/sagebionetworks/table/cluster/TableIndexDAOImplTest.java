@@ -80,7 +80,7 @@ public class TableIndexDAOImplTest {
 		// Drop the table
 		if(tableId != null && tableIndexDAO != null){
 			tableIndexDAO.deleteTable(tableId);
-			tableIndexDAO.deleteStatusTable(tableId);
+			tableIndexDAO.deleteSecondayTables(tableId);
 		}
 	}
 	
@@ -216,6 +216,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetMaxVersionForTable(){
+		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L
 		Long maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(-1L, maxVersion.longValue());
@@ -231,9 +232,7 @@ public class TableIndexDAOImplTest {
 		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(4L, maxVersion.longValue());
 
-		tableIndexDAO.deleteStatusTable(tableId);
-		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
-		assertEquals(-1L, maxVersion.longValue());
+		tableIndexDAO.deleteSecondayTables(tableId);
 	}
 	
 	@Test
