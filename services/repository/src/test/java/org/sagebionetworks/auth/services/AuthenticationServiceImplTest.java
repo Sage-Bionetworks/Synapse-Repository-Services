@@ -12,7 +12,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OAuthLoginManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -34,7 +34,7 @@ public class AuthenticationServiceImplTest {
 	private UserManager mockUserManager;
 	private AuthenticationManager mockAuthenticationManager;
 	private MessageManager mockMessageManager;
-	private OAuthManager mockOAuthManager;
+	private OAuthLoginManager mockOAuthManager;
 	
 	private LoginCredentials credential;
 	private UserInfo userInfo;
@@ -54,7 +54,7 @@ public class AuthenticationServiceImplTest {
 		userInfo.setId(userId);
 		
 		mockUserManager = Mockito.mock(UserManager.class);
-		mockOAuthManager = Mockito.mock(OAuthManager.class);
+		mockOAuthManager = Mockito.mock(OAuthLoginManager.class);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
 		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		

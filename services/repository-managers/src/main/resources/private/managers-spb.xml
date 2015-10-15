@@ -49,6 +49,9 @@
 				<entry
 					key="GOOGLE_OAUTH_2_0"
 					value-ref="googleOAuth2Provider" />
+				<entry
+					key="ORCID"
+					value-ref="orcidOAuth2Provider" />
 			</map>
 		</property>
 

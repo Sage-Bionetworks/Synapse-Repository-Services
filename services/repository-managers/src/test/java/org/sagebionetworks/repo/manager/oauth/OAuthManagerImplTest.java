@@ -14,11 +14,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class OAuthManagerImplTest {
 
 	@Autowired
-	private OAuthManager oAuthManager;
+	private OAuthLoginManager oAuthManager;
 	
 	@Test
 	public void testGoogleBinding(){
-		OAuthProviderBinding binding = oAuthManager.getBinding(OAuthProvider.GOOGLE_OAUTH_2_0);
+		OAuthLoginProviderBinding binding = oAuthManager.getAuthenticationProviderBinding(OAuthProvider.GOOGLE_OAUTH_2_0);
 		assertNotNull(binding);
 		assertNotNull(binding.getAuthorizationUrl("redirectUrl"));
 	}

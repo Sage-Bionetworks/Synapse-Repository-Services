@@ -1,0 +1,10 @@
+{
+    "title":"ORCID",
+    "description":"ID from ORCID",
+	"properties": {
+		"orcid": {
+			"type": "string",
+			"description": "ID from ORCID."
+		}
+	}
+}

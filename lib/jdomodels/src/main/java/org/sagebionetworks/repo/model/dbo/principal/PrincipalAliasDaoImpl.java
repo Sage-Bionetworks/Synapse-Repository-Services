@@ -75,7 +75,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	@WriteTransaction
 	@Override
 	public PrincipalAlias bindAliasToPrincipal(PrincipalAlias dto) throws NotFoundException {
-		if(dto == null) throw new IllegalArgumentException("PrincipalAlais cannot be null");
+		if(dto == null) throw new IllegalArgumentException("PrincipalAlias cannot be null");
 		if(dto.getAlias() == null) throw new IllegalArgumentException("Alias cannot be null");
 		try {
 			// A 'SELECT FOR UPDATE' is used to prevent race conditions.  Some alias types

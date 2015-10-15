@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 
+
 /**
  * An abstraction for a single OAuthProvider. An implementation of this
  * interface will be needed for each third party OAuth provider that we support.
@@ -9,7 +10,7 @@ import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
  * @author John
  * 
  */
-public interface OAuthProviderBinding {
+public interface OAuthIDAssociationProviderBinding {
 
 	/**
 	 * The first step in OAuth authentication involves sending the user to
@@ -29,19 +30,14 @@ public interface OAuthProviderBinding {
 	 * @return The url to the OAuthProvider's authentication web page.
 	 */
 	public String getAuthorizationUrl(String redirectUrl);
-
+	
 	/**
-	 * After a user has been authenticated at an OAuthProvider's web page, the
-	 * provider will redirect the browser to the provided redirectUrl. The
-	 * provider will add a query parameter to the redirectUrl called "code" that
-	 * represent the authorization code for the user. This method will use the
-	 * authorization code to validate the user and fetch information about the
-	 * user from the OAuthProvider.
 	 * 
 	 * @param authorizationCode
-	 *            The value of the "code" query parameter included with the
-	 *            redirectUrl.
-	 * @return Information about the user provided by the OAuthProvider.
+	 * @param redirectUrl
+	 * @return The user's ID in the provider's system
 	 */
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
+	public String associateProvidersId(String authorizationCode, String redirectUrl);
+
+
 }
