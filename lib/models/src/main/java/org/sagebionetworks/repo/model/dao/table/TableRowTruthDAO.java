@@ -83,7 +83,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet, ColumnModelMapper schema) throws IOException,
+	public RowSet getRowSet(String tableId, long rowVersion, ColumnModelMapper schema) throws IOException,
 			NotFoundException;
 	
 	/**

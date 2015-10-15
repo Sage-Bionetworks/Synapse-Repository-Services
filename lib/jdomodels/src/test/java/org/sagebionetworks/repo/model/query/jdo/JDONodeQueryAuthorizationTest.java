@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -428,7 +429,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesToDelete.add(id);
 		projectA = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser, new Date());
 		// Make sure group A can read from this node
 		ResourceAccess access = new ResourceAccess();
 		access.setPrincipalId(Long.parseLong(groupA.getId()));
@@ -444,7 +445,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		toUpdate.add(id);
 		projectB = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser);
+		acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser, new Date());
 		// Make sure group B can read from this node
 		access = new ResourceAccess();
 		access.setPrincipalId(Long.parseLong(groupB.getId()));

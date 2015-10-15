@@ -9,12 +9,16 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
@@ -27,6 +31,8 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class ChallengeManagerImplTest {
@@ -36,6 +42,7 @@ public class ChallengeManagerImplTest {
 	private ChallengeDAO mockChallengeDAO;
 	private ChallengeTeamDAO mockChallengeTeamDAO;
 	private TeamDAO mockTeamDAO;
+	private AccessControlListDAO mockAclDAO;
 	
 	private static final String PROJECT_ID="syn123456";
 	private static final String PARTICIPANT_TEAM_ID="987654321";
@@ -58,14 +65,17 @@ public class ChallengeManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		USER_INFO.setId(USER_PRINCIPAL_ID);
+		USER_INFO.setGroups(Collections.singleton(USER_PRINCIPAL_ID));
 		ADMIN_USER.setId(ADMIN_PRINCIPAL_ID);
+		ADMIN_USER.setGroups(Collections.singleton(ADMIN_PRINCIPAL_ID));
 		mockChallengeDAO = Mockito.mock(ChallengeDAO.class);
 		mockChallengeTeamDAO = Mockito.mock(ChallengeTeamDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
+		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 		challengeManager = new ChallengeManagerImpl(
 				mockChallengeDAO, mockChallengeTeamDAO, 
-				mockAuthorizationManager, mockTeamDAO);
+				mockAuthorizationManager, mockTeamDAO, mockAclDAO);
 	}
 
 	@Test
@@ -286,7 +296,7 @@ public class ChallengeManagerImplTest {
 	@Test
 	public void testCanCUDChallengeTeam_Admin() throws Exception {
 		// admin is always authorized
-		assertTrue(challengeManager.canCreateUpdateOrDeleteChallengeTeam(ADMIN_USER, null).getAuthorized());
+		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(ADMIN_USER, null).getAuthorized());
 	}
 	
 	@Test
@@ -297,10 +307,14 @@ public class ChallengeManagerImplTest {
 		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
 		TeamMember participantTeamMember = new TeamMember();
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
+		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_INFO, 
+						ModelConstants.TEAM_ADMIN_PERMISSIONS,
+						new Date());
+		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		TeamMember registeredTeamMember = new TeamMember();
 		registeredTeamMember.setIsAdmin(true);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
-		assertTrue(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 	}
 	
 	@Test
@@ -315,7 +329,7 @@ public class ChallengeManagerImplTest {
 
 		// if you are not in the challenge then you are not authorized
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
-		assertFalse(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 	}
 	
 	@Test
@@ -325,11 +339,15 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
 		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
 
-		// if you are not in the team you are trying to register then you are not authorized
+		// if youlack admin control of the team you are trying to register then you are not authorized
 		TeamMember participantTeamMember = new TeamMember();
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
-		assertFalse(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, ADMIN_USER, 
+				ModelConstants.TEAM_ADMIN_PERMISSIONS,
+				new Date());
+		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 		
 	}
 
@@ -345,7 +363,11 @@ public class ChallengeManagerImplTest {
 		// if you are in the team but not an admin, you are not authorized
 		registeredTeamMember.setIsAdmin(false);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
-		assertFalse(challengeManager.canCreateUpdateOrDeleteChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_INFO, 
+				ModelConstants.TEAM_MESSENGER_PERMISSIONS,
+				new Date());
+		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
 	}
 	
 	@Test

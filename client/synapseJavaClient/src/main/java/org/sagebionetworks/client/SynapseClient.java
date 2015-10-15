@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -109,7 +108,6 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -1639,22 +1637,37 @@ public interface SynapseClient extends BaseClient {
 	void removeTeamMember(String teamId, String memberId) throws SynapseException;
 	
 	/**
-	 * 
 	 * @param teamId
 	 * @param memberId
 	 * @param isAdmin
 	 * @throws SynapseException
 	 */
 	void setTeamMemberPermissions(String teamId, String memberId, boolean isAdmin) throws SynapseException;
-	
+
 	/**
-	 * 
+	 * Get the membership status of the given member (principalId) in the given Team
 	 * @param teamId
 	 * @param principalId
 	 * @return
 	 * @throws SynapseException
 	 */
 	TeamMembershipStatus getTeamMembershipStatus(String teamId, String principalId) throws SynapseException;
+	
+	/**
+	 * Get the ACL for the given Team
+	 * @param teamId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList getTeamACL(String teamId) throws SynapseException;
+	
+	/**
+	 * Update the ACL for the given Team
+	 * @param acl
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException;
 
 	/**
 	 * 

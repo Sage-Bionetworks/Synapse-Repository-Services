@@ -144,7 +144,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			String parentBenefactor = nodeInheritanceManager.getBenefactor(newNode.getParentId());
 			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
 		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
-			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo);
+			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
 			aclDAO.create(rootAcl, ObjectType.ENTITY);
 			// This node is its own benefactor
 			nodeInheritanceManager.addBeneficiary(id, id);
@@ -381,7 +381,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
 				if (newAcl) {
-					AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeInUpdate, userInfo);
+					AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeInUpdate, userInfo, new Date());
 					aclDAO.create(acl, ObjectType.ENTITY);
 					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
 				} else {

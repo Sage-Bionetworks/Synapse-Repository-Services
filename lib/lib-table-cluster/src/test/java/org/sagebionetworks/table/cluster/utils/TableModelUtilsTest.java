@@ -656,7 +656,7 @@ public class TableModelUtilsTest {
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
 		CsvNullReader csvReader = new CsvNullReader(reader);
-		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
+		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -667,7 +667,7 @@ public class TableModelUtilsTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
+		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -1062,4 +1062,63 @@ public class TableModelUtilsTest {
 		Set<String> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
 		assertEquals(expected, results);
  	}
+	
+	@Test
+	public void testValidateRowVersionsHappy(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsNoMatch(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, 98L, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, null, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsEmpty(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsListNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = null;
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionNull(){
+		Long versionNumber = null;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionPassedNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, null);
+	}
 }

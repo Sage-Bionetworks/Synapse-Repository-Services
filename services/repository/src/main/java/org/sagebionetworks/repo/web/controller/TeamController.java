@@ -9,6 +9,7 @@ import java.util.Collections;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
@@ -19,7 +20,6 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -297,6 +297,7 @@ public class TeamController extends BaseController {
 	 * @param userId
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID_PERMISSION, method = RequestMethod.PUT)
 	public void setTeamAdmin(
@@ -415,5 +416,42 @@ public class TeamController extends BaseController {
 			) throws NotFoundException {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
 	}	
+	
+	/**
+	 * Retrieve the AccessControlList for a specified Team.
+	 * 
+	 * @param userId
+	 * @param id the ID of the Team of interest
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_ACL, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessControlList getTeamACL(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) throws NotFoundException {
+		return serviceProvider.getTeamService().getAccessControlList(userId, id);
+	}
+	
+	/**
+	 * Update the Access Control List for the specified Team.  
+	 * @param userId
+	 * @param acl the updated Access Control List
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ACL, method = RequestMethod.PUT)
+	public @ResponseBody
+	AccessControlList updateTeamACL(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessControlList acl
+			) throws NotFoundException {
+		return serviceProvider.getTeamService().updateAccessControlList(userId, acl);
+	}
+	
+
 	
 }

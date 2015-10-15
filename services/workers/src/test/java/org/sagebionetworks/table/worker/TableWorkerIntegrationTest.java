@@ -7,9 +7,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -22,7 +19,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -271,9 +267,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag should also match the rereferenceSet.etag", referenceSet.getEtag(), queryResult.getQueryResults().getEtag());
 
 		@SuppressWarnings("unchecked")
-		Set<Long> all = mock(Set.class);
-		when(all.contains(any())).thenReturn(true);
-		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(), all,
+		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
 				TableModelUtils.createColumnModelColumnMapper(schema, false));
 		assertEquals(expectedRowSet, queryResult.getQueryResults());
 	}
@@ -788,10 +782,7 @@ public class TableWorkerIntegrationTest {
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(16, queryResult.getQueryResults().getRows().size());
 
-		@SuppressWarnings("unchecked")
-		Set<Long> all = mock(Set.class);
-		when(all.contains(any())).thenReturn(true);
-		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(), all,
+		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(),
 				TableModelUtils.createColumnModelColumnMapper(schema, false));
 
 		// apply updates to expected and actual
@@ -1152,78 +1143,6 @@ public class TableWorkerIntegrationTest {
 		assertEquals("TableId: " + tableId, 2, queryResult.getQueryResults().getRows().size());
 		assertEquals("updatestring333", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("updatestring555", queryResult.getQueryResults().getRows().get(1).getValues().get(0));
-	}
-
-	@Test
-	public void testBreakAndFixRoundTrip() throws Exception {
-		schema = new LinkedList<ColumnModel>();
-		ColumnModel cm = new ColumnModel();
-		cm.setColumnType(ColumnType.INTEGER);
-		cm.setName("col1");
-		cm = columnManager.createColumnModel(adminUserInfo, cm);
-		schema.add(cm);
-
-		List<Long> headers = TableModelUtils.getIds(schema);
-		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(Lists.transform(headers, TableModelUtils.LONG_TO_STRING));
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		columnManager.bindColumnToObject(adminUserInfo, Lists.transform(headers, TableModelUtils.LONG_TO_STRING), tableId, true);
-
-		// Now add valid data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "123")));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
-		rowSet.setTableId(tableId);
-
-		// cheat by passing in a different column model that will allow us to insert an invalid value
-		List<ColumnModel> invalidSchema = new LinkedList<ColumnModel>();
-		ColumnModel cheatingColumnModel = new ColumnModel();
-		cheatingColumnModel.setColumnType(ColumnType.STRING);
-		cheatingColumnModel.setMaximumSize(100L);
-		cheatingColumnModel.setName("col1");
-		cheatingColumnModel.setId(cm.getId());
-		invalidSchema.add(cheatingColumnModel);
-
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
-				rowSet, mockPprogressCallback);
-
-		String sql = "select * from " + tableId;
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
-		assertEquals("TableId: " + tableId, 1, queryResult.getQueryResults().getRows().size());
-
-		// Now add invalid data using the invalid schema
-		rowSet = new RowSet();
-		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, Long.toString(Long.MAX_VALUE) + "234")));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
-		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId,
-				TableModelUtils.createColumnModelColumnMapper(invalidSchema, false),
-				rowSet, mockPprogressCallback);
-
-		waitForConsistentQueryError(adminUserInfo, sql);
-		try {
-			// should fail immediately
-			tableRowManager.query(adminUserInfo, sql, null, 0L, 100L, true, false, true);
-			fail("should not have succeeded");
-		} catch (TableFailedException e) {
-			assertNotNull(e.getStatus().getErrorMessage());
-		}
-
-		// Now fix the error
-		rowSet = new RowSet();
-		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(referenceSet.getRows().get(0).getRowId(),
-				referenceSet.getRows().get(0).getVersionNumber(), "456")));
-		rowSet.setHeaders(TableModelUtils.createColumnModelColumnMapper(schema, false).getSelectColumns());
-		rowSet.setTableId(tableId);
-		rowSet.setEtag(referenceSet.getEtag());
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, TableModelUtils.createColumnModelColumnMapper(schema, false),
-				rowSet, mockPprogressCallback);
-
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
-		assertEquals("TableId: " + tableId, 2, queryResult.getQueryResults().getRows().size());
 	}
 
 	@Test

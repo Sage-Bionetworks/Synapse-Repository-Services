@@ -469,9 +469,9 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet, ColumnMapper columnMapper) throws IOException,
+	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper columnMapper) throws IOException,
 			NotFoundException {
-		return tableRowTruthDao.getRowSet(tableId, rowVersion, rowsToGet, columnMapper);
+		return tableRowTruthDao.getRowSet(tableId, rowVersion, columnMapper);
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -120,6 +121,13 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public <T> T executeInReadTransaction(TransactionCallback<T> callable);
+	
+	/**
+	 * Run the passed callable within a write transaction.
+	 * @param callable
+	 * @return
+	 */
+	public <T> T executeInWriteTransaction(TransactionCallback<T> callable);
 
 	/**
 	 * add indexes to all columns in table
@@ -136,4 +144,13 @@ public interface TableIndexDAO {
 	public void removeIndexes(String tableId);
 
 	public void addIndex(String tableId, ColumnModel columnModel);
+
+	/**
+	 * Apply the passed set of file handle Ids to the given table index.
+	 * 
+	 * @param tableId
+	 * @param fileHandleIds
+	 */
+	public void applyFileHandleIdsToTable(String tableId,
+			Set<String> fileHandleIds);
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
@@ -16,6 +17,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeUtility;
 
 import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
@@ -138,9 +140,9 @@ public class SendRawEmailRequestBuilder {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
 			MimeMessage msg = new MimeMessage(mailSession);
-			msg.setFrom(new InternetAddress(EmailUtils.createSource(senderDisplayName, senderUserName)));
+			msg.setFrom(new InternetAddress(source));
 			msg.setRecipient( Message.RecipientType.TO, new InternetAddress(recipientEmail));
-			if (subject!=null) msg.setSubject(subject);
+			if (subject!=null) msg.setSubject(subject); // note: setSubject will encode non-ascii characters for us
 			if (to!=null) msg.setRecipients(RecipientType.TO, to);
 			if (cc!=null) msg.setRecipients(RecipientType.CC, cc);
 			if (bcc!=null) msg.setRecipients(RecipientType.BCC, bcc);
@@ -163,7 +165,7 @@ public class SendRawEmailRequestBuilder {
 
 		return request;
 	}
-
+	
 	public static MimeMultipart createEmailBodyFromJSON(String messageBodyString, String unsubscribeLink) {
 		try {
 			MessageBody messageBody = null;
