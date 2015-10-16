@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.oauth;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.scribe.builder.ServiceBuilder;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
@@ -10,8 +11,7 @@ import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 
-public class OrcidOauth2Provider implements OAuthAuthenticationProviderBinding,
-		OAuthIDProviderBinding {
+public class OrcidOauth2Provider implements OAuthProviderBinding {
 
 	/*
 	 * "/authenticate scope indicates to ORCID that we just want to request the user's ORCID ID
@@ -89,6 +89,13 @@ public class OrcidOauth2Provider implements OAuthAuthenticationProviderBinding,
 		} catch (JSONException e) {
 			throw new UnauthorizedException(e);
 		}
+	}
+
+
+	@Override
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode,
+			String redirectUrl) {
+		throw new UnsupportedOperationException();
 	}
 
 

@@ -324,10 +324,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if(userManager.countPrincipalAliases(userId, aliasType)>0) 
 			throw new ForbiddenException("Your account already has an associated ID of type "+aliasType);
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		// call authManager.associateIdWithUser() with type=ORCID (rename to fetch, not bind)
-		String externalId = null; 
+		String providersUserId = oauthManager.retrieveProvidersId(
+				validationRequest.getProvider(), 
+				validationRequest.getAuthenticationCode(), 
+				validationRequest.getRedirectUrl());
 		// now bind the ID to the user account
-		userManager.bindAlias(externalId, aliasType, userId);
-		return null;
+		userManager.bindAlias(providersUserId, aliasType, userId);
+		return providersUserId;
 	}
 }

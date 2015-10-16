@@ -55,22 +55,8 @@ public interface OAuthManager {
 	 * @param provider
 	 * @return
 	 */
-	public OAuthAuthenticationProviderBinding getAuthenticationProviderBinding(OAuthProvider provider);
+	public OAuthProviderBinding getProviderBinding(OAuthProvider provider);
 	
-	/**
-	 * Get the binding for a provider.
-	 * @param provider
-	 * @return
-	 */
-	public OAuthLoginProviderBinding getLoginProviderBinding(OAuthProvider provider);
-
-	/**
-	 * Get the binding for a provider.
-	 * @param provider
-	 * @return
-	 */
-	public OAuthIDProviderBinding getIDProviderBinding(OAuthProvider provider);
-
 	/**
 	 * Retrieve the unique ID for the user defined by the provider
 	 * 

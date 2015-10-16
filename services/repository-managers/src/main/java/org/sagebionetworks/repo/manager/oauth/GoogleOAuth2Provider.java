@@ -24,7 +24,7 @@ import org.scribe.oauth.OAuthService;
  * @author John
  * 
  */
-public class GoogleOAuth2Provider implements OAuthAuthenticationProviderBinding, OAuthLoginProviderBinding {
+public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	private static final String MESSAGE = " Message: ";
 	private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
@@ -134,6 +134,12 @@ public class GoogleOAuth2Provider implements OAuthAuthenticationProviderBinding,
 		} catch (JSONException e) {
 			throw new UnauthorizedException(e);
 		}
+	}
+
+	@Override
+	public String retrieveProvidersId(String authorizationCode,
+			String redirectUrl) {
+		throw new UnsupportedOperationException();
 	}
 
 }
