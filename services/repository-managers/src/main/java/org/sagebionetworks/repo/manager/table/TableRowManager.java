@@ -160,7 +160,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet, ColumnMapper schema)
+	public RowSet getRowSet(String tableId, Long rowVersion, ColumnMapper schema)
 			throws IOException, NotFoundException;
 
 	/**

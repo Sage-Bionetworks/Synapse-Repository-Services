@@ -20,7 +20,7 @@ import java.util.concurrent.Future;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.aws.utils.s3.ObjectCSVReader;
+import org.sagebionetworks.csv.utils.ObjectCSVReader;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.tool.progress.BasicProgress;

@@ -275,6 +275,9 @@
        	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
     </bean>
     
+    <bean id="tableIndexConnectionFactory" class="org.sagebionetworks.repo.manager.table.TableIndexConnectionFactoryImpl" scope="singleton" >
+    </bean>
+    
     <bean id="asynchJobQueuePublisher" class="org.sagebionetworks.repo.manager.asynch.AsynchJobQueuePublisherImpl"
         init-method="initialize" scope="singleton" >
     </bean>

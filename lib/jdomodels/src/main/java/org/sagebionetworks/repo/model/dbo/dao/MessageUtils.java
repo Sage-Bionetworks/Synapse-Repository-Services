@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,6 +74,7 @@ public class MessageUtils {
 		}
 	}
 	
+	private static final String SUBJECT_CHARACTER_SET = "UTF-8";
 	/**
 	 * Copies message information 
 	 * Note: DBOMessageToUser contains a subset of the fields of MessageToUser
@@ -81,7 +83,15 @@ public class MessageUtils {
 		bundle.setId(toString(info.getMessageId()));
 		bundle.setInReplyToRoot(toString(info.getRootMessageId()));
 		bundle.setInReplyTo(toString(info.getInReplyTo()));
-		bundle.setSubject(info.getSubject());
+		if (info.getSubjectBytes()==null) {
+			bundle.setSubject(null);
+		} else {
+			try {
+				bundle.setSubject(new String(info.getSubjectBytes(), SUBJECT_CHARACTER_SET));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		bundle.setNotificationUnsubscribeEndpoint(info.getNotificationsEndpoint());
 		bundle.setTo(info.getTo());
 		bundle.setCc(info.getCc());
@@ -210,7 +220,15 @@ public class MessageUtils {
 		info.setMessageId(parseLong(dto.getId()));
 		info.setRootMessageId(parseLong(dto.getInReplyToRoot()));
 		info.setInReplyTo(parseLong(dto.getInReplyTo()));
-		info.setSubject(dto.getSubject());
+		if (dto.getSubject()==null) {
+			info.setSubjectBytes(null);
+		} else {
+			try {
+				info.setSubjectBytes(dto.getSubject().getBytes(SUBJECT_CHARACTER_SET));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		info.setNotificationsEndpoint(dto.getNotificationUnsubscribeEndpoint());
 		info.setTo(dto.getTo());
 		info.setCc(dto.getCc());
