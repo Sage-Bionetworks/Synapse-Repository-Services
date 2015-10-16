@@ -203,11 +203,6 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
-		
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>app-services</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
