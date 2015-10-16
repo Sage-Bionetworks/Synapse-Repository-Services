@@ -50,7 +50,6 @@ public interface OAuthManager {
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
 			String authorizationCode, String redirectUrl);
 	
-	
 	/**
 	 * Get the binding for a provider.
 	 * @param provider
@@ -70,7 +69,18 @@ public interface OAuthManager {
 	 * @param provider
 	 * @return
 	 */
-	public OAuthIDAssociationProviderBinding getIDAssociationProviderBinding(OAuthProvider provider);
+	public OAuthIDProviderBinding getIDProviderBinding(OAuthProvider provider);
+
+	/**
+	 * Retrieve the unique ID for the user defined by the provider
+	 * 
+	 * @param provider
+	 * @param authorizationCode
+	 * @param redirectUrl
+	 * @return
+	 */
+	String retrieveProvidersId(OAuthProvider provider,
+			String authorizationCode, String redirectUrl);
 
 
 }

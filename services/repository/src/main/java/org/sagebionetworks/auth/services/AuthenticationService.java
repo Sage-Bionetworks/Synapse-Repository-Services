@@ -121,4 +121,6 @@ public interface AuthenticationService {
 
 	public Session validateOAuthAuthenticationCode(
 			OAuthValidationRequest request) throws NotFoundException;
+
+	String bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 }

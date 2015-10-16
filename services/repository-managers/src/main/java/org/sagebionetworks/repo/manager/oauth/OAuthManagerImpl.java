@@ -16,7 +16,7 @@ public class OAuthManagerImpl implements OAuthManager {
 	
 	private Map<OAuthProvider, OAuthLoginProviderBinding> loginProviderMap;
 	
-	private Map<OAuthProvider, OAuthIDAssociationProviderBinding> idAssociationProviderMap;
+	private Map<OAuthProvider, OAuthIDProviderBinding> idAssociationProviderMap;
 	
 	/**
 	 * Injected. TODO update Spring config from providerMap to loginProviderMap
@@ -34,6 +34,12 @@ public class OAuthManagerImpl implements OAuthManager {
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
 			String authorizationCode, String redirectUrl) {
 		return getLoginProviderBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
+	}
+	
+	@Override
+	public String retrieveProvidersId(OAuthProvider provider,
+			String authorizationCode, String redirectUrl) {
+		return getIDProviderBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
 	}
 	
 	@Override
@@ -61,11 +67,11 @@ public class OAuthManagerImpl implements OAuthManager {
 	}
 
 	@Override
-	public OAuthIDAssociationProviderBinding getIDAssociationProviderBinding(OAuthProvider provider){
+	public OAuthIDProviderBinding getIDProviderBinding(OAuthProvider provider){
 		if(provider == null){
 			throw new IllegalArgumentException("OAuthProvider cannot be null");
 		}
-		OAuthIDAssociationProviderBinding binding = idAssociationProviderMap.get(provider);
+		OAuthIDProviderBinding binding = idAssociationProviderMap.get(provider);
 		if(binding == null){
 			throw new IllegalArgumentException("Unknown provider: "+provider.name());
 		}

@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class UserManagerImpl implements UserManager {
@@ -139,8 +138,9 @@ public class UserManagerImpl implements UserManager {
 		notificationEmailDao.create(emailAlias);
 	}
 
-	private PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId) {
-		// bind the username to this user
+	@Override
+	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId) {
+		// bind the aliasName to this user
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(aliasName);
 		alias.setPrincipalId(principalId);
@@ -257,6 +257,11 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public PrincipalAlias lookupPrincipalByAlias(String alias) {
 		return this.principalAliasDAO.findPrincipalWithAlias(alias);
+	}
+	
+	@Override
+	public long countPrincipalAliases(Long principalId, AliasType type) {
+		return this.principalAliasDAO.countPrincipalAliases(principalId, type);
 	}
 
 }

@@ -6,6 +6,7 @@
     	"USER_NAME",
     	"TEAM_NAME",
     	"USER_EMAIL",
-    	"USER_OPEN_ID"
+    	"USER_OPEN_ID",
+    	"ORCID"
     ]
 }

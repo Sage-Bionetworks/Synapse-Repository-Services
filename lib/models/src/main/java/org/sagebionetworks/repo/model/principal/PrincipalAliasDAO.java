@@ -114,4 +114,12 @@ public interface PrincipalAliasDAO {
 	 * @throw NotFoundException if no user name
 	 */
 	public String getUserName(Long principalId) throws NotFoundException;
+
+	/**
+	 * 
+	 * @param principalId
+	 * @param type
+	 * @return the number of aliases owned by the given user and of the given type
+	 */
+	long countPrincipalAliases(Long principalId, AliasType type);
 }

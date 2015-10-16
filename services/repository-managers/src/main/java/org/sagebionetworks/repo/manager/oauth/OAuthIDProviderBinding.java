@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 
 
 /**
@@ -10,7 +9,7 @@ import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
  * @author John
  * 
  */
-public interface OAuthIDAssociationProviderBinding {
+public interface OAuthIDProviderBinding {
 
 	/**
 	 * The first step in OAuth authentication involves sending the user to
@@ -37,7 +36,7 @@ public interface OAuthIDAssociationProviderBinding {
 	 * @param redirectUrl
 	 * @return The user's ID in the provider's system
 	 */
-	public String associateProvidersId(String authorizationCode, String redirectUrl);
+	public String retrieveProvidersId(String authorizationCode, String redirectUrl);
 
 
 }

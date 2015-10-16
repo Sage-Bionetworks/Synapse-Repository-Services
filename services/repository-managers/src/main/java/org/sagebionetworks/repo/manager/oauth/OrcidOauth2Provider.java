@@ -11,7 +11,7 @@ import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 
 public class OrcidOauth2Provider implements OAuthAuthenticationProviderBinding,
-		OAuthIDAssociationProviderBinding {
+		OAuthIDProviderBinding {
 
 	/*
 	 * "/authenticate scope indicates to ORCID that we just want to request the user's ORCID ID
@@ -52,7 +52,7 @@ public class OrcidOauth2Provider implements OAuthAuthenticationProviderBinding,
 	}
 
 	@Override
-	public String associateProvidersId(String authorizationCode,
+	public String retrieveProvidersId(String authorizationCode,
 			String redirectUrl) {
 		if(redirectUrl == null){
 			throw new IllegalArgumentException("RedirectUrl cannot be null");
@@ -64,7 +64,9 @@ public class OrcidOauth2Provider implements OAuthAuthenticationProviderBinding,
 			 * This token is used to sign request for user's information.
 			 */
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			return parseOrcidId(accessToken.getRawResponse());
+			String orcid = parseOrcidId(accessToken.getRawResponse());
+			// TODO bind to users account
+			return orcid;
 		}catch(OAuthException e){
 			throw new UnauthorizedException(e);
 		}

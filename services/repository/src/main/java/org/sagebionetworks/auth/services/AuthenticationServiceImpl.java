@@ -9,15 +9,16 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
-import org.sagebionetworks.repo.manager.oauth.OAuthLoginManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -44,7 +46,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private OAuthManager oauthAuthenticationManager;
 	
 	@Autowired
-	private OAuthLoginManager oauthLoginManager;
+	private OAuthManager oauthManager;
 	
 	@Autowired
 	private MessageManager messageManager;
@@ -55,13 +57,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			UserManager userManager, 
 			AuthenticationManager authManager, 
 			MessageManager messageManager, 
-			OAuthManager oauthAuthenticationManager,
-			OAuthLoginManager oauthLoginManager) {
+			OAuthManager oauthManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
 		this.messageManager = messageManager;
-		this.oauthAuthenticationManager = oauthAuthenticationManager;
-		this.oauthLoginManager = oauthLoginManager;
+		this.oauthManager = oauthManager;
 	}
 
 	@Override
@@ -292,18 +292,42 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public Session validateOAuthAuthenticationCode(
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
-		ProvidedUserInfo providedInfo = oauthLoginManager.validateUserWithProvider(
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		if(providedInfo.getUsersVerifiedEmail() == null){
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
 		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlais = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
-		if(emailAlais == null){
+		PrincipalAlias emailAlias = userManager.lookupPrincipalByAlias(providedInfo.getUsersVerifiedEmail());
+		if(emailAlias == null){
 			// Let the caller know we did not find the user
 			throw new NotFoundException(providedInfo.getUsersVerifiedEmail());
 		}
 		// Return the user's session token
-		return authManager.getSessionToken(emailAlais.getPrincipalId(), DomainType.SYNAPSE);
+		return authManager.getSessionToken(emailAlias.getPrincipalId(), DomainType.SYNAPSE);
+	}
+	
+	// TODO need a better way to build this mapping than hard coding it here
+	private static AliasType getAliasTypeForProvider(OAuthProvider provider) {
+		switch (provider) {
+		case ORCID:
+			return AliasType.ORCID;
+		default:
+			throw new IllegalArgumentException("Unexpected provider: "+provider);
+		}
+	}
+	
+	@Override
+	public String bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
+		if (userId==null) throw new UnauthorizedException("User ID is required.");
+		AliasType aliasType = getAliasTypeForProvider(validationRequest.getProvider());
+		if(userManager.countPrincipalAliases(userId, aliasType)>0) 
+			throw new ForbiddenException("Your account already has an associated ID of type "+aliasType);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// call authManager.associateIdWithUser() with type=ORCID (rename to fetch, not bind)
+		String externalId = null; 
+		// now bind the ID to the user account
+		userManager.bindAlias(externalId, aliasType, userId);
+		return null;
 	}
 }
