@@ -10,6 +10,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,6 +45,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
@@ -464,22 +466,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithTable(
 			final Set<Long> fileHandleIds, final String tableId) {
-		return this.readTransactionTemplate.execute(new TransactionCallback<Set<Long>>() {
-			@Override
-			public Set<Long> doInTransaction(TransactionStatus status) {
-				String sql = SQLUtils.createSQLGetBoundFileHandleId(tableId);
-				NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
-				Map<String, Set<Long>> params = Maps.newHashMap();
-				params.put(SQLUtils.FILE_ID_BIND, fileHandleIds);
-				final Set<Long> intersection = Sets.newHashSet();
-				namedTemplate.query(sql, params, new RowCallbackHandler() {
-					@Override
-					public void processRow(ResultSet rs) throws SQLException {
-						intersection.add(rs.getLong(TableConstants.FILE_ID));
-					}
-				});
-				return intersection;
-			}
-		});
+		try {
+			return this.readTransactionTemplate.execute(new TransactionCallback<Set<Long>>() {
+				@Override
+				public Set<Long> doInTransaction(TransactionStatus status) {
+					String sql = SQLUtils.createSQLGetBoundFileHandleId(tableId);
+					NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
+					Map<String, Set<Long>> params = Maps.newHashMap();
+					params.put(SQLUtils.FILE_ID_BIND, fileHandleIds);
+					final Set<Long> intersection = Sets.newHashSet();
+					namedTemplate.query(sql, params, new RowCallbackHandler() {
+						@Override
+						public void processRow(ResultSet rs) throws SQLException {
+							intersection.add(rs.getLong(TableConstants.FILE_ID));
+						}
+					});
+					return intersection;
+				}
+			});
+		} catch (BadSqlGrammarException e) {
+			// thrown when the table does not exist
+			return new HashSet<Long>(0);
+		}
 	}
 }

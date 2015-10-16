@@ -940,6 +940,18 @@ public class TableIndexDAOImplTest {
 		});
 		assertEquals(indexes.length, count.get());
 	}
+	
+	@Test
+	public void testCreateSecondaryTablesCreateDeleteIdempotent(){
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		// must be able to call this again.
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		// The delete must also be idempotent
+		this.tableIndexDAO.deleteSecondayTables(tableId);
+		// must be able to call this again
+		this.tableIndexDAO.deleteSecondayTables(tableId);
+	}
 
 	/**
 	 * Test for the secondary table used to bind file handle IDs to a table.
@@ -950,20 +962,43 @@ public class TableIndexDAOImplTest {
 	public void testBindFileHandles() {
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
-		// Should be idempotent.
-		this.tableIndexDAO.createSecondaryTables(tableId);
 		Set<Long> toBind = Sets.newHashSet(1L, 2L, 5L);
 		// find the files
 		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind);
-		// Should be idempotent.
-		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind);
-		
 		Set<Long> toTest = Sets.newHashSet(0L, 2L, 3L, 5L, 8L);
 		// Expect to find the intersection of the toBound and toTest.
 		Set<Long> expected = Sets.newHashSet(2L, 5L);
 
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertEquals(expected, results);
-
+	}
+	
+	@Test
+	public void testBindFileHandlesWithOverlap() {
+		// ensure the secondary tables for this index exist
+		this.tableIndexDAO.createSecondaryTables(tableId);
+		Set<Long> toBind1 = Sets.newHashSet(1L, 2L, 3L);
+		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind1);
+		Set<Long> toBind2 = Sets.newHashSet(2L, 3L, 4L);
+		// must add 4 and ignore 2 & 3.
+		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind2);
+		Set<Long> toTest = Sets.newHashSet(5L,4L,3L,2L,1L,0L);
+		// Expect to find the intersection of the toBound and toTest.
+		Set<Long> expected = Sets.newHashSet(4L,3L,2L,1L);
+		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * When the secondary table does not exist, an empty set should be returned.
+	 */
+	@Test
+	public void testBindFileHandlesTableDoesNotExist() {
+		// test with no secondary table.
+		this.tableIndexDAO.deleteSecondayTables(tableId);
+		Set<Long> toTest = Sets.newHashSet(0L, 2L, 3L, 5L, 8L);
+		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 }
