@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.scribe.builder.ServiceBuilder;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
@@ -139,6 +140,11 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	@Override
 	public String retrieveProvidersId(String authorizationCode,
 			String redirectUrl) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public AliasType getAliasType() {
 		throw new UnsupportedOperationException();
 	}
 

@@ -125,7 +125,7 @@ public class AuthenticationServiceImplTest {
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId, DomainType.SYNAPSE)).thenReturn(session);
 		//call under test
-		Session result = service.validateOAuthAuthenticationCode(request);
+		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);
 	}
 	
@@ -146,7 +146,7 @@ public class AuthenticationServiceImplTest {
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId, DomainType.SYNAPSE)).thenReturn(session);
 		//call under test
-		Session result = service.validateOAuthAuthenticationCode(request);
+		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);
 	}
 	
@@ -162,7 +162,7 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(null);
 		//call under test
 		try {
-			service.validateOAuthAuthenticationCode(request);
+			service.validateOAuthAuthenticationCodeAndLogin(request);
 			fail("Should have failed");
 		} catch (NotFoundException e) {
 			assertEquals("Email should be the error when not found.",info.getUsersVerifiedEmail(), e.getMessage());

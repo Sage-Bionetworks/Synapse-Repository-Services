@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * Simple implementation of the  OAuthManager.
@@ -30,6 +31,11 @@ public class OAuthManagerImpl implements OAuthManager {
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
 			String authorizationCode, String redirectUrl) {
 		return getProviderBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
+	}
+	
+	@Override
+	public AliasType getAliasTypeForProvider(OAuthProvider provider) {
+		return getProviderBinding(provider).getAliasType();
 	}
 	
 	@Override

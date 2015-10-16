@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * An abstraction for a single OAuthProvider. An implementation of this
@@ -49,7 +50,12 @@ public interface OAuthProviderBinding {
 	 */
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
 	
-	
+	/**
+	 * 
+	 * @return the type of alias for this provider.  Used to bind the value returned
+	 * by retrieveProvidersId() to a principal.
+	 */
+	public AliasType getAliasType();
 	/**
 	 * Retrieve the unique ID in the provider's system for the user.  ID
 	 * must be unique across all providers (e.g. a provider-specific URI).

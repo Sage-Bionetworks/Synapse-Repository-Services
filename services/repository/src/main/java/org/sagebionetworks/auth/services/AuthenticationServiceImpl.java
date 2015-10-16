@@ -289,7 +289,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public Session validateOAuthAuthenticationCode(
+	public Session validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
@@ -307,29 +307,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return authManager.getSessionToken(emailAlias.getPrincipalId(), DomainType.SYNAPSE);
 	}
 	
-	// TODO need a better way to build this mapping than hard coding it here
-	private static AliasType getAliasTypeForProvider(OAuthProvider provider) {
-		switch (provider) {
-		case ORCID:
-			return AliasType.ORCID;
-		default:
-			throw new IllegalArgumentException("Unexpected provider: "+provider);
-		}
-	}
-	
 	@Override
-	public String bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
+	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
 		if (userId==null) throw new UnauthorizedException("User ID is required.");
-		AliasType aliasType = getAliasTypeForProvider(validationRequest.getProvider());
+		AliasType aliasType = oauthManager.getAliasTypeForProvider(validationRequest.getProvider());
 		if(userManager.countPrincipalAliases(userId, aliasType)>0) 
 			throw new ForbiddenException("Your account already has an associated ID of type "+aliasType);
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		String providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(), 
 				validationRequest.getRedirectUrl());
 		// now bind the ID to the user account
-		userManager.bindAlias(providersUserId, aliasType, userId);
-		return providersUserId;
+		return userManager.bindAlias(providersUserId, aliasType, userId);
 	}
 }

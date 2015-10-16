@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.scribe.builder.ServiceBuilder;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
@@ -65,7 +66,6 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 			 */
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
 			String orcid = parseOrcidId(accessToken.getRawResponse());
-			// TODO bind to users account
 			return orcid;
 		}catch(OAuthException e){
 			throw new UnauthorizedException(e);
@@ -96,6 +96,12 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode,
 			String redirectUrl) {
 		throw new UnsupportedOperationException();
+	}
+
+
+	@Override
+	public AliasType getAliasType() {
+		return AliasType.ORCID;
 	}
 
 
