@@ -69,7 +69,7 @@ public interface UserManager {
 	
 	public long countPrincipalAliases(Long principalId, AliasType type);
 
-	PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
+	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	
 	
 }

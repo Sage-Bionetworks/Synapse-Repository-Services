@@ -43,9 +43,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
-	private OAuthManager oauthAuthenticationManager;
-	
-	@Autowired
 	private OAuthManager oauthManager;
 	
 	@Autowired
@@ -282,7 +279,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request) {
-		String url = oauthAuthenticationManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl());
+		String url = oauthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl());
 		OAuthUrlResponse response = new OAuthUrlResponse();
 		response.setAuthorizationUrl(url);
 		return response;

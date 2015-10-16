@@ -56,9 +56,10 @@ public interface OAuthManager {
 	 * @param provider
 	 * @return
 	 */
-	public OAuthProviderBinding getProviderBinding(OAuthProvider provider);
+	public OAuthProviderBinding getBinding(OAuthProvider provider);
 	
 	/**
+	 * What type of alias is returned by this provider?
 	 * 
 	 * @param provider
 	 * @return

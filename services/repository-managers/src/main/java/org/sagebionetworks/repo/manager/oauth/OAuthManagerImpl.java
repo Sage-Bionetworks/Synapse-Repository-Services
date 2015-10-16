@@ -18,34 +18,34 @@ public class OAuthManagerImpl implements OAuthManager {
 	/**
 	 * Injected.
 	 */
-	public void setLoginProviderMap(Map<OAuthProvider, OAuthProviderBinding> providerMap) {
+	public void setProviderMap(Map<OAuthProvider, OAuthProviderBinding> providerMap) {
 		this.providerMap = providerMap;
 	}
 
 	@Override
 	public String getAuthorizationUrl(OAuthProvider provider, String redirectUrl) {
-		return getProviderBinding(provider).getAuthorizationUrl(redirectUrl);
+		return getBinding(provider).getAuthorizationUrl(redirectUrl);
 	}
 
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
 			String authorizationCode, String redirectUrl) {
-		return getProviderBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
+		return getBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
 	}
 	
 	@Override
 	public AliasType getAliasTypeForProvider(OAuthProvider provider) {
-		return getProviderBinding(provider).getAliasType();
+		return getBinding(provider).getAliasType();
 	}
 	
 	@Override
 	public String retrieveProvidersId(OAuthProvider provider,
 			String authorizationCode, String redirectUrl) {
-		return getProviderBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
+		return getBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
 	}
 	
 	@Override
-	public OAuthProviderBinding getProviderBinding(OAuthProvider provider){
+	public OAuthProviderBinding getBinding(OAuthProvider provider){
 		if(provider == null){
 			throw new IllegalArgumentException("OAuthProvider cannot be null");
 		}
