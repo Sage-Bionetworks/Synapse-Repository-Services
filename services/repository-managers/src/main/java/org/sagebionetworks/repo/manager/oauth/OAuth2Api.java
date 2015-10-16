@@ -41,7 +41,6 @@ abstract public class OAuth2Api extends DefaultApi20 {
     @Override
     public String getAccessTokenEndpoint() {
     	return accessTokenEndpoint;
- //       return "https://accounts.google.com/o/oauth2/token";
     }
     
     @Override

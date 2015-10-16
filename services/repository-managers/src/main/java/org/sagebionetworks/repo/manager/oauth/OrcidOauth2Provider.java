@@ -95,7 +95,7 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode,
 			String redirectUrl) {
-		throw new UnsupportedOperationException();
+		throw new IllegalArgumentException("This is not supported for ORCID.");
 	}
 
 

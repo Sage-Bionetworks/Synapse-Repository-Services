@@ -69,14 +69,13 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		.provider(Google2Api.class)
 		.apiKey(apiKey)
 		.apiSecret(apiSecret)
-		.scope(SCOPE_EMAIL) // is this necessary? The scope is established during user authentication.
-		.callback(redirectUrl) // is this necessary?  the back-end doesn't follow any redirects
 		.build();
 	}
 
+	// remove either buildService or the call to Google2Api() for consistency.  Ditto with ORCID2Api
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return  new Google2Api().getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_EMAIL, null));
+		return new Google2Api().getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_EMAIL, null));
 	}
 
 	@Override
@@ -140,12 +139,12 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	@Override
 	public String retrieveProvidersId(String authorizationCode,
 			String redirectUrl) {
-		throw new UnsupportedOperationException();
+		throw new IllegalArgumentException();
 	}
 
 	@Override
 	public AliasType getAliasType() {
-		throw new UnsupportedOperationException();
+		throw new IllegalArgumentException();
 	}
 
 }
