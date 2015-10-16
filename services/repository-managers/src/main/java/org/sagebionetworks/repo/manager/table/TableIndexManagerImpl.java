@@ -66,7 +66,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							tableIndexDao.createOrUpdateOrDeleteRows(rowset,
 									currentSchema);
 							// Extract all file handle IDs from this set
-							Set<String> fileHandleIds = TableModelUtils
+							Set<Long> fileHandleIds = TableModelUtils
 									.getFileHandleIdsInRowSet(currentSchema,
 											rowset.getRows());
 							if (!fileHandleIds.isEmpty()) {

@@ -158,5 +158,15 @@ public interface TableIndexDAO {
 	 * @param fileHandleIds
 	 */
 	public void applyFileHandleIdsToTable(String tableId,
-			Set<String> fileHandleIds);
+			Set<Long> fileHandleIds);
+	
+	/**
+	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
+	 * FileHandleIds that are actually associated with the table.
+	 * @param toTest
+	 * @param objectId
+	 * @return
+	 */
+	public Set<Long> getFileHandleIdsAssociatedWithTable(
+			Set<Long> toTest, String tableId);
 }

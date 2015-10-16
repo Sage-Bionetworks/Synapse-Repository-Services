@@ -1396,16 +1396,20 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Set<String> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
+	public static Set<Long> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
 		ColumnModel[] columns = columnList.toArray(new ColumnModel[columnList.size()]);
-		Set<String> fileHandleIds = new HashSet<String>();
+		Set<Long> fileHandleIds = new HashSet<Long>();
 		for(Row row: rows){
 			int columnIndex = 0;
 			if(row.getValues() != null){
 				for(String cellValue: row.getValues()){
 					if(!isNullOrEmpty(cellValue)){
 						if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
-							fileHandleIds.add(cellValue);						
+							try {
+								fileHandleIds.add(Long.parseLong(cellValue));
+							} catch (NumberFormatException e) {
+								throw new IllegalArgumentException("Passed a non-integer file handle id: "+cellValue);
+							}						
 						}
 					}
 					columnIndex++;

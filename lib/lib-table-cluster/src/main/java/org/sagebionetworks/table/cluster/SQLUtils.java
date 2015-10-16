@@ -43,6 +43,7 @@ import com.google.common.collect.Sets;
 public class SQLUtils {
 
 
+	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
@@ -917,5 +918,22 @@ public class SQLUtils {
 
 	public static String selectRowValuesForRowId(Long tableId) {
 		return "SELECT * FROM " + getTableNameForId(tableId, TableType.INDEX) + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
+	}
+	/**
+	 * Insert ignore file handle ids into a table's secondary file index.
+	 * @param tableId
+	 * @return
+	 */
+	public static String createSQLInsertIgnoreFileHandleId(String tableId){
+		return "INSERT IGNORE INTO "+getTableNameForId(tableId, TableType.FILE_IDS)+" ("+FILE_ID+") VALUES(?)";
+	}
+	
+	/**
+	 * SQL for finding all file handle ids bound to a table that are included in the provided set.
+	 * @param tableId
+	 * @return
+	 */
+	public static String createSQLGetBoundFileHandleId(String tableId){
+		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
 	}
 }

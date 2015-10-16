@@ -4,7 +4,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -1058,9 +1057,22 @@ public class TableModelUtilsTest {
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "5","6","7","8"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "9",null,"7",""));
 		
-		Set<String> expected = Sets.newHashSet("2","4","6","8");
-		Set<String> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+		Set<Long> expected = Sets.newHashSet(2L, 4L, 6L, 8L);
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
 		assertEquals(expected, results);
+ 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleIdsInRowSetNotLongs(){
+		List<ColumnModel> cols = new ArrayList<ColumnModel>();
+		cols.add(TableModelTestUtils.createColumn(2L, "b", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "not a number"));
+		
+		// should fail.
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
  	}
 	
 	@Test

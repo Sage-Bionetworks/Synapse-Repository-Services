@@ -99,7 +99,7 @@ public class TableIndexManagerImplTest {
 		// change should be written to the index
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(rowSet, schema);
 		// files handles should be applied.
-		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet("2", "6"));
+		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 	}
