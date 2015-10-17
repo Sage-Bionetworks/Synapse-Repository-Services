@@ -270,10 +270,15 @@ public class IT990AuthenticationController {
 	 */
 	@Test
 	public void testValidateOAuthAuthenticationCode() throws SynapseException{
-		OAuthValidationRequest request = new OAuthValidationRequest();
-		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-		request.setAuthenticationCode("test auth code");
-		// this null will trigger a bad request.
-		synapse.validateOAuthAuthenticationCode(request);
+		try {
+			OAuthValidationRequest request = new OAuthValidationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			// this invalid code will trigger a bad request.
+			request.setAuthenticationCode("test auth code");
+			synapse.validateOAuthAuthenticationCode(request);
+			fail();
+		} catch (SynapseBadRequestException e) {
+			assertTrue(e.getMessage().contains("There was a problem while creating a connection to the remote service."));
+		}
 	}
 }
