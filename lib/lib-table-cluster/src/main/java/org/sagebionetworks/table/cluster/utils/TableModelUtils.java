@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1417,5 +1416,47 @@ public class TableModelUtils {
 			}
 		}
 		return fileHandleIds;
+	}
+	
+	/**
+	 * Convert a collection of longs to a collection of strings.
+	 * @param ids
+	 * @return
+	 */
+	public static void convertLongToString(Collection<Long> in, Collection<String> out) {
+		if(in == null){
+			throw new IllegalArgumentException("Input cannot be null");
+		}
+		if(out == null){
+			throw new IllegalArgumentException("Output cannot be null");
+		}
+		for(Long id: in){
+			if(id != null){
+				out.add(id.toString());
+			}
+		}
+	}
+
+	/**
+	 * Convert a collection of strings to a collection of longs.
+	 * @param ids
+	 * @return
+	 */
+	public static void convertStringToLong(Collection<String> in, Collection<Long> out){
+		if(in == null){
+			throw new IllegalArgumentException("Input cannot be null");
+		}
+		if(out == null){
+			throw new IllegalArgumentException("Output cannot be null");
+		}
+		for(String id: in){
+			if(id != null){
+				try {
+					out.add(Long.parseLong(id));
+				} catch (NumberFormatException e) {
+					throw new IllegalArgumentException(e);
+				}
+			}
+		}
 	}
 }

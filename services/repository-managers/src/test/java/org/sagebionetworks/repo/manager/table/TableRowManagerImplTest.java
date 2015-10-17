@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -115,11 +116,11 @@ public class TableRowManagerImplTest {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 
 		// Just call the caller.
-		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<String>() {
+		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<Object>() {
 			@Override
-			public String answer(InvocationOnMock invocation) throws Throwable {
+			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				Callable<String> callable = (Callable<String>) invocation.getArguments()[2];
+				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[2];
 						if (callable != null) {
 							return callable.call();
 						} else {
@@ -1213,5 +1214,95 @@ public class TableRowManagerImplTest {
 		query = manager.query(user, "select * from " + tableId, null, 0L, 100000L, true, false, false);
 		assertNotNull(query.getFirst().getNextPageToken());
 		assertTrue(query.getFirst().getNextPageToken().getToken().indexOf("&quot;i-0&quot") != -1);
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithTableHappy(){
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(3L);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
+		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
+		assertEquals(results, out);
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithTableNoChanges(){
+		// no changes applied to the table.
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(null);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(3L);
+		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
+		assertNotNull(out);
+		assertTrue(out.isEmpty());
+	}
+	
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testGetFileHandleIdsAssociatedWithTableLockFailed() throws LockUnavilableException, Exception{
+		// setup LockUnavilableException.
+		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(3L);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
+		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
+		assertEquals(results, out);
+	}
+	
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testGetFileHandleIdsAssociatedWithTableIndexBehind(){
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(3L);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		// set the index behind the truth version
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion()-1);
+		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
+		assertEquals(results, out);
+	}
+	
+	@Test (expected=TemporarilyUnavailableException.class)
+	public void testGetFileHandleIdsAssociatedWithTableNoIndexConnection(){
+		// null means no index connection.
+		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(null);
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(3L);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
+		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
+		assertEquals(results, out);
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithTableAlternateSignature(){
+		TableRowChange lastChange = new TableRowChange();
+		lastChange.setRowVersion(3L);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
+		List<String> input = Lists.newArrayList("0","1","2","3");
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), anyString())).thenReturn(results);
+		// call under test.
+		Set<String> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
+		Set<String> expected = Sets.newHashSet("1","2");
+		assertEquals(expected, out);
 	}
 }

@@ -1133,4 +1133,30 @@ public class TableModelUtilsTest {
 		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
 		TableModelUtils.validateRowVersions(rows, null);
 	}
+	
+	@Test
+	public void testConvertLongToString(){
+		List<Long> in = Lists.newArrayList(3L,4L, null);
+		Set<String> out = Sets.newHashSet();
+		TableModelUtils.convertLongToString(in, out);
+		Set<String> expected = Sets.newHashSet("3","4");
+		assertEquals(expected, out);
+	}
+	
+	@Test
+	public void testConvertStringToLong(){
+		List<String> in = Lists.newArrayList("2","4", null);
+		Set<Long> out = Sets.newHashSet();
+		TableModelUtils.convertStringToLong(in, out);
+		Set<Long> expected = Sets.newHashSet(2L, 4L);
+		assertEquals(expected, out);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertStringToLongNotANumber(){
+		List<String> in = Lists.newArrayList("2","not a number");
+		Set<Long> out = Sets.newHashSet();
+		// should fail.
+		TableModelUtils.convertStringToLong(in, out);
+	}
 }
