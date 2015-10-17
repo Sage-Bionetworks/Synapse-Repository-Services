@@ -307,9 +307,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
 		if (userId==null) throw new UnauthorizedException("User ID is required.");
-		AliasType aliasType = oauthManager.getAliasTypeForProvider(validationRequest.getProvider());
-		if(userManager.countPrincipalAliases(userId, aliasType)>0) // not >0 but rather reference AliasEnum.??? TODO
-			throw new ForbiddenException("Your account already has an associated ID of type "+aliasType);
 		String providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(), 

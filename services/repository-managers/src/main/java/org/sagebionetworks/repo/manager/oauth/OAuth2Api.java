@@ -25,19 +25,17 @@ import org.scribe.utils.Preconditions;
  * 
  * @see <a href="https://gist.githubusercontent.com/yincrash/2465453/raw/9d4eb3149ff8c0eba0316a29d4598949975ac6f5/Google2APi.java">Original Google2Apis</a>
  * 
+ * 
  */
-abstract public class OAuth2Api extends DefaultApi20 {
+public class OAuth2Api extends DefaultApi20 {
 	private String authorizationEndpoint;
 	private String accessTokenEndpoint;
 	
-	protected void setAuthorizationEndpoint(String authorizationEndpoint) {
+	public OAuth2Api(String authorizationEndpoint, String accessTokenEndpoint) {
 		this.authorizationEndpoint=authorizationEndpoint;
+		this.accessTokenEndpoint=accessTokenEndpoint;		
 	}
-
-	protected void setAccessTokenEndpoint(String accessTokenEndpoint) {
-		this.accessTokenEndpoint=accessTokenEndpoint;
-	}
-
+	
     @Override
     public String getAccessTokenEndpoint() {
     	return accessTokenEndpoint;
@@ -86,17 +84,17 @@ abstract public class OAuth2Api extends DefaultApi20 {
     
     @Override
     public OAuthService createService(OAuthConfig config) {
-        return new GoogleOAuth2Service(this, config);
+        return new BasicOAuth2Service(this, config);
     }
     
-    private class GoogleOAuth2Service extends OAuth20ServiceImpl {
+    private class BasicOAuth2Service extends OAuth20ServiceImpl {
 
         private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
         private static final String GRANT_TYPE = "grant_type";
         private DefaultApi20 api;
         private OAuthConfig config;
 
-        public GoogleOAuth2Service(DefaultApi20 api, OAuthConfig config) {
+        public BasicOAuth2Service(DefaultApi20 api, OAuthConfig config) {
             super(api, config);
             this.api = api;
             this.config = config;

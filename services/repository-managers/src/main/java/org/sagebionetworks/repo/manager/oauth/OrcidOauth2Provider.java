@@ -5,7 +5,6 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.scribe.builder.ServiceBuilder;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.Token;
@@ -14,7 +13,10 @@ import org.scribe.oauth.OAuthService;
 
 public class OrcidOauth2Provider implements OAuthProviderBinding {
 
-	/*
+    private static final String AUTHORIZE_URL = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
+    private static final String TOKEN_URL = "https://pub.orcid.org/oauth/token";
+
+    /*
 	 * "/authenticate scope indicates to ORCID that we just want to request the user's ORCID ID
 	 * after authentication.
 	 */
@@ -22,7 +24,6 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 	private static final String SCOPE_AUTHENTICATE = "/authenticate"; 
 	
 	public static final String ORCID = "orcid";
-
 
 	private String apiKey;
 	private String apiSecret;
@@ -33,23 +34,16 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 	}
 
 
-	/**
-	 * Build a service using the provided redirectUrl
-	 * @param redirectUrl
-	 * @return
-	 */
-	private OAuthService buildService(String redirectUrl) {
-		return new ServiceBuilder()
-		.provider(ORCID2Api.class)
-		.apiKey(apiKey)
-		.apiSecret(apiSecret)
-		.callback(redirectUrl)
-		.build();
-	}
-
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return  new ORCID2Api().getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_AUTHENTICATE, null));
+		return  new OAuth2Api(AUTHORIZE_URL, TOKEN_URL).
+				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_AUTHENTICATE, null));
+	}
+	
+	private static final String ORCID_URI_PREFIX = "http://orcid.org/";
+	
+	private static String convertOrcIdToURI(String orcid) {
+		return ORCID_URI_PREFIX + orcid;
 	}
 
 	@Override
@@ -59,14 +53,16 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 			throw new IllegalArgumentException("RedirectUrl cannot be null");
 		}
 		try{
-			OAuthService service = buildService(redirectUrl);
+			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
+					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
+
 			/*
 			 * Get an access token from ORCID using the provided authorization code.
 			 * This token is used to sign request for user's information.
 			 */
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
 			String orcid = parseOrcidId(accessToken.getRawResponse());
-			return orcid;
+			return convertOrcIdToURI(orcid);
 		}catch(OAuthException e){
 			throw new UnauthorizedException(e);
 		}
