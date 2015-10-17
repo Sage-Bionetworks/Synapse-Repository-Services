@@ -102,11 +102,17 @@ public interface TableIndexDAO {
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
 
 	/**
-	 * Delete the status table for this table if it exists
+	 * Delete all of the secondary tables used for an index if they exist.
 	 * 
 	 * @param tableId
 	 */
-	public void deleteStatusTable(String tableId);
+	public void deleteSecondayTables(String tableId);
+	
+	/**
+	 * Create all of the secondary tables used for an index if they do not exist.
+	 * @param tableId
+	 */
+	public void createSecondaryTables(String tableId);
 	
 	/**
 	 * Get the connection
@@ -152,5 +158,15 @@ public interface TableIndexDAO {
 	 * @param fileHandleIds
 	 */
 	public void applyFileHandleIdsToTable(String tableId,
-			Set<String> fileHandleIds);
+			Set<Long> fileHandleIds);
+	
+	/**
+	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
+	 * FileHandleIds that are actually associated with the table.
+	 * @param toTest
+	 * @param objectId
+	 * @return
+	 */
+	public Set<Long> getFileHandleIdsAssociatedWithTable(
+			Set<Long> toTest, String tableId);
 }

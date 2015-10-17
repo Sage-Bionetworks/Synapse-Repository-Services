@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -67,6 +68,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -1318,5 +1320,55 @@ public class TableRowManagerImpl implements TableRowManager {
 		// And they must have upload permission to change table content.
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY,
 				ACCESS_TYPE.UPLOAD));
+	}
+
+	@Override
+	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId,
+			List<String> toTest) {
+		Set<Long> longSet = new HashSet<Long>(toTest.size());
+		TableModelUtils.convertStringToLong(toTest, longSet);
+		Set<Long> results = getFileHandleIdsAssociatedWithTable(tableId, longSet);
+		Set<String> resultString = new HashSet<String>(results.size());
+		TableModelUtils.convertLongToString(results, resultString);
+		return resultString;
+	}
+
+	@Override
+	public Set<Long> getFileHandleIdsAssociatedWithTable(final String tableId,
+			final Set<Long> toTest) {
+		// Since this uses the index we need a read lock to execute
+		long thritySecondTimeoutMS = 30*1000L;
+		try {
+			return this.tryRunWithTableNonexclusiveLock(tableId, thritySecondTimeoutMS, new Callable<Set<Long>>(){
+
+				@Override
+				public Set<Long> call() throws Exception {
+					// What is the current version of the talbe's truth?
+					TableRowChange lastChange = tableRowTruthDao.getLastTableRowChange(tableId);
+					if(lastChange == null){
+						// There are no changes applied to this table so return an empty set.
+						return Sets.newHashSet();
+					}
+					long truthVersion = lastChange.getRowVersion();
+					// Next connect to the table
+					TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+					if(indexDao == null){
+						throw new TemporarilyUnavailableException("Cannot connect to table index at this time.");
+					}
+					long indexVersion = indexDao.getMaxCurrentCompleteVersionForTable(tableId);
+					if(indexVersion < truthVersion){
+						throw new TemporarilyUnavailableException("Waiting for the table index to be built.");
+					}
+					// the index dao 
+					return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
+				}});
+		} catch (LockUnavilableException e) {
+			throw new TemporarilyUnavailableException(e);
+		} catch (TemporarilyUnavailableException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 }

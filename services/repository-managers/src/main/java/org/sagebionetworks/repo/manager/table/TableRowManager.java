@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ProgressCallback;
@@ -469,4 +470,19 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 */
 	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
+	 * FileHandleIds that are actually associated with the table.
+	 * @param objectId
+	 * @throws TemporarilyUnavailableException if this query cannot be run at this time.
+	 */
+	public Set<Long> getFileHandleIdsAssociatedWithTable(String tableId, Set<Long> toTest) throws TemporarilyUnavailableException;
+	
+	/**
+	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
+	 * FileHandleIds that are actually associated with the table.
+	 * @param objectId
+	 */
+	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId, List<String> toTest) throws TemporarilyUnavailableException;
 }
