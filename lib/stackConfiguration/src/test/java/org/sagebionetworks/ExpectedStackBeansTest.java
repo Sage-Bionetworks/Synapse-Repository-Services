@@ -40,6 +40,9 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.oAuth2GoogleClientId",
 			"stackConfiguration.oAuth2GoogleClientSecret",			
 
+			"stackConfiguration.oAuth2ORCIDClientId",
+			"stackConfiguration.oAuth2ORCIDClientSecret",			
+
 			"stackConfiguration.tableRowChangeBucketName",
 			"stackConfiguration.tableMaxBytesPerRequest",
 			"stackConfiguration.tableEnabled",
