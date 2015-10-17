@@ -11,7 +11,7 @@ import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 
-public class OrcidOauth2Provider implements OAuthProviderBinding {
+public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
     private static final String AUTHORIZE_URL = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
     private static final String TOKEN_URL = "https://pub.orcid.org/oauth/token";
@@ -28,7 +28,7 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 	private String apiKey;
 	private String apiSecret;
 	
-	public OrcidOauth2Provider(String apiKey, String apiSecret) {
+	public OrcidOAuth2Provider(String apiKey, String apiSecret) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
 	}
