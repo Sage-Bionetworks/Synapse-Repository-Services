@@ -69,10 +69,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		if(redirectUrl == null){
-			throw new IllegalArgumentException("RedirectUrl cannot be null");
-		}
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode) {
 		try{
 			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
@@ -128,14 +125,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public String retrieveProvidersId(String authorizationCode,
-			String redirectUrl) {
-		throw new IllegalArgumentException();
+	public AliasAndType retrieveProvidersId(String authorizationCode) {
+		throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the Google OAuth provider.");
 	}
-
-	@Override
-	public AliasType getAliasType() {
-		throw new IllegalArgumentException();
-	}
-
 }

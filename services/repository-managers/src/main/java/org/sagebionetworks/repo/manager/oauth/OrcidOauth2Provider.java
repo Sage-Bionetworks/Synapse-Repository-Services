@@ -47,11 +47,7 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public String retrieveProvidersId(String authorizationCode,
-			String redirectUrl) {
-		if(redirectUrl == null){
-			throw new IllegalArgumentException("RedirectUrl cannot be null");
-		}
+	public AliasAndType retrieveProvidersId(String authorizationCode) {
 		try{
 			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
@@ -62,7 +58,7 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 			 */
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
 			String orcid = parseOrcidId(accessToken.getRawResponse());
-			return convertOrcIdToURI(orcid);
+			return new AliasAndType(convertOrcIdToURI(orcid), AliasType.ORCID);
 		}catch(OAuthException e){
 			throw new UnauthorizedException(e);
 		}
@@ -89,17 +85,9 @@ public class OrcidOauth2Provider implements OAuthProviderBinding {
 
 
 	@Override
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode,
-			String redirectUrl) {
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode) {
 		throw new IllegalArgumentException("This is not supported for ORCID.");
 	}
-
-
-	@Override
-	public AliasType getAliasType() {
-		return AliasType.ORCID;
-	}
-
 
 
 }

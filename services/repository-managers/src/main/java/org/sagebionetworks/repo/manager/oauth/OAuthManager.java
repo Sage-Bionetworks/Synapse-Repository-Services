@@ -49,7 +49,7 @@ public interface OAuthManager {
 	 * @return Information about the user provided by the OAuthProvider.
 	 */
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
-			String authorizationCode, String redirectUrl);
+			String authorizationCode);
 	
 	/**
 	 * Get the binding for a provider.
@@ -59,14 +59,6 @@ public interface OAuthManager {
 	public OAuthProviderBinding getBinding(OAuthProvider provider);
 	
 	/**
-	 * What type of alias is returned by this provider?
-	 * 
-	 * @param provider
-	 * @return
-	 */
-	public AliasType getAliasTypeForProvider(OAuthProvider provider);
-	
-	/**
 	 * Retrieve the unique ID for the user defined by the provider
 	 * 
 	 * @param provider
@@ -74,8 +66,8 @@ public interface OAuthManager {
 	 * @param redirectUrl
 	 * @return
 	 */
-	String retrieveProvidersId(OAuthProvider provider,
-			String authorizationCode, String redirectUrl);
+	AliasAndType retrieveProvidersId(OAuthProvider provider,
+			String authorizationCode);
 
 
 }

@@ -8,6 +8,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -290,7 +291,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
-				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+				request.getProvider(), request.getAuthenticationCode());
 		if(providedInfo.getUsersVerifiedEmail() == null){
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
@@ -307,11 +308,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
 		if (userId==null) throw new UnauthorizedException("User ID is required.");
-		String providersUserId = oauthManager.retrieveProvidersId(
+		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
-				validationRequest.getAuthenticationCode(), 
-				validationRequest.getRedirectUrl());
+				validationRequest.getAuthenticationCode());
 		// now bind the ID to the user account
-		return userManager.bindAlias(providersUserId, aliasType, userId);
+		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
 	}
 }

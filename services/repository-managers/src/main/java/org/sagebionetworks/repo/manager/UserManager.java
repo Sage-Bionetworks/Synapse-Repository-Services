@@ -66,8 +66,6 @@ public interface UserManager {
 	 * @return
 	 */
 	public PrincipalAlias lookupPrincipalByAlias(String alias);
-	
-	public long countPrincipalAliases(Long principalId, AliasType type);
 
 	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	

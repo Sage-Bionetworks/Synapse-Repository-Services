@@ -270,16 +270,10 @@ public class IT990AuthenticationController {
 	 */
 	@Test
 	public void testValidateOAuthAuthenticationCode() throws SynapseException{
-		try {
-			OAuthValidationRequest request = new OAuthValidationRequest();
-			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-			request.setAuthenticationCode("test auth code");
-			// this null will trigger a bad request.
-			request.setRedirectUrl(null);
-			synapse.validateOAuthAuthenticationCode(request);
-			fail();
-		} catch (SynapseBadRequestException e) {
-			assertTrue(e.getMessage().contains("RedirectUrl cannot be null"));
-		}
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setAuthenticationCode("test auth code");
+		// this null will trigger a bad request.
+		synapse.validateOAuthAuthenticationCode(request);
 	}
 }

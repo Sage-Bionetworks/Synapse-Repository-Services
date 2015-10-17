@@ -51,7 +51,6 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID = "DELETE FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND  "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_LIST_ALIASES_BY_ID = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_ID_AND_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
-	private static final String SQL_COUNT_ALIASES_BY_ID_AND_TYPE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ?";
 	
 	private static final String SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? AND "+COL_BOUND_ALIAS_DISPLAY+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
@@ -76,7 +75,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	@WriteTransaction
 	@Override
 	public PrincipalAlias bindAliasToPrincipal(PrincipalAlias dto) throws NotFoundException {
-		if(dto == null) throw new IllegalArgumentException("PrincipalAlias cannot be null");
+		if(dto == null) throw new IllegalArgumentException("PrincipalAlais cannot be null");
 		if(dto.getAlias() == null) throw new IllegalArgumentException("Alias cannot be null");
 		try {
 			// A 'SELECT FOR UPDATE' is used to prevent race conditions.  Some alias types
@@ -205,13 +204,6 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
 		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_AND_TYPE, principalAliasMapper, principalId, type.name());
 		return AliasUtils.createDTOFromDBO(results);
-	}
-	
-	@Override
-	public long countPrincipalAliases(Long principalId, AliasType type) {
-		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
-		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
-		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALIASES_BY_ID_AND_TYPE, principalId, type.name());
 	}
 	
 	@Override

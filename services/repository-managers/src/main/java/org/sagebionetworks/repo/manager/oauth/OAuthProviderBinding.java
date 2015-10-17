@@ -48,14 +48,8 @@ public interface OAuthProviderBinding {
 	 *            redirectUrl.
 	 * @return Information about the user provided by the OAuthProvider.
 	 */
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
-	
-	/**
-	 * 
-	 * @return the type of alias for this provider.  Used to bind the value returned
-	 * by retrieveProvidersId() to a principal.
-	 */
-	public AliasType getAliasType();
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode);
+
 	/**
 	 * Retrieve the unique ID in the provider's system for the user.  ID
 	 * must be unique across all providers (e.g. a provider-specific URI).
@@ -64,6 +58,6 @@ public interface OAuthProviderBinding {
 	 * @param redirectUrl
 	 * @return The user's ID in the provider's system
 	 */
-	public String retrieveProvidersId(String authorizationCode, String redirectUrl);
+	public AliasAndType retrieveProvidersId(String authorizationCode);
 
 }

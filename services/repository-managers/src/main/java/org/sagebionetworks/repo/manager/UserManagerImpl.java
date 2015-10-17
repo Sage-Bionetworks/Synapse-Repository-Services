@@ -258,10 +258,5 @@ public class UserManagerImpl implements UserManager {
 	public PrincipalAlias lookupPrincipalByAlias(String alias) {
 		return this.principalAliasDAO.findPrincipalWithAlias(alias);
 	}
-	
-	@Override
-	public long countPrincipalAliases(Long principalId, AliasType type) {
-		return this.principalAliasDAO.countPrincipalAliases(principalId, type);
-	}
 
 }
