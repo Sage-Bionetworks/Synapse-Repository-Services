@@ -53,6 +53,7 @@
         "BOUND_COLUMN_ORDINAL",
         "TABLE_SEQUENCE",
         "TABLE_CHANGE",
+        "TABLE_FILE_ASSOCIATION",
         "STORAGE_QUOTA",
         "QUIZ_RESPONSE",
         "CHANGE"

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -32,6 +33,7 @@ public class AsynchJobQueuePublisherImplTest {
 		asynchJobQueuePublisher.emptyAllQueues();
 	}
 	
+	@Ignore // PLFM-3560
 	@Test
 	public void testPublishRoundTrip() throws Exception{
 		AsynchronousJobStatus status = new AsynchronousJobStatus();

@@ -195,6 +195,7 @@ public class EntityBundleTest {
 		entityBundle.setTableBundle(tableBundle);
 		entityBundle.setRootWikiId("9876");
 		entityBundle.setDoi(doi);
+		entityBundle.setFileName("foo.txt");
 		
 		return entityBundle;
 	}

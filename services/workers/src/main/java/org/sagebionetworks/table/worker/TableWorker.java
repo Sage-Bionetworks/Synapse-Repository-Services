@@ -3,11 +3,7 @@ package org.sagebionetworks.table.worker;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -15,6 +11,9 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
+import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,14 +28,10 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.google.common.collect.SetMultimap;
 
 /**
  * This worker updates the index used to support the tables features. It will
@@ -51,19 +46,17 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
-
-	private static final long BATCH_SIZE = 16000;
-
+	
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 
-	@Autowired
-	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	TableRowManager tableRowManager;
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
 	NodeInheritanceManager nodeInheritanceManager;
+	@Autowired
+	TableIndexConnectionFactory connectionFactory;
 
 	@Override
 	public void run(ProgressCallback<ChangeMessage> progressCallback, ChangeMessage change)
@@ -74,18 +67,20 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		}
 		// We only care about entity messages here
 		if (ObjectType.TABLE.equals((change.getObjectType()))) {
+			final String tableId = change.getObjectId();
+			final TableIndexManager indexManager;
+			try {
+				indexManager = connectionFactory.connectToTableIndex(tableId);
+			} catch (TableIndexConnectionUnavailableException e) {
+				// try again later.
+				throw new RecoverableMessageException();
+			}
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
-				TableIndexDAO indexDao = tableConnectionFactory
-						.getConnection(change.getObjectId());
-				if (indexDao != null) {
-					indexDao.deleteTable(change.getObjectId());
-					indexDao.deleteStatusTable(change.getObjectId());
-				}
+				indexManager.deleteTableIndex();
 				return;
 			} else {
 				// Create or update.
-				String tableId = change.getObjectId();
 				// make sure the table is not in the trash
 				try {
 					if (nodeInheritanceManager.isNodeInTrash(tableId)) {
@@ -96,7 +91,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 					return;
 				}
 				// this method does the real work.
-				State state = createOrUpdateTable(progressCallback, tableId,
+				State state = createOrUpdateTable(progressCallback, tableId, indexManager,
 						change.getObjectEtag(), change);
 				if (State.RECOVERABLE_FAILURE.equals(state)) {
 					throw new RecoverableMessageException();
@@ -104,6 +99,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			}
 		}
 	}
+	
 
 	/**
 	 * This is where a single table index is created or updated.
@@ -113,7 +109,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 */
 	public State createOrUpdateTable(
 			final ProgressCallback<ChangeMessage> progressCallback,
-			final String tableId, final String tableResetToken,
+			final String tableId, final TableIndexManager tableIndexManger, final String tableResetToken,
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
@@ -127,7 +123,6 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 				// This is an old message so we ignore it
 				return State.SUCCESS;
 			}
-			log.info("Get creat index lock " + tableId);
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
 					configuration.getTableWorkerTimeoutMS(),
@@ -136,7 +131,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 						public State call() throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(
-									progressCallback, tableId, tableResetToken,
+									progressCallback, tableId, tableIndexManger, tableResetToken,
 									change);
 						}
 					});
@@ -173,22 +168,15 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 * @throws ConflictingUpdateException
 	 */
 	private State createOrUpdateWhileHoldingLock(
-			ProgressCallback<ChangeMessage> progressCallback, String tableId,
+			ProgressCallback<ChangeMessage> progressCallback, String tableId, TableIndexManager tableIndexManager,
 			String tableResetToken, ChangeMessage change)
 			throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
 		log.info("Create index " + tableId);
 		try {
 			// Save the status before we start
-			// Try to get a connection.
-			TableIndexDAO indexDAO = tableConnectionFactory
-					.getConnection(tableId);
-			// If we do not have connection we can try again later
-			if (indexDAO == null) {
-				return State.RECOVERABLE_FAILURE;
-			}
 			// This method will do the rest of the work.
-			String lastEtag = synchIndexWithTable(progressCallback, indexDAO,
+			String lastEtag = synchIndexWithTable(progressCallback, tableIndexManager,
 					tableId, tableResetToken, change);
 			// We are finished set the status
 			log.info("Create index " + tableId + " done");
@@ -233,7 +221,7 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 	 * @throws TableUnavilableException
 	 */
 	String synchIndexWithTable(ProgressCallback<ChangeMessage> progressCallback,
-			TableIndexDAO indexDao, String tableId, String resetToken,
+			final TableIndexManager indexManager, String tableId, String resetToken,
 			ChangeMessage change) throws DatastoreException, NotFoundException,
 			IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
@@ -245,69 +233,51 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken,
 				"Creating table ", 0L, 100L);
-		if (currentSchema.isEmpty()) {
-			// If there is no schema delete the table
-			indexDao.deleteTable(tableId);
-		} else {
-			// We have a schema so create or update the table
-			indexDao.createOrUpdateTable(currentSchema, tableId);
-		}
-		// Now determine which changes need to be applied to the table
-		Long maxCurrentCompleteVersion = indexDao
-				.getMaxCurrentCompleteVersionForTable(tableId);
+		
+		// Setup the table's index.
+		indexManager.setIndexSchema(currentSchema);
+
 		// List all of the changes
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken,
 				"Getting current table row versions ", 0L, 100L);
 
-		TableRowChange lastTableRowChange = tableRowManager
-				.getLastTableRowChange(tableId);
-		if (lastTableRowChange == null) {
-			// nothing to do, move along
+		// List all change sets applied to this table.
+		List<TableRowChange> changes = tableRowManager.listRowSetsKeysForTable(tableId);
+		
+		if (changes == null || changes.isEmpty()) {
+			/*
+			 * If there are no changes for this table then the last etag will be
+			 * null and there is nothing else to do.
+			 */
 			return null;
 		}
-
+		
+		// Calculate the total work to perform
+		long totalProgress = 1;
+		for (TableRowChange changSet : changes) {
+				totalProgress += changSet.getRowCount();
+		}
+		// Apply each change set not already indexed
 		long currentProgress = 0;
-		long maxRowId = tableRowManager.getMaxRowId(tableId);
-		for (long rowId = 0; rowId <= maxRowId; rowId += BATCH_SIZE) {
-			Map<Long, Long> currentRowVersions = tableRowManager
-					.getCurrentRowVersions(tableId,
-							maxCurrentCompleteVersion + 1, rowId, BATCH_SIZE);
-
-			// gather rows by version
-			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils
-					.createVersionToRowIdsMap(currentRowVersions);
-			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap
-					.asMap().entrySet()) {
-				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
-				Long version = versionWithRows.getKey();
-
-				// Keep this message invisible
-				progressCallback.progressMade(change);
-
+		String lastEtag = null;
+		for(TableRowChange changeSet: changes){
+			progressCallback.progressMade(change);
+			currentProgress += changeSet.getRowCount();
+			lastEtag = changeSet.getEtag();
+			// Only apply changes sets not already applied to the index.
+			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId, version,
-						rowsToGet, mapper);
-
+				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
+				
 				tableRowManager.attemptToUpdateTableProgress(tableId,
-						resetToken, "Applying rows " + rowSet.getRows().size()
-								+ " to version: " + version, currentProgress,
-						currentProgress);
+						resetToken, "Applying " + rowSet.getRows().size()
+								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
+								totalProgress);
 				// apply the change to the table
-				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
-				currentProgress += rowsToGet.size();
+				indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
 			}
 		}
-
-		// If we successfully updated the table and got here, then all we know
-		// is that we are at least at the version
-		// the table was at when we started. It is still possible that a newer
-		// version came in and the we applied
-		// partial updates from that version to the index. A subsequent update
-		// will make things consistent again.
-		indexDao.setMaxCurrentCompleteVersionForTable(tableId,
-				lastTableRowChange.getRowVersion());
-
-		return lastTableRowChange.getEtag();
+		return lastEtag;
 	}
 
 }

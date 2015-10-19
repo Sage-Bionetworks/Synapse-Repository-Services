@@ -6,8 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.aws.utils.s3.BucketDaoImpl;
-import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectReader;
-import org.sagebionetworks.aws.utils.s3.GzipCsvS3ObjectWriter;
 import org.sagebionetworks.aws.utils.s3.KeyData;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;

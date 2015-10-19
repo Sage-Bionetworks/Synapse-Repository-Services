@@ -271,7 +271,7 @@ public class MembershipInvitationManagerImplTest {
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		MessageToUserAndBody result = membershipInvitationManagerImpl.
 				createInvitationNotification(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
-		assertEquals("you have been invited to join a team", result.getMetadata().getSubject());
+		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
 		

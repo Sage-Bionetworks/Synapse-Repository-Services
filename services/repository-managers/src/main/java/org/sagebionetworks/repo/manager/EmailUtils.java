@@ -4,11 +4,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.mail.internet.MimeUtility;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -38,6 +41,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
 	public static final String TEMPLATE_KEY_INVITER_MESSAGE = "#inviterMessage#";
 	public static final String TEMPLATE_KEY_REQUESTER_MESSAGE = "#requesterMessage#";
+	public static final String TEMPLATE_KEY_ORIGINAL_EMAIL = "#originalEmail#";
 	
 	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
 	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";
@@ -118,6 +122,9 @@ public class EmailUtils {
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	
+	/*
+	 * Note:   senderDisplayName is RFC-2047 encoded if not ascii
+	 */
 	public static String createSource(String senderDisplayName, String senderUserName) {
 		if (senderUserName==null) senderUserName=DEFAULT_EMAIL_ADDRESS_LOCAL_PART;
 		String senderEmailAddress = senderUserName+StackConfiguration.getNotificationEmailSuffix();
@@ -126,7 +133,11 @@ public class EmailUtils {
 		if (senderDisplayName==null) {
 			source = senderEmailAddress;
 		} else {
-			source = senderDisplayName + " <" + senderEmailAddress + ">";
+			try {
+				source = MimeUtility.encodeWord(senderDisplayName, "utf-8", null) + " <" + senderEmailAddress + ">";
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		return source;
 	}

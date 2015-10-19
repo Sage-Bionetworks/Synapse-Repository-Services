@@ -83,7 +83,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet, ColumnModelMapper schema) throws IOException,
+	public RowSet getRowSet(String tableId, long rowVersion, ColumnModelMapper schema) throws IOException,
 			NotFoundException;
 	
 	/**
@@ -247,4 +247,14 @@ public interface TableRowTruthDAO {
 	 *             when a conflict is found
 	 */
 	public void checkForRowLevelConflict(String tableId, RawRowSet delta, long minVersion) throws IOException;
+
+	/**
+	 * Scan over a given changeset
+	 * @param handler
+	 * @param dto
+	 * @throws IOException
+	 */
+	public void scanChange(RowHandler handler, TableRowChange dto) throws IOException;
+	
+	
 }

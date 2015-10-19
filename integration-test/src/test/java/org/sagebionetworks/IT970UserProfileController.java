@@ -13,6 +13,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -130,6 +131,7 @@ public class IT970UserProfileController {
 		assertEquals(0, favs.getResults().size());
 	}
 
+	@Ignore // Unstable test: PLFM-3609
 	@Test
 	public void testMyProjects() throws Exception {
 		Project entity = new Project();

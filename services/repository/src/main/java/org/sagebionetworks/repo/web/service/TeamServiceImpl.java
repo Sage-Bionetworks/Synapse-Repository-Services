@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -283,6 +284,19 @@ public class TeamServiceImpl implements TeamService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo principalUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		return teamManager.getTeamMembershipStatus(userInfo, teamId, principalUserInfo);
+	}
+
+	@Override
+	public AccessControlList getAccessControlList(Long userId, String teamId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return teamManager.getACL(userInfo, teamId);
+	}
+
+	@Override
+	public AccessControlList updateAccessControlList(Long userId,
+			AccessControlList acl) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return teamManager.updateACL(userInfo, acl);
 	}
 
 }

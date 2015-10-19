@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -174,7 +175,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	}
 
 	@Override
-	public Doi getDoi(Long userId, String entityId, Long versionNumber)
+	public Doi getDoiForVersion(Long userId, String entityId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
 		if (userId == null) {
@@ -207,5 +208,29 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			throw new NotFoundException(error);
 		}
 		return node;
+	}
+
+	@Override
+	public Doi getDoiForCurrentVersion(Long userId, String entityId)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+
+		if (userId == null) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		}
+		if (entityId == null) {
+			throw new IllegalArgumentException("Entity ID cannot be null");
+		}
+
+		UserInfo currentUser = userManager.getUserInfo(userId);
+		UserInfo.validateUserInfo(currentUser);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		Node node = getNode(entityId, null);
+		Long versionNumber = null;
+		// Versionables such as files should have the null versionNumber converted into non-null versionNumber
+		if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.table) {
+			versionNumber = getNode(entityId, null).getVersionNumber();
+		}
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 }

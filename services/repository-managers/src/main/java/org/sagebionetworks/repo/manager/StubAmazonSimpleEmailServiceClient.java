@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.ByteArrayInputStream;
+import java.util.Properties;
+
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
@@ -110,6 +117,15 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public SendRawEmailResult sendRawEmail(
 			SendRawEmailRequest sendRawEmailRequest)
 			throws AmazonServiceException, AmazonClientException {
+		try {
+			MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+					new ByteArrayInputStream(sendRawEmailRequest.getRawMessage().getData().array()));
+			if (mimeMessage.getSubject().indexOf(MESSAGE_SUBJECT_FOR_FAILURE)>=0) {
+				throw new RuntimeException(TRANSMISSION_FAILURE);
+			}
+		} catch (MessagingException e) {
+			throw new RuntimeException(e);
+		}
 		return null;
 	}
 

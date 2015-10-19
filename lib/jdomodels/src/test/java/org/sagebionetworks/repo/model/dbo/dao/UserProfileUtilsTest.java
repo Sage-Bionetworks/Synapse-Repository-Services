@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -58,6 +59,19 @@ public class UserProfileUtilsTest {
 		assertEquals(new Long(456),dbo.getPictureId());
 		UserProfile dto2 = UserProfileUtils.convertDboToDto(dbo);
 		assertEquals(dto, dto2);
+	}
+	
+	@Test
+	public void testSetNullProfilePictureFileHandleId() {
+		UserProfile dto = new UserProfile();
+		dto.setProfilePicureFileHandleId("456");
+		DBOUserProfile dbo = new DBOUserProfile();
+		UserProfileUtils.copyDtoToDbo(dto, dbo);
+		assertNotNull(dbo.getPictureId());
+		assertEquals(new Long(456),dbo.getPictureId());
+		dto.setProfilePicureFileHandleId(null);
+		UserProfileUtils.copyDtoToDbo(dto, dbo);
+		assertNull(dbo.getPictureId());
 	}
 	
 	/**
@@ -243,7 +257,6 @@ public class UserProfileUtilsTest {
 		DBOFavorite dbo = new DBOFavorite();
 		UserProfileUtils.copyDtoToDbo(fav, dbo);
 		fail("principalId can not be null");
-	}
-	
+	}	
 }
 

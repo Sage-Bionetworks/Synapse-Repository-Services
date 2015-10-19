@@ -37,6 +37,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static int ROOT_WIKI_ID				= 0x2000;
 	public static int BENEFACTOR_ACL			= 0x4000;
 	public static int DOI						= 0x8000;
+	public static int FILE_NAME					= 0x10000;
 	
 	private static FileHandleInstanceFactory fileHandleInstanceFactory = new FileHandleInstanceFactory();
 	private static EntityInstanceFactory entityInstanceFactory = new EntityInstanceFactory();
@@ -57,6 +58,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_TABLE_DATA = "tableBundle";
 	public static final String JSON_ROOT_WIKI_ID = "rootWikiId";
 	public static final String JSON_DOI = "doi";
+	public static final String JSON_FILE_NAME = "fileName";
 	
 	private Entity entity;
 	private String entityType;
@@ -73,6 +75,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private String rootWikiId;
 	private AccessControlList benefactorAcl;
 	private Doi doi;
+	private String fileName;
 
 	/**
 	 * Create a new EntityBundle
@@ -194,6 +197,9 @@ public class EntityBundle implements JSONEntity, Serializable {
 				doi = new Doi();
 			doi.initializeFromJSONObject(joa);
 		}
+		if(toInitFrom.has(JSON_FILE_NAME)){
+			fileName = toInitFrom.getString(JSON_FILE_NAME);
+		}
 		return toInitFrom;
 	}
 
@@ -285,6 +291,9 @@ public class EntityBundle implements JSONEntity, Serializable {
 			JSONObjectAdapter joa = writeTo.createNew();
 			doi.writeToJSONObject(joa);
 			writeTo.put(JSON_DOI, joa);
+		}
+		if (fileName != null){
+			writeTo.put(JSON_FILE_NAME, fileName);
 		}
 		return writeTo;
 	}
@@ -475,6 +484,14 @@ public class EntityBundle implements JSONEntity, Serializable {
 		this.benefactorAcl = benefactorAcl;
 	}
 	
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
 	@Override
 	public String toString() {
 		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
@@ -485,7 +502,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ ", unmetAccessRequirements=" + unmetAccessRequirements
 				+ ", fileHandles=" + fileHandles + ", tableBundle="
 				+ tableBundle + ", rootWikiId=" + rootWikiId
-				+ ", benefactorAcl=" + benefactorAcl + ", doi=" + doi + "]";
+				+ ", benefactorAcl=" + benefactorAcl + ", doi=" + doi
+				+ ", fileName=" + fileName + "]";
 	}
 	
 	@Override
@@ -507,6 +525,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result
 				+ ((fileHandles == null) ? 0 : fileHandles.hashCode());
+		result = prime * result
+				+ ((fileName == null) ? 0 : fileName.hashCode());
 		result = prime * result
 				+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
@@ -573,6 +593,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (other.fileHandles != null)
 				return false;
 		} else if (!fileHandles.equals(other.fileHandles))
+			return false;
+		if (fileName == null) {
+			if (other.fileName != null)
+				return false;
+		} else if (!fileName.equals(other.fileName))
 			return false;
 		if (hasChildren == null) {
 			if (other.hasChildren != null)

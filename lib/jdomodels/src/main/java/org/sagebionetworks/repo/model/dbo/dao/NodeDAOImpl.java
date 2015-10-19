@@ -28,6 +28,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -128,6 +129,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String GET_NODE_TYPE_SQL = "SELECT "+COL_NODE_TYPE+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
@@ -333,7 +335,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			dboBasicDao.createNew(node);
 		}catch(IllegalArgumentException e){
-			checkExceptionDetails(node.getName(), KeyFactory.keyToString(node.getParentId()), e);
+			checkExceptionDetails(node.getName(), node.getAlias(), KeyFactory.keyToString(node.getParentId()), e);
 		}
 		dboBasicDao.createNew(rev);		
 		return KeyFactory.keyToString(node.getId());
@@ -345,8 +347,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param node
 	 * @param e
 	 */
-	private void checkExceptionDetails(String name, String parentId, IllegalArgumentException e) {
+	private void checkExceptionDetails(String name, String alias, String parentId, IllegalArgumentException e) {
 		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new NameConflictException("An entity with the name: "+name+" already exists with a parentId: "+parentId);
+		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_ALIAS) > 0) throw new NameConflictException("The friendly url name (alias): "+alias+" is already taken.  Please select another.");
 		throw e;
 	}
 	
@@ -430,6 +433,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			dboBasicDao.update(node);
 		}
 	}
+	
+	
+	@Override
+	public EntityType getNodeTypeById(String nodeId) throws NotFoundException, DatastoreException {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			String typeString = this.jdbcTemplate.queryForObject(GET_NODE_TYPE_SQL, String.class, KeyFactory.stringToKey(nodeId));
+			return EntityType.valueOf(typeString);
+		} catch(EmptyResultDataAccessException e){
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
+	}
+	
+
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -682,7 +699,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			dboBasicDao.update(jdoToUpdate);
 		}catch(IllegalArgumentException e){
 			// Check to see if this is a duplicate name exception.
-			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
+			checkExceptionDetails(updatedNode.getName(), updatedNode.getAlias(), updatedNode.getParentId(), e);
 		}
 		
 		dboBasicDao.update(revToUpdate);

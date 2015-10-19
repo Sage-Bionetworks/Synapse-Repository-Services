@@ -1,5 +1,8 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -26,14 +29,13 @@ public class TeamMemberObjectRecordBuilder implements ObjectRecordBuilder{
 	}
 
 	@Override
-	public ObjectRecord build(ChangeMessage message) {
+	public List<ObjectRecord> build(ChangeMessage message) {
 		if (message.getObjectType() != ObjectType.TEAM_MEMBER || message.getChangeType() == ChangeType.DELETE) {
 			throw new IllegalArgumentException();
 		}
 		try {
 			TeamMember teamMember = teamDAO.getMember(message.getParentId(), message.getObjectId());
-			return ObjectRecordBuilderUtils.buildObjectRecord(teamMember, message.getTimestamp().getTime());
-
+			return Arrays.asList(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, message.getTimestamp().getTime()));
 		} catch (NotFoundException e) {
 			log.warn("Team member not found. TeamId = "+message.getParentId()+" principalId = "+message.getObjectId());
 			return null;

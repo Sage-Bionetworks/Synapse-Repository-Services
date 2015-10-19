@@ -33,11 +33,14 @@ public class SendRawEmailRequestBuilderTest {
 		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
 				.withSubject("subject")
-				.withBody(body)
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
 				.withSenderUserName("foobar")
 				.withSenderDisplayName("Foo Bar")
 				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
 				.withUserId("101")
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
 		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
 		assertEquals(1, request.getDestinations().size());
@@ -47,13 +50,16 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
+		assertEquals("TO <to@foo.bar>", mimeMessage.getHeader("To")[0]);
+		assertEquals("Cc <cc@foo.bar>", mimeMessage.getHeader("Cc")[0]);
+		assertEquals("Bcc <bcc@foo.bar>", mimeMessage.getHeader("Bcc")[0]);
 
 		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
 		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
 		assertEquals(1, content.getCount());
 		assertTrue(content.getContentType().startsWith("multipart/related"));
 		BodyPart bodyPart = content.getBodyPart(0);
-		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
+		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain"));
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
@@ -65,11 +71,14 @@ public class SendRawEmailRequestBuilderTest {
 		new SendRawEmailRequestBuilder()
 				.withRecipientEmail("foo@bar.com")
 				.withSubject("subject")
-				.withBody(body)
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
 				.withSenderUserName("foobar")
 				.withSenderDisplayName("Foo Bar")
 				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
 				.withUserId("101")
+				.withTo("TO<to@foo.bar>")
+				.withCc("Cc<cc@foo.bar>")
+				.withBcc("Bcc<bcc@foo.bar>")
 				.build();
 	}
 	
@@ -79,10 +88,13 @@ public class SendRawEmailRequestBuilderTest {
 		SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
 				.withRecipientEmail("foo@bar.com")
 				.withSubject("subject")
-				.withBody(body)
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
 				.withSenderUserName("foobar")
 				.withSenderDisplayName("Foo Bar")
 				.withUserId("101")
+				.withTo("TO <to@foo.bar>")
+				.withCc("Cc <cc@foo.bar>")
+				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
 		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
 		assertEquals(1, request.getDestinations().size());
@@ -92,6 +104,9 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
+		assertEquals("TO <to@foo.bar>", mimeMessage.getHeader("To")[0]);
+		assertEquals("Cc <cc@foo.bar>", mimeMessage.getHeader("Cc")[0]);
+		assertEquals("Bcc <bcc@foo.bar>", mimeMessage.getHeader("Bcc")[0]);
 
 		assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
 		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -16,11 +15,11 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -69,7 +68,30 @@ public class EntityManagerImplUnitTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
 		entityManager.validateReadAccess(mockUser, entityId);
 	}
+	
+	@Test
+	public void testGetEntitySecondaryFields() throws Exception {
+		String id = "123";
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getPrimaryAnnotations().addAnnotation("fileNameOverride", "bar.txt");
+		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);		
+		FileEntity entity = entityManager.getEntitySecondaryFields(mockUser, id, FileEntity.class);
+		assertEquals("0", entity.getCreatedBy());
+		assertEquals("0", entity.getModifiedBy());
+		assertEquals("bar.txt", entity.getFileNameOverride());
+	}
 
+	@Test
+	public void testGetEntitySecondaryFieldsForVersion() throws Exception {
+		String id = "123";
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getPrimaryAnnotations().addAnnotation("fileNameOverride", "bar.txt");
+		when(mockNodeManager.getAnnotationsForVersion(mockUser, id, 1L)).thenReturn(annos);		
+		FileEntity entity = entityManager.getEntitySecondaryFieldsForVersion(mockUser, id, 1L, FileEntity.class);
+		assertEquals("0", entity.getCreatedBy());
+		assertEquals("0", entity.getModifiedBy());
+		assertEquals("bar.txt", entity.getFileNameOverride());
+	}
 
 	@Test
 	public void testUpdateEntityActivityId() throws Exception {

@@ -10,8 +10,10 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -34,8 +37,6 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
@@ -57,6 +58,11 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	private static final String SELECT_EVALUATION_FOR_IDS = 
 			"SELECT DISTINCT s."+COL_SUBMISSION_EVAL_ID+" FROM "+TABLE_SUBMISSION+
 			" s WHERE s."+COL_SUBMISSION_ID+" IN (:"+COL_SUBMISSION_ID+")";
+
+	private static final String SELECT_BY_IDS = "SELECT * FROM "+SQLConstants.TABLE_SUBSTATUS+" WHERE "+
+			COL_SUBSTATUS_SUBMISSION_ID+" IN (:"+COL_SUBSTATUS_SUBMISSION_ID+")";
+	
+	private RowMapper<SubmissionStatusDBO> SUBSTATUS_ROW_MAPPER = (new SubmissionStatusDBO()).getTableMapping();
 
 	@Override
 	@WriteTransaction
@@ -86,6 +92,22 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		param.addValue(ID, id);
 		SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);		
 		return SubmissionUtils.convertDboToDto(dbo);
+	}
+	
+	@Override
+	public List<SubmissionStatus> list(List<String> ids) throws DatastoreException, NotFoundException {
+		if (ids==null || ids.size()<1) {
+			return Collections.emptyList();
+		}
+		Set<String> idSet = new LinkedHashSet<String>(ids);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idSet);
+		List<SubmissionStatusDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, SUBSTATUS_ROW_MAPPER, param);
+		if (dbos.size()<idSet.size()) throw new NotFoundException("Expected submission statuses for "+idSet+
+				" but only found results for "+dbos.size());
+		List<SubmissionStatus> result = new ArrayList<SubmissionStatus>();
+		for (SubmissionStatusDBO dbo : dbos) result.add(SubmissionUtils.convertDboToDto(dbo));
+		return result;
 	}
 	
 	@Override

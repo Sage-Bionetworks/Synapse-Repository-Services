@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
@@ -79,6 +78,8 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -107,7 +108,6 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -1637,22 +1637,37 @@ public interface SynapseClient extends BaseClient {
 	void removeTeamMember(String teamId, String memberId) throws SynapseException;
 	
 	/**
-	 * 
 	 * @param teamId
 	 * @param memberId
 	 * @param isAdmin
 	 * @throws SynapseException
 	 */
 	void setTeamMemberPermissions(String teamId, String memberId, boolean isAdmin) throws SynapseException;
-	
+
 	/**
-	 * 
+	 * Get the membership status of the given member (principalId) in the given Team
 	 * @param teamId
 	 * @param principalId
 	 * @return
 	 * @throws SynapseException
 	 */
 	TeamMembershipStatus getTeamMembershipStatus(String teamId, String principalId) throws SynapseException;
+	
+	/**
+	 * Get the ACL for the given Team
+	 * @param teamId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList getTeamACL(String teamId) throws SynapseException;
+	
+	/**
+	 * Update the ACL for the given Team
+	 * @param acl
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException;
 
 	/**
 	 * 
@@ -2243,5 +2258,26 @@ public interface SynapseClient extends BaseClient {
 	PaginatedIds listSubmissionTeams(String challengeId,
 			String submitterPrincipalId, Long limit, Long offset)
 			throws SynapseException;
+	
+	/**
+	 * Start an asynchronous job to download multiple files as a bundled zip file.
+	 * @see #getBulkFileDownloadResults(String)
+	 * @param request Describes the files to be included in the resulting zip file.
+	 * @return JobId token used to get the results. See: {@link #getBulkFileDownloadResults(String)}
+	 * @throws SynapseException
+	 */
+	String startBulkFileDownload(BulkFileDownloadRequest request)
+			throws SynapseException;
+
+	/**
+	 * Get the results of an asynchronous job to download multiple files as a bundled zip file.
+	 * @see #startBulkFileDownload(BulkFileDownloadRequest)
+	 * @param asyncJobToken The JobId returned from: {@link #startBulkFileDownload(BulkFileDownloadRequest)}
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	BulkFileDownloadResponse getBulkFileDownloadResults(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 	
 }

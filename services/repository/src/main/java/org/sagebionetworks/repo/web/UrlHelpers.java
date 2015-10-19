@@ -204,6 +204,11 @@ public class UrlHelpers {
 	public static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 	public static final String S3_FILE_COPY_ASYNC_START = S3_FILE_COPY + ASYNC_START_REQUEST;
 	public static final String S3_FILE_COPY_ASYNC_GET = S3_FILE_COPY + ASYNC_GET_REQUEST;
+	
+	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
+	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
+	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
+	
 	// version
 	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
 	public static final String ENTITY_VERSION_FILE_PREVIEW = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_PREVIEW;
@@ -771,6 +776,8 @@ public class UrlHelpers {
 	// 	Team URIs for JSONP
 	public static final String TEAMS = "/teams";
 	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
+	public static final String TEAM_ACL = TEAM+"/acl";
+	public static final String TEAM_ID_ACL = TEAM_ID+"/acl";
 	
 	public static final String ACCESS_REQUIREMENT_WITH_TEAM_ID = TEAM_ID+ACCESS_REQUIREMENT;
 	public static final String TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = TEAM_ID+"/accessRequirementUnfulfilled";

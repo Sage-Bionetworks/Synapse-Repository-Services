@@ -206,6 +206,15 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 */
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * returns just the entity type for the given node
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public EntityType getNodeTypeById(String nodeId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -25,7 +26,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableBundle;
@@ -63,11 +63,15 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
 		EntityBundle eb = new EntityBundle();
-		if ((mask & EntityBundle.ENTITY) > 0) {
+		Entity entity = null;
+		if ((mask & (EntityBundle.ENTITY | EntityBundle.FILE_NAME)) > 0) {
 			if(versionNumber == null) {
-				eb.setEntity(serviceProvider.getEntityService().getEntity(userId, entityId, request));
+				entity = serviceProvider.getEntityService().getEntity(userId, entityId, request);
 			} else {
-				eb.setEntity(serviceProvider.getEntityService().getEntityForVersion(userId, entityId, versionNumber, request));
+				entity = serviceProvider.getEntityService().getEntityForVersion(userId, entityId, versionNumber, request);
+			}
+			if ((mask & EntityBundle.ENTITY) > 0) {
+				eb.setEntity(entity);
 			}
 		}
 		if ((mask & EntityBundle.ANNOTATIONS) > 0) {
@@ -119,18 +123,22 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
 			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, ACCESS_TYPE.DOWNLOAD).getResults());
 		}
-		if((mask & EntityBundle.FILE_HANDLES) > 0 ){
-			try{
-				FileHandleResults fhr = null;
-				if(versionNumber == null){
-					fhr = serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(userId, entityId);
-				}else{
-					fhr = serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, entityId, versionNumber);
+		List<FileHandle> fileHandles = null;
+		if ((mask & (EntityBundle.FILE_HANDLES | EntityBundle.FILE_NAME)) > 0 ) {
+			try {
+				if (versionNumber == null) {
+					fileHandles = serviceProvider.getEntityService().
+							getEntityFileHandlesForCurrentVersion(userId, entityId).getList();
+				} else{
+					fileHandles = serviceProvider.getEntityService().
+							getEntityFileHandlesForVersion(userId, entityId, versionNumber).getList();
 				} 
-				eb.setFileHandles(fhr.getList());
-			}catch( Exception e){
+			}catch (Exception e) {
 				// If the user does not have permission to see the handles then set them to be an empty list.
-				eb.setFileHandles(new LinkedList<FileHandle>());
+				fileHandles = new LinkedList<FileHandle>();
+			}
+			if ((mask & EntityBundle.FILE_HANDLES)>0) {
+				eb.setFileHandles(fileHandles);
 			}
 		}
 		if((mask & EntityBundle.TABLE_DATA) > 0 ){
@@ -151,11 +159,29 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if((mask & EntityBundle.DOI) > 0 ){
 			 try {
-				Doi doi = serviceProvider.getDoiService().getDoi(userId, entityId, ObjectType.ENTITY, versionNumber);
+			 	Doi doi = null;
+			 	if (versionNumber == null) {
+					doi = serviceProvider.getDoiService().getDoiForCurrentVersion(userId, entityId, ObjectType.ENTITY);
+				} else {
+					doi = serviceProvider.getDoiService().getDoiForVersion(userId, entityId, ObjectType.ENTITY, versionNumber);
+				} 
 				eb.setDoi(doi);
 			} catch (NotFoundException e) {
 				// does not exist
 				eb.setDoi(null);
+			}
+		}
+		if((mask & EntityBundle.FILE_NAME) > 0 && (entity instanceof FileEntity)){
+			FileEntity fileEntity = (FileEntity)entity;
+			if (fileEntity.getFileNameOverride()==null) {
+				for (FileHandle fileHandle : fileHandles) {
+					if (fileHandle.getId().equals(fileEntity.getDataFileHandleId())) {
+						eb.setFileName(fileHandle.getFileName());
+						break;
+					}
+				}
+			} else {
+				eb.setFileName(fileEntity.getFileNameOverride());
 			}
 		}
 		return eb;

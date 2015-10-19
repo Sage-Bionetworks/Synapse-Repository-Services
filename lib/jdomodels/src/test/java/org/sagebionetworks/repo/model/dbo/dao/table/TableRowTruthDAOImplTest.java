@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,11 +25,13 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentVersionCacheDao;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -57,8 +61,6 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableRowTruthDAOImplTest {
 	
-	private Set<Long> ALL_SET;
-
 	@Autowired
 	ConnectionFactory connectionFactory;
 
@@ -67,16 +69,19 @@ public class TableRowTruthDAOImplTest {
 
 	@Autowired
 	private TableRowCache tableRowCache;
+	
+	@Autowired
+	FileHandleDao fileHandleDao;
 
 	protected String creatorUserGroupId;
 
 	Object oldStackConfiguration;
+	
+	List<String> fileHandleIds;
 
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
-		ALL_SET = mock(Set.class);
-		when(ALL_SET.contains(any())).thenReturn(true);
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 		oldStackConfiguration = ReflectionStaticTestUtils.getField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"),
@@ -86,6 +91,7 @@ public class TableRowTruthDAOImplTest {
 		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
 				mockStackConfiguration);
 		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
+		fileHandleIds = new LinkedList<String>();		
 	}
 	
 	@After
@@ -94,6 +100,36 @@ public class TableRowTruthDAOImplTest {
 		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
 				oldStackConfiguration);
 		((ConnectionFactoryStub) connectionFactory).isEnabled = false;
+		
+		if(fileHandleIds != null){
+			for(String id: fileHandleIds){
+				try {
+					fileHandleDao.delete(id);
+				} catch (Exception e) {}
+			}
+		}
+	}
+	
+	/**
+	 * Create some test fileHandle.
+	 * @param count
+	 * @return
+	 */
+	private List<S3FileHandle> createFileHandles(int count){
+		List<S3FileHandle> created = new LinkedList<S3FileHandle>();
+		for(int i=0; i<count; i++){
+			S3FileHandle fh = new S3FileHandle();
+			fh.setCreatedBy(creatorUserGroupId);
+			fh.setCreatedOn(new Date());
+			fh.setBucketName("bucket");
+			fh.setKey("mainFileKey");
+			fh.setEtag("etag");
+			fh.setFileName("foo.bar");
+			fh = fileHandleDao.createFile(fh, false);
+			fileHandleIds.add(fh.getId());
+			created.add(fh);
+		}
+		return created;
 	}
 
 	@Test
@@ -237,7 +273,7 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, rowSet);
 		assertNotNull(refSet);
 		// Get the rows back
-		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		for (Row row : fetched.getRows()) {
 			assertEquals(row.getValues().get(0), row.getValues().get(1));
 		}
@@ -307,7 +343,7 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertNotNull(refSet);
 		// Get the rows back
-		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		assertNotNull(fetched);
 		assertEquals(mapper.getSelectColumns(), fetched.getHeaders());
 		assertEquals(tableId, fetched.getTableId());
@@ -333,22 +369,9 @@ public class TableRowTruthDAOImplTest {
 			assertEquals(expectedValues, row.getValues());
 			expectedId++;
 		}
-
-		// Get partial rows back
-		fetched = tableRowTruthDao.getRowSet(tableId, 0l,
-				Sets.newHashSet(rows.get(0).getRowId(), rows.get(2).getRowId(), rows.get(4).getRowId()), mapper);
-		assertNotNull(fetched);
-		assertEquals(mapper.getSelectColumns(), fetched.getHeaders());
-		assertEquals(tableId, fetched.getTableId());
-		assertNotNull(fetched.getEtag());
-		assertEquals(3, fetched.getRows().size());
-		assertEquals(0L, fetched.getRows().get(0).getRowId().longValue());
-		assertEquals(2L, fetched.getRows().get(1).getRowId().longValue());
-		assertEquals(4L, fetched.getRows().get(2).getRowId().longValue());
-
 		// Version two does not exists so a not found should be thrown
 		try{
-			tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET, mapper);
+			tableRowTruthDao.getRowSet(tableId, 1l, mapper);
 			fail("Should have failed");
 		}catch (NotFoundException e){
 			// expected;
@@ -394,13 +417,12 @@ public class TableRowTruthDAOImplTest {
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
 		// Append this change set
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
-
 		// add row
 		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), TableModelTestUtils.createRows(mapper.getColumnModels(), 1));
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 
 		// update row
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		Row toUpdate = toUpdateOne.getRows().get(0);
 		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate, 100);
 		RawRowSet toUpdateOneRaw = new RawRowSet(set.getIds(), toUpdateOne.getEtag(), set.getTableId(), Lists.newArrayList(toUpdate));
@@ -453,7 +475,7 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(4L, tableRowTruthDao.getMaxRowId(tableId));
 
 		// Now fetch the rows for an update
-		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// remove a few rows
 		toUpdate.getRows().remove(0);
 		toUpdate.getRows().remove(1);
@@ -471,7 +493,7 @@ public class TableRowTruthDAOImplTest {
 		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdateOneRaw);
 		assertNotNull(refSet);
 		// Now get the second version and validate it is what we expect
-		RowSet updated = tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET, mapper);
+		RowSet updated = tableRowTruthDao.getRowSet(tableId, 1l, mapper);
 		assertNotNull(updated);
 		assertNotNull(updated.getRows());
 		assertNotNull(updated.getEtag());
@@ -498,7 +520,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		// Now fetch the rows for an update
-		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// remove a few rows
 		toUpdate.getRows().remove(0);
 		toUpdate.getRows().remove(1);
@@ -541,7 +563,7 @@ public class TableRowTruthDAOImplTest {
 			assertEquals(2, count.get());
 		}
 
-		toUpdate = tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET, mapper);
+		toUpdate = tableRowTruthDao.getRowSet(tableId, 1l, mapper);
 		// remove a few rows
 		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate.getRows().get(0), 19);
 		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate.getRows().get(1), 21);
@@ -621,9 +643,9 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertNotNull(refSet);
 		// Now fetch the rows for an update
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
@@ -661,9 +683,9 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		assertNotNull(refSet);
 		// Now fetch the rows for an update
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
@@ -701,9 +723,9 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 		// Now fetch the rows for an update
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
@@ -755,9 +777,9 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 		// Now fetch the rows for an update
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
-		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
@@ -808,7 +830,7 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 
 		// Now fetch the rows for an update
-		RowSet toUpdate1 = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdate1 = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// For this case each update will change a different row so there is no conflict.
 		// delete second row and update all others
 		TableModelTestUtils.updateRow(mapper.getColumnModels(), toUpdate1.getRows().get(0), 100);
@@ -819,7 +841,7 @@ public class TableRowTruthDAOImplTest {
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdate1Raw);
 
 		// Now fetch the rows for an update
-		RowSet toUpdate2 = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdate2 = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// delete second (was third) row and update only that one
 		Row deletion = new Row();
 		deletion.setRowId(toUpdate2.getRows().get(1).getRowId());
@@ -829,7 +851,7 @@ public class TableRowTruthDAOImplTest {
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdate2Raw);
 
 		// Now fetch the rows for an update
-		RowSet toUpdate3 = tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET, mapper);
+		RowSet toUpdate3 = tableRowTruthDao.getRowSet(tableId, 1l, mapper);
 		// delete second (was third) row and update only that one
 		deletion = new Row();
 		deletion.setRowId(toUpdate3.getRows().get(2).getRowId());
@@ -839,10 +861,10 @@ public class TableRowTruthDAOImplTest {
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, toUpdate3Raw);
 
 		RowSetAccessor rowSetLatest = tableRowTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L, 1L, 2L, 3L), 0L, mapper);
-		RowSet rowSetBefore = tableRowTruthDao.getRowSet(tableId, 0L, ALL_SET, mapper);
-		RowSet rowSetAfter = tableRowTruthDao.getRowSet(tableId, 1L, ALL_SET, mapper);
-		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L, ALL_SET, mapper);
-		RowSet rowSetAfter3 = tableRowTruthDao.getRowSet(tableId, 3L, ALL_SET, mapper);
+		RowSet rowSetBefore = tableRowTruthDao.getRowSet(tableId, 0L, mapper);
+		RowSet rowSetAfter = tableRowTruthDao.getRowSet(tableId, 1L, mapper);
+		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L, mapper);
+		RowSet rowSetAfter3 = tableRowTruthDao.getRowSet(tableId, 3L, mapper);
 
 		assertEquals(2, Iterables.size(rowSetLatest.getRows()));
 		assertEquals(4, rowSetBefore.getRows().size());
@@ -863,7 +885,7 @@ public class TableRowTruthDAOImplTest {
 		RawRowSet set = new RawRowSet(TableModelUtils.getIds(mapper.getColumnModels()), null, tableId, rows);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		// get the rows back
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET, mapper);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, mapper);
 		// Create a row with an ID that is beyond the current max ID for the table
 		Row toAdd = TableModelTestUtils.createRows(mapper.getColumnModels(), 1).get(0);
 		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);
@@ -891,17 +913,18 @@ public class TableRowTruthDAOImplTest {
 			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, mapper, set);
 		}
 		for (int i = 0; i < COUNT; i++) {
-			tableRowTruthDao.getRowSet(tableId, i, ALL_SET, mapper);
+			tableRowTruthDao.getRowSet(tableId, i, mapper);
 		}
 
 		tableRowTruthDao.deleteAllRowDataForTable(tableId);
 
 		for (int i = 0; i < COUNT; i++) {
 			try {
-				tableRowTruthDao.getRowSet(tableId, i, ALL_SET, mapper);
+				tableRowTruthDao.getRowSet(tableId, i, mapper);
 				fail("Should not exist anymore");
 			} catch (NotFoundException e) {
 			}
 		}
 	}
+
 }

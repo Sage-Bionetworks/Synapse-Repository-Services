@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -98,7 +99,20 @@ public interface FileHandleDao {
 	 * @return the list of creators in the same order as the file handles
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException;
+	
+
+	/**
+	 * Given a list of FileHandleIds, get the sub-set of FileHandleIds of the FileHandles that 
+	 * were created by the passed userId.
+	 * @param createdById
+	 * @param fileHandleIds
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Set<String> getFileHandleIdsCreatedByUser(Long createdById, List<String> fileHandleIds) throws NotFoundException;;
+	
 
 	/**
 	 * Get the preview associated with a given file handle.

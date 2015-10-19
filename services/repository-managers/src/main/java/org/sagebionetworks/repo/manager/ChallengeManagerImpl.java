@@ -1,9 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
@@ -14,14 +19,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.util.ModelConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class ChallengeManagerImpl implements ChallengeManager {
 	
@@ -36,6 +41,9 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	
 	@Autowired
 	TeamDAO teamDAO;
+	
+	@Autowired 
+	AccessControlListDAO aclDAO;
 	
 	private static final AuthorizationStatus NOT_IN_CHALLENGE = 
 			new AuthorizationStatus(false, "You must be a Challenge participant for this operation.");
@@ -54,11 +62,13 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	public ChallengeManagerImpl(ChallengeDAO challengeDAO, 
 			ChallengeTeamDAO challengeTeamDAO, 
 			AuthorizationManager authorizationManager,
-			TeamDAO teamDAO) {
+			TeamDAO teamDAO,
+			AccessControlListDAO aclDAO) {
 		this.challengeDAO=challengeDAO;
 		this.challengeTeamDAO=challengeTeamDAO;
 		this.authorizationManager=authorizationManager;
 		this.teamDAO=teamDAO;
+		this.aclDAO=aclDAO;
 	}
 	
 	private static void validateChallenge(Challenge challenge) {
@@ -152,10 +162,23 @@ public class ChallengeManagerImpl implements ChallengeManager {
 	}
 	
 	/*
+	 * returns true iff the given user is a Team admin in the given ACL
+	 * NOTE:  This is only applicable to Team ACLs as it uses Team admin
+	 * permissions for comparison.
+	 */
+	public static boolean isTeamAdmin(AccessControlList acl, UserInfo userInfo) {
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (!userInfo.getGroups().contains(ra.getPrincipalId())) continue;
+			if (ra.getAccessType().containsAll(ModelConstants.TEAM_ADMIN_PERMISSIONS)) return true;
+		}
+		return false;
+	}
+	
+	/*
 	 * Must be a member of the Participant Team and be an admin on the referenced Challenge Team.
 	 * 
 	 */
-	public AuthorizationStatus canCreateUpdateOrDeleteChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws NotFoundException {
+	public AuthorizationStatus isRegisteredAndIsAdminForChallengeTeam(UserInfo userInfo, ChallengeTeam challengeTeam) throws NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		Challenge challenge = challengeDAO.get(Long.parseLong(challengeTeam.getChallengeId()));
 		try {
@@ -164,8 +187,8 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			return NOT_IN_CHALLENGE;
 		}
 		try {
-			TeamMember member = teamDAO.getMember(challengeTeam.getTeamId(), userInfo.getId().toString());
-			if (member.getIsAdmin()==null || !member.getIsAdmin()) return NOT_TEAM_ADMIN;
+			AccessControlList acl = aclDAO.get(challengeTeam.getTeamId(), ObjectType.TEAM);
+			if (!isTeamAdmin(acl, userInfo)) return NOT_TEAM_ADMIN;
 		} catch  (NotFoundException e) {
 			return NOT_TEAM_ADMIN;
 		}
@@ -191,7 +214,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			ChallengeTeam challengeTeam) throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateChallengeTeam(challengeTeam);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
+				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
 		return challengeTeamDAO.create(challengeTeam);
 	}
 
@@ -231,7 +254,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			NotFoundException {
 		validateChallengeTeam(challengeTeam);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
+				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
 		return challengeTeamDAO.update(challengeTeam);
 	}
 
@@ -241,7 +264,7 @@ public class ChallengeManagerImpl implements ChallengeManager {
 			throws NotFoundException, DatastoreException {
 		ChallengeTeam challengeTeam = challengeTeamDAO.get(challengeTeamId);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				canCreateUpdateOrDeleteChallengeTeam(userInfo, challengeTeam));
+				isRegisteredAndIsAdminForChallengeTeam(userInfo, challengeTeam));
 		challengeTeamDAO.delete(challengeTeamId);
 	}
 	

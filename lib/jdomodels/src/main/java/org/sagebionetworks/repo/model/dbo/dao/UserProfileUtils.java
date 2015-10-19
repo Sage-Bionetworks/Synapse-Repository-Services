@@ -31,8 +31,11 @@ public class UserProfileUtils {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		if(dto.getProfilePicureFileHandleId()!= null){
-			dbo.setPictureId(Long.parseLong(dto.getProfilePicureFileHandleId()));
+		String profilePictureFileHandleId = dto.getProfilePicureFileHandleId();
+		if (dto.getProfilePicureFileHandleId() == null) {
+			dbo.setPictureId(null);
+		} else {
+			dbo.setPictureId(Long.parseLong(profilePictureFileHandleId));
 		}
 	}
 	

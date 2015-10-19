@@ -54,8 +54,8 @@ public class DoiServiceImplTest {
 		final String objectId = KeyFactory.keyToString(2L);
 		final ObjectType objectType = ObjectType.ENTITY;
 		final Long versionNumber = 3L;
-		srv.getDoi(userId, objectId, objectType, versionNumber);
-		verify(mockManager, times(1)).getDoi(userId, objectId, versionNumber);
+		srv.getDoiForVersion(userId, objectId, objectType, versionNumber);
+		verify(mockManager, times(1)).getDoiForVersion(userId, objectId, versionNumber);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -65,7 +65,7 @@ public class DoiServiceImplTest {
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
 		final String objectId = KeyFactory.keyToString(2L);
 		final Long versionNumber = 3L;
-		srv.getDoi(userId, objectId, null, versionNumber);
+		srv.getDoiForVersion(userId, objectId, null, versionNumber);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -75,6 +75,6 @@ public class DoiServiceImplTest {
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
 		final String objectId = KeyFactory.keyToString(2L);
 		final Long versionNumber = 3L;
-		srv.getDoi(userId, objectId, ObjectType.EVALUATION, versionNumber);
+		srv.getDoiForVersion(userId, objectId, ObjectType.EVALUATION, versionNumber);
 	}
 }
