@@ -278,7 +278,7 @@ public class IT990AuthenticationController {
 			synapse.validateOAuthAuthenticationCode(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
-			assertTrue(e.getMessage().contains("invalid_grant"));
+			// OK
 		}
 	}
 }
