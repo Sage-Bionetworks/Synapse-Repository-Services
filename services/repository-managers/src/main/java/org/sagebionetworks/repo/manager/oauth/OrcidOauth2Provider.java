@@ -13,8 +13,8 @@ import org.scribe.oauth.OAuthService;
 
 public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
-    private static final String AUTHORIZE_URL = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
-    private static final String TOKEN_URL = "https://pub.orcid.org/oauth/token";
+	private static final String AUTHORIZE_URL = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
+	private static final String TOKEN_URL = "https://pub.orcid.org/oauth/token";
 
     /*
 	 * "/authenticate scope indicates to ORCID that we just want to request the user's ORCID ID
@@ -47,8 +47,9 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public AliasAndType retrieveProvidersId(String authorizationCode) {
+	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
 		try{
+			// Note:  We don't need to use the redirectUrl.
 			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
 
@@ -58,7 +59,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 			 */
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
 			String orcid = parseOrcidId(accessToken.getRawResponse());
-			return new AliasAndType(convertOrcIdToURI(orcid), AliasType.ORCID);
+			return new AliasAndType(convertOrcIdToURI(orcid), AliasType.USER_ORCID);
 		}catch(OAuthException e){
 			throw new UnauthorizedException(e);
 		}
@@ -85,7 +86,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
 
 	@Override
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode) {
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
 		throw new IllegalArgumentException("This is not supported for ORCID.");
 	}
 

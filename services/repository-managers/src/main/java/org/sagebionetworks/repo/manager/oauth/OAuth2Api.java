@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.scribe.builder.api.DefaultApi20;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.extractors.AccessTokenExtractor;
@@ -28,6 +27,9 @@ import org.scribe.utils.Preconditions;
  * 
  */
 public class OAuth2Api extends DefaultApi20 {
+	private static String ACCESS_TOKEN_TAG = "access_token";
+	private static String ERROR_TAG = "error";
+	
 	private String authorizationEndpoint;
 	private String accessTokenEndpoint;
 	
@@ -47,18 +49,20 @@ public class OAuth2Api extends DefaultApi20 {
             
             @Override
             public Token extract(String response) {
-                Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
-
-                Matcher matcher = Pattern.compile("\"access_token\" : \"([^&\"]+)\"").matcher(response);
-                if (matcher.find())
-                {
-                  String token = OAuthEncoder.decode(matcher.group(1));
-                  return new Token(token, "", response);
-                } 
-                else
-                {
-                  throw new OAuthException("Response body is incorrect. Can't extract a token from this: '" + response + "'", null);
-                }
+            	Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
+            	try {
+            		JSONObject json = new JSONObject(response);
+            		if (json.has(ACCESS_TOKEN_TAG)) {
+            			String token = OAuthEncoder.decode(json.getString(ACCESS_TOKEN_TAG));
+            			return new Token(token, "", response);
+            		} else if (json.has(ERROR_TAG)) {
+            			throw new OAuthException(json.getString(ERROR_TAG));
+            		} else {
+            			throw new OAuthException("Response body is incorrect. Can't parse: '" + response + "'", null);
+            		}
+            	} catch (JSONException e) {
+            		throw new RuntimeException(e);
+            	}
             }
         };
     }
@@ -108,7 +112,7 @@ public class OAuth2Api extends DefaultApi20 {
                 request.addBodyParameter(OAuthConstants.CLIENT_ID, config.getApiKey());
                 request.addBodyParameter(OAuthConstants.CLIENT_SECRET, config.getApiSecret());
                 request.addBodyParameter(OAuthConstants.CODE, verifier.getValue());
-                request.addBodyParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
+                if (config.getCallback()!=null) request.addBodyParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
                 request.addBodyParameter(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
                 break;
             case GET:
@@ -116,7 +120,7 @@ public class OAuth2Api extends DefaultApi20 {
                 request.addQuerystringParameter(OAuthConstants.CLIENT_ID, config.getApiKey());
                 request.addQuerystringParameter(OAuthConstants.CLIENT_SECRET, config.getApiSecret());
                 request.addQuerystringParameter(OAuthConstants.CODE, verifier.getValue());
-                request.addQuerystringParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
+                if (config.getCallback()!=null) request.addQuerystringParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
                 if(config.hasScope()) request.addQuerystringParameter(OAuthConstants.SCOPE, config.getScope());
             }
             Response response = request.send();

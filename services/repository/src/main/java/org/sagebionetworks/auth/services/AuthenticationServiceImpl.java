@@ -291,7 +291,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
-				request.getProvider(), request.getAuthenticationCode());
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		if(providedInfo.getUsersVerifiedEmail() == null){
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
@@ -310,7 +310,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (userId==null) throw new UnauthorizedException("User ID is required.");
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
-				validationRequest.getAuthenticationCode());
+				validationRequest.getAuthenticationCode(),
+				validationRequest.getRedirectUrl());
 		// now bind the ID to the user account
 		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
 	}

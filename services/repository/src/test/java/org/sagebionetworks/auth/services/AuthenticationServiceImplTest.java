@@ -115,7 +115,7 @@ public class AuthenticationServiceImplTest {
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode())).thenReturn(info);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
@@ -135,7 +135,7 @@ public class AuthenticationServiceImplTest {
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail(null);
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode())).thenReturn(info);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
@@ -155,7 +155,7 @@ public class AuthenticationServiceImplTest {
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode())).thenReturn(info);
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(null);
 		//call under test
 		try {

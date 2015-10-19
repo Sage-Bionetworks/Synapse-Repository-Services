@@ -4,7 +4,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
@@ -49,7 +48,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	private String apiKey;
 	private String apiSecret;
-
+	
 	/**
 	 * Thread safe Google provider.
 	 * 
@@ -69,10 +68,10 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode) {
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
 		try{
 			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
-					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
+					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
 			/*
 			 * Get an access token from Google using the provided authorization code.
 			 * This token is used to sign request for user's information.
@@ -125,7 +124,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	}
 
 	@Override
-	public AliasAndType retrieveProvidersId(String authorizationCode) {
+	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
 		throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the Google OAuth provider.");
 	}
 }

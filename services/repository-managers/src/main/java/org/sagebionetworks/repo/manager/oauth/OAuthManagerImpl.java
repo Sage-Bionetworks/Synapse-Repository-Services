@@ -28,14 +28,14 @@ public class OAuthManagerImpl implements OAuthManager {
 
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
-			String authorizationCode) {
-		return getBinding(provider).validateUserWithProvider(authorizationCode);
+			String authorizationCode, String redirectUrl) {
+		return getBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
 	}
 	
 	@Override
 	public AliasAndType retrieveProvidersId(OAuthProvider provider,
-			String authorizationCode) {
-		return getBinding(provider).retrieveProvidersId(authorizationCode);
+			String authorizationCode, String redirectUrl) {
+		return getBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
 	}
 	
 	@Override

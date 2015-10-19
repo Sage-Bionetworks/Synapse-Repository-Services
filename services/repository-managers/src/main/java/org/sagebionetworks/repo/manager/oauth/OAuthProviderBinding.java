@@ -46,18 +46,21 @@ public interface OAuthProviderBinding {
 	 * @param authorizationCode
 	 *            The value of the "code" query parameter included with the
 	 *            redirectUrl.
+	 * @param redirectUrl This callback parameter is not used but required by Google to be a registered redirect uri
+	 * 
 	 * @return Information about the user provided by the OAuthProvider.
 	 */
-	public ProvidedUserInfo validateUserWithProvider(String authorizationCode);
+	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
 
 	/**
 	 * Retrieve the unique ID in the provider's system for the user.  ID
 	 * must be unique across all providers (e.g. a provider-specific URI).
 	 * 
 	 * @param authorizationCode
-	 * @param redirectUrl
+	 * @param redirectUrl This callback parameter is not used but required by Google to be a registered redirect uri
+
 	 * @return The user's ID in the provider's system
 	 */
-	public AliasAndType retrieveProvidersId(String authorizationCode);
+	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl);
 
 }

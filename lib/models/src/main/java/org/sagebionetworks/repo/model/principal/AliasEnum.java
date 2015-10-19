@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 
 /**
  * This maps the alias types and the regular expression used to validate each.
+ * NOTE:  These must match the names in AliasType.json
  * 
  * @author John
  *
