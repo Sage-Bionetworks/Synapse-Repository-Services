@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1396,16 +1395,20 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Set<String> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
+	public static Set<Long> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
 		ColumnModel[] columns = columnList.toArray(new ColumnModel[columnList.size()]);
-		Set<String> fileHandleIds = new HashSet<String>();
+		Set<Long> fileHandleIds = new HashSet<Long>();
 		for(Row row: rows){
 			int columnIndex = 0;
 			if(row.getValues() != null){
 				for(String cellValue: row.getValues()){
 					if(!isNullOrEmpty(cellValue)){
 						if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
-							fileHandleIds.add(cellValue);						
+							try {
+								fileHandleIds.add(Long.parseLong(cellValue));
+							} catch (NumberFormatException e) {
+								throw new IllegalArgumentException("Passed a non-integer file handle id: "+cellValue);
+							}						
 						}
 					}
 					columnIndex++;
@@ -1413,5 +1416,47 @@ public class TableModelUtils {
 			}
 		}
 		return fileHandleIds;
+	}
+	
+	/**
+	 * Convert a collection of longs to a collection of strings.
+	 * @param ids
+	 * @return
+	 */
+	public static void convertLongToString(Collection<Long> in, Collection<String> out) {
+		if(in == null){
+			throw new IllegalArgumentException("Input cannot be null");
+		}
+		if(out == null){
+			throw new IllegalArgumentException("Output cannot be null");
+		}
+		for(Long id: in){
+			if(id != null){
+				out.add(id.toString());
+			}
+		}
+	}
+
+	/**
+	 * Convert a collection of strings to a collection of longs.
+	 * @param ids
+	 * @return
+	 */
+	public static void convertStringToLong(Collection<String> in, Collection<Long> out){
+		if(in == null){
+			throw new IllegalArgumentException("Input cannot be null");
+		}
+		if(out == null){
+			throw new IllegalArgumentException("Output cannot be null");
+		}
+		for(String id: in){
+			if(id != null){
+				try {
+					out.add(Long.parseLong(id));
+				} catch (NumberFormatException e) {
+					throw new IllegalArgumentException(e);
+				}
+			}
+		}
 	}
 }

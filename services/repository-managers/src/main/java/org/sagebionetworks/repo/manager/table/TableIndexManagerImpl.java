@@ -66,7 +66,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							tableIndexDao.createOrUpdateOrDeleteRows(rowset,
 									currentSchema);
 							// Extract all file handle IDs from this set
-							Set<String> fileHandleIds = TableModelUtils
+							Set<Long> fileHandleIds = TableModelUtils
 									.getFileHandleIdsInRowSet(currentSchema,
 											rowset.getRows());
 							if (!fileHandleIds.isEmpty()) {
@@ -107,6 +107,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	@Override
 	public void setIndexSchema(List<ColumnModel> currentSchema) {
+		// Create all of the status tables unconditionally.
+		tableIndexDao.createSecondaryTables(tableId);
+		
 		if (currentSchema.isEmpty()) {
 			// If there is no schema delete the table
 			tableIndexDao.deleteTable(tableId);
@@ -121,8 +124,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void deleteTableIndex() {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
-		tableIndexDao.deleteStatusTable(tableId);
-	}
-	
+		tableIndexDao.deleteSecondayTables(tableId);
+	}	
 
 }

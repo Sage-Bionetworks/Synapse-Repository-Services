@@ -76,7 +76,7 @@ public class TableCurrentRowCacheTest {
 				mockStackConfiguration);
 		tableIndexDao = connectionFactory.getConnection("123");
 		tableRowTruthDao.truncateAllRowData();
-		tableIndexDao.deleteStatusTable("123");
+		tableIndexDao.deleteSecondayTables("123");
 		tableIndexDao.deleteTable("123");
 	}
 
@@ -86,7 +86,7 @@ public class TableCurrentRowCacheTest {
 			return;
 		}
 		tableRowTruthDao.truncateAllRowData();
-		tableIndexDao.deleteStatusTable("123");
+		tableIndexDao.deleteSecondayTables("123");
 		tableIndexDao.deleteTable("123");
 		ReflectionStaticTestUtils.setField(ReflectionStaticTestUtils.getField(tableRowTruthDao, "tableRowCache"), "stackConfiguration",
 				oldStackConfiguration);
@@ -128,6 +128,7 @@ public class TableCurrentRowCacheTest {
 		tableIndexDao.createOrUpdateTable(mapper.getColumnModels(), tableId);
 		// Now fill the table with data
 		tableIndexDao.createOrUpdateOrDeleteRows(rowSet, mapper.getColumnModels());
+		tableIndexDao.createSecondaryTables(tableId);
 		// And set the max version
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, rowSet.getRows().get(0).getVersionNumber());
 
@@ -172,6 +173,7 @@ public class TableCurrentRowCacheTest {
 
 		// Now update the table with data
 		tableIndexDao.createOrUpdateOrDeleteRows(updatedRowSet, mapper.getColumnModels());
+		tableIndexDao.createSecondaryTables(tableId);
 		// And set the max version
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, updatedRowSet.getRows().get(0).getVersionNumber());
 
