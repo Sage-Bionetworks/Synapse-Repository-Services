@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -101,11 +102,17 @@ public interface TableIndexDAO {
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
 
 	/**
-	 * Delete the status table for this table if it exists
+	 * Delete all of the secondary tables used for an index if they exist.
 	 * 
 	 * @param tableId
 	 */
-	public void deleteStatusTable(String tableId);
+	public void deleteSecondayTables(String tableId);
+	
+	/**
+	 * Create all of the secondary tables used for an index if they do not exist.
+	 * @param tableId
+	 */
+	public void createSecondaryTables(String tableId);
 	
 	/**
 	 * Get the connection
@@ -120,6 +127,13 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public <T> T executeInReadTransaction(TransactionCallback<T> callable);
+	
+	/**
+	 * Run the passed callable within a write transaction.
+	 * @param callable
+	 * @return
+	 */
+	public <T> T executeInWriteTransaction(TransactionCallback<T> callable);
 
 	/**
 	 * add indexes to all columns in table
@@ -136,4 +150,23 @@ public interface TableIndexDAO {
 	public void removeIndexes(String tableId);
 
 	public void addIndex(String tableId, ColumnModel columnModel);
+
+	/**
+	 * Apply the passed set of file handle Ids to the given table index.
+	 * 
+	 * @param tableId
+	 * @param fileHandleIds
+	 */
+	public void applyFileHandleIdsToTable(String tableId,
+			Set<Long> fileHandleIds);
+	
+	/**
+	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
+	 * FileHandleIds that are actually associated with the table.
+	 * @param toTest
+	 * @param objectId
+	 * @return
+	 */
+	public Set<Long> getFileHandleIdsAssociatedWithTable(
+			Set<Long> toTest, String tableId);
 }

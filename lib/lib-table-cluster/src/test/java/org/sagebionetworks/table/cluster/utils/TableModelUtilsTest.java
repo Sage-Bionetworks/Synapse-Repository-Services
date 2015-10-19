@@ -4,7 +4,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -656,7 +655,7 @@ public class TableModelUtilsTest {
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
 		CsvNullReader csvReader = new CsvNullReader(reader);
-		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
+		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -667,7 +666,7 @@ public class TableModelUtilsTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in, TableModelUtils.getDistictValidRowIds(validRowSet2.getRows()).keySet());
+		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
@@ -1058,8 +1057,106 @@ public class TableModelUtilsTest {
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "5","6","7","8"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "9",null,"7",""));
 		
-		Set<String> expected = Sets.newHashSet("2","4","6","8");
-		Set<String> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+		Set<Long> expected = Sets.newHashSet(2L, 4L, 6L, 8L);
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
 		assertEquals(expected, results);
  	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleIdsInRowSetNotLongs(){
+		List<ColumnModel> cols = new ArrayList<ColumnModel>();
+		cols.add(TableModelTestUtils.createColumn(2L, "b", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "not a number"));
+		
+		// should fail.
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+ 	}
+	
+	@Test
+	public void testValidateRowVersionsHappy(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsNoMatch(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, 98L, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, null, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsEmpty(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionsListNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = null;
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionNull(){
+		Long versionNumber = null;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, versionNumber);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateRowVersionPassedNull(){
+		Long versionNumber = 99L;
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
+		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
+		TableModelUtils.validateRowVersions(rows, null);
+	}
+	
+	@Test
+	public void testConvertLongToString(){
+		List<Long> in = Lists.newArrayList(3L,4L, null);
+		Set<String> out = Sets.newHashSet();
+		TableModelUtils.convertLongToString(in, out);
+		Set<String> expected = Sets.newHashSet("3","4");
+		assertEquals(expected, out);
+	}
+	
+	@Test
+	public void testConvertStringToLong(){
+		List<String> in = Lists.newArrayList("2","4", null);
+		Set<Long> out = Sets.newHashSet();
+		TableModelUtils.convertStringToLong(in, out);
+		Set<Long> expected = Sets.newHashSet(2L, 4L);
+		assertEquals(expected, out);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertStringToLongNotANumber(){
+		List<String> in = Lists.newArrayList("2","not a number");
+		Set<Long> out = Sets.newHashSet();
+		// should fail.
+		TableModelUtils.convertStringToLong(in, out);
+	}
 }

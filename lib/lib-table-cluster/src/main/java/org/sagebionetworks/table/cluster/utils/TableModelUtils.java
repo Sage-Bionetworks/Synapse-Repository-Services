@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -251,6 +250,28 @@ public class TableModelUtils {
 			throw new IllegalArgumentException(
 					"RowSet.rows must contain at least one row.");
 	}
+	
+	/**
+	 * Validate that all rows have the expected version number
+	 * @param rows
+	 * @param versionNumber
+	 */
+	public static void validateRowVersions(final List<Row> rows, final Long versionNumber){
+		if(rows == null){
+			throw new IllegalArgumentException("Rows cannot be null");
+		}
+		if(rows.isEmpty()){
+			throw new IllegalArgumentException("Rows cannot be empty");
+		}
+		for(Row row: rows){
+			if(row.getVersionNumber() == null){
+				throw new IllegalArgumentException("Row.versionNumber cannot be null");
+			}
+			if(!row.getVersionNumber().equals(versionNumber)){
+				throw new IllegalArgumentException("Row.versionNumber does not match expected version: "+versionNumber);
+			}
+		}
+	}
 
 	/**
 	 * Validate a value
@@ -475,7 +496,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Row> readFromCSV(CsvNullReader reader, final Set<Long> rowsToGet) throws IOException {
+	public static List<Row> readFromCSV(CsvNullReader reader) throws IOException {
 		if (reader == null)
 			throw new IllegalArgumentException("CsvNullReader cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -484,10 +505,8 @@ public class TableModelUtils {
 
 			@Override
 			public void nextRow(Row row) {
-				if (rowsToGet.contains(row.getRowId())) {
-					// Add this to the rows
-					rows.add(row);
-				}
+				// Add this to the rows
+				rows.add(row);
 			}
 		});
 		return rows;
@@ -528,7 +547,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Row> readFromCSVgzStream(InputStream zippedStream, Set<Long> rowsToGet) throws IOException {
+	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException {
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
 		CsvNullReader csvReader = null;
@@ -536,7 +555,7 @@ public class TableModelUtils {
 			zipIn = new GZIPInputStream(zippedStream);
 			isr = new InputStreamReader(zipIn);
 			csvReader = new CsvNullReader(isr);
-			return readFromCSV(csvReader, rowsToGet);
+			return readFromCSV(csvReader);
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
@@ -1376,16 +1395,20 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Set<String> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
+	public static Set<Long> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
 		ColumnModel[] columns = columnList.toArray(new ColumnModel[columnList.size()]);
-		Set<String> fileHandleIds = new HashSet<String>();
+		Set<Long> fileHandleIds = new HashSet<Long>();
 		for(Row row: rows){
 			int columnIndex = 0;
 			if(row.getValues() != null){
 				for(String cellValue: row.getValues()){
 					if(!isNullOrEmpty(cellValue)){
 						if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
-							fileHandleIds.add(cellValue);						
+							try {
+								fileHandleIds.add(Long.parseLong(cellValue));
+							} catch (NumberFormatException e) {
+								throw new IllegalArgumentException("Passed a non-integer file handle id: "+cellValue);
+							}						
 						}
 					}
 					columnIndex++;
@@ -1393,5 +1416,47 @@ public class TableModelUtils {
 			}
 		}
 		return fileHandleIds;
+	}
+	
+	/**
+	 * Convert a collection of longs to a collection of strings.
+	 * @param ids
+	 * @return
+	 */
+	public static void convertLongToString(Collection<Long> in, Collection<String> out) {
+		if(in == null){
+			throw new IllegalArgumentException("Input cannot be null");
+		}
+		if(out == null){
+			throw new IllegalArgumentException("Output cannot be null");
+		}
+		for(Long id: in){
+			if(id != null){
+				out.add(id.toString());
+			}
+		}
+	}
+
+	/**
+	 * Convert a collection of strings to a collection of longs.
+	 * @param ids
+	 * @return
+	 */
+	public static void convertStringToLong(Collection<String> in, Collection<Long> out){
+		if(in == null){
+			throw new IllegalArgumentException("Input cannot be null");
+		}
+		if(out == null){
+			throw new IllegalArgumentException("Output cannot be null");
+		}
+		for(String id: in){
+			if(id != null){
+				try {
+					out.add(Long.parseLong(id));
+				} catch (NumberFormatException e) {
+					throw new IllegalArgumentException(e);
+				}
+			}
+		}
 	}
 }

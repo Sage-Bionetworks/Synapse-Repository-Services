@@ -615,6 +615,20 @@ public class SQLUtilsTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testCreateSQLInsertIgnoreFileHandleId(){
+		String expected = "INSERT IGNORE INTO T987F (FILE_ID) VALUES(?)";
+		String result = SQLUtils.createSQLInsertIgnoreFileHandleId("987");
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSQLGetBoundFileHandleId(){
+		String expected = "SELECT FILE_ID FROM T987F WHERE FILE_ID IN( :bFIds)";
+		String result = SQLUtils.createSQLGetBoundFileHandleId("987");
+		assertEquals(expected, result);
+	}
+	
 	/**
 	 * A helper to create a list of ColumnModels from column model ids.
 	 * 
