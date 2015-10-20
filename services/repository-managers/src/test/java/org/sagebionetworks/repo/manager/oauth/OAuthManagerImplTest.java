@@ -17,9 +17,17 @@ public class OAuthManagerImplTest {
 	private OAuthManager oAuthManager;
 	
 	@Test
-	public void testGoogleBinding(){
+	public void testGoogleBinding() {
 		OAuthProviderBinding binding = oAuthManager.getBinding(OAuthProvider.GOOGLE_OAUTH_2_0);
 		assertNotNull(binding);
 		assertNotNull(binding.getAuthorizationUrl("redirectUrl"));
 	}
+	
+	@Test
+	public void testORCIDBinding() {
+		OAuthProviderBinding binding = oAuthManager.getBinding(OAuthProvider.ORCID);
+		assertNotNull(binding);
+		assertNotNull(binding.getAuthorizationUrl("redirectUrl"));
+	}
+
 }
