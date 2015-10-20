@@ -273,6 +273,7 @@ public class IT990AuthenticationController {
 		try {
 			OAuthValidationRequest request = new OAuthValidationRequest();
 			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setRedirectUrl("https://www.synapse.org");
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			synapse.validateOAuthAuthenticationCode(request);
@@ -294,7 +295,7 @@ public class IT990AuthenticationController {
 			request.setProvider(OAuthProvider.ORCID);
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
-			synapse.validateOAuthAuthenticationCode(request);
+			synapse.bindOAuthProvidersUserId(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
