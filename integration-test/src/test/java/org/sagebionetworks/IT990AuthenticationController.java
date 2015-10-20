@@ -269,10 +269,29 @@ public class IT990AuthenticationController {
 	 * @throws SynapseException 
 	 */
 	@Test
-	public void testValidateOAuthAuthenticationCode() throws SynapseException{
+	public void testValidateOAuthAuthenticationCodeAndLogin() throws SynapseException {
 		try {
 			OAuthValidationRequest request = new OAuthValidationRequest();
 			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			// this invalid code will trigger a SynapseForbiddenException
+			request.setAuthenticationCode("test auth code");
+			synapse.validateOAuthAuthenticationCode(request);
+			fail();
+		} catch (SynapseForbiddenException e) {
+			// OK
+		}
+	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test
+	public void testValidateOAuthAuthenticationCodeAndBindExternalId() throws SynapseException {
+		try {
+			OAuthValidationRequest request = new OAuthValidationRequest();
+			request.setProvider(OAuthProvider.ORCID);
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			synapse.validateOAuthAuthenticationCode(request);
