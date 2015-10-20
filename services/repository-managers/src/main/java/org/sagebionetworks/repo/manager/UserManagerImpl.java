@@ -138,6 +138,7 @@ public class UserManagerImpl implements UserManager {
 		notificationEmailDao.create(emailAlias);
 	}
 
+	@WriteTransaction
 	@Override
 	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId) {
 		// bind the aliasName to this user
