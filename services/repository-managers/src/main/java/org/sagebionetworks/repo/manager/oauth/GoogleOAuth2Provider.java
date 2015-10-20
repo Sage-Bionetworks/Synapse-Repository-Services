@@ -69,7 +69,10 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		try{
+		if (redirectUrl == null) {
+			throw new IllegalArgumentException("RedirectUrl cannot be null");
+		}
+		try {
 			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
 					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
 			/*
@@ -85,7 +88,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 				throw new UnauthorizedException(FAILED_PREFIX+reponse.getCode()+MESSAGE+reponse.getMessage());
 			}
 			return parserResponseBody(reponse.getBody());
-		}catch(OAuthException e){
+		} catch(OAuthException e) {
 			throw new UnauthorizedException(e);
 		}
 	}

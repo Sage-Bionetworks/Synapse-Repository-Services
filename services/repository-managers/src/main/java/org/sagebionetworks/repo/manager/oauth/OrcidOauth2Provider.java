@@ -71,7 +71,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	 * @param body
 	 * @return
 	 */
-	public String parseOrcidId(String body){
+	public static String parseOrcidId(String body){
 		try {
 			JSONObject json = new JSONObject(body);
 			if(json.has(ORCID)){
