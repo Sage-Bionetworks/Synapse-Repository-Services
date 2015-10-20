@@ -14,6 +14,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -113,6 +115,7 @@ public class AuthenticationServiceImplTest {
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
 		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
@@ -133,6 +136,7 @@ public class AuthenticationServiceImplTest {
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail(null);
 		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
@@ -153,6 +157,7 @@ public class AuthenticationServiceImplTest {
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
 		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
@@ -165,4 +170,28 @@ public class AuthenticationServiceImplTest {
 			assertEquals("Email should be the error when not found.",info.getUsersVerifiedEmail(), e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testBindExternalID() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		String aliasName = "name";
+		AliasType type = AliasType.USER_ORCID;
+		Long principalId = 101L;
+		PrincipalAlias principalAlias = new PrincipalAlias();
+		principalAlias.setAlias(aliasName);
+		principalAlias.setPrincipalId(principalId);
+		principalAlias.setType(type);
+		when(mockUserManager.bindAlias(aliasName, type, principalId)).thenReturn(principalAlias);
+		AliasAndType aliasAndType = new AliasAndType(aliasName, AliasType.USER_ORCID);
+		when(mockOAuthManager.retrieveProvidersId(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(aliasAndType);
+
+		PrincipalAlias result = service.bindExternalID(principalId, request);
+		assertEquals(principalAlias, result);
+	}
+	
+
 }
