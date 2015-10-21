@@ -19,7 +19,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 public interface SearchDao {
 	
 	/**
-	 * Called by initializing worker. This method should check, initalize where necessary and return relatively quickly
+	 * Called by initializing worker. This method should check, initialize where necessary and return relatively quickly
 	 * (i.e. no long waits)
 	 * 
 	 * @return true when post initialization is done
