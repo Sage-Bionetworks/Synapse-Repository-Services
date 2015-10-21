@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
@@ -100,6 +103,21 @@ public class UserManagerImplUnitTest {
 			userManager.deletePrincipal(notAdmin, Long.parseLong(mockId));
 			fail();
 		} catch (UnauthorizedException e) { }
+	}
+	
+	@Test
+	public void testBindAlias() throws Exception {
+		String aliasName = "name";
+		AliasType type = AliasType.USER_OPEN_ID;
+		Long principalId = 101L;
+		PrincipalAlias expected = new PrincipalAlias();
+		expected.setAlias(aliasName);
+		expected.setPrincipalId(principalId);
+		expected.setType(type);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(eq(expected))).thenReturn(expected);
+		PrincipalAlias result = userManager.bindAlias(aliasName, type, principalId);
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(eq(expected));
+		assertEquals(expected, result);
 	}
 	
 }

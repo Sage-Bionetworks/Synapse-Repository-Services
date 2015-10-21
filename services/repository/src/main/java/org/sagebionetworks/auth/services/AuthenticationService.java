@@ -119,6 +119,8 @@ public interface AuthenticationService {
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 
-	public Session validateOAuthAuthenticationCode(
+	public Session validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request) throws NotFoundException;
+
+	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 }

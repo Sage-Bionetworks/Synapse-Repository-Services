@@ -98,4 +98,33 @@ public class AliasEnumTest {
 	public void testValidateEmail(){
 		AliasEnum.USER_EMAIL.validateAlias("foo.bar@company.com");
 	}
+	
+	@Test
+	public void testValidORCID() {
+		AliasEnum.USER_ORCID.validateAlias("http://orcid.org/0000-1111-2222-3333");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testORCIDWrongPrefix() {
+		AliasEnum.USER_ORCID.validateAlias("http://foo/0000-1111-2222-3333");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testORCIDWrongLength() {
+		AliasEnum.USER_ORCID.validateAlias("http://orcid.org/0000-1111-2222");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testORCIDWrongLength2() {
+		AliasEnum.USER_ORCID.validateAlias("http://orcid.org/0000-1111-222-33");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testORCIDWrongLength3() {
+		AliasEnum.USER_ORCID.validateAlias("http://orcid.org/0000-1111-");
+	}
+	@Test(expected=IllegalArgumentException.class)
+	public void testORCIDLetters() {
+		AliasEnum.USER_ORCID.validateAlias("http://foo/0000-1111-xxxx-yyyy");
+	}
 }

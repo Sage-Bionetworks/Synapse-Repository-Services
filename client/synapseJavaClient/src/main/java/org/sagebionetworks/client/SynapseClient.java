@@ -108,6 +108,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -1876,6 +1877,22 @@ public interface SynapseClient extends BaseClient {
 	 * @throws NotFoundException if the user does not exist in Synapse.
 	 */
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
+			throws SynapseException;
+	
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the code, retrieve the provider's ID for
+	 * the user and bind it to the user's Synapse account.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 * @throws NotFoundException if the user does not exist in Synapse.
+	 */
+	PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException;
 	
 	/**

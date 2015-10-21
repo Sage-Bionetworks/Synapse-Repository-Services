@@ -43,12 +43,20 @@
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />
 	</bean>
 
+	<bean id="orcidOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider">
+		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientId" index="0" />
+		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientSecret" index="1" />
+	</bean>
+
 	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
 		<property name="providerMap">
 			<map>
 				<entry
 					key="GOOGLE_OAUTH_2_0"
 					value-ref="googleOAuth2Provider" />
+				<entry
+					key="ORCID"
+					value-ref="orcidOAuth2Provider" />
 			</map>
 		</property>
 

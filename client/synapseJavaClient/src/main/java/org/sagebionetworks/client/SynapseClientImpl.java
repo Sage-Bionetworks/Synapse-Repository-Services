@@ -152,6 +152,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -400,6 +401,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	
 	
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
@@ -7008,6 +7011,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public Session validateOAuthAuthenticationCode(OAuthValidationRequest request) throws SynapseException{
 		return asymmetricalPost(getAuthEndpoint(), AUTH_OAUTH_2_SESSION, request, Session.class, null);
 	}
+	
+	@Override
+	public PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
+			throws SynapseException {
+		return asymmetricalPost(getAuthEndpoint(), AUTH_OAUTH_2_ALIAS, request, PrincipalAlias.class, null);
+		
+	}
+	
+
 	
 	private Map<String, String> domainToParameterMap(DomainType domain) {
 		Map<String, String> parameters = Maps.newHashMap();

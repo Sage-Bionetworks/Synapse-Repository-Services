@@ -1366,6 +1366,24 @@ public class StackConfiguration {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public String getOAuth2ORCIDClientId() {
+		return configuration
+				.getProperty("org.sagebionetworks.oauth2.orcid.client.id");
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String getOAuth2ORCIDClientSecret() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.secret");
+	}
+	
+	/**
 	 * Get the max bytes per HTTP request for a table.
 	 * 
 	 * @return

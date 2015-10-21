@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**
  * An abstraction for a single OAuthProvider. An implementation of this
@@ -29,7 +30,7 @@ public interface OAuthProviderBinding {
 	 * @return The url to the OAuthProvider's authentication web page.
 	 */
 	public String getAuthorizationUrl(String redirectUrl);
-
+	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -38,10 +39,28 @@ public interface OAuthProviderBinding {
 	 * authorization code to validate the user and fetch information about the
 	 * user from the OAuthProvider.
 	 * 
+	 * NOTE:  This must ONLY be implemented for providers who can return 
+	 * VALIDATED email addresses as it authenticates the user based on the
+	 * email address returned by the provider.
+	 * 
 	 * @param authorizationCode
 	 *            The value of the "code" query parameter included with the
 	 *            redirectUrl.
+	 * @param redirectUrl This callback parameter is not used but required by Google to be a registered redirect uri
+	 * 
 	 * @return Information about the user provided by the OAuthProvider.
 	 */
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl);
+
+	/**
+	 * Retrieve the unique ID in the provider's system for the user.  ID
+	 * must be unique across all providers (e.g. a provider-specific URI).
+	 * 
+	 * @param authorizationCode
+	 * @param redirectUrl This callback parameter is not used but required by Google to be a registered redirect uri
+
+	 * @return The user's ID in the provider's system
+	 */
+	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl);
+
 }
