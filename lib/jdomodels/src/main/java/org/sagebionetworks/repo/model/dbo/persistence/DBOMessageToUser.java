@@ -214,9 +214,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		return DBOMessageToUser.class;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

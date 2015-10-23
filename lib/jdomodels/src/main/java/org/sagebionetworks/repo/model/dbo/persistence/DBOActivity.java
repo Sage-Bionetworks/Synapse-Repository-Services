@@ -265,7 +265,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 	

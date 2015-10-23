@@ -175,10 +175,9 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	}
 
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBOGroupMembers());
 		list.add(new DBOCredential());
 		list.add(new DBOTermsOfUseAgreement());

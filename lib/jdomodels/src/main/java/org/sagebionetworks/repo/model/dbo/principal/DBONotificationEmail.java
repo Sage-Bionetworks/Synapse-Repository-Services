@@ -96,7 +96,7 @@ public class DBONotificationEmail implements MigratableDatabaseObject<DBONotific
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

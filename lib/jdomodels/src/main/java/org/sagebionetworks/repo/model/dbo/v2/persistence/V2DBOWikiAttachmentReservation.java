@@ -155,7 +155,7 @@ public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

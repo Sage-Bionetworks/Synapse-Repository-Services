@@ -145,9 +145,8 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 	}
 
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 
