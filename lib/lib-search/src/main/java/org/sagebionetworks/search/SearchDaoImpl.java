@@ -9,20 +9,14 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.HttpParams;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
@@ -33,7 +27,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -82,6 +75,41 @@ public class SearchDaoImpl implements SearchDao {
 		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
 		//cloudHttpClient._init();
 		return true;
+	}
+	
+	/**
+	 * The initialization of a search index can take hours the first time it is run.
+	 * While the search index is initializing we do not want to block the startup of the rest
+	 * of the application.  Therefore, this initialization worker is executed on a separate
+	 * thread.
+	 */
+	public void initialize(){
+		Thread thread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				try{
+					/*
+					 * Since each machine in the cluster will call this method and we only 
+					 * want one machine to initialize the search index, we randomly stagger
+					 * the start for each machine.
+					 */
+					Random random = new Random();
+					// random sleep time from zero to 1 mins.
+					long randomSleepMS = random.nextInt(1000*60);
+					log.info("Random wait to start search index: "+randomSleepMS+" MS");
+					Thread.sleep(randomSleepMS);
+					// wait for postInitialize() to finish
+					while(!postInitialize()){
+						log.info("Waiting for search index to finish initializing...");
+						Thread.sleep(5000);
+					}
+				}catch(Exception e){
+					log.error("Unexcpeted exception while starting the search index", e);
+				}
+			}
+		});
+		thread.start();
 	}
 
 	/**

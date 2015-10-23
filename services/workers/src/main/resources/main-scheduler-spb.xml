@@ -28,7 +28,6 @@
 	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
 	<import resource="classpath:stack-configuration-trigger.spb.xml" />
 	<import resource="classpath:cloudwatch-trigger-spb.xml" />
-	<import resource="classpath:search-triggers-import.xml" />
 	
 	<import resource="classpath:entity-annotations-worker-spb.xml" />
 	<import resource="classpath:aws-worker.spb.xml" />
@@ -48,7 +47,6 @@
     <import resource="classpath:table-csv-downloader-sqs-spb.xml" />
     <import resource="classpath:table-query-sqs-spb.xml" />
     <import resource="classpath:s3-file-copy-sqs-spb.xml" />
-    <import resource="classpath:auto-sync-folder-sqs-spb.xml" />
     <import resource="classpath:change-synch-worker-spb.xml" />
     <import resource="classpath:project-stats-sqs-spb.xml" />
     <import resource="classpath:object-snapshot-sqs-spb.xml"/>
@@ -87,12 +85,7 @@
 				<ref bean="projectStatsQueueMessageReveiverTrigger" />
 				<ref bean="objectQueueMessageReveiverTrigger"/>
 				<ref bean="s3FileCopyMessageReveiverTrigger"/>
-				<ref bean="syncSettingsModificationsMessageReveiverTrigger"/>
-				<ref bean="folderSyncMessageReveiverTrigger"/>
-				<ref bean="autoSyncFolderWorkerTrigger"/>
 				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
-				<!-- initializers -->
-				<ref bean="cloudSearchInitializerTrigger" />
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
 				<ref bean="stackConfigurationReloadTrigger" />

@@ -33,6 +33,12 @@ public class OAuthManagerImpl implements OAuthManager {
 	}
 	
 	@Override
+	public AliasAndType retrieveProvidersId(OAuthProvider provider,
+			String authorizationCode, String redirectUrl) {
+		return getBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
+	}
+	
+	@Override
 	public OAuthProviderBinding getBinding(OAuthProvider provider){
 		if(provider == null){
 			throw new IllegalArgumentException("OAuthProvider cannot be null");
