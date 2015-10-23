@@ -87,9 +87,8 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 		return DBOTermsOfUseAgreement.class;
 	}
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

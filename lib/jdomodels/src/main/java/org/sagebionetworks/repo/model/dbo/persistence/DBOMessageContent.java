@@ -148,10 +148,9 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 		return DBOMessageContent.class;
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> secondaries = new ArrayList<MigratableDatabaseObject>();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+		List<MigratableDatabaseObject<?,?>> secondaries = new ArrayList<MigratableDatabaseObject<?,?>>();
 		secondaries.add(new DBOMessageToUser());
 		secondaries.add(new DBOMessageRecipient());
 		secondaries.add(new DBOMessageStatus());

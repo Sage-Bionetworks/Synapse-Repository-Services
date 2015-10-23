@@ -175,7 +175,7 @@ public class ParticipantDBO implements MigratableDatabaseObject<ParticipantDBO, 
 		return ParticipantDBO.class;
 	}
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

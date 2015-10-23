@@ -91,9 +91,8 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 	}
 
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

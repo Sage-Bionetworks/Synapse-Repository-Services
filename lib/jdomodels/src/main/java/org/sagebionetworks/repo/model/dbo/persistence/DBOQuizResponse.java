@@ -84,7 +84,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

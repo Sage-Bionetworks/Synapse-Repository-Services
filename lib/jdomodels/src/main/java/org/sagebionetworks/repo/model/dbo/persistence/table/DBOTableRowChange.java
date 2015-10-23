@@ -197,7 +197,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

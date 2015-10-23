@@ -154,7 +154,7 @@ public class DBOResourceAccess implements MigratableDatabaseObject<DBOResourceAc
 		return DBOResourceAccess.class;
 	}
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 	

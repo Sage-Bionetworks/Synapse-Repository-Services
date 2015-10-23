@@ -230,7 +230,7 @@ public class DBOFavorite implements MigratableDatabaseObject<DBOFavorite, DBOFav
 
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 
