@@ -1,0 +1,19 @@
+{
+    "title":"VerificationRetraction",
+    "description":"The retraction of the approval of the verification of a user",
+	"properties": {
+		"createdOn":{
+			"type":"string",
+			"format":"date-time",
+			"description":"The date and time this object was created"
+		},
+		"createdBy":{
+			"type":"string",
+			"description":"The principal ID of the user who created this object"
+		},
+		"reason":{
+			"type":"string",
+			"description":"The reason verification was retracted"
+		}
+	}
+}

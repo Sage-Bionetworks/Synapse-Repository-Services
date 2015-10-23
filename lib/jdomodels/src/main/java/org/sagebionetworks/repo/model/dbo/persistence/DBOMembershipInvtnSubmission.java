@@ -193,7 +193,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

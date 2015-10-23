@@ -140,7 +140,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

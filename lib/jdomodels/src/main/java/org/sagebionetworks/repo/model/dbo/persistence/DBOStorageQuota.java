@@ -92,7 +92,7 @@ public class DBOStorageQuota implements MigratableDatabaseObject<DBOStorageQuota
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

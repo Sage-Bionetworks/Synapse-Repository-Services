@@ -85,8 +85,8 @@ public class DBOBoundColumnOwner implements MigratableDatabaseObject<DBOBoundCol
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> seconday = new LinkedList<MigratableDatabaseObject>();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+		List<MigratableDatabaseObject<?,?>> seconday = new LinkedList<MigratableDatabaseObject<?,?>>();
 		seconday.add(new DBOBoundColumn());
 		seconday.add(new DBOBoundColumnOrdinal());
 		return seconday;

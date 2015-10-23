@@ -124,7 +124,7 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

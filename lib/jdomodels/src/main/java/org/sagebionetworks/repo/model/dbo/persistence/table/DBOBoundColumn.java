@@ -117,8 +117,7 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		// TODO Auto-generated method stub
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

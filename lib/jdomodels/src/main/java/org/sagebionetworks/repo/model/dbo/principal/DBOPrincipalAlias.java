@@ -114,7 +114,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 
