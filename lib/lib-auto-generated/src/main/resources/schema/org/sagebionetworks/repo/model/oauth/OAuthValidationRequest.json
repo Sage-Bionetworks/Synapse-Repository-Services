@@ -12,7 +12,7 @@
 		},
 		"redirectUrl": {
 			"type": "string",
-			"description": "This must be the same redirect URL used to in the first step."
+			"description": "This must be the same redirect URL used to in the first step.  This parameter is required by Google but not by all oauth providers."
 		}
 	}
 }

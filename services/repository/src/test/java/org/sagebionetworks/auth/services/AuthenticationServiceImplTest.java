@@ -1,6 +1,8 @@
 package org.sagebionetworks.auth.services;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
@@ -12,6 +14,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -24,6 +27,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -123,7 +127,7 @@ public class AuthenticationServiceImplTest {
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId, DomainType.SYNAPSE)).thenReturn(session);
 		//call under test
-		Session result = service.validateOAuthAuthenticationCode(request);
+		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);
 	}
 	
@@ -144,7 +148,7 @@ public class AuthenticationServiceImplTest {
 		session.setSessionToken("token");
 		when(mockAuthenticationManager.getSessionToken(userId, DomainType.SYNAPSE)).thenReturn(session);
 		//call under test
-		Session result = service.validateOAuthAuthenticationCode(request);
+		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);
 	}
 	
@@ -160,10 +164,34 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(null);
 		//call under test
 		try {
-			service.validateOAuthAuthenticationCode(request);
+			service.validateOAuthAuthenticationCodeAndLogin(request);
 			fail("Should have failed");
 		} catch (NotFoundException e) {
 			assertEquals("Email should be the error when not found.",info.getUsersVerifiedEmail(), e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testBindExternalID() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		String aliasName = "name";
+		AliasType type = AliasType.USER_ORCID;
+		Long principalId = 101L;
+		PrincipalAlias principalAlias = new PrincipalAlias();
+		principalAlias.setAlias(aliasName);
+		principalAlias.setPrincipalId(principalId);
+		principalAlias.setType(type);
+		when(mockUserManager.bindAlias(aliasName, type, principalId)).thenReturn(principalAlias);
+		AliasAndType aliasAndType = new AliasAndType(aliasName, AliasType.USER_ORCID);
+		when(mockOAuthManager.retrieveProvidersId(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(aliasAndType);
+
+		PrincipalAlias result = service.bindExternalID(principalId, request);
+		assertEquals(principalAlias, result);
+	}
+	
+
 }
