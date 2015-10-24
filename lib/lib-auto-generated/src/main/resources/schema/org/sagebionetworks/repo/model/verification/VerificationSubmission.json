@@ -56,16 +56,12 @@
 			"description": "The user's ORCID URI",
 			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
 		},
-		"approval":{
-			"type":"object",
-			"$ref":"org.sagebionetworks.repo.model.verification.VerificationApproval",
+		"stateHistory":{
+			"type":"array",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.verification.VerificationState"
+			},
 			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
-		},
-		"retraction":{
-			"type":"object",
-			"$ref":"org.sagebionetworks.repo.model.verification.VerificationRetraction",
-			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
-			
 		}
 	}
 }

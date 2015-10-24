@@ -1,6 +1,6 @@
 {
-    "title":"VerificationRetraction",
-    "description":"The retraction of the approval of the verification of a user",
+    "title":"VerificationState",
+    "description":"The state of a verification submission",
 	"properties": {
 		"createdOn":{
 			"type":"string",
@@ -11,9 +11,13 @@
 			"type":"string",
 			"description":"The principal ID of the user who created this object"
 		},
+		"state":{
+			"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.verification.VerificationStateEnum"
+		},
 		"reason":{
 			"type":"string",
-			"description":"The reason verification was retracted"
+			"description":"The reason for putting the verification submission in this state."
 		}
 	}
 }

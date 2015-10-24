@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_REASON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_STATE;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
@@ -27,6 +33,9 @@ public class DBOVerificationState implements
 	
 	@Field(name = VERIFICATION_STATE_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createdOn;
+	
+	@Field(name = VERIFICATION_STATE_STATE, backupId = false, primary = false, nullable = true)
+	private VerificationStateEnum state;
 
 	@Field(name = VERIFICATION_STATE_REASON, backupId = false, primary = false, nullable = true)
 	private String reason;
@@ -40,7 +49,7 @@ public class DBOVerificationState implements
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.VERIFICATION_APPROVAL;
+		return MigrationType.VERIFICATION_STATE;
 	}
 
 	@Override

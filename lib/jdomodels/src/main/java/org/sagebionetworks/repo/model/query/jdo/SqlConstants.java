@@ -680,6 +680,7 @@ public class SqlConstants {
 	public static final String VERIFICATION_STATE_CREATED_BY = "CREATED_BY";
 	public static final String VERIFICATION_STATE_CREATED_ON = "CREATED_ON";
 	public static final String VERIFICATION_STATE_REASON = "REASON";
+	public static final String VERIFICATION_STATE_STATE = "STATE";
 	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

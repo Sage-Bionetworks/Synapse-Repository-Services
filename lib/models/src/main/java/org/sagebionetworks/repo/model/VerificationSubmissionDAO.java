@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.model;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.verification.VerificationApproval;
-import org.sagebionetworks.repo.model.verification.VerificationRetraction;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
 public interface VerificationSubmissionDAO {
@@ -17,9 +15,7 @@ public interface VerificationSubmissionDAO {
 	
 	public long countVerificationSubmissions();
 	
-	public void approveVerificationSubmission(String id, VerificationApproval approval);
-	
-	public void retractVerificationSubmission(String id, VerificationRetraction retraction);
+	public void updateVerificationSubmissionState(String id, VerificationSubmissionEnum newState);
 
 	public boolean isFileHandleIdInVerificationSubmission(String id, String fileHandleId);
 }

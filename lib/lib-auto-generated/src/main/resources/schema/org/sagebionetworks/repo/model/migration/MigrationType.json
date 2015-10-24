@@ -57,8 +57,7 @@
         "STORAGE_QUOTA",
         "QUIZ_RESPONSE",
         "VERIFICATION_SUBMISSION",
-        "VERIFICATION_APPROVAL",
-        "VERIFICATION_RETRACTION",
+        "VERIFICATION_STATE",
         "CHANGE"
     ]
 }

@@ -11,7 +11,6 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class ConnectionFactoryStub implements ConnectionFactory {
 

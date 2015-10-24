@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;

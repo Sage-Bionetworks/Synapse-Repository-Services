@@ -16,12 +16,11 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	private static final String UPDATE_FOR_PRINCIPAL = "UPDATE "+TABLE_NOTIFICATION_EMAIL+

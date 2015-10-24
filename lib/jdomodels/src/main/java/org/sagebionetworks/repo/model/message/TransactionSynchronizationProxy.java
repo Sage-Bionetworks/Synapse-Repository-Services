@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.message;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 /**
