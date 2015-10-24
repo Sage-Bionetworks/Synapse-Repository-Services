@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Timestamp;
 
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;

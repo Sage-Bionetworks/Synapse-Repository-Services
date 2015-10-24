@@ -41,13 +41,14 @@ import org.sagebionetworks.repo.model.message.AclModificationMessage;
 import org.sagebionetworks.repo.model.message.AclModificationType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
