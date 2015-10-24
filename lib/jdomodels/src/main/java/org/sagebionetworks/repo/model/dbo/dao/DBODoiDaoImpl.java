@@ -27,6 +27,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+
 public class DBODoiDaoImpl implements DoiDao {
 
 	private static final String SELECT_DOI =
