@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,6 +45,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		initialState.setCreatedOn(dto.getCreatedOn());
 		initialState.setState(VerificationStateEnum.submitted);
 		appendVerificationSubmissionState(initialState);
+		storeFileHandleIds(dbo.getId(), dto.getFiles());
 		return copyDBOtoDTO(created, Collections.singletonList(initialState));
 	}
 	
@@ -69,6 +71,10 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		}
 		dto.setStateHistory(stateHistory);
 		return dto;
+	}
+	
+	public void storeFileHandleIds(Long verificationSubmissionId, List<String> fileHandleIds) {
+		// TODO
 	}
 	
 	@Override
