@@ -3,11 +3,13 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_ID;
 
 import java.util.List;
 
@@ -27,6 +29,7 @@ public class DBOVerificationState implements
 
 	// TODO do secondary tables have backupId (foreign key) = true???
 	@Field(name = VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
+	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
 	private Long id;
 	
 	@Field(name = VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)

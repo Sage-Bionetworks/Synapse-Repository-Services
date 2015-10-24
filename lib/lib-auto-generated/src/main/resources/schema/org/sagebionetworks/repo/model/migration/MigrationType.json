@@ -58,6 +58,7 @@
         "QUIZ_RESPONSE",
         "VERIFICATION_SUBMISSION",
         "VERIFICATION_STATE",
+        "VERIFICATION_FILE",
         "CHANGE"
     ]
 }

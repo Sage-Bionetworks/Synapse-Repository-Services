@@ -682,6 +682,10 @@ public class SqlConstants {
 	public static final String VERIFICATION_STATE_REASON = "REASON";
 	public static final String VERIFICATION_STATE_STATE = "STATE";
 	
+	public static final String TABLE_VERIFICATION_SUBMISSION_FILE = "VERIFICATION_SUBMISSION_FILE";
+	public static final String VERIFICATION_SUBMISSION_FILE_ID = "ID";
+	public static final String VERIFICATION_SUBMISSION_FILE_FILEHANDLEID = "FILE_HANDLE_ID";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

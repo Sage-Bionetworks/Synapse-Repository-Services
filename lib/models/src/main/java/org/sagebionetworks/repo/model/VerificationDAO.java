@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
-public interface VerificationSubmissionDAO {
+public interface VerificationDAO {
 	
 	/**
 	 * create new object
