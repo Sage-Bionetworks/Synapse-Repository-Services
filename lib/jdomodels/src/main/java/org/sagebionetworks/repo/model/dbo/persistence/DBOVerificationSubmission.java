@@ -82,8 +82,7 @@ public class DBOVerificationSubmission implements
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
-		list.add(new DBOVerificationApproval());
-		list.add(new DBOVerificationRetraction());
+		list.add(new DBOVerificationState());
 		return list;
 	}
 

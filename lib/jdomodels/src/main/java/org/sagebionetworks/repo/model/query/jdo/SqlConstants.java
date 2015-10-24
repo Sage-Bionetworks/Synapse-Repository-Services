@@ -675,17 +675,11 @@ public class SqlConstants {
 	public static final String VERIFICATION_SUBMISSION_CREATED_ON = "CREATED_ON";
 	public static final String VERIFICATION_SUBMISSION_SERIALIZED = "SERIALIZED";
 	
-	public static final String TABLE_VERIFICATION_APPROVAL = "VERIFICATION_APPROVAL";
-	public static final String VERIFICATION_APPROVAL_ID = "ID";
-	public static final String VERIFICATION_APPROVAL_CREATED_BY = "CREATED_BY";
-	public static final String VERIFICATION_APPROVAL_CREATED_ON = "CREATED_ON";
-	public static final String VERIFICATION_APPROVAL_SERIALIZED = "SERIALIZED";
-	
-	public static final String TABLE_VERIFICATION_RETRACTION = "VERIFICATION_RETRACTION";
-	public static final String VERIFICATION_RETRACTION_ID = "ID";
-	public static final String VERIFICATION_RETRACTION_CREATED_BY = "CREATED_BY";
-	public static final String VERIFICATION_RETRACTION_CREATED_ON = "CREATED_ON";
-	public static final String VERIFICATION_RETRACTION_SERIALIZED = "SERIALIZED";
+	public static final String TABLE_VERIFICATION_STATE = "VERIFICATION_STATE";
+	public static final String VERIFICATION_STATE_ID = "ID";
+	public static final String VERIFICATION_STATE_CREATED_BY = "CREATED_BY";
+	public static final String VERIFICATION_STATE_CREATED_ON = "CREATED_ON";
+	public static final String VERIFICATION_STATE_REASON = "REASON";
 	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
