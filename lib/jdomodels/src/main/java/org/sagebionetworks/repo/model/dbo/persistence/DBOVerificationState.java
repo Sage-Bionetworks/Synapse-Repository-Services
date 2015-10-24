@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 
 @Table(name = TABLE_VERIFICATION_STATE)
 public class DBOVerificationState implements
