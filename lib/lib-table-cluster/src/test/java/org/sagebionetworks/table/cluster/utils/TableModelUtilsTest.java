@@ -1159,4 +1159,69 @@ public class TableModelUtilsTest {
 		// should fail.
 		TableModelUtils.convertStringToLong(in, out);
 	}
+	
+	/**
+	 * This case is just the the union of the two lists.
+	 */
+	@Test
+	public void testMergeRowsNoOverlap(){
+		Long versionNumber = 99L;
+		List<Row> older = new ArrayList<Row>();
+		older.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
+		older.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6"));
+		
+		List<Row> newer = new ArrayList<Row>();
+		newer.add(TableModelTestUtils.createRow(3L, versionNumber, "3","4"));
+		newer.add(TableModelTestUtils.createRow(4L, versionNumber, "7","8"));
+		
+		List<Row> expected = new ArrayList<Row>();
+		expected.addAll(older);
+		expected.addAll(newer);
+		
+		List<Row> results = TableModelUtils.mergeRows(older, newer);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * This merge includes a row that is updated in the new list.
+	 */
+	@Test
+	public void testMergeRowsWithUpdates(){
+		Long versionNumber = 99L;
+		List<Row> older = new ArrayList<Row>();
+		older.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
+		older.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6")); 
+		List<Row> newer = new ArrayList<Row>();
+		newer.add(TableModelTestUtils.createRow(2L, versionNumber, "3","4"));
+		newer.add(TableModelTestUtils.createRow(3L, versionNumber, "7","8"));
+		
+		List<Row> expected = new ArrayList<Row>();
+		// The first row form the the older set should be included
+		expected.add(older.get(0));
+		// all rows form the newer should be included.
+		expected.addAll(newer);
+		
+		List<Row> results = TableModelUtils.mergeRows(older, newer);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testMergeRowsWithDelets(){
+		Long versionNumber = 99L;
+		List<Row> older = new ArrayList<Row>();
+		older.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
+		older.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6")); 
+		List<Row> newer = new ArrayList<Row>();
+		newer.add(TableModelTestUtils.createDeletionRow(2L, versionNumber));
+		newer.add(TableModelTestUtils.createRow(3L, versionNumber, "7","8"));
+		
+		List<Row> expected = new ArrayList<Row>();
+		// The first row form the the older set should be included
+		expected.add(older.get(0));
+		// all rows form the newer should be included.
+		expected.addAll(newer);
+		
+		List<Row> results = TableModelUtils.mergeRows(older, newer);
+		assertEquals(expected, results);
+	}
 }
