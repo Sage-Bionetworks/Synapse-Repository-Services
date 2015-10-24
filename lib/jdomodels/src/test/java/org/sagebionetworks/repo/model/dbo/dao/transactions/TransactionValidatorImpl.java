@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+
 /**
  * This is a simple DAO like object used to test the transaction settings.
  * @author John

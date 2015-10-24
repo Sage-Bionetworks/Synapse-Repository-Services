@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+
 /**
  * This is a helper used to test that a lock can be Acquired and held on a node.
  * @author John

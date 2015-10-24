@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ThreadStepper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
