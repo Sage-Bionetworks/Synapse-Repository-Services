@@ -1459,4 +1459,39 @@ public class TableModelUtils {
 			}
 		}
 	}
+
+
+	/**
+	 * Merge two lists of rows on rowId. If the same row (by rowId), is found in
+	 * both the older and newer list, the row from the newer list will replace
+	 * the row from the older row set.
+	 * 
+	 * @param olderRowset
+	 * @param newerRowset
+	 * @return
+	 */
+	public static List<Row> mergeRows(List<Row> olderRows, List<Row> newRows) {
+		if(olderRows == null){
+			throw new IllegalArgumentException("Older Rowset cannot be null");
+		}
+		if(newRows == null){
+			throw new IllegalArgumentException("Newer Rows cannot be null");
+		}
+		LinkedHashMap<Long, Row> mergedMap = new LinkedHashMap<Long, Row>();
+		// First apply the older
+		for(Row row: olderRows){
+			if(row.getRowId() != null){
+				mergedMap.put(row.getRowId(), row);
+			}
+		}
+
+		// overwrite with newer
+		for(Row row: newRows){
+			if(row.getRowId() != null){
+				mergedMap.put(row.getRowId(), row);
+			}
+		}
+		// return the merged results.
+		return Lists.newLinkedList(mergedMap.values());
+	}
 }
