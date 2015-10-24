@@ -260,6 +260,8 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 		// Apply each change set not already indexed
 		long currentProgress = 0;
 		String lastEtag = null;
+		RowSet lastFailedRowSet = null;
+		Exception lastFailedException = null;
 		for(TableRowChange changeSet: changes){
 			progressCallback.progressMade(change);
 			currentProgress += changeSet.getRowCount();
@@ -268,14 +270,33 @@ public class TableWorker implements ChangeMessageDrivenRunner {
 			if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId, changeSet.getRowVersion(), mapper);
-				
+				// merge with last failure if needed.
+				if(lastFailedRowSet != null){
+					// merge the rows from the failed rowset
+					rowSet.setRows(TableModelUtils.mergeRows(lastFailedRowSet.getRows(), rowSet.getRows()));
+				}
 				tableRowManager.attemptToUpdateTableProgress(tableId,
 						resetToken, "Applying " + rowSet.getRows().size()
 								+ " rows for version: " + changeSet.getRowVersion(), currentProgress,
 								totalProgress);
-				// apply the change to the table
-				indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
+				try {
+					// attempt to apply this change set to the table.
+					indexManager.applyChangeSetToIndex(rowSet, currentSchema, changeSet.getRowVersion());
+					lastFailedRowSet = null;
+					lastFailedException = null;
+				} catch (Exception e) {
+					/*
+					 * When we fail to apply a change set we capture it to
+					 * attempt to merge it with future change set that might replace the broken row(s).
+					 */
+					log.error("Failed to apply a change set to table :"+tableId+" version: "+changeSet.getRowVersion(), e);
+					lastFailedRowSet = rowSet;
+					lastFailedException = e;
+				}
 			}
+		}
+		if(lastFailedException != null){
+			throw new RuntimeException(lastFailedException);
 		}
 		return lastEtag;
 	}
