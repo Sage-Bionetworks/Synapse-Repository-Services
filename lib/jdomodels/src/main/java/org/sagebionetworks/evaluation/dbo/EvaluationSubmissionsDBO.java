@@ -71,7 +71,7 @@ public class EvaluationSubmissionsDBO implements MigratableDatabaseObject<Evalua
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

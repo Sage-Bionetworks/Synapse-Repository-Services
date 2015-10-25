@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
@@ -258,7 +259,16 @@ public class AuthenticationController extends BaseController {
 	public @ResponseBody
 	Session validateOAuthSession(@RequestBody OAuthValidationRequest request)
 			throws Exception {
-		return authenticationService.validateOAuthAuthenticationCode(request);
+		return authenticationService.validateOAuthAuthenticationCodeAndLogin(request);
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.POST)
+	public @ResponseBody
+	PrincipalAlias bindExternalIdToAccount(@RequestBody OAuthValidationRequest request,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			throws Exception {
+		return authenticationService.bindExternalID(userId, request);
 	}
 
 }

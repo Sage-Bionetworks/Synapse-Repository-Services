@@ -189,7 +189,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 }

@@ -52,7 +52,7 @@ public class TableCacheInvalidationMigrationListener implements MigrationTypeLis
 				TableIndexDAO indexDAO = tableConnectionFactory.getConnection(tableIdString);
 				tableRowTruthDAO.removeCaches(tableId);
 				indexDAO.deleteTable(tableIdString);
-				indexDAO.deleteStatusTable(tableIdString);
+				indexDAO.deleteSecondayTables(tableIdString);
 				// we must also delete the table status here. If we don't, a stale reset token in the status table entry
 				// could prevent the table from being rebuilt
 				// see PLFM-3077

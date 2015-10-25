@@ -40,11 +40,11 @@ public interface MigratableDatabaseObject<D extends DatabaseObject<?>, B> extend
 	public Class<? extends D> getDatabaseObjectClass();
 	
 	/**
-	 * If this object is the 'owner' of other object, then it is a primary type. All secondary types should be returned in their
+	 * If this object is the 'owner' of other objects, then it is a primary type. All secondary types should be returned in their
 	 * migration order.
 	 * For example, if A owns B and B owns C (A->B->C) then A is the primary, and both B and C are secondary. For this case, return B followed by C.
 	 * Both B and C must have a backup ID column that is a foreign key to the backup ID of A, as the IDs of A will drive the migration of B and C.
 	 * @return
 	 */
-	public List<MigratableDatabaseObject> getSecondaryTypes();
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes();
 }

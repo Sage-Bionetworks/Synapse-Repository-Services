@@ -294,7 +294,7 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

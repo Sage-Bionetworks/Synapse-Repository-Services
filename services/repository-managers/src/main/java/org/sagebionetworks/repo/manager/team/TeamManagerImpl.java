@@ -706,7 +706,6 @@ public class TeamManagerImpl implements TeamManager {
 		return tms;
 	}
 
-	@Override
 	@WriteTransaction
 	public void bootstrapTeams() throws NotFoundException {
 		if (this.teamsToBootstrap == null) {

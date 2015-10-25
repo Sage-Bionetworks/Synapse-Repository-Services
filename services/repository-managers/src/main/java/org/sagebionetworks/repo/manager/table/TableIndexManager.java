@@ -87,4 +87,5 @@ public interface TableIndexManager {
 	 * Delete the index for this table.
 	 */
 	public void deleteTableIndex();
+
 }

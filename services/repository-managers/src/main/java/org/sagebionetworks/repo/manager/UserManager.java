@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -65,6 +66,8 @@ public interface UserManager {
 	 * @return
 	 */
 	public PrincipalAlias lookupPrincipalByAlias(String alias);
+
+	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	
 	
 }

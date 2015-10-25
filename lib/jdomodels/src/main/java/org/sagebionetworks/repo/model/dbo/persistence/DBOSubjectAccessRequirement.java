@@ -185,7 +185,7 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	}
 
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 

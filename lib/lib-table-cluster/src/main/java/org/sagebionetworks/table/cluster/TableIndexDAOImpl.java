@@ -4,12 +4,18 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,8 +32,10 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -37,6 +45,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
@@ -44,6 +53,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -291,29 +302,36 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<Long>());
-		} catch (BadSqlGrammarException e) {
-			// Spring throws this when the table does not exist
+		} catch (EmptyResultDataAccessException e) {
+			// Spring throws this when the table is empty
 			return -1L;
 		}
 	}
 
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
-		String createStatusTableSql = SQLUtils.createTableSQL(tableId, SQLUtils.TableType.STATUS);
-		template.update(createStatusTableSql);
-
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version);
 	}
 
 	@Override
-	public void deleteStatusTable(String tableId) {
-		String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.STATUS);
-		try {
-			template.update(dropStatusTableDML);
-		} catch (BadSqlGrammarException e) {
-			// This is thrown when the table does not exist
-		}
+	public void deleteSecondayTables(String tableId) {
+		for(TableType type: SQLUtils.SECONDARY_TYPES){
+			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
+			try {
+				template.update(dropStatusTableDML);
+			} catch (BadSqlGrammarException e) {
+				// This is thrown when the table does not exist
+			}
+		}	
+	}
+	
+	@Override
+	public void createSecondaryTables(String tableId) {
+		for(TableType type: SQLUtils.SECONDARY_TYPES){
+			String sql = SQLUtils.createTableSQL(tableId, type);
+			template.update(sql);
+		}	
 	}
 
 	@Override
@@ -411,10 +429,64 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return writeTransactionTemplate.execute(callable);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.table.cluster.TableIndexDAO#applyFileHandleIdsToTable(java.lang.String, java.util.Set)
+	 */
 	@Override
-	public void applyFileHandleIdsToTable(String tableId,
-			Set<String> fileHandleIds) {
-		// TODO Auto-generated method stub
-		
+	public void applyFileHandleIdsToTable(final String tableId,
+			final Set<Long> fileHandleIds) {
+	
+		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
+			@Override
+			public Void doInTransaction(
+					TransactionStatus status) {
+				String sql = SQLUtils.createSQLInsertIgnoreFileHandleId(tableId);
+				final Long[] args = fileHandleIds.toArray(new Long[fileHandleIds.size()]);
+				template.batchUpdate(sql, new BatchPreparedStatementSetter() {
+					@Override
+					public void setValues(PreparedStatement ps, int parameterIndex) throws SQLException {
+						ps.setLong(1, args[parameterIndex]);
+					}
+					
+					@Override
+					public int getBatchSize() {
+						return fileHandleIds.size();
+					}
+				});
+				return null;
+			}
+		});
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.table.cluster.TableIndexDAO#getFileHandleIdsAssociatedWithTable(java.util.Set, java.lang.String)
+	 */
+	@Override
+	public Set<Long> getFileHandleIdsAssociatedWithTable(
+			final Set<Long> fileHandleIds, final String tableId) {
+		try {
+			return this.readTransactionTemplate.execute(new TransactionCallback<Set<Long>>() {
+				@Override
+				public Set<Long> doInTransaction(TransactionStatus status) {
+					String sql = SQLUtils.createSQLGetBoundFileHandleId(tableId);
+					NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
+					Map<String, Set<Long>> params = Maps.newHashMap();
+					params.put(SQLUtils.FILE_ID_BIND, fileHandleIds);
+					final Set<Long> intersection = Sets.newHashSet();
+					namedTemplate.query(sql, params, new RowCallbackHandler() {
+						@Override
+						public void processRow(ResultSet rs) throws SQLException {
+							intersection.add(rs.getLong(TableConstants.FILE_ID));
+						}
+					});
+					return intersection;
+				}
+			});
+		} catch (BadSqlGrammarException e) {
+			// thrown when the table does not exist
+			return new HashSet<Long>(0);
+		}
 	}
 }

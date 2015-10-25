@@ -4,7 +4,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -1058,9 +1057,22 @@ public class TableModelUtilsTest {
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "5","6","7","8"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "9",null,"7",""));
 		
-		Set<String> expected = Sets.newHashSet("2","4","6","8");
-		Set<String> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+		Set<Long> expected = Sets.newHashSet(2L, 4L, 6L, 8L);
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
 		assertEquals(expected, results);
+ 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFileHandleIdsInRowSetNotLongs(){
+		List<ColumnModel> cols = new ArrayList<ColumnModel>();
+		cols.add(TableModelTestUtils.createColumn(2L, "b", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "not a number"));
+		
+		// should fail.
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
  	}
 	
 	@Test
@@ -1120,5 +1132,96 @@ public class TableModelUtilsTest {
 		rows.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2","3","4"));
 		rows.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6","7","8"));
 		TableModelUtils.validateRowVersions(rows, null);
+	}
+	
+	@Test
+	public void testConvertLongToString(){
+		List<Long> in = Lists.newArrayList(3L,4L, null);
+		Set<String> out = Sets.newHashSet();
+		TableModelUtils.convertLongToString(in, out);
+		Set<String> expected = Sets.newHashSet("3","4");
+		assertEquals(expected, out);
+	}
+	
+	@Test
+	public void testConvertStringToLong(){
+		List<String> in = Lists.newArrayList("2","4", null);
+		Set<Long> out = Sets.newHashSet();
+		TableModelUtils.convertStringToLong(in, out);
+		Set<Long> expected = Sets.newHashSet(2L, 4L);
+		assertEquals(expected, out);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertStringToLongNotANumber(){
+		List<String> in = Lists.newArrayList("2","not a number");
+		Set<Long> out = Sets.newHashSet();
+		// should fail.
+		TableModelUtils.convertStringToLong(in, out);
+	}
+	
+	/**
+	 * This case is just the the union of the two lists.
+	 */
+	@Test
+	public void testMergeRowsNoOverlap(){
+		Long versionNumber = 99L;
+		List<Row> older = new ArrayList<Row>();
+		older.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
+		older.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6"));
+		
+		List<Row> newer = new ArrayList<Row>();
+		newer.add(TableModelTestUtils.createRow(3L, versionNumber, "3","4"));
+		newer.add(TableModelTestUtils.createRow(4L, versionNumber, "7","8"));
+		
+		List<Row> expected = new ArrayList<Row>();
+		expected.addAll(older);
+		expected.addAll(newer);
+		
+		List<Row> results = TableModelUtils.mergeRows(older, newer);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * This merge includes a row that is updated in the new list.
+	 */
+	@Test
+	public void testMergeRowsWithUpdates(){
+		Long versionNumber = 99L;
+		List<Row> older = new ArrayList<Row>();
+		older.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
+		older.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6")); 
+		List<Row> newer = new ArrayList<Row>();
+		newer.add(TableModelTestUtils.createRow(2L, versionNumber, "3","4"));
+		newer.add(TableModelTestUtils.createRow(3L, versionNumber, "7","8"));
+		
+		List<Row> expected = new ArrayList<Row>();
+		// The first row form the the older set should be included
+		expected.add(older.get(0));
+		// all rows form the newer should be included.
+		expected.addAll(newer);
+		
+		List<Row> results = TableModelUtils.mergeRows(older, newer);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testMergeRowsWithDelets(){
+		Long versionNumber = 99L;
+		List<Row> older = new ArrayList<Row>();
+		older.add(TableModelTestUtils.createRow(1L, versionNumber, "1","2"));
+		older.add(TableModelTestUtils.createRow(2L, versionNumber, "5","6")); 
+		List<Row> newer = new ArrayList<Row>();
+		newer.add(TableModelTestUtils.createDeletionRow(2L, versionNumber));
+		newer.add(TableModelTestUtils.createRow(3L, versionNumber, "7","8"));
+		
+		List<Row> expected = new ArrayList<Row>();
+		// The first row form the the older set should be included
+		expected.add(older.get(0));
+		// all rows form the newer should be included.
+		expected.addAll(newer);
+		
+		List<Row> results = TableModelUtils.mergeRows(older, newer);
+		assertEquals(expected, results);
 	}
 }

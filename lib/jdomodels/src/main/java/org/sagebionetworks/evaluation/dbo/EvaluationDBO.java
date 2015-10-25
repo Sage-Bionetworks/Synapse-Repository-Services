@@ -236,7 +236,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		return EvaluationDBO.class;
 	}
 	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
 	@Override
