@@ -57,8 +57,6 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	private IdGenerator idGenerator;
 
 	private static final String VERIFICATION_SUBMISSION_CORE = "FROM "+TABLE_VERIFICATION_SUBMISSION;
-	private static final String VERIFICATION_SUBMISSION_SQL = "SELECT * "+VERIFICATION_SUBMISSION_CORE;
-	private static final String VERIFICATION_SUBMISSION_COUNT_SQL = "SELECT COUNT(*) "+VERIFICATION_SUBMISSION_CORE;
 	
 	// select verifications whose latest/newest state has the given state value
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_CORE = 
@@ -68,13 +66,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			" = (SELECT MAX("+COL_VERIFICATION_STATE_CREATED_ON+") FROM "+TABLE_VERIFICATION_STATE+
 			" s2 WHERE s2."+COL_VERIFICATION_STATE_VERIFICATION_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+") "+
 			"AND s."+COL_VERIFICATION_STATE_STATE+" in (:"+COL_VERIFICATION_STATE_STATE+")";
-	
-	private static final String VERIFICATION_SUBMISSION_WITH_STATE_SQL = 
-			"SELECT v.* "+VERIFICATION_SUBMISSION_WITH_STATE_CORE;
-	
-	private static final String VERIFICATION_SUBMISSION_WITH_STATE_COUNT_SQL = 
-			"SELECT COUNT(*) "+VERIFICATION_SUBMISSION_WITH_STATE_CORE;
-	
+		
 	private static final String USER_ID_FILTER = COL_VERIFICATION_SUBMISSION_CREATED_BY+"=:"+COL_VERIFICATION_SUBMISSION_CREATED_BY;
 	
 	private static final String LIMIT = "LIMIT";
@@ -163,36 +155,47 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		basicDao.createNew(dbo);
 	}
 	
-	@Override
-	public List<VerificationSubmission> listVerificationSubmissions(
-			List<VerificationStateEnum> states, Long userId, long limit, long offset) {
+	private static String listVerificationSubmissionsSQLcore(List<VerificationStateEnum> states, Long userId) {
 		String sql;
-		
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MapSqlParameterSource param = new MapSqlParameterSource();
-			
 		if (states==null || states.isEmpty()) {
-			sql = VERIFICATION_SUBMISSION_SQL;
+			sql = VERIFICATION_SUBMISSION_CORE;
 			if (userId!=null) {
 				sql += " WHERE "+USER_ID_FILTER;
-				param.addValue(COL_VERIFICATION_SUBMISSION_CREATED_BY, userId);
 			}
 		} else {
-			sql = VERIFICATION_SUBMISSION_WITH_STATE_SQL;
+			sql = VERIFICATION_SUBMISSION_WITH_STATE_CORE;
+			if (userId!=null) {
+				sql += " AND v."+USER_ID_FILTER;
+			}
+		}
+		return sql;
+	}
+	
+	private static MapSqlParameterSource listVerificationSubmissionsParams(List<VerificationStateEnum> states, Long userId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		if (states!=null) {
 			List<String> stateNames = new ArrayList<String>();
 			for (VerificationStateEnum state : states) stateNames.add(state.name());
 			param.addValue(COL_VERIFICATION_STATE_STATE, stateNames);
-			if (userId!=null) {
-				sql += " AND v."+USER_ID_FILTER;
-				param.addValue(COL_VERIFICATION_SUBMISSION_CREATED_BY, userId);
-			}
 		}
-		sql += LIMIT_OFFSET;
+		if (userId!=null) {
+			param.addValue(COL_VERIFICATION_SUBMISSION_CREATED_BY, userId);
+		}
+		return param;
+	}
+	
+	@Override
+	public List<VerificationSubmission> listVerificationSubmissions(
+			List<VerificationStateEnum> states, Long userId, long limit, long offset) {
+		String sql = "SELECT * "+listVerificationSubmissionsSQLcore(states, userId)+LIMIT_OFFSET;
+		MapSqlParameterSource param = listVerificationSubmissionsParams(states, userId);
 		param.addValue(LIMIT, limit);
 		param.addValue(OFFSET, offset);
 		
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		List<DBOVerificationSubmission> dbos =
 				namedTemplate.query(sql, param, DBO_VERIFICATION_SUB_MAPPING);
+		
 		List<VerificationSubmission> result = new ArrayList<VerificationSubmission>();
 		if (dbos.isEmpty()) return result;
 		Set<Long> verificationIds = new HashSet<Long>();
@@ -233,26 +236,10 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public long countVerificationSubmissions(List<VerificationStateEnum> states,
 			Long userId) {
-		String sql;
-		
-		List<Object> args = new ArrayList<Object>();
-		
-		if (states==null || states.isEmpty()) {
-			sql = VERIFICATION_SUBMISSION_COUNT_SQL;
-			if (userId!=null) {
-				sql += " WHERE "+USER_ID_FILTER;
-				args.add(userId);
-			}
-		} else {
-			sql = VERIFICATION_SUBMISSION_WITH_STATE_COUNT_SQL;
-			args.add(states);
-			if (userId!=null) {
-				sql += " AND v."+USER_ID_FILTER;
-				args.add(userId);
-			}
-		}
-		
-		return jdbcTemplate.queryForObject(sql, Long.class, args.toArray());
+		String sql = "SELECT COUNT(*) "+listVerificationSubmissionsSQLcore(states, userId);
+		MapSqlParameterSource param = listVerificationSubmissionsParams(states, userId);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		return namedTemplate.queryForObject(sql, param, Long.class);
 	}
 	
 	private static final String REASON_CHARACTER_SET = "UTF-8";
