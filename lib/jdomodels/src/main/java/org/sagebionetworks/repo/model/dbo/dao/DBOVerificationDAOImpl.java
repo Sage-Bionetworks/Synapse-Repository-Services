@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_FILEHANDLEID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -62,10 +63,10 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	// select verifications whose latest/newest state has the given state value
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_CORE = 
 			"FROM "+TABLE_VERIFICATION_SUBMISSION+" v, "+TABLE_VERIFICATION_STATE+" s "+
-			"WHERE s."+COL_VERIFICATION_STATE_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+
+			"WHERE s."+COL_VERIFICATION_STATE_VERIFICATION_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+
 			" AND s."+COL_VERIFICATION_STATE_CREATED_ON+
 			" = (SELECT MAX("+COL_VERIFICATION_STATE_CREATED_ON+") FROM "+TABLE_VERIFICATION_STATE+
-			" s2 WHERE s2."+COL_VERIFICATION_STATE_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+") "+
+			" s2 WHERE s2."+COL_VERIFICATION_STATE_VERIFICATION_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+") "+
 			"AND s."+COL_VERIFICATION_STATE_STATE+" in (:"+COL_VERIFICATION_STATE_STATE+")";
 	
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_SQL = 
@@ -82,12 +83,12 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	private static final String VERIFICATION_STATE_SQL = 
 			"SELECT * FROM "+TABLE_VERIFICATION_STATE+
-			" WHERE "+COL_VERIFICATION_STATE_ID+" in (:"+COL_VERIFICATION_STATE_ID+") ORDER BY "+
+			" WHERE "+COL_VERIFICATION_STATE_VERIFICATION_ID+" in (:"+COL_VERIFICATION_STATE_VERIFICATION_ID+") ORDER BY "+
 			COL_VERIFICATION_STATE_CREATED_ON+" ASC";
 	
 	private static final String FILE_ID_IN_VERIFICATION_SQL = 
 			"SELECT COUNT(*) FROM "+TABLE_VERIFICATION_FILE+" WHERE "+
-			COL_VERIFICATION_FILE_ID+"=? AND "+COL_VERIFICATION_FILE_FILEHANDLEID+"=?";
+			COL_VERIFICATION_FILE_VERIFICATION_ID+"=? AND "+COL_VERIFICATION_FILE_FILEHANDLEID+"=?";
 
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
 			(new DBOVerificationSubmission()).getTableMapping();
@@ -140,7 +141,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		List<DBOVerificationSubmissionFile> batch = new ArrayList<DBOVerificationSubmissionFile>();
 		for (String fileHandleId : fileHandleIds) {
 			DBOVerificationSubmissionFile sf = new DBOVerificationSubmissionFile();
-			sf.setId(verificationSubmissionId);
+			sf.setVerificationId(verificationSubmissionId);
 			sf.setFileHandleId(Long.parseLong(fileHandleId));
 			batch.add(sf);
 		}
@@ -208,7 +209,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	private Map<Long,List<VerificationState>> getVerificationStates(Set<Long> verificationIds) {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_VERIFICATION_STATE_ID, verificationIds);
+		param.addValue(COL_VERIFICATION_STATE_VERIFICATION_ID, verificationIds);
 		final Map<Long,List<VerificationState>> result = new HashMap<Long,List<VerificationState>>();
 		namedTemplate.query(VERIFICATION_STATE_SQL, param, new RowMapper<VerificationState>() {
 
@@ -216,10 +217,10 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			public VerificationState mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				DBOVerificationState state = DBO_VERIFICATION_STATE_MAPPING.mapRow(rs, rowNum);
-				List<VerificationState> states = result.get(state.getId());
+				List<VerificationState> states = result.get(state.getVerificationId());
 				if (states==null) {
 					states = new ArrayList<VerificationState>();
-					result.put(state.getId(), states);
+					result.put(state.getVerificationId(), states);
 				}
 				states.add(copyVerificationStateDBOtoDTO(state));
 				return null;
@@ -253,14 +254,24 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		
 		return jdbcTemplate.queryForObject(sql, Long.class, args.toArray());
 	}
+	
+	private static final String REASON_CHARACTER_SET = "UTF-8";
 
 	public static DBOVerificationState copyVerificationStateDTOtoDBO(long verificationSubmissionId, VerificationState dto) {
 		DBOVerificationState dbo = new DBOVerificationState();
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
-		dbo.setReason(dto.getReason());
+		if (dto.getReason()==null) {
+			dbo.setReason(null);
+		} else {
+			try {
+				dbo.setReason((dto.getReason().getBytes(REASON_CHARACTER_SET)));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		dbo.setState(dto.getState());
-		dbo.setId(verificationSubmissionId);
+		dbo.setVerificationId(verificationSubmissionId);
 		return dbo;
 	}
 	
@@ -268,7 +279,15 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		VerificationState dto = new VerificationState();
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setReason(dbo.getReason());
+		if (dbo.getReason()==null) {
+			dto.setReason(null);
+		} else {
+			try {
+				dto.setReason(new String(dbo.getReason(), REASON_CHARACTER_SET));
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		dto.setState(dbo.getState());
 		return dto;
 	}

@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_FILEHANDLEID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_FILE_FILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_FILE_VERIFICATION_ID;
@@ -24,10 +24,10 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 @Table(name = TABLE_VERIFICATION_FILE)
 public class DBOVerificationSubmissionFile implements
 		MigratableDatabaseObject<DBOVerificationSubmissionFile, DBOVerificationSubmissionFile> {
-
-	@Field(name = COL_VERIFICATION_FILE_ID, backupId = true, primary = true, nullable = false)
+	
+	@Field(name = COL_VERIFICATION_FILE_VERIFICATION_ID, backupId = true, primary = true, nullable = false)
 	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_VERIFICATION_ID)
-	private Long id;
+	private Long verificationId;
 	
 	@Field(name = COL_VERIFICATION_FILE_FILEHANDLEID, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_FILE_ID)
@@ -79,12 +79,12 @@ public class DBOVerificationSubmissionFile implements
 		return null;
 	}
 
-	public Long getId() {
-		return id;
+	public Long getVerificationId() {
+		return verificationId;
 	}
 
-	public void setId(Long id) {
-		this.id = id;
+	public void setVerificationId(Long verificationId) {
+		this.verificationId = verificationId;
 	}
 
 	public Long getFileHandleId() {
@@ -101,7 +101,8 @@ public class DBOVerificationSubmissionFile implements
 		int result = 1;
 		result = prime * result
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((verificationId == null) ? 0 : verificationId.hashCode());
 		return result;
 	}
 
@@ -119,18 +120,18 @@ public class DBOVerificationSubmissionFile implements
 				return false;
 		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
-		if (id == null) {
-			if (other.id != null)
+		if (verificationId == null) {
+			if (other.verificationId != null)
 				return false;
-		} else if (!id.equals(other.id))
+		} else if (!verificationId.equals(other.verificationId))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOVerificationSubmissionFile [id=" + id + ", fileHandleId="
-				+ fileHandleId + "]";
+		return "DBOVerificationSubmissionFile [verificationId="
+				+ verificationId + ", fileHandleId=" + fileHandleId + "]";
 	}
 
 

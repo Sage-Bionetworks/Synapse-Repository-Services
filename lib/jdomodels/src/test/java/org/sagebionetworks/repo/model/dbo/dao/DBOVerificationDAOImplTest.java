@@ -189,35 +189,45 @@ public class DBOVerificationDAOImplTest {
 		fh = createFileHandle(USER_2_ID);
 		fileHandleIds = Collections.singletonList(fh.getId());
 		dto = newVerificationSubmission(USER_2_ID, fileHandleIds);
-		VerificationSubmission createdForOther = verificationDao.createVerificationSubmission(dto);
-		vsToDelete.add(createdForOther.getId());
+		VerificationSubmission createdForOtherUser = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(createdForOtherUser.getId());
 		
 		// now create a verification submission for User-1 but with another state
 		fh = createFileHandle(USER_1_ID);
 		fileHandleIds = Collections.singletonList(fh.getId());
 		dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
-		VerificationSubmission createdWithDifferentState = verificationDao.createVerificationSubmission(dto);
-		vsToDelete.add(createdWithDifferentState.getId());
+		VerificationSubmission rejected = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(rejected.getId());
 		VerificationState newState = new VerificationState();
 		newState.setState(VerificationStateEnum.rejected);
 		newState.setCreatedBy(USER_1_ID);
 		newState.setCreatedOn(new Date());
-		verificationDao.appendVerificationSubmissionState(Long.parseLong(createdWithDifferentState.getId()), newState);
+		newState.setReason("my dog has fleas");
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(rejected.getId()), newState);
+		// now update the expected object
+		List<VerificationState> stateHistory = new ArrayList<VerificationState>(rejected.getStateHistory());
+		stateHistory.add(newState);
+		rejected.setStateHistory(stateHistory);
 		
 		// get all objects in the system
 		List<VerificationSubmission> list = verificationDao.listVerificationSubmissions(null, null, 10, 0);
 		assertEquals(3, list.size());
-		assertEquals(new HashSet<VerificationSubmission>(Arrays.asList(created, createdForOther, createdWithDifferentState)),
-				new HashSet<VerificationSubmission>(list));
+		assertTrue(list.contains(created));
+		assertTrue(list.contains(createdForOtherUser));
+		assertTrue(list.contains(rejected));
 		
 		// get all the objects for this user
 		list = verificationDao.listVerificationSubmissions(null, Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(2, list.size());
+		assertTrue(list.contains(created));
+		assertTrue(list.contains(rejected));
 		
 		// get all the objects for this state
 		list = verificationDao.listVerificationSubmissions(
 				Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
 		assertEquals(2, list.size());
+		assertTrue(list.contains(created));
+		assertTrue(list.contains(createdForOtherUser));
 		
 		// get all the objects for this state and user
 		list = verificationDao.listVerificationSubmissions(
@@ -229,12 +239,14 @@ public class DBOVerificationDAOImplTest {
 		list = verificationDao.listVerificationSubmissions(
 				Collections.singletonList(VerificationStateEnum.rejected), Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(1, list.size());
-		assertEquals(createdWithDifferentState, list.get(0));
+		assertEquals(rejected, list.get(0));
 		
 		// searching for two states gives us both results
 		list = verificationDao.listVerificationSubmissions(
 				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
 				Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(2, list.size());
+		assertTrue(list.contains(created));
+		assertTrue(list.contains(rejected));
 	}
 }

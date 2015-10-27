@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_STATE_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_STATE_VERIFICATION_ID;
@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_G
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
@@ -28,10 +29,10 @@ import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 @Table(name = TABLE_VERIFICATION_STATE)
 public class DBOVerificationState implements
 		MigratableDatabaseObject<DBOVerificationState, DBOVerificationState> {
-
-	@Field(name = COL_VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
+	
+	@Field(name = COL_VERIFICATION_STATE_VERIFICATION_ID, backupId = true, primary = true, nullable = false)
 	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_STATE_VERIFICATION_ID)
-	private Long id;
+	private Long verificationId;
 	
 	@Field(name = COL_VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true, name = FK_VERIFICATION_STATE_USER_ID)
@@ -43,8 +44,8 @@ public class DBOVerificationState implements
 	@Field(name = COL_VERIFICATION_STATE_STATE, backupId = false, primary = false, nullable = false)
 	private VerificationStateEnum state;
 
-	@Field(name = COL_VERIFICATION_STATE_REASON, backupId = false, primary = false, nullable = true, varchar=1024)
-	private String reason;
+	@Field(name = COL_VERIFICATION_STATE_REASON, backupId = false, primary = false, nullable = true, blob="blob")
+	private byte[] reason;
 
 	private static TableMapping<DBOVerificationState> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationState.class);
 
@@ -92,12 +93,12 @@ public class DBOVerificationState implements
 		return null;
 	}
 
-	public Long getId() {
-		return id;
+	public Long getVerificationId() {
+		return verificationId;
 	}
 
-	public void setId(Long id) {
-		this.id = id;
+	public void setVerificationId(Long verificationId) {
+		this.verificationId = verificationId;
 	}
 
 	public Long getCreatedBy() {
@@ -124,11 +125,11 @@ public class DBOVerificationState implements
 		this.state = state;
 	}
 
-	public String getReason() {
+	public byte[] getReason() {
 		return reason;
 	}
 
-	public void setReason(String reason) {
+	public void setReason(byte[] reason) {
 		this.reason = reason;
 	}
 
@@ -140,9 +141,10 @@ public class DBOVerificationState implements
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((reason == null) ? 0 : reason.hashCode());
+		result = prime * result + Arrays.hashCode(reason);
 		result = prime * result + ((state == null) ? 0 : state.hashCode());
+		result = prime * result
+				+ ((verificationId == null) ? 0 : verificationId.hashCode());
 		return result;
 	}
 
@@ -165,26 +167,24 @@ public class DBOVerificationState implements
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (reason == null) {
-			if (other.reason != null)
-				return false;
-		} else if (!reason.equals(other.reason))
+		if (!Arrays.equals(reason, other.reason))
 			return false;
 		if (state != other.state)
+			return false;
+		if (verificationId == null) {
+			if (other.verificationId != null)
+				return false;
+		} else if (!verificationId.equals(other.verificationId))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOVerificationState [id=" + id + ", createdBy=" + createdBy
-				+ ", createdOn=" + createdOn + ", state=" + state + ", reason="
-				+ reason + "]";
+		return "DBOVerificationState [verificationId=" + verificationId
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", state=" + state + ", reason=" + Arrays.toString(reason)
+				+ "]";
 	}
 	
 	
