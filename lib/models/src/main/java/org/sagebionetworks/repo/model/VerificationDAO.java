@@ -45,6 +45,21 @@ public interface VerificationDAO {
 	 * @param newState
 	 */
 	public void appendVerificationSubmissionState(VerificationState newState);
+	
+	/**
+	 * return the active (submitted or approved) verification submission
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	public VerificationSubmission getActiveVerificationSubmission(String userId);
+	
+	/**
+	 * check whether there is an active (submitted or approved) verification submission
+	 * @param userId
+	 * @return
+	 */
+	public boolean doesUserHaveActiveVerification(Long userId);
 
 	/**
 	 * check whether a file handle ID is in a verification submission

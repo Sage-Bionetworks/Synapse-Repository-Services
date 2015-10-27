@@ -4,12 +4,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_REASON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_REASON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 
 import java.util.List;
 
@@ -27,22 +27,21 @@ import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 public class DBOVerificationState implements
 		MigratableDatabaseObject<DBOVerificationState, DBOVerificationState> {
 
-	// TODO do secondary tables have backupId (foreign key) = true???
-	@Field(name = VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
-	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
+	@Field(name = COL_VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
+	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
 	private Long id;
 	
-	@Field(name = VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
 	
-	@Field(name = VERIFICATION_STATE_CREATED_ON, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_STATE_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createdOn;
 	
-	@Field(name = VERIFICATION_STATE_STATE, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_STATE_STATE, backupId = false, primary = false, nullable = false)
 	private VerificationStateEnum state;
 
-	@Field(name = VERIFICATION_STATE_REASON, backupId = false, primary = false, nullable = true)
+	@Field(name = COL_VERIFICATION_STATE_REASON, backupId = false, primary = false, nullable = true, varchar=1024)
 	private String reason;
 
 	private static TableMapping<DBOVerificationState> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationState.class);

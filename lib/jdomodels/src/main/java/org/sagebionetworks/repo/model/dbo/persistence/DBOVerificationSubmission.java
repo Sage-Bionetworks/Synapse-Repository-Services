@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_SERIALIZED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_SERIALIZED;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -25,17 +25,17 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOVerificationSubmission implements
 		MigratableDatabaseObject<DBOVerificationSubmission, DBOVerificationSubmission> {
 
-	@Field(name = VERIFICATION_SUBMISSION_ID, backupId = true, primary = true, nullable = false)
+	@Field(name = COL_VERIFICATION_SUBMISSION_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 	
-	@Field(name = VERIFICATION_SUBMISSION_CREATED_BY, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_BY, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
 	
-	@Field(name = VERIFICATION_SUBMISSION_CREATED_ON, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createdOn;
 
-	@Field(name = VERIFICATION_SUBMISSION_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
+	@Field(name = COL_VERIFICATION_SUBMISSION_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] serialized;
 
 	private static TableMapping<DBOVerificationSubmission> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmission.class);

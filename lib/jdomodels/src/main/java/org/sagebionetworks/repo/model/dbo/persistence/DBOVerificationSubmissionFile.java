@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION_FILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_STATE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.VERIFICATION_SUBMISSION_ID;
 
 import java.util.List;
 
@@ -19,16 +19,15 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_VERIFICATION_SUBMISSION_FILE)
+@Table(name = TABLE_VERIFICATION_FILE)
 public class DBOVerificationSubmissionFile implements
 		MigratableDatabaseObject<DBOVerificationSubmissionFile, DBOVerificationSubmissionFile> {
 
-	// TODO do secondary tables have backupId (foreign key) = true???
-	@Field(name = VERIFICATION_STATE_ID, backupId = true, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
+	@Field(name = COL_VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
+	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
 	private Long id;
 	
-	@Field(name = VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
 	private Long fileHandleId;
 

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -37,8 +38,8 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			VerificationSubmission dto) throws DatastoreException {
+		dto.setId(idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION).toString());
 		DBOVerificationSubmission dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION));
 		DBOVerificationSubmission created = basicDao.createNew(dbo);
 		VerificationState initialState = new VerificationState();
 		initialState.setCreatedBy(dto.getCreatedBy());
@@ -73,8 +74,16 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		return dto;
 	}
 	
-	public void storeFileHandleIds(Long verificationSubmissionId, List<String> fileHandleIds) {
-		// TODO
+	private void storeFileHandleIds(Long verificationSubmissionId, List<String> fileHandleIds) {
+		if (fileHandleIds==null || fileHandleIds.isEmpty()) return;
+		List<DBOVerificationSubmissionFile> batch = new ArrayList<DBOVerificationSubmissionFile>();
+		for (String fileHandleId : fileHandleIds) {
+			DBOVerificationSubmissionFile sf = new DBOVerificationSubmissionFile();
+			sf.setId(verificationSubmissionId);
+			sf.setFileHandleId(Long.parseLong(fileHandleId));
+			batch.add(sf);
+		}
+		basicDao.createBatch(batch);
 	}
 	
 	@Override
@@ -106,6 +115,18 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public boolean isFileHandleIdInVerificationSubmission(String id,
 			String fileHandleId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public VerificationSubmission getActiveVerificationSubmission(String userId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean doesUserHaveActiveVerification(Long userId) {
 		// TODO Auto-generated method stub
 		return false;
 	}

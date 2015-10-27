@@ -106,6 +106,7 @@
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile" />
 				
 			</list>
 		</property>
