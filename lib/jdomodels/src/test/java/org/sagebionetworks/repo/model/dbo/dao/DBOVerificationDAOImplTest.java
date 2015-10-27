@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -136,6 +137,48 @@ public class DBOVerificationDAOImplTest {
 		created.setStateHistory(null);
 		// now 'null out' the history.  it should match the submitted object
 		assertEquals(dto, created);
+	}
+	
+	@Test
+	public void testDelete() throws Exception {
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		assertNotNull(created.getId());
+		vsToDelete.add(created.getId());
+		assertEquals(1, verificationDao.countVerificationSubmissions(null, null));
+		verificationDao.deleteVerificationSubmission(created.getId());
+		assertEquals(0, verificationDao.countVerificationSubmissions(null, null));
+	}
+	
+	@Test
+	public void testAppendVerificationSubmissionState() throws Exception {
+		// now create a verification submission for User-1 but with another state
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission rejected = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(rejected.getId());
+		List<VerificationSubmission> list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.rejected), 
+				Long.parseLong(USER_1_ID), 1, 0);
+		// initally there are no rejected submissions for this user
+		assertEquals(0, list.size());
+		
+		// now update the state
+		VerificationState newState = new VerificationState();
+		newState.setState(VerificationStateEnum.rejected);
+		newState.setCreatedBy(USER_1_ID);
+		newState.setCreatedOn(new Date());
+		newState.setReason("your submission is invalid");
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(rejected.getId()), newState);
+		list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.rejected), 
+				Long.parseLong(USER_1_ID), 1, 0);
+		assertEquals(1, list.size());
+		VerificationSubmission retrieved = list.get(0);
+		assertEquals(rejected.getId(), retrieved.getId());
+		List<VerificationState> stateHistory = retrieved.getStateHistory();
+		assertEquals(VerificationStateEnum.submitted, stateHistory.get(0).getState());
+		// check that the second (current) state is the one we set
+		assertEquals(newState, stateHistory.get(1));
 	}
 	
 	@Test
@@ -286,5 +329,22 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(2, verificationDao.countVerificationSubmissions(
 				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
 				Long.parseLong(USER_1_ID)));
+	}
+	
+	@Test
+	public void testIsFileHandleIdInVerificationSubmission() throws Exception {
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds =Arrays.asList(fh1.getId(), fh2.getId());
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		assertNotNull(created.getId());
+		vsToDelete.add(created.getId());
+		
+		long longId = Long.parseLong(created.getId());
+		long longFhId = Long.parseLong(fh1.getId());
+		assertTrue(verificationDao.isFileHandleIdInVerificationSubmission(longId, longFhId));
+		assertFalse(verificationDao.isFileHandleIdInVerificationSubmission(longId*13, longFhId));
+		assertFalse(verificationDao.isFileHandleIdInVerificationSubmission(longId, longFhId*13));
 	}
 }
