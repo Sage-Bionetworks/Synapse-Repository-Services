@@ -1,7 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_FILEHANDLEID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -33,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 
 
@@ -46,18 +55,18 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String VERIFICATION_SUBMISSION_CORE = " FROM "+TABLE_VERIFICATION_SUBMISSION;
+	private static final String VERIFICATION_SUBMISSION_CORE = "FROM "+TABLE_VERIFICATION_SUBMISSION;
 	private static final String VERIFICATION_SUBMISSION_SQL = "SELECT * "+VERIFICATION_SUBMISSION_CORE;
 	private static final String VERIFICATION_SUBMISSION_COUNT_SQL = "SELECT COUNT(*) "+VERIFICATION_SUBMISSION_CORE;
 	
 	// select verifications whose latest/newest state has the given state value
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_CORE = 
-			"SELECT v.* FROM "+TABLE_VERIFICATION_SUBMISSION+" v, "+TABLE_VERIFICATION_STATE+" s "+
+			"FROM "+TABLE_VERIFICATION_SUBMISSION+" v, "+TABLE_VERIFICATION_STATE+" s "+
 			"WHERE s."+COL_VERIFICATION_STATE_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+
 			" AND s."+COL_VERIFICATION_STATE_CREATED_ON+
 			" = (SELECT MAX("+COL_VERIFICATION_STATE_CREATED_ON+") FROM "+TABLE_VERIFICATION_STATE+
 			" s2 WHERE s2."+COL_VERIFICATION_STATE_ID+"=v."+COL_VERIFICATION_SUBMISSION_ID+") "+
-			"AND s."+COL_VERIFICATION_STATE_STATE+" in ?";
+			"AND s."+COL_VERIFICATION_STATE_STATE+" in (:"+COL_VERIFICATION_STATE_STATE+")";
 	
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_SQL = 
 			"SELECT v.* "+VERIFICATION_SUBMISSION_WITH_STATE_CORE;
@@ -65,13 +74,15 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_COUNT_SQL = 
 			"SELECT COUNT(*) "+VERIFICATION_SUBMISSION_WITH_STATE_CORE;
 	
-	private static final String USER_ID_FILTER = " CREATED_BY=? ";
+	private static final String USER_ID_FILTER = " "+COL_VERIFICATION_SUBMISSION_CREATED_BY+"=:"+COL_VERIFICATION_SUBMISSION_CREATED_BY;
 	
-	private static final String LIMIT_OFFSET = "LIMIT ? OFFSET ?";
+	private static final String LIMIT = "LIMIT";
+	private static final String OFFSET = "OFFSET";
+	private static final String LIMIT_OFFSET =" "+LIMIT+" :"+LIMIT+" "+OFFSET+" :"+OFFSET;
 	
 	private static final String VERIFICATION_STATE_SQL = 
 			"SELECT * FROM "+TABLE_VERIFICATION_STATE+
-			" WHERE "+COL_VERIFICATION_STATE_ID+" in ? ORDER BY "+
+			" WHERE "+COL_VERIFICATION_STATE_ID+" in (:"+COL_VERIFICATION_STATE_ID+") ORDER BY "+
 			COL_VERIFICATION_STATE_CREATED_ON+" ASC";
 	
 	private static final String FILE_ID_IN_VERIFICATION_SQL = 
@@ -140,7 +151,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public void deleteVerificationSubmission(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_VERIFICATION_SUBMISSION_ID, id);
+		param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
 	}
 
@@ -156,28 +167,29 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			List<VerificationStateEnum> states, Long userId, long limit, long offset) {
 		String sql;
 		
-		List<Object> args = new ArrayList<Object>();
-		
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+			
 		if (states==null || states.isEmpty()) {
 			sql = VERIFICATION_SUBMISSION_SQL;
 			if (userId!=null) {
 				sql += " WHERE "+USER_ID_FILTER;
-				args.add(userId);
+				param.addValue(COL_VERIFICATION_SUBMISSION_CREATED_BY, userId);
 			}
 		} else {
 			sql = VERIFICATION_SUBMISSION_WITH_STATE_SQL;
-			args.add(states);
+			param.addValue(COL_VERIFICATION_STATE_STATE, states);
 			if (userId!=null) {
 				sql += " AND "+USER_ID_FILTER;
-				args.add(userId);
+				param.addValue(COL_VERIFICATION_SUBMISSION_CREATED_BY, userId);
 			}
 		}
 		sql += LIMIT_OFFSET;
-		args.add(limit);
-		args.add(offset);
+		param.addValue(LIMIT, limit);
+		param.addValue(OFFSET, offset);
 		
 		List<DBOVerificationSubmission> dbos =
-				jdbcTemplate.query(sql, args.toArray(), DBO_VERIFICATION_SUB_MAPPING);
+				namedTemplate.query(sql, param, DBO_VERIFICATION_SUB_MAPPING);
 		List<VerificationSubmission> result = new ArrayList<VerificationSubmission>();
 		if (dbos.isEmpty()) return result;
 		Set<Long> verificationIds = new HashSet<Long>();
@@ -192,8 +204,11 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	}
 	
 	private Map<Long,List<VerificationState>> getVerificationStates(Set<Long> verificationIds) {
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_VERIFICATION_STATE_ID, verificationIds);
 		final Map<Long,List<VerificationState>> result = new HashMap<Long,List<VerificationState>>();
-		jdbcTemplate.query(VERIFICATION_STATE_SQL, new RowMapper<VerificationState>() {
+		namedTemplate.query(VERIFICATION_STATE_SQL, param, new RowMapper<VerificationState>() {
 
 			@Override
 			public VerificationState mapRow(ResultSet rs, int rowNum)
@@ -208,7 +223,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 				return null;
 			}
 			
-		}, verificationIds);
+		});
 		return result;
 	}
 

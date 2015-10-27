@@ -47,7 +47,6 @@ public class DBOVerificationDAOImplTest {
 	private static final String LAST_NAME = "lname";
 	private static final String LOCATION = "location";
 	private static final String ORCID = "http://orcid.org/0000-1111-2222-3333";
-	private static final List<String> FILE_HANDLE_IDS = Arrays.asList("111", "222");
 	
 	private List<String> vsToDelete;
 	private List<String> fhsToDelete;
@@ -106,12 +105,11 @@ public class DBOVerificationDAOImplTest {
 	@Test
 	public void testCreate() throws Exception {
 		FileHandle fh = createFileHandle(USER_1_ID);
-		fh.setFileName("foo");
-		fh = fileHandleDao.createFile(fh);
 		List<String> fileHandleIds = Collections.singletonList(fh.getId());
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
 		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
 		assertNotNull(created.getId());
+		vsToDelete.add(created.getId());
 		List<VerificationState> states = created.getStateHistory();
 		assertEquals(1, states.size());
 		VerificationState state = states.get(0);
@@ -121,7 +119,35 @@ public class DBOVerificationDAOImplTest {
 		// now 'null out' the history.  it should match the submitted object
 		created.setStateHistory(null);
 		assertEquals(dto, created);
-		// TODO does this adequately check the content of the database?
+	}
+	
+	@Test
+	public void testListVerifications() throws Exception {
+		FileHandle fh = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds = Collections.singletonList(fh.getId());
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created.getId());
+		
+		// get all objects in the system
+		List<VerificationSubmission> list = verificationDao.listVerificationSubmissions(null, null, 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(created, list.get(0));
+		
+		// get all the objects for this user
+		list = verificationDao.listVerificationSubmissions(null, Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(created, list.get(0));
+		
+		// get all the objects for this state
+		list = verificationDao.listVerificationSubmissions(Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(created, list.get(0));
+		
+		// get all the objects for this state and user
+		list = verificationDao.listVerificationSubmissions(Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(created, list.get(0));
 	}
 
 }
