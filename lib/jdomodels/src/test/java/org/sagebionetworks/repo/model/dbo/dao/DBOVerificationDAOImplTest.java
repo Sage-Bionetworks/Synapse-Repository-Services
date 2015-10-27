@@ -2,11 +2,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -140,14 +142,99 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(created, list.get(0));
 		
 		// get all the objects for this state
-		list = verificationDao.listVerificationSubmissions(Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
+		list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(created, list.get(0));
 		
 		// get all the objects for this state and user
-		list = verificationDao.listVerificationSubmissions(Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID), 10, 0);
+		list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(created, list.get(0));
+		
+		// you can give several states to match
+		list = verificationDao.listVerificationSubmissions(
+				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
+				Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(created, list.get(0));
+		
+		// no objects for another user
+		assertTrue(verificationDao.listVerificationSubmissions(null, Long.parseLong(USER_2_ID), 10, 0).isEmpty());
+		
+		// no objects in another state
+		assertTrue(verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.approved), null, 10, 0).isEmpty());
+
+		// no objects in another state for another user
+		assertTrue(verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.approved), Long.parseLong(USER_2_ID), 10, 0).isEmpty());
+
+		// make sure limit and offset are wired up right
+		assertTrue(verificationDao.listVerificationSubmissions(null, null, 10, 1).isEmpty());
+		assertTrue(verificationDao.listVerificationSubmissions(null, null, 0, 0).isEmpty());
 	}
 
+	
+	@Test
+	public void testListVerificationsFilterOther() throws Exception {
+		FileHandle fh = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds = Collections.singletonList(fh.getId());
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created.getId());
+		
+		// now create a verification submission for another user
+		fh = createFileHandle(USER_2_ID);
+		fileHandleIds = Collections.singletonList(fh.getId());
+		dto = newVerificationSubmission(USER_2_ID, fileHandleIds);
+		VerificationSubmission createdForOther = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(createdForOther.getId());
+		
+		// now create a verification submission for User-1 but with another state
+		fh = createFileHandle(USER_1_ID);
+		fileHandleIds = Collections.singletonList(fh.getId());
+		dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission createdWithDifferentState = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(createdWithDifferentState.getId());
+		VerificationState newState = new VerificationState();
+		newState.setState(VerificationStateEnum.rejected);
+		newState.setCreatedBy(USER_1_ID);
+		newState.setCreatedOn(new Date());
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(createdWithDifferentState.getId()), newState);
+		
+		// get all objects in the system
+		List<VerificationSubmission> list = verificationDao.listVerificationSubmissions(null, null, 10, 0);
+		assertEquals(3, list.size());
+		assertEquals(new HashSet<VerificationSubmission>(Arrays.asList(created, createdForOther, createdWithDifferentState)),
+				new HashSet<VerificationSubmission>(list));
+		
+		// get all the objects for this user
+		list = verificationDao.listVerificationSubmissions(null, Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(2, list.size());
+		
+		// get all the objects for this state
+		list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
+		assertEquals(2, list.size());
+		
+		// get all the objects for this state and user
+		list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(created, list.get(0));
+		
+		// the other state
+		list = verificationDao.listVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.rejected), Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(1, list.size());
+		assertEquals(createdWithDifferentState, list.get(0));
+		
+		// searching for two states gives us both results
+		list = verificationDao.listVerificationSubmissions(
+				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
+				Long.parseLong(USER_1_ID), 10, 0);
+		assertEquals(2, list.size());
+	}
 }

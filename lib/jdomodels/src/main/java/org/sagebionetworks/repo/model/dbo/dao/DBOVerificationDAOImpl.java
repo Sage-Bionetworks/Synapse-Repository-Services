@@ -74,7 +74,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	private static final String VERIFICATION_SUBMISSION_WITH_STATE_COUNT_SQL = 
 			"SELECT COUNT(*) "+VERIFICATION_SUBMISSION_WITH_STATE_CORE;
 	
-	private static final String USER_ID_FILTER = " "+COL_VERIFICATION_SUBMISSION_CREATED_BY+"=:"+COL_VERIFICATION_SUBMISSION_CREATED_BY;
+	private static final String USER_ID_FILTER = COL_VERIFICATION_SUBMISSION_CREATED_BY+"=:"+COL_VERIFICATION_SUBMISSION_CREATED_BY;
 	
 	private static final String LIMIT = "LIMIT";
 	private static final String OFFSET = "OFFSET";
@@ -178,9 +178,11 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			}
 		} else {
 			sql = VERIFICATION_SUBMISSION_WITH_STATE_SQL;
-			param.addValue(COL_VERIFICATION_STATE_STATE, states);
+			List<String> stateNames = new ArrayList<String>();
+			for (VerificationStateEnum state : states) stateNames.add(state.name());
+			param.addValue(COL_VERIFICATION_STATE_STATE, stateNames);
 			if (userId!=null) {
-				sql += " AND "+USER_ID_FILTER;
+				sql += " AND v."+USER_ID_FILTER;
 				param.addValue(COL_VERIFICATION_SUBMISSION_CREATED_BY, userId);
 			}
 		}
@@ -244,7 +246,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			sql = VERIFICATION_SUBMISSION_WITH_STATE_COUNT_SQL;
 			args.add(states);
 			if (userId!=null) {
-				sql += " AND "+USER_ID_FILTER;
+				sql += " AND v."+USER_ID_FILTER;
 				args.add(userId);
 			}
 		}
