@@ -118,8 +118,7 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(USER_1_ID, state.getCreatedBy());
 		assertEquals(CREATED_ON, state.getCreatedOn());
 		assertEquals(VerificationStateEnum.submitted, state.getState());
-		// now 'null out' the id and history.  it should match the submitted object
-		created.setId(null);
+		// now 'null out' the history.  it should match the submitted object
 		created.setStateHistory(null);
 		assertEquals(dto, created);
 		// TODO does this adequately check the content of the database?

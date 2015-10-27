@@ -6,7 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.util.List;
 
@@ -23,12 +23,12 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOVerificationSubmissionFile implements
 		MigratableDatabaseObject<DBOVerificationSubmissionFile, DBOVerificationSubmissionFile> {
 
-	@Field(name = COL_VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
-	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
+	@Field(name = COL_VERIFICATION_FILE_ID, backupId = true, primary = true, nullable = false)
+	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_VERIFICATION_ID)
 	private Long id;
 	
-	@Field(name = COL_VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
+	@Field(name = COL_VERIFICATION_FILE_FILEHANDLEID, backupId = false, primary = false, nullable = false)
+	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_FILE_ID)
 	private Long fileHandleId;
 
 	private static TableMapping<DBOVerificationSubmissionFile> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmissionFile.class);

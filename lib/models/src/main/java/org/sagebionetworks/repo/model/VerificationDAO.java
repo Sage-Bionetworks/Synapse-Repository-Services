@@ -17,21 +17,21 @@ public interface VerificationDAO {
 	
 	/**
 	 * 
-	 * @param newState optional
-	 * @param userId optional
+	 * @param states the results are limited to verification submissions in any of the given states (optional)
+	 * @param userId the results are limited to verification submissions for the given userId (optional)
 	 * @param limit required
 	 * @param offset required
 	 * @return
 	 */
-	public List<VerificationSubmission> listVerificationSubmissions(VerificationStateEnum state, Long userId, long limit, long offset);
+	public List<VerificationSubmission> listVerificationSubmissions(List<VerificationStateEnum> states, Long userId, long limit, long offset);
 	
 	/**
 	 * 
-	 * @param state optional
-	 * @param userId optional
+	 * @param states the results are limited to verification submissions in any of the given states (optional)
+	 * @param userId the results are limited to verification submissions for the given userId (optional)
 	 * @return
 	 */
-	public long countVerificationSubmissions(VerificationStateEnum state, Long userId);
+	public long countVerificationSubmissions(List<VerificationStateEnum> states, Long userId);
 	
 	/**
 	 * delete object given its ID
@@ -42,24 +42,11 @@ public interface VerificationDAO {
 	/**
 	 * append a new state object to the given submission's state history, updating its state
 	 * 
+	 * @param verificationSubmissionId
 	 * @param newState
 	 */
-	public void appendVerificationSubmissionState(VerificationState newState);
+	public void appendVerificationSubmissionState(long verificationSubmissionId, VerificationState newState);
 	
-	/**
-	 * return the active (submitted or approved) verification submission
-	 * 
-	 * @param userId
-	 * @return
-	 */
-	public VerificationSubmission getActiveVerificationSubmission(String userId);
-	
-	/**
-	 * check whether there is an active (submitted or approved) verification submission
-	 * @param userId
-	 * @return
-	 */
-	public boolean doesUserHaveActiveVerification(Long userId);
 
 	/**
 	 * check whether a file handle ID is in a verification submission
@@ -69,5 +56,5 @@ public interface VerificationDAO {
 	 * @param fileHandleId
 	 * @return
 	 */
-	public boolean isFileHandleIdInVerificationSubmission(String id, String fileHandleId);
+	public boolean isFileHandleIdInVerificationSubmission(long id, long fileHandleId);
 }

@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_SERIALIZED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
@@ -29,7 +30,7 @@ public class DBOVerificationSubmission implements
 	private Long id;
 	
 	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_BY, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
+	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true, name = FK_VERIFICATION_USER_GROUP_ID)
 	private Long createdBy;
 	
 	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_ON, backupId = false, primary = false, nullable = false)

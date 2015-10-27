@@ -1,15 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_STATE_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_STATE_VERIFICATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
 import java.util.List;
 
@@ -28,11 +30,11 @@ public class DBOVerificationState implements
 		MigratableDatabaseObject<DBOVerificationState, DBOVerificationState> {
 
 	@Field(name = COL_VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
-	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true)
+	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_STATE_VERIFICATION_ID)
 	private Long id;
 	
 	@Field(name = COL_VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
+	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true, name = FK_VERIFICATION_STATE_USER_ID)
 	private Long createdBy;
 	
 	@Field(name = COL_VERIFICATION_STATE_CREATED_ON, backupId = false, primary = false, nullable = false)
