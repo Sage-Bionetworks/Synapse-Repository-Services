@@ -90,13 +90,20 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public String create(UserProfile dto) throws DatastoreException,
 			InvalidModelException {
+		DBOUserProfile jdo = doCreate(dto);
+		transactionalMessenger.sendMessageAfterCommit("" + jdo.getOwnerId(),
+				ObjectType.PRINCIPAL, jdo.geteTag(), ChangeType.CREATE);
+		return jdo.getOwnerId().toString();
+	}
+
+	private DBOUserProfile doCreate(UserProfile dto) throws DatastoreException,
+			InvalidModelException {
 		DBOUserProfile jdo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, jdo);
 		if (jdo.geteTag() == null) {
 			jdo.seteTag(UUID.randomUUID().toString());
 		}
-		jdo = basicDao.createNew(jdo);
-		return jdo.getOwnerId().toString();
+		return basicDao.createNew(jdo);
 	}
 
 	@Override
@@ -205,7 +212,8 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
-	@WriteTransaction
+	// @WriteTransaction -- write transaction will not work here because this method 
+	// is called directly on the bean rather than on the transaction proxy.
 	public void bootstrapProfiles() {
 		// Boot strap all users and groups
 		if (this.userGroupDAO.getBootstrapPrincipals() == null) {
@@ -226,7 +234,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 				} catch (NotFoundException nfe) {
 					userProfile = new UserProfile();
 					userProfile.setOwnerId(abs.getId().toString());
-					this.create(userProfile);
+					this.doCreate(userProfile);
 				}
 			}
 		}
