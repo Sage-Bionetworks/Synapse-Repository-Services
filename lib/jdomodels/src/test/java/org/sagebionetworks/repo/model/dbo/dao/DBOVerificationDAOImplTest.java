@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -110,8 +109,9 @@ public class DBOVerificationDAOImplTest {
 
 	@Test
 	public void testCreate() throws Exception {
-		FileHandle fh = createFileHandle(USER_1_ID);
-		List<String> fileHandleIds = Collections.singletonList(fh.getId());
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds =Arrays.asList(fh1.getId(), fh2.getId());
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
 		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
 		assertNotNull(created.getId());
@@ -128,9 +128,21 @@ public class DBOVerificationDAOImplTest {
 	}
 	
 	@Test
+	public void testCreateNoFiles() throws Exception {
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		assertNotNull(created.getId());
+		vsToDelete.add(created.getId());
+		created.setStateHistory(null);
+		// now 'null out' the history.  it should match the submitted object
+		assertEquals(dto, created);
+	}
+	
+	@Test
 	public void testListVerifications() throws Exception {
-		FileHandle fh = createFileHandle(USER_1_ID);
-		List<String> fileHandleIds = Collections.singletonList(fh.getId());
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds =Arrays.asList(fh1.getId(), fh2.getId());
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
 		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(created.getId());
@@ -195,23 +207,22 @@ public class DBOVerificationDAOImplTest {
 	
 	@Test
 	public void testListVerificationsWithFiltering() throws Exception {
-		FileHandle fh = createFileHandle(USER_1_ID);
-		List<String> fileHandleIds = Collections.singletonList(fh.getId());
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds =Arrays.asList(fh1.getId(), fh2.getId());
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
 		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(created.getId());
 		
 		// now create a verification submission for another user
-		fh = createFileHandle(USER_2_ID);
-		fileHandleIds = Collections.singletonList(fh.getId());
+		fh1 = createFileHandle(USER_2_ID);
+		fileHandleIds = Collections.singletonList(fh1.getId());
 		dto = newVerificationSubmission(USER_2_ID, fileHandleIds);
 		VerificationSubmission createdForOtherUser = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(createdForOtherUser.getId());
 		
 		// now create a verification submission for User-1 but with another state
-		fh = createFileHandle(USER_1_ID);
-		fileHandleIds = Collections.singletonList(fh.getId());
-		dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		dto = newVerificationSubmission(USER_1_ID, null);
 		VerificationSubmission rejected = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(rejected.getId());
 		VerificationState newState = new VerificationState();

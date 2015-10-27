@@ -104,7 +104,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
 	}
 	
-	public static DBOVerificationSubmission copyVerificationDTOtoDBO(VerificationSubmission dto) {
+	private static DBOVerificationSubmission copyVerificationDTOtoDBO(VerificationSubmission dto) {
 		DBOVerificationSubmission dbo = new DBOVerificationSubmission();
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
@@ -117,7 +117,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		return dbo;
 	}
 	
-	public static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
+	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
 		VerificationSubmission dto = new VerificationSubmission();
 		try {
 			dto = (VerificationSubmission)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerialized());

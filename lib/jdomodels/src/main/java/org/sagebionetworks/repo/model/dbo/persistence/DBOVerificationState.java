@@ -35,10 +35,10 @@ public class DBOVerificationState implements
 	private Long verificationId;
 	
 	@Field(name = COL_VERIFICATION_STATE_CREATED_BY, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true, name = FK_VERIFICATION_STATE_USER_ID)
+	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = false, name = FK_VERIFICATION_STATE_USER_ID)
 	private Long createdBy;
 	
-	@Field(name = COL_VERIFICATION_STATE_CREATED_ON, backupId = false, primary = false, nullable = false)
+	@Field(name = COL_VERIFICATION_STATE_CREATED_ON, backupId = false, primary = true, nullable = false)
 	private Long createdOn;
 	
 	@Field(name = COL_VERIFICATION_STATE_STATE, backupId = false, primary = false, nullable = false)

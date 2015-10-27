@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_FILEHANDLEID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_VERIFICATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_FILE_FILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_FILE_VERIFICATION_ID;
@@ -29,8 +31,8 @@ public class DBOVerificationSubmissionFile implements
 	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_VERIFICATION_ID)
 	private Long verificationId;
 	
-	@Field(name = COL_VERIFICATION_FILE_FILEHANDLEID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_FILE_ID)
+	@Field(name = COL_VERIFICATION_FILE_FILEHANDLEID, backupId = false, primary = true, nullable = false)
+	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = false, name = FK_VERIFICATION_FILE_FILE_ID)
 	private Long fileHandleId;
 
 	private static TableMapping<DBOVerificationSubmissionFile> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmissionFile.class);
