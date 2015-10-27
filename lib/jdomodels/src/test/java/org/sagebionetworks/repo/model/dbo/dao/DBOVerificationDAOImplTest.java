@@ -122,7 +122,7 @@ public class DBOVerificationDAOImplTest {
 		VerificationState state = states.get(0);
 		assertEquals(USER_1_ID, state.getCreatedBy());
 		assertNotNull(state.getCreatedOn());
-		assertEquals(VerificationStateEnum.submitted, state.getState());
+		assertEquals(VerificationStateEnum.SUBMITTED, state.getState());
 		// now 'null out' the history.  it should match the submitted object
 		created.setStateHistory(null);
 		assertEquals(dto, created);
@@ -157,26 +157,26 @@ public class DBOVerificationDAOImplTest {
 		VerificationSubmission rejected = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(rejected.getId());
 		List<VerificationSubmission> list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.rejected), 
+				Collections.singletonList(VerificationStateEnum.REJECTED), 
 				Long.parseLong(USER_1_ID), 1, 0);
 		// initally there are no rejected submissions for this user
 		assertEquals(0, list.size());
 		
 		// now update the state
 		VerificationState newState = new VerificationState();
-		newState.setState(VerificationStateEnum.rejected);
+		newState.setState(VerificationStateEnum.REJECTED);
 		newState.setCreatedBy(USER_1_ID);
 		newState.setCreatedOn(new Date());
 		newState.setReason("your submission is invalid");
 		verificationDao.appendVerificationSubmissionState(Long.parseLong(rejected.getId()), newState);
 		list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.rejected), 
+				Collections.singletonList(VerificationStateEnum.REJECTED), 
 				Long.parseLong(USER_1_ID), 1, 0);
 		assertEquals(1, list.size());
 		VerificationSubmission retrieved = list.get(0);
 		assertEquals(rejected.getId(), retrieved.getId());
 		List<VerificationState> stateHistory = retrieved.getStateHistory();
-		assertEquals(VerificationStateEnum.submitted, stateHistory.get(0).getState());
+		assertEquals(VerificationStateEnum.SUBMITTED, stateHistory.get(0).getState());
 		// check that the second (current) state is the one we set
 		assertEquals(newState, stateHistory.get(1));
 	}
@@ -204,28 +204,28 @@ public class DBOVerificationDAOImplTest {
 		
 		// get all the objects for this state
 		list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), null, 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(created, list.get(0));
 		assertEquals(1, verificationDao.countVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), null));
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), null));
 		
 		// get all the objects for this state and user
 		list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID), 10, 0);
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(created, list.get(0));
 		assertEquals(1, verificationDao.countVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID)));
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), Long.parseLong(USER_1_ID)));
 		
 		// you can give several states to match
 		list = verificationDao.listVerificationSubmissions(
-				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
+				Arrays.asList(VerificationStateEnum.SUBMITTED, VerificationStateEnum.REJECTED), 
 				Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(created, list.get(0));
 		assertEquals(1, verificationDao.countVerificationSubmissions(
-				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
+				Arrays.asList(VerificationStateEnum.SUBMITTED, VerificationStateEnum.REJECTED), 
 				Long.parseLong(USER_1_ID)));
 		
 		// no objects for another user
@@ -234,13 +234,13 @@ public class DBOVerificationDAOImplTest {
 		
 		// no objects in another state
 		assertTrue(verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.approved), null, 10, 0).isEmpty());
+				Collections.singletonList(VerificationStateEnum.APPROVED), null, 10, 0).isEmpty());
 
 		// no objects in another state for another user
 		assertTrue(verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.approved), Long.parseLong(USER_2_ID), 10, 0).isEmpty());
+				Collections.singletonList(VerificationStateEnum.APPROVED), Long.parseLong(USER_2_ID), 10, 0).isEmpty());
 		assertEquals(0, verificationDao.countVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.approved),  Long.parseLong(USER_2_ID)));
+				Collections.singletonList(VerificationStateEnum.APPROVED),  Long.parseLong(USER_2_ID)));
 
 		// make sure limit and offset are wired up right
 		assertTrue(verificationDao.listVerificationSubmissions(null, null, 10, 1).isEmpty());
@@ -269,7 +269,7 @@ public class DBOVerificationDAOImplTest {
 		VerificationSubmission rejected = verificationDao.createVerificationSubmission(dto);
 		vsToDelete.add(rejected.getId());
 		VerificationState newState = new VerificationState();
-		newState.setState(VerificationStateEnum.rejected);
+		newState.setState(VerificationStateEnum.REJECTED);
 		newState.setCreatedBy(USER_1_ID);
 		newState.setCreatedOn(new Date());
 		newState.setReason("my dog has fleas");
@@ -296,38 +296,38 @@ public class DBOVerificationDAOImplTest {
 		
 		// get all the objects for this state
 		list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), null, 10, 0);
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), null, 10, 0);
 		assertEquals(2, list.size());
 		assertTrue(list.contains(created));
 		assertTrue(list.contains(createdForOtherUser));
 		assertEquals(2, verificationDao.countVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), null));
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), null));
 		
 		// get all the objects for this state and user
 		list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID), 10, 0);
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(created, list.get(0));
 		assertEquals(1, verificationDao.countVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.submitted), Long.parseLong(USER_1_ID)));
+				Collections.singletonList(VerificationStateEnum.SUBMITTED), Long.parseLong(USER_1_ID)));
 		
 		// the other state
 		list = verificationDao.listVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.rejected), Long.parseLong(USER_1_ID), 10, 0);
+				Collections.singletonList(VerificationStateEnum.REJECTED), Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(1, list.size());
 		assertEquals(rejected, list.get(0));
 		assertEquals(1, verificationDao.countVerificationSubmissions(
-				Collections.singletonList(VerificationStateEnum.rejected), Long.parseLong(USER_1_ID)));
+				Collections.singletonList(VerificationStateEnum.REJECTED), Long.parseLong(USER_1_ID)));
 		
 		// searching for two states gives us both results
 		list = verificationDao.listVerificationSubmissions(
-				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
+				Arrays.asList(VerificationStateEnum.SUBMITTED, VerificationStateEnum.REJECTED), 
 				Long.parseLong(USER_1_ID), 10, 0);
 		assertEquals(2, list.size());
 		assertTrue(list.contains(created));
 		assertTrue(list.contains(rejected));
 		assertEquals(2, verificationDao.countVerificationSubmissions(
-				Arrays.asList(VerificationStateEnum.submitted, VerificationStateEnum.rejected), 
+				Arrays.asList(VerificationStateEnum.SUBMITTED, VerificationStateEnum.REJECTED), 
 				Long.parseLong(USER_1_ID)));
 	}
 	

@@ -13,7 +13,8 @@
 		},
 		"state":{
 			"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.verification.VerificationStateEnum"
+			"description":"The state of the verification submission",
+			"$ref":"org.sagebionetworks.repo.model.verification.VerificationStateEnum"
 		},
 		"reason":{
 			"type":"string",

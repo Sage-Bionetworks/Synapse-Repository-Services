@@ -71,6 +71,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -112,6 +113,7 @@ import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -221,6 +223,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private ChallengeTeamDAO challengeTeamDAO;
 	
+	@Autowired
+	private VerificationDAO verificationDao;
+	
 	private Team team;
 
 	private Long adminUserId;
@@ -291,9 +296,17 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createTermsOfUseAgreement(sampleGroup);
 		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
-		UserGroup sampleGroup2 = createUserGroups(2);
+		createUserGroups(2);
 		createQuizResponse();
 		createChallengeAndRegisterTeam();
+		createVerificationSubmission();
+	}
+	
+	private void createVerificationSubmission() {
+		VerificationSubmission dto = new VerificationSubmission();
+		dto.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		dto.setCreatedOn(new Date());
+		verificationDao.createVerificationSubmission(dto);
 	}
 	
 	private void createChallengeAndRegisterTeam() {

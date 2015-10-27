@@ -3,9 +3,9 @@
     "name": "VerificationStateEnum",
     "type":"string",
     "enum":[
-        "submitted",
-        "approved",
-	 	"rejected",
-	 	"suspended"
+        "SUBMITTED",
+        "APPROVED",
+	 	"REJECTED",
+	 	"SUSPENDED"
     ]
 }

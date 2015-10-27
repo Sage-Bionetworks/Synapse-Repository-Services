@@ -98,7 +98,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		VerificationState initialState = new VerificationState();
 		initialState.setCreatedBy(dto.getCreatedBy());
 		initialState.setCreatedOn(dto.getCreatedOn());
-		initialState.setState(VerificationStateEnum.submitted);
+		initialState.setState(VerificationStateEnum.SUBMITTED);
 		appendVerificationSubmissionState(dbo.getId(), initialState);
 		storeFileHandleIds(dbo.getId(), dto.getFiles());
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
