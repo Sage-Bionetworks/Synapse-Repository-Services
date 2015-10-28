@@ -1,0 +1,73 @@
+{
+    "title":"VerificationSubmission",
+    "description":"User info submitted for verification by Synapse ACT",
+	"properties": {
+		"id":{
+			"type":"string",
+			"description":"The ID of this object",
+				"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"createdOn":{
+			"type":"string",
+			"format":"date-time",
+			"description":"The date and time this object was created",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"createdBy":{
+			"type":"string",
+			"description":"The principal ID of the user who created this object",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"firstName": {
+			"type": "string",
+			"title": "First Name",
+			"description": "This person's given name (forename)",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"lastName": {
+			"type": "string",
+			"title": "Last Name",
+			"description": "This person's family name (surname)",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"emails": {
+			"type": "array",
+			"title": "Emails",
+			"description": "The list of user email addresses registered to this user.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"location": {
+			"type": "string",
+			"title": "Location",
+			"description": "This person's location",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"company": {
+			"type": "string",
+			"title": "Company",
+			"description": "This person's current affiliation",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"orcid": {
+			"type": "string",
+			"title": "ORCID",
+			"description": "The user's ORCID URI",
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"stateHistory":{
+			"type":"array",
+			"description":"List of state changes the submission has passed through, ordered by time.  The last in the list contains the current state of the submission.",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.verification.VerificationState"
+			},
+			"links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"files":{
+			"type":"array",
+			"description":"Files attached to the submission",
+			"items":{"type":"string"}
+		}
+	}
+}
