@@ -61,7 +61,7 @@
 			"description":"List of state changes the submission has passed through, ordered by time.  The last in the list contains the current state of the submission.",
 			"items":{
 				"$ref":"org.sagebionetworks.repo.model.verification.VerificationState"
-			},
+			}
 		},
 		"files":{
 			"type":"array",
