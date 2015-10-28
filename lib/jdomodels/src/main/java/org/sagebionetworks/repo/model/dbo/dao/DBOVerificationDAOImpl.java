@@ -186,9 +186,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	@Override
 	public List<VerificationSubmission> listVerificationSubmissions(
-			List<VerificationStateEnum> states, Long userId, long limit, long offset) {
-		String sql = "SELECT * "+listVerificationSubmissionsSQLcore(states, userId)+LIMIT_OFFSET;
-		MapSqlParameterSource param = listVerificationSubmissionsParams(states, userId);
+			List<VerificationStateEnum> currentVerificationState, Long userId, long limit, long offset) {
+		String sql = "SELECT * "+listVerificationSubmissionsSQLcore(currentVerificationState, userId)+LIMIT_OFFSET;
+		MapSqlParameterSource param = listVerificationSubmissionsParams(currentVerificationState, userId);
 		param.addValue(LIMIT, limit);
 		param.addValue(OFFSET, offset);
 		
@@ -280,9 +280,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	}
 	
 	@Override
-	public boolean isFileHandleIdInVerificationSubmission(long id,
+	public boolean isFileHandleIdInVerificationSubmission(long verificationId,
 			long fileHandleId) {
-		Long count = jdbcTemplate.queryForObject(FILE_ID_IN_VERIFICATION_SQL, Long.class, id, fileHandleId);
+		Long count = jdbcTemplate.queryForObject(FILE_ID_IN_VERIFICATION_SQL, Long.class, verificationId, fileHandleId);
 		return count>0;
 	}
 

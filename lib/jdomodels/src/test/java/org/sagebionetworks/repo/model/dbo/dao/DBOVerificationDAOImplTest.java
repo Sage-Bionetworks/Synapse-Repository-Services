@@ -235,6 +235,8 @@ public class DBOVerificationDAOImplTest {
 		// no objects in another state
 		assertTrue(verificationDao.listVerificationSubmissions(
 				Collections.singletonList(VerificationStateEnum.APPROVED), null, 10, 0).isEmpty());
+		assertEquals(0, verificationDao.countVerificationSubmissions(
+				Collections.singletonList(VerificationStateEnum.APPROVED),  null));
 
 		// no objects in another state for another user
 		assertTrue(verificationDao.listVerificationSubmissions(

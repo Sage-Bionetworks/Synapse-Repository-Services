@@ -17,13 +17,13 @@ public interface VerificationDAO {
 	
 	/**
 	 * 
-	 * @param states the results are limited to verification submissions in any of the given states (optional)
+	 * @param currentVerificationState the results are limited to verification submissions in any of the given states (optional)
 	 * @param userId the results are limited to verification submissions for the given userId (optional)
 	 * @param limit required
 	 * @param offset required
 	 * @return
 	 */
-	public List<VerificationSubmission> listVerificationSubmissions(List<VerificationStateEnum> states, Long userId, long limit, long offset);
+	public List<VerificationSubmission> listVerificationSubmissions(List<VerificationStateEnum> currentVerificationState, Long userId, long limit, long offset);
 	
 	/**
 	 * 
@@ -52,9 +52,9 @@ public interface VerificationDAO {
 	 * check whether a file handle ID is in a verification submission
 	 * this is used in authorization checks
 	 * 
-	 * @param id
+	 * @param verificationId id of the VerificationSubmission
 	 * @param fileHandleId
-	 * @return
+	 * @return true iff the given file handle is in the given verification submission
 	 */
-	public boolean isFileHandleIdInVerificationSubmission(long id, long fileHandleId);
+	public boolean isFileHandleIdInVerificationSubmission(long verificationId, long fileHandleId);
 }
