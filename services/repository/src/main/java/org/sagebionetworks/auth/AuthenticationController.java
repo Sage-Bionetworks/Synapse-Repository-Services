@@ -262,6 +262,21 @@ public class AuthenticationController extends BaseController {
 		return authenticationService.validateOAuthAuthenticationCodeAndLogin(request);
 	}
 
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to fetch the provider's ID for the user.  The provider's
+	 * ID will then be bound to the user's account as a new 'alias'.  Note:  Some
+	 * alias types (like ORCID) allow just one value per account.  For such aliases, 
+	 * an error will be returned if the user tries to bind more than one such alias.
+	 * 
+	 * @param request
+	 * @param userId
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.POST)
 	public @ResponseBody
