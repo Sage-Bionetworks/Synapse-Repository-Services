@@ -37,7 +37,7 @@ public interface VerificationDAO {
 	 * delete object given its ID
 	 * @param id
 	 */
-	public void deleteVerificationSubmission(String id);
+	public void deleteVerificationSubmission(long id);
 	
 	/**
 	 * append a new state object to the given submission's state history, updating its state

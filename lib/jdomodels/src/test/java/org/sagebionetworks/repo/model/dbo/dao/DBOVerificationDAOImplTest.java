@@ -63,7 +63,7 @@ public class DBOVerificationDAOImplTest {
 	public void after() throws Exception {
 		for (String id : vsToDelete) {
 			try {
-				verificationDao.deleteVerificationSubmission(id);
+				verificationDao.deleteVerificationSubmission(Long.parseLong(id));
 			} catch (NotFoundException e) {
 				// continue
 			}
@@ -146,7 +146,7 @@ public class DBOVerificationDAOImplTest {
 		assertNotNull(created.getId());
 		vsToDelete.add(created.getId());
 		assertEquals(1, verificationDao.countVerificationSubmissions(null, null));
-		verificationDao.deleteVerificationSubmission(created.getId());
+		verificationDao.deleteVerificationSubmission(Long.parseLong(created.getId()));
 		assertEquals(0, verificationDao.countVerificationSubmissions(null, null));
 	}
 	

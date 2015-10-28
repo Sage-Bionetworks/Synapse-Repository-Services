@@ -142,7 +142,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	
 	@WriteTransaction
 	@Override
-	public void deleteVerificationSubmission(String id) {
+	public void deleteVerificationSubmission(long id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
