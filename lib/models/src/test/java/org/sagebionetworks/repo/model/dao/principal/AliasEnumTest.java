@@ -104,6 +104,13 @@ public class AliasEnumTest {
 		AliasEnum.USER_ORCID.validateAlias("http://orcid.org/0000-1111-2222-3333");
 	}
 	
+	// it's valid for the final character to be an "X"
+	// http://support.orcid.org/knowledgebase/articles/116780-structure-of-the-orcid-identifier
+	@Test
+	public void testValidORCIDWithXchecksum() {
+		AliasEnum.USER_ORCID.validateAlias("http://orcid.org/0000-1111-2222-333X");
+	}
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testORCIDWrongPrefix() {
 		AliasEnum.USER_ORCID.validateAlias("http://foo/0000-1111-2222-3333");
