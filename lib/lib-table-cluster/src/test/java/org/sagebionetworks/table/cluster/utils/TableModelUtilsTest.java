@@ -1046,33 +1046,64 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testGetFileHandleIdsInRowSet(){
-		List<ColumnModel> cols = new ArrayList<ColumnModel>();
-		cols.add(TableModelTestUtils.createColumn(1L, "a", ColumnType.STRING));
-		cols.add(TableModelTestUtils.createColumn(2L, "b", ColumnType.FILEHANDLEID));
-		cols.add(TableModelTestUtils.createColumn(3L, "c", ColumnType.STRING));
-		cols.add(TableModelTestUtils.createColumn(4L, "c", ColumnType.FILEHANDLEID));
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.STRING));
+		cols.add(TableModelTestUtils.createSelectColumn(2L, "b", ColumnType.FILEHANDLEID));
+		cols.add(TableModelTestUtils.createSelectColumn(3L, "c", ColumnType.STRING));
+		cols.add(TableModelTestUtils.createSelectColumn(4L, "c", ColumnType.FILEHANDLEID));
 		
 		List<Row> rows = new ArrayList<Row>();
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "1","2","3","4"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "5","6","7","8"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "9",null,"7",""));
 		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
 		Set<Long> expected = Sets.newHashSet(2L, 4L, 6L, 8L);
-		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(rowset);
+		assertEquals(expected, results);
+ 	}
+	
+	@Test
+	public void testGetFileHandleIdsInRowSetWithIgnoredColumns(){
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(1L, "a", ColumnType.STRING));
+		cols.add(TableModelTestUtils.createSelectColumn(2L, "b", ColumnType.FILEHANDLEID));
+		// a null column means values in this column should be ignored.
+		cols.add(null);
+		cols.add(TableModelTestUtils.createSelectColumn(4L, "c", ColumnType.FILEHANDLEID));
+		
+		List<Row> rows = new ArrayList<Row>();
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "1","2","ignore","4"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "5","6","ignore","8"));
+		rows.add(TableModelTestUtils.createRow(1L, 0L, "9",null,"ignore",""));
+		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
+		Set<Long> expected = Sets.newHashSet(2L, 4L, 6L, 8L);
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(rowset);
 		assertEquals(expected, results);
  	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetFileHandleIdsInRowSetNotLongs(){
-		List<ColumnModel> cols = new ArrayList<ColumnModel>();
-		cols.add(TableModelTestUtils.createColumn(2L, "b", ColumnType.FILEHANDLEID));
+		List<SelectColumn> cols = new ArrayList<SelectColumn>();
+		cols.add(TableModelTestUtils.createSelectColumn(2L, "b", ColumnType.FILEHANDLEID));
 		
 		List<Row> rows = new ArrayList<Row>();
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "1"));
 		rows.add(TableModelTestUtils.createRow(1L, 0L, "not a number"));
 		
+		RowSet rowset = new RowSet();
+		rowset.setHeaders(cols);
+		rowset.setRows(rows);
+		
 		// should fail.
-		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(cols, rows);
+		Set<Long> results = TableModelUtils.getFileHandleIdsInRowSet(rowset);
  	}
 	
 	@Test
@@ -1159,4 +1190,5 @@ public class TableModelUtilsTest {
 		// should fail.
 		TableModelUtils.convertStringToLong(in, out);
 	}
+	
 }

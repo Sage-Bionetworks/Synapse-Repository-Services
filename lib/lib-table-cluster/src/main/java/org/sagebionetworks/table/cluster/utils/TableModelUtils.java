@@ -1395,20 +1395,22 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Set<Long> getFileHandleIdsInRowSet(List<ColumnModel> columnList, List<Row> rows){
-		ColumnModel[] columns = columnList.toArray(new ColumnModel[columnList.size()]);
+	public static Set<Long> getFileHandleIdsInRowSet(RowSet rowSet){
+		SelectColumn[] columns = rowSet.getHeaders().toArray(new SelectColumn[rowSet.getHeaders().size()]);
 		Set<Long> fileHandleIds = new HashSet<Long>();
-		for(Row row: rows){
+		for(Row row: rowSet.getRows()){
 			int columnIndex = 0;
 			if(row.getValues() != null){
 				for(String cellValue: row.getValues()){
 					if(!isNullOrEmpty(cellValue)){
-						if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
-							try {
-								fileHandleIds.add(Long.parseLong(cellValue));
-							} catch (NumberFormatException e) {
-								throw new IllegalArgumentException("Passed a non-integer file handle id: "+cellValue);
-							}						
+						if(columns[columnIndex] != null){
+							if(ColumnType.FILEHANDLEID.equals(columns[columnIndex].getColumnType())){
+								try {
+									fileHandleIds.add(Long.parseLong(cellValue));
+								} catch (NumberFormatException e) {
+									throw new IllegalArgumentException("Passed a non-integer file handle id: "+cellValue);
+								}						
+							}
 						}
 					}
 					columnIndex++;
@@ -1459,4 +1461,5 @@ public class TableModelUtils {
 			}
 		}
 	}
+
 }
