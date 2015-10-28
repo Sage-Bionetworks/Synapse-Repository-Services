@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -43,6 +44,7 @@ public class TableIndexManagerImplTest {
 	List<Row> rows;
 	RowSet rowSet;
 	List<ColumnModel> schema;
+	List<SelectColumn> selectColumns;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -62,9 +64,15 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createColumn(101L, "aFile", ColumnType.FILEHANDLEID)
 				);
 		
+		selectColumns = Arrays.asList(
+				TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
+				TableModelTestUtils.createSelectColumn(101L, "aFile", ColumnType.FILEHANDLEID)
+				);
+		
 		rowSet = new RowSet();
 		rowSet.setRows(rows);
-		rowSet.setTableId(tableId);	
+		rowSet.setTableId(tableId);
+		rowSet.setHeaders(selectColumns);
 		
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		
@@ -124,6 +132,12 @@ public class TableIndexManagerImplTest {
 				TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "moreStrings", ColumnType.STRING)
 				);
+		selectColumns = Arrays.asList(
+				TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
+				TableModelTestUtils.createSelectColumn(101L, "moreStrings", ColumnType.STRING)
+				);
+		rowSet.setHeaders(selectColumns);
+		
 		//call under test.
 		manager.applyChangeSetToIndex(rowSet, schema, versionNumber);
 		// All changes should be executed in a transaction
