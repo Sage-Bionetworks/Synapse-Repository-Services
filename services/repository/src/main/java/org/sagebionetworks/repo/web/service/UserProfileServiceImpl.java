@@ -10,14 +10,13 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.VerificationManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -34,6 +33,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -56,10 +56,12 @@ import org.springframework.http.HttpHeaders;
 
 public class UserProfileServiceImpl implements UserProfileService {
 
-	private final Logger logger = LogManager.getLogger(UserProfileServiceImpl.class);
-
 	@Autowired
 	private UserProfileManager userProfileManager;
+	
+	@Autowired
+	private VerificationManager verificationManager;
+	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
 	
@@ -357,6 +359,40 @@ public class UserProfileServiceImpl implements UserProfileService {
 		ResponseMessage responseMessage = new ResponseMessage();
 		responseMessage.setMessage("You have successfully updated your email notification settings.");
 		return responseMessage;
+	}
+
+	// TODO add a bitmask
+	@Override
+	public UserBundle getMyOwnUserBundle(Long userId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserBundle result = new UserBundle();
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		result.setUserProfile(userProfileManager.getUserProfile(userInfo.getId().toString()));
+		result.setIsACTMember(false/*TODO*/);
+		result.setIsCertified(false/*TODO*/);
+		result.setIsVerified(false/*TODO*/);
+		result.setORCID(""/*TODO*/);
+		result.setUserId(""/*TODO*/);
+		result.setVerificationSubmission(null/*TODO*/);
+		return result;
+	}
+
+	// TODO add a bitmask
+	@Override
+	public UserBundle getUserBundleByOwnerId(Long userId, String profileId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserBundle result = new UserBundle();
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserProfile userProfile = userProfileManager.getUserProfile(profileId);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, userProfile);
+		result.setUserProfile(userProfile);
+		result.setIsACTMember(false/*TODO*/);
+		result.setIsCertified(false/*TODO*/);
+		result.setIsVerified(false/*TODO*/);
+		result.setORCID(""/*TODO*/);
+		result.setUserId(""/*TODO*/);
+		result.setVerificationSubmission(null/*TODO*/);
+		return result;
 	}
 
 }

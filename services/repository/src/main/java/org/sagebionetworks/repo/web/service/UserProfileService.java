@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -44,7 +45,18 @@ public interface UserProfileService {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public UserProfile getMyOwnUserProfile(Long userId) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
+	UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public UserBundle getMyOwnUserBundle(Long userId) throws DatastoreException,
+	UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get a user profile specifying the individual group id for the user of interest
@@ -54,6 +66,18 @@ public interface UserProfileService {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public UserProfile getUserProfileByOwnerId(Long userId, String profileId)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userId
+	 * @param profileId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public UserBundle getUserBundleByOwnerId(Long userId, String profileId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
