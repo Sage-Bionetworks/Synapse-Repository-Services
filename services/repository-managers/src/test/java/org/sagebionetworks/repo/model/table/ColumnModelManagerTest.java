@@ -334,4 +334,44 @@ public class ColumnModelManagerTest {
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}
+	
+	/**
+	 * See PLFM-3619.  This schema should be just under the limit.
+	 */
+	@Test
+	public void testUnderDataPerColumnLimit(){
+		String objectId = "syn123";
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<21; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		//call under test
+		columnModelManager.bindColumnToObject(user, scheamIds, objectId, true);
+	}
+	
+	/**
+	 * See PLFM-3619.  This schema should be just over the limit.
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testOverDataPerColumnLimit(){
+		String objectId = "syn123";
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		// Currently the breaking point is 23 string columns of size 1000.
+		for(int i=0; i<23; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.STRING);
+			cm.setMaximumSize(1000L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		//call under test
+		columnModelManager.bindColumnToObject(user, scheamIds, objectId, true);
+	}
 }

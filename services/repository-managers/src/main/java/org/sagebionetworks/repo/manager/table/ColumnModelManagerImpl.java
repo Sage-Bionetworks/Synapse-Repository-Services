@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +21,10 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SelectColumnAndModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -39,6 +37,12 @@ import com.google.common.collect.Maps;
  */
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
+	/**
+	 * This is the maximum number of bytes for a single row in MySQL.
+	 * This determines the maxiumn schema size for a table.
+	 */
+	private static final int MY_SQL_MAX_BYTES_PER_ROW = 65535;
+	
 	@Autowired
 	ColumnModelDAO columnModelDao;
 	@Autowired
@@ -133,6 +137,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId, boolean isNew) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
+		// Get the columns and validate the size
+		validateSchemaSize(columnIds);
 		// pass it along to the DAO.
 		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
 		// If there was an actual change we need change the status of the table.
@@ -142,6 +148,22 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			return true;
 		}else{
 			return false;
+		}
+	}
+	
+	/**
+	 * Validate that the given columns are under the maxiumn schema size supported.
+	 * @param columnIds
+	 */
+	private void validateSchemaSize(List<String> columnIds) {
+		if(columnIds != null && !columnIds.isEmpty()){
+			// fetch the columns
+			List<ColumnModel> schema = columnModelDao.getColumnModel(columnIds, false);
+			// Calculate the max row size for this schema.
+			int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
+			if(shemaSize > MY_SQL_MAX_BYTES_PER_ROW){
+				throw new IllegalArgumentException("Too much data per column. The maximum size for a row is about 65000 bytes. The size for the given columns would be "+shemaSize+" bytes");
+			}
 		}
 	}
 
@@ -202,6 +224,5 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 		return TableModelUtils.createColumnMapper(nameToColumnMap, idToColumnMap);
 	}
-	
 	
 }
