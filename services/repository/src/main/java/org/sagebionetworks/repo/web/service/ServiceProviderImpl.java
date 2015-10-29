@@ -69,6 +69,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private ProjectSettingsService projectSettingsService;
 	@Autowired
 	private ChallengeService challengeService;
+	@Autowired
+	private VerificationService verificationService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -175,10 +177,14 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return projectSettingsService;
 	}
 	
-	
 	@Override
 	public ChallengeService getChallengeService() {
 		return challengeService;
+	}
+	
+	@Override
+	public VerificationService getVerificationService() {
+		return verificationService;
 	}
 	
 }

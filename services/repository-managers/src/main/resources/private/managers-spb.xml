@@ -178,6 +178,10 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.table.TableFileHandleAssociationProvider" />
 				</entry>
+				<entry key="VerificationSubmission">
+					<bean
+						class="org.sagebionetworks.repo.manager.VerificationFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -376,4 +380,6 @@
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
     
 	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
+    
+	<bean id="verificationManager" class="org.sagebionetworks.repo.manager.VerificationManagerImpl" scope="singleton"/>
 </beans>

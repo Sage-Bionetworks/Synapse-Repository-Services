@@ -843,6 +843,11 @@ public class UrlHelpers {
 	public static final String CERTIFIED_USER_PASSING_RECORD_WITH_ID = USER+ID+"/certifiedUserPassingRecord";
 	public static final String CERTIFIED_USER_PASSING_RECORDS_WITH_ID = USER+ID+"/certifiedUserPassingRecords";
 	public static final String CERTIFIED_USER_STATUS = USER+ID+"/certificationStatus";
+	
+	
+	// verified user services
+	public static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
+	public static final String VERIFICATION_SUBMISSION_ID_STATE = "/verificationSubmission"+ID+"/state";
 
 	/**
 	 * APIs for DynamoDB related operations.

@@ -52,10 +52,4 @@ public class VerificationServiceImpl implements VerificationService {
 		// TODO notify user who is the subject of the verification submission, including the 'reason'
 	}
 
-	@Override
-	public	String getDownloadURL(Long userId, long verificationSubmissionId, long fileHandleId) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return verificationManager.getDownloadURL(userInfo, verificationSubmissionId, fileHandleId);
-	}
-
 }

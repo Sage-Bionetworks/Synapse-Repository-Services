@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileCopyResults;
@@ -747,4 +748,39 @@ public class UploadController extends BaseController {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
 		return (BulkFileDownloadResponse) jobStatus.getResponseBody();
 	}
+	
+	/**
+	 * Get the actual URL of the file associated with an associated object
+	 * .
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the affiliated object.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.FILE_DOWNLOAD, method = RequestMethod.GET)
+	public @ResponseBody
+	void fileRedirectURLForAffiliate(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestParam(required = false) Boolean redirect,
+			@RequestParam(required = false) FileHandleAssociateType fileAssociateType,
+			@RequestParam(required = false) String fileAssociateId,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		String redirectUrl = fileService.getPresignedUrlForFileHandle(userId, id, fileAssociateType, fileAssociateId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
 }
