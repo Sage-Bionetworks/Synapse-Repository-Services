@@ -37,7 +37,12 @@ import com.google.common.collect.Maps;
  */
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
+	/**
+	 * This is the maximum number of bytes for a single row in MySQL.
+	 * This determines the maxiumn schema size for a table.
+	 */
 	private static final int MY_SQL_MAX_BYTES_PER_ROW = 65535;
+	
 	@Autowired
 	ColumnModelDAO columnModelDao;
 	@Autowired
@@ -145,7 +150,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			return false;
 		}
 	}
-
+	
+	/**
+	 * Validate that the given columns are under the maxiumn schema size supported.
+	 * @param columnIds
+	 */
 	private void validateSchemaSize(List<String> columnIds) {
 		if(columnIds != null && !columnIds.isEmpty()){
 			// fetch the columns
@@ -215,6 +224,5 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 		return TableModelUtils.createColumnMapper(nameToColumnMap, idToColumnMap);
 	}
-	
 	
 }
